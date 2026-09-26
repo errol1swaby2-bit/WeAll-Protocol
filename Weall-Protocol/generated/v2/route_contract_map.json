@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "49bbf2dda510cd7544f586acaebdfe0e06217b84766a58843b6faa6d63f72e1d"
+    "source_tree_digest": "96a0d11b72e201a56afad2942c7cb62156af40e85ed62816e3e9fd51bb264a4a"
   },
   "required_fields": [
     "stable_id",
@@ -6973,6 +6973,7 @@
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/p0/test_p0_mempool_and_admission_invariants.py",
         "tests/p0/test_p0_system_receipts_and_invariants.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/prod/public_seed_test_helpers.py",
         "tests/prod/test_clean_clone_go_gate_venv.py",
         "tests/prod/test_clean_observer_boot_from_checked_in_registry.py",
@@ -8191,6 +8192,7 @@
       "stable_id": "ROUTE-137CB9FB31356917",
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/prod/test_clean_observer_boot_from_checked_in_registry.py",
         "tests/prod/test_external_cross_machine_replay_transcript_capture.py",
         "tests/prod/test_external_evidence_transcript_gates.py",

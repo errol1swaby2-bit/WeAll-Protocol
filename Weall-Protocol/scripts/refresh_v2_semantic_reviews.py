@@ -6,8 +6,6 @@ import datetime as dt
 import hashlib
 import importlib
 import json
-import os
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -63,18 +61,12 @@ def _register_failures(keys: list[str]) -> list[tuple[str, str]]:
         for row in entries
         if isinstance(row, dict)
     }
-    ids = {
-        str(row.get("stable_id") or "")
-        for row in entries
-        if isinstance(row, dict)
-    }
+    ids = {str(row.get("stable_id") or "") for row in entries if isinstance(row, dict)}
     added: list[tuple[str, str]] = []
 
     for canonical_key in sorted(set(keys)):
         if ":" not in canonical_key:
-            raise SystemExit(
-                f"failure key must be canonical code:reason form: {canonical_key!r}"
-            )
+            raise SystemExit(f"failure key must be canonical code:reason form: {canonical_key!r}")
         existing = by_kind_key.get(("failure", canonical_key))
         expected = _stable_failure_id(canonical_key)
         if existing is not None:
@@ -86,9 +78,7 @@ def _register_failures(keys: list[str]) -> list[tuple[str, str]]:
                 )
             continue
         if expected in ids:
-            raise SystemExit(
-                f"stable ID collision while registering {canonical_key}: {expected}"
-            )
+            raise SystemExit(f"stable ID collision while registering {canonical_key}: {expected}")
         row = {
             "aliases": [],
             "canonical_key": canonical_key,
@@ -179,9 +169,7 @@ def _refresh_reviews(
     rows = reviews.get("transactions")
     if not isinstance(rows, list):
         raise SystemExit("semantic_reviews.json transactions must be a list")
-    review_by_type = {
-        str(row.get("tx_type") or ""): row for row in rows if isinstance(row, dict)
-    }
+    review_by_type = {str(row.get("tx_type") or ""): row for row in rows if isinstance(row, dict)}
     missing_reviews = sorted(requested - set(review_by_type))
     if missing_reviews:
         raise SystemExit(f"missing semantic-review row(s): {missing_reviews}")
@@ -206,136 +194,6 @@ def _refresh_reviews(
     artifacts, _manifest = compiler.compile_artifacts()
     compiler._write_artifacts(artifacts)
     return changed
-
-
-
-_CI_BOOTSTRAP_BASE = "8bafd66085c8e307917d9132fddb20a42ad92d97"
-_CI_BOOTSTRAP_WORKFLOW = "PR26 Repair Semantic Refresh V4"
-
-
-def _commit_ci_refresh_snapshot_if_needed() -> None:
-    """Materialize this remediation run before clean-archive validation.
-
-    This is a one-run bootstrap only. Before committing, restore this script
-    from the root-fix commit so the bootstrap logic is not retained in the
-    resulting repository tree.
-    """
-    if os.environ.get("GITHUB_ACTIONS") != "true":
-        return
-    if os.environ.get("GITHUB_WORKFLOW") != _CI_BOOTSTRAP_WORKFLOW:
-        return
-
-    workspace_root = ROOT.parent
-    relative_script = Path("Weall-Protocol/scripts/refresh_v2_semantic_reviews.py")
-    restore = subprocess.run(
-        ["git", "show", f"{_CI_BOOTSTRAP_BASE}:{relative_script.as_posix()}"],
-        cwd=workspace_root,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if restore.returncode != 0:
-        raise SystemExit(
-            "failed to restore semantic-refresh script before bootstrap commit:\n"
-            + restore.stdout
-            + restore.stderr
-        )
-    (workspace_root / relative_script).write_text(restore.stdout, encoding="utf-8")
-
-    protocol_root = workspace_root / "Weall-Protocol"
-    for command in (
-        ["ruff", "format", "scripts/refresh_v2_semantic_reviews.py"],
-        ["ruff", "check", "--fix", "scripts/refresh_v2_semantic_reviews.py"],
-        ["ruff", "format", "scripts/refresh_v2_semantic_reviews.py"],
-        ["ruff", "check", "scripts/refresh_v2_semantic_reviews.py"],
-    ):
-        result = subprocess.run(
-            command,
-            cwd=protocol_root,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            raise SystemExit(
-                f"bootstrap formatting command failed: {' '.join(command)}\n"
-                + result.stdout
-                + result.stderr
-            )
-
-    regenerate_env = dict(os.environ)
-    regenerate_env["PYTHONPATH"] = "src"
-    regenerate = subprocess.run(
-        [sys.executable, "scripts/compile_v2_spec.py"],
-        cwd=protocol_root,
-        env=regenerate_env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if regenerate.returncode != 0:
-        raise SystemExit(
-            "failed to regenerate derivatives after restoring permanent refresh tooling:\n"
-            + regenerate.stdout
-            + regenerate.stderr
-        )
-    print(regenerate.stdout.strip())
-
-    commands = [
-        ["git", "config", "user.name", "github-actions[bot]"],
-        [
-            "git",
-            "config",
-            "user.email",
-            "41898282+github-actions[bot]@users.noreply.github.com",
-        ],
-        ["git", "add", "-A"],
-        ["git", "diff", "--cached", "--check"],
-    ]
-    for command in commands:
-        result = subprocess.run(
-            command,
-            cwd=workspace_root,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            raise SystemExit(
-                f"bootstrap command failed: {' '.join(command)}\n"
-                + result.stdout
-                + result.stderr
-            )
-
-    staged = subprocess.run(
-        ["git", "diff", "--cached", "--quiet"],
-        cwd=workspace_root,
-        check=False,
-    )
-    if staged.returncode == 0:
-        return
-    if staged.returncode != 1:
-        raise SystemExit("unable to determine whether bootstrap changes are staged")
-
-    commit = subprocess.run(
-        [
-            "git",
-            "commit",
-            "-m",
-            "Repair PR26 semantic freshness and generated evidence",
-        ],
-        cwd=workspace_root,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if commit.returncode != 0:
-        raise SystemExit(
-            "failed to commit regenerated semantic snapshot:\n"
-            + commit.stdout
-            + commit.stderr
-        )
-    print(commit.stdout.strip())
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -393,7 +251,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"refreshed transaction: {tx_type}")
         print(f"  old: {old}")
         print(f"  new: {new}")
-    _commit_ci_refresh_snapshot_if_needed()
     return 0
 
 

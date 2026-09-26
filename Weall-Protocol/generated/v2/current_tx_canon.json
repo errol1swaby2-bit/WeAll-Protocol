@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "49bbf2dda510cd7544f586acaebdfe0e06217b84766a58843b6faa6d63f72e1d"
+    "source_tree_digest": "96a0d11b72e201a56afad2942c7cb62156af40e85ed62816e3e9fd51bb264a4a"
   },
   "rows": [
     {
@@ -12744,7 +12744,7 @@
       "implementation_source": {
         "function": "_apply_validator_register",
         "handler": "consensus",
-        "line": 462,
+        "line": 491,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12884,7 +12884,7 @@
       "implementation_source": {
         "function": "_apply_validator_candidate_register",
         "handler": "consensus",
-        "line": 590,
+        "line": 619,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13029,6 +13029,10 @@
           "reason": "missing_activate_at_epoch"
         },
         {
+          "code": "invalid_payload",
+          "reason": "validator_lifecycle_epoch_must_be_future"
+        },
+        {
           "code": "invalid_state",
           "reason": "candidate_missing_canonical_pubkey"
         },
@@ -13041,7 +13045,7 @@
       "implementation_source": {
         "function": "_apply_validator_candidate_approve",
         "handler": "consensus",
-        "line": 660,
+        "line": 689,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13069,10 +13073,10 @@
       "semantic_review": {
         "authority_effect": "none; audit closure does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "96fa93fdde6efb60ece05486718ee004f6286d9b2375a3dc674a9c9acdc08aa9",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-28T02:50:41Z",
-        "reviewer": "WeAll Protocol recursive AI-implementation audit closure (maintainer-directed); independent launch review deferred"
+        "review_digest": "3a55bc1f5820427aa5be60155bbb6fd4490f62b2a442e0eb2049443bc440aec8",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-26T03:30:00Z",
+        "reviewer": "WeAll Protocol maintainer-directed production-readiness remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0602",
@@ -13116,6 +13120,7 @@
       "system_followups": [],
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/test_admission_validator_payload_mvp.py",
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_governance_followups.py",
@@ -13179,7 +13184,7 @@
       "implementation_source": {
         "function": "_apply_validator_deregister",
         "handler": "consensus",
-        "line": 839,
+        "line": 873,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13314,7 +13319,7 @@
       "implementation_source": {
         "function": "_apply_validator_heartbeat",
         "handler": "consensus",
-        "line": 1201,
+        "line": 1235,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13429,7 +13434,7 @@
       "implementation_source": {
         "function": "_apply_validator_set_update",
         "handler": "consensus",
-        "line": 1106,
+        "line": 1140,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13575,7 +13580,7 @@
       "implementation_source": {
         "function": "_apply_block_propose",
         "handler": "consensus",
-        "line": 1318,
+        "line": 1352,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13710,7 +13715,7 @@
       "implementation_source": {
         "function": "_apply_block_attest",
         "handler": "consensus",
-        "line": 1393,
+        "line": 1427,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13888,7 +13893,7 @@
       "implementation_source": {
         "function": "_apply_block_finalize",
         "handler": "consensus",
-        "line": 1579,
+        "line": 1613,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14047,7 +14052,7 @@
       "implementation_source": {
         "function": "_apply_epoch_open",
         "handler": "consensus",
-        "line": 1746,
+        "line": 1780,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14182,7 +14187,7 @@
       "implementation_source": {
         "function": "_apply_epoch_close",
         "handler": "consensus",
-        "line": 1816,
+        "line": 1850,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14293,7 +14298,7 @@
       "implementation_source": {
         "function": "_apply_slash_propose",
         "handler": "consensus",
-        "line": 1861,
+        "line": 1895,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14398,7 +14403,7 @@
       "implementation_source": {
         "function": "_apply_slash_vote",
         "handler": "consensus",
-        "line": 1883,
+        "line": 1917,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14510,7 +14515,7 @@
       "implementation_source": {
         "function": "_apply_slash_execute",
         "handler": "consensus",
-        "line": 2030,
+        "line": 2064,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20347,9 +20352,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "9ba59de792a8a81eff9ad5c9d44c1e3350856c2712f75741c84c0484715755d9",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-09-25T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-26T03:30:00Z",
+        "reviewer": "WeAll Protocol maintainer-directed production-readiness remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1300",
@@ -23806,7 +23811,7 @@
       "implementation_source": {
         "function": "_apply_validator_performance_report",
         "handler": "consensus",
-        "line": 1252,
+        "line": 1286,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27715,6 +27720,10 @@
         {
           "code": "invalid_payload",
           "reason": "missing_effective_epoch"
+        },
+        {
+          "code": "invalid_payload",
+          "reason": "validator_lifecycle_epoch_must_be_future"
         }
       ],
       "frontend_surfaces": [
@@ -27723,7 +27732,7 @@
       "implementation_source": {
         "function": "_apply_validator_suspend",
         "handler": "consensus",
-        "line": 721,
+        "line": 753,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27751,10 +27760,10 @@
       "semantic_review": {
         "authority_effect": "none; audit closure does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "b6355f6862049e22a58dd09218391cb56ff9893459516862bb75a6fc0a1821fe",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-19T00:00:00Z",
-        "reviewer": "WeAll Protocol recursive AI-implementation audit closure (maintainer-directed); independent launch review deferred"
+        "review_digest": "652e266cdac8ddeeb652234fb49fd8a847b8e4f2d5f84df1d5147a914abefaf4",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-26T03:30:00Z",
+        "reviewer": "WeAll Protocol maintainer-directed production-readiness remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-2600",
@@ -27774,6 +27783,7 @@
       "system_followups": [],
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/test_admission_validator_payload_mvp.py",
         "tests/test_adversarial_bft_state_sync_poh_appeal_governance_vectors.py",
         "tests/test_behavior.py",
@@ -27839,13 +27849,17 @@
         {
           "code": "invalid_payload",
           "reason": "missing_effective_epoch"
+        },
+        {
+          "code": "invalid_payload",
+          "reason": "validator_lifecycle_epoch_must_be_future"
         }
       ],
       "frontend_surfaces": [],
       "implementation_source": {
         "function": "_apply_validator_remove",
         "handler": "consensus",
-        "line": 780,
+        "line": 813,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27873,10 +27887,10 @@
       "semantic_review": {
         "authority_effect": "none; audit closure does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "df458ba8cc3c4887564aa3ade396217fd6fe819d32857c1ae5be626e0fa5097c",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-19T00:00:00Z",
-        "reviewer": "WeAll Protocol recursive AI-implementation audit closure (maintainer-directed); independent launch review deferred"
+        "review_digest": "a8a89c7bb9f3e1a4eec0e89bf73008ee056651044f7f852c6f4ab933ad1515e6",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-26T03:30:00Z",
+        "reviewer": "WeAll Protocol maintainer-directed production-readiness remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-2601",
@@ -27896,6 +27910,7 @@
       "system_followups": [],
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/test_admission_validator_payload_mvp.py",
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_governance_followups.py",
