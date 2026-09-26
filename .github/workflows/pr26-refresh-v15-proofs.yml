@@ -1,0 +1,53 @@
+name: PR26 Refresh V1.5 Proof Artifacts
+
+on:
+  push:
+    branches:
+      - production-readiness-audit-20260925
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production-readiness-audit-20260925
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Regenerate deterministic v1.5 proof artifacts
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+
+      - name: Verify regenerated artifacts
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+
+      - name: Commit refreshed proof artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --             Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json             Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json             Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Refresh deterministic v1.5 proof artifacts"
+          git push origin HEAD:production-readiness-audit-20260925
