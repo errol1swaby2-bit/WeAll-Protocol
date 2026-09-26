@@ -141,3 +141,6 @@ jobs:
           else
             git push origin HEAD:production-readiness-audit-20260925
           fi
+
+# Direct audit retrigger: 2026-09-26. The repair job above is intentionally
+# self-deleting and pushes only after its full validation sequence succeeds.
