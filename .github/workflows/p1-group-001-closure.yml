@@ -161,6 +161,51 @@ jobs:
           ruff check src/weall/runtime/tx_schema.py src/weall/runtime/apply/groups.py tests/test_fail_closed_group_treasury.py tests/test_group_emissary_elections_stv.py tests/test_p1_group001_scoped_reference_authority.py
           pytest -q tests/test_p1_group001_scoped_reference_authority.py tests/test_fail_closed_group_treasury.py tests/test_group_emissary_elections_stv.py
 
+      - name: Register new deterministic failure IDs
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          path = Path("specs/v2/source/stable_ids.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          entries = payload.get("entries")
+          if not isinstance(entries, list):
+              raise SystemExit("stable_ids.json entries must be a list")
+
+          keys = [
+              "forbidden:group_scope_mismatch",
+              "invalid_payload:missing_group_or_election_id",
+              "invalid_payload:missing_group_or_spend_id",
+          ]
+          existing = {
+              (row.get("kind"), row.get("canonical_key")): row
+              for row in entries
+              if isinstance(row, dict)
+          }
+          for key in keys:
+              if ("failure", key) in existing:
+                  continue
+              suffix = hashlib.sha256(key.encode("utf-8")).hexdigest()[:16].upper()
+              stable_id = f"FAIL-{suffix}"
+              if any(isinstance(row, dict) and row.get("stable_id") == stable_id for row in entries):
+                  raise SystemExit(f"stable ID collision for {key}: {stable_id}")
+              entries.append(
+                  {
+                      "aliases": [],
+                      "canonical_key": key,
+                      "kind": "failure",
+                      "stable_id": stable_id,
+                      "status": "active",
+                  }
+              )
+
+          entries.sort(key=lambda row: (str(row.get("kind") or ""), str(row.get("canonical_key") or "")))
+          path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          PY
+
       - name: Refresh changed semantic contracts and V2 derivatives
         working-directory: Weall-Protocol
         run: |
@@ -169,6 +214,8 @@ jobs:
             --tx-type GROUP_TREASURY_SPEND_CANCEL \
             --tx-type GROUP_EMISSARY_ELECTION_FINALIZE \
             --register-failure forbidden:group_scope_mismatch \
+            --register-failure invalid_payload:missing_group_or_election_id \
+            --register-failure invalid_payload:missing_group_or_spend_id \
             --reviewed-at 2026-09-26T19:00:00Z \
             --reviewer "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred" \
             --review-method "confirmed_audit_finding_repair_with_adversarial_regression"
