@@ -73,8 +73,8 @@ jobs:
 
           election_test = Path('tests/test_group_emissary_elections_stv.py')
           et = election_test.read_text()
-          et = et.replace('payload={"election_id": election_id}', 'payload={"group_id": group_id, "election_id": election_id}')
-          et = et.replace('payload={"election_id": "e1"}', 'payload={"group_id": "g1", "election_id": "e1"}')
+          et = et.replace('{"election_id": "e1"})', '{"group_id": "g1", "election_id": "e1"})')
+          et = et.replace('{"election_id": "e2"})', '{"group_id": "g2", "election_id": "e2"})')
           election_test.write_text(et)
           PY
 
