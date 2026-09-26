@@ -142,13 +142,26 @@ jobs:
               check=True,
           )
 
-          print('=== Regenerate derivatives from the final candidate tree ===', flush=True)
+          print('=== Regenerate v2 derivatives from the final candidate tree ===', flush=True)
           subprocess.run(['python', 'scripts/compile_v2_spec.py'], cwd=PROTOCOL, check=True)
+
+          print('=== Refresh dependent public-readiness derivative chain ===', flush=True)
+          readiness_generators = [
+              ['python', 'scripts/gen_failure_code_registry_v1_5.py'],
+              ['python', 'scripts/gen_release_evidence_manifest_v1_5.py'],
+              ['python', 'scripts/gen_public_beta_blocker_report_v1_5.py'],
+              ['python', 'scripts/gen_current_verified_claims.py'],
+          ]
+          for command in readiness_generators:
+              subprocess.run(command, cwd=PROTOCOL, check=True)
 
           print('=== Pre-commit final-tree validation ===', flush=True)
           precommit_checks = [
               ['python', 'scripts/check_generated.py'],
               ['python', 'scripts/compile_v2_spec.py', '--check'],
+              ['python', 'scripts/gen_failure_code_registry_v1_5.py', '--check'],
+              ['python', 'scripts/gen_release_evidence_manifest_v1_5.py', '--check'],
+              ['python', 'scripts/gen_public_beta_blocker_report_v1_5.py', '--check'],
               ['python', 'scripts/check_v15_public_readiness_artifacts.py'],
               ['python', 'scripts/check_public_claim_freshness.py'],
               ['python', 'scripts/gen_current_verified_claims.py', '--check'],
@@ -180,6 +193,9 @@ jobs:
           exact_checks = [
               ['python', 'scripts/check_generated.py'],
               ['python', 'scripts/check_v2_spec_clean_checkout.py'],
+              ['python', 'scripts/gen_failure_code_registry_v1_5.py', '--check'],
+              ['python', 'scripts/gen_release_evidence_manifest_v1_5.py', '--check'],
+              ['python', 'scripts/gen_public_beta_blocker_report_v1_5.py', '--check'],
               ['python', 'scripts/check_v15_public_readiness_artifacts.py'],
               ['python', 'scripts/check_public_claim_freshness.py'],
               ['python', 'scripts/gen_current_verified_claims.py', '--check'],
