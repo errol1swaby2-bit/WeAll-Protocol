@@ -1,6 +1,8 @@
 name: P1 GROUP 001 Closure
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [production-readiness-audit-20260925]
 
