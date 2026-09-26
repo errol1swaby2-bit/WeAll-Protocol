@@ -1,0 +1,37 @@
+name: Fix P1 Remediation Harness
+
+on:
+  push:
+    branches: [p1-complete-remediation-20260926]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-complete-remediation-20260926
+          fetch-depth: 0
+      - name: Make duplicate replacement function-scoped
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/p1-complete-remediation-20260926.yml')
+          text = path.read_text()
+          old = '''              count = text.count(old)\n              if count != 1:\n                  raise SystemExit(f"expected one match in {path}, found {count}: {old[:120]!r}")\n              p.write_text(text.replace(old, new, 1))\n'''
+          new = '''              count = text.count(old)\n              if count != 1:\n                  if (\n                      path == "src/weall/runtime/apply/roles.py"\n                      and count == 2\n                      and 'rec["active"] = True' in old\n                  ):\n                      start = text.find("def _apply_role_node_operator_activate(")\n                      end = text.find("def _apply_role_node_operator_suspend(", start)\n                      if start < 0 or end < 0:\n                          raise SystemExit("NodeOperator activation function boundaries not found")\n                      segment = text[start:end]\n                      if segment.count(old) != 1:\n                          raise SystemExit("NodeOperator activation target is not unique within function")\n                      p.write_text(text[:start] + segment.replace(old, new, 1) + text[end:])\n                      return\n                  raise SystemExit(f"expected one match in {path}, found {count}: {old[:120]!r}")\n              p.write_text(text.replace(old, new, 1))\n'''
+          if text.count(old) != 1:
+              raise SystemExit(f'helper body match count={text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git rm -f .github/workflows/fix-p1-remediation-harness-20260926.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Fix scoped NodeOperator P1 harness patch'
+          git push origin HEAD:p1-complete-remediation-20260926
