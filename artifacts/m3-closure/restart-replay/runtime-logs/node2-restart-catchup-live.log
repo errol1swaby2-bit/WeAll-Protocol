@@ -1,0 +1,280 @@
+==> Expected peer identity from http://127.0.0.1:18301/v1/chain/genesis
+{"ok":true,"chain_id":"weall-controlled-devnet","schema_version":"1","genesis_hash":"","tx_index_hash":"89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69","chain_manifest":{"enabled":true,"path":"/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json","version":1,"chain_id":"weall-controlled-devnet","profile":"controlled_devnet_service","mode":"controlled_devnet","schema_version":"1","genesis_hash":"2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7","genesis_state_root":"2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7","tx_index_hash":"89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69","protocol_profile_hash":"a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6","constitution_version":"draft-2","constitution_hash":"8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163","constitution_traceability_hash":"c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08","constitution_document_path":"docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md","genesis_time_ms":0,"constitutional_clock":{"allowed_clock_skew_ms":2000,"block_time_derivation":"genesis_time_plus_height_times_interval","empty_blocks_enabled":true,"enabled":true,"genesis_time_ms":0,"no_fast_forward":true,"no_height_skip":true,"procedure_time_source":"finalized_block_height","target_block_interval_ms":20000},"authority_snapshot_version":1,"trusted_authority_pubkeys_count":1,"manifest_hash":"c3c6e7b0eb0b9b35a2436dc3e586542ef34f5840b176cd889b4dcf76020bda90","issues":[],"ok":true,"actual_tx_index_hash":"89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69","tx_index_hash_matches":true},"constitution":{"version":"draft-2","hash":"8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163","document_hash":"8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163","document_path":"docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md","traceability_hash":"c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08","active":true,"hash_matches_source":true,"traceability_hash_matches_source":true,"status":"genesis_bound"},"constitutional_clock":{"enabled":true,"target_block_interval_ms":20000,"empty_blocks_enabled":true,"procedure_time_source":"finalized_block_height","block_time_derivation":"genesis_time_plus_height_times_interval","no_fast_forward":true,"no_height_skip":true,"allowed_clock_skew_ms":2000,"genesis_time_ms":0,"current_procedure_height":1},"production_consensus_profile_hash":"a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6","protocol_profile_hash":"a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6","genesis_bootstrap":{"enabled":true,"mode":"explicit","profile_hash":"d7b144f06154a924e8447c8abdcee358e4b2a9847251ae15f01077b2a061eb18"},"trusted_anchor":{"height":1,"tip_hash":"f92181faf6000859578e77dbcd4e5e1e0833c1e92f3f845eafeb1afdb6206fef","state_root":"f707f1693a55a13e1755cd50a8973e1d16128c34bdfa8c29e81b310335ea39cc","finalized_height":0,"finalized_block_id":"","snapshot_hash":"1413f2af1f9b78e78382b20f71e6cbb1306618c0038c6ceb3d20b2200c92537e"}}
+==> Booting joining devnet node
+mode=controlled_devnet
+runtime_profile=controlled_devnet
+chain_id=weall-controlled-devnet
+node_id=@devnet-joiner
+bootstrap_operator=@devnet-genesis
+bootstrap_juror=1
+poh_bootstrap_open=0
+poh_bootstrap_max_height=500
+tier2_jurors=1
+tier2_min_reviews=1
+async_jurors=1
+async_min_reviews=1
+live_partial_panels=1
+live_partial_until_height=500
+operator_keyfile=/tmp/weall_m3_restart_replay_zMNWIZ/.weall-devnet/genesis-operator.json
+db=/tmp/weall_m3_restart_replay_zMNWIZ/.weall-devnet/node2/weall.db
+block_loop_lock=/tmp/weall_m3_restart_replay_zMNWIZ/.weall-devnet/node2/block_loop.lock
+chain_manifest=/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json
+produce_empty_blocks=1
+bind=127.0.0.1:18302
+identity=http://127.0.0.1:18302/v1/chain/identity
+[2026-07-29 16:20:55 -0700] [40422] [INFO] Starting gunicorn 26.0.0
+[2026-07-29 16:20:55 -0700] [40422] [INFO] Listening at: http://127.0.0.1:18302 (40422)
+[2026-07-29 16:20:55 -0700] [40422] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-07-29 16:20:55 -0700] [40432] [INFO] Booting worker with pid: 40432
+[2026-07-29 16:20:55 -0700] [40422] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-07-29 16:20:56 -0700] [40432] [INFO] Started server process [40432]
+[2026-07-29 16:20:56 -0700] [40432] [INFO] Waiting for application startup.
+[2026-07-29 16:20:56 -0700] [40432] [INFO] Application startup complete.
+127.0.0.1:44816 - "GET /v1/readyz HTTP/1.1" 200
+127.0.0.1:36102 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:52720 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:52736 - "POST /v1/sync/apply HTTP/1.1" 200
+127.0.0.1:52752 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:52756 - "GET /v1/accounts/%40devnet_crossnode_20260729-232056-40436 HTTP/1.1" 200
+127.0.0.1:52766 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:52782 - "GET /v1/accounts/%40devnet_crossnode_20260729-232056-40436 HTTP/1.1" 200
+127.0.0.1:52788 - "POST /v1/tx/submit HTTP/1.1" 200
+127.0.0.1:52796 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59588 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59598 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59610 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59614 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59626 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59630 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59636 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59642 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59646 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59654 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59656 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59660 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59664 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59676 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59688 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59692 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59706 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59712 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59722 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:59726 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46784 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46786 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46800 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46804 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46814 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46828 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46834 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46838 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46844 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46854 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46864 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46868 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46874 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46882 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46894 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46902 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46918 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46920 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46930 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48206 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48218 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48222 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48228 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48238 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48250 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48258 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48262 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48272 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48278 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48290 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48292 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48296 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48306 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48318 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48326 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48334 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48348 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48350 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:48366 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51462 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51464 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51480 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51496 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51502 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51504 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51514 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51520 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51532 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51548 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51556 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51560 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51576 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51580 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51594 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51604 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51618 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51628 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:51642 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46566 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46572 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46578 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46592 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46594 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46598 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46600 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46606 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46614 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46628 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46644 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46658 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46662 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46670 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46686 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46700 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46704 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46710 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46712 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:46724 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53824 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53826 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53842 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53846 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53848 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53852 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53858 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53868 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53880 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53896 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53902 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53912 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53924 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53940 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53950 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53956 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53960 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53976 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:53990 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52606 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52620 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52632 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52644 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52646 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52656 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52668 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52670 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52674 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52678 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52694 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52708 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52720 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52736 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52752 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52754 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52768 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52772 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52786 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:52800 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38360 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38376 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38386 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38398 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38412 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38414 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38420 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38428 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38442 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38448 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38452 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38462 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38464 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38466 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38470 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38474 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38478 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38482 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38490 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:38500 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58142 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58158 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58174 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58184 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58198 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58214 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58228 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58242 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58248 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58254 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58268 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58278 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58286 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58288 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58296 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58304 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58306 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58310 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:58314 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:60076 - "GET /v1/tx/status/tx%3Abe75108d975846f5aa79fe06d4feee8059a116010814944aba157a56c4ed97dc HTTP/1.1" 200
+127.0.0.1:60080 - "GET /v1/accounts/%40devnet_crossnode_20260729-232056-40436 HTTP/1.1" 200
+127.0.0.1:60082 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:60098 - "POST /v1/sync/apply HTTP/1.1" 200
+127.0.0.1:60110 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:60118 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:60124 - "GET /v1/chain/identity HTTP/1.1" 200
+[2026-07-29 16:22:56 -0700] [40422] [INFO] Handling signal: term
+[2026-07-29 16:22:56 -0700] [40432] [INFO] Shutting down
+[2026-07-29 16:22:56 -0700] [40432] [INFO] Error while closing socket [Errno 9] Bad file descriptor
+[2026-07-29 16:22:56 -0700] [40432] [INFO] Waiting for application shutdown.
+[2026-07-29 16:22:56 -0700] [40432] [INFO] Application shutdown complete.
+[2026-07-29 16:22:56 -0700] [40432] [INFO] Finished server process [40432]
+[2026-07-29 16:22:56 -0700] [40422] [INFO] Worker (pid:40432) was sent SIGTERM!
+[2026-07-29 16:22:56 -0700] [40422] [INFO] Shutting down: Master
+==> Expected peer identity from http://127.0.0.1:18301/v1/chain/genesis
+{"ok":true,"chain_id":"weall-controlled-devnet","schema_version":"1","genesis_hash":"","tx_index_hash":"89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69","chain_manifest":{"enabled":true,"path":"/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json","version":1,"chain_id":"weall-controlled-devnet","profile":"controlled_devnet_service","mode":"controlled_devnet","schema_version":"1","genesis_hash":"2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7","genesis_state_root":"2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7","tx_index_hash":"89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69","protocol_profile_hash":"a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6","constitution_version":"draft-2","constitution_hash":"8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163","constitution_traceability_hash":"c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08","constitution_document_path":"docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md","genesis_time_ms":0,"constitutional_clock":{"allowed_clock_skew_ms":2000,"block_time_derivation":"genesis_time_plus_height_times_interval","empty_blocks_enabled":true,"enabled":true,"genesis_time_ms":0,"no_fast_forward":true,"no_height_skip":true,"procedure_time_source":"finalized_block_height","target_block_interval_ms":20000},"authority_snapshot_version":1,"trusted_authority_pubkeys_count":1,"manifest_hash":"c3c6e7b0eb0b9b35a2436dc3e586542ef34f5840b176cd889b4dcf76020bda90","issues":[],"ok":true,"actual_tx_index_hash":"89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69","tx_index_hash_matches":true},"constitution":{"version":"draft-2","hash":"8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163","document_hash":"8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163","document_path":"docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md","traceability_hash":"c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08","active":true,"hash_matches_source":true,"traceability_hash_matches_source":true,"status":"genesis_bound"},"constitutional_clock":{"enabled":true,"target_block_interval_ms":20000,"empty_blocks_enabled":true,"procedure_time_source":"finalized_block_height","block_time_derivation":"genesis_time_plus_height_times_interval","no_fast_forward":true,"no_height_skip":true,"allowed_clock_skew_ms":2000,"genesis_time_ms":0,"current_procedure_height":7},"production_consensus_profile_hash":"a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6","protocol_profile_hash":"a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6","genesis_bootstrap":{"enabled":true,"mode":"explicit","profile_hash":"d7b144f06154a924e8447c8abdcee358e4b2a9847251ae15f01077b2a061eb18"},"trusted_anchor":{"height":7,"tip_hash":"2e8af5322798d3b4c839bc610bf6e8bafd06ba9cb13863572ecbbfa2ef9f859a","state_root":"15f009422673744872437f072fbd67e53b3aeea61ecb6e256e913dd5bc00c2f7","finalized_height":0,"finalized_block_id":"","snapshot_hash":"0031b532bb78db8a82d51cf8a4ca30fa3ed6455ff11509050ec1954da20669c0"}}
+==> Booting joining devnet node
+mode=controlled_devnet
+runtime_profile=controlled_devnet
+chain_id=weall-controlled-devnet
+node_id=@devnet-joiner
+bootstrap_operator=@devnet-genesis
+bootstrap_juror=1
+poh_bootstrap_open=0
+poh_bootstrap_max_height=500
+tier2_jurors=1
+tier2_min_reviews=1
+async_jurors=1
+async_min_reviews=1
+live_partial_panels=1
+live_partial_until_height=500
+operator_keyfile=/tmp/weall_m3_restart_replay_zMNWIZ/.weall-devnet/genesis-operator.json
+db=/tmp/weall_m3_restart_replay_zMNWIZ/.weall-devnet/node2/weall.db
+block_loop_lock=/tmp/weall_m3_restart_replay_zMNWIZ/.weall-devnet/node2/block_loop.lock
+chain_manifest=/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json
+produce_empty_blocks=1
+bind=127.0.0.1:18302
+identity=http://127.0.0.1:18302/v1/chain/identity
+[2026-07-29 16:22:57 -0700] [40487] [INFO] Starting gunicorn 26.0.0
+[2026-07-29 16:22:57 -0700] [40487] [INFO] Listening at: http://127.0.0.1:18302 (40487)
+[2026-07-29 16:22:57 -0700] [40487] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-07-29 16:22:57 -0700] [40497] [INFO] Booting worker with pid: 40497
+[2026-07-29 16:22:57 -0700] [40487] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-07-29 16:22:58 -0700] [40497] [INFO] Started server process [40497]
+[2026-07-29 16:22:58 -0700] [40497] [INFO] Waiting for application startup.
+[2026-07-29 16:22:58 -0700] [40497] [INFO] Application startup complete.
+127.0.0.1:48808 - "GET /v1/readyz HTTP/1.1" 200
+127.0.0.1:48818 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:48828 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:48838 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:48852 - "POST /v1/sync/apply HTTP/1.1" 200
+127.0.0.1:48858 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:48874 - "GET /v1/chain/identity HTTP/1.1" 200
+[2026-07-29 16:23:02 -0700] [40487] [INFO] Handling signal: term
+[2026-07-29 16:23:02 -0700] [40497] [INFO] Shutting down
+[2026-07-29 16:23:02 -0700] [40497] [INFO] Error while closing socket [Errno 9] Bad file descriptor
+[2026-07-29 16:23:02 -0700] [40497] [INFO] Waiting for application shutdown.
+[2026-07-29 16:23:02 -0700] [40497] [INFO] Application shutdown complete.
+[2026-07-29 16:23:02 -0700] [40497] [INFO] Finished server process [40497]
+[2026-07-29 16:23:02 -0700] [40487] [INFO] Worker (pid:40497) was sent SIGTERM!
+[2026-07-29 16:23:02 -0700] [40487] [INFO] Shutting down: Master

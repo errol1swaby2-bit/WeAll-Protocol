@@ -1,0 +1,157 @@
+{
+  "authoritative_database_mutated": false,
+  "consensus_transactions_admitted": 0,
+  "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+  "ledger": {
+    "block_id": "0e4072afc97d65a6aed66d2c7d7fdb253d991d6cd7c220667355e060c9db953c",
+    "confirmed_transaction_count": 511,
+    "height": 988,
+    "mempool_count": 0
+  },
+  "mempool_transactions_admitted": 0,
+  "proof_labels": [
+    "nonselected_reviewer_vote_rejected",
+    "conflicted_reviewer_vote_rejected",
+    "duplicate_dispute_ballot_rejected",
+    "replacement_dispute_ballot_rejected"
+  ],
+  "proofs": {
+    "conflicted_reviewer_vote_rejected": {
+      "apply_result": {
+        "applied": false,
+        "code": "forbidden",
+        "details": {
+          "juror": "@m3_author",
+          "target_owner": "@m3_author"
+        },
+        "reason": "juror_conflict_target_owner",
+        "state_copy_unchanged": true
+      },
+      "fixture": {
+        "account": "@m3_author",
+        "expected_error_code": "juror_conflict_target_owner",
+        "label": "conflicted_reviewer_vote_rejected",
+        "precondition_tx_id": null,
+        "role": "author_proposer",
+        "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+        "tx_type": "DISPUTE_VOTE_SUBMIT"
+      },
+      "probe_actor": {
+        "account": "@m3_author",
+        "nonce": 20,
+        "poh_tier": 2,
+        "role": "author_proposer"
+      },
+      "signed_envelope": {
+        "private_material_included": false,
+        "sig_profile": "pq-mldsa-v1",
+        "signature_verified": true,
+        "tx_id": "tx:e2cc85c139f3ec61cc1ee172eeac243a2a0d4e6f0663b134a0a27360a4c0d0f7"
+      }
+    },
+    "duplicate_dispute_ballot_rejected": {
+      "apply_result": {
+        "applied": false,
+        "code": "conflict",
+        "details": {
+          "dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+          "juror": "@m3_original_01",
+          "stage": "juror_review"
+        },
+        "reason": "dispute_ballot_already_final",
+        "state_copy_unchanged": true
+      },
+      "fixture": {
+        "account": "@m3_original_01",
+        "expected_error_code": "dispute_ballot_already_final",
+        "label": "duplicate_dispute_ballot_rejected",
+        "precondition_tx_id": "tx:6f9dd0fbb4e2a8a0c03bf41e002a7827d785707accf54d06afc3ae8e48347d91",
+        "role": "reviewer_original_01",
+        "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+        "tx_type": "DISPUTE_VOTE_SUBMIT"
+      },
+      "probe_actor": {
+        "account": "@m3_original_01",
+        "nonce": 16,
+        "poh_tier": 2,
+        "role": "reviewer_original_01"
+      },
+      "signed_envelope": {
+        "private_material_included": false,
+        "sig_profile": "pq-mldsa-v1",
+        "signature_verified": true,
+        "tx_id": "tx:9adf95361f92b059b6b8778c812f0855f441f25a6b30af47222b41795402be38"
+      }
+    },
+    "nonselected_reviewer_vote_rejected": {
+      "apply_result": {
+        "applied": false,
+        "code": "forbidden",
+        "details": {
+          "dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+          "juror": "@m3_appeal_01"
+        },
+        "reason": "juror_not_assigned",
+        "state_copy_unchanged": true
+      },
+      "fixture": {
+        "account": "@m3_appeal_01",
+        "expected_error_code": "juror_not_assigned",
+        "label": "nonselected_reviewer_vote_rejected",
+        "precondition_tx_id": null,
+        "role": "reviewer_appeal_01",
+        "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+        "tx_type": "DISPUTE_VOTE_SUBMIT"
+      },
+      "probe_actor": {
+        "account": "@m3_appeal_01",
+        "nonce": 13,
+        "poh_tier": 2,
+        "role": "reviewer_appeal_01"
+      },
+      "signed_envelope": {
+        "private_material_included": false,
+        "sig_profile": "pq-mldsa-v1",
+        "signature_verified": true,
+        "tx_id": "tx:66ed6fe9c66de3e2ab5e8a0837829c787781f785efa40c749b10e48df79c7fa8"
+      }
+    },
+    "replacement_dispute_ballot_rejected": {
+      "apply_result": {
+        "applied": false,
+        "code": "conflict",
+        "details": {
+          "dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+          "juror": "@m3_original_01",
+          "stage": "juror_review"
+        },
+        "reason": "dispute_ballot_already_final",
+        "state_copy_unchanged": true
+      },
+      "fixture": {
+        "account": "@m3_original_01",
+        "expected_error_code": "dispute_ballot_already_final",
+        "label": "replacement_dispute_ballot_rejected",
+        "precondition_tx_id": "tx:6f9dd0fbb4e2a8a0c03bf41e002a7827d785707accf54d06afc3ae8e48347d91",
+        "role": "reviewer_original_01",
+        "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+        "tx_type": "DISPUTE_VOTE_SUBMIT"
+      },
+      "probe_actor": {
+        "account": "@m3_original_01",
+        "nonce": 16,
+        "poh_tier": 2,
+        "role": "reviewer_original_01"
+      },
+      "signed_envelope": {
+        "private_material_included": false,
+        "sig_profile": "pq-mldsa-v1",
+        "signature_verified": true,
+        "tx_id": "tx:4d74ef5e64c37d771294112dbb8e514745edb1c796c3e5cb919a5cd72d53e304"
+      }
+    }
+  },
+  "recorded_at_utc": "2026-07-29T23:20:33Z",
+  "schema_version": 1,
+  "status": "m3_signed_apply_dispute_negative_proofs_verified"
+}
