@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1946,
+  "file_count": 1947,
   "files": [
     {
       "affected_registers": [
@@ -58,6 +58,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/pr26-generate-v2.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "aee6c1002aae9d545b97e6a951a3fa23a3f86ad3d562d7e8e0192a6469d65f71",
+      "source_id": "SRC-251A3924DB04BD4A"
     },
     {
       "affected_registers": [
@@ -6690,7 +6703,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "bfb9494a4b3abdf4ce43ead6dbcec65487cc5932715d4ef5743af351ce6bfc00",
+      "sha256": "e4b8e89a2530ef13e09c5c5f66ad96546d3c5e4479a321e6506c8f428ecb65dc",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6716,7 +6729,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c61b94fe56113e434511557b25260b1425005b246ba8af0aedb3264dc8998164",
+      "sha256": "7693e12de7dfc0d614fd25c1ae04d363d9c364ea8cae7c960ff2ac07d779d8a5",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -8675,7 +8688,7 @@
       ],
       "path": "src/weall/runtime/apply/economics.py",
       "primary_mechanism_id": "M-063",
-      "sha256": "5e672afc16f19c905c2b8bd6b31286a0a768a5b5a0f3312710bd18152bde754c",
+      "sha256": "c0bbe88d24097a89f406084eca7c0f105f354cc6e5d9780627ab1f5a32345178",
       "source_id": "SRC-3A60F279F82C9786"
     },
     {
@@ -27268,7 +27281,7 @@
       ],
       "path": "tests/test_transfer_tip_contract.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "c38f87a2b7a3e3508bcdb9cdc78fb43f28700eb5e94acc746337a328d3e204d2",
+      "sha256": "23454d365af58b008c71f0b2522545649c1712c867339d5f1cecb3dc705e7e49",
       "source_id": "SRC-788A65AD1A746088"
     },
     {
