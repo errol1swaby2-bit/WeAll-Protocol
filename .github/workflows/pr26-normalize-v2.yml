@@ -1,0 +1,91 @@
+name: PR26 Normalize Stable ID and Derivatives
+
+on:
+  push:
+    branches:
+      - production-readiness-audit-20260925
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production-readiness-audit-20260925
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore baseline formatting and insert one stable ID
+        run: |
+          git show 69cce170829ded30ebb030669f05c387df6a3ddb:Weall-Protocol/specs/v2/source/stable_ids.json > /tmp/stable_ids.base.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("Weall-Protocol/specs/v2/source/stable_ids.json")
+          text = Path("/tmp/stable_ids.base.json").read_text(encoding="utf-8")
+          data = json.loads(text)
+
+          new = {
+              "aliases": [],
+              "canonical_key": "invalid_payload:self_transfer_forbidden",
+              "kind": "failure",
+              "stable_id": "FAIL-5B5956453E3B2F2E",
+              "status": "active",
+          }
+
+          entries = data["entries"]
+          if any(row.get("stable_id") == new["stable_id"] for row in entries):
+              raise SystemExit("stable ID already present in baseline")
+
+          next_row = next(
+              row for row in entries
+              if str(row.get("stable_id", "")) > new["stable_id"]
+          )
+          marker = f'      "stable_id": "{next_row["stable_id"]}"'
+          marker_pos = text.index(marker)
+          obj_start = text.rfind("    {\n", 0, marker_pos)
+          if obj_start < 0:
+              raise SystemExit("could not locate insertion object")
+
+          block = (
+              "    {\n"
+              '      "aliases": [],\n'
+              '      "canonical_key": "invalid_payload:self_transfer_forbidden",\n'
+              '      "kind": "failure",\n'
+              '      "stable_id": "FAIL-5B5956453E3B2F2E",\n'
+              '      "status": "active"\n'
+              "    },\n"
+          )
+          path.write_text(text[:obj_start] + block + text[obj_start:], encoding="utf-8")
+          PY
+
+      - name: Install backend locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Generate V2 derivatives
+        working-directory: Weall-Protocol
+        run: python scripts/compile_v2_spec.py
+
+      - name: Commit normalized source and derivatives
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            Weall-Protocol/specs/v2/source/stable_ids.json \
+            web/src/generated/protocolStatus.ts \
+            Weall-Protocol/generated/v2
+          git diff --cached --quiet && exit 0
+          git commit -m "Normalize stable ID registration and refresh V2 derivatives"
+          git push origin HEAD:production-readiness-audit-20260925
