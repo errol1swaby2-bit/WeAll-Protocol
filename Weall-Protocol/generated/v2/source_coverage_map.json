@@ -67,10 +67,10 @@
       "mappings": [
         "M-075"
       ],
-      "path": "../.github/workflows/pr26-generate-v2.yml",
+      "path": "../.github/workflows/pr26-normalize-v2.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "aee6c1002aae9d545b97e6a951a3fa23a3f86ad3d562d7e8e0192a6469d65f71",
-      "source_id": "SRC-251A3924DB04BD4A"
+      "sha256": "cfad4b49d09a9ee6e28c14795b63e5774bd666e9005724881bd05d2db8d7da4c",
+      "source_id": "SRC-B809EDCE49E9D16C"
     },
     {
       "affected_registers": [
@@ -6729,7 +6729,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "7693e12de7dfc0d614fd25c1ae04d363d9c364ea8cae7c960ff2ac07d779d8a5",
+      "sha256": "68ff6a58f6d5291ed2c6fa5241abecacedcaea547eeda579a03819a41bba2f4d",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
