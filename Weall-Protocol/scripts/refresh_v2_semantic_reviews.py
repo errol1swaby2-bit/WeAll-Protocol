@@ -263,6 +263,24 @@ def _commit_ci_refresh_snapshot_if_needed() -> None:
                 + result.stderr
             )
 
+    regenerate_env = dict(os.environ)
+    regenerate_env["PYTHONPATH"] = "src"
+    regenerate = subprocess.run(
+        [sys.executable, "scripts/compile_v2_spec.py"],
+        cwd=protocol_root,
+        env=regenerate_env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if regenerate.returncode != 0:
+        raise SystemExit(
+            "failed to regenerate derivatives after restoring permanent refresh tooling:\n"
+            + regenerate.stdout
+            + regenerate.stderr
+        )
+    print(regenerate.stdout.strip())
+
     commands = [
         ["git", "config", "user.name", "github-actions[bot]"],
         [
