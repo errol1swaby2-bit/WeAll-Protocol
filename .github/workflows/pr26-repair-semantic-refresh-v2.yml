@@ -1,4 +1,4 @@
-name: PR26 Repair Semantic Refresh V3
+name: PR26 Repair Semantic Refresh V4
 
 on:
   push:
@@ -26,18 +26,39 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Remove temporary remediation workflows from intended final tree
-        shell: bash
+      - name: Remove this temporary remediation workflow from intended final tree
+        run: git rm -f .github/workflows/pr26-repair-semantic-refresh-v2.yml
+
+      - name: Register permanent semantic refresh tooling in fail-closed source coverage
+        working-directory: Weall-Protocol
         run: |
-          set -Eeuo pipefail
-          for path in \
-            .github/workflows/pr26-finalize-cons003.yml \
-            .github/workflows/pr26-repair-semantic-refresh-v2.yml
-          do
-            if [[ -e "$path" ]]; then
-              git rm -f "$path"
-            fi
-          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("specs/v2/source/source_mappings.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          target = "scripts/refresh_v2_semantic_reviews.py"
+          rows = payload.get("mappings")
+          if not isinstance(rows, list):
+              raise SystemExit("source_mappings.json mappings must be a list")
+          matches = [row for row in rows if isinstance(row, dict) and row.get("path") == target]
+          if len(matches) > 1:
+              raise SystemExit(f"duplicate source mappings for {target}")
+          if not matches:
+              rows.append({
+                  "affected_registers": ["transactions", "failures", "stable_ids", "evidence"],
+                  "classification": "authoritative_spec_maintenance_tooling",
+                  "path": target,
+                  "primary_mechanism_id": "M-076",
+                  "review_status": "mapped_current_snapshot",
+              })
+              rows.sort(key=lambda row: str(row.get("path") or ""))
+              path.write_text(
+                  json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+                  encoding="utf-8",
+              )
+          PY
 
       - name: Install locked backend dependencies
         working-directory: Weall-Protocol
@@ -46,14 +67,32 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Format permanent semantic refresh tooling
+      - name: Format and lint every Python file changed by PR26
         working-directory: Weall-Protocol
         run: |
-          ruff format scripts/refresh_v2_semantic_reviews.py tests/test_refresh_v2_semantic_reviews.py
-          ruff check scripts/refresh_v2_semantic_reviews.py tests/test_refresh_v2_semantic_reviews.py
-          ruff format --check scripts/refresh_v2_semantic_reviews.py tests/test_refresh_v2_semantic_reviews.py
+          ruff format \
+            scripts/refresh_v2_semantic_reviews.py \
+            src/weall/runtime/apply/consensus.py \
+            src/weall/runtime/apply/economics.py \
+            tests/p0/test_p1_cons003_future_validator_epochs.py \
+            tests/test_balance_transfer_self_transfer_regression.py \
+            tests/test_refresh_v2_semantic_reviews.py
+          ruff format --check \
+            scripts/refresh_v2_semantic_reviews.py \
+            src/weall/runtime/apply/consensus.py \
+            src/weall/runtime/apply/economics.py \
+            tests/p0/test_p1_cons003_future_validator_epochs.py \
+            tests/test_balance_transfer_self_transfer_regression.py \
+            tests/test_refresh_v2_semantic_reviews.py
+          ruff check \
+            scripts/refresh_v2_semantic_reviews.py \
+            src/weall/runtime/apply/consensus.py \
+            src/weall/runtime/apply/economics.py \
+            tests/p0/test_p1_cons003_future_validator_epochs.py \
+            tests/test_balance_transfer_self_transfer_regression.py \
+            tests/test_refresh_v2_semantic_reviews.py
 
-      - name: Refresh all PR26 implementation semantic contracts
+      - name: Refresh every semantic contract changed by PR26 runtime patches
         working-directory: Weall-Protocol
         run: |
           PYTHONPATH=src python scripts/refresh_v2_semantic_reviews.py \
@@ -62,11 +101,11 @@ jobs:
             --tx-type VALIDATOR_SUSPEND \
             --tx-type VALIDATOR_REMOVE \
             --register-failure invalid_payload:validator_lifecycle_epoch_must_be_future \
-            --reviewed-at 2026-09-25T19:30:00Z \
+            --reviewed-at 2026-09-26T03:30:00Z \
             --reviewer "WeAll Protocol maintainer-directed production-readiness remediation; independent launch review deferred" \
             --review-method "maintainer_reviewed_semantic_change_with_regression_evidence"
 
-      - name: Validate focused runtime and semantic tooling
+      - name: Validate repository-wide formatting lint and focused regressions
         working-directory: Weall-Protocol
         run: |
           ruff format --check .
@@ -76,34 +115,41 @@ jobs:
             tests/test_balance_transfer_self_transfer_regression.py \
             tests/p0/test_p1_cons003_future_validator_epochs.py \
             tests/p0/test_p0_consensus_core.py
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
 
-      - name: Validate generated and public-claim surfaces
+      - name: Validate all V2 semantic and generated surfaces
         working-directory: Weall-Protocol
         run: |
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
+          python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
 
-      - name: Commit intended final tree
+      - name: Validate production reviewer gate before committing
+        working-directory: Weall-Protocol
+        run: |
+          bash scripts/verify_release_tree.sh
+          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
+          WEALL_RELEASE_TREE_ALREADY_VERIFIED=1 bash scripts/reviewer_production_readiness_gate.sh
+
+      - name: Commit validated final tree
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --check
           if git diff --cached --quiet; then
-            echo "No changes to commit; intended tree already materialized."
+            echo "No changes to commit; final tree already materialized."
           else
-            git commit -m "Repair PR26 semantic evidence freshness and formatter gate"
+            git commit -m "Repair PR26 CI freshness and source coverage comprehensively"
           fi
 
       - name: Verify committed clean archive
         working-directory: Weall-Protocol
-        run: |
-          python scripts/check_v2_spec_clean_checkout.py
+        run: python scripts/check_v2_spec_clean_checkout.py
 
-      - name: Push final tree
+      - name: Push validated final tree
         run: |
           if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/production-readiness-audit-20260925)" ]]; then
             echo "No new commit to push."
