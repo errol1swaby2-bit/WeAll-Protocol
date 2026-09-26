@@ -118,8 +118,31 @@ jobs:
       - name: Clean validation residue
         working-directory: Weall-Protocol
         run: |
-          find . -type d \( -name '__pycache__' -o -name '.pytest_cache' -o -name '.ruff_cache' -o -name '*.egg-info' \) -prune -exec rm -rf {} +
+          find . -type d \( \
+            -name '__pycache__' -o \
+            -name '.pytest_cache' -o \
+            -name '.ruff_cache' -o \
+            -name '*.egg-info' -o \
+            -name '.weall-devnet' -o \
+            -name '.weall-media-cache' -o \
+            -name '.weall' \
+          \) -prune -exec rm -rf {} +
           find . -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+
+          if find . \( \
+            -type d \( \
+              -name '__pycache__' -o \
+              -name '.pytest_cache' -o \
+              -name '*.egg-info' -o \
+              -name '.weall-devnet' -o \
+              -name '.weall-media-cache' -o \
+              -name '.weall' \
+            \) -o \
+            -type f \( -name '*.pyc' -o -name '*.pyo' \) \
+          \) -print -quit | grep -q .; then
+            echo "validation/runtime residue remains after cleanup" >&2
+            exit 1
+          fi
 
       - name: Validate release tree and reviewer gate
         run: |
