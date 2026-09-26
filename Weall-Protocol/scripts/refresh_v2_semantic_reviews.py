@@ -242,6 +242,27 @@ def _commit_ci_refresh_snapshot_if_needed() -> None:
         )
     (workspace_root / relative_script).write_text(restore.stdout, encoding="utf-8")
 
+    protocol_root = workspace_root / "Weall-Protocol"
+    for command in (
+        ["ruff", "format", "scripts/refresh_v2_semantic_reviews.py"],
+        ["ruff", "check", "--fix", "scripts/refresh_v2_semantic_reviews.py"],
+        ["ruff", "format", "scripts/refresh_v2_semantic_reviews.py"],
+        ["ruff", "check", "scripts/refresh_v2_semantic_reviews.py"],
+    ):
+        result = subprocess.run(
+            command,
+            cwd=protocol_root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise SystemExit(
+                f"bootstrap formatting command failed: {' '.join(command)}\n"
+                + result.stdout
+                + result.stderr
+            )
+
     commands = [
         ["git", "config", "user.name", "github-actions[bot]"],
         [
