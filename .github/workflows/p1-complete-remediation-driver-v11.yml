@@ -31,33 +31,35 @@ jobs:
           harness_path = Path('.github/workflows/p1-complete-remediation-20260926.yml')
           harness = harness_path.read_text()
 
-          old_failures = '''          for failure in (
-              "forbidden:node_operator_suspended",
-              "forbidden:operator_must_match_signer",
-              "invalid_tx:missing_key_id",
-              "invalid_tx:system_tx_admission_failed",
-          ):
-'''
-          new_failures = '''          for failure in (
-              "forbidden:node_operator_suspended",
-              "forbidden:not_author",
-              "forbidden:operator_must_match_signer",
-              "forbidden:spend_already_executed",
-              "forbidden:treasury_id_mismatch",
-              "invalid_payload:missing_media_id_or_new_cid",
-              "invalid_payload:missing_media_or_target",
-              "invalid_payload:missing_spend_id",
-              "invalid_state:keys_not_configured",
-              "invalid_state:spend_missing_treasury_id",
-              "invalid_tx:missing_key_id",
-              "invalid_tx:system_tx_admission_failed",
-              "invalid_tx:unknown_key",
-              "not_found:binding_not_found",
-              "not_found:content_target_not_found",
-              "not_found:media_not_found",
-              "not_found:spend_not_found",
-          ):
-'''
+          old_failures = ''.join([
+              '          for failure in (\n',
+              '              "forbidden:node_operator_suspended",\n',
+              '              "forbidden:operator_must_match_signer",\n',
+              '              "invalid_tx:missing_key_id",\n',
+              '              "invalid_tx:system_tx_admission_failed",\n',
+              '          ):\n',
+          ])
+          new_failures = ''.join([
+              '          for failure in (\n',
+              '              "forbidden:node_operator_suspended",\n',
+              '              "forbidden:not_author",\n',
+              '              "forbidden:operator_must_match_signer",\n',
+              '              "forbidden:spend_already_executed",\n',
+              '              "forbidden:treasury_id_mismatch",\n',
+              '              "invalid_payload:missing_media_id_or_new_cid",\n',
+              '              "invalid_payload:missing_media_or_target",\n',
+              '              "invalid_payload:missing_spend_id",\n',
+              '              "invalid_state:keys_not_configured",\n',
+              '              "invalid_state:spend_missing_treasury_id",\n',
+              '              "invalid_tx:missing_key_id",\n',
+              '              "invalid_tx:system_tx_admission_failed",\n',
+              '              "invalid_tx:unknown_key",\n',
+              '              "not_found:binding_not_found",\n',
+              '              "not_found:content_target_not_found",\n',
+              '              "not_found:media_not_found",\n',
+              '              "not_found:spend_not_found",\n',
+              '          ):\n',
+          ])
           if harness.count(old_failures) != 1:
               raise SystemExit(f'canonical refresh failure tuple match count={harness.count(old_failures)}')
           harness_path.write_text(harness.replace(old_failures, new_failures, 1))
