@@ -45,7 +45,7 @@ def _utc_timestamp(value: str | None) -> str:
         except ValueError as exc:
             raise SystemExit("--reviewed-at must use YYYY-MM-DDTHH:MM:SSZ") from exc
         return parsed.strftime("%Y-%m-%dT%H:%M:%SZ")
-    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _register_failures(keys: list[str]) -> list[tuple[str, str]]:
