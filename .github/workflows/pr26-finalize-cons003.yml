@@ -23,8 +23,15 @@ jobs:
           python-version: "3.12"
 
       - name: Remove temporary CONS-003 workflows from intended final tree
+        shell: bash
         run: |
-          git rm -f             .github/workflows/pr26-repair-cons003.yml             .github/workflows/pr26-refresh-cons003-evidence.yml             .github/workflows/pr26-finalize-cons003.yml
+          set -Eeuo pipefail
+          for path in             .github/workflows/pr26-repair-cons003.yml             .github/workflows/pr26-refresh-cons003-evidence.yml             .github/workflows/pr26-finalize-cons003.yml
+          do
+            if [[ -e "$path" ]]; then
+              git rm -f "$path"
+            fi
+          done
 
       - name: Install locked backend dependencies
         working-directory: Weall-Protocol
