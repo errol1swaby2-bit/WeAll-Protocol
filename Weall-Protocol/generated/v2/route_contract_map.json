@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "64d7f3fbcf04c9d78485c741f3164529c405acabbb9063cda7e4a5c38b4e2e79"
+    "source_tree_digest": "27a2416757f3da5d2a69b67cda32ee44fbee4e993369413ec00260d73312341e"
   },
   "required_fields": [
     "stable_id",
@@ -7054,6 +7054,7 @@
         "tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py",
         "tests/test_backup_restore_smoke.py",
         "tests/test_backup_restore_write_after_restore.py",
+        "tests/test_balance_transfer_self_transfer_regression.py",
         "tests/test_behavior.py",
         "tests/test_behavior_m1_m10.py",
         "tests/test_bft_artifact_identity_binding.py",

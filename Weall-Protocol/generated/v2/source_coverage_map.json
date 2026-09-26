@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1947,
+  "file_count": 1948,
   "files": [
     {
       "affected_registers": [
@@ -67,10 +67,10 @@
       "mappings": [
         "M-075"
       ],
-      "path": "../.github/workflows/pr26-normalize-v2.yml",
+      "path": "../.github/workflows/pr26-final-v2-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "cfad4b49d09a9ee6e28c14795b63e5774bd666e9005724881bd05d2db8d7da4c",
-      "source_id": "SRC-B809EDCE49E9D16C"
+      "sha256": "ece2a2f39eb967860a203986afb368b5defc9501fe4d8179436fb62da4c9d855",
+      "source_id": "SRC-CEBEE931B3023104"
     },
     {
       "affected_registers": [
@@ -14030,6 +14030,21 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-1300"
+      ],
+      "path": "tests/test_balance_transfer_self_transfer_regression.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "b4111262d92728c3191f901520fadd24e4180bc1b47f0d370b1046eee9527796",
+      "source_id": "SRC-BF1F62C642E1C035"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "TX-0103",
@@ -27281,7 +27296,7 @@
       ],
       "path": "tests/test_transfer_tip_contract.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "23454d365af58b008c71f0b2522545649c1712c867339d5f1cecb3dc705e7e49",
+      "sha256": "c38f87a2b7a3e3508bcdb9cdc78fb43f28700eb5e94acc746337a328d3e204d2",
       "source_id": "SRC-788A65AD1A746088"
     },
     {
