@@ -1,0 +1,93 @@
+name: Complete P1 Remediation Driver v11
+
+on:
+  push:
+    branches: [p1-complete-remediation-20260926]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-complete-remediation-20260926
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Execute v10 pipeline with complete bounded P1 failure registration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          harness_path = Path('.github/workflows/p1-complete-remediation-20260926.yml')
+          harness = harness_path.read_text()
+
+          old_failures = '''          for failure in (
+              "forbidden:node_operator_suspended",
+              "forbidden:operator_must_match_signer",
+              "invalid_tx:missing_key_id",
+              "invalid_tx:system_tx_admission_failed",
+          ):
+'''
+          new_failures = '''          for failure in (
+              "forbidden:node_operator_suspended",
+              "forbidden:not_author",
+              "forbidden:operator_must_match_signer",
+              "forbidden:spend_already_executed",
+              "forbidden:treasury_id_mismatch",
+              "invalid_payload:missing_media_id_or_new_cid",
+              "invalid_payload:missing_media_or_target",
+              "invalid_payload:missing_spend_id",
+              "invalid_state:keys_not_configured",
+              "invalid_state:spend_missing_treasury_id",
+              "invalid_tx:missing_key_id",
+              "invalid_tx:system_tx_admission_failed",
+              "invalid_tx:unknown_key",
+              "not_found:binding_not_found",
+              "not_found:content_target_not_found",
+              "not_found:media_not_found",
+              "not_found:spend_not_found",
+          ):
+'''
+          if harness.count(old_failures) != 1:
+              raise SystemExit(f'canonical refresh failure tuple match count={harness.count(old_failures)}')
+          harness_path.write_text(harness.replace(old_failures, new_failures, 1))
+
+          source = Path('.github/workflows/p1-complete-remediation-driver-v10.yml').read_text()
+          lines = source.splitlines()
+          marker = '- name: Execute corrected v9 remediation pipeline'
+          start = next((i for i, line in enumerate(lines) if line.strip() == marker), None)
+          if start is None:
+              raise SystemExit('missing v10 execution step')
+          run_i = next((i for i in range(start + 1, len(lines)) if lines[i].strip() == 'run: |'), None)
+          if run_i is None:
+              raise SystemExit('missing v10 run block')
+          body = []
+          for line in lines[run_i + 1:]:
+              if line.startswith('      - name: ') or line.startswith('      - uses: '):
+                  break
+              if line.startswith('          '):
+                  body.append(line[10:])
+              elif not line.strip():
+                  body.append('')
+              else:
+                  break
+          script = '\n'.join(body) + '\n'
+
+          old_cleanup = "addition = anchor + 'git rm -f .github/workflows/p1-complete-remediation-driver-v10.yml\\n'"
+          new_cleanup = "addition = anchor + 'git rm -f .github/workflows/p1-complete-remediation-driver-v10.yml\\n' + 'git rm -f .github/workflows/p1-complete-remediation-driver-v11.yml\\n'"
+          if script.count(old_cleanup) != 1:
+              raise SystemExit(f'v10 cleanup expression match count={script.count(old_cleanup)}')
+          script = script.replace(old_cleanup, new_cleanup, 1)
+
+          subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script], check=True)
+          PY
