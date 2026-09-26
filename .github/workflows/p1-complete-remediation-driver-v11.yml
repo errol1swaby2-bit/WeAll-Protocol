@@ -26,7 +26,9 @@ jobs:
           from pathlib import Path
           import subprocess
 
-          harness_path = Path('.github/p1-remediation/p1-complete-remediation-harness-20260926.yml')
+          ROOT = Path.cwd()
+          PROTOCOL = ROOT / 'Weall-Protocol'
+          harness_path = ROOT / '.github/p1-remediation/p1-complete-remediation-harness-20260926.yml'
           harness = harness_path.read_text()
           old_failures = ''.join([
               '          for failure in (\n',
@@ -61,7 +63,7 @@ jobs:
               raise SystemExit(f'canonical refresh failure tuple match count={harness.count(old_failures)}')
           harness_path.write_text(harness.replace(old_failures, new_failures, 1))
 
-          source = Path('.github/p1-remediation/p1-complete-remediation-driver-v9-source.yml').read_text()
+          source = (ROOT / '.github/p1-remediation/p1-complete-remediation-driver-v9-source.yml').read_text()
 
           def step_script(name: str) -> str:
               lines = source.splitlines()
@@ -84,39 +86,123 @@ jobs:
                       break
               return '\n'.join(body) + '\n'
 
-          pipeline = [
-              ('Apply corrected P1 source repairs and regression tests', '.'),
-              ('Install locked dependencies', 'Weall-Protocol'),
-              ('Run focused P1 validation and refresh derivatives', '.'),
-              ('Remove temporary workflows and commit exact candidate', '.'),
-              ('Exact-commit generated and readiness validation', 'Weall-Protocol'),
-              ('Full backend regression suite', 'Weall-Protocol'),
-              ('Verify validation left tracked state clean', '.'),
-              ('Push validated P1 closure', '.'),
-          ]
+          def run_bash(script: str, cwd: Path) -> None:
+              subprocess.run(
+                  ['bash', '-Eeuo', 'pipefail', '-c', script],
+                  cwd=cwd,
+                  check=True,
+              )
+
           old_harness_path = '.github/workflows/p1-complete-remediation-20260926.yml'
           new_harness_path = '.github/p1-remediation/p1-complete-remediation-harness-20260926.yml'
 
-          for name, cwd in pipeline:
-              print(f'=== {name} ===', flush=True)
-              script = step_script(name).replace(old_harness_path, new_harness_path)
-              if name == 'Run focused P1 validation and refresh derivatives':
-                  bad = r'canonical_key=([^\\s]+)'
-                  good = r'canonical_key=(\S+)'
-                  if script.count(bad) != 1:
-                      raise SystemExit(f'v9 stable-state regex match count={script.count(bad)}')
-                  script = script.replace(bad, good, 1)
-              if name == 'Remove temporary workflows and commit exact candidate':
-                  script = script.replace('git rm -f .github/workflows/', 'git rm -f --ignore-unmatch .github/workflows/')
-                  anchor = "git config user.name 'github-actions[bot]'\n"
-                  addition = ''.join([
-                      'git rm -f --ignore-unmatch .github/p1-remediation/p1-complete-remediation-harness-20260926.yml\n',
-                      'git rm -f --ignore-unmatch .github/p1-remediation/p1-complete-remediation-driver-v9-source.yml\n',
-                      'git rm -f --ignore-unmatch .github/workflows/p1-complete-remediation-driver-v11.yml\n',
-                      anchor,
-                  ])
-                  if script.count(anchor) != 1:
-                      raise SystemExit(f'candidate cleanup config anchor count={script.count(anchor)}')
-                  script = script.replace(anchor, addition, 1)
-              subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script], cwd=cwd, check=True)
+          print('=== Apply corrected P1 source repairs and regression tests ===', flush=True)
+          run_bash(
+              step_script('Apply corrected P1 source repairs and regression tests').replace(
+                  old_harness_path, new_harness_path
+              ),
+              ROOT,
+          )
+
+          print('=== Install locked dependencies ===', flush=True)
+          run_bash(step_script('Install locked dependencies'), PROTOCOL)
+
+          print('=== Run focused P1 validation and semantic refresh ===', flush=True)
+          refresh = step_script('Run focused P1 validation and refresh derivatives').replace(
+              old_harness_path, new_harness_path
+          )
+          bad = r'canonical_key=([^\\s]+)'
+          good = r'canonical_key=(\S+)'
+          if refresh.count(bad) != 1:
+              raise SystemExit(f'v9 stable-state regex match count={refresh.count(bad)}')
+          refresh = refresh.replace(bad, good, 1)
+          run_bash(refresh, ROOT)
+
+          print('=== Materialize final candidate tree before final generation ===', flush=True)
+          cleanup_paths = [
+              '.github/workflows/p1-complete-remediation-20260926.yml',
+              '.github/workflows/p1-complete-remediation-driver-v2.yml',
+              '.github/workflows/p1-complete-remediation-driver-v3.yml',
+              '.github/workflows/p1-complete-remediation-driver-v4.yml',
+              '.github/workflows/p1-complete-remediation-driver-v5.yml',
+              '.github/workflows/p1-complete-remediation-driver-v6.yml',
+              '.github/workflows/p1-complete-remediation-driver-v7.yml',
+              '.github/workflows/p1-complete-remediation-driver-v8.yml',
+              '.github/workflows/p1-complete-remediation-driver-v9.yml',
+              '.github/workflows/p1-complete-remediation-driver-v10.yml',
+              '.github/workflows/fix-p1-remediation-harness-20260926.yml',
+              '.github/workflows/refresh-v2-derivatives-20260926.yml',
+              '.github/p1-remediation/p1-complete-remediation-harness-20260926.yml',
+              '.github/p1-remediation/p1-complete-remediation-driver-v9-source.yml',
+              '.github/workflows/p1-complete-remediation-driver-v11.yml',
+          ]
+          subprocess.run(
+              ['git', 'rm', '-f', '--ignore-unmatch', *cleanup_paths],
+              cwd=ROOT,
+              check=True,
+          )
+
+          print('=== Regenerate derivatives from the final candidate tree ===', flush=True)
+          subprocess.run(['python', 'scripts/compile_v2_spec.py'], cwd=PROTOCOL, check=True)
+
+          print('=== Pre-commit final-tree validation ===', flush=True)
+          precommit_checks = [
+              ['python', 'scripts/check_generated.py'],
+              ['python', 'scripts/compile_v2_spec.py', '--check'],
+              ['python', 'scripts/check_v15_public_readiness_artifacts.py'],
+              ['python', 'scripts/check_public_claim_freshness.py'],
+              ['python', 'scripts/gen_current_verified_claims.py', '--check'],
+          ]
+          for command in precommit_checks:
+              env = None
+              if command[1].endswith('check_v15_public_readiness_artifacts.py'):
+                  import os
+                  env = dict(os.environ)
+                  env['PYTHONDONTWRITEBYTECODE'] = '1'
+              subprocess.run(command, cwd=PROTOCOL, env=env, check=True)
+
+          print('=== Commit exact candidate ===', flush=True)
+          subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], cwd=ROOT, check=True)
+          subprocess.run(
+              ['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'],
+              cwd=ROOT,
+              check=True,
+          )
+          subprocess.run(['git', 'add', '-A'], cwd=ROOT, check=True)
+          subprocess.run(['git', 'diff', '--cached', '--check'], cwd=ROOT, check=True)
+          subprocess.run(
+              ['git', 'commit', '-m', 'Close all remaining confirmed P1 audit findings'],
+              cwd=ROOT,
+              check=True,
+          )
+
+          print('=== Exact-commit generated and readiness validation ===', flush=True)
+          exact_checks = [
+              ['python', 'scripts/check_generated.py'],
+              ['python', 'scripts/check_v2_spec_clean_checkout.py'],
+              ['python', 'scripts/check_v15_public_readiness_artifacts.py'],
+              ['python', 'scripts/check_public_claim_freshness.py'],
+              ['python', 'scripts/gen_current_verified_claims.py', '--check'],
+          ]
+          for command in exact_checks:
+              env = None
+              if command[1].endswith('check_v15_public_readiness_artifacts.py'):
+                  import os
+                  env = dict(os.environ)
+                  env['PYTHONDONTWRITEBYTECODE'] = '1'
+              subprocess.run(command, cwd=PROTOCOL, env=env, check=True)
+
+          print('=== Full backend regression suite ===', flush=True)
+          subprocess.run(['pytest', '-q'], cwd=PROTOCOL, check=True)
+
+          print('=== Verify validation left tracked state clean ===', flush=True)
+          subprocess.run(['git', 'diff', '--exit-code'], cwd=ROOT, check=True)
+          subprocess.run(['git', 'diff', '--cached', '--exit-code'], cwd=ROOT, check=True)
+
+          print('=== Push validated P1 closure ===', flush=True)
+          subprocess.run(
+              ['git', 'push', 'origin', 'HEAD:p1-complete-remediation-20260926'],
+              cwd=ROOT,
+              check=True,
+          )
           PY
