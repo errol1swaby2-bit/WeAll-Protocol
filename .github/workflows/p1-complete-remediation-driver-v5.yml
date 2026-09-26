@@ -1,0 +1,174 @@
+name: Complete P1 Remediation Driver v5
+
+on:
+  push:
+    branches: [p1-complete-remediation-20260926]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-complete-remediation-20260926
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply corrected P1 source repairs and regression tests
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          harness = Path('.github/workflows/p1-complete-remediation-20260926.yml').read_text()
+
+          def step_script(name: str) -> str:
+              lines = harness.splitlines()
+              marker = f'- name: {name}'
+              start = next((i for i, line in enumerate(lines) if line.strip() == marker), None)
+              if start is None:
+                  raise SystemExit(f'missing harness step: {name}')
+              run_i = next((i for i in range(start + 1, len(lines)) if lines[i].strip() == 'run: |'), None)
+              if run_i is None:
+                  raise SystemExit(f'missing run block: {name}')
+              body = []
+              for line in lines[run_i + 1:]:
+                  if line.startswith('      - name: ') or line.startswith('      - uses: '):
+                      break
+                  if line.startswith('          '):
+                      body.append(line[10:])
+                  elif not line.strip():
+                      body.append('')
+                  else:
+                      break
+              return '\n'.join(body) + '\n'
+
+          patch = step_script('Apply all remaining P1 repairs')
+
+          old_helper = '''    count = text.count(old)\n    if count != 1:\n        raise SystemExit(f"expected one match in {path}, found {count}: {old[:120]!r}")\n    p.write_text(text.replace(old, new, 1))\n'''
+          new_helper = '''    count = text.count(old)\n    if count != 1:\n        if path == "src/weall/runtime/apply/roles.py" and count == 2:\n            if 'rec["active"] = True' in old:\n                start_marker = "def _apply_role_node_operator_activate("\n                end_marker = "def _apply_role_node_operator_suspend("\n                label = "NodeOperator activation"\n            elif 'rec["active"] = False' in old and 'rec["suspended_at_nonce"]' in old:\n                start_marker = "def _apply_role_node_operator_suspend("\n                end_marker = "# ---------------------------------------------------------------------------\\n# Emissaries role"\n                label = "NodeOperator suspension"\n            else:\n                raise SystemExit(f"ambiguous roles.py target: {old[:120]!r}")\n            start = text.find(start_marker)\n            end = text.find(end_marker, start)\n            if start < 0 or end < 0:\n                raise SystemExit(f"{label} function boundaries not found")\n            segment = text[start:end]\n            if segment.count(old) != 1:\n                raise SystemExit(f"{label} target is not unique within function")\n            p.write_text(text[:start] + segment.replace(old, new, 1) + text[end:])\n            return\n        raise SystemExit(f"expected one match in {path}, found {count}: {old[:120]!r}")\n    p.write_text(text.replace(old, new, 1))\n'''
+          if patch.count(old_helper) != 1:
+              raise SystemExit(f'patch helper body match count={patch.count(old_helper)}')
+          patch = patch.replace(old_helper, new_helper, 1)
+
+          bad_dispute_tail = r'    return out\n\n\n@dataclass\nclass DisputeApplyError'
+          good_dispute_tail = r'    return out\n\n\n'
+          if patch.count(bad_dispute_tail) != 1:
+              raise SystemExit(f'dispute replacement tail match count={patch.count(bad_dispute_tail)}')
+          patch = patch.replace(bad_dispute_tail, good_dispute_tail, 1)
+
+          bad_role_ref = '{"account_id": account_id}'
+          if patch.count(bad_role_ref) != 1:
+              raise SystemExit(f'node-operator account reference match count={patch.count(bad_role_ref)}')
+          patch = patch.replace(bad_role_ref, '{"account_id": acct}', 1)
+
+          bad_spends = r'    spends = _ensure_spends(state)\n'
+          good_spends = r'''    tre = _ensure_treasury_root(state)\n    spends = tre.get("spends")\n    if not isinstance(spends, dict):\n        spends = {}\n        tre["spends"] = spends\n'''
+          if patch.count(bad_spends) != 1:
+              raise SystemExit(f'treasury spends helper match count={patch.count(bad_spends)}')
+          patch = patch.replace(bad_spends, good_spends, 1)
+
+          subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', patch], cwd='Weall-Protocol', check=True)
+
+          tests = step_script('Add adversarial P1 regression suite')
+          subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', tests], cwd='Weall-Protocol', check=True)
+          PY
+
+      - name: Install locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Run focused P1 validation and refresh derivatives
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          harness = Path('.github/workflows/p1-complete-remediation-20260926.yml').read_text()
+          names = [
+              'Format, lint, and run focused P1 regressions',
+              'Register new stable failure contracts',
+              'Refresh semantic contracts for every touched applier and V2 derivatives',
+          ]
+
+          def step_script(name: str) -> str:
+              lines = harness.splitlines()
+              marker = f'- name: {name}'
+              start = next((i for i, line in enumerate(lines) if line.strip() == marker), None)
+              if start is None:
+                  raise SystemExit(f'missing harness step: {name}')
+              run_i = next((i for i in range(start + 1, len(lines)) if lines[i].strip() == 'run: |'), None)
+              if run_i is None:
+                  raise SystemExit(f'missing run block: {name}')
+              body = []
+              for line in lines[run_i + 1:]:
+                  if line.startswith('      - name: ') or line.startswith('      - uses: '):
+                      break
+                  if line.startswith('          '):
+                      body.append(line[10:])
+                  elif not line.strip():
+                      body.append('')
+                  else:
+                      break
+              return '\n'.join(body) + '\n'
+
+          for name in names:
+              print(f'=== {name} ===', flush=True)
+              script = step_script(name)
+              if name == 'Format, lint, and run focused P1 regressions':
+                  marker = 'ruff check \\\n'
+                  if script.count(marker) != 1:
+                      raise SystemExit(f'ruff check marker count={script.count(marker)}')
+                  script = script.replace(
+                      marker,
+                      'ruff check --fix src/weall/runtime/block_builder.py\n' + marker,
+                      1,
+                  )
+              subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script], cwd='Weall-Protocol', check=True)
+          PY
+
+      - name: Remove temporary workflows and commit exact candidate
+        run: |
+          git rm -f .github/workflows/p1-complete-remediation-20260926.yml
+          git rm -f .github/workflows/p1-complete-remediation-driver-v2.yml
+          git rm -f .github/workflows/p1-complete-remediation-driver-v3.yml
+          git rm -f .github/workflows/p1-complete-remediation-driver-v4.yml
+          git rm -f .github/workflows/p1-complete-remediation-driver-v5.yml
+          git rm -f .github/workflows/fix-p1-remediation-harness-20260926.yml || true
+          git rm -f .github/workflows/refresh-v2-derivatives-20260926.yml || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Close all remaining confirmed P1 audit findings'
+
+      - name: Exact-commit generated and readiness validation
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Full backend regression suite
+        working-directory: Weall-Protocol
+        run: pytest -q
+
+      - name: Verify validation left tracked state clean
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+
+      - name: Push validated P1 closure
+        run: git push origin HEAD:p1-complete-remediation-20260926
