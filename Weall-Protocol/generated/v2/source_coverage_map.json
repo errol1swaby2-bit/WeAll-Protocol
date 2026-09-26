@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1948,
+  "file_count": 1947,
   "files": [
     {
       "affected_registers": [
@@ -58,19 +58,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/pr26-refresh-v2-derivatives.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "08a85b2bb936987e9e8a8ecba34f7b03d994d1814d24efa9df59b11d24a2e7ef",
-      "source_id": "SRC-0D52576160CC9924"
     },
     {
       "affected_registers": [
