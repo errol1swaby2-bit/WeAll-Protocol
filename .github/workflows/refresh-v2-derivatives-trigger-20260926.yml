@@ -47,7 +47,7 @@ jobs:
               ],
               'tests/test_group_policy_transition_safety.py': [
                   ('_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 10, {"election_id": "e-open"})',
-                   '_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 10, {"group_id": "g1", "election_id": "e-open"})'),
+                   '_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 10, {"group_id": "g-open", "election_id": "e-open"})'),
               ],
               'tests/test_system_queue_lifecycle_integrity.py': [
                   ('payload={"spend_id": "late-spend"},',
