@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b5288700519b1682f83553d3c4e9c266d130962fb09941246d3f95bbc577ed8"
+    "source_tree_digest": "1344ae401eea2cc99c1ee17c2644a8774507af13bb42c13b88c2d2a57e86e3cb"
   },
   "required_fields": [
     "stable_id",
@@ -6973,6 +6973,7 @@
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/p0/test_p0_mempool_and_admission_invariants.py",
         "tests/p0/test_p0_system_receipts_and_invariants.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/prod/public_seed_test_helpers.py",
         "tests/prod/test_clean_clone_go_gate_venv.py",
         "tests/prod/test_clean_observer_boot_from_checked_in_registry.py",
@@ -7054,6 +7055,7 @@
         "tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py",
         "tests/test_backup_restore_smoke.py",
         "tests/test_backup_restore_write_after_restore.py",
+        "tests/test_balance_transfer_self_transfer_regression.py",
         "tests/test_behavior.py",
         "tests/test_behavior_m1_m10.py",
         "tests/test_bft_artifact_identity_binding.py",
@@ -8190,6 +8192,7 @@
       "stable_id": "ROUTE-137CB9FB31356917",
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/prod/test_clean_observer_boot_from_checked_in_registry.py",
         "tests/prod/test_external_cross_machine_replay_transcript_capture.py",
         "tests/prod/test_external_evidence_transcript_gates.py",

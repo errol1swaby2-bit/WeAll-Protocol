@@ -1,0 +1,14 @@
+{
+  "api_base": "http://127.0.0.1:18401",
+  "ballot_profile": {
+    "active": true,
+    "mode": "controlled-testnet",
+    "profile_id": "controlled-testnet-aggregate-v1",
+    "reason": "active_controlled_testnet_profile",
+    "strict": true
+  },
+  "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+  "implementation_tree": "4653aec176a85e626a02575a029eefc3a990dec3",
+  "ok": true,
+  "schema_version": 1
+}

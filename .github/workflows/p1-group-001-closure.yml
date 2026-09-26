@@ -1,0 +1,185 @@
+name: P1 GROUP 001 Closure
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [production-readiness-audit-20260925]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p1-group-001-closure
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: production-readiness-audit-20260925
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Remove one-shot workflow from intended final tree
+        run: git rm -f .github/workflows/p1-group-001-closure.yml
+
+      - name: Apply scoped group authority repair
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          schema = Path('src/weall/runtime/tx_schema.py')
+          s = schema.read_text()
+          replacements = {
+              '''class GroupTreasurySpendSignPayload(_StrictModel):\n    spend_id: str = Field(..., min_length=1)\n''': '''class GroupTreasurySpendSignPayload(_StrictModel):\n    group_id: str = Field(..., min_length=1)\n    spend_id: str = Field(..., min_length=1)\n''',
+              '''class GroupTreasurySpendCancelPayload(_StrictModel):\n    spend_id: str = Field(..., min_length=1)\n''': '''class GroupTreasurySpendCancelPayload(_StrictModel):\n    group_id: str = Field(..., min_length=1)\n    spend_id: str = Field(..., min_length=1)\n''',
+              '''class GroupEmissaryElectionFinalizePayload(_StrictModel):\n    election_id: str = Field(..., min_length=1)\n''': '''class GroupEmissaryElectionFinalizePayload(_StrictModel):\n    group_id: str = Field(..., min_length=1)\n    election_id: str = Field(..., min_length=1)\n''',
+          }
+          for old, new in replacements.items():
+              if s.count(old) != 1:
+                  raise SystemExit(f'unexpected schema match count for {old!r}: {s.count(old)}')
+              s = s.replace(old, new)
+          schema.write_text(s)
+
+          groups = Path('src/weall/runtime/apply/groups.py')
+          g = groups.read_text()
+          replacements = {
+              '''    spend_id = _as_str(payload.get("spend_id")).strip()\n    signer = _as_str(env.signer).strip()\n\n    if not spend_id or not signer:\n''': '''    spend_id = _as_str(payload.get("spend_id")).strip()\n    group_id = _as_str(payload.get("group_id")).strip()\n    signer = _as_str(env.signer).strip()\n\n    if not spend_id or not group_id or not signer:\n''',
+              '''    status = _as_str(s.get("status")).strip().lower()\n    if status in ("canceled", "cancelled"):\n''': '''    stored_group_id = _as_str(s.get("group_id")).strip()\n    if not stored_group_id or stored_group_id != group_id:\n        raise GroupsApplyError(\n            "forbidden",\n            "group_scope_mismatch",\n            {"spend_id": spend_id, "group_id": group_id, "stored_group_id": stored_group_id},\n        )\n\n    status = _as_str(s.get("status")).strip().lower()\n    if status in ("canceled", "cancelled"):\n''',
+              '''def _apply_group_treasury_spend_cancel(state: Json, env: TxEnvelope) -> Json:\n    payload = _as_dict(env.payload)\n    spend_id = _as_str(payload.get("spend_id")).strip()\n    if not spend_id:\n        raise GroupsApplyError("invalid_payload", "missing_spend_id", {"tx_type": env.tx_type})\n''': '''def _apply_group_treasury_spend_cancel(state: Json, env: TxEnvelope) -> Json:\n    payload = _as_dict(env.payload)\n    spend_id = _as_str(payload.get("spend_id")).strip()\n    group_id = _as_str(payload.get("group_id")).strip()\n    if not spend_id or not group_id:\n        raise GroupsApplyError("invalid_payload", "missing_group_or_spend_id", {"tx_type": env.tx_type})\n''',
+              '''    status = _as_str(s.get("status")).strip().lower()\n    if status == "executed":\n        raise GroupsApplyError("forbidden", "spend_executed", {"spend_id": spend_id})\n''': '''    stored_group_id = _as_str(s.get("group_id")).strip()\n    if not stored_group_id or stored_group_id != group_id:\n        raise GroupsApplyError(\n            "forbidden",\n            "group_scope_mismatch",\n            {"spend_id": spend_id, "group_id": group_id, "stored_group_id": stored_group_id},\n        )\n\n    status = _as_str(s.get("status")).strip().lower()\n    if status == "executed":\n        raise GroupsApplyError("forbidden", "spend_executed", {"spend_id": spend_id})\n''',
+              '''def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Json:\n    payload = _as_dict(env.payload)\n    election_id = _as_str(payload.get("election_id") or payload.get("id")).strip()\n    if not election_id:\n        raise GroupsApplyError("invalid_payload", "missing_election_id", {"tx_type": env.tx_type})\n''': '''def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Json:\n    payload = _as_dict(env.payload)\n    election_id = _as_str(payload.get("election_id") or payload.get("id")).strip()\n    group_id = _as_str(payload.get("group_id")).strip()\n    if not election_id or not group_id:\n        raise GroupsApplyError("invalid_payload", "missing_group_or_election_id", {"tx_type": env.tx_type})\n''',
+              '''    status = _as_str(e.get("status")).strip().lower()\n    if status == "finalized":\n''': '''    stored_group_id = _as_str(e.get("group_id")).strip()\n    if not stored_group_id or stored_group_id != group_id:\n        raise GroupsApplyError(\n            "forbidden",\n            "group_scope_mismatch",\n            {"election_id": election_id, "group_id": group_id, "stored_group_id": stored_group_id},\n        )\n\n    status = _as_str(e.get("status")).strip().lower()\n    if status == "finalized":\n''',
+              '''    group_id = _as_str(e.get("group_id")).strip()\n    groups = _ensure_groups_root(state)\n''': '''    groups = _ensure_groups_root(state)\n''',
+          }
+          for old, new in replacements.items():
+              count = g.count(old)
+              if count != 1:
+                  raise SystemExit(f'unexpected groups match count {count} for {old[:80]!r}')
+              g = g.replace(old, new)
+          groups.write_text(g)
+
+          test = Path('tests/test_fail_closed_group_treasury.py')
+          t = test.read_text()
+          t = t.replace('payload={"spend_id": "spend-1"},', 'payload={"group_id": "group-1", "spend_id": "spend-1"},', 1)
+          test.write_text(t)
+
+          election_test = Path('tests/test_group_emissary_elections_stv.py')
+          et = election_test.read_text()
+          et = et.replace('{"election_id": "e1"})', '{"group_id": "g1", "election_id": "e1"})')
+          et = et.replace('{"election_id": "e2"})', '{"group_id": "g2", "election_id": "e2"})')
+          election_test.write_text(et)
+          PY
+
+          cat > tests/test_p1_group001_scoped_reference_authority.py <<'PY'
+          from __future__ import annotations
+
+          import pytest
+          from pydantic import ValidationError
+
+          from weall.runtime.apply.groups import GroupsApplyError, apply_groups
+          from weall.runtime.tx_admission_types import TxEnvelope
+          from weall.runtime.tx_schema import (
+              GroupEmissaryElectionFinalizePayload,
+              GroupTreasurySpendCancelPayload,
+              GroupTreasurySpendSignPayload,
+          )
+
+
+          @pytest.mark.parametrize(
+              ("model", "payload"),
+              [
+                  (GroupTreasurySpendSignPayload, {"spend_id": "s1"}),
+                  (GroupTreasurySpendCancelPayload, {"spend_id": "s1"}),
+                  (GroupEmissaryElectionFinalizePayload, {"election_id": "e1"}),
+              ],
+          )
+          def test_reference_only_group_actions_require_explicit_scope(model, payload) -> None:
+              with pytest.raises(ValidationError):
+                  model.model_validate(payload)
+
+
+          @pytest.mark.parametrize("tx_type", ["GROUP_TREASURY_SPEND_SIGN", "GROUP_TREASURY_SPEND_CANCEL"])
+          def test_group_spend_reference_cannot_cross_scope(tx_type: str) -> None:
+              state = {
+                  "group_treasury_spends": {
+                      "s1": {
+                          "spend_id": "s1",
+                          "group_id": "group-a",
+                          "status": "proposed",
+                          "allowed_signers": ["alice"],
+                          "signatures": {},
+                      }
+                  }
+              }
+              env = TxEnvelope(
+                  tx_type=tx_type,
+                  signer="alice",
+                  nonce=1,
+                  payload={"group_id": "group-b", "spend_id": "s1"},
+              )
+              with pytest.raises(GroupsApplyError) as exc:
+                  apply_groups(state, env)
+              assert exc.value.reason == "group_scope_mismatch"
+
+
+          def test_group_election_finalize_reference_cannot_cross_scope() -> None:
+              state = {
+                  "group_emissary_elections": {
+                      "e1": {"election_id": "e1", "group_id": "group-a", "status": "open"}
+                  }
+              }
+              env = TxEnvelope(
+                  tx_type="GROUP_EMISSARY_ELECTION_FINALIZE",
+                  signer="alice",
+                  nonce=1,
+                  payload={"group_id": "group-b", "election_id": "e1"},
+              )
+              with pytest.raises(GroupsApplyError) as exc:
+                  apply_groups(state, env)
+              assert exc.value.reason == "group_scope_mismatch"
+          PY
+
+      - name: Install locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and targeted regression validation
+        working-directory: Weall-Protocol
+        run: |
+          ruff format src/weall/runtime/tx_schema.py src/weall/runtime/apply/groups.py tests/test_fail_closed_group_treasury.py tests/test_group_emissary_elections_stv.py tests/test_p1_group001_scoped_reference_authority.py
+          ruff check src/weall/runtime/tx_schema.py src/weall/runtime/apply/groups.py tests/test_fail_closed_group_treasury.py tests/test_group_emissary_elections_stv.py tests/test_p1_group001_scoped_reference_authority.py
+          pytest -q tests/test_p1_group001_scoped_reference_authority.py tests/test_fail_closed_group_treasury.py tests/test_group_emissary_elections_stv.py
+
+      - name: Refresh changed semantic contracts and V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src python scripts/refresh_v2_semantic_reviews.py \
+            --tx-type GROUP_TREASURY_SPEND_SIGN \
+            --tx-type GROUP_TREASURY_SPEND_CANCEL \
+            --tx-type GROUP_EMISSARY_ELECTION_FINALIZE \
+            --register-failure forbidden:group_scope_mismatch \
+            --reviewed-at 2026-09-26T19:00:00Z \
+            --reviewer "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred" \
+            --review-method "confirmed_audit_finding_repair_with_adversarial_regression"
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Commit repair and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Close P1-GROUP-001 scoped group authority"
+          git push origin HEAD:production-readiness-audit-20260925

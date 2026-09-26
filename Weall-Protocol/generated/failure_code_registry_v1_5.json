@@ -751,7 +751,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 155
+      "source_lineno": 184
     },
     {
       "code": "forbidden",
@@ -931,7 +931,7 @@
       "http_status": null,
       "sample_reason": "bad_proposer",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 1345
+      "source_lineno": 1379
     },
     {
       "code": "invalid_payload",
@@ -983,9 +983,9 @@
       "domain": "runtime_apply",
       "family": "ConsensusApplyError",
       "http_status": null,
-      "sample_reason": "bft_activation_requires_minimum_validator_count",
+      "sample_reason": "validator_lifecycle_epoch_must_be_future",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 336
+      "source_lineno": 171
     },
     {
       "code": "invalid_payload",

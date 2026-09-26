@@ -1,0 +1,5 @@
+
+> weall-web@0.1.0 production-safety-check
+> node scripts/guard_production_ux_safety.mjs
+
+OK: frontend production UX safety guard passed

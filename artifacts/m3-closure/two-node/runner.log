@@ -1,0 +1,2402 @@
+==> Resetting controlled-devnet state before live convergence run
+ok=true
+devnet_dir=/tmp/weall_m3_two_node_yN9YS7/.weall-devnet
+node1_dir=/tmp/weall_m3_two_node_yN9YS7/.weall-devnet/node1
+node2_dir=/tmp/weall_m3_two_node_yN9YS7/.weall-devnet/node2
+==> Starting node 1: http://127.0.0.1:18311
+{"api": "http://127.0.0.1:18311", "node": "node1", "ok": true, "path": "/v1/readyz", "status": 200}
+==> Starting node 2: http://127.0.0.1:18312
+{"api": "http://127.0.0.1:18312", "node": "node2", "ok": true, "path": "/v1/readyz", "status": 200}
+==> Running cross-node convergence probe
+{
+  "account": "@devnet_crossnode_20260729-232306-40621",
+  "account_register_tx_id": "tx:19ef2e1369349a02e52ac10e741ce9970151426bceec62918c7684ac8f8a4ba8",
+  "chain_manifest_before": {
+    "failures": [],
+    "ok": true
+  },
+  "dry_run": false,
+  "events": [
+    {
+      "node1": {
+        "chain_id": "weall-controlled-devnet",
+        "chain_manifest": {
+          "actual_tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+          "authority_snapshot_version": 1,
+          "chain_id": "weall-controlled-devnet",
+          "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+          "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+          "constitution_traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+          "constitution_version": "draft-2",
+          "constitutional_clock": {
+            "allowed_clock_skew_ms": 2000,
+            "block_time_derivation": "genesis_time_plus_height_times_interval",
+            "empty_blocks_enabled": true,
+            "enabled": true,
+            "genesis_time_ms": 0,
+            "no_fast_forward": true,
+            "no_height_skip": true,
+            "procedure_time_source": "finalized_block_height",
+            "target_block_interval_ms": 20000
+          },
+          "enabled": true,
+          "genesis_hash": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+          "genesis_state_root": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+          "genesis_time_ms": 0,
+          "issues": [],
+          "manifest_hash": "c3c6e7b0eb0b9b35a2436dc3e586542ef34f5840b176cd889b4dcf76020bda90",
+          "mode": "controlled_devnet",
+          "ok": true,
+          "path": "/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json",
+          "profile": "controlled_devnet_service",
+          "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+          "schema_version": "1",
+          "trusted_authority_pubkeys_count": 1,
+          "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+          "tx_index_hash_matches": true,
+          "version": 1
+        },
+        "constitution": {
+          "active": true,
+          "document_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+          "document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+          "hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+          "hash_matches_source": true,
+          "status": "genesis_bound",
+          "traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+          "traceability_hash_matches_source": true,
+          "version": "draft-2"
+        },
+        "constitutional_clock": {
+          "allowed_clock_skew_ms": 2000,
+          "block_time_derivation": "genesis_time_plus_height_times_interval",
+          "current_procedure_height": 1,
+          "empty_blocks_enabled": true,
+          "enabled": true,
+          "genesis_time_ms": 0,
+          "no_fast_forward": true,
+          "no_height_skip": true,
+          "procedure_time_source": "finalized_block_height",
+          "target_block_interval_ms": 20000
+        },
+        "finalized": {
+          "block_id": "",
+          "height": 0
+        },
+        "genesis_bootstrap": {
+          "enabled": true,
+          "mode": "explicit",
+          "profile_hash": "e87767fae6d8cf7fe2030383e05989e7a9ef2c8a55f58d1eef30bb02563c1938"
+        },
+        "height": 1,
+        "ok": true,
+        "production_consensus_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+        "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+        "protocol_version": "2026.03-prod.6",
+        "schema_version": "1",
+        "snapshot_anchor": {
+          "finalized_block_id": "",
+          "finalized_height": 0,
+          "height": 1,
+          "snapshot_hash": "5e7ebe28ea788da441d9fdfc5dad2127183ad808f906525f361924ecbd9d5c0c",
+          "state_root": "5b4d9c986b228deeb964da6defbdd358752d9ae40d8bc4d320e9f3b606610c75",
+          "tip_hash": "2d0e775d3bc169d3916774ca143641d473f40c54b1c20f80a379081792fecde3"
+        },
+        "state_root": "5b4d9c986b228deeb964da6defbdd358752d9ae40d8bc4d320e9f3b606610c75",
+        "testnet_readiness": {
+          "block_production": {
+            "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass",
+            "production_profile_proven": false,
+            "public_multi_validator_bft_ready": false,
+            "stage": "local_rehearsal_proof_required"
+          },
+          "disputes": {
+            "claim": "review and appeal flows are protocol surfaces, but public moderation claims remain limited until due-process coverage is complete",
+            "full_public_moderation_ready": false,
+            "mode": "limited_testnet"
+          },
+          "economics": {
+            "claim": "WeCoin/economic transfers and treasury actions remain unavailable unless the genesis lock and governance activation rules are satisfied; civic/social/governance actions remain fee-free",
+            "enabled": false,
+            "locked": true,
+            "unlocked": false
+          },
+          "external_observer_stage": "trusted_external_observer",
+          "governance": {
+            "claim": "proposal/dispute mechanics may be exercised only within documented testnet limits until constitutional rights-floor enforcement is complete",
+            "full_public_governance_ready": false,
+            "mode": "limited_testnet"
+          },
+          "launch_matrix_capabilities": {
+            "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": [
+              "b587_b594_mechanism_completion",
+              "public_beta_blocker_report"
+            ],
+            "artifact_blockers": [],
+            "blocked_capabilities": [
+              "live_transfers",
+              "live_rewards",
+              "treasury_spend",
+              "live_economics",
+              "public_validator_join",
+              "public_multi_validator_bft",
+              "automatic_protocol_upgrade_apply",
+              "production_helper_execution"
+            ],
+            "capabilities": {
+              "automatic_protocol_upgrade_apply": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+                "enabled": false,
+                "feature": "automatic_protocol_upgrade_apply",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "live_economics": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+                "enabled": false,
+                "feature": "live_economics",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "live_rewards": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+                "enabled": false,
+                "feature": "reward_issuance",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "live_transfers": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+                "enabled": false,
+                "feature": "balance_transfer",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "production_helper_execution": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+                "enabled": false,
+                "feature": "production_helper_execution",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "public_multi_validator_bft": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+                "enabled": false,
+                "feature": "public_multi_validator_bft",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "public_validator_join": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+                "enabled": false,
+                "feature": "public_validator_promotion",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "treasury_spend": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+                "enabled": false,
+                "feature": "treasury_spend",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              }
+            },
+            "controlled_mechanism_artifact_blockers": [],
+            "controlled_testnet_mechanisms_complete": true,
+            "dispute_lifecycle": {
+              "deterministic_receipt_txs": [
+                "DISPUTE_JUROR_TIMEOUT",
+                "DISPUTE_FINAL_RECEIPT"
+              ],
+              "manual_wall_clock_protocol_state_allowed": false,
+              "private_identity_evidence_publicly_exposed": false,
+              "progression_clock": "block_height",
+              "public_record_state": true,
+              "reviewer_surface": "GET /v1/status/testnet-capabilities",
+              "scheduler": "tick_dispute_lifecycle",
+              "truth_boundary": "Dispute windows, juror deadlines, appeal closure, and public outcomes are block-height bound; raw PoH/private identity evidence remains restricted.",
+              "ui_time_estimates_only": true
+            },
+            "governance_lifecycle": {
+              "deterministic_receipt_txs": [
+                "GOV_STAGE_SET",
+                "GOV_VOTING_CLOSE",
+                "GOV_TALLY_PUBLISH",
+                "GOV_EXECUTE",
+                "GOV_PROPOSAL_FINALIZE"
+              ],
+              "manual_wall_clock_protocol_state_allowed": false,
+              "progression_clock": "block_height",
+              "public_record_state": true,
+              "reviewer_surface": "GET /v1/status/testnet-capabilities",
+              "scheduler": "tick_governance_lifecycle",
+              "truth_boundary": "Governance procedure truth is block-height based; UI may render approximate human time but must not mutate protocol state from local wall-clock time.",
+              "ui_time_estimates_only": true
+            },
+            "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
+            "minimum_reviewer_civic_loop": {
+              "api_evidence_surfaces": {
+                "account_identity_state": [
+                  "GET /v1/session/me",
+                  "GET /v1/accounts/{account}/profile"
+                ],
+                "dispute_review_outcome_visibility": [
+                  "GET /v1/disputes",
+                  "GET /v1/disputes/current",
+                  "GET /v1/disputes/{dispute_id}",
+                  "GET /v1/disputes/{dispute_id}/votes"
+                ],
+                "economics_locked_status": [
+                  "GET /v1/economics/status",
+                  "GET /v1/treasury/status",
+                  "GET /v1/wallet/{account}"
+                ],
+                "governance_create_vote_finalize": [
+                  "GET /v1/gov/proposals",
+                  "GET /v1/gov/proposals/{proposal_id}",
+                  "GET /v1/gov/proposals/{proposal_id}/votes",
+                  "POST /v1/tx/submit"
+                ],
+                "human_verification_state": [
+                  "GET /v1/poh/async/my-cases",
+                  "GET /v1/poh/live/my-cases"
+                ],
+                "observer_node_status": [
+                  "GET /v1/status",
+                  "GET /v1/chain/identity",
+                  "GET /v1/nodes/seeds",
+                  "GET /v1/nodes/validators",
+                  "GET /v1/observer/edge/status"
+                ],
+                "protocol_upgrade_record_lifecycle": [
+                  "POST /v1/tx/submit",
+                  "GET /v1/status/testnet-capabilities"
+                ],
+                "public_group_read_with_member_gated_participation": [
+                  "GET /v1/groups",
+                  "GET /v1/groups/{group_id}",
+                  "GET /v1/groups/{group_id}/feed",
+                  "GET /v1/groups/{group_id}/governance-contract"
+                ],
+                "public_posting_or_social_activity": [
+                  "GET /v1/feed",
+                  "POST /v1/tx/submit",
+                  "GET /v1/content/{content_id}"
+                ],
+                "reputation_outcome_visibility": [
+                  "GET /v1/reputation/{account}/eligibility",
+                  "GET /v1/activity/notices"
+                ]
+              },
+              "canonical_route_boundary": {
+                "dispute_label": "Reports",
+                "dispute_route": "/reports",
+                "governance_label": "Decisions",
+                "governance_route": "/decisions",
+                "legacy_aliases_removed": [
+                  "/proposals",
+                  "/disputes"
+                ]
+              },
+              "economics_locked_by_default": true,
+              "frontend_entrypoints": {
+                "account": "/profile",
+                "account_detail_template": "/account/:account",
+                "create_post": "/create",
+                "dispute_detail_template": "/reports/:id",
+                "disputes": "/reports",
+                "economics": "/economics",
+                "feed": "/feed",
+                "governance": "/decisions",
+                "governance_create": "/decisions/create",
+                "governance_detail_template": "/decisions/:id",
+                "group_detail_template": "/groups/:id",
+                "groups": "/groups",
+                "identity_verification": "/verification",
+                "node_status": "/node",
+                "reputation_visibility": "/activity",
+                "review_center": "/reviews",
+                "review_detail_template": "/reviews/:id"
+              },
+              "public_only_visibility": true,
+              "steps": [
+                "account_identity_state",
+                "human_verification_state",
+                "public_posting_or_social_activity",
+                "public_group_read_with_member_gated_participation",
+                "governance_create_vote_finalize",
+                "dispute_review_outcome_visibility",
+                "reputation_outcome_visibility",
+                "protocol_upgrade_record_lifecycle",
+                "observer_node_status",
+                "economics_locked_status"
+              ],
+              "truth_boundary": "This is a reviewer navigation map using current canonical frontend routes, not proof that public beta/mainnet gates are closed. Templates with ':' require a concrete public identifier before navigation."
+            },
+            "phase": "public_beta_candidate",
+            "protocol_upgrade_lifecycle": {
+              "activation_clock": "block_height",
+              "activation_record_only": true,
+              "automatic_software_apply_enabled": false,
+              "declaration_tx": "PROTOCOL_UPGRADE_DECLARE",
+              "economics_activation_enabled_by_upgrade": false,
+              "migration_execution_enabled": false,
+              "public_record_state": true,
+              "required_parent_boundary": "SYSTEM queue / receipt-only governance parent reference",
+              "reviewer_surface": "GET /v1/status/testnet-capabilities",
+              "rollback_execution_enabled": false,
+              "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
+              "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
+            },
+            "public_beta_blocker_report": {
+              "blocker_catalog_count": 15,
+              "blocker_count": 15,
+              "closed_in_repository_count": 7,
+              "mainnet_ready": false,
+              "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+              "ok": true,
+              "p0_open_count": 4,
+              "p1_open_count": 4,
+              "p2_open_count": 0,
+              "p3_open_count": 0,
+              "present": true,
+              "public_beta_ready": false,
+              "remaining_blocker_count": 8,
+              "remaining_external_evidence_required_count": 8,
+              "remaining_mainnet_hardening_count": 4
+            },
+            "public_beta_ready_claimed": false,
+            "required_artifacts": {
+              "api_contract": {
+                "ok": true,
+                "path": "generated/api_contract_map_v1_5.json",
+                "present": true,
+                "schema": "weall.api_contract_map.v1_5"
+              },
+              "api_response_vectors": {
+                "ok": true,
+                "path": "generated/api_response_vectors_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.api_response_vectors"
+              },
+              "b582_b586_proof": {
+                "ok": true,
+                "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
+              },
+              "b587_b594_mechanism_completion": {
+                "ok": true,
+                "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+              },
+              "external_operator_transcript_requirements": {
+                "ok": true,
+                "path": "generated/external_operator_transcript_requirements_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.external_operator_transcript_requirements"
+              },
+              "failure_code_registry": {
+                "ok": true,
+                "path": "generated/failure_code_registry_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.failure_code_registry"
+              },
+              "launch_disabled_matrix": {
+                "ok": true,
+                "path": "generated/launch_disabled_matrix_v1_5.json",
+                "present": true,
+                "schema": "weall.launch_disabled_matrix.v1_5"
+              },
+              "production_helper_topology_hardening_plan": {
+                "ok": true,
+                "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+              },
+              "public_beta_blocker_report": {
+                "ok": true,
+                "path": "generated/public_beta_blocker_report_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.public_beta_blocker_report"
+              },
+              "public_validator_preflight": {
+                "ok": true,
+                "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+              },
+              "state_root_vectors": {
+                "ok": true,
+                "path": "generated/state_root_vectors_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.state_root_vectors"
+              },
+              "tokenomics_simulation": {
+                "ok": true,
+                "path": "generated/tokenomics_simulation_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.tokenomics_simulation"
+              }
+            },
+            "schema": "weall.v1_5.testnet_capability_surface",
+            "truth_boundaries": {
+              "automatic_protocol_upgrades_enabled": false,
+              "launch_matrix_is_guardrail_not_consensus": true,
+              "legal_compliance_ready_claimed": false,
+              "live_economics_enabled": false,
+              "production_helper_execution_enabled": false,
+              "public_validator_enabled": false
+            }
+          },
+          "poh": {
+            "allowlist_count": 1,
+            "allowlist_enabled": true,
+            "allowlist_expired": false,
+            "allowlist_expires_height": null,
+            "auto_lock": {
+              "active_validators": 1,
+              "required_active_validators": 4,
+              "rule": "active_validators>=BFT_MIN_VALIDATORS"
+            },
+            "auto_locked_by_validator_quorum": false,
+            "live_policy_mode": "bootstrap",
+            "mode": "allowlist",
+            "mode_error": "",
+            "open_enabled": false,
+            "open_expired": false,
+            "open_max_height": null,
+            "production_live_quorum_required": false,
+            "valid": true
+          },
+          "public_only_protocol_surface": {
+            "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events.",
+            "opaque_protocol_payloads_supported": false,
+            "public_inspectability_required": true
+          },
+          "tokenomics": {
+            "civic_social_governance_fee_free": true,
+            "claim": "tokenomics are defined as a locked Genesis model for rehearsal; live economics require governance activation and are not claimed for external/public testing yet",
+            "live_transfers_enabled": false,
+            "rewards_enabled": false,
+            "stage": "locked_genesis_model",
+            "treasury_spend_enabled": false
+          }
+        },
+        "tip": "0e330a0f7faf6e368b43eba688f6bb78627018f3894562be597541ad4fc00efb",
+        "tip_hash": "2d0e775d3bc169d3916774ca143641d473f40c54b1c20f80a379081792fecde3",
+        "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "validator_epoch": 0,
+        "validator_set_hash": ""
+      },
+      "node2": {
+        "chain_id": "weall-controlled-devnet",
+        "chain_manifest": {
+          "actual_tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+          "authority_snapshot_version": 1,
+          "chain_id": "weall-controlled-devnet",
+          "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+          "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+          "constitution_traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+          "constitution_version": "draft-2",
+          "constitutional_clock": {
+            "allowed_clock_skew_ms": 2000,
+            "block_time_derivation": "genesis_time_plus_height_times_interval",
+            "empty_blocks_enabled": true,
+            "enabled": true,
+            "genesis_time_ms": 0,
+            "no_fast_forward": true,
+            "no_height_skip": true,
+            "procedure_time_source": "finalized_block_height",
+            "target_block_interval_ms": 20000
+          },
+          "enabled": true,
+          "genesis_hash": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+          "genesis_state_root": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+          "genesis_time_ms": 0,
+          "issues": [],
+          "manifest_hash": "c3c6e7b0eb0b9b35a2436dc3e586542ef34f5840b176cd889b4dcf76020bda90",
+          "mode": "controlled_devnet",
+          "ok": true,
+          "path": "/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json",
+          "profile": "controlled_devnet_service",
+          "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+          "schema_version": "1",
+          "trusted_authority_pubkeys_count": 1,
+          "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+          "tx_index_hash_matches": true,
+          "version": 1
+        },
+        "constitution": {
+          "active": true,
+          "document_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+          "document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+          "hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+          "hash_matches_source": true,
+          "status": "genesis_bound",
+          "traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+          "traceability_hash_matches_source": true,
+          "version": "draft-2"
+        },
+        "constitutional_clock": {
+          "allowed_clock_skew_ms": 2000,
+          "block_time_derivation": "genesis_time_plus_height_times_interval",
+          "current_procedure_height": 0,
+          "empty_blocks_enabled": true,
+          "enabled": true,
+          "genesis_time_ms": 0,
+          "no_fast_forward": true,
+          "no_height_skip": true,
+          "procedure_time_source": "finalized_block_height",
+          "target_block_interval_ms": 20000
+        },
+        "finalized": {
+          "block_id": "",
+          "height": 0
+        },
+        "genesis_bootstrap": {
+          "enabled": true,
+          "mode": "explicit",
+          "profile_hash": "e87767fae6d8cf7fe2030383e05989e7a9ef2c8a55f58d1eef30bb02563c1938"
+        },
+        "height": 0,
+        "ok": true,
+        "production_consensus_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+        "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+        "protocol_version": "2026.03-prod.6",
+        "schema_version": "1",
+        "snapshot_anchor": {
+          "finalized_block_id": "",
+          "finalized_height": 0,
+          "height": 0,
+          "snapshot_hash": "f31051fc1b9fc154d51f73f05b21769838920b1e4b7f0b77a79c2b0954796922",
+          "state_root": "9d8f37186c57ca5a81347c65a129b5e1d1e8b1fc179540c2b11c3280b5e8e100",
+          "tip_hash": ""
+        },
+        "state_root": "9d8f37186c57ca5a81347c65a129b5e1d1e8b1fc179540c2b11c3280b5e8e100",
+        "testnet_readiness": {
+          "block_production": {
+            "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass",
+            "production_profile_proven": false,
+            "public_multi_validator_bft_ready": false,
+            "stage": "local_rehearsal_proof_required"
+          },
+          "disputes": {
+            "claim": "review and appeal flows are protocol surfaces, but public moderation claims remain limited until due-process coverage is complete",
+            "full_public_moderation_ready": false,
+            "mode": "limited_testnet"
+          },
+          "economics": {
+            "claim": "WeCoin/economic transfers and treasury actions remain unavailable unless the genesis lock and governance activation rules are satisfied; civic/social/governance actions remain fee-free",
+            "enabled": false,
+            "locked": true,
+            "unlocked": false
+          },
+          "external_observer_stage": "trusted_external_observer",
+          "governance": {
+            "claim": "proposal/dispute mechanics may be exercised only within documented testnet limits until constitutional rights-floor enforcement is complete",
+            "full_public_governance_ready": false,
+            "mode": "limited_testnet"
+          },
+          "launch_matrix_capabilities": {
+            "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": [
+              "b587_b594_mechanism_completion",
+              "public_beta_blocker_report"
+            ],
+            "artifact_blockers": [],
+            "blocked_capabilities": [
+              "live_transfers",
+              "live_rewards",
+              "treasury_spend",
+              "live_economics",
+              "public_validator_join",
+              "public_multi_validator_bft",
+              "automatic_protocol_upgrade_apply",
+              "production_helper_execution"
+            ],
+            "capabilities": {
+              "automatic_protocol_upgrade_apply": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+                "enabled": false,
+                "feature": "automatic_protocol_upgrade_apply",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "live_economics": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+                "enabled": false,
+                "feature": "live_economics",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "live_rewards": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+                "enabled": false,
+                "feature": "reward_issuance",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "live_transfers": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+                "enabled": false,
+                "feature": "balance_transfer",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "production_helper_execution": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+                "enabled": false,
+                "feature": "production_helper_execution",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "public_multi_validator_bft": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+                "enabled": false,
+                "feature": "public_multi_validator_bft",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "public_validator_join": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+                "enabled": false,
+                "feature": "public_validator_promotion",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              },
+              "treasury_spend": {
+                "blocked_by_launch_matrix": true,
+                "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+                "enabled": false,
+                "feature": "treasury_spend",
+                "phase": "public_beta_candidate",
+                "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+              }
+            },
+            "controlled_mechanism_artifact_blockers": [],
+            "controlled_testnet_mechanisms_complete": true,
+            "dispute_lifecycle": {
+              "deterministic_receipt_txs": [
+                "DISPUTE_JUROR_TIMEOUT",
+                "DISPUTE_FINAL_RECEIPT"
+              ],
+              "manual_wall_clock_protocol_state_allowed": false,
+              "private_identity_evidence_publicly_exposed": false,
+              "progression_clock": "block_height",
+              "public_record_state": true,
+              "reviewer_surface": "GET /v1/status/testnet-capabilities",
+              "scheduler": "tick_dispute_lifecycle",
+              "truth_boundary": "Dispute windows, juror deadlines, appeal closure, and public outcomes are block-height bound; raw PoH/private identity evidence remains restricted.",
+              "ui_time_estimates_only": true
+            },
+            "governance_lifecycle": {
+              "deterministic_receipt_txs": [
+                "GOV_STAGE_SET",
+                "GOV_VOTING_CLOSE",
+                "GOV_TALLY_PUBLISH",
+                "GOV_EXECUTE",
+                "GOV_PROPOSAL_FINALIZE"
+              ],
+              "manual_wall_clock_protocol_state_allowed": false,
+              "progression_clock": "block_height",
+              "public_record_state": true,
+              "reviewer_surface": "GET /v1/status/testnet-capabilities",
+              "scheduler": "tick_governance_lifecycle",
+              "truth_boundary": "Governance procedure truth is block-height based; UI may render approximate human time but must not mutate protocol state from local wall-clock time.",
+              "ui_time_estimates_only": true
+            },
+            "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
+            "minimum_reviewer_civic_loop": {
+              "api_evidence_surfaces": {
+                "account_identity_state": [
+                  "GET /v1/session/me",
+                  "GET /v1/accounts/{account}/profile"
+                ],
+                "dispute_review_outcome_visibility": [
+                  "GET /v1/disputes",
+                  "GET /v1/disputes/current",
+                  "GET /v1/disputes/{dispute_id}",
+                  "GET /v1/disputes/{dispute_id}/votes"
+                ],
+                "economics_locked_status": [
+                  "GET /v1/economics/status",
+                  "GET /v1/treasury/status",
+                  "GET /v1/wallet/{account}"
+                ],
+                "governance_create_vote_finalize": [
+                  "GET /v1/gov/proposals",
+                  "GET /v1/gov/proposals/{proposal_id}",
+                  "GET /v1/gov/proposals/{proposal_id}/votes",
+                  "POST /v1/tx/submit"
+                ],
+                "human_verification_state": [
+                  "GET /v1/poh/async/my-cases",
+                  "GET /v1/poh/live/my-cases"
+                ],
+                "observer_node_status": [
+                  "GET /v1/status",
+                  "GET /v1/chain/identity",
+                  "GET /v1/nodes/seeds",
+                  "GET /v1/nodes/validators",
+                  "GET /v1/observer/edge/status"
+                ],
+                "protocol_upgrade_record_lifecycle": [
+                  "POST /v1/tx/submit",
+                  "GET /v1/status/testnet-capabilities"
+                ],
+                "public_group_read_with_member_gated_participation": [
+                  "GET /v1/groups",
+                  "GET /v1/groups/{group_id}",
+                  "GET /v1/groups/{group_id}/feed",
+                  "GET /v1/groups/{group_id}/governance-contract"
+                ],
+                "public_posting_or_social_activity": [
+                  "GET /v1/feed",
+                  "POST /v1/tx/submit",
+                  "GET /v1/content/{content_id}"
+                ],
+                "reputation_outcome_visibility": [
+                  "GET /v1/reputation/{account}/eligibility",
+                  "GET /v1/activity/notices"
+                ]
+              },
+              "canonical_route_boundary": {
+                "dispute_label": "Reports",
+                "dispute_route": "/reports",
+                "governance_label": "Decisions",
+                "governance_route": "/decisions",
+                "legacy_aliases_removed": [
+                  "/proposals",
+                  "/disputes"
+                ]
+              },
+              "economics_locked_by_default": true,
+              "frontend_entrypoints": {
+                "account": "/profile",
+                "account_detail_template": "/account/:account",
+                "create_post": "/create",
+                "dispute_detail_template": "/reports/:id",
+                "disputes": "/reports",
+                "economics": "/economics",
+                "feed": "/feed",
+                "governance": "/decisions",
+                "governance_create": "/decisions/create",
+                "governance_detail_template": "/decisions/:id",
+                "group_detail_template": "/groups/:id",
+                "groups": "/groups",
+                "identity_verification": "/verification",
+                "node_status": "/node",
+                "reputation_visibility": "/activity",
+                "review_center": "/reviews",
+                "review_detail_template": "/reviews/:id"
+              },
+              "public_only_visibility": true,
+              "steps": [
+                "account_identity_state",
+                "human_verification_state",
+                "public_posting_or_social_activity",
+                "public_group_read_with_member_gated_participation",
+                "governance_create_vote_finalize",
+                "dispute_review_outcome_visibility",
+                "reputation_outcome_visibility",
+                "protocol_upgrade_record_lifecycle",
+                "observer_node_status",
+                "economics_locked_status"
+              ],
+              "truth_boundary": "This is a reviewer navigation map using current canonical frontend routes, not proof that public beta/mainnet gates are closed. Templates with ':' require a concrete public identifier before navigation."
+            },
+            "phase": "public_beta_candidate",
+            "protocol_upgrade_lifecycle": {
+              "activation_clock": "block_height",
+              "activation_record_only": true,
+              "automatic_software_apply_enabled": false,
+              "declaration_tx": "PROTOCOL_UPGRADE_DECLARE",
+              "economics_activation_enabled_by_upgrade": false,
+              "migration_execution_enabled": false,
+              "public_record_state": true,
+              "required_parent_boundary": "SYSTEM queue / receipt-only governance parent reference",
+              "reviewer_surface": "GET /v1/status/testnet-capabilities",
+              "rollback_execution_enabled": false,
+              "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
+              "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
+            },
+            "public_beta_blocker_report": {
+              "blocker_catalog_count": 15,
+              "blocker_count": 15,
+              "closed_in_repository_count": 7,
+              "mainnet_ready": false,
+              "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+              "ok": true,
+              "p0_open_count": 4,
+              "p1_open_count": 4,
+              "p2_open_count": 0,
+              "p3_open_count": 0,
+              "present": true,
+              "public_beta_ready": false,
+              "remaining_blocker_count": 8,
+              "remaining_external_evidence_required_count": 8,
+              "remaining_mainnet_hardening_count": 4
+            },
+            "public_beta_ready_claimed": false,
+            "required_artifacts": {
+              "api_contract": {
+                "ok": true,
+                "path": "generated/api_contract_map_v1_5.json",
+                "present": true,
+                "schema": "weall.api_contract_map.v1_5"
+              },
+              "api_response_vectors": {
+                "ok": true,
+                "path": "generated/api_response_vectors_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.api_response_vectors"
+              },
+              "b582_b586_proof": {
+                "ok": true,
+                "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
+              },
+              "b587_b594_mechanism_completion": {
+                "ok": true,
+                "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+              },
+              "external_operator_transcript_requirements": {
+                "ok": true,
+                "path": "generated/external_operator_transcript_requirements_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.external_operator_transcript_requirements"
+              },
+              "failure_code_registry": {
+                "ok": true,
+                "path": "generated/failure_code_registry_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.failure_code_registry"
+              },
+              "launch_disabled_matrix": {
+                "ok": true,
+                "path": "generated/launch_disabled_matrix_v1_5.json",
+                "present": true,
+                "schema": "weall.launch_disabled_matrix.v1_5"
+              },
+              "production_helper_topology_hardening_plan": {
+                "ok": true,
+                "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+              },
+              "public_beta_blocker_report": {
+                "ok": true,
+                "path": "generated/public_beta_blocker_report_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.public_beta_blocker_report"
+              },
+              "public_validator_preflight": {
+                "ok": true,
+                "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+              },
+              "state_root_vectors": {
+                "ok": true,
+                "path": "generated/state_root_vectors_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.state_root_vectors"
+              },
+              "tokenomics_simulation": {
+                "ok": true,
+                "path": "generated/tokenomics_simulation_v1_5.json",
+                "present": true,
+                "schema": "weall.v1_5.tokenomics_simulation"
+              }
+            },
+            "schema": "weall.v1_5.testnet_capability_surface",
+            "truth_boundaries": {
+              "automatic_protocol_upgrades_enabled": false,
+              "launch_matrix_is_guardrail_not_consensus": true,
+              "legal_compliance_ready_claimed": false,
+              "live_economics_enabled": false,
+              "production_helper_execution_enabled": false,
+              "public_validator_enabled": false
+            }
+          },
+          "poh": {
+            "allowlist_count": 1,
+            "allowlist_enabled": true,
+            "allowlist_expired": false,
+            "allowlist_expires_height": null,
+            "auto_lock": {
+              "active_validators": 1,
+              "required_active_validators": 4,
+              "rule": "active_validators>=BFT_MIN_VALIDATORS"
+            },
+            "auto_locked_by_validator_quorum": false,
+            "live_policy_mode": "bootstrap",
+            "mode": "allowlist",
+            "mode_error": "",
+            "open_enabled": false,
+            "open_expired": false,
+            "open_max_height": null,
+            "production_live_quorum_required": false,
+            "valid": true
+          },
+          "public_only_protocol_surface": {
+            "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events.",
+            "opaque_protocol_payloads_supported": false,
+            "public_inspectability_required": true
+          },
+          "tokenomics": {
+            "civic_social_governance_fee_free": true,
+            "claim": "tokenomics are defined as a locked Genesis model for rehearsal; live economics require governance activation and are not claimed for external/public testing yet",
+            "live_transfers_enabled": false,
+            "rewards_enabled": false,
+            "stage": "locked_genesis_model",
+            "treasury_spend_enabled": false
+          }
+        },
+        "tip": "",
+        "tip_hash": "",
+        "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "validator_epoch": 0,
+        "validator_set_hash": ""
+      },
+      "step": "identity_before"
+    },
+    {
+      "result": {
+        "account": "@devnet_crossnode_20260729-232306-40621",
+        "account_state": {
+          "account_type": "human",
+          "active_keys": [
+            "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+          ],
+          "banned": false,
+          "devices": {
+            "by_id": {},
+            "redacted": true,
+            "summary": {
+              "active": 0,
+              "browser": 0,
+              "node": 0,
+              "revoked": 0,
+              "total": 0
+            }
+          },
+          "evidence_encryption": {
+            "algorithm": null,
+            "public_key": null,
+            "registered_height": null
+          },
+          "keys": {
+            "by_id": {
+              "k:2109c270f9381c7a": {
+                "active": true,
+                "created_height": 0,
+                "key_id": "k:2109c270f9381c7a",
+                "key_type": "main",
+                "pubkeys": {
+                  "mldsa": "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+                },
+                "revoked": false,
+                "revoked_at": null,
+                "revoked_height": null,
+                "sig_profile": "pq-mldsa-v1"
+              }
+            }
+          },
+          "locked": false,
+          "nonce": 1,
+          "poh_tier": 0,
+          "poh_tier_label": "Unverified Account",
+          "pubkey": "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f",
+          "pubkeys": [
+            "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+          ],
+          "recovery": {
+            "authority_generation": 0,
+            "config": null,
+            "failed_attempt_heights": [],
+            "history": [],
+            "mode": null,
+            "offline_key": null,
+            "prior_offline_keys": [],
+            "proposals": {},
+            "requests": {}
+          },
+          "reputation": "0"
+        },
+        "api": "http://127.0.0.1:18311",
+        "chain_id": "weall-controlled-devnet",
+        "keyfile": "/home/errol/WeAll-Protocol/Weall-Protocol/.weall-devnet/cross-node/cross-node-account.json",
+        "ok": true,
+        "public_key_hex": "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f",
+        "submit": {
+          "gossip_propagation": {
+            "accepted": false,
+            "attempted": false
+          },
+          "mempool_size": 1,
+          "ok": true,
+          "status": "accepted",
+          "tx_id": "tx:19ef2e1369349a02e52ac10e741ce9970151426bceec62918c7684ac8f8a4ba8",
+          "upstream_propagation": {
+            "accepted": false,
+            "attempted": false,
+            "error": "no_upstreams_configured",
+            "results": [],
+            "skipped": "no_upstreams_configured"
+          }
+        },
+        "tx_id": "tx:19ef2e1369349a02e52ac10e741ce9970151426bceec62918c7684ac8f8a4ba8",
+        "tx_status": {
+          "block_id": "dd5831a45366fc34173d3174b75893e5571968bea918e296917692c5dc6130f7",
+          "height": 2,
+          "included_ts_ms": 40000,
+          "local_state_synced": true,
+          "ok": true,
+          "outbound_propagation": {},
+          "signer": "@devnet_crossnode_20260729-232306-40621",
+          "status": "confirmed",
+          "tx_id": "tx:19ef2e1369349a02e52ac10e741ce9970151426bceec62918c7684ac8f8a4ba8",
+          "tx_type": "ACCOUNT_REGISTER"
+        }
+      },
+      "step": "node1_create_account"
+    },
+    {
+      "result": {
+        "ok": true,
+        "returncode": 0,
+        "source_api": "http://127.0.0.1:18311",
+        "stderr": "",
+        "stdout": "==> Sync round 1: source_height=2 target_height=0 source=http://127.0.0.1:18311 target=http://127.0.0.1:18312\n{\"ok\":true,\"applied_count\":2,\"metas\":[{\"ok\":true,\"error\":\"\",\"height\":1,\"block_id\":\"0e330a0f7faf6e368b43eba688f6bb78627018f3894562be597541ad4fc00efb\",\"applied_count\":0},{\"ok\":true,\"error\":\"\",\"height\":2,\"block_id\":\"dd5831a45366fc34173d3174b75893e5571968bea918e296917692c5dc6130f7\",\"applied_count\":1}],\"height\":2}\n==> OK: target synced to source height=2 state_root=100e3d0d189bd872ab98a1ac746369f679848b19f05f4a292f5d0103b113cdc2 source=http://127.0.0.1:18311 target=http://127.0.0.1:18312\n",
+        "target_api": "http://127.0.0.1:18312"
+      },
+      "step": "sync_node1_to_node2"
+    },
+    {
+      "account_state": {
+        "account_type": "human",
+        "active_keys": [
+          "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+        ],
+        "banned": false,
+        "devices": {
+          "by_id": {},
+          "redacted": true,
+          "summary": {
+            "active": 0,
+            "browser": 0,
+            "node": 0,
+            "revoked": 0,
+            "total": 0
+          }
+        },
+        "evidence_encryption": {
+          "algorithm": null,
+          "public_key": null,
+          "registered_height": null
+        },
+        "keys": {
+          "by_id": {
+            "k:2109c270f9381c7a": {
+              "active": true,
+              "created_height": 0,
+              "key_id": "k:2109c270f9381c7a",
+              "key_type": "main",
+              "pubkeys": {
+                "mldsa": "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+              },
+              "revoked": false,
+              "revoked_at": null,
+              "revoked_height": null,
+              "sig_profile": "pq-mldsa-v1"
+            }
+          }
+        },
+        "locked": false,
+        "nonce": 1,
+        "poh_tier": 0,
+        "poh_tier_label": "Unverified Account",
+        "pubkey": "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f",
+        "pubkeys": [
+          "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+        ],
+        "recovery": {
+          "authority_generation": 0,
+          "config": null,
+          "failed_attempt_heights": [],
+          "history": [],
+          "mode": null,
+          "offline_key": null,
+          "prior_offline_keys": [],
+          "proposals": {},
+          "requests": {}
+        },
+        "reputation": "0"
+      },
+      "step": "node2_account_after_sync"
+    },
+    {
+      "result": {
+        "account": "@devnet_crossnode_20260729-232306-40621",
+        "account_state": {
+          "account_type": "human",
+          "active_keys": [
+            "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+          ],
+          "banned": false,
+          "devices": {
+            "by_id": {},
+            "redacted": true,
+            "summary": {
+              "active": 0,
+              "browser": 0,
+              "node": 0,
+              "revoked": 0,
+              "total": 0
+            }
+          },
+          "evidence_encryption": {
+            "algorithm": null,
+            "public_key": null,
+            "registered_height": null
+          },
+          "keys": {
+            "by_id": {
+              "k:2109c270f9381c7a": {
+                "active": true,
+                "created_height": 0,
+                "key_id": "k:2109c270f9381c7a",
+                "key_type": "main",
+                "pubkeys": {
+                  "mldsa": "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+                },
+                "revoked": false,
+                "revoked_at": null,
+                "revoked_height": null,
+                "sig_profile": "pq-mldsa-v1"
+              }
+            }
+          },
+          "locked": false,
+          "nonce": 1,
+          "poh_tier": 0,
+          "poh_tier_label": "Unverified Account",
+          "pubkey": "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f",
+          "pubkeys": [
+            "0a28922fe1599296ab50112e7ffac2a98cdad1af9f2d7b0757b637d06f84902f25fffb7e08b67a0e3f5171a496a5c3eb7d7bf676967779a86b064ac3601cb7c17ac4c2a121eafa810e0daa48faaa01860f1b92fe1483aac8e3f4831db0877537815d5298d3fbcb32ea2a09ca9a53198ab04ba78a50477c86ef21181352a5328d1a9b8f46f66d50f50f91c6525c3372c6b953781cfb2a99ffc6237baccc5a6e3e0c7749f5b3a1f7b78c140116073d7029526b13dc233a382219dcc51cc4889d1c75b4edb4c1b8cb3254ca54ec1214c9182486e01dd3599aee281ffed43874b37a1296484c93d5086b614b147c27ff00b8bd35375fc0e5c848eccd34d114a50e27644497f7d59069366204170c4218106df61c3e4f1c7926294c20a96029be5f9376b59b86542a37967432a13a855f784037fc754fc55ce0e96152820b7a1f342f4319298f7d94911842827c3a934d6803371f6bcee981dc3136dff131c09960d2a78070e0cfa3d57ab3b5398351f8b0e6cc0fbf9d2d8d017c5a02c2cd8ad357d70a9a9484518b9bda7a4daf2f42786350d65dc5752bd0f9d3d0f718d057369567ce089ab2cb22b8fe2aa6d61cdfaa91037efa038dea8d462c38dbbc3c97efbcab4d8a7ae1ee3df4ceac067e1127563d27810956e0eb0628b384f061caa5bca975846bbc879dd402d3125f26c6902b8ad4334736c2e54e90bf3bb0e7af0321b6591c081ea07cbf95b1588cb6626c1aed993ec420997fe1ab62c3bffefd06b541efb2cf7d7f882f4c8360416c50eac28d45952eda1a25ead856a5c5616a6e2496f7bc3315ee3d788b2445f3dfe26f8e476eb67f815fe1b1ff3d98f1d5e885e9e438ed49626ebb9a42d3f7a8b069272f98eb69128aae53bb962cc1754d6042e4b592421fef0578255bff328421167321bfb494b5b0b180b19001b889d999fd84b161db0fc91e04dd84a5b71f48f7016ae236edecf8a6fffad0b5be574ad880141d421e63af26da8a339188db966e9308af85f388b73fe72d5fee29c58ef6372686062d94b18411c6c6df8f023226d33f42c7ba60c16ab0fc2e8abe0c92246f702e07af84fcd6c6e3225bea45c294b243de0ae2581934dfa5e2a817eafe64d4229a6ad7c5d1dc57b8ce3c2f40f9fac3533418c25a3b2e02b3017f5ef91a17a8af3fc6ae24a566692a93da49708db79125c83cf56e7a2ac310ed693ec2c61c3f740bdb6ad8dc61e181043ad6aab9b0995af9e678aafd18e1fcb30cbb13acf091cd9038ef345fbc1d209d817d83b9ac068d3bd909a09a9ee069c19137bbb40a186391d45341ac3b2a951230dcabe466ac9f4a522ec6e5f54146ea37dad6ecf0d77a89627c416ea92348f55f97784a0f364f6908f6786a4723ffbaa319194e03e1a81a9f3fdbbdadcad858d0fa94e42761ed454ca8c392e4265e54e083a6575934e833ff6f94d0122693a75be58f28fb7a203a2520fe9f59e22f3641040c73ebf49636f6775712eae1c8e7a7ba2530d8c739516940da8c45af6b96e477829e16c908da1a10352edd5e7b7508baa3cb5bf1f7770b476c3bb9b5975453f5cd421e319a6b503fd184f04808e974071c564358247919102d6d3e08545ea2530bfa6f40e8cd33a9dea099876d4ffbc7cc832679ea5d7ff2c3cfbcbe674da48bddc11a4b7f530578cf2e2a42b829930f2b94c836c21be9a7157ca53c9ac58d5118a9c7d4f078809a6963921692c0777935b5e53a3b2ce9cc94f70991524f47a966793ae3f2e486e44cab4a8d3e49c17669aeab8dafc43c80306aa443140ab4fe1b35c5a54c12d6fcdb51bc7350003c65f86fce3ace5276ad18229e2e04cced4546c70458c8d4c0d654d268394f5167ff2fe2297fd62bc4b426964b8cf0ad199e4dfa450ce88e394a217a63f0aa8de15e2fbcca436a32cacbc270832f6998fa1e866f917945847c9a60332a3be60fc3599336600c2225a06d96b3c4dd59cac33235629e973a3a93086ca2827e285afcfc26dd8645d34ff6490df225a4959763df79ee6bfec7735ff22b07fd89a208cd671f3af72b63f7845d29a29a4cee0d39be06054ff7a24f85c85fe215cf4030d33c30441923b2b60c935c19bcb205d8c5e2e81c80a5b66482008dd6cbb315d5ae4e62e03479bf2ef38edbb7ba29ce02dc646ec48a87520e102cee98c5aa49ae799bab83f67608c85410bcdd2c59ab833fcd05227b199f1d5e3ad09c7934b18c8a5e6142c4f8f69d7ca39698c101fb655e525076b6f014e414faca0d0e01c73568e5b78353c008d8e1751cd268c96b01b16ab014596a8c4a4db8dadff99ff3e1e6c84a424789558da8d4141462b54db9878509e6581e6db4329a270beb57b824c2e7c1153eb1ddff72e0ebbbd467f4c3a4893b46dc3a681738c3eef140e2f0b1a9d2ce5c68fba6b77391d2e003e03bcd6a40b334d34578329ea712f1db5f9b7b8669b20d8503a9557bc0ea433667522c85255331b8fc60217d7486f4bdec3de1404b20695949a7db9d9430bd971d22a5c82dd6975f0d041d95b700764b40ffe97f6194ec81a8de930376024fd5cf115ee632d880c0a8ce95edd68aedb388516f9de1d4e2fb2731eb49a4041eb18e95b835c582140543018f1d63d8a798d31f01beb7d749cd20b3b8ce14c1e3ec931898f7bbb50847e1e5e283dca06c50ba3283c5095c1316cf27622d92738ce90feb57d2ac6906e4b0caa8f132a6009035a16158dbe860491322b76a8c62bc301bbef5d69e5a6d4a94df6a4f"
+          ],
+          "recovery": {
+            "authority_generation": 0,
+            "config": null,
+            "failed_attempt_heights": [],
+            "history": [],
+            "mode": null,
+            "offline_key": null,
+            "prior_offline_keys": [],
+            "proposals": {},
+            "requests": {}
+          },
+          "reputation": "0"
+        },
+        "api": "http://127.0.0.1:18312",
+        "chain_id": "weall-controlled-devnet",
+        "ok": true,
+        "submit": {
+          "gossip_propagation": {
+            "accepted": false,
+            "attempted": false
+          },
+          "mempool_size": 1,
+          "ok": true,
+          "status": "accepted",
+          "tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce",
+          "upstream_propagation": {
+            "accepted": false,
+            "attempted": false,
+            "error": "no_upstreams_configured",
+            "results": [],
+            "skipped": "no_upstreams_configured"
+          }
+        },
+        "tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce",
+        "tx_out": "/home/errol/WeAll-Protocol/Weall-Protocol/.weall-devnet/cross-node/node2-profile-update.signed-tx.json",
+        "tx_status": {
+          "ok": true,
+          "outbound_propagation": {},
+          "status": "pending",
+          "timed_out": true,
+          "tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce"
+        }
+      },
+      "step": "node2_profile_update"
+    },
+    {
+      "reason": "joining node accepted the tx but is not currently producing blocks",
+      "status": {
+        "ok": true,
+        "outbound_propagation": {},
+        "status": "pending",
+        "timed_out": true,
+        "tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce"
+      },
+      "step": "node2_profile_update_pending_edge_relay_required"
+    },
+    {
+      "result": {
+        "mode": "edge_relay_to_canonical_producer",
+        "ok": true,
+        "producer_api": "http://127.0.0.1:18311",
+        "submit": {
+          "gossip_propagation": {
+            "accepted": false,
+            "attempted": false
+          },
+          "mempool_size": 1,
+          "ok": true,
+          "status": "accepted",
+          "tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce",
+          "upstream_propagation": {
+            "accepted": false,
+            "attempted": false,
+            "error": "no_upstreams_configured",
+            "results": [],
+            "skipped": "no_upstreams_configured"
+          }
+        },
+        "tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce",
+        "tx_path": "/home/errol/WeAll-Protocol/Weall-Protocol/.weall-devnet/cross-node/node2-profile-update.signed-tx.json",
+        "tx_status": {
+          "block_id": "f3cbbd129c29b8360b5571dfabefeba01aec0c8fb16b1a989553ad39dc3552c4",
+          "height": 4,
+          "included_ts_ms": 80000,
+          "local_state_synced": true,
+          "ok": true,
+          "outbound_propagation": {},
+          "signer": "@devnet_crossnode_20260729-232306-40621",
+          "status": "confirmed",
+          "tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce",
+          "tx_type": "PROFILE_UPDATE"
+        }
+      },
+      "step": "relay_node2_signed_tx_to_node1"
+    },
+    {
+      "result": {
+        "ok": true,
+        "returncode": 0,
+        "source_api": "http://127.0.0.1:18311",
+        "stderr": "",
+        "stdout": "==> Sync round 1: source_height=4 target_height=2 source=http://127.0.0.1:18311 target=http://127.0.0.1:18312\n{\"ok\":true,\"applied_count\":2,\"metas\":[{\"ok\":true,\"error\":\"\",\"height\":3,\"block_id\":\"ed9d8a2c60e37b8a5f1e04eafcb9727fc1dda9309d465205668d8e5c6f916d56\",\"applied_count\":0},{\"ok\":true,\"error\":\"\",\"height\":4,\"block_id\":\"f3cbbd129c29b8360b5571dfabefeba01aec0c8fb16b1a989553ad39dc3552c4\",\"applied_count\":1}],\"height\":4}\n==> OK: target synced to source height=4 state_root=e68c00f8cdddc0eaa146717cd19012bf67532666f539330a927427976480d1fa source=http://127.0.0.1:18311 target=http://127.0.0.1:18312\n",
+        "target_api": "http://127.0.0.1:18312"
+      },
+      "step": "sync_node1_to_node2_after_relay"
+    }
+  ],
+  "identity_after": {
+    "chain_manifest_failures": [],
+    "mismatches": [],
+    "node1": {
+      "chain_id": "weall-controlled-devnet",
+      "chain_manifest": {
+        "actual_tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "authority_snapshot_version": 1,
+        "chain_id": "weall-controlled-devnet",
+        "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "constitution_traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+        "constitution_version": "draft-2",
+        "constitutional_clock": {
+          "allowed_clock_skew_ms": 2000,
+          "block_time_derivation": "genesis_time_plus_height_times_interval",
+          "empty_blocks_enabled": true,
+          "enabled": true,
+          "genesis_time_ms": 0,
+          "no_fast_forward": true,
+          "no_height_skip": true,
+          "procedure_time_source": "finalized_block_height",
+          "target_block_interval_ms": 20000
+        },
+        "enabled": true,
+        "genesis_hash": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+        "genesis_state_root": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+        "genesis_time_ms": 0,
+        "issues": [],
+        "manifest_hash": "c3c6e7b0eb0b9b35a2436dc3e586542ef34f5840b176cd889b4dcf76020bda90",
+        "mode": "controlled_devnet",
+        "ok": true,
+        "path": "/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json",
+        "profile": "controlled_devnet_service",
+        "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+        "schema_version": "1",
+        "trusted_authority_pubkeys_count": 1,
+        "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "tx_index_hash_matches": true,
+        "version": 1
+      },
+      "constitution": {
+        "active": true,
+        "document_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "hash_matches_source": true,
+        "status": "genesis_bound",
+        "traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+        "traceability_hash_matches_source": true,
+        "version": "draft-2"
+      },
+      "constitutional_clock": {
+        "allowed_clock_skew_ms": 2000,
+        "block_time_derivation": "genesis_time_plus_height_times_interval",
+        "current_procedure_height": 4,
+        "empty_blocks_enabled": true,
+        "enabled": true,
+        "genesis_time_ms": 0,
+        "no_fast_forward": true,
+        "no_height_skip": true,
+        "procedure_time_source": "finalized_block_height",
+        "target_block_interval_ms": 20000
+      },
+      "finalized": {
+        "block_id": "",
+        "height": 0
+      },
+      "genesis_bootstrap": {
+        "enabled": true,
+        "mode": "explicit",
+        "profile_hash": "e87767fae6d8cf7fe2030383e05989e7a9ef2c8a55f58d1eef30bb02563c1938"
+      },
+      "height": 4,
+      "ok": true,
+      "production_consensus_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "protocol_version": "2026.03-prod.6",
+      "schema_version": "1",
+      "snapshot_anchor": {
+        "finalized_block_id": "",
+        "finalized_height": 0,
+        "height": 4,
+        "snapshot_hash": "32d8a4d1540e5dcb186d7a8e1e8f5ecdb34dc45a0916e0f320ee61f17f4f3f1b",
+        "state_root": "e68c00f8cdddc0eaa146717cd19012bf67532666f539330a927427976480d1fa",
+        "tip_hash": "b021a5ce083fb4d5a6a4104c9b2c37aa1df687ab2d4459e6b1da6c98924bb3ef"
+      },
+      "state_root": "e68c00f8cdddc0eaa146717cd19012bf67532666f539330a927427976480d1fa",
+      "testnet_readiness": {
+        "block_production": {
+          "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass",
+          "production_profile_proven": false,
+          "public_multi_validator_bft_ready": false,
+          "stage": "local_rehearsal_proof_required"
+        },
+        "disputes": {
+          "claim": "review and appeal flows are protocol surfaces, but public moderation claims remain limited until due-process coverage is complete",
+          "full_public_moderation_ready": false,
+          "mode": "limited_testnet"
+        },
+        "economics": {
+          "claim": "WeCoin/economic transfers and treasury actions remain unavailable unless the genesis lock and governance activation rules are satisfied; civic/social/governance actions remain fee-free",
+          "enabled": false,
+          "locked": true,
+          "unlocked": false
+        },
+        "external_observer_stage": "trusted_external_observer",
+        "governance": {
+          "claim": "proposal/dispute mechanics may be exercised only within documented testnet limits until constitutional rights-floor enforcement is complete",
+          "full_public_governance_ready": false,
+          "mode": "limited_testnet"
+        },
+        "launch_matrix_capabilities": {
+          "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": [
+            "b587_b594_mechanism_completion",
+            "public_beta_blocker_report"
+          ],
+          "artifact_blockers": [],
+          "blocked_capabilities": [
+            "live_transfers",
+            "live_rewards",
+            "treasury_spend",
+            "live_economics",
+            "public_validator_join",
+            "public_multi_validator_bft",
+            "automatic_protocol_upgrade_apply",
+            "production_helper_execution"
+          ],
+          "capabilities": {
+            "automatic_protocol_upgrade_apply": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+              "enabled": false,
+              "feature": "automatic_protocol_upgrade_apply",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "live_economics": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+              "enabled": false,
+              "feature": "live_economics",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "live_rewards": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+              "enabled": false,
+              "feature": "reward_issuance",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "live_transfers": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+              "enabled": false,
+              "feature": "balance_transfer",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "production_helper_execution": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+              "enabled": false,
+              "feature": "production_helper_execution",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "public_multi_validator_bft": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+              "enabled": false,
+              "feature": "public_multi_validator_bft",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "public_validator_join": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+              "enabled": false,
+              "feature": "public_validator_promotion",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "treasury_spend": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+              "enabled": false,
+              "feature": "treasury_spend",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            }
+          },
+          "controlled_mechanism_artifact_blockers": [],
+          "controlled_testnet_mechanisms_complete": true,
+          "dispute_lifecycle": {
+            "deterministic_receipt_txs": [
+              "DISPUTE_JUROR_TIMEOUT",
+              "DISPUTE_FINAL_RECEIPT"
+            ],
+            "manual_wall_clock_protocol_state_allowed": false,
+            "private_identity_evidence_publicly_exposed": false,
+            "progression_clock": "block_height",
+            "public_record_state": true,
+            "reviewer_surface": "GET /v1/status/testnet-capabilities",
+            "scheduler": "tick_dispute_lifecycle",
+            "truth_boundary": "Dispute windows, juror deadlines, appeal closure, and public outcomes are block-height bound; raw PoH/private identity evidence remains restricted.",
+            "ui_time_estimates_only": true
+          },
+          "governance_lifecycle": {
+            "deterministic_receipt_txs": [
+              "GOV_STAGE_SET",
+              "GOV_VOTING_CLOSE",
+              "GOV_TALLY_PUBLISH",
+              "GOV_EXECUTE",
+              "GOV_PROPOSAL_FINALIZE"
+            ],
+            "manual_wall_clock_protocol_state_allowed": false,
+            "progression_clock": "block_height",
+            "public_record_state": true,
+            "reviewer_surface": "GET /v1/status/testnet-capabilities",
+            "scheduler": "tick_governance_lifecycle",
+            "truth_boundary": "Governance procedure truth is block-height based; UI may render approximate human time but must not mutate protocol state from local wall-clock time.",
+            "ui_time_estimates_only": true
+          },
+          "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
+          "minimum_reviewer_civic_loop": {
+            "api_evidence_surfaces": {
+              "account_identity_state": [
+                "GET /v1/session/me",
+                "GET /v1/accounts/{account}/profile"
+              ],
+              "dispute_review_outcome_visibility": [
+                "GET /v1/disputes",
+                "GET /v1/disputes/current",
+                "GET /v1/disputes/{dispute_id}",
+                "GET /v1/disputes/{dispute_id}/votes"
+              ],
+              "economics_locked_status": [
+                "GET /v1/economics/status",
+                "GET /v1/treasury/status",
+                "GET /v1/wallet/{account}"
+              ],
+              "governance_create_vote_finalize": [
+                "GET /v1/gov/proposals",
+                "GET /v1/gov/proposals/{proposal_id}",
+                "GET /v1/gov/proposals/{proposal_id}/votes",
+                "POST /v1/tx/submit"
+              ],
+              "human_verification_state": [
+                "GET /v1/poh/async/my-cases",
+                "GET /v1/poh/live/my-cases"
+              ],
+              "observer_node_status": [
+                "GET /v1/status",
+                "GET /v1/chain/identity",
+                "GET /v1/nodes/seeds",
+                "GET /v1/nodes/validators",
+                "GET /v1/observer/edge/status"
+              ],
+              "protocol_upgrade_record_lifecycle": [
+                "POST /v1/tx/submit",
+                "GET /v1/status/testnet-capabilities"
+              ],
+              "public_group_read_with_member_gated_participation": [
+                "GET /v1/groups",
+                "GET /v1/groups/{group_id}",
+                "GET /v1/groups/{group_id}/feed",
+                "GET /v1/groups/{group_id}/governance-contract"
+              ],
+              "public_posting_or_social_activity": [
+                "GET /v1/feed",
+                "POST /v1/tx/submit",
+                "GET /v1/content/{content_id}"
+              ],
+              "reputation_outcome_visibility": [
+                "GET /v1/reputation/{account}/eligibility",
+                "GET /v1/activity/notices"
+              ]
+            },
+            "canonical_route_boundary": {
+              "dispute_label": "Reports",
+              "dispute_route": "/reports",
+              "governance_label": "Decisions",
+              "governance_route": "/decisions",
+              "legacy_aliases_removed": [
+                "/proposals",
+                "/disputes"
+              ]
+            },
+            "economics_locked_by_default": true,
+            "frontend_entrypoints": {
+              "account": "/profile",
+              "account_detail_template": "/account/:account",
+              "create_post": "/create",
+              "dispute_detail_template": "/reports/:id",
+              "disputes": "/reports",
+              "economics": "/economics",
+              "feed": "/feed",
+              "governance": "/decisions",
+              "governance_create": "/decisions/create",
+              "governance_detail_template": "/decisions/:id",
+              "group_detail_template": "/groups/:id",
+              "groups": "/groups",
+              "identity_verification": "/verification",
+              "node_status": "/node",
+              "reputation_visibility": "/activity",
+              "review_center": "/reviews",
+              "review_detail_template": "/reviews/:id"
+            },
+            "public_only_visibility": true,
+            "steps": [
+              "account_identity_state",
+              "human_verification_state",
+              "public_posting_or_social_activity",
+              "public_group_read_with_member_gated_participation",
+              "governance_create_vote_finalize",
+              "dispute_review_outcome_visibility",
+              "reputation_outcome_visibility",
+              "protocol_upgrade_record_lifecycle",
+              "observer_node_status",
+              "economics_locked_status"
+            ],
+            "truth_boundary": "This is a reviewer navigation map using current canonical frontend routes, not proof that public beta/mainnet gates are closed. Templates with ':' require a concrete public identifier before navigation."
+          },
+          "phase": "public_beta_candidate",
+          "protocol_upgrade_lifecycle": {
+            "activation_clock": "block_height",
+            "activation_record_only": true,
+            "automatic_software_apply_enabled": false,
+            "declaration_tx": "PROTOCOL_UPGRADE_DECLARE",
+            "economics_activation_enabled_by_upgrade": false,
+            "migration_execution_enabled": false,
+            "public_record_state": true,
+            "required_parent_boundary": "SYSTEM queue / receipt-only governance parent reference",
+            "reviewer_surface": "GET /v1/status/testnet-capabilities",
+            "rollback_execution_enabled": false,
+            "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
+            "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
+          },
+          "public_beta_blocker_report": {
+            "blocker_catalog_count": 15,
+            "blocker_count": 15,
+            "closed_in_repository_count": 7,
+            "mainnet_ready": false,
+            "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+            "ok": true,
+            "p0_open_count": 4,
+            "p1_open_count": 4,
+            "p2_open_count": 0,
+            "p3_open_count": 0,
+            "present": true,
+            "public_beta_ready": false,
+            "remaining_blocker_count": 8,
+            "remaining_external_evidence_required_count": 8,
+            "remaining_mainnet_hardening_count": 4
+          },
+          "public_beta_ready_claimed": false,
+          "required_artifacts": {
+            "api_contract": {
+              "ok": true,
+              "path": "generated/api_contract_map_v1_5.json",
+              "present": true,
+              "schema": "weall.api_contract_map.v1_5"
+            },
+            "api_response_vectors": {
+              "ok": true,
+              "path": "generated/api_response_vectors_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.api_response_vectors"
+            },
+            "b582_b586_proof": {
+              "ok": true,
+              "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
+            },
+            "b587_b594_mechanism_completion": {
+              "ok": true,
+              "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+            },
+            "external_operator_transcript_requirements": {
+              "ok": true,
+              "path": "generated/external_operator_transcript_requirements_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.external_operator_transcript_requirements"
+            },
+            "failure_code_registry": {
+              "ok": true,
+              "path": "generated/failure_code_registry_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.failure_code_registry"
+            },
+            "launch_disabled_matrix": {
+              "ok": true,
+              "path": "generated/launch_disabled_matrix_v1_5.json",
+              "present": true,
+              "schema": "weall.launch_disabled_matrix.v1_5"
+            },
+            "production_helper_topology_hardening_plan": {
+              "ok": true,
+              "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+            },
+            "public_beta_blocker_report": {
+              "ok": true,
+              "path": "generated/public_beta_blocker_report_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.public_beta_blocker_report"
+            },
+            "public_validator_preflight": {
+              "ok": true,
+              "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+            },
+            "state_root_vectors": {
+              "ok": true,
+              "path": "generated/state_root_vectors_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.state_root_vectors"
+            },
+            "tokenomics_simulation": {
+              "ok": true,
+              "path": "generated/tokenomics_simulation_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.tokenomics_simulation"
+            }
+          },
+          "schema": "weall.v1_5.testnet_capability_surface",
+          "truth_boundaries": {
+            "automatic_protocol_upgrades_enabled": false,
+            "launch_matrix_is_guardrail_not_consensus": true,
+            "legal_compliance_ready_claimed": false,
+            "live_economics_enabled": false,
+            "production_helper_execution_enabled": false,
+            "public_validator_enabled": false
+          }
+        },
+        "poh": {
+          "allowlist_count": 1,
+          "allowlist_enabled": true,
+          "allowlist_expired": false,
+          "allowlist_expires_height": null,
+          "auto_lock": {
+            "active_validators": 1,
+            "required_active_validators": 4,
+            "rule": "active_validators>=BFT_MIN_VALIDATORS"
+          },
+          "auto_locked_by_validator_quorum": false,
+          "live_policy_mode": "bootstrap",
+          "mode": "allowlist",
+          "mode_error": "",
+          "open_enabled": false,
+          "open_expired": false,
+          "open_max_height": null,
+          "production_live_quorum_required": false,
+          "valid": true
+        },
+        "public_only_protocol_surface": {
+          "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events.",
+          "opaque_protocol_payloads_supported": false,
+          "public_inspectability_required": true
+        },
+        "tokenomics": {
+          "civic_social_governance_fee_free": true,
+          "claim": "tokenomics are defined as a locked Genesis model for rehearsal; live economics require governance activation and are not claimed for external/public testing yet",
+          "live_transfers_enabled": false,
+          "rewards_enabled": false,
+          "stage": "locked_genesis_model",
+          "treasury_spend_enabled": false
+        }
+      },
+      "tip": "f3cbbd129c29b8360b5571dfabefeba01aec0c8fb16b1a989553ad39dc3552c4",
+      "tip_hash": "b021a5ce083fb4d5a6a4104c9b2c37aa1df687ab2d4459e6b1da6c98924bb3ef",
+      "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+      "validator_epoch": 0,
+      "validator_set_hash": ""
+    },
+    "node2": {
+      "chain_id": "weall-controlled-devnet",
+      "chain_manifest": {
+        "actual_tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "authority_snapshot_version": 1,
+        "chain_id": "weall-controlled-devnet",
+        "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "constitution_traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+        "constitution_version": "draft-2",
+        "constitutional_clock": {
+          "allowed_clock_skew_ms": 2000,
+          "block_time_derivation": "genesis_time_plus_height_times_interval",
+          "empty_blocks_enabled": true,
+          "enabled": true,
+          "genesis_time_ms": 0,
+          "no_fast_forward": true,
+          "no_height_skip": true,
+          "procedure_time_source": "finalized_block_height",
+          "target_block_interval_ms": 20000
+        },
+        "enabled": true,
+        "genesis_hash": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+        "genesis_state_root": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+        "genesis_time_ms": 0,
+        "issues": [],
+        "manifest_hash": "c3c6e7b0eb0b9b35a2436dc3e586542ef34f5840b176cd889b4dcf76020bda90",
+        "mode": "controlled_devnet",
+        "ok": true,
+        "path": "/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json",
+        "profile": "controlled_devnet_service",
+        "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+        "schema_version": "1",
+        "trusted_authority_pubkeys_count": 1,
+        "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "tx_index_hash_matches": true,
+        "version": 1
+      },
+      "constitution": {
+        "active": true,
+        "document_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "hash_matches_source": true,
+        "status": "genesis_bound",
+        "traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+        "traceability_hash_matches_source": true,
+        "version": "draft-2"
+      },
+      "constitutional_clock": {
+        "allowed_clock_skew_ms": 2000,
+        "block_time_derivation": "genesis_time_plus_height_times_interval",
+        "current_procedure_height": 4,
+        "empty_blocks_enabled": true,
+        "enabled": true,
+        "genesis_time_ms": 0,
+        "no_fast_forward": true,
+        "no_height_skip": true,
+        "procedure_time_source": "finalized_block_height",
+        "target_block_interval_ms": 20000
+      },
+      "finalized": {
+        "block_id": "",
+        "height": 0
+      },
+      "genesis_bootstrap": {
+        "enabled": true,
+        "mode": "explicit",
+        "profile_hash": "e87767fae6d8cf7fe2030383e05989e7a9ef2c8a55f58d1eef30bb02563c1938"
+      },
+      "height": 4,
+      "ok": true,
+      "production_consensus_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "protocol_version": "2026.03-prod.6",
+      "schema_version": "1",
+      "snapshot_anchor": {
+        "finalized_block_id": "",
+        "finalized_height": 0,
+        "height": 4,
+        "snapshot_hash": "fbbd6a3c7c8da50d0a2877683a7f03a65aef2e8460a9a8175e5d17571a0ff2d1",
+        "state_root": "e68c00f8cdddc0eaa146717cd19012bf67532666f539330a927427976480d1fa",
+        "tip_hash": "b021a5ce083fb4d5a6a4104c9b2c37aa1df687ab2d4459e6b1da6c98924bb3ef"
+      },
+      "state_root": "e68c00f8cdddc0eaa146717cd19012bf67532666f539330a927427976480d1fa",
+      "testnet_readiness": {
+        "block_production": {
+          "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass",
+          "production_profile_proven": false,
+          "public_multi_validator_bft_ready": false,
+          "stage": "local_rehearsal_proof_required"
+        },
+        "disputes": {
+          "claim": "review and appeal flows are protocol surfaces, but public moderation claims remain limited until due-process coverage is complete",
+          "full_public_moderation_ready": false,
+          "mode": "limited_testnet"
+        },
+        "economics": {
+          "claim": "WeCoin/economic transfers and treasury actions remain unavailable unless the genesis lock and governance activation rules are satisfied; civic/social/governance actions remain fee-free",
+          "enabled": false,
+          "locked": true,
+          "unlocked": false
+        },
+        "external_observer_stage": "trusted_external_observer",
+        "governance": {
+          "claim": "proposal/dispute mechanics may be exercised only within documented testnet limits until constitutional rights-floor enforcement is complete",
+          "full_public_governance_ready": false,
+          "mode": "limited_testnet"
+        },
+        "launch_matrix_capabilities": {
+          "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": [
+            "b587_b594_mechanism_completion",
+            "public_beta_blocker_report"
+          ],
+          "artifact_blockers": [],
+          "blocked_capabilities": [
+            "live_transfers",
+            "live_rewards",
+            "treasury_spend",
+            "live_economics",
+            "public_validator_join",
+            "public_multi_validator_bft",
+            "automatic_protocol_upgrade_apply",
+            "production_helper_execution"
+          ],
+          "capabilities": {
+            "automatic_protocol_upgrade_apply": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+              "enabled": false,
+              "feature": "automatic_protocol_upgrade_apply",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "live_economics": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+              "enabled": false,
+              "feature": "live_economics",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "live_rewards": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+              "enabled": false,
+              "feature": "reward_issuance",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "live_transfers": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+              "enabled": false,
+              "feature": "balance_transfer",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "production_helper_execution": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+              "enabled": false,
+              "feature": "production_helper_execution",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "public_multi_validator_bft": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+              "enabled": false,
+              "feature": "public_multi_validator_bft",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "public_validator_join": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+              "enabled": false,
+              "feature": "public_validator_promotion",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            },
+            "treasury_spend": {
+              "blocked_by_launch_matrix": true,
+              "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+              "enabled": false,
+              "feature": "treasury_spend",
+              "phase": "public_beta_candidate",
+              "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+            }
+          },
+          "controlled_mechanism_artifact_blockers": [],
+          "controlled_testnet_mechanisms_complete": true,
+          "dispute_lifecycle": {
+            "deterministic_receipt_txs": [
+              "DISPUTE_JUROR_TIMEOUT",
+              "DISPUTE_FINAL_RECEIPT"
+            ],
+            "manual_wall_clock_protocol_state_allowed": false,
+            "private_identity_evidence_publicly_exposed": false,
+            "progression_clock": "block_height",
+            "public_record_state": true,
+            "reviewer_surface": "GET /v1/status/testnet-capabilities",
+            "scheduler": "tick_dispute_lifecycle",
+            "truth_boundary": "Dispute windows, juror deadlines, appeal closure, and public outcomes are block-height bound; raw PoH/private identity evidence remains restricted.",
+            "ui_time_estimates_only": true
+          },
+          "governance_lifecycle": {
+            "deterministic_receipt_txs": [
+              "GOV_STAGE_SET",
+              "GOV_VOTING_CLOSE",
+              "GOV_TALLY_PUBLISH",
+              "GOV_EXECUTE",
+              "GOV_PROPOSAL_FINALIZE"
+            ],
+            "manual_wall_clock_protocol_state_allowed": false,
+            "progression_clock": "block_height",
+            "public_record_state": true,
+            "reviewer_surface": "GET /v1/status/testnet-capabilities",
+            "scheduler": "tick_governance_lifecycle",
+            "truth_boundary": "Governance procedure truth is block-height based; UI may render approximate human time but must not mutate protocol state from local wall-clock time.",
+            "ui_time_estimates_only": true
+          },
+          "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
+          "minimum_reviewer_civic_loop": {
+            "api_evidence_surfaces": {
+              "account_identity_state": [
+                "GET /v1/session/me",
+                "GET /v1/accounts/{account}/profile"
+              ],
+              "dispute_review_outcome_visibility": [
+                "GET /v1/disputes",
+                "GET /v1/disputes/current",
+                "GET /v1/disputes/{dispute_id}",
+                "GET /v1/disputes/{dispute_id}/votes"
+              ],
+              "economics_locked_status": [
+                "GET /v1/economics/status",
+                "GET /v1/treasury/status",
+                "GET /v1/wallet/{account}"
+              ],
+              "governance_create_vote_finalize": [
+                "GET /v1/gov/proposals",
+                "GET /v1/gov/proposals/{proposal_id}",
+                "GET /v1/gov/proposals/{proposal_id}/votes",
+                "POST /v1/tx/submit"
+              ],
+              "human_verification_state": [
+                "GET /v1/poh/async/my-cases",
+                "GET /v1/poh/live/my-cases"
+              ],
+              "observer_node_status": [
+                "GET /v1/status",
+                "GET /v1/chain/identity",
+                "GET /v1/nodes/seeds",
+                "GET /v1/nodes/validators",
+                "GET /v1/observer/edge/status"
+              ],
+              "protocol_upgrade_record_lifecycle": [
+                "POST /v1/tx/submit",
+                "GET /v1/status/testnet-capabilities"
+              ],
+              "public_group_read_with_member_gated_participation": [
+                "GET /v1/groups",
+                "GET /v1/groups/{group_id}",
+                "GET /v1/groups/{group_id}/feed",
+                "GET /v1/groups/{group_id}/governance-contract"
+              ],
+              "public_posting_or_social_activity": [
+                "GET /v1/feed",
+                "POST /v1/tx/submit",
+                "GET /v1/content/{content_id}"
+              ],
+              "reputation_outcome_visibility": [
+                "GET /v1/reputation/{account}/eligibility",
+                "GET /v1/activity/notices"
+              ]
+            },
+            "canonical_route_boundary": {
+              "dispute_label": "Reports",
+              "dispute_route": "/reports",
+              "governance_label": "Decisions",
+              "governance_route": "/decisions",
+              "legacy_aliases_removed": [
+                "/proposals",
+                "/disputes"
+              ]
+            },
+            "economics_locked_by_default": true,
+            "frontend_entrypoints": {
+              "account": "/profile",
+              "account_detail_template": "/account/:account",
+              "create_post": "/create",
+              "dispute_detail_template": "/reports/:id",
+              "disputes": "/reports",
+              "economics": "/economics",
+              "feed": "/feed",
+              "governance": "/decisions",
+              "governance_create": "/decisions/create",
+              "governance_detail_template": "/decisions/:id",
+              "group_detail_template": "/groups/:id",
+              "groups": "/groups",
+              "identity_verification": "/verification",
+              "node_status": "/node",
+              "reputation_visibility": "/activity",
+              "review_center": "/reviews",
+              "review_detail_template": "/reviews/:id"
+            },
+            "public_only_visibility": true,
+            "steps": [
+              "account_identity_state",
+              "human_verification_state",
+              "public_posting_or_social_activity",
+              "public_group_read_with_member_gated_participation",
+              "governance_create_vote_finalize",
+              "dispute_review_outcome_visibility",
+              "reputation_outcome_visibility",
+              "protocol_upgrade_record_lifecycle",
+              "observer_node_status",
+              "economics_locked_status"
+            ],
+            "truth_boundary": "This is a reviewer navigation map using current canonical frontend routes, not proof that public beta/mainnet gates are closed. Templates with ':' require a concrete public identifier before navigation."
+          },
+          "phase": "public_beta_candidate",
+          "protocol_upgrade_lifecycle": {
+            "activation_clock": "block_height",
+            "activation_record_only": true,
+            "automatic_software_apply_enabled": false,
+            "declaration_tx": "PROTOCOL_UPGRADE_DECLARE",
+            "economics_activation_enabled_by_upgrade": false,
+            "migration_execution_enabled": false,
+            "public_record_state": true,
+            "required_parent_boundary": "SYSTEM queue / receipt-only governance parent reference",
+            "reviewer_surface": "GET /v1/status/testnet-capabilities",
+            "rollback_execution_enabled": false,
+            "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
+            "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
+          },
+          "public_beta_blocker_report": {
+            "blocker_catalog_count": 15,
+            "blocker_count": 15,
+            "closed_in_repository_count": 7,
+            "mainnet_ready": false,
+            "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+            "ok": true,
+            "p0_open_count": 4,
+            "p1_open_count": 4,
+            "p2_open_count": 0,
+            "p3_open_count": 0,
+            "present": true,
+            "public_beta_ready": false,
+            "remaining_blocker_count": 8,
+            "remaining_external_evidence_required_count": 8,
+            "remaining_mainnet_hardening_count": 4
+          },
+          "public_beta_ready_claimed": false,
+          "required_artifacts": {
+            "api_contract": {
+              "ok": true,
+              "path": "generated/api_contract_map_v1_5.json",
+              "present": true,
+              "schema": "weall.api_contract_map.v1_5"
+            },
+            "api_response_vectors": {
+              "ok": true,
+              "path": "generated/api_response_vectors_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.api_response_vectors"
+            },
+            "b582_b586_proof": {
+              "ok": true,
+              "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
+            },
+            "b587_b594_mechanism_completion": {
+              "ok": true,
+              "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+            },
+            "external_operator_transcript_requirements": {
+              "ok": true,
+              "path": "generated/external_operator_transcript_requirements_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.external_operator_transcript_requirements"
+            },
+            "failure_code_registry": {
+              "ok": true,
+              "path": "generated/failure_code_registry_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.failure_code_registry"
+            },
+            "launch_disabled_matrix": {
+              "ok": true,
+              "path": "generated/launch_disabled_matrix_v1_5.json",
+              "present": true,
+              "schema": "weall.launch_disabled_matrix.v1_5"
+            },
+            "production_helper_topology_hardening_plan": {
+              "ok": true,
+              "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+            },
+            "public_beta_blocker_report": {
+              "ok": true,
+              "path": "generated/public_beta_blocker_report_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.public_beta_blocker_report"
+            },
+            "public_validator_preflight": {
+              "ok": true,
+              "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+            },
+            "state_root_vectors": {
+              "ok": true,
+              "path": "generated/state_root_vectors_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.state_root_vectors"
+            },
+            "tokenomics_simulation": {
+              "ok": true,
+              "path": "generated/tokenomics_simulation_v1_5.json",
+              "present": true,
+              "schema": "weall.v1_5.tokenomics_simulation"
+            }
+          },
+          "schema": "weall.v1_5.testnet_capability_surface",
+          "truth_boundaries": {
+            "automatic_protocol_upgrades_enabled": false,
+            "launch_matrix_is_guardrail_not_consensus": true,
+            "legal_compliance_ready_claimed": false,
+            "live_economics_enabled": false,
+            "production_helper_execution_enabled": false,
+            "public_validator_enabled": false
+          }
+        },
+        "poh": {
+          "allowlist_count": 1,
+          "allowlist_enabled": true,
+          "allowlist_expired": false,
+          "allowlist_expires_height": null,
+          "auto_lock": {
+            "active_validators": 1,
+            "required_active_validators": 4,
+            "rule": "active_validators>=BFT_MIN_VALIDATORS"
+          },
+          "auto_locked_by_validator_quorum": false,
+          "live_policy_mode": "bootstrap",
+          "mode": "allowlist",
+          "mode_error": "",
+          "open_enabled": false,
+          "open_expired": false,
+          "open_max_height": null,
+          "production_live_quorum_required": false,
+          "valid": true
+        },
+        "public_only_protocol_surface": {
+          "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events.",
+          "opaque_protocol_payloads_supported": false,
+          "public_inspectability_required": true
+        },
+        "tokenomics": {
+          "civic_social_governance_fee_free": true,
+          "claim": "tokenomics are defined as a locked Genesis model for rehearsal; live economics require governance activation and are not claimed for external/public testing yet",
+          "live_transfers_enabled": false,
+          "rewards_enabled": false,
+          "stage": "locked_genesis_model",
+          "treasury_spend_enabled": false
+        }
+      },
+      "tip": "f3cbbd129c29b8360b5571dfabefeba01aec0c8fb16b1a989553ad39dc3552c4",
+      "tip_hash": "b021a5ce083fb4d5a6a4104c9b2c37aa1df687ab2d4459e6b1da6c98924bb3ef",
+      "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+      "validator_epoch": 0,
+      "validator_set_hash": ""
+    }
+  },
+  "join_anchor_path": "",
+  "keyfile": "/home/errol/WeAll-Protocol/Weall-Protocol/.weall-devnet/cross-node/cross-node-account.json",
+  "node1_api": "http://127.0.0.1:18311",
+  "node2_api": "http://127.0.0.1:18312",
+  "node2_profile_update_confirmation_mode": "edge_relay_to_node1",
+  "ok": true,
+  "profile_update_tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce",
+  "profile_update_visibility_on_node1": {
+    "actual_status": "confirmed",
+    "expected_status": "confirmed",
+    "ok": true,
+    "status": {
+      "block_id": "f3cbbd129c29b8360b5571dfabefeba01aec0c8fb16b1a989553ad39dc3552c4",
+      "height": 4,
+      "included_ts_ms": 80000,
+      "local_state_synced": true,
+      "ok": true,
+      "outbound_propagation": {},
+      "signer": "@devnet_crossnode_20260729-232306-40621",
+      "status": "confirmed",
+      "tx_id": "tx:b13c5c35476fc7ddecdfc61585f48c3d3874cd9f2e22b84b3bfabb6a282b43ce",
+      "tx_type": "PROFILE_UPDATE"
+    }
+  },
+  "scenarios": [
+    {
+      "description": "Create a fresh account through node 1, sync node 2 from node 1, and confirm node 2 exposes the account state.",
+      "direction": "node1_to_node2",
+      "expect": "account_visible_on_target",
+      "name": "node1-account-register-visible-node2",
+      "source": "node1",
+      "target": "node2",
+      "tx_type": "ACCOUNT_REGISTER"
+    },
+    {
+      "description": "Submit a normal Tier0 user transaction through node 2, then either sync node 1 from node 2 when the joiner is producing blocks or relay the exact signed tx to the canonical producer and verify both nodes converge.",
+      "direction": "node2_to_node1",
+      "expect": "tx_visible_on_target",
+      "name": "node2-profile-update-visible-node1",
+      "source": "node2",
+      "target": "node1",
+      "tx_type": "PROFILE_UPDATE"
+    },
+    {
+      "description": "Compare chain identity, height, tip hash, state root, schema version, tx index hash, and protocol profile hash after the bidirectional flow.",
+      "direction": "bidirectional",
+      "expect": "matching_height_tip_hash_state_root_tx_index_hash",
+      "name": "state-root-identity-parity-after-bidirectional-sync",
+      "source": "node1,node2",
+      "target": "node1,node2",
+      "tx_type": "CHAIN_IDENTITY_COMPARE"
+    }
+  ],
+  "steps": [
+    {
+      "apis": [
+        "http://127.0.0.1:18311",
+        "http://127.0.0.1:18312"
+      ],
+      "step": "read_node_identities"
+    },
+    {
+      "api": "node1",
+      "step": "create_account",
+      "tx_type": "ACCOUNT_REGISTER",
+      "uses": "scripts/devnet_tx.py create-account"
+    },
+    {
+      "direction": "node1_to_node2",
+      "step": "sync",
+      "uses": "scripts/devnet_sync_from_peer.sh"
+    },
+    {
+      "api": "node2",
+      "step": "assert_account_visible"
+    },
+    {
+      "api": "node2",
+      "step": "submit_profile_update",
+      "tx_type": "PROFILE_UPDATE",
+      "uses": "scripts/devnet_tx.py submit-tx"
+    },
+    {
+      "mode": "node2_producer_or_edge_relay_to_node1",
+      "step": "converge_node2_tx",
+      "uses": "scripts/devnet_sync_from_peer.sh or exact signed tx relay"
+    },
+    {
+      "step": "compare_state_roots",
+      "uses": "scripts/devnet_compare_state_roots.sh"
+    }
+  ],
+  "workspace": "/home/errol/WeAll-Protocol/Weall-Protocol/.weall-devnet/cross-node"
+}
+==> Node 1
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 4,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "e68c00f8cdddc0eaa146717cd19012bf67532666f539330a927427976480d1fa",
+  "tip_hash": "b021a5ce083fb4d5a6a4104c9b2c37aa1df687ab2d4459e6b1da6c98924bb3ef",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> Node 2
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 4,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "e68c00f8cdddc0eaa146717cd19012bf67532666f539330a927427976480d1fa",
+  "tip_hash": "b021a5ce083fb4d5a6a4104c9b2c37aa1df687ab2d4459e6b1da6c98924bb3ef",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> OK: node chain manifests are valid and current
+==> OK: node identities, tips, and state roots match
+==> OK: live controlled-devnet cross-node convergence probe passed
+node1_log=/home/errol/WeAll-Protocol/artifacts/m3-closure/two-node/runtime-logs/node1-cross-node-live.log
+node2_log=/home/errol/WeAll-Protocol/artifacts/m3-closure/two-node/runtime-logs/node2-cross-node-live.log
+probe_log=/home/errol/WeAll-Protocol/artifacts/m3-closure/two-node/runtime-logs/cross-node-convergence-live.log
+==> Stopping node 2 pid=40607
+==> Stopping node 1 pid=40591
+/home/errol/WeAll-Protocol/artifacts/m3-closure/two-node/final-state.json
+OK: M3 two-node state-root equality gate passed
