@@ -114,9 +114,31 @@ def _derive_transaction_rows() -> tuple[object, object, list[Json]]:
     original = compiler.apply_semantic_reviews
 
     def capture(tx_rows: list[Json], route_rows: list[Json], reviews: Json) -> Json:
-        captured.extend(tx_rows)
-        # Deliberately do not bless or mutate any review here. This pass exists
-        # only to expose the compiler's current pre-review semantic material.
+        # Deliberately do not bless or mutate any persisted review here. The
+        # compiler requires review-shaped fields later in the pipeline, so the
+        # discovery pass supplies explicit non-authoritative placeholders only
+        # after preserving the exact pre-review transaction material.
+        captured.extend(dict(row) for row in tx_rows)
+        for row in tx_rows:
+            row["semantic_derivation"] = row.get("semantic_precision")
+            row["semantic_review"] = {
+                "review_digest": "REFRESH_DISCOVERY_ONLY",
+                "reviewer": "REFRESH_DISCOVERY_ONLY",
+                "reviewed_at": "1970-01-01T00:00:00Z",
+                "review_method": "REFRESH_DISCOVERY_ONLY",
+                "independent_review": False,
+                "authority_effect": "REFRESH_DISCOVERY_ONLY",
+            }
+        for row in route_rows:
+            row["semantic_derivation"] = row.get("semantic_precision")
+            row["semantic_review"] = {
+                "review_digest": "REFRESH_DISCOVERY_ONLY",
+                "reviewer": "REFRESH_DISCOVERY_ONLY",
+                "reviewed_at": "1970-01-01T00:00:00Z",
+                "review_method": "REFRESH_DISCOVERY_ONLY",
+                "independent_review": False,
+                "authority_effect": "REFRESH_DISCOVERY_ONLY",
+            }
         return {
             "transaction_review_count": 0,
             "route_review_count": 0,
