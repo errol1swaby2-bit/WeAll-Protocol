@@ -418,12 +418,27 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
         by_id = {}
         keys["by_id"] = by_id
 
-    kid = _mk_key_id(pubkey)
-    if kid in by_id and isinstance(by_id.get(kid), dict) and by_id[kid].get("revoked") is not True:
-        raise ApplyError("invalid_tx", "key_exists", {"pubkey": pubkey})
+    canonical_kid = _as_str(key_record.get("key_id")).strip() or _mk_key_id(pubkey)
+    supplied_kid = _as_str(p.get("key_id")).strip()
+    if supplied_kid and supplied_kid != canonical_kid:
+        raise ApplyError(
+            "invalid_tx",
+            "key_id_mismatch",
+            {"expected": canonical_kid, "got": supplied_kid},
+        )
 
-    key_record["key_id"] = str(key_record.get("key_id") or kid)
-    by_id[kid] = key_record
+    for stored_kid, rec in by_id.items():
+        if not isinstance(rec, dict) or rec.get("revoked") is True:
+            continue
+        if account_key_pubkey(rec) == pubkey:
+            raise ApplyError(
+                "invalid_tx",
+                "key_exists",
+                {"pubkey": pubkey, "key_id": str(stored_kid)},
+            )
+
+    key_record["key_id"] = canonical_kid
+    by_id[canonical_kid] = key_record
     a["nonce"] = _as_int(a.get("nonce"), 0) + 1
     _sync_account_key_views(a)
     return state
@@ -434,28 +449,45 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
     _expect_nonce(a, env)
     p = _payload(env)
 
-    pubkey = _as_str(p.get("pubkey") or "").strip()
-    if not pubkey:
-        raise ApplyError("invalid_tx", "missing_pubkey", {})
+    requested_kid = _as_str(p.get("key_id")).strip()
+    if not requested_kid:
+        raise ApplyError("invalid_tx", "missing_key_id", {})
 
     keys = a.get("keys")
     if not isinstance(keys, dict) or not isinstance(keys.get("by_id"), dict):
         raise ApplyError("invalid_state", "keys_not_configured", {})
 
     by_id = keys["by_id"]
-    match_kid: str | None = None
-    for kid, rec in by_id.items():
-        if not isinstance(rec, dict):
+    matches: list[tuple[str, Json]] = []
+
+    direct = by_id.get(requested_kid)
+    if isinstance(direct, dict):
+        matches.append((requested_kid, direct))
+
+    for stored_kid, rec in by_id.items():
+        if not isinstance(rec, dict) or str(stored_kid) == requested_kid:
             continue
-        if account_key_pubkey(rec) == pubkey and rec.get("revoked") is not True:
-            match_kid = kid
-            break
+        if _as_str(rec.get("key_id")).strip() == requested_kid:
+            matches.append((str(stored_kid), rec))
 
-    if not match_kid:
-        raise ApplyError("invalid_tx", "unknown_key", {"pubkey": pubkey})
+    active_matches = [(kid, rec) for kid, rec in matches if rec.get("revoked") is not True]
+    if not active_matches:
+        raise ApplyError("invalid_tx", "unknown_key", {"key_id": requested_kid})
+    if len(active_matches) != 1:
+        raise ApplyError(
+            "invalid_state",
+            "duplicate_active_key_id",
+            {"key_id": requested_kid, "matches": sorted(kid for kid, _rec in active_matches)},
+        )
 
-    by_id[match_kid]["revoked"] = True
-    by_id[match_kid]["revoked_at"] = _as_int(state.get("height"), 0)
+    match_kid, rec = active_matches[0]
+    revoked_height = _as_int(state.get("height"), 0)
+    rec["revoked"] = True
+    rec["active"] = False
+    rec["revoked_at"] = revoked_height
+    rec["revoked_height"] = revoked_height
+    by_id[match_kid] = rec
+
     a["nonce"] = _as_int(a.get("nonce"), 0) + 1
     _sync_account_key_views(a)
     return state
