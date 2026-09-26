@@ -1,0 +1,60 @@
+{
+  "comparison_fields": [
+    "chain_id",
+    "height",
+    "tip_hash",
+    "state_root",
+    "schema_version",
+    "tx_index_hash",
+    "protocol_profile_hash"
+  ],
+  "distinct_datastores": true,
+  "distinct_processes": true,
+  "equal": true,
+  "final": {
+    "chain_id": "weall-controlled-devnet",
+    "height": 1,
+    "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+    "schema_version": "1",
+    "state_root": "4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a",
+    "tip_hash": "768f6b7234abb8b2ce947e25fe1ade260e60a2d110ce7ab7e2b4d79db35fa594",
+    "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+  },
+  "gate": "observer",
+  "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+  "implementation_tree": "4653aec176a85e626a02575a029eefc3a990dec3",
+  "nodes": [
+    {
+      "chain_id": "weall-controlled-devnet",
+      "height": 1,
+      "node_id": "m3-observer-source",
+      "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "role": "canonical_producer",
+      "schema_version": "1",
+      "state_root": "4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a",
+      "tip_hash": "768f6b7234abb8b2ce947e25fe1ade260e60a2d110ce7ab7e2b4d79db35fa594",
+      "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+    },
+    {
+      "chain_id": "weall-controlled-devnet",
+      "height": 1,
+      "node_id": "m3-observer-node",
+      "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "role": "observer",
+      "schema_version": "1",
+      "state_root": "4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a",
+      "tip_hash": "768f6b7234abb8b2ce947e25fe1ade260e60a2d110ce7ab7e2b4d79db35fa594",
+      "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+    }
+  ],
+  "observer_authority": {
+    "bft_signing_authority": false,
+    "helper_authority": false,
+    "observer_mode": true,
+    "treasury_or_governance_authority": false,
+    "validator_signing_enabled": false
+  },
+  "schema_version": 2,
+  "source_log": "observer-catchup.txt",
+  "source_log_sha256": "471e9994b629ba35eb5b569c3ba2784ef36e0db51b0e2a9a06760e3fae16eb12"
+}

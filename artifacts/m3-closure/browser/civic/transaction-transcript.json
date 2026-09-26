@@ -1,0 +1,852 @@
+{
+  "actions": [
+    {
+      "account": "SYSTEM",
+      "evidence_kind": "deterministic_system_receipt",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02c-appeal-final-receipt.json",
+      "label": "appeal_final_receipt",
+      "role": "system_scheduler",
+      "state_height": 952,
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:56e30b5d9b5ea50e442fd649d2880e0390bb2a02bb94fe2d387a17830fab053a",
+      "tx_type": "DISPUTE_FINAL_RECEIPT"
+    },
+    {
+      "account": "@m3_author",
+      "label": "appeal_open",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:b3820be928b0555b238a86c791d1fd983796d3f6997f42b08965acea80e9b4bc",
+      "tx_type": "DISPUTE_APPEAL"
+    },
+    {
+      "account": "@m3_original_06",
+      "label": "appeal_panel_acceptance",
+      "role": "reviewer_original_06",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:e6ec766a5dfe6c4b780f092fd19c5eab7b5cf3d3743a81b6a5f851be0af911c0",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_01",
+      "label": "appeal_panel_acceptance",
+      "role": "reviewer_appeal_01",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:784d4d21b754393cabc1ea266a82ecb4262d912fd8468131bf155d0bb90ddc49",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_07",
+      "label": "appeal_panel_acceptance",
+      "role": "reviewer_appeal_07",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:78b99e7f833b2a60fe7f913164ea19e973d1886b2c1b388c3895e5e02a68331e",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_08",
+      "label": "appeal_panel_acceptance",
+      "role": "reviewer_original_08",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:0ca4ffb1adef0cbd470227f55c58e9ea7319deca6cb1a3a60bfd63c1feb21396",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_03",
+      "label": "appeal_panel_acceptance",
+      "role": "reviewer_appeal_03",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:57618e09e4d8341c4f35ef7f802c6f775702adb8c5560befca2eb8ad151ef0f6",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_09",
+      "label": "appeal_panel_acceptance",
+      "role": "reviewer_appeal_09",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:8b6ee58a596a90fa0440abe267c3dd50256bc67692b30823c69b9e395255ddf8",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_08",
+      "label": "appeal_panel_acceptance",
+      "role": "reviewer_appeal_08",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:bce8778d1c88a5e806b24722eb8d31e74b968811b3ce9f6c134da8ae4771a969",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_06",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02c-appeal-accept-m3_original_06.json",
+      "label": "appeal_panel_attendance",
+      "role": "reviewer_original_06",
+      "source_action_label": "appeal_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:e6ec766a5dfe6c4b780f092fd19c5eab7b5cf3d3743a81b6a5f851be0af911c0",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_01",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02c-appeal-accept-m3_appeal_01.json",
+      "label": "appeal_panel_attendance",
+      "role": "reviewer_appeal_01",
+      "source_action_label": "appeal_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:784d4d21b754393cabc1ea266a82ecb4262d912fd8468131bf155d0bb90ddc49",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_07",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02c-appeal-accept-m3_appeal_07.json",
+      "label": "appeal_panel_attendance",
+      "role": "reviewer_appeal_07",
+      "source_action_label": "appeal_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:78b99e7f833b2a60fe7f913164ea19e973d1886b2c1b388c3895e5e02a68331e",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_08",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02c-appeal-accept-m3_original_08.json",
+      "label": "appeal_panel_attendance",
+      "role": "reviewer_original_08",
+      "source_action_label": "appeal_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:0ca4ffb1adef0cbd470227f55c58e9ea7319deca6cb1a3a60bfd63c1feb21396",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_03",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02c-appeal-accept-m3_appeal_03.json",
+      "label": "appeal_panel_attendance",
+      "role": "reviewer_appeal_03",
+      "source_action_label": "appeal_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:57618e09e4d8341c4f35ef7f802c6f775702adb8c5560befca2eb8ad151ef0f6",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_09",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02c-appeal-accept-m3_appeal_09.json",
+      "label": "appeal_panel_attendance",
+      "role": "reviewer_appeal_09",
+      "source_action_label": "appeal_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:8b6ee58a596a90fa0440abe267c3dd50256bc67692b30823c69b9e395255ddf8",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_08",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02c-appeal-accept-m3_appeal_08.json",
+      "label": "appeal_panel_attendance",
+      "role": "reviewer_appeal_08",
+      "source_action_label": "appeal_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:bce8778d1c88a5e806b24722eb8d31e74b968811b3ce9f6c134da8ae4771a969",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_06",
+      "label": "appeal_panel_ballots",
+      "role": "reviewer_original_06",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:e9fdb25fb79f8618fe3bc09a80a38d0efad6f580e0226ce9559a8178fcf09899",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_appeal_01",
+      "label": "appeal_panel_ballots",
+      "role": "reviewer_appeal_01",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:05cf2195096f9559c9b9efcecaae0cd8ed6ea2750ff7df7926d86ca847cbf647",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_appeal_07",
+      "label": "appeal_panel_ballots",
+      "role": "reviewer_appeal_07",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:7b8f45f744dc054fab1c856d738ff9630d0850c43f47b17777741181e15afa7a",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_original_08",
+      "label": "appeal_panel_ballots",
+      "role": "reviewer_original_08",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:b924bf8b1081cd5dfb2470b9871a1abc3fd0beaa97f3607e171cbbff0cb1d8b9",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_appeal_03",
+      "label": "appeal_panel_ballots",
+      "role": "reviewer_appeal_03",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:a75a9d2910fe2119e4ae9361bb080b4152e89cfae31014b70b9330b238afad9f",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_member",
+      "label": "content_report",
+      "role": "member_reporter_voter",
+      "status": "confirmed",
+      "subject_id": "post:m3:main",
+      "tx_id": "tx:0d77bfeba71d461e1c7b750bb51b54fa3536c936756e3ba88db1589aa686e6b5",
+      "tx_type": "CONTENT_FLAG"
+    },
+    {
+      "account": "SYSTEM",
+      "evidence_kind": "inline_system_transition",
+      "height_semantics": "resolved_at_height is the pre-commit state height observed by the inline apply; trigger_included_height is the containing block height recorded by tx_index",
+      "label": "dispute_resolution",
+      "role": "system_scheduler",
+      "state_height": 934,
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "trigger_included_height": 935,
+      "trigger_tx_id": "tx:fa7363704e60c63ada5cd93f9aa22cbc5c4bb84b6fd0d2c72d674d4f5cfd919d",
+      "tx_id": "inline:tx:fa7363704e60c63ada5cd93f9aa22cbc5c4bb84b6fd0d2c72d674d4f5cfd919d:DISPUTE_RESOLVE",
+      "tx_type": "DISPUTE_RESOLVE"
+    },
+    {
+      "account": "@m3_author",
+      "label": "eligible_ballots",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:main",
+      "tx_id": "tx:bf3c1ce38198da24f950c9f591c36cfcbd3ed70916622daaea7754a5026c556a",
+      "tx_type": "GOV_VOTE_CAST"
+    },
+    {
+      "account": "@m3_member",
+      "label": "eligible_ballots",
+      "role": "member_reporter_voter",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:main",
+      "tx_id": "tx:f91e12c94fa138fb177625c0da29c3a24b776bd4fb2e4b686cbfebbb0502d93c",
+      "tx_type": "GOV_VOTE_CAST"
+    },
+    {
+      "account": "@m3_author",
+      "label": "group_create",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "group:m3:main",
+      "tx_id": "tx:851b54bc7e6c6cc879d712b785f0917606662bfd26a5333a0bb6769afa43d204",
+      "tx_type": "GROUP_CREATE"
+    },
+    {
+      "account": "@m3_member",
+      "label": "group_post_create",
+      "role": "member_reporter_voter",
+      "status": "confirmed",
+      "subject_id": "post:m3:group-main",
+      "tx_id": "tx:ce9cf8734b73f06506b89763a5c68eac478af5e71635806bb9cb62462231e6da",
+      "tx_type": "CONTENT_POST_CREATE"
+    },
+    {
+      "account": "@m3_author",
+      "label": "membership_accept",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "group:m3:main",
+      "tx_id": "tx:bd0ebbcb25029df3ed236189347dccdd9f27e78a9cfb64d1b47f1a59f8d1830b",
+      "tx_type": "GROUP_MEMBERSHIP_DECIDE"
+    },
+    {
+      "account": "@m3_member",
+      "label": "membership_request",
+      "role": "member_reporter_voter",
+      "status": "confirmed",
+      "subject_id": "group:m3:main",
+      "tx_id": "tx:9f2d4858583faaf73fa751eb39612336f8e0e16a8c59ac726a439b71abb101e0",
+      "tx_type": "GROUP_MEMBERSHIP_REQUEST"
+    },
+    {
+      "account": "@devnet-genesis",
+      "label": "original_panel_acceptance",
+      "role": "controlled_devnet_bootstrap_reviewer",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:899961e47fd2a83f0849a0705b8ead45985abf660f381ab51ff21972fe95f563",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_04",
+      "label": "original_panel_acceptance",
+      "role": "reviewer_appeal_04",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:16a1a3fcf202a09720c4c71159e20f35a430ae71a6d30583ae96080be2458fb7",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_05",
+      "label": "original_panel_acceptance",
+      "role": "reviewer_appeal_05",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:1388ff35d2a9c0a70a711db7c662502abdcdac767a780a2f62533614df536b01",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_02",
+      "label": "original_panel_acceptance",
+      "role": "reviewer_original_02",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:b0c5254c95ae247a98eb55bf02b3b21599a3ab9d1f5b9c3df7c160e69f7ab281",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_03",
+      "label": "original_panel_acceptance",
+      "role": "reviewer_original_03",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:1722188f8a0f0f7757dbea3502f9aad92f85d88ceb4b4d9f89c10e7cd86e612c",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_04",
+      "label": "original_panel_acceptance",
+      "role": "reviewer_original_04",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:6e89d1b3c3b3ad1719496ce20febb8d920350b37d83971197675b50f05a5011a",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_05",
+      "label": "original_panel_acceptance",
+      "role": "reviewer_original_05",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:0b03c106b1196a6f4448f35479fc0b689a3391e336526ffe239fa6a6ec685c3c",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@devnet-genesis",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-original-accept-devnet-genesis.json",
+      "label": "original_panel_attendance",
+      "role": "controlled_devnet_bootstrap_reviewer",
+      "source_action_label": "original_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:899961e47fd2a83f0849a0705b8ead45985abf660f381ab51ff21972fe95f563",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_04",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-original-accept-m3_appeal_04.json",
+      "label": "original_panel_attendance",
+      "role": "reviewer_appeal_04",
+      "source_action_label": "original_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:16a1a3fcf202a09720c4c71159e20f35a430ae71a6d30583ae96080be2458fb7",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_appeal_05",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-original-accept-m3_appeal_05.json",
+      "label": "original_panel_attendance",
+      "role": "reviewer_appeal_05",
+      "source_action_label": "original_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:1388ff35d2a9c0a70a711db7c662502abdcdac767a780a2f62533614df536b01",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_02",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-original-accept-m3_original_02.json",
+      "label": "original_panel_attendance",
+      "role": "reviewer_original_02",
+      "source_action_label": "original_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:b0c5254c95ae247a98eb55bf02b3b21599a3ab9d1f5b9c3df7c160e69f7ab281",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_03",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-original-accept-m3_original_03.json",
+      "label": "original_panel_attendance",
+      "role": "reviewer_original_03",
+      "source_action_label": "original_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:1722188f8a0f0f7757dbea3502f9aad92f85d88ceb4b4d9f89c10e7cd86e612c",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_04",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-original-accept-m3_original_04.json",
+      "label": "original_panel_attendance",
+      "role": "reviewer_original_04",
+      "source_action_label": "original_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:6e89d1b3c3b3ad1719496ce20febb8d920350b37d83971197675b50f05a5011a",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_05",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-original-accept-m3_original_05.json",
+      "label": "original_panel_attendance",
+      "role": "reviewer_original_05",
+      "source_action_label": "original_panel_acceptance",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:0b03c106b1196a6f4448f35479fc0b689a3391e336526ffe239fa6a6ec685c3c",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@devnet-genesis",
+      "label": "original_panel_ballots",
+      "role": "controlled_devnet_bootstrap_reviewer",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:bdf7ee8a1cde7ae0d478c49892a7df26af7ee124df2717d99653e0642a0aeeb3",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_appeal_04",
+      "label": "original_panel_ballots",
+      "role": "reviewer_appeal_04",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:ec6b906ebb59801f5845768c0974e80c848aff1b63a4675bbcfe25cec38419ca",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_appeal_05",
+      "label": "original_panel_ballots",
+      "role": "reviewer_appeal_05",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:eed94cf739f50e767610a8935de32916e02db1aa4154f2bd6e1841c21b99e229",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_original_02",
+      "label": "original_panel_ballots",
+      "role": "reviewer_original_02",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:22f6c12c7640e09d9320faafe6f9776f75a15d328c461b7edf66769dd9eb06f7",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_original_03",
+      "label": "original_panel_ballots",
+      "role": "reviewer_original_03",
+      "status": "confirmed",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_id": "tx:fa7363704e60c63ada5cd93f9aa22cbc5c4bb84b6fd0d2c72d674d4f5cfd919d",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_author",
+      "label": "post_create",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "post:m3:main",
+      "tx_id": "tx:f75685311e9e0d2b22d7bf26e38539362115c8e42be90ab795366950dd36d086",
+      "tx_type": "CONTENT_POST_CREATE"
+    },
+    {
+      "account": "@m3_member",
+      "label": "proposal_comment",
+      "role": "member_reporter_voter",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:main",
+      "tx_id": "tx:46a6b5ef54f694ece4745735d75806e55214e484803dbb0f563320ed5d43a4d3",
+      "tx_type": "GOV_PROPOSAL_COMMENT"
+    },
+    {
+      "account": "@m3_author",
+      "label": "proposal_create",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:main",
+      "tx_id": "tx:735113d2798947776c8cf1e5024de0b9cb35fbd1c1277d86f4ec6b0d254c44a5",
+      "tx_type": "GOV_PROPOSAL_CREATE"
+    },
+    {
+      "account": "SYSTEM",
+      "label": "proposal_finalization",
+      "role": "system_scheduler",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:main",
+      "tx_id": "tx:50b75721e5c7f38a90f7366a37d0b7b2826ac3615fa1a3e2a46b432ae13e0eae",
+      "tx_type": "GOV_PROPOSAL_FINALIZE"
+    },
+    {
+      "account": "SYSTEM",
+      "label": "tally_publish",
+      "role": "system_scheduler",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:main",
+      "tx_id": "tx:2d4368fa9e7a591055f97b11b8d53efd1c50bf92805a6db7826c8871549fbbb4",
+      "tx_type": "GOV_TALLY_PUBLISH"
+    },
+    {
+      "account": "SYSTEM",
+      "label": "voting_close",
+      "role": "system_scheduler",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:main",
+      "tx_id": "tx:9616b79bdd3de76059d75e7ccaa23319008c27fa8a9f431ce95976dc5476f9cc",
+      "tx_type": "GOV_VOTING_CLOSE"
+    },
+    {
+      "account": "@m3_author",
+      "label": "post_create",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "post:m3:negative",
+      "tx_id": "tx:f6dad6ad2942ae70350efdace40fc9c4d1ddb58bf6cce96aec1a6540c636fb88",
+      "tx_type": "CONTENT_POST_CREATE"
+    },
+    {
+      "account": "@m3_author",
+      "label": "group_create",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "group:m3:negative",
+      "tx_id": "tx:8fcfee96e1213e7e16fc5617f09a01888bb7d94fdb96e42f1acd7cd51916647b",
+      "tx_type": "GROUP_CREATE"
+    },
+    {
+      "account": "@m3_member",
+      "label": "content_report",
+      "role": "member_reporter_voter",
+      "status": "confirmed",
+      "subject_id": "post:m3:negative",
+      "tx_id": "tx:87894ff9b1ec8edb8d16567dd195bd39494c9a50ddcd5129774790734fb9a8d8",
+      "tx_type": "CONTENT_FLAG"
+    },
+    {
+      "account": "@m3_author",
+      "label": "proposal_create",
+      "role": "author_proposer",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:negative",
+      "tx_id": "tx:85b55fa760d13af303553a545fd5cc2dfab6540126c870656bc32dc87091c315",
+      "tx_type": "GOV_PROPOSAL_CREATE"
+    },
+    {
+      "account": "@m3_member",
+      "label": "eligible_ballots",
+      "role": "member_reporter_voter",
+      "status": "confirmed",
+      "subject_id": "proposal:m3:negative",
+      "tx_id": "tx:7827b423d49fb4e36780a31af5c40a12efdc540dd58daad54503b6170af99f4c",
+      "tx_type": "GOV_VOTE_CAST"
+    },
+    {
+      "account": "@m3_original_01",
+      "label": "original_panel_acceptance",
+      "role": "reviewer_original_01",
+      "status": "confirmed",
+      "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+      "tx_id": "tx:9bb9f67a0ecd203aba7649d58f8e48dee9b9d07050629ddc9c3ef5fb32b38a4b",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_01",
+      "evidence_kind": "acceptance_embedded_attendance",
+      "label": "original_panel_attendance",
+      "role": "reviewer_original_01",
+      "status": "confirmed",
+      "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+      "tx_id": "tx:9bb9f67a0ecd203aba7649d58f8e48dee9b9d07050629ddc9c3ef5fb32b38a4b",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "account": "@m3_original_01",
+      "label": "original_panel_ballots",
+      "role": "reviewer_original_01",
+      "status": "confirmed",
+      "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+      "tx_id": "tx:6f9dd0fbb4e2a8a0c03bf41e002a7827d785707accf54d06afc3ae8e48347d91",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    }
+  ],
+  "chain_id": "weall-controlled-devnet",
+  "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+  "negative_attempts": [
+    {
+      "account": "@m3_outsider",
+      "expected_error_code": "group_post_authority_required",
+      "label": "nonmember_group_write_rejected",
+      "payload": {
+        "body": "must fail",
+        "group_id": "group:m3:negative",
+        "post_id": "post:m3:forbidden"
+      },
+      "role": "nonmember_ineligible",
+      "subject_id": "group:m3:negative",
+      "tx_type": "CONTENT_POST_CREATE"
+    },
+    {
+      "account": "@m3_appeal_01",
+      "expected_error_code": "juror_not_assigned",
+      "label": "nonselected_reviewer_vote_rejected",
+      "payload": {
+        "dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+        "vote": "yes"
+      },
+      "role": "reviewer_appeal_01",
+      "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_author",
+      "expected_error_code": "juror_conflict_target_owner",
+      "label": "conflicted_reviewer_vote_rejected",
+      "payload": {
+        "dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+        "vote": "yes"
+      },
+      "role": "author_proposer",
+      "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_outsider",
+      "actual_error_code": "gate_denied",
+      "actual_error_reason": "gate:Tier2+",
+      "actual_http_status": 403,
+      "actual_rejection_layer": "admission",
+      "actual_status": "admission_rejected",
+      "actual_tx_id": null,
+      "current_freeze_evidence": {
+        "actual_tx_id": null,
+        "block_receipt_expected": false,
+        "candidate_tx_id": "tx:33e18109b554cae62f74b96ae1ed730de657b2c4d0ec0c78000210376b970b41",
+        "classification": "current_freeze_admission_rejection",
+        "error_code": "gate_denied",
+        "error_reason": "gate:Tier2+",
+        "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-3-governance/03a-ineligible-vote-admission-rejected.json",
+        "http_status": 403,
+        "rejection_layer": "admission",
+        "signed_envelope_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-3-governance/03a-ineligible-vote-signed-envelope.json",
+        "signed_envelope_sha256": "caa4d2828eac6bb9c27796d5b5e466642bed14f5cdbee6cebf1f9f04c1fbdb62",
+        "tx_index_present": false
+      },
+      "expected_error_code": "gate_denied",
+      "expected_error_reason": "gate:Tier2+",
+      "expected_rejection_layer": "admission",
+      "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+      "label": "ineligible_governance_vote_rejected",
+      "payload": {
+        "proposal_id": "proposal:m3:negative",
+        "vote": "yes"
+      },
+      "role": "nonmember_ineligible",
+      "subject_id": "proposal:m3:negative",
+      "tx_type": "GOV_VOTE_CAST"
+    },
+    {
+      "account": "@m3_member",
+      "actual_error_code": "ballot_already_final",
+      "actual_receipt_code": "conflict",
+      "actual_receipt_evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-3-governance/03a-duplicate-vote-rejected.json",
+      "actual_rejection_layer": "apply",
+      "actual_status": "included_apply_rejected",
+      "actual_tx_id": "tx:5a5ef593e84b7feba8a7855aef5e2f62823ca69a0cfb0edc9e0b4a0961b8d5ad",
+      "current_freeze_evidence": {
+        "classification": "current_freeze_apply_rejection",
+        "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-3-governance/03a-duplicate-vote-rejected.json",
+        "receipt_code": "conflict",
+        "receipt_reason": "ballot_already_final",
+        "rejection_layer": "apply",
+        "tx_id": "tx:5a5ef593e84b7feba8a7855aef5e2f62823ca69a0cfb0edc9e0b4a0961b8d5ad",
+        "tx_index_ok": false
+      },
+      "expected_error_code": "ballot_already_final",
+      "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+      "label": "duplicate_governance_vote_rejected",
+      "payload": {
+        "proposal_id": "proposal:m3:negative",
+        "vote": "yes"
+      },
+      "precondition_tx_id": "tx:7827b423d49fb4e36780a31af5c40a12efdc540dd58daad54503b6170af99f4c",
+      "role": "member_reporter_voter",
+      "subject_id": "proposal:m3:negative",
+      "tx_type": "GOV_VOTE_CAST"
+    },
+    {
+      "account": "@m3_member",
+      "actual_error_code": "ballot_already_final",
+      "actual_receipt_code": "conflict",
+      "actual_receipt_evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-3-governance/03a-replacement-vote-rejected.json",
+      "actual_rejection_layer": "apply",
+      "actual_status": "included_apply_rejected",
+      "actual_tx_id": "tx:b0790eceb6197aea65594d6749dba1f08becfc54b42d4b7eda5ad1db7c78dcc8",
+      "current_freeze_evidence": {
+        "classification": "current_freeze_apply_rejection",
+        "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-3-governance/03a-replacement-vote-rejected.json",
+        "receipt_code": "conflict",
+        "receipt_reason": "ballot_already_final",
+        "rejection_layer": "apply",
+        "tx_id": "tx:b0790eceb6197aea65594d6749dba1f08becfc54b42d4b7eda5ad1db7c78dcc8",
+        "tx_index_ok": false
+      },
+      "expected_error_code": "ballot_already_final",
+      "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+      "label": "replacement_governance_vote_rejected",
+      "payload": {
+        "proposal_id": "proposal:m3:negative",
+        "vote": "no"
+      },
+      "precondition_tx_id": "tx:7827b423d49fb4e36780a31af5c40a12efdc540dd58daad54503b6170af99f4c",
+      "role": "member_reporter_voter",
+      "subject_id": "proposal:m3:negative",
+      "tx_type": "GOV_VOTE_CAST"
+    },
+    {
+      "account": "@m3_member",
+      "actual_error_code": "ballot_revocation_forbidden",
+      "actual_receipt_code": "forbidden",
+      "actual_receipt_evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-3-governance/03a-revoke-rejected.json",
+      "actual_rejection_layer": "apply",
+      "actual_status": "included_apply_rejected",
+      "actual_tx_id": "tx:d90bc7b421a784109a5bf2f8a1fd46966db3013e0020fe8acadf2cc69f87a95e",
+      "current_freeze_evidence": {
+        "classification": "current_freeze_apply_rejection",
+        "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-3-governance/03a-revoke-rejected.json",
+        "receipt_code": "forbidden",
+        "receipt_reason": "ballot_revocation_forbidden",
+        "rejection_layer": "apply",
+        "tx_id": "tx:d90bc7b421a784109a5bf2f8a1fd46966db3013e0020fe8acadf2cc69f87a95e",
+        "tx_index_ok": false
+      },
+      "expected_error_code": "ballot_revocation_forbidden",
+      "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+      "label": "governance_revoke_rejected",
+      "payload": {
+        "proposal_id": "proposal:m3:negative"
+      },
+      "precondition_tx_id": "tx:7827b423d49fb4e36780a31af5c40a12efdc540dd58daad54503b6170af99f4c",
+      "role": "member_reporter_voter",
+      "subject_id": "proposal:m3:negative",
+      "tx_type": "GOV_VOTE_REVOKE"
+    },
+    {
+      "account": "@m3_original_01",
+      "expected_error_code": "dispute_ballot_already_final",
+      "label": "duplicate_dispute_ballot_rejected",
+      "payload": {
+        "dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+        "vote": "no"
+      },
+      "precondition_tx_id": "tx:6f9dd0fbb4e2a8a0c03bf41e002a7827d785707accf54d06afc3ae8e48347d91",
+      "role": "reviewer_original_01",
+      "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_original_01",
+      "expected_error_code": "dispute_ballot_already_final",
+      "label": "replacement_dispute_ballot_rejected",
+      "payload": {
+        "dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+        "vote": "no"
+      },
+      "precondition_tx_id": "tx:6f9dd0fbb4e2a8a0c03bf41e002a7827d785707accf54d06afc3ae8e48347d91",
+      "role": "reviewer_original_01",
+      "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "account": "@m3_original_01",
+      "expected_error_code": "unknown_tx_type",
+      "label": "dispute_revoke_rejected",
+      "payload": {
+        "dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad"
+      },
+      "precondition_tx_id": "tx:6f9dd0fbb4e2a8a0c03bf41e002a7827d785707accf54d06afc3ae8e48347d91",
+      "role": "reviewer_original_01",
+      "subject_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+      "tx_type": "DISPUTE_VOTE_REVOKE"
+    },
+    {
+      "account": "@m3_member",
+      "actual_error_code": "appeal_not_target_owner",
+      "actual_receipt_code": "forbidden",
+      "actual_receipt_evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-nonowner-appeal-rejected.json",
+      "actual_status": "included_apply_rejected",
+      "actual_tx_id": "tx:ce0ff71f0c7df238960e8e07126fbadb159f4a190f79f8463d8f1339d1dc8db9",
+      "current_freeze_evidence": {
+        "classification": "current_freeze_apply_rejection",
+        "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/02b-nonowner-appeal-rejected.json",
+        "receipt_code": "forbidden",
+        "receipt_reason": "appeal_not_target_owner",
+        "tx_id": "tx:ce0ff71f0c7df238960e8e07126fbadb159f4a190f79f8463d8f1339d1dc8db9",
+        "tx_index_ok": false
+      },
+      "diagnostic_evidence": {
+        "classification": "predecessor_freeze_diagnostic",
+        "diagnostic_record_id": "nonowner-appeal-predecessor-freeze",
+        "evidence_path": "/home/errol/.local/share/weall/m3-closure-4ca0e13e1e48/journey/phase-2-dispute/diagnostics/nonowner-appeal-predecessor-freeze.json",
+        "final_freeze_reexecution_required": false,
+        "superseded_by_current_freeze_tx_id": "tx:ce0ff71f0c7df238960e8e07126fbadb159f4a190f79f8463d8f1339d1dc8db9",
+        "tx_id": "tx:baec541eacce150547f12331d98538dedc7de47d14cfccd2e577a1c5eb04ee50",
+        "tx_index_ok": false
+      },
+      "expected_error_code": "appeal_not_target_owner",
+      "final_freeze_reexecution_complete": true,
+      "final_freeze_reexecution_required": false,
+      "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+      "label": "nonowner_appeal_rejected",
+      "payload": {
+        "dispute_id": "dispute:SYSTEM:0",
+        "note": "M3 controlled-testnet negative appeal-authority attempt.",
+        "reason": "The reporter is not the affected target owner."
+      },
+      "role": "member_reporter_voter",
+      "subject_id": "dispute:SYSTEM:0",
+      "tx_type": "DISPUTE_APPEAL"
+    }
+  ],
+  "schema_version": 1
+}

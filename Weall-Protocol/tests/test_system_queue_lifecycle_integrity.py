@@ -68,7 +68,7 @@ def test_late_group_treasury_sign_path_does_not_create_historical_due_work() -> 
             tx_type="GROUP_TREASURY_SPEND_SIGN",
             signer="alice",
             nonce=1,
-            payload={"spend_id": "late-spend"},
+            payload={"group_id": "g1", "spend_id": "late-spend"},
         ),
     )
 

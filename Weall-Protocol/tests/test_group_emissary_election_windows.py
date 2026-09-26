@@ -75,7 +75,13 @@ def test_group_emissary_election_window_enforced() -> None:
     state["height"] = 108
     with pytest.raises(GroupsApplyError) as e2:
         apply_groups(
-            state, _env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 20, {"election_id": "e-win"})
+            state,
+            _env(
+                "GROUP_EMISSARY_ELECTION_FINALIZE",
+                "@alice",
+                20,
+                {"group_id": "gwin", "election_id": "e-win"},
+            ),
         )
     assert e2.value.reason == "election_still_open"
 
@@ -96,7 +102,13 @@ def test_group_emissary_election_window_enforced() -> None:
     # Finalize on/after end: applying at height 110
     state["height"] = 109
     meta2 = apply_groups(
-        state, _env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 40, {"election_id": "e-win"})
+        state,
+        _env(
+            "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "@alice",
+            40,
+            {"group_id": "gwin", "election_id": "e-win"},
+        ),
     )
     assert meta2 and meta2["applied"] == "GROUP_EMISSARY_ELECTION_FINALIZE"
     winners = state["roles"]["groups_by_id"]["gwin"].get("emissaries")

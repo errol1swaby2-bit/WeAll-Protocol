@@ -1,0 +1,50 @@
+
+> weall-web@0.1.0 contract-check
+> node scripts/contract_check.mjs
+
+WeAll Web Contract Check
+API_BASE: http://127.0.0.1:18401
+
+✅ GET /v1/status -> OK
+✅ status body has ok
+✅ GET /v1/readyz -> OK
+✅ GET /v1/state/snapshot -> OK
+✅ snapshot body is JSON object
+✅ GET /v1/feed -> OK
+✅ feed body has items
+✅ GET /v1/groups -> OK
+
+Node/operator readiness surfaces
+✅ GET /v1/status/operator -> OK
+✅ GET /v1/status/operator body has ok
+✅ GET /v1/status/consensus -> OK
+✅ GET /v1/status/consensus body has ok
+✅ GET /v1/status/mempool -> OK
+✅ GET /v1/status/mempool body has ok
+✅ GET /v1/storage/ipfs/ops -> OK
+✅ GET /v1/storage/ipfs/ops body has ok
+✅ GET /v1/chain/head -> OK
+✅ GET /v1/chain/head body has ok
+✅ GET /v1/chain/identity -> OK
+✅ GET /v1/chain/identity body has ok
+✅ GET /v1/status/testnet-capabilities -> OK
+✅ GET /v1/status/testnet-capabilities body has ok
+✅ GET /v1/consensus/block-production/readiness -> OK
+✅ GET /v1/consensus/block-production/readiness body has ok
+✅ GET /v1/status/helper/readiness -> OK
+✅ GET /v1/status/helper/readiness body has ok
+✅ GET /v1/net/self -> OK
+✅ GET /v1/net/self body has ok
+✅ GET /v1/nodes/seeds -> OK
+✅ GET /v1/nodes/seeds body has ok
+✅ GET /v1/nodes/validators -> OK
+✅ GET /v1/nodes/validators body has ok
+✅ GET /v1/observer/edge/status -> OK
+✅ GET /v1/observer/edge/status body has ok
+✅ GET /v1/gov/proposals -> OK
+✅ GET /v1/tx/status/:tx_id -> OK
+✅ tx status body has status
+✅ tx status lifecycle status is explicit: unknown
+✅ Skipping account checks and reviewer-status contract check (set ACCOUNT to test)
+
+Contract check PASSED.

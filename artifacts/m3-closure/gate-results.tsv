@@ -1,0 +1,28 @@
+dependency preflight	passed	0	backend/dependency-preflight.log	python /home/errol/WeAll-Protocol/scripts/check_m3_dependencies.py
+M3 strict live ballot profile	passed	0	backend/live-ballot-profile.log	python /home/errol/WeAll-Protocol/scripts/check_m3_live_ballot_profile.py --api-base http://127.0.0.1:18401 --out /home/errol/WeAll-Protocol/artifacts/m3-closure/backend/live-ballot-profile.json --implementation-freeze 4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5 --implementation-tree 4653aec176a85e626a02575a029eefc3a990dec3
+M3 requirement traceability	passed	0	backend/requirement-traceability.log	python /home/errol/WeAll-Protocol/scripts/check_m3_requirement_traceability.py
+v1.5 readiness artifacts current	passed	0	backend/v15-readiness.log	run_backend python scripts/check_v15_public_readiness_artifacts.py
+v2 specification derivatives current	passed	0	backend/v2-derivatives.log	run_backend python scripts/compile_v2_spec.py --check
+governance execution vectors current	passed	0	backend/governance-vectors.log	run_backend python scripts/gen_governance_execution_vectors_v1_5.py --check
+clean checkout reproduction	passed	0	backend/clean-checkout.log	env M3_IMPLEMENTATION_FREEZE_COMMIT=4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5 bash /home/errol/WeAll-Protocol/scripts/run_m3_clean_checkout_reproduction.sh
+M3 runtime regression suite	passed	0	backend/m3-runtime-regressions.log	run_backend python -m pytest -q tests/test_m3_electorate_round_policy.py tests/test_m3_genesis_ballot_profile.py tests/test_m3_scope_contract.py tests/test_m3_closure_regressions.py tests/test_m3_closure_integrity.py
+M3 persistence replay and convergence	passed	0	backend/m3-replay-convergence.log	run_backend python -m pytest -q tests/test_feed_persists_order_after_restart_api.py tests/test_priority1_replay_schedule_consistency.py tests/test_priority2_state_replay_determinism.py tests/test_e2e_two_node_convergence.py
+helper serial equivalence and fallback	passed	0	backend/helper-equivalence.log	run_backend python -m pytest -q tests/test_helper_serial_equivalence_corpus.py tests/test_helper_serial_equivalence_fallback.py tests/test_helper_offline_fallback_deterministic.py tests/test_helper_restart_equivalence.py tests/test_helper_multinode_divergence_guards.py
+full backend suite	passed	0	backend/full-pytest.log	run_backend python -m pytest -q
+frontend public social source	passed	0	frontend/public-social-source.log	run_web node scripts/test_public_social_flow_readiness_source.mjs
+frontend group flow source	passed	0	frontend/group-flow-source.log	run_web node scripts/test_group_flow_readiness_source.mjs
+frontend public-only protocol source	passed	0	frontend/public-only-protocol-source.log	run_web npm run test:public-only-protocol-source
+frontend account profile source	passed	0	frontend/account-profile-source.log	run_web node scripts/test_account_profile_readiness_source.mjs
+frontend first-run source	passed	0	frontend/first-run-source.log	run_web node scripts/test_first_run_tester_journey_source.mjs
+frontend governance source	passed	0	frontend/governance-source.log	run_web node scripts/test_governance_rendered_journey_source.mjs
+frontend dispute source	passed	0	frontend/dispute-source.log	run_web node scripts/test_dispute_review_rendered_journey_source.mjs
+frontend M3 embedded attendance transcript source	passed	0	frontend/m3-embedded-attendance-source.log	run_web npm run test:m3-transcript-attendance-source
+frontend contract check	passed	0	frontend/contract-check.log	run_web env API_BASE=http://127.0.0.1:18401 npm run contract-check
+frontend production safety check	passed	0	frontend/production-safety.log	run_web npm run production-safety-check
+frontend typecheck	passed	0	frontend/typecheck.log	run_web_package tsc npm run typecheck
+frontend production build	passed	0	frontend/build.log	run_web_package vite npm run build
+M3 signed real-stack actor journey	passed	0	browser/civic/runner.log	run_m3_civic_gate
+M3 restart replay equality	passed	0	restart-replay/runner.log	run_m3_restart_gate
+M3 two-node equality	passed	0	two-node/runner.log	env M3_IMPLEMENTATION_FREEZE_COMMIT=4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5 WEALL_M3_EVIDENCE_DIR=/home/errol/WeAll-Protocol/artifacts/m3-closure PYTHONPATH=/home/errol/WeAll-Protocol/Weall-Protocol/src bash /home/errol/WeAll-Protocol/scripts/run_m3_two_node_state_root_gate.sh
+M3 observer catch-up without authority	passed	0	observer/runner.log	run_m3_observer_gate
+M3 artifact privacy scan	passed	0	privacy/runner.log	env WEALL_M3_EVIDENCE_DIR=/home/errol/WeAll-Protocol/artifacts/m3-closure bash /home/errol/WeAll-Protocol/scripts/run_m3_privacy_scan.sh

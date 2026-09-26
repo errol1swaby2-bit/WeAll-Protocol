@@ -1,0 +1,57 @@
+==> Sync round 1: source_height=1 target_height=0 source=http://127.0.0.1:18321 target=http://127.0.0.1:18322
+{"ok":true,"applied_count":1,"metas":[{"ok":true,"error":"","height":1,"block_id":"0e330a0f7faf6e368b43eba688f6bb78627018f3894562be597541ad4fc00efb","applied_count":0}],"height":1}
+==> OK: target synced to source height=1 state_root=4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a source=http://127.0.0.1:18321 target=http://127.0.0.1:18322
+==> Node 1
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 1,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a",
+  "tip_hash": "768f6b7234abb8b2ce947e25fe1ade260e60a2d110ce7ab7e2b4d79db35fa594",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> Node 2
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 1,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a",
+  "tip_hash": "768f6b7234abb8b2ce947e25fe1ade260e60a2d110ce7ab7e2b4d79db35fa594",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> OK: node chain manifests are valid and current
+==> OK: node identities, tips, and state roots match
+==> OK: target synced to source height=1 state_root=4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a source=http://127.0.0.1:18321 target=http://127.0.0.1:18322
+==> Node 1
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 1,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a",
+  "tip_hash": "768f6b7234abb8b2ce947e25fe1ade260e60a2d110ce7ab7e2b4d79db35fa594",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> Node 2
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 1,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "4997ab6c162cc0e1d2fc1df35094648ca623c3818c8c4ea157dfc87c46df597a",
+  "tip_hash": "768f6b7234abb8b2ce947e25fe1ade260e60a2d110ce7ab7e2b4d79db35fa594",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> OK: node chain manifests are valid and current
+==> OK: node identities, tips, and state roots match
+{"api": "http://127.0.0.1:18322", "chain_id": "weall-controlled-devnet", "consensus_local_is_active_validator": false, "height": 1, "mode": "observer", "ok": true}
+OK: external observer authority lock gate passed
+- production preflight accepted the manifest and rejected authority secrets
+- observer mode is forced on
+- validator signing, BFT, helper mode, and block-loop autostart are forced off
+- validator/service authority roles are absent from the local observer environment
+/home/errol/WeAll-Protocol/artifacts/m3-closure/observer/authority.json
+/home/errol/WeAll-Protocol/artifacts/m3-closure/observer/final-state.json
+OK: M3 observer catch-up without authority gate passed

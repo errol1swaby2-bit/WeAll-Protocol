@@ -950,6 +950,13 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         raise EconomicsApplyError("invalid_payload", "bad_amount", {"amount": amount})
 
     frm = _as_str(env.signer).strip()
+    if to == frm:
+        raise EconomicsApplyError(
+            "invalid_payload",
+            "self_transfer_forbidden",
+            {"account_id": frm, "amount": amt},
+        )
+
     claimed_from = _as_str(payload.get("from_account_id") or payload.get("from")).strip()
     if claimed_from and claimed_from != frm:
         raise EconomicsApplyError(

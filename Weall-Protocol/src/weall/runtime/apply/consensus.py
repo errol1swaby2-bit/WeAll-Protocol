@@ -150,6 +150,35 @@ def _chain_id(state: Json) -> str:
     return _as_str(cid) or "weall"
 
 
+def _current_consensus_epoch(state: Json) -> int:
+    consensus = state.get("consensus")
+    if not isinstance(consensus, dict):
+        return 0
+    epochs = consensus.get("epochs") if isinstance(consensus.get("epochs"), dict) else {}
+    validator_set = (
+        consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
+    )
+    return max(
+        _as_int(epochs.get("current"), 0),
+        _as_int(validator_set.get("epoch"), 0),
+        0,
+    )
+
+
+def _require_future_validator_epoch(state: Json, *, requested_epoch: int, field: str) -> None:
+    current_epoch = _current_consensus_epoch(state)
+    if int(requested_epoch) <= int(current_epoch):
+        raise ConsensusApplyError(
+            "invalid_payload",
+            "validator_lifecycle_epoch_must_be_future",
+            {
+                "field": field,
+                "requested_epoch": int(requested_epoch),
+                "current_epoch": int(current_epoch),
+            },
+        )
+
+
 def _require_system_env(env: TxEnvelope) -> None:
     if not bool(getattr(env, "system", False)):
         raise ConsensusApplyError("forbidden", "system_only", {"tx_type": env.tx_type})
@@ -673,6 +702,9 @@ def _apply_validator_candidate_approve(state: Json, env: TxEnvelope) -> Json:
         raise ConsensusApplyError(
             "invalid_payload", "missing_activate_at_epoch", {"tx_type": env.tx_type}
         )
+    _require_future_validator_epoch(
+        state, requested_epoch=activate_at_epoch, field="activate_at_epoch"
+    )
 
     vroot = _ensure_validators_root(state)
     reg = _require_dict_invariant(vroot.get("registry"), field="reg")
@@ -735,6 +767,7 @@ def _apply_validator_suspend(state: Json, env: TxEnvelope) -> Json:
         raise ConsensusApplyError(
             "invalid_payload", "missing_effective_epoch", {"tx_type": env.tx_type}
         )
+    _require_future_validator_epoch(state, requested_epoch=effective_epoch, field="effective_epoch")
 
     vroot = state.get("validators")
     reg = vroot.get("registry") if isinstance(vroot, dict) else None
@@ -794,6 +827,7 @@ def _apply_validator_remove(state: Json, env: TxEnvelope) -> Json:
         raise ConsensusApplyError(
             "invalid_payload", "missing_effective_epoch", {"tx_type": env.tx_type}
         )
+    _require_future_validator_epoch(state, requested_epoch=effective_epoch, field="effective_epoch")
 
     vroot = state.get("validators")
     reg = vroot.get("registry") if isinstance(vroot, dict) else None

@@ -1190,10 +1190,12 @@ class GroupTreasurySpendProposePayload(_StrictModel):
 
 
 class GroupTreasurySpendSignPayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
     spend_id: str = Field(..., min_length=1)
 
 
 class GroupTreasurySpendCancelPayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
     spend_id: str = Field(..., min_length=1)
 
 
@@ -1226,6 +1228,7 @@ class GroupEmissaryBallotCastPayload(_StrictModel):
 
 
 class GroupEmissaryElectionFinalizePayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
     election_id: str = Field(..., min_length=1)
 
 

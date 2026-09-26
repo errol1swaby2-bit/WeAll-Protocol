@@ -37,7 +37,7 @@ def test_group_treasury_spend_sign_fails_closed_when_execute_enqueue_breaks(
         tx_type="GROUP_TREASURY_SPEND_SIGN",
         signer="alice",
         nonce=4,
-        payload={"spend_id": "spend-1"},
+        payload={"group_id": "group-1", "spend_id": "spend-1"},
     )
 
     with pytest.raises(GroupsApplyError) as excinfo:

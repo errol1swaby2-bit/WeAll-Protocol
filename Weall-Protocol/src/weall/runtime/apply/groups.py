@@ -1120,15 +1120,24 @@ def _apply_group_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
 def _apply_group_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     spend_id = _as_str(payload.get("spend_id")).strip()
+    group_id = _as_str(payload.get("group_id")).strip()
     signer = _as_str(env.signer).strip()
 
-    if not spend_id or not signer:
+    if not spend_id or not group_id or not signer:
         raise GroupsApplyError("invalid_payload", "missing_fields", {"tx_type": env.tx_type})
 
     spends = _ensure_group_spends(state)
     s = spends.get(spend_id)
     if not isinstance(s, dict):
         raise GroupsApplyError("not_found", "spend_not_found", {"spend_id": spend_id})
+
+    stored_group_id = _as_str(s.get("group_id")).strip()
+    if not stored_group_id or stored_group_id != group_id:
+        raise GroupsApplyError(
+            "forbidden",
+            "group_scope_mismatch",
+            {"spend_id": spend_id, "group_id": group_id, "stored_group_id": stored_group_id},
+        )
 
     status = _as_str(s.get("status")).strip().lower()
     if status in ("canceled", "cancelled"):
@@ -1177,13 +1186,24 @@ def _apply_group_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
 def _apply_group_treasury_spend_cancel(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     spend_id = _as_str(payload.get("spend_id")).strip()
-    if not spend_id:
-        raise GroupsApplyError("invalid_payload", "missing_spend_id", {"tx_type": env.tx_type})
+    group_id = _as_str(payload.get("group_id")).strip()
+    if not spend_id or not group_id:
+        raise GroupsApplyError(
+            "invalid_payload", "missing_group_or_spend_id", {"tx_type": env.tx_type}
+        )
 
     spends = _ensure_group_spends(state)
     s = spends.get(spend_id)
     if not isinstance(s, dict):
         raise GroupsApplyError("not_found", "spend_not_found", {"spend_id": spend_id})
+
+    stored_group_id = _as_str(s.get("group_id")).strip()
+    if not stored_group_id or stored_group_id != group_id:
+        raise GroupsApplyError(
+            "forbidden",
+            "group_scope_mismatch",
+            {"spend_id": spend_id, "group_id": group_id, "stored_group_id": stored_group_id},
+        )
 
     status = _as_str(s.get("status")).strip().lower()
     if status == "executed":
@@ -1633,13 +1653,24 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
 def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     election_id = _as_str(payload.get("election_id") or payload.get("id")).strip()
-    if not election_id:
-        raise GroupsApplyError("invalid_payload", "missing_election_id", {"tx_type": env.tx_type})
+    group_id = _as_str(payload.get("group_id")).strip()
+    if not election_id or not group_id:
+        raise GroupsApplyError(
+            "invalid_payload", "missing_group_or_election_id", {"tx_type": env.tx_type}
+        )
 
     elections = _ensure_group_emissary_elections(state)
     e = elections.get(election_id)
     if not isinstance(e, dict):
         raise GroupsApplyError("not_found", "election_not_found", {"election_id": election_id})
+
+    stored_group_id = _as_str(e.get("group_id")).strip()
+    if not stored_group_id or stored_group_id != group_id:
+        raise GroupsApplyError(
+            "forbidden",
+            "group_scope_mismatch",
+            {"election_id": election_id, "group_id": group_id, "stored_group_id": stored_group_id},
+        )
 
     status = _as_str(e.get("status")).strip().lower()
     if status == "finalized":
@@ -1664,7 +1695,6 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
             {"election_id": election_id, "now": now_h, "end": end_h},
         )
 
-    group_id = _as_str(e.get("group_id")).strip()
     groups = _ensure_groups_root(state)
     g = groups.get(group_id)
     if not isinstance(g, dict):

@@ -102,8 +102,8 @@ def test_schema_models_registered() -> None:
             "GROUP_TREASURY_SPEND_PROPOSE",
             {"group_id": "group-1", "spend_id": "gspend-1", "to": "bob", "amount": 50},
         ),
-        ("GROUP_TREASURY_SPEND_SIGN", {"spend_id": "gspend-1"}),
-        ("GROUP_TREASURY_SPEND_CANCEL", {"spend_id": "gspend-1"}),
+        ("GROUP_TREASURY_SPEND_SIGN", {"group_id": "group-1", "spend_id": "gspend-1"}),
+        ("GROUP_TREASURY_SPEND_CANCEL", {"group_id": "group-1", "spend_id": "gspend-1"}),
         ("GROUP_TREASURY_SPEND_EXPIRE", {"group_id": "group-1", "spend_id": "gspend-1"}),
         ("GROUP_TREASURY_SPEND_EXECUTE", {"spend_id": "gspend-1"}),
         (
@@ -122,7 +122,7 @@ def test_schema_models_registered() -> None:
             },
         ),
         ("GROUP_EMISSARY_BALLOT_CAST", {"election_id": "e1", "ranking": ["alice", "bob"]}),
-        ("GROUP_EMISSARY_ELECTION_FINALIZE", {"election_id": "e1"}),
+        ("GROUP_EMISSARY_ELECTION_FINALIZE", {"group_id": "group-1", "election_id": "e1"}),
     ],
 )
 def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:

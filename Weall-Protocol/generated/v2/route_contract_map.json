@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b5288700519b1682f83553d3c4e9c266d130962fb09941246d3f95bbc577ed8"
+    "source_tree_digest": "526e5a8270b21770b29fea260860f3d822272862536830c12c7b006db7958222"
   },
   "required_fields": [
     "stable_id",
@@ -6973,6 +6973,7 @@
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/p0/test_p0_mempool_and_admission_invariants.py",
         "tests/p0/test_p0_system_receipts_and_invariants.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/prod/public_seed_test_helpers.py",
         "tests/prod/test_clean_clone_go_gate_venv.py",
         "tests/prod/test_clean_observer_boot_from_checked_in_registry.py",
@@ -7054,6 +7055,7 @@
         "tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py",
         "tests/test_backup_restore_smoke.py",
         "tests/test_backup_restore_write_after_restore.py",
+        "tests/test_balance_transfer_self_transfer_regression.py",
         "tests/test_behavior.py",
         "tests/test_behavior_m1_m10.py",
         "tests/test_bft_artifact_identity_binding.py",
@@ -7516,6 +7518,7 @@
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_parallel_execution.py",
         "tests/test_parallel_execution_conflict_lanes.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
@@ -8190,6 +8193,7 @@
       "stable_id": "ROUTE-137CB9FB31356917",
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
+        "tests/p0/test_p1_cons003_future_validator_epochs.py",
         "tests/prod/test_clean_observer_boot_from_checked_in_registry.py",
         "tests/prod/test_external_cross_machine_replay_transcript_capture.py",
         "tests/prod/test_external_evidence_transcript_gates.py",
@@ -8382,6 +8386,7 @@
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
         "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
         "tests/test_pb001bm_validator_authority_fail_closed.py",
