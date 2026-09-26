@@ -70,6 +70,31 @@ def test_balance_transfer_keeps_legacy_to_alias() -> None:
     assert st["accounts"]["@bob"]["balance"] == 35
 
 
+def test_balance_transfer_rejects_self_transfer_without_mutation() -> None:
+    st = _active_state()
+    before_accounts = {
+        account_id: dict(account)
+        for account_id, account in st["accounts"].items()
+    }
+
+    with pytest.raises(EconomicsApplyError) as ei:
+        apply_economics(
+            st,
+            _tx(
+                "@alice",
+                {
+                    "from_account_id": "@alice",
+                    "to_account_id": "@alice",
+                    "amount": 100,
+                },
+            ),
+        )
+
+    assert ei.value.reason == "self_transfer_forbidden"
+    assert st["accounts"] == before_accounts
+    assert "transfers_by_id" not in st.get("economics", {})
+
+
 def test_balance_transfer_rejects_from_account_spoof() -> None:
     st = _active_state()
 
