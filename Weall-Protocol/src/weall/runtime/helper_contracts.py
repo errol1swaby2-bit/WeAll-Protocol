@@ -6,7 +6,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from weall.runtime.execution_lanes import ALL_LANES, LANE_SERIAL
+from weall.runtime.execution_lanes import (
+    ALL_LANES,
+    LANE_PARALLEL_CONTENT,
+    LANE_PARALLEL_ECONOMY,
+    LANE_PARALLEL_IDENTITY,
+    LANE_PARALLEL_SOCIAL,
+    LANE_SERIAL,
+)
 from weall.runtime.helper_instance_corpus import DEFAULT_HELPER_INSTANCE_CORPUS
 from weall.runtime.json_tools import canonical_json_str as _canon_json
 from weall.runtime.lane_assignment import assign_execution_lane
@@ -18,6 +25,13 @@ _DEFAULT_TX_INDEX_PATH = Path(__file__).resolve().parents[3] / "generated" / "tx
 _PLANNER_PARALLEL_HINTS: frozenset[str] = frozenset(
     {"IDENTITY", "SOCIAL", "CONTENT", "ECONOMICS", "STORAGE"}
 )
+_EXPECTED_EXECUTION_LANE_BY_PLANNER_HINT: dict[str, str] = {
+    "IDENTITY": LANE_PARALLEL_IDENTITY,
+    "SOCIAL": LANE_PARALLEL_SOCIAL,
+    "CONTENT": LANE_PARALLEL_CONTENT,
+    "STORAGE": LANE_PARALLEL_CONTENT,
+    "ECONOMICS": LANE_PARALLEL_ECONOMY,
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +77,11 @@ def _is_parallel_lane(lane_id: str) -> bool:
 
 def _has_parallel_planner_hint(lane_hint: str) -> bool:
     return str(lane_hint or "").strip().upper() in _PLANNER_PARALLEL_HINTS
+
+
+def _expected_execution_lane_for_planner_hint(lane_hint: str) -> str:
+    lane_hint2 = str(lane_hint or "").strip().upper()
+    return _EXPECTED_EXECUTION_LANE_BY_PLANNER_HINT.get(lane_hint2, LANE_SERIAL)
 
 
 def _normalize_tx(tx: Mapping[str, Any]) -> Json:
@@ -127,6 +146,9 @@ def helper_contract_for_tx(tx: Mapping[str, Any]) -> HelperContract:
     elif not _is_parallel_lane(execution_lane_id):
         degraded_to_serial = True
         reason = "execution_lane_serial"
+    elif execution_lane_id != _expected_execution_lane_for_planner_hint(access.lane_hint):
+        degraded_to_serial = True
+        reason = "planner_execution_lane_mismatch"
     else:
         helper_eligible = True
         effective_lane_id = execution_lane_id
