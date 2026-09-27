@@ -1,0 +1,146 @@
+name: P2 DISPUTE002 Closure Resume
+
+on:
+  push:
+    branches:
+      - p2-complete-remediation-20260927
+    paths:
+      - .github/workflows/p2-dispute002-resume.yml
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: p2-complete-remediation-20260927
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Extract already-proven patch and focused-test steps
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          workflow = yaml.safe_load(Path('.github/workflows/p2-dispute002.yml').read_text(encoding='utf-8'))
+          steps = workflow['jobs']['close']['steps']
+          wanted = {
+              'Patch dispute appeal actor binding': '/tmp/p2-dispute-patch.sh',
+              'Format and focused dispute verification': '/tmp/p2-dispute-focused.sh',
+          }
+          found = set()
+          for step in steps:
+              name = step.get('name') if isinstance(step, dict) else None
+              if name in wanted:
+                  Path(wanted[name]).write_text(str(step['run']) + '\n', encoding='utf-8')
+                  found.add(name)
+          missing = set(wanted) - found
+          if missing:
+              raise SystemExit(f'missing source workflow steps: {sorted(missing)}')
+          PY
+
+      - name: Remove temporary workflows from compilation input
+        run: |
+          git rm .github/workflows/p2-dispute002.yml .github/workflows/p2-dispute002-resume.yml
+
+      - name: Reapply proven dispute patch and focused proof
+        working-directory: Weall-Protocol
+        run: |
+          bash -Eeuo pipefail /tmp/p2-dispute-patch.sh
+          bash -Eeuo pipefail /tmp/p2-dispute-focused.sh
+
+      - name: Register new dispute state identities
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          path = Path('Weall-Protocol/specs/v2/source/stable_ids.json')
+          payload = json.loads(path.read_text(encoding='utf-8'))
+          entries = payload.get('entries')
+          if not isinstance(entries, list):
+              raise SystemExit('stable_ids.json entries must be a list')
+
+          def register(canonical_key: str) -> None:
+              expected = 'STATE-' + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
+              matches = [
+                  row for row in entries
+                  if isinstance(row, dict)
+                  and row.get('kind') == 'state'
+                  and row.get('canonical_key') == canonical_key
+              ]
+              if matches:
+                  if len(matches) != 1 or str(matches[0].get('stable_id') or '') != expected:
+                      raise SystemExit(f'stable state ID mismatch for {canonical_key}: {matches!r}')
+                  return
+              if any(isinstance(row, dict) and row.get('stable_id') == expected for row in entries):
+                  raise SystemExit(f'stable ID collision for {canonical_key}: {expected}')
+              entries.append({
+                  'aliases': [],
+                  'canonical_key': canonical_key,
+                  'kind': 'state',
+                  'stable_id': expected,
+                  'status': 'active',
+              })
+              print(f'registered {canonical_key} -> {expected}', flush=True)
+
+          register('Dispute:target_type')
+          register('Dispute:target_id')
+          entries.sort(key=lambda row: str(row.get('stable_id') or '') if isinstance(row, dict) else '')
+          path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+          PY
+
+      - name: Refresh semantic and reviewer evidence
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/refresh_v2_semantic_reviews.py \
+            --tx-type DISPUTE_OPEN \
+            --tx-type DISPUTE_APPEAL \
+            --register-failure forbidden:appeal_actor_unresolved \
+            --reviewer 'WeAll Protocol P2 audit remediation; independent launch review deferred'
+
+          python scripts/gen_failure_code_registry_v1_5.py
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_current_verified_claims.py
+
+          python scripts/gen_failure_code_registry_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          python scripts/gen_current_verified_claims.py --check
+
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          git diff --check
+
+      - name: Commit verified P2 DISPUTE002 closure and self-delete
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Close P2 DISPUTE002 fail-closed appeal actor binding'
+          git push origin HEAD:p2-complete-remediation-20260927
