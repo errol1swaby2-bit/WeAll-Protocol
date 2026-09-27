@@ -44,9 +44,11 @@ def main() -> None:
         env={"PYTHONPATH": "src"},
     )
 
-    # Re-run the exact freshness/readiness surfaces used by standard CI.
+    # Validate working-tree freshness before publishing. The dedicated
+    # clean-checkout validator intentionally runs only after these regenerated
+    # derivatives are committed; standard Backend/Reviewer CI provides that
+    # post-commit proof on the final tree.
     run(sys.executable, "scripts/check_generated.py")
-    run(sys.executable, "scripts/check_v2_spec_clean_checkout.py")
     run(
         sys.executable,
         "scripts/check_v15_public_readiness_artifacts.py",
