@@ -72,6 +72,10 @@ jobs:
           python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
           python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
 
+      - name: Recompile v2 derivatives after proof refresh
+        working-directory: Weall-Protocol
+        run: PYTHONPATH=src python scripts/compile_v2_spec.py
+
       - name: Rerun exact previously failing tests
         working-directory: Weall-Protocol
         run: |
@@ -81,7 +85,7 @@ jobs:
             tests/test_full_node_db_api_dispute_storage_coverage.py::test_b534_freshness_check_is_deterministic_and_live_verification_is_explicit \
             tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py::test_b528_freshness_check_is_deterministic_and_live_verification_is_explicit
 
-      - name: Verify generated and v2 derivative freshness
+      - name: Verify generated and derivative freshness
         working-directory: Weall-Protocol
         run: |
           python scripts/check_generated.py
