@@ -22317,7 +22317,7 @@
       ],
       "path": "tests/test_pb001bm_validator_authority_fail_closed.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "3cd7165444e4fc9875dc9f2ffdfe138283513a108dc2a20dd3ad97f0325bac2b",
+      "sha256": "073a0c04937aff2d40113f9caf95254330674f7e51a3582ddd72b4f2a57b8d75",
       "source_id": "SRC-AD3C497B7B9DBB16"
     },
     {
@@ -27472,7 +27472,7 @@
       ],
       "path": "tests/test_transfer_tip_contract.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "c38f87a2b7a3e3508bcdb9cdc78fb43f28700eb5e94acc746337a328d3e204d2",
+      "sha256": "f7c71abed9b0ac54fd44bc8de07e36eac52acef9ee6c98a60b554012b755d7c5",
       "source_id": "SRC-788A65AD1A746088"
     },
     {
