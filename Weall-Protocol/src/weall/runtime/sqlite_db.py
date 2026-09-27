@@ -111,7 +111,9 @@ class SqliteDB:
           - prod        -> FULL
           - dev/testnet -> NORMAL
 
-        Override with WEALL_SQLITE_SYNCHRONOUS in {OFF,NORMAL,FULL,EXTRA}.
+        Override with WEALL_SQLITE_SYNCHRONOUS in {NORMAL,FULL,EXTRA} in
+        production. ``OFF`` remains available only to explicit non-production
+        modes where crash durability is not a production claim.
         """
         mode = (os.environ.get("WEALL_MODE") or "prod").strip().lower()
         default = "FULL" if mode == "prod" else "NORMAL"
@@ -121,6 +123,8 @@ class SqliteDB:
         if raw not in allowed:
             # Fail-safe: never accept unknown values.
             raw = default
+        if mode == "prod" and raw == "OFF":
+            raise ValueError("unsafe_sqlite_synchronous_off_in_prod")
         return raw
 
     def ensure_parent_dir(self) -> None:
