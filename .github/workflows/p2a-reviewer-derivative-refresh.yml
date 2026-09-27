@@ -1,0 +1,73 @@
+name: P2A Reviewer Derivative Refresh
+
+on:
+  push:
+    branches:
+      - p2-complete-remediation-20260927
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-reviewer-derivatives:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend tooling
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Remove one-shot workflow before derivative compilation
+        run: git rm .github/workflows/p2a-reviewer-derivative-refresh.yml
+
+      - name: Format P2A regression test
+        working-directory: Weall-Protocol
+        run: |
+          ruff format tests/test_helper_instance_corpus.py
+          ruff format --check \
+            src/weall/runtime/helper_contracts.py \
+            tests/test_helper_execution_lane_alignment.py \
+            tests/test_helper_instance_corpus.py
+          ruff check \
+            src/weall/runtime/helper_contracts.py \
+            tests/test_helper_execution_lane_alignment.py \
+            tests/test_helper_instance_corpus.py
+
+      - name: Recompile source-bound v2 derivatives
+        working-directory: Weall-Protocol
+        run: python scripts/compile_v2_spec.py
+
+      - name: Verify canon artifacts after recompilation
+        working-directory: Weall-Protocol
+        run: python scripts/check_tx_canon_artifacts.py
+
+      - name: Show exact regenerated surface
+        run: |
+          git status --short
+          git diff --check
+
+      - name: Commit formatting and regenerated reviewer derivatives
+        run: |
+          set -Eeuo pipefail
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh P2A reviewer derivatives and formatting"
+          git push origin "HEAD:${{ github.ref_name }}"
