@@ -53,6 +53,57 @@ jobs:
             tests/test_p2_state_sync_hardening.py \
             tests/test_p2_scoped_authority_repairs.py
 
+      - name: Register new group audit-anchor state identifiers
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          path = Path("specs/v2/source/stable_ids.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          entries = payload["entries"]
+          by_key = {
+              (str(row.get("kind") or ""), str(row.get("canonical_key") or "")): row
+              for row in entries
+              if isinstance(row, dict)
+          }
+          known_ids = {
+              str(row.get("stable_id") or "")
+              for row in entries
+              if isinstance(row, dict)
+          }
+          for canonical_key in (
+              "Groups:anchor",
+              "Groups:set_at_nonce",
+              "Groups:treasury_audit_anchors",
+          ):
+              expected = "STATE-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+              existing = by_key.get(("state", canonical_key))
+              if existing is not None:
+                  if str(existing.get("stable_id") or "") != expected:
+                      raise SystemExit(
+                          f"state stable ID mismatch for {canonical_key}: "
+                          f"expected {expected}, found {existing.get('stable_id')}"
+                      )
+                  continue
+              if expected in known_ids:
+                  raise SystemExit(f"state stable ID collision for {canonical_key}: {expected}")
+              row = {
+                  "aliases": [],
+                  "canonical_key": canonical_key,
+                  "kind": "state",
+                  "stable_id": expected,
+                  "status": "active",
+              }
+              entries.append(row)
+              by_key[("state", canonical_key)] = row
+              known_ids.add(expected)
+          entries.sort(key=lambda row: str(row.get("stable_id") or ""))
+          path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          PY
+
       - name: Refresh explicitly reviewed V2 transaction semantics
         working-directory: Weall-Protocol
         run: |
