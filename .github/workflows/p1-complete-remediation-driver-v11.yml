@@ -124,23 +124,37 @@ jobs:
               'assert runtime["count"] == 1118',
               'runtime-state inventory expectation',
           )
+          dispute_test = PROTOCOL / 'tests/test_dispute_followups.py'
           reconcile_once(
-              PROTOCOL / 'tests/test_dispute_followups.py',
-              '    assert len(lock_items) == 1\n    assert len(receipt_items) == 1',
-              '    assert len(lock_items) == 0\n    assert len(receipt_items) == 1',
-              'dispute advisory-action expectation',
+              dispute_test,
+              '    assert len(lock_items) == 1\n    assert int(lock_items[0].get("due_height")) == 2',
+              '    assert lock_items == []',
+              'dispute queued enforcement expectation',
           )
           reconcile_once(
-              PROTOCOL / 'tests/test_fresh_ai_error_closure.py',
-              'def test_peer_security_authenticated_identity_survives_address_change(monkeypatch):',
-              'def test_peer_security_identity_does_not_transfer_without_session_bound_hello(monkeypatch):',
+              dispute_test,
+              '    assert "ACCOUNT_LOCK" in types_h2',
+              '    assert "ACCOUNT_LOCK" not in types_h2',
+              'dispute emitted enforcement expectation',
+          )
+          reconcile_once(
+              dispute_test,
+              '    # ACCOUNT_LOCK should have taken effect.\n    assert st["accounts"]["bob"]["locked"] is True',
+              '    # Juror-authored enforcement actions are advisory only.\n    assert st["accounts"]["bob"]["locked"] is False',
+              'dispute enforcement side-effect expectation',
+          )
+          peer_test = PROTOCOL / 'tests/test_fresh_ai_error_closure.py'
+          reconcile_once(
+              peer_test,
+              'def test_peer_security_authenticated_identity_survives_address_change(tmp_path: Path) -> None:',
+              'def test_peer_security_identity_does_not_transfer_without_session_bound_proof(tmp_path: Path) -> None:',
               'peer-security test name',
           )
           reconcile_once(
-              PROTOCOL / 'tests/test_fresh_ai_error_closure.py',
-              '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 1',
-              '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 0',
-              'peer-security session-bound strike expectation',
+              peer_test,
+              '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 1\n    assert rec2.banned_until_ms >= rec1.banned_until_ms',
+              '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 0\n    assert rec2.banned_until_ms == 0',
+              'peer-security session-bound durable-state expectation',
           )
 
           print('=== Install locked dependencies ===', flush=True)
