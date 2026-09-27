@@ -122,6 +122,7 @@ jobs:
             --tx-type TREASURY_SIGNER_ADD \
             --tx-type TREASURY_SIGNER_REMOVE \
             --tx-type GROUP_TREASURY_AUDIT_ANCHOR_SET \
+            --register-failure forbidden:insufficient_balance_for_forfeiture \
             --register-failure invalid_payload:helper_reputation_threshold_policy_mismatch \
             --register-failure invalid_state:treasury_signer_authority_missing \
             --register-failure forbidden:signer_must_be_seated_emissary \
