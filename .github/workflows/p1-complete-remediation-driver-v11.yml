@@ -120,8 +120,8 @@ jobs:
           print('=== Reconcile residual tests with repaired P1 trust boundaries ===', flush=True)
           reconcile_once(
               PROTOCOL / 'tests/test_v2_spec_compiler.py',
-              'assert int(runtime["count"]) == 1112',
-              'assert int(runtime["count"]) == 1118',
+              'assert runtime["count"] == 1112',
+              'assert runtime["count"] == 1118',
               'runtime-state inventory expectation',
           )
           reconcile_once(
