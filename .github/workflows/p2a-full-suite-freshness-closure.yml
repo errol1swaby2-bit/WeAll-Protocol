@@ -85,12 +85,11 @@ jobs:
             tests/test_full_node_db_api_dispute_storage_coverage.py::test_b534_freshness_check_is_deterministic_and_live_verification_is_explicit \
             tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py::test_b528_freshness_check_is_deterministic_and_live_verification_is_explicit
 
-      - name: Verify generated and derivative freshness
+      - name: Verify working-tree generated and derivative freshness
         working-directory: Weall-Protocol
         run: |
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
@@ -100,15 +99,24 @@ jobs:
           git status --short
           git diff --check
 
-      - name: Commit P2A full-suite closure
+      - name: Create local P2A closure commit
         run: |
           set -Eeuo pipefail
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to commit."
-            exit 0
+            exit 1
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Close P2A full-suite freshness failures"
-          git push origin "HEAD:${{ github.ref_name }}"
+
+      - name: Verify clean checkout from closure commit
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Push verified P2A closure commit
+        run: git push origin "HEAD:${{ github.ref_name }}"
