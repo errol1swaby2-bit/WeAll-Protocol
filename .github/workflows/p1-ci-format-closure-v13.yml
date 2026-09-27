@@ -1,0 +1,137 @@
+name: P1 CI Format Closure v13
+
+on:
+  push:
+    branches: [p1-complete-remediation-20260926]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  close-ci-formatting:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-complete-remediation-20260926
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Format, regenerate, validate exact candidate, and push
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          ROOT="$GITHUB_WORKSPACE"
+          PROTOCOL="$ROOT/Weall-Protocol"
+          BASE_SHA="90447667d8e3276d01fa24e35c618fb5496e57fc"
+
+          cd "$PROTOCOL"
+
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+          echo '=== Canonically format the three CI-identified Python files ==='
+          ruff format \
+            tests/test_fresh_ai_error_closure.py \
+            tests/test_generated_checker_read_only.py \
+            tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py
+
+          echo '=== Re-run Ruff across every Python file changed from main ==='
+          mapfile -t PY_FILES < <(
+            git -C "$ROOT" diff --name-only --diff-filter=ACMR "${BASE_SHA}...HEAD" \
+              | awk '/^Weall-Protocol\/.*\.py$/ {sub(/^Weall-Protocol\//, ""); print}'
+          )
+          if (( ${#PY_FILES[@]} == 0 )); then
+            echo 'No changed Python files found; refusing unexpected closure state.' >&2
+            exit 1
+          fi
+          ruff format --check "${PY_FILES[@]}"
+          ruff check "${PY_FILES[@]}"
+
+          echo '=== Remove the temporary workflow before any source-derived generation ==='
+          cd "$ROOT"
+          git rm -f .github/workflows/p1-ci-format-closure-v13.yml
+          test ! -e .github/workflows/p1-ci-format-closure-v13.yml
+
+          cd "$PROTOCOL"
+
+          echo '=== Refresh deterministic proof artifacts ==='
+          PROOF_GENERATORS=(
+            scripts/gen_b517_b521_completion_proof_v1_5.py
+            scripts/gen_b523_b527_completion_proof_v1_5.py
+            scripts/gen_b528_b532_completion_proof_v1_5.py
+            scripts/gen_b534_b538_completion_proof_v1_5.py
+            scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          )
+          for script in "${PROOF_GENERATORS[@]}"; do
+            python "$script"
+          done
+          for script in "${PROOF_GENERATORS[@]}"; do
+            python "$script" --check
+          done
+
+          echo '=== Refresh public-readiness generated artifacts ==='
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_current_verified_claims.py
+
+          echo '=== Regenerate v2 derivatives only after final source tree is materialized ==='
+          python scripts/compile_v2_spec.py
+
+          echo '=== Pre-commit fail-closed validation ==='
+          python scripts/check_generated.py
+          python scripts/compile_v2_spec.py --check
+          python scripts/gen_failure_code_registry_v1_5.py --check
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          for script in "${PROOF_GENERATORS[@]}"; do
+            python "$script" --check
+          done
+
+          echo '=== Commit exact candidate ==='
+          cd "$ROOT"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Close CI formatting and generated-artifact freshness'
+          CANDIDATE_SHA="$(git rev-parse HEAD)"
+          echo "Candidate: $CANDIDATE_SHA"
+
+          echo '=== Exact-commit reproducibility and readiness checks ==='
+          cd "$PROTOCOL"
+          python scripts/check_generated.py
+          python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_failure_code_registry_v1_5.py --check
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          for script in "${PROOF_GENERATORS[@]}"; do
+            python "$script" --check
+          done
+
+          echo '=== Full backend regression suite ==='
+          pytest -q
+
+          echo '=== Validation must leave tracked state clean ==='
+          cd "$ROOT"
+          git diff --exit-code
+          git diff --cached --exit-code
+          test ! -e .github/workflows/p1-ci-format-closure-v13.yml
+
+          echo '=== Push only the fully validated candidate ==='
+          git push origin HEAD:p1-complete-remediation-20260926
