@@ -93,12 +93,18 @@ jobs:
                   check=True,
               )
 
-          def replace_once(path: Path, old: str, new: str, label: str) -> None:
+          def reconcile_once(path: Path, old: str, new: str, label: str) -> None:
               text = path.read_text()
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{label} match count={count}')
-              path.write_text(text.replace(old, new, 1))
+              old_count = text.count(old)
+              new_count = text.count(new)
+              if old_count == 1 and new_count == 0:
+                  path.write_text(text.replace(old, new, 1))
+                  return
+              if old_count == 0 and new_count == 1:
+                  return
+              raise SystemExit(
+                  f'{label} ambiguous state: old_count={old_count} new_count={new_count}'
+              )
 
           old_harness_path = '.github/workflows/p1-complete-remediation-20260926.yml'
           new_harness_path = '.github/p1-remediation/p1-complete-remediation-harness-20260926.yml'
@@ -112,25 +118,25 @@ jobs:
           )
 
           print('=== Reconcile residual tests with repaired P1 trust boundaries ===', flush=True)
-          replace_once(
+          reconcile_once(
               PROTOCOL / 'tests/test_v2_spec_compiler.py',
               'assert int(runtime["count"]) == 1112',
               'assert int(runtime["count"]) == 1118',
               'runtime-state inventory expectation',
           )
-          replace_once(
+          reconcile_once(
               PROTOCOL / 'tests/test_dispute_followups.py',
               '    assert len(lock_items) == 1\n    assert len(receipt_items) == 1',
               '    assert len(lock_items) == 0\n    assert len(receipt_items) == 1',
               'dispute advisory-action expectation',
           )
-          replace_once(
+          reconcile_once(
               PROTOCOL / 'tests/test_fresh_ai_error_closure.py',
               'def test_peer_security_authenticated_identity_survives_address_change(monkeypatch):',
               'def test_peer_security_identity_does_not_transfer_without_session_bound_hello(monkeypatch):',
               'peer-security test name',
           )
-          replace_once(
+          reconcile_once(
               PROTOCOL / 'tests/test_fresh_ai_error_closure.py',
               '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 1',
               '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 0',
