@@ -138,7 +138,7 @@ def _enqueue_accrual(
         tx_type="REPUTATION_DELTA_APPLY",
         payload={
             "account_id": account_id,
-            "delta": float(delta_milli) / 1000.0,
+            "delta_milli": int(delta_milli),
             "delta_id": delta_id,
             "reason": str(reason),
         },

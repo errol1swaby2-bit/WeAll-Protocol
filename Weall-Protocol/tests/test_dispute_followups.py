@@ -118,20 +118,19 @@ def test_dispute_vote_submit_enqueues_resolve_and_final_receipt_chain() -> None:
     assert str(final_items[0].get("phase")) == "post"
 
     lock_items = [x for x in q2 if isinstance(x, dict) and x.get("tx_type") == "ACCOUNT_LOCK"]
-    assert len(lock_items) == 1
-    assert int(lock_items[0].get("due_height")) == 2
+    assert lock_items == []
 
     # Emit + apply follow-ups at height=2.
     post_h2 = system_tx_emitter(st, canon=idx, next_height=2, phase="post")
     types_h2 = [e.tx_type for e in post_h2]
     assert "DISPUTE_FINAL_RECEIPT" in types_h2
-    assert "ACCOUNT_LOCK" in types_h2
+    assert "ACCOUNT_LOCK" not in types_h2
 
     for env in post_h2:
         apply_tx(st, env)
 
-    # ACCOUNT_LOCK should have taken effect.
-    assert st["accounts"]["bob"]["locked"] is True
+    # Juror-authored enforcement actions are advisory only.
+    assert st["accounts"]["bob"]["locked"] is False
 
 
 def test_affirmative_content_dispute_resolution_enforces_content_visibility() -> None:

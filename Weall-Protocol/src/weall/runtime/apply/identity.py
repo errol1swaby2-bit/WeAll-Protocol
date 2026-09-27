@@ -434,9 +434,8 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
     _expect_nonce(a, env)
     p = _payload(env)
 
-    pubkey = _as_str(p.get("pubkey") or "").strip()
-    if not pubkey:
-        raise ApplyError("invalid_tx", "missing_pubkey", {})
+    key_id = _as_str(p.get("key_id") or "").strip()
+    legacy_pubkey = _as_str(p.get("pubkey") or "").strip()
 
     keys = a.get("keys")
     if not isinstance(keys, dict) or not isinstance(keys.get("by_id"), dict):
@@ -444,15 +443,23 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
 
     by_id = keys["by_id"]
     match_kid: str | None = None
-    for kid, rec in by_id.items():
-        if not isinstance(rec, dict):
-            continue
-        if account_key_pubkey(rec) == pubkey and rec.get("revoked") is not True:
-            match_kid = kid
-            break
+    if key_id:
+        rec = by_id.get(key_id)
+        if isinstance(rec, dict) and rec.get("revoked") is not True:
+            match_kid = key_id
+    elif legacy_pubkey:
+        for kid, rec in by_id.items():
+            if not isinstance(rec, dict):
+                continue
+            if account_key_pubkey(rec) == legacy_pubkey and rec.get("revoked") is not True:
+                match_kid = kid
+                break
+    else:
+        raise ApplyError("invalid_tx", "missing_key_id", {})
 
     if not match_kid:
-        raise ApplyError("invalid_tx", "unknown_key", {"pubkey": pubkey})
+        details = {"key_id": key_id} if key_id else {"pubkey": legacy_pubkey}
+        raise ApplyError("invalid_tx", "unknown_key", details)
 
     by_id[match_kid]["revoked"] = True
     by_id[match_kid]["revoked_at"] = _as_int(state.get("height"), 0)

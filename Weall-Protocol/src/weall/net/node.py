@@ -386,7 +386,14 @@ class NetNode:
         )
         self._last_peer_security_prune_ms = now
 
-    def _bind_authenticated_peer_security(self, rec: _PeerRec) -> None:
+    def _bind_authenticated_peer_security(
+        self, rec: _PeerRec, *, session_bound: bool = False
+    ) -> None:
+        if not session_bound:
+            # PEER_HELLO V1/V2/V3 proofs are initiated by the peer and can be
+            # replayed on another transport. They are therefore insufficient
+            # authority for durable account-scoped abuse attribution.
+            return
         key = self._peer_security_identity_key(rec.identity_account)
         if not key:
             return
@@ -734,7 +741,9 @@ class NetNode:
         rec.identity_ok = True
         rec.identity_account = account_id
         rec.identity_pubkey = pubkey
-        self._bind_authenticated_peer_security(rec)
+        # The current hello proof is not receiver/session-bound, so durable
+        # peer-security attribution must remain on the transport identity.
+        self._bind_authenticated_peer_security(rec, session_bound=False)
 
     def _enforce_bft_identity_gate(self, rec: _PeerRec, msg: BftVoteMsg) -> None:
         if not (

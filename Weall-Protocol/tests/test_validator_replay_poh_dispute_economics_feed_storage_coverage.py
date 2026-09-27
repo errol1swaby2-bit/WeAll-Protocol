@@ -268,7 +268,11 @@ def test_full_lifecycle_and_feed_ranking_completion_artifact() -> None:
     }
 
     generator = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "gen_b517_b521_completion_proof_v1_5.py")],
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "gen_b517_b521_completion_proof_v1_5.py"),
+            "--check",
+        ],
         cwd=str(ROOT),
         text=True,
         capture_output=True,
@@ -279,7 +283,7 @@ def test_full_lifecycle_and_feed_ranking_completion_artifact() -> None:
     assert data["ok"] is True
     assert data["feed_ranking_review"]["current_default"] == "created_at_nonce_desc"
     assert data["feed_ranking_review"]["complete_ranking"] is False
-    assert str(artifact) in generator.stdout
+    assert generator.returncode == 0
 
 
 def test_feed_ranking_is_deterministic_and_default_compatible() -> None:

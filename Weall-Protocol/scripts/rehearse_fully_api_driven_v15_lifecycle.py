@@ -466,7 +466,7 @@ def run_harness() -> dict[str, Any]:
         state,
         _env(
             "STORAGE_OFFER_CREATE",
-            "@alice",
+            "op-a",
             70,
             {"offer_id": "offer-a", "operator_id": "op-a", "capacity_bytes": 1024},
         ),
@@ -475,7 +475,7 @@ def run_harness() -> dict[str, Any]:
         state,
         _env(
             "STORAGE_OFFER_CREATE",
-            "@bob",
+            "op-b",
             71,
             {"offer_id": "offer-b", "operator_id": "op-b", "capacity_bytes": 1024},
         ),

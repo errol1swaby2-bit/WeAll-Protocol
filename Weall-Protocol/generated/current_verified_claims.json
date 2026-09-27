@@ -351,8 +351,8 @@
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
-    "generated/public_beta_blocker_report_v1_5.json": "6d0f6b78eb60d508c552ba1d04a2d7f3e59befcb28b04c5ade1683eefe38fc74",
-    "generated/release_evidence_manifest_v1_5.json": "fd28286f1844a03cd65c9b73febe840951ac699bd94cc272ce6328ea9ed365e7",
+    "generated/public_beta_blocker_report_v1_5.json": "48007aed9c44ea807165056de37ae9995b493a1c676aa85ac4dce08358334aeb",
+    "generated/release_evidence_manifest_v1_5.json": "ea39f22c12a3fb23b0cde0cd1faff367197cbfe920a3513fd2f46c40a448b693",
     "generated/tx_index.json": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
   },
   "schema": "weall.current_verified_claims.v1",

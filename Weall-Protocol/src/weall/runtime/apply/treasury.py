@@ -397,6 +397,7 @@ def _apply_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_treasury_spend_cancel(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
+    treasury_id = _require_treasury_id(payload)
     spend_id = _as_str(payload.get("spend_id")).strip()
     if not spend_id:
         raise TreasuryApplyError("invalid_payload", "missing_spend_id", {"tx_type": env.tx_type})
@@ -406,21 +407,37 @@ def _apply_treasury_spend_cancel(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(spends, dict):
         spends = {}
         tre["spends"] = spends
-
-    s = spends.get(spend_id)
-    if not isinstance(s, dict):
+    spend = spends.get(spend_id)
+    if not isinstance(spend, dict):
         raise TreasuryApplyError("not_found", "spend_not_found", {"spend_id": spend_id})
 
-    status = _as_str(s.get("status")).strip().lower()
-    if status in ("executed", "canceled", "cancelled"):
+    stored_treasury_id = _as_str(spend.get("treasury_id")).strip()
+    if not stored_treasury_id:
+        raise TreasuryApplyError(
+            "invalid_state", "spend_missing_treasury_id", {"spend_id": spend_id}
+        )
+    if stored_treasury_id != treasury_id:
+        raise TreasuryApplyError(
+            "forbidden",
+            "treasury_id_mismatch",
+            {
+                "spend_id": spend_id,
+                "treasury_id": treasury_id,
+                "stored_treasury_id": stored_treasury_id,
+            },
+        )
+
+    status = _as_str(spend.get("status")).strip().lower()
+    if status == "executed":
+        raise TreasuryApplyError("forbidden", "spend_already_executed", {"spend_id": spend_id})
+    if status == "canceled":
         return {"applied": "TREASURY_SPEND_CANCEL", "spend_id": spend_id, "deduped": True}
 
-    s["status"] = "canceled"
-    s["canceled_by"] = _as_str(env.signer).strip()
-    s["canceled_at_nonce"] = int(env.nonce)
-    spends[spend_id] = s
-
-    return {"applied": "TREASURY_SPEND_CANCEL", "spend_id": spend_id}
+    spend["status"] = "canceled"
+    spend["canceled_by"] = _as_str(env.signer).strip()
+    spend["canceled_at_nonce"] = int(env.nonce)
+    spends[spend_id] = spend
+    return {"applied": "TREASURY_SPEND_CANCEL", "spend_id": spend_id, "deduped": False}
 
 
 def _apply_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:

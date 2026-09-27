@@ -42,7 +42,7 @@
   },
   "full_lifecycle": {
     "batch": "525",
-    "final_state_root": "8ec93e5a1efd496eb5c1da0c0971d0cba5cf2c84de3177c8a939bfe57a92b564",
+    "final_state_root": "e03d199768dd4f546e4e5de000123ef496ca7b5aefd0318d090d5368f90c9be2",
     "fresh_node_replay_sync": {
       "batch": "524",
       "corrupt_block_rejected": true,
@@ -59,7 +59,7 @@
     "journey": {
       "dispute_id": "d-life",
       "economics_locked_rejection": true,
-      "final_enforcement_count": 4,
+      "final_enforcement_count": 3,
       "post_id": "post:lifecycle:1",
       "protocol_activate_applied": true,
       "protocol_declare_applied": true,
