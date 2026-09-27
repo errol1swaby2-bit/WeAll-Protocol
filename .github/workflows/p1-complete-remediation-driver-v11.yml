@@ -117,7 +117,7 @@ jobs:
               ROOT,
           )
 
-          print('=== Reconcile residual tests with repaired P1 trust boundaries ===', flush=True)
+          print('=== Reconcile residual tests and proof fixtures with repaired P1 trust boundaries ===', flush=True)
           reconcile_once(
               PROTOCOL / 'tests/test_v2_spec_compiler.py',
               'assert runtime["count"] == 1112',
@@ -155,6 +155,38 @@ jobs:
               '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 1\n    assert rec2.banned_until_ms >= rec1.banned_until_ms',
               '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 0\n    assert rec2.banned_until_ms == 0',
               'peer-security session-bound durable-state expectation',
+          )
+          lifecycle_harness = PROTOCOL / 'scripts/rehearse_fully_api_driven_v15_lifecycle.py'
+          reconcile_once(
+              lifecycle_harness,
+              '            "STORAGE_OFFER_CREATE",\n            "@alice",\n            70,\n            {"offer_id": "offer-a", "operator_id": "op-a", "capacity_bytes": 1024},',
+              '            "STORAGE_OFFER_CREATE",\n            "op-a",\n            70,\n            {"offer_id": "offer-a", "operator_id": "op-a", "capacity_bytes": 1024},',
+              'lifecycle storage offer-a signer/operator identity',
+          )
+          reconcile_once(
+              lifecycle_harness,
+              '            "STORAGE_OFFER_CREATE",\n            "@bob",\n            71,\n            {"offer_id": "offer-b", "operator_id": "op-b", "capacity_bytes": 1024},',
+              '            "STORAGE_OFFER_CREATE",\n            "op-b",\n            71,\n            {"offer_id": "offer-b", "operator_id": "op-b", "capacity_bytes": 1024},',
+              'lifecycle storage offer-b signer/operator identity',
+          )
+          storage_harness = PROTOCOL / 'scripts/rehearse_storage_operator_durability_v1_5.py'
+          reconcile_once(
+              storage_harness,
+              '            "STORAGE_OFFER_CREATE",\n            "@opA",\n            1,\n            {"offer_id": "offer-a", "operator_id": "op-a", "capacity_bytes": 4096},',
+              '            "STORAGE_OFFER_CREATE",\n            "op-a",\n            1,\n            {"offer_id": "offer-a", "operator_id": "op-a", "capacity_bytes": 4096},',
+              'storage durability offer-a signer/operator identity',
+          )
+          reconcile_once(
+              storage_harness,
+              '            "STORAGE_OFFER_CREATE",\n            "@opB",\n            2,\n            {"offer_id": "offer-b", "operator_id": "op-b", "capacity_bytes": 4096},',
+              '            "STORAGE_OFFER_CREATE",\n            "op-b",\n            2,\n            {"offer_id": "offer-b", "operator_id": "op-b", "capacity_bytes": 4096},',
+              'storage durability offer-b signer/operator identity',
+          )
+          reconcile_once(
+              storage_harness,
+              '            "STORAGE_OFFER_CREATE",\n            "@opC",\n            3,\n            {"offer_id": "offer-c", "operator_id": "op-c", "capacity_bytes": 4096},',
+              '            "STORAGE_OFFER_CREATE",\n            "op-c",\n            3,\n            {"offer_id": "offer-c", "operator_id": "op-c", "capacity_bytes": 4096},',
+              'storage durability offer-c signer/operator identity',
           )
 
           print('=== Install locked dependencies ===', flush=True)
