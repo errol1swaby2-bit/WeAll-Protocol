@@ -64,8 +64,15 @@ jobs:
           )
           old_pop = '    policy.pop("require_guardian_threshold_for_unlock", None)'
           if old_pop not in text:
-              raise SystemExit("retired guardian policy pop missing")
-          text = text.replace(old_pop, '    policy.pop(guardian_unlock_policy_key, None)', 1)
+              raise SystemExit("retired guardian policy cleanup missing")
+          filtered = (
+              '    policy = {\n'
+              '        key: value\n'
+              '        for key, value in policy.items()\n'
+              '        if key != guardian_unlock_policy_key\n'
+              '    }'
+          )
+          text = text.replace(old_pop, filtered, 1)
           path.write_text(text, encoding="utf-8")
           PY
 
