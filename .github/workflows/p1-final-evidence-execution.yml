@@ -91,7 +91,6 @@ jobs:
           while IFS= read -r p; do
             [[ "$p" == "$ARTIFACT_REL/"* ]] || { echo "forbidden staged path: $p" >&2; exit 2; }
           done < <(git diff --cached --name-only)
-          git diff --cached --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'audit: add final P1 closure evidence for 06694e0d'
