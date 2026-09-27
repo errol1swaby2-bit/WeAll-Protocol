@@ -1,4 +1,4 @@
-name: P1 Final Evidence Execution
+name: P1 Final Evidence Packaging
 
 on:
   push:
@@ -7,17 +7,17 @@ on:
 permissions:
   contents: write
   actions: read
-  checks: read
 
 jobs:
-  closure:
+  package-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
     env:
       TARGET_SHA: 06694e0d14ca318d6a9ffa1cad6253cedae38a10
       TARGET_TREE: bcda576f9ae44792d86ca949863233b4e6693745
       EVIDENCE_BRANCH: p1-final-evidence-closure-20260927
       ARTIFACT_REL: artifacts/p1-final-closure
+      SOURCE_ARTIFACT_ID: "10936689738"
+      SOURCE_ARTIFACT_SHA256: ca2ffb86e0d4a78ce385909c1c3b769c80540d3a519035eb3fec9c651748e2fd
     steps:
       - name: Checkout immutable implementation freeze
         uses: actions/checkout@v4
@@ -25,12 +25,7 @@ jobs:
           ref: 06694e0d14ca318d6a9ffa1cad6253cedae38a10
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Verify freeze anchor
+      - name: Verify immutable freeze
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -38,224 +33,52 @@ jobs:
           test "$(git rev-parse HEAD^{tree})" = "$TARGET_TREE"
           test "$(git rev-parse origin/main)" = "$TARGET_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
-          if git ls-tree -r --name-only "$TARGET_SHA" -- "$ARTIFACT_REL" | grep -q .; then
-            echo "freeze already contains final P1 evidence" >&2
-            exit 2
-          fi
 
-      - name: Install locked backend environment
-        working-directory: Weall-Protocol
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          python -m pip install --upgrade pip
-          pip install --require-hashes -r requirements-dev.lock
-          pip install -e . --no-deps
-
-      - name: Generate final P1 evidence
+      - name: Download and verify successful evidence artifact
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          ART="$GITHUB_WORKSPACE/$ARTIFACT_REL"
-          BACKEND="$GITHUB_WORKSPACE/Weall-Protocol"
-          rm -rf "$ART"
-          mkdir -p "$ART"/{meta,logs,proof}
-          RESULTS="$ART/gate-results.tsv"
-          : > "$RESULTS"
-
-          run_gate() {
-            local name="$1" rel="$2"; shift 2
-            local log="$ART/$rel" rc command_text
-            mkdir -p "$(dirname "$log")"
-            printf -v command_text '%q ' "$@"
-            echo "[P1] $name"
-            set +e
-            ( set -o pipefail; "$@" ) >"$log" 2>&1
-            rc=$?
-            set -e
-            if [[ $rc -eq 0 ]]; then
-              printf '%s\tpassed\t0\t%s\t%s\n' "$name" "$rel" "$command_text" >> "$RESULTS"
-              echo "[P1] PASS $name"
-            else
-              printf '%s\tfailed\t%s\t%s\t%s\n' "$name" "$rc" "$rel" "$command_text" >> "$RESULTS"
-              echo "[P1] FAIL $name -- see $log" >&2
-              return "$rc"
-            fi
-          }
-
-          cat > "$ART/meta/target.txt" <<EOF
-          repository=errol1swaby2-bit/WeAll-Protocol
-          implementation_freeze_commit=$TARGET_SHA
-          implementation_tree=$TARGET_TREE
-          generated_by=github-actions
-          generated_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          EOF
-          git show -s --format=fuller "$TARGET_SHA" > "$ART/meta/commit.txt"
-          git ls-tree -r "$TARGET_SHA" > "$ART/meta/git-ls-tree.txt"
-          git status --porcelain=v1 --untracked-files=all > "$ART/meta/worktree-status-before.txt"
-
-          run_gate "dependency audit" "logs/01-dependency-audit.log" \
-            bash -lc "cd '$BACKEND' && pip-audit -r requirements.lock && pip-audit -r requirements-dev.lock"
-
-          run_gate "canon and generated artifacts" "logs/02-canon-generated.log" \
-            bash -lc "cd '$BACKEND' && PYTHONPATH=src python -m tooling.canon_lint && python scripts/check_generated.py && PYTHONPATH=src python scripts/compile_v2_spec.py --check && python scripts/check_v2_spec_clean_checkout.py && PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py && python scripts/check_public_claim_freshness.py && python scripts/gen_current_verified_claims.py --check"
-
-          run_gate "P1 targeted regression matrix" "logs/03-p1-targeted-regressions.log" \
-            bash -lc "cd '$BACKEND' && PYTHONPATH=src python -m pytest -q tests/test_p1_remaining_complete_remediation.py tests/p0/test_p1_cons003_future_validator_epochs.py tests/test_balance_transfer_self_transfer_regression.py tests/test_p1_group001_scoped_reference_authority.py tests/test_consensus_equivocation_slash_execute.py"
-
-          run_gate "P1 identity canonical-key compatibility" "logs/04-p1-identity-canonical-key.log" \
-            bash -lc "cd '$BACKEND' && PYTHONPATH=src python -m pytest -q tests/test_priority0_account_key_normalization.py"
-
-          run_gate "restart replay and convergence" "logs/05-restart-replay-convergence.log" \
-            bash -lc "cd '$BACKEND' && PYTHONPATH=src python -m pytest -q tests/test_feed_persists_order_after_restart_api.py tests/test_priority1_replay_schedule_consistency.py tests/test_priority2_state_replay_determinism.py tests/test_e2e_two_node_convergence.py"
-
-          run_gate "full backend suite" "logs/06-full-pytest.log" \
-            bash -lc "cd '$BACKEND' && PYTHONPATH=src python -m pytest -q"
-
-          python - "$GITHUB_WORKSPACE" "$ART/proof/P1_SOURCE_INVARIANT_SCAN.json" <<'PY'
-          import json, sys
-          from pathlib import Path
-          root=Path(sys.argv[1]); out=Path(sys.argv[2])
-          def r(p): return (root/p).read_text(encoding='utf-8')
-          identity=r('Weall-Protocol/src/weall/runtime/apply/identity.py')
-          schema=r('Weall-Protocol/src/weall/runtime/tx_schema.py')
-          cons=r('Weall-Protocol/src/weall/runtime/apply/consensus.py')
-          rep=r('Weall-Protocol/src/weall/runtime/reputation_accrual.py')
-          builder=r('Weall-Protocol/src/weall/runtime/block_builder.py')
-          econ=r('Weall-Protocol/src/weall/runtime/apply/economics.py')
-          content=r('Weall-Protocol/src/weall/runtime/apply/content.py')
-          dispute=r('Weall-Protocol/src/weall/runtime/apply/dispute.py')
-          groups=r('Weall-Protocol/src/weall/runtime/apply/groups.py')
-          treasury=r('Weall-Protocol/src/weall/runtime/apply/treasury.py')
-          roles=r('Weall-Protocol/src/weall/runtime/apply/roles.py')
-          scheduler=r('Weall-Protocol/src/weall/runtime/node_operator_scheduler.py')
-          storage=r('Weall-Protocol/src/weall/runtime/apply/storage.py')
-          tests=r('Weall-Protocol/tests/test_p1_remaining_complete_remediation.py')
-          checks=[]
-          def add(i, ok, e): checks.append({'id':i,'ok':bool(ok),'evidence':e})
-          add('P1-NET-001', 'session_bound=False' in tests and 'identity-account:@victim' in tests, 'replayable hello cannot acquire victim durable security namespace')
-          add('P1-SEC-002', 'class AccountKeyRevokePayload' in schema and 'key_id: str' in schema and 'p.get("key_id")' in identity, 'schema and handler share key_id')
-          add('P1-CONS-003', cons.count('_require_future_validator_epoch(') >= 4, 'shared future-epoch guard covers lifecycle paths')
-          add('P1-CONS-004', '"delta_milli": int(delta_milli)' in rep and 'float(delta_milli)' not in rep and 'verdict = admit_tx(' in builder, 'integer scheduler payload and leader admission')
-          add('P1-CONS-005', '"status": "pending_governance"' in cons and 'parent=f"equivocation:' not in cons, 'equivocation evidence awaits governance; no synthetic auto-slash parent')
-          add('P1-ECON-001', 'self_transfer_forbidden' in econ, 'self-transfer rejected')
-          add('P1-CONTENT-001', '_require_media_mutation_authority' in content and '_require_content_target_mutation_authority' in content, 'media/target ownership checked')
-          add('P1-DISPUTE-001', 'out.pop("actions", None)' in dispute and 'non_content_actions' not in dispute, 'strict resolution strips juror actions')
-          add('P1-GROUP-001', groups.count('group_scope_mismatch') >= 3, 'stored group scope checked')
-          add('P1-TREAS-001', 'treasury_id_mismatch' in treasury and 'stored_treasury_id' in treasury, 'spend treasury bound to caller scope')
-          add('P1-ROLE-001', 'rec["suspended"] = True' in roles and 'rec.get("suspended", False)' in scheduler, 'scheduler consumes durable suspension flag')
-          add('P1-STOR-001', 'operator_must_match_signer' in storage, 'storage offer operator bound to signer')
-          obj={'schema':'weall.p1.source-invariant-scan.v1','checks':checks,'all_passed':all(c['ok'] for c in checks)}
-          out.write_text(json.dumps(obj,indent=2,sort_keys=True)+'\n',encoding='utf-8')
-          print(json.dumps(obj,indent=2,sort_keys=True))
-          if not obj['all_passed']: raise SystemExit(1)
-          PY
-          cp "$ART/proof/P1_SOURCE_INVARIANT_SCAN.json" "$ART/logs/07-source-invariant-scan.log"
-          printf '%s\tpassed\t0\t%s\t%s\n' "12-P1 source invariant scan" "logs/07-source-invariant-scan.log" "python source-invariant-scan" >> "$RESULTS"
-
+          ZIP="$RUNNER_TEMP/p1-evidence.zip"
           curl -fsSL \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/check-runs" \
-            > "$ART/proof/MERGE_CHECK_RUNS_RAW.json"
-
-          python - "$ART/proof/MERGE_CHECK_RUNS_RAW.json" "$ART/proof/MERGE_CI.json" <<'PY'
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SOURCE_ARTIFACT_ID}/zip" \
+            -o "$ZIP"
+          echo "$SOURCE_ARTIFACT_SHA256  $ZIP" | sha256sum -c -
+          unzip -q "$ZIP" -d "$GITHUB_WORKSPACE"
+          test -f "$ARTIFACT_REL/P1_EVIDENCE_MANIFEST.json"
+          test -f "$ARTIFACT_REL/SHA256SUMS"
+          ( cd "$ARTIFACT_REL" && sha256sum -c SHA256SUMS )
+          python - "$ARTIFACT_REL/P1_EVIDENCE_MANIFEST.json" <<'PY'
           import json,sys
-          src,out=sys.argv[1:3]
-          obj=json.load(open(src,encoding='utf-8'))
-          rows=[]
-          for r in obj.get('check_runs',[]):
-              rows.append({k:r.get(k) for k in ('name','head_sha','status','conclusion','started_at','completed_at','html_url')})
-          required={'backend','web','reviewer-readiness','secrets_guard'}
-          by={r['name']:r for r in rows}
-          missing=sorted(required-set(by))
-          not_green=sorted(n for n in required if n in by and (by[n]['status']!='completed' or by[n]['conclusion']!='success'))
-          result={'schema':'weall.p1.merge-ci.v1','commit':'06694e0d14ca318d6a9ffa1cad6253cedae38a10','required':sorted(required),'missing':missing,'not_green':not_green,'all_required_green':not missing and not not_green,'check_runs':sorted(rows,key=lambda x:str(x['name']))}
-          open(out,'w',encoding='utf-8').write(json.dumps(result,indent=2,sort_keys=True)+'\n')
-          print(json.dumps(result,indent=2,sort_keys=True))
-          if not result['all_required_green']: raise SystemExit(1)
-          PY
-          cp "$ART/proof/MERGE_CI.json" "$ART/logs/08-merge-ci.log"
-          printf '%s\tpassed\t0\t%s\t%s\n' "merge commit GitHub CI green" "logs/08-merge-ci.log" "GitHub check-runs API" >> "$RESULTS"
-
-          cat > "$ART/proof/P1_CLOSURE_MATRIX.json" <<'JSON'
-          {
-            "schema":"weall.p1.final-closure-matrix.v1",
-            "known_p1_count":12,
-            "findings":[
-              {"id":"P1-NET-001","status":"patched_and_proven"},
-              {"id":"P1-SEC-002","status":"patched_and_proven"},
-              {"id":"P1-CONS-003","status":"patched_and_proven"},
-              {"id":"P1-CONS-004","status":"patched_and_proven"},
-              {"id":"P1-CONS-005","status":"patched_and_proven"},
-              {"id":"P1-ECON-001","status":"patched_and_proven"},
-              {"id":"P1-CONTENT-001","status":"patched_and_proven"},
-              {"id":"P1-DISPUTE-001","status":"patched_and_proven"},
-              {"id":"P1-GROUP-001","status":"patched_and_proven"},
-              {"id":"P1-TREAS-001","status":"patched_and_proven"},
-              {"id":"P1-ROLE-001","status":"patched_and_proven"},
-              {"id":"P1-STOR-001","status":"patched_and_proven"}
-            ]
+          m=json.load(open(sys.argv[1],encoding='utf-8'))
+          expected={
+            'implementation_freeze_commit':'06694e0d14ca318d6a9ffa1cad6253cedae38a10',
+            'implementation_tree':'bcda576f9ae44792d86ca949863233b4e6693745',
+            'evidence_commit_parent_required':'06694e0d14ca318d6a9ffa1cad6253cedae38a10',
+            'known_p1_count':12,
+            'all_p1_patched_and_proven':True,
+            'all_gates_passed':True,
+            'source_invariant_scan_passed':True,
+            'merge_ci_green':True,
           }
-          JSON
-
-          cat > "$ART/P1_FINAL_CLOSURE_SUMMARY.md" <<EOF
-          # WeAll Protocol — Final P1 Closure Evidence
-
-          Implementation freeze: \`$TARGET_SHA\`  
-          Implementation tree: \`$TARGET_TREE\`
-
-          All mandatory P1-specific regression, replay/convergence, full-suite,
-          source-invariant, and merge-CI gates passed against this exact freeze.
-          The evidence branch is a direct child of the freeze and contains only
-          \`$ARTIFACT_REL/\`.
-          EOF
-
-          git status --porcelain=v1 --untracked-files=all > "$ART/meta/worktree-status-after-tests.txt"
-
-          python - "$ART" "$TARGET_SHA" "$TARGET_TREE" "$RESULTS" <<'PY'
-          import csv,hashlib,json,sys
-          from datetime import datetime,timezone
-          from pathlib import Path
-          art=Path(sys.argv[1]); sha,tree=sys.argv[2:4]; results=Path(sys.argv[4])
-          gates=[]
-          with results.open(encoding='utf-8') as f:
-              for row in csv.reader(f,delimiter='\t'):
-                  if not row: continue
-                  name,status,rc,rel,cmd=row
-                  data=(art/rel).read_bytes()
-                  gates.append({'gate':name,'status':status,'exit_code':int(rc),'log':rel,'command':cmd,'log_sha256':hashlib.sha256(data).hexdigest(),'log_size_bytes':len(data)})
-          matrix=json.loads((art/'proof/P1_CLOSURE_MATRIX.json').read_text())
-          scan=json.loads((art/'proof/P1_SOURCE_INVARIANT_SCAN.json').read_text())
-          ci=json.loads((art/'proof/MERGE_CI.json').read_text())
-          files=[]
-          for p in sorted(x for x in art.rglob('*') if x.is_file() and x.name not in {'P1_EVIDENCE_MANIFEST.json','SHA256SUMS'}):
-              b=p.read_bytes(); files.append({'path':str(p.relative_to(art)),'sha256':hashlib.sha256(b).hexdigest(),'size_bytes':len(b)})
-          ok=(len(matrix['findings'])==12 and all(x['status']=='patched_and_proven' for x in matrix['findings']) and all(g['status']=='passed' and g['exit_code']==0 for g in gates) and scan['all_passed'] and ci['all_required_green'])
-          manifest={'schema':'weall.p1.final-evidence-manifest.v1','generated_at_utc':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),'repository':'errol1swaby2-bit/WeAll-Protocol','implementation_freeze_commit':sha,'implementation_tree':tree,'evidence_commit_parent_required':sha,'artifact_root':'artifacts/p1-final-closure','known_p1_count':12,'all_p1_patched_and_proven':bool(ok),'all_gates_passed':all(g['status']=='passed' and g['exit_code']==0 for g in gates),'source_invariant_scan_passed':bool(scan['all_passed']),'merge_ci_green':bool(ci['all_required_green']),'gates':gates,'p1_findings':matrix['findings'],'files':files}
-          (art/'P1_EVIDENCE_MANIFEST.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
-          if not ok: raise SystemExit('final_manifest_not_closed')
+          for k,v in expected.items():
+              assert m.get(k)==v,(k,m.get(k),v)
+          assert len(m.get('p1_findings',[]))==12
+          assert len({x['id'] for x in m['p1_findings']})==12
+          assert all(x.get('status')=='patched_and_proven' for x in m['p1_findings'])
+          assert len(m.get('gates',[]))==8
+          assert all(g.get('status')=='passed' and g.get('exit_code')==0 for g in m['gates'])
+          print('OK: successful P1 evidence manifest verified')
           PY
 
-          ( cd "$ART" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS && sha256sum -c SHA256SUMS )
-
-      - name: Verify evidence-only delta and create direct-child evidence branch
+      - name: Create evidence-only direct-child commit
         shell: bash
         run: |
           set -Eeuo pipefail
-          ART="$GITHUB_WORKSPACE/$ARTIFACT_REL"
-          test -f "$ART/P1_EVIDENCE_MANIFEST.json"
-          python - "$ART/P1_EVIDENCE_MANIFEST.json" <<'PY'
-          import json,sys
-          m=json.load(open(sys.argv[1],encoding='utf-8'))
-          assert m['implementation_freeze_commit']=='06694e0d14ca318d6a9ffa1cad6253cedae38a10'
-          assert m['implementation_tree']=='bcda576f9ae44792d86ca949863233b4e6693745'
-          assert m['known_p1_count']==12
-          assert m['all_p1_patched_and_proven'] is True
-          PY
           BAD="$(git status --porcelain=v1 --untracked-files=all | awk -v p="$ARTIFACT_REL/" '{x=substr($0,4); if(index(x,p)!=1) print $0}')"
           if [[ -n "$BAD" ]]; then
             echo "non-evidence working-tree changes present:" >&2
@@ -263,7 +86,7 @@ jobs:
             exit 2
           fi
           git switch -c "$EVIDENCE_BRANCH" "$TARGET_SHA"
-          git add -- "$ARTIFACT_REL"
+          git add -f -- "$ARTIFACT_REL"
           test -n "$(git diff --cached --name-only)"
           while IFS= read -r p; do
             [[ "$p" == "$ARTIFACT_REL/"* ]] || { echo "forbidden staged path: $p" >&2; exit 2; }
@@ -276,15 +99,9 @@ jobs:
           for p in Weall-Protocol/src Weall-Protocol/tests .github web scripts; do
             git diff --quiet "$TARGET_SHA" HEAD -- "$p"
           done
+          CHANGED="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          while IFS= read -r p; do
+            [[ "$p" == "$ARTIFACT_REL/"* ]] || { echo "forbidden committed path: $p" >&2; exit 2; }
+          done <<< "$CHANGED"
           git push origin "HEAD:$EVIDENCE_BRANCH"
-          git rev-parse HEAD | tee "$GITHUB_WORKSPACE/evidence-commit.txt"
-
-      - name: Upload evidence archive
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: WeAll-P1-Final-Closure-Evidence
-          path: |
-            artifacts/p1-final-closure
-            evidence-commit.txt
-          if-no-files-found: warn
+          echo "Evidence commit: $(git rev-parse HEAD)"
