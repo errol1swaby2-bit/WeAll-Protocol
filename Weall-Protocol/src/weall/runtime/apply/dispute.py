@@ -161,10 +161,12 @@ def _select_deattributed_resolution(
         matching.append((_as_str(commitment), rec))
     if not matching:
         return {}
-    # Prefer the most frequently submitted option; break ties by commitment.
     matching.sort(key=lambda item: (-_as_int(item[1].get("count"), 0), item[0]))
     selected = matching[0][1]
     out = dict(selected.get("resolution")) if isinstance(selected.get("resolution"), dict) else {}
+    # Ballots may propose explanatory text, but they may not smuggle authority
+    # actions through a coarse yes/no quorum. Enforcement is derived separately.
+    out.pop("actions", None)
     summary = _as_str(selected.get("summary")).strip()
     if summary:
         out.setdefault("summary", summary)
@@ -1246,21 +1248,9 @@ def _maybe_schedule_dispute_auto_resolution(
         _as_str(dispute.get("target_id")).strip()
     )
     if is_content_target:
-        selected_actions = (
-            resolution.get("actions") if isinstance(resolution.get("actions"), list) else []
-        )
-        non_content_actions = [
-            a
-            for a in selected_actions
-            if isinstance(a, dict)
-            and _as_str(a.get("tx_type")).strip()
-            not in {"CONTENT_LABEL_SET", "CONTENT_VISIBILITY_SET", "CONTENT_THREAD_LOCK_SET"}
-        ]
         if report_upheld:
             resolution["summary"] = "Report upheld. The content should be removed."
-            resolution["actions"] = (
-                _default_content_resolution_actions(dispute, dict(tally)) + non_content_actions
-            )
+            resolution["actions"] = _default_content_resolution_actions(dispute, dict(tally))
         else:
             resolution["summary"] = "Report not upheld. The content should remain visible."
             resolution["actions"] = []

@@ -1221,6 +1221,29 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
 # ---------------------------
 
 
+def _require_media_mutation_authority(media: Json, *, media_id: str, env: TxEnvelope) -> Json:
+    rec = media.get(media_id)
+    if not isinstance(rec, dict):
+        raise ContentApplyError("not_found", "media_not_found", {"media_id": media_id})
+    if not env.system and _as_str(rec.get("declared_by")).strip() != _as_str(env.signer).strip():
+        raise ContentApplyError("forbidden", "not_author", {"media_id": media_id})
+    return rec
+
+
+def _require_content_target_mutation_authority(
+    content: Json, *, target_id: str, env: TxEnvelope
+) -> Json:
+    for bucket_name in ("posts", "comments"):
+        bucket = content.get(bucket_name)
+        rec = bucket.get(target_id) if isinstance(bucket, dict) else None
+        if not isinstance(rec, dict):
+            continue
+        if not env.system and _as_str(rec.get("author")).strip() != _as_str(env.signer).strip():
+            raise ContentApplyError("forbidden", "not_author", {"target_id": target_id})
+        return rec
+    raise ContentApplyError("not_found", "content_target_not_found", {"target_id": target_id})
+
+
 def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
         _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_media_action")
@@ -1288,8 +1311,8 @@ def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
             "invalid_payload", "missing_media_or_target", {"tx_type": env.tx_type}
         )
 
-    if media_id not in media:
-        raise ContentApplyError("not_found", "media_not_found", {"media_id": media_id})
+    _require_media_mutation_authority(media, media_id=media_id, env=env)
+    _require_content_target_mutation_authority(content, target_id=target_id, env=env)
 
     bind_id = _as_str(payload.get("binding_id")).strip() or f"bind:{media_id}:{target_id}"
     bindings[bind_id] = {
@@ -1300,7 +1323,6 @@ def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
         "bound_at_nonce": int(env.nonce),
     }
 
-    # Mirror onto post/comment for convenience (optional)
     posts = content.get("posts")
     if isinstance(posts, dict) and target_id in posts and isinstance(posts[target_id], dict):
         post = posts[target_id]
@@ -1317,13 +1339,13 @@ def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
         and target_id in comments
         and isinstance(comments[target_id], dict)
     ):
-        c = comments[target_id]
-        cur = c.get("media")
+        comment = comments[target_id]
+        cur = comment.get("media")
         if not isinstance(cur, list):
             cur = []
         if media_id not in cur:
             cur.append(media_id)
-        c["media"] = cur
+        comment["media"] = cur
 
     _ensure_account_nonce(state, env.signer, env.nonce)
     return {"applied": "CONTENT_MEDIA_BIND", "binding_id": bind_id}
@@ -1339,7 +1361,6 @@ def _apply_content_media_unbind(state: Json, env: TxEnvelope) -> Json:
 
     binding_id = _as_str(payload.get("binding_id")).strip()
     if not binding_id:
-        # allow specifying media_id + target_id
         media_id = _as_str(payload.get("media_id")).strip()
         target_id = _as_str(payload.get("target_id")).strip()
         if media_id and target_id:
@@ -1352,9 +1373,29 @@ def _apply_content_media_unbind(state: Json, env: TxEnvelope) -> Json:
     media_id = _as_str(rec.get("media_id")).strip()
     target_id = _as_str(rec.get("target_id")).strip()
 
+    if not env.system:
+        signer = _as_str(env.signer).strip()
+        bound_by = _as_str(rec.get("bound_by")).strip()
+        media_rec = (
+            content.get("media", {}).get(media_id)
+            if isinstance(content.get("media"), dict)
+            else None
+        )
+        media_owner = (
+            _as_str(media_rec.get("declared_by")).strip() if isinstance(media_rec, dict) else ""
+        )
+        target_owner = ""
+        for bucket_name in ("posts", "comments"):
+            bucket = content.get(bucket_name)
+            target = bucket.get(target_id) if isinstance(bucket, dict) else None
+            if isinstance(target, dict):
+                target_owner = _as_str(target.get("author")).strip()
+                break
+        if signer not in {bound_by, media_owner, target_owner}:
+            raise ContentApplyError("forbidden", "not_author", {"binding_id": binding_id})
+
     del bindings[binding_id]
 
-    # Mirror removal
     posts = content.get("posts")
     if isinstance(posts, dict) and target_id in posts and isinstance(posts[target_id], dict):
         post = posts[target_id]
@@ -1368,10 +1409,10 @@ def _apply_content_media_unbind(state: Json, env: TxEnvelope) -> Json:
         and target_id in comments
         and isinstance(comments[target_id], dict)
     ):
-        c = comments[target_id]
-        cur = c.get("media")
+        comment = comments[target_id]
+        cur = comment.get("media")
         if isinstance(cur, list) and media_id:
-            c["media"] = [x for x in cur if x != media_id]
+            comment["media"] = [x for x in cur if x != media_id]
 
     _ensure_account_nonce(state, env.signer, env.nonce)
     return {"applied": "CONTENT_MEDIA_UNBIND", "binding_id": binding_id}
@@ -1391,10 +1432,7 @@ def _apply_content_media_replace(state: Json, env: TxEnvelope) -> Json:
         raise ContentApplyError("invalid_payload", "missing_media_id_or_new_cid", {})
     new_cid = _require_public_cid(new_cid, field="new_cid", tx_type=str(env.tx_type or ""))
 
-    if media_id not in media:
-        raise ContentApplyError("not_found", "media_not_found", {"media_id": media_id})
-
-    rec = media[media_id]
+    rec = _require_media_mutation_authority(media, media_id=media_id, env=env)
     rec["cid"] = new_cid
     rec["replaced_at_nonce"] = int(env.nonce)
     rec["replaced_by"] = env.signer
@@ -1404,6 +1442,9 @@ def _apply_content_media_replace(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "CONTENT_MEDIA_REPLACE", "media_id": media_id, "cid": new_cid}
 
 
+# ---------------------------
+# Moderation / visibility / labels / locking
+# ---------------------------
 # ---------------------------
 # Moderation / visibility / labels / locking
 # ---------------------------

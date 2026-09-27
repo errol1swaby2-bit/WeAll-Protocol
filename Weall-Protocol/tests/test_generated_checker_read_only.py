@@ -120,3 +120,15 @@ def test_b510_check_mode_reports_stale_without_rewriting_target(tmp_path: Path) 
 
     assert proc.returncode == 1
     assert target.read_bytes() == before
+
+def test_b517_check_mode_is_read_only_for_current_artifact() -> None:
+    target = ROOT / "generated" / "b517_b521_completion_proof_v1_5.json"
+    before = target.read_bytes()
+
+    proc = _run_checker(
+        "scripts/gen_b517_b521_completion_proof_v1_5.py",
+        "--check",
+    )
+
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert target.read_bytes() == before

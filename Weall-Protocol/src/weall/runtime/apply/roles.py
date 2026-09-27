@@ -1440,6 +1440,13 @@ def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
         ),
     )
 
+    if bool(rec.get("suspended", False)):
+        if not _as_str(env.parent).strip():
+            raise RolesApplyError("forbidden", "node_operator_suspended", {"account_id": acct})
+        rec["suspended"] = False
+        rec["reinstated_at_nonce"] = int(env.nonce)
+        rec["reinstatement_parent"] = _as_str(env.parent).strip()
+
     rec["active"] = True
     rec["status"] = "active"
     rec["activated_at_nonce"] = int(env.nonce)
@@ -1480,6 +1487,7 @@ def _apply_role_node_operator_suspend(ledger: Json, env: TxEnvelope) -> Json:
 
     already = not bool(rec.get("active", False))
     rec["active"] = False
+    rec["suspended"] = True
     rec["status"] = "paused"
     rec["suspended_at_nonce"] = int(env.nonce)
     by_id[acct] = rec

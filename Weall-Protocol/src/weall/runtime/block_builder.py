@@ -68,6 +68,7 @@ from weall.runtime.system_tx_engine import (
     build_system_queue_lookup,
     validate_same_block_single_tx_lineage,
 )
+from weall.runtime.tx_admission import admit_tx
 
 
 def produce_block(
@@ -306,6 +307,16 @@ def build_block_candidate(
                     "single_tx_lineage_invalid",
                     {"tx_type": tx_type, "reason": lineage_reason},
                 )
+
+        verdict = admit_tx(
+            env, LedgerView.from_ledger(working), canon=self.tx_index, context="block"
+        )
+        if not bool(verdict.ok):
+            raise ApplyError(
+                "invalid_tx",
+                "system_tx_admission_failed",
+                {"tx_type": tx_type, "code": verdict.code, "reason": verdict.reason},
+            )
 
         queue_ids_before = set(_queue_lookup()) if tx_type == BLOCK_FINALIZE_TX_TYPE else set()
         parent_position = len(applied_envs)

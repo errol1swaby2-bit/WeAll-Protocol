@@ -561,10 +561,16 @@ def _maybe_reassign_failed_pin_target(
 
 
 def _apply_storage_offer_create(state: Json, env: TxEnvelope) -> Json:
-    s = _ensure_storage(state)
     payload = _as_dict(env.payload)
-
     operator_id = _operator_id_from_env(env, payload)
+    if not env.system and operator_id != _as_str(env.signer).strip():
+        raise StorageApplyError(
+            "forbidden",
+            "operator_must_match_signer",
+            {"operator_id": operator_id, "signer": _as_str(env.signer).strip()},
+        )
+
+    s = _ensure_storage(state)
     offer_id = _mk_id("offer", env, _pick(payload, "offer_id", "id"))
 
     capacity_bytes = _as_int(_pick(payload, "capacity_bytes", "capacity"), 0)
