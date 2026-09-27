@@ -4,6 +4,7 @@ import pytest
 
 from weall.runtime.apply.economics import EconomicsApplyError, apply_economics
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.runtime.tx_schema import validate_tx_envelope
 
 
 def _active_state() -> dict:
@@ -58,6 +59,38 @@ def test_balance_transfer_accepts_canonical_to_account_id() -> None:
     assert (
         st["economics"]["transfers_by_id"][res["transfer_id"]]["purpose"] == "profile_wallet_send"
     )
+
+
+def test_p2_econ004_content_tip_payload_passes_strict_canonical_admission() -> None:
+    _, payload_model = validate_tx_envelope(
+        {
+            "tx_type": "BALANCE_TRANSFER",
+            "signer": "@alice",
+            "nonce": 1,
+            "payload": {
+                "from_account_id": "@alice",
+                "to_account_id": "@creator",
+                "amount": 250,
+                "memo": "great post",
+                "purpose": "content_tip",
+                "content_id": "post:abc",
+            },
+            "sig": "sig",
+            "parent": None,
+            "system": False,
+            "chain_id": "test",
+        }
+    )
+
+    assert payload_model is not None
+    assert payload_model.model_dump(exclude_none=True) == {
+        "to_account_id": "@creator",
+        "amount": 250,
+        "from_account_id": "@alice",
+        "memo": "great post",
+        "purpose": "content_tip",
+        "content_id": "post:abc",
+    }
 
 
 def test_balance_transfer_keeps_legacy_to_alias() -> None:
