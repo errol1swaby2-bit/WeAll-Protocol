@@ -1,0 +1,54 @@
+name: P2 Remediation Autopatch
+
+on:
+  push:
+    branches:
+      - p2-complete-remediation-20260927
+    paths:
+      - tools/p2_autopatch.py
+      - .github/workflows/p2-remediation-autopatch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: p2-complete-remediation-20260927
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply deterministic patch
+        run: python tools/p2_autopatch.py
+
+      - name: Verify textual integrity
+        run: |
+          python -m py_compile \
+            Weall-Protocol/src/weall/runtime/apply/rewards.py \
+            Weall-Protocol/tests/test_reward_issuance_invariants.py
+          git diff --check
+
+      - name: Commit patched runtime and tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if git diff --quiet; then
+            echo 'No patch changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            Weall-Protocol/src/weall/runtime/apply/rewards.py \
+            Weall-Protocol/tests/test_reward_issuance_invariants.py
+          git commit -m 'Close P2 economics funding and forfeiture invariants'
+          git push origin HEAD:p2-complete-remediation-20260927
