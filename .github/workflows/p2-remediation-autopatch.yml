@@ -53,7 +53,7 @@ jobs:
             tests/test_p2_state_sync_hardening.py \
             tests/test_p2_scoped_authority_repairs.py
 
-      - name: Register new group audit-anchor state identifiers
+      - name: Register new V2 stable identifiers
         working-directory: Weall-Protocol
         run: |
           python - <<'PY'
@@ -74,31 +74,37 @@ jobs:
               for row in entries
               if isinstance(row, dict)
           }
-          for canonical_key in (
-              "Groups:anchor",
-              "Groups:set_at_nonce",
-              "Groups:treasury_audit_anchors",
-          ):
-              expected = "STATE-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
-              existing = by_key.get(("state", canonical_key))
+          registrations = (
+              ("state", "STATE", "Groups:anchor"),
+              ("state", "STATE", "Groups:set_at_nonce"),
+              ("state", "STATE", "Groups:treasury_audit_anchors"),
+              (
+                  "scheduler",
+                  "SCHED",
+                  "src/weall/runtime/apply/groups.py:_apply_group_treasury_audit_anchor_set",
+              ),
+          )
+          for kind, prefix, canonical_key in registrations:
+              expected = prefix + "-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+              existing = by_key.get((kind, canonical_key))
               if existing is not None:
                   if str(existing.get("stable_id") or "") != expected:
                       raise SystemExit(
-                          f"state stable ID mismatch for {canonical_key}: "
+                          f"stable ID mismatch for {kind}:{canonical_key}: "
                           f"expected {expected}, found {existing.get('stable_id')}"
                       )
                   continue
               if expected in known_ids:
-                  raise SystemExit(f"state stable ID collision for {canonical_key}: {expected}")
+                  raise SystemExit(f"stable ID collision for {kind}:{canonical_key}: {expected}")
               row = {
                   "aliases": [],
                   "canonical_key": canonical_key,
-                  "kind": "state",
+                  "kind": kind,
                   "stable_id": expected,
                   "status": "active",
               }
               entries.append(row)
-              by_key[("state", canonical_key)] = row
+              by_key[(kind, canonical_key)] = row
               known_ids.add(expected)
           entries.sort(key=lambda row: str(row.get("stable_id") or ""))
           path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
