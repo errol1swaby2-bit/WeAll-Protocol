@@ -1,0 +1,235 @@
+{
+  "all_gates_passed": true,
+  "all_p1_patched_and_proven": true,
+  "artifact_root": "artifacts/p1-final-closure",
+  "evidence_commit_parent_required": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
+  "files": [
+    {
+      "path": "P1_FINAL_CLOSURE_SUMMARY.md",
+      "sha256": "287b84d94816f8c486d82f041aef6920ae20219f91c260bf1d0990e63719ef93",
+      "size_bytes": 423
+    },
+    {
+      "path": "gate-results.tsv",
+      "sha256": "cf0da32191b57b1d285b3cbdd0453a46482b120dd08382e154ae4f076cf98e13",
+      "size_bytes": 2288
+    },
+    {
+      "path": "logs/01-dependency-audit.log",
+      "sha256": "255cf970a044591837f083d2ca2f187071bd0c253bbd61740680970979c69ab8",
+      "size_bytes": 62
+    },
+    {
+      "path": "logs/02-canon-generated.log",
+      "sha256": "749f0e04ec93c097541db02dfbec02349fbe7b6c298a5e8da52e9166669a02f6",
+      "size_bytes": 751
+    },
+    {
+      "path": "logs/03-p1-targeted-regressions.log",
+      "sha256": "b72a658a9e79529f91fd1a362712c0b31af897de90fa05b9ad5cc2f8b4f7aa7e",
+      "size_bytes": 99
+    },
+    {
+      "path": "logs/04-p1-identity-canonical-key.log",
+      "sha256": "45774bf2f7b87ca6d149ce4425e0da3733094ee4a3a7d1b1219f8a573dabc0d6",
+      "size_bytes": 98
+    },
+    {
+      "path": "logs/05-restart-replay-convergence.log",
+      "sha256": "112172f42d03e01b9a0ae2a9e2c61256a0985d2beed05902c51b63aecac8875f",
+      "size_bytes": 98
+    },
+    {
+      "path": "logs/06-full-pytest.log",
+      "sha256": "13e560cb8e1b22d23a8986f6dc77c83c86de04223d9500e202dff4a0912e3f61",
+      "size_bytes": 5153
+    },
+    {
+      "path": "logs/07-source-invariant-scan.log",
+      "sha256": "7436718205693b4b0621e752608edc68d970a196fa1f289e2b40088333999c4f",
+      "size_bytes": 1539
+    },
+    {
+      "path": "logs/08-merge-ci.log",
+      "sha256": "9e1cff63603c3112018abbabe2da414bc7724b649ca23b4d9ff05e265d185216",
+      "size_bytes": 1741
+    },
+    {
+      "path": "meta/commit.txt",
+      "sha256": "abd38e3269a668ebe5755e41a6c5250bb003d6b8b476bea782b312fa9975a3bc",
+      "size_bytes": 375
+    },
+    {
+      "path": "meta/git-ls-tree.txt",
+      "sha256": "8a11f87ac23388dd4f0f83eaa4acb88c1615e1b4fa43f8e3d17cd66c0c1b2678",
+      "size_bytes": 264142
+    },
+    {
+      "path": "meta/target.txt",
+      "sha256": "d40bbed4ebb5e4c703ac97932ee2007ee3ead05b7be7470ab35029ca4ca6aa7a",
+      "size_bytes": 240
+    },
+    {
+      "path": "meta/worktree-status-after-tests.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "meta/worktree-status-before.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "proof/MERGE_CHECK_RUNS_RAW.json",
+      "sha256": "c1fbc4e129dfb207bde8319b487ffe62597cc15b35a39e79518c7669c1b7e03e",
+      "size_bytes": 17334
+    },
+    {
+      "path": "proof/MERGE_CI.json",
+      "sha256": "9e1cff63603c3112018abbabe2da414bc7724b649ca23b4d9ff05e265d185216",
+      "size_bytes": 1741
+    },
+    {
+      "path": "proof/P1_CLOSURE_MATRIX.json",
+      "sha256": "c96309b2aa88337337c29600ecd1c978de24a115bd9635308089cb5276122493",
+      "size_bytes": 770
+    },
+    {
+      "path": "proof/P1_SOURCE_INVARIANT_SCAN.json",
+      "sha256": "7436718205693b4b0621e752608edc68d970a196fa1f289e2b40088333999c4f",
+      "size_bytes": 1539
+    }
+  ],
+  "gates": [
+    {
+      "command": "bash -lc cd\\ \\'/home/runner/work/WeAll-Protocol/WeAll-Protocol/Weall-Protocol\\'\\ \\&\\&\\ pip-audit\\ -r\\ requirements.lock\\ \\&\\&\\ pip-audit\\ -r\\ requirements-dev.lock ",
+      "exit_code": 0,
+      "gate": "dependency audit",
+      "log": "logs/01-dependency-audit.log",
+      "log_sha256": "255cf970a044591837f083d2ca2f187071bd0c253bbd61740680970979c69ab8",
+      "log_size_bytes": 62,
+      "status": "passed"
+    },
+    {
+      "command": "bash -lc cd\\ \\'/home/runner/work/WeAll-Protocol/WeAll-Protocol/Weall-Protocol\\'\\ \\&\\&\\ PYTHONPATH=src\\ python\\ -m\\ tooling.canon_lint\\ \\&\\&\\ python\\ scripts/check_generated.py\\ \\&\\&\\ PYTHONPATH=src\\ python\\ scripts/compile_v2_spec.py\\ --check\\ \\&\\&\\ python\\ scripts/check_v2_spec_clean_checkout.py\\ \\&\\&\\ PYTHONDONTWRITEBYTECODE=1\\ python\\ scripts/check_v15_public_readiness_artifacts.py\\ \\&\\&\\ python\\ scripts/check_public_claim_freshness.py\\ \\&\\&\\ python\\ scripts/gen_current_verified_claims.py\\ --check ",
+      "exit_code": 0,
+      "gate": "canon and generated artifacts",
+      "log": "logs/02-canon-generated.log",
+      "log_sha256": "749f0e04ec93c097541db02dfbec02349fbe7b6c298a5e8da52e9166669a02f6",
+      "log_size_bytes": 751,
+      "status": "passed"
+    },
+    {
+      "command": "bash -lc cd\\ \\'/home/runner/work/WeAll-Protocol/WeAll-Protocol/Weall-Protocol\\'\\ \\&\\&\\ PYTHONPATH=src\\ python\\ -m\\ pytest\\ -q\\ tests/test_p1_remaining_complete_remediation.py\\ tests/p0/test_p1_cons003_future_validator_epochs.py\\ tests/test_balance_transfer_self_transfer_regression.py\\ tests/test_p1_group001_scoped_reference_authority.py\\ tests/test_consensus_equivocation_slash_execute.py ",
+      "exit_code": 0,
+      "gate": "P1 targeted regression matrix",
+      "log": "logs/03-p1-targeted-regressions.log",
+      "log_sha256": "b72a658a9e79529f91fd1a362712c0b31af897de90fa05b9ad5cc2f8b4f7aa7e",
+      "log_size_bytes": 99,
+      "status": "passed"
+    },
+    {
+      "command": "bash -lc cd\\ \\'/home/runner/work/WeAll-Protocol/WeAll-Protocol/Weall-Protocol\\'\\ \\&\\&\\ PYTHONPATH=src\\ python\\ -m\\ pytest\\ -q\\ tests/test_priority0_account_key_normalization.py ",
+      "exit_code": 0,
+      "gate": "P1 identity canonical-key compatibility",
+      "log": "logs/04-p1-identity-canonical-key.log",
+      "log_sha256": "45774bf2f7b87ca6d149ce4425e0da3733094ee4a3a7d1b1219f8a573dabc0d6",
+      "log_size_bytes": 98,
+      "status": "passed"
+    },
+    {
+      "command": "bash -lc cd\\ \\'/home/runner/work/WeAll-Protocol/WeAll-Protocol/Weall-Protocol\\'\\ \\&\\&\\ PYTHONPATH=src\\ python\\ -m\\ pytest\\ -q\\ tests/test_feed_persists_order_after_restart_api.py\\ tests/test_priority1_replay_schedule_consistency.py\\ tests/test_priority2_state_replay_determinism.py\\ tests/test_e2e_two_node_convergence.py ",
+      "exit_code": 0,
+      "gate": "restart replay and convergence",
+      "log": "logs/05-restart-replay-convergence.log",
+      "log_sha256": "112172f42d03e01b9a0ae2a9e2c61256a0985d2beed05902c51b63aecac8875f",
+      "log_size_bytes": 98,
+      "status": "passed"
+    },
+    {
+      "command": "bash -lc cd\\ \\'/home/runner/work/WeAll-Protocol/WeAll-Protocol/Weall-Protocol\\'\\ \\&\\&\\ PYTHONPATH=src\\ python\\ -m\\ pytest\\ -q ",
+      "exit_code": 0,
+      "gate": "full backend suite",
+      "log": "logs/06-full-pytest.log",
+      "log_sha256": "13e560cb8e1b22d23a8986f6dc77c83c86de04223d9500e202dff4a0912e3f61",
+      "log_size_bytes": 5153,
+      "status": "passed"
+    },
+    {
+      "command": "python source-invariant-scan",
+      "exit_code": 0,
+      "gate": "12-P1 source invariant scan",
+      "log": "logs/07-source-invariant-scan.log",
+      "log_sha256": "7436718205693b4b0621e752608edc68d970a196fa1f289e2b40088333999c4f",
+      "log_size_bytes": 1539,
+      "status": "passed"
+    },
+    {
+      "command": "GitHub check-runs API",
+      "exit_code": 0,
+      "gate": "merge commit GitHub CI green",
+      "log": "logs/08-merge-ci.log",
+      "log_sha256": "9e1cff63603c3112018abbabe2da414bc7724b649ca23b4d9ff05e265d185216",
+      "log_size_bytes": 1741,
+      "status": "passed"
+    }
+  ],
+  "generated_at_utc": "2026-09-27T17:24:10.598568Z",
+  "implementation_freeze_commit": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
+  "implementation_tree": "bcda576f9ae44792d86ca949863233b4e6693745",
+  "known_p1_count": 12,
+  "merge_ci_green": true,
+  "p1_findings": [
+    {
+      "id": "P1-NET-001",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-SEC-002",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-CONS-003",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-CONS-004",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-CONS-005",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-ECON-001",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-CONTENT-001",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-DISPUTE-001",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-GROUP-001",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-TREAS-001",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-ROLE-001",
+      "status": "patched_and_proven"
+    },
+    {
+      "id": "P1-STOR-001",
+      "status": "patched_and_proven"
+    }
+  ],
+  "repository": "errol1swaby2-bit/WeAll-Protocol",
+  "schema": "weall.p1.final-evidence-manifest.v1",
+  "source_invariant_scan_passed": true
+}

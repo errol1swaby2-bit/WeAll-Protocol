@@ -1,0 +1,66 @@
+{
+  "all_passed": true,
+  "checks": [
+    {
+      "evidence": "replayable hello cannot acquire victim durable security namespace",
+      "id": "P1-NET-001",
+      "ok": true
+    },
+    {
+      "evidence": "schema and handler share key_id",
+      "id": "P1-SEC-002",
+      "ok": true
+    },
+    {
+      "evidence": "shared future-epoch guard covers lifecycle paths",
+      "id": "P1-CONS-003",
+      "ok": true
+    },
+    {
+      "evidence": "integer scheduler payload and leader admission",
+      "id": "P1-CONS-004",
+      "ok": true
+    },
+    {
+      "evidence": "equivocation evidence awaits governance; no synthetic auto-slash parent",
+      "id": "P1-CONS-005",
+      "ok": true
+    },
+    {
+      "evidence": "self-transfer rejected",
+      "id": "P1-ECON-001",
+      "ok": true
+    },
+    {
+      "evidence": "media/target ownership checked",
+      "id": "P1-CONTENT-001",
+      "ok": true
+    },
+    {
+      "evidence": "strict resolution strips juror actions",
+      "id": "P1-DISPUTE-001",
+      "ok": true
+    },
+    {
+      "evidence": "stored group scope checked",
+      "id": "P1-GROUP-001",
+      "ok": true
+    },
+    {
+      "evidence": "spend treasury bound to caller scope",
+      "id": "P1-TREAS-001",
+      "ok": true
+    },
+    {
+      "evidence": "scheduler consumes durable suspension flag",
+      "id": "P1-ROLE-001",
+      "ok": true
+    },
+    {
+      "evidence": "storage offer operator bound to signer",
+      "id": "P1-STOR-001",
+      "ok": true
+    }
+  ],
+  "schema": "weall.p1.source-invariant-scan.v1"
+}
