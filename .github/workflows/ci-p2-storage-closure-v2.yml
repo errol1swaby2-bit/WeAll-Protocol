@@ -1,0 +1,37 @@
+name: CI P2 Storage Closure V2
+
+on:
+  push:
+    branches:
+      - p2-storage-closure-20260927
+    paths:
+      - .github/workflows/ci-p2-storage-closure-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  closure:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout storage closure branch
+        uses: actions/checkout@v4
+        with:
+          ref: p2-storage-closure-20260927
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Close storage P2 invariants with semantic review binding
+        run: python .github/ci-p2-storage-closure-v2.py
