@@ -35,8 +35,10 @@ jobs:
           python -m py_compile \
             Weall-Protocol/src/weall/runtime/apply/rewards.py \
             Weall-Protocol/src/weall/runtime/sqlite_db.py \
+            Weall-Protocol/src/weall/net/state_sync.py \
             Weall-Protocol/tests/test_reward_issuance_invariants.py \
-            Weall-Protocol/tests/test_p2_persistence_synchronous.py
+            Weall-Protocol/tests/test_p2_persistence_synchronous.py \
+            Weall-Protocol/tests/test_p2_state_sync_hardening.py
           git diff --check
 
       - name: Commit patched runtime and tests
@@ -52,7 +54,9 @@ jobs:
           git add \
             Weall-Protocol/src/weall/runtime/apply/rewards.py \
             Weall-Protocol/src/weall/runtime/sqlite_db.py \
+            Weall-Protocol/src/weall/net/state_sync.py \
             Weall-Protocol/tests/test_reward_issuance_invariants.py \
-            Weall-Protocol/tests/test_p2_persistence_synchronous.py
-          git commit -m 'Close P2 economics and persistence invariants'
+            Weall-Protocol/tests/test_p2_persistence_synchronous.py \
+            Weall-Protocol/tests/test_p2_state_sync_hardening.py
+          git commit -m 'Close P2 state-sync trust and authority invariants'
           git push origin HEAD:p2-complete-remediation-20260927
