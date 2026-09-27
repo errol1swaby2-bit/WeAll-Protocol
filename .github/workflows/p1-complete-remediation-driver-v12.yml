@@ -96,7 +96,7 @@ jobs:
               "    '    assert target.read_bytes() == before\\n'\n"
               ")\n"
               "if 'def test_b517_check_mode_is_read_only_for_current_artifact()' not in checker_text:\n"
-              "    generated_checker.write_text(checker_text.rstrip() + checker_addition + '\\n', encoding='utf-8')\n\n"
+              "    generated_checker.write_text(checker_text.rstrip() + checker_addition, encoding='utf-8')\n\n"
           )
           driver = driver.replace(install_anchor, read_only_hardening + install_anchor, 1)
 
