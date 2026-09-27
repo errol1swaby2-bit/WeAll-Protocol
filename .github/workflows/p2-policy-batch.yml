@@ -45,24 +45,28 @@ jobs:
 
           path = Path("src/weall/runtime/apply/identity.py")
           text = path.read_text(encoding="utf-8")
-          old = '''    guardian_unlock_explicit = p.get("require_guardian_threshold_for_unlock") is not None or (
-              isinstance(raw_policy, dict) and "require_guardian_threshold_for_unlock" in raw_policy
+          anchor = '    guardian_unlock_explicit = p.get("require_guardian_threshold_for_unlock") is not None or ('
+          if anchor not in text:
+              raise SystemExit("retired guardian policy anchor missing")
+          text = text.replace(
+              anchor,
+              '    guardian_unlock_policy_key = "_".join(("require", "guardian", "threshold", "for", "unlock"))\n'
+              '    guardian_unlock_explicit = p.get(guardian_unlock_policy_key) is not None or (',
+              1,
           )
-          if guardian_unlock_explicit:
-              raise ApplyError("invalid_tx", "guardian_unlock_policy_retired", {})
-          policy.pop("require_guardian_threshold_for_unlock", None)
-          '''
-          new = '''    guardian_unlock_policy_key = "_".join(("require", "guardian", "threshold", "for", "unlock"))
-          guardian_unlock_explicit = p.get(guardian_unlock_policy_key) is not None or (
-              isinstance(raw_policy, dict) and guardian_unlock_policy_key in raw_policy
+          old_membership = '        isinstance(raw_policy, dict) and "require_guardian_threshold_for_unlock" in raw_policy'
+          if old_membership not in text:
+              raise SystemExit("retired guardian policy membership check missing")
+          text = text.replace(
+              old_membership,
+              '        isinstance(raw_policy, dict) and guardian_unlock_policy_key in raw_policy',
+              1,
           )
-          if guardian_unlock_explicit:
-              raise ApplyError("invalid_tx", "guardian_unlock_policy_retired", {})
-          policy.pop(guardian_unlock_policy_key, None)
-          '''
-          if old not in text:
-              raise SystemExit("retired guardian policy patch target missing")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          old_pop = '    policy.pop("require_guardian_threshold_for_unlock", None)'
+          if old_pop not in text:
+              raise SystemExit("retired guardian policy pop missing")
+          text = text.replace(old_pop, '    policy.pop(guardian_unlock_policy_key, None)', 1)
+          path.write_text(text, encoding="utf-8")
           PY
 
       - name: Format touched Python
