@@ -33,5 +33,8 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      # The repair script self-removes this workflow before compiling the
+      # source fingerprint, validates the working tree, then commits the final
+      # derivative refresh. Standard CI performs the post-commit clean-checkout proof.
       - name: Refresh derivatives and prove final tree
         run: python .github/ci-p2-derivative-refresh.py
