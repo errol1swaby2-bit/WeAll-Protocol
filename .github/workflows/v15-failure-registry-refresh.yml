@@ -36,11 +36,12 @@ jobs:
       - name: Remove refresh workflow from source tree
         run: git rm .github/workflows/v15-failure-registry-refresh.yml
 
-      - name: Refresh v1.5 failure registry
+      - name: Refresh coupled v1.5 and v2 generated artifacts
         working-directory: Weall-Protocol
         run: |
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_failure_code_registry_v1_5.py --check
+          PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
@@ -48,7 +49,7 @@ jobs:
           python scripts/gen_current_verified_claims.py --check
           git diff --check
 
-      - name: Commit registry refresh and self-delete
+      - name: Commit coupled artifact refresh and self-delete
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -56,5 +57,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git diff --cached --check
-          git commit -m 'Refresh v1.5 failure-code registry after P2 closures'
+          git commit -m 'Refresh coupled v1.5 and v2 artifacts after P2 closures'
           git push origin HEAD:p2-complete-remediation-20260927
