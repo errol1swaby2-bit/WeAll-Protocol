@@ -1,0 +1,51 @@
+{
+  "all_required_green": true,
+  "check_runs": [
+    {
+      "completed_at": "2026-09-27T17:04:52Z",
+      "conclusion": "success",
+      "head_sha": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
+      "html_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/36335034296/job/108664149076",
+      "name": "backend",
+      "started_at": "2026-09-27T16:55:52Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-27T16:57:14Z",
+      "conclusion": "success",
+      "head_sha": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
+      "html_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/36335034261/job/108664148998",
+      "name": "reviewer-readiness",
+      "started_at": "2026-09-27T16:55:52Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-27T16:55:58Z",
+      "conclusion": "success",
+      "head_sha": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
+      "html_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/36335034265/job/108664148727",
+      "name": "secrets_guard",
+      "started_at": "2026-09-27T16:55:52Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-27T16:56:23Z",
+      "conclusion": "success",
+      "head_sha": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
+      "html_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/36335034263/job/108664149055",
+      "name": "web",
+      "started_at": "2026-09-27T16:55:52Z",
+      "status": "completed"
+    }
+  ],
+  "commit": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
+  "missing": [],
+  "not_green": [],
+  "required": [
+    "backend",
+    "reviewer-readiness",
+    "secrets_guard",
+    "web"
+  ],
+  "schema": "weall.p1.merge-ci.v1"
+}

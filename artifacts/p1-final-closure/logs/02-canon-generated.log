@@ -1,0 +1,11 @@
+✅ Canon lint passed. Repo is protocol-clean.
+✅ generated/tx_index.json is up to date (236 tx types).
+✅ generated/tx_index.json is up to date (read-only check).
+OK: 42 v2 specification derivatives are current
+OK: 42 v2 specification derivatives are current
+OK: clean Git archive reproduces all WeAll v2 specification derivatives
+[v15-artifacts] OK: v1.5 public-readiness artifacts are present, fresh, and release-safe
+[claim-freshness] OK: 56 registered CURRENT documents contain no guarded stale-claim patterns; coverage globs and release dependencies are fully classified; active source claim scan passed
+current: generated/current_verified_claims.json
+current: docs/CURRENT_VERIFIED_CLAIMS.md
+OK: current verified claims artifacts are current

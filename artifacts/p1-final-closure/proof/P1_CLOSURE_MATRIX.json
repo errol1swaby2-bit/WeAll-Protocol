@@ -1,0 +1,18 @@
+{
+  "schema":"weall.p1.final-closure-matrix.v1",
+  "known_p1_count":12,
+  "findings":[
+    {"id":"P1-NET-001","status":"patched_and_proven"},
+    {"id":"P1-SEC-002","status":"patched_and_proven"},
+    {"id":"P1-CONS-003","status":"patched_and_proven"},
+    {"id":"P1-CONS-004","status":"patched_and_proven"},
+    {"id":"P1-CONS-005","status":"patched_and_proven"},
+    {"id":"P1-ECON-001","status":"patched_and_proven"},
+    {"id":"P1-CONTENT-001","status":"patched_and_proven"},
+    {"id":"P1-DISPUTE-001","status":"patched_and_proven"},
+    {"id":"P1-GROUP-001","status":"patched_and_proven"},
+    {"id":"P1-TREAS-001","status":"patched_and_proven"},
+    {"id":"P1-ROLE-001","status":"patched_and_proven"},
+    {"id":"P1-STOR-001","status":"patched_and_proven"}
+  ]
+}
