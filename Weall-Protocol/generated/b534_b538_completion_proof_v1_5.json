@@ -25,7 +25,7 @@
       "uses_reputation_weighting": true
     },
     "feed_status_code": 200,
-    "final_state_root": "92dc098c18db5683467e57e9ca0302ca093eb0bc9b37a262405cf4bbd155774a",
+    "final_state_root": "4922c0d2e14f14c219c41246b6e721cc91f4b2410b59c88256c34b0c9be731b0",
     "group_status_code": 200,
     "ok": true,
     "poh_reverification_status": "completed",
@@ -42,7 +42,7 @@
     "538"
   ],
   "freshness": {
-    "input_digest_sha256": "f024667e6dc045d7af8f9e59a3d22c56c14c89c46826141c3e5fd523d0e3b4a2",
+    "input_digest_sha256": "d0447cd7ffb0f44d36bbdf54303303da6392ae71ade4803fcf07456a71846f7f",
     "mode": "deterministic_input_digest_v1"
   },
   "locked_boundaries": {
