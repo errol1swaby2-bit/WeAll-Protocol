@@ -93,6 +93,13 @@ jobs:
                   check=True,
               )
 
+          def replace_once(path: Path, old: str, new: str, label: str) -> None:
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label} match count={count}')
+              path.write_text(text.replace(old, new, 1))
+
           old_harness_path = '.github/workflows/p1-complete-remediation-20260926.yml'
           new_harness_path = '.github/p1-remediation/p1-complete-remediation-harness-20260926.yml'
 
@@ -102,6 +109,32 @@ jobs:
                   old_harness_path, new_harness_path
               ),
               ROOT,
+          )
+
+          print('=== Reconcile residual tests with repaired P1 trust boundaries ===', flush=True)
+          replace_once(
+              PROTOCOL / 'tests/test_v2_spec_compiler.py',
+              'assert int(runtime["count"]) == 1112',
+              'assert int(runtime["count"]) == 1118',
+              'runtime-state inventory expectation',
+          )
+          replace_once(
+              PROTOCOL / 'tests/test_dispute_followups.py',
+              '    assert len(lock_items) == 1\n    assert len(receipt_items) == 1',
+              '    assert len(lock_items) == 0\n    assert len(receipt_items) == 1',
+              'dispute advisory-action expectation',
+          )
+          replace_once(
+              PROTOCOL / 'tests/test_fresh_ai_error_closure.py',
+              'def test_peer_security_authenticated_identity_survives_address_change(monkeypatch):',
+              'def test_peer_security_identity_does_not_transfer_without_session_bound_hello(monkeypatch):',
+              'peer-security test name',
+          )
+          replace_once(
+              PROTOCOL / 'tests/test_fresh_ai_error_closure.py',
+              '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 1',
+              '    node2._bind_authenticated_peer_security(rec2)\n    assert rec2.strikes == 0',
+              'peer-security session-bound strike expectation',
           )
 
           print('=== Install locked dependencies ===', flush=True)
@@ -142,6 +175,18 @@ jobs:
               check=True,
           )
 
+          print('=== Refresh deterministic proof artifacts impacted by P1 source/test changes ===', flush=True)
+          proof_generators = [
+              'scripts/gen_b523_b527_completion_proof_v1_5.py',
+              'scripts/gen_b528_b532_completion_proof_v1_5.py',
+              'scripts/gen_b534_b538_completion_proof_v1_5.py',
+              'scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py',
+          ]
+          for script in proof_generators:
+              subprocess.run(['python', script], cwd=PROTOCOL, check=True)
+          for script in proof_generators:
+              subprocess.run(['python', script, '--check'], cwd=PROTOCOL, check=True)
+
           print('=== Refresh public-readiness derivatives on the final candidate tree ===', flush=True)
           readiness_generators = [
               ['python', 'scripts/gen_failure_code_registry_v1_5.py'],
@@ -165,7 +210,7 @@ jobs:
               ['python', 'scripts/check_v15_public_readiness_artifacts.py'],
               ['python', 'scripts/check_public_claim_freshness.py'],
               ['python', 'scripts/gen_current_verified_claims.py', '--check'],
-          ]
+          ] + [['python', script, '--check'] for script in proof_generators]
           for command in precommit_checks:
               env = None
               if command[1].endswith('check_v15_public_readiness_artifacts.py'):
@@ -199,7 +244,7 @@ jobs:
               ['python', 'scripts/check_v15_public_readiness_artifacts.py'],
               ['python', 'scripts/check_public_claim_freshness.py'],
               ['python', 'scripts/gen_current_verified_claims.py', '--check'],
-          ]
+          ] + [['python', script, '--check'] for script in proof_generators]
           for command in exact_checks:
               env = None
               if command[1].endswith('check_v15_public_readiness_artifacts.py'):
