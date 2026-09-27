@@ -1,4 +1,4 @@
-name: P2 Remediation Autopatch
+name: P2 Remediation Finalizer
 
 on:
   push:
@@ -33,9 +33,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
-
-      - name: Apply deterministic patch
-        run: python tools/p2_autopatch.py
 
       - name: Format P2-touched Python
         working-directory: Weall-Protocol
