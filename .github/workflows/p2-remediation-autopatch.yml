@@ -132,7 +132,7 @@ jobs:
             --register-failure invalid_payload:missing_anchor \
             --reviewer 'WeAll Protocol P2 audit remediation; independent launch review deferred'
 
-      - name: Verify focused P2 repairs
+      - name: Verify focused P2 repairs and fixtures
         working-directory: Weall-Protocol
         run: |
           python -m py_compile \
