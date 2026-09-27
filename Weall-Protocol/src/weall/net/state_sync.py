@@ -233,6 +233,11 @@ def _validate_snapshot_validator_authority(snapshot: Json) -> None:
     if not isinstance(active_raw, list):
         raise StateSyncVerifyError("snapshot_validator_authority_invalid:active_set_not_list")
 
+    for member in active_raw:
+        if not isinstance(member, str):
+            raise StateSyncVerifyError(
+                "snapshot_validator_authority_invalid:active_set_member_not_string"
+            )
     active = normalize_validator_ids(active_raw)
     stored_set_hash = _as_str(validator_set.get("set_hash") or "")
     if stored_set_hash and stored_set_hash != validator_set_hash(active):
@@ -595,6 +600,8 @@ class StateSyncService:
             raise StateSyncVerifyError("bad_response_header:tx_index_hash")
         if not resp.ok:
             return
+        if self.require_trusted_anchor and trusted_anchor is None:
+            raise StateSyncVerifyError("trusted_anchor_required")
 
         anchor = resp.snapshot_anchor
         trusted_finalized_height = self._trusted_finalized_height(trusted_anchor)
