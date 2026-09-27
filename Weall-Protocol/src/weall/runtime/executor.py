@@ -2737,6 +2737,11 @@ class WeAllExecutor:
     def build_state_sync_trusted_anchor(self) -> Json:
         return build_snapshot_anchor(self.state)
 
+    def state_sync_requires_trusted_anchor(self) -> bool:
+        """Return the effective trusted-anchor requirement for state installation."""
+
+        return bool(self._state_sync_service().require_trusted_anchor)
+
     def _state_sync_service(self) -> StateSyncService:
         return StateSyncService(
             chain_id=self.chain_id,
@@ -2792,6 +2797,8 @@ class WeAllExecutor:
             raise ExecutorError(f"executor_unhealthy:{post_commit_error}")
 
         svc = self._state_sync_service()
+        if svc.require_trusted_anchor and trusted_anchor is None:
+            raise ExecutorError("state_sync_verify_failed:trusted_anchor_required")
         try:
             svc.verify_response(resp, trusted_anchor=trusted_anchor)
         except StateSyncVerifyError as e:

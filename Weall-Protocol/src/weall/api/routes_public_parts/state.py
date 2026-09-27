@@ -493,6 +493,15 @@ async def state_sync_apply(request: Request) -> Json:
         raise HTTPException(
             status_code=400, detail={"code": "bad_request", "message": "trusted_anchor"}
         )
+    requires_anchor = getattr(ex, "state_sync_requires_trusted_anchor", None)
+    if callable(requires_anchor) and bool(requires_anchor()) and trusted_anchor is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "trusted_anchor_required",
+                "message": "state-sync installation requires a trusted anchor",
+            },
+        )
     allow_snapshot = bool(body.get("allow_snapshot_bootstrap"))
     try:
         metas = ex.apply_state_sync_response(
