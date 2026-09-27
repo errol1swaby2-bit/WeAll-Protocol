@@ -1,0 +1,107 @@
+name: Complete P1 Remediation Driver v12
+
+on:
+  push:
+    branches: [p1-complete-remediation-20260926]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-complete-remediation-20260926
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Execute hardened v11 remediation pipeline
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          from pathlib import Path
+          import textwrap
+
+          root = Path.cwd()
+          v11_path = root / '.github/workflows/p1-complete-remediation-driver-v11.yml'
+          source = v11_path.read_text(encoding='utf-8')
+
+          start_marker = "          python - <<'PY'\n"
+          end_marker = "\n          PY"
+          if source.count(start_marker) != 1 or source.count(end_marker) != 1:
+              raise SystemExit('unable to identify the single embedded v11 Python driver')
+
+          embedded = source.split(start_marker, 1)[1].rsplit(end_marker, 1)[0]
+          driver = textwrap.dedent(embedded)
+
+          cleanup_old = "    '.github/workflows/p1-complete-remediation-driver-v11.yml',\n]"
+          cleanup_new = (
+              "    '.github/workflows/p1-complete-remediation-driver-v11.yml',\n"
+              "    '.github/workflows/p1-complete-remediation-driver-v12.yml',\n"
+              "]"
+          )
+          if driver.count(cleanup_old) != 1:
+              raise SystemExit(f'v11 cleanup anchor count={driver.count(cleanup_old)}')
+          driver = driver.replace(cleanup_old, cleanup_new, 1)
+
+          proof_old = """proof_generators = [
+    'scripts/gen_b523_b527_completion_proof_v1_5.py',
+"""
+          proof_new = """proof_generators = [
+    'scripts/gen_b517_b521_completion_proof_v1_5.py',
+    'scripts/gen_b523_b527_completion_proof_v1_5.py',
+"""
+          if driver.count(proof_old) != 1:
+              raise SystemExit(f'v11 proof-generator anchor count={driver.count(proof_old)}')
+          driver = driver.replace(proof_old, proof_new, 1)
+
+          install_anchor = "print('=== Install locked dependencies ===', flush=True)\n"
+          if driver.count(install_anchor) != 1:
+              raise SystemExit(f'v11 install anchor count={driver.count(install_anchor)}')
+
+          read_only_hardening = r'''proof_test = PROTOCOL / 'tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py'
+          reconcile_once(
+              proof_test,
+              '        [sys.executable, str(ROOT / "scripts" / "gen_b517_b521_completion_proof_v1_5.py")],',
+              '        [sys.executable, str(ROOT / "scripts" / "gen_b517_b521_completion_proof_v1_5.py"), "--check"],',
+              'b517 proof test read-only invocation',
+          )
+          reconcile_once(
+              proof_test,
+              '    assert str(artifact) in generator.stdout',
+              '    assert generator.returncode == 0',
+              'b517 proof test check-mode assertion',
+          )
+
+          generated_checker = PROTOCOL / 'tests/test_generated_checker_read_only.py'
+          checker_text = generated_checker.read_text(encoding='utf-8')
+          checker_addition = r'''
+
+
+def test_b517_check_mode_is_read_only_for_current_artifact() -> None:
+    target = ROOT / "generated" / "b517_b521_completion_proof_v1_5.json"
+    before = target.read_bytes()
+
+    proc = _run_checker(
+        "scripts/gen_b517_b521_completion_proof_v1_5.py",
+        "--check",
+    )
+
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert target.read_bytes() == before
+'''
+          if 'def test_b517_check_mode_is_read_only_for_current_artifact()' not in checker_text:
+              generated_checker.write_text(checker_text.rstrip() + checker_addition + '\n', encoding='utf-8')
+
+          '''
+          driver = driver.replace(install_anchor, read_only_hardening + install_anchor, 1)
+
+          namespace = {'__name__': '__main__', '__file__': str(v11_path)}
+          exec(compile(driver, str(v11_path), 'exec'), namespace, namespace)
+          PY
