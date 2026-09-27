@@ -2980,9 +2980,9 @@
       },
       "independent_review": false,
       "review_digest": "e959c9e1520a21ff84edc9924be3a4d8b3f83431fc54ea96e36ff788aebcd9be",
-      "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-      "reviewed_at": "2026-09-26T22:30:00Z",
-      "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+      "reviewed_at": "2026-09-27T20:14:39Z",
+      "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred",
       "stable_id": "TX-0200",
       "tx_type": "DISPUTE_OPEN"
     },
@@ -3149,10 +3149,10 @@
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "independent_review": false,
-      "review_digest": "a219019fdc1a8120dab86fecb6ea8fb91eca0d70f36b8388440ac71ff301446e",
-      "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-      "reviewed_at": "2026-09-26T22:30:00Z",
-      "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "review_digest": "25c32baad81399a0cca77c9c40a4f118fb814aca2b96c9549c0b2797079149a7",
+      "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+      "reviewed_at": "2026-09-27T20:14:39Z",
+      "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred",
       "stable_id": "TX-0210",
       "tx_type": "DISPUTE_APPEAL"
     },

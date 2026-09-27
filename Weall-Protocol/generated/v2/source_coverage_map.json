@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1956,
+  "file_count": 1957,
   "files": [
     {
       "affected_registers": [
@@ -2904,7 +2904,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "88549291c33794f9128e74ace0fa2b64723f5d0117293fc7f84bbaf591736e93",
+      "sha256": "8d20b5fc629590062993b62789ee772c3358ef6ded7680214d0b81add849ebee",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -3197,7 +3197,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "05ba656e4844998d2fa767b0e75b79e835e23b435cf1bbf580a04bf89237504c",
+      "sha256": "8a995b53f78c9831e17c7bf6b479e3bed479f967b3520a20ff53aae0402ad6d7",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3225,7 +3225,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "116f1ad34fa927964ed98f984bdb62fa9180b16f4232e6bb8ea4abae01c843ad",
+      "sha256": "bad3121c328528faef36ba03a2753f0fbdb8f425b6c0725da3d40425bdf61613",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3323,7 +3323,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8ac93f0db34e749d61c5c91886b19b28e3244e6299afda6d1274a4d75f259339",
+      "sha256": "be03f0bef954e455ede345757f7199e38aaea89f06d2a1801d22fc92fb37aff7",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3505,7 +3505,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "68f9bd6e614254b2d71d7206d47b004fed9af28100ad104919a345bb99b87c88",
+      "sha256": "3640d5e8eed65ab4f342f8fab579342175830125b2257949ad3824318a3168e2",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -6706,7 +6706,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "91027805fb98eb8776beb9267d6a7750b5a08cd71dbbbb21e2b8e2a78a5ff282",
+      "sha256": "859892854da3a56c6ad47c4d09adb7fa9fddc2f267ceedef33ac11eacd02c0a9",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6732,7 +6732,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "fbf7ad55d4fbd6720a0541aef0211a6bb25b846784f951aad48aa06dca4536a3",
+      "sha256": "2f0c61450e79352ee0887290313943472e618374378d1062c04e06a5786e8df4",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -7134,7 +7134,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/disputes.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "1840f2cad1a118cf389c2c1448d0e1a97d4aae0faf6822053a334405e59d7ed0",
+      "sha256": "ad55d4929d00316695e4dc81d6298f57f80d3187c5c0790d011a30c5f16975fd",
       "source_id": "SRC-05CBF1893FC1155E"
     },
     {
@@ -8551,6 +8551,7 @@
         "STATE-B7C0614A6C23C94B",
         "STATE-B872DFDBA79D45DE",
         "STATE-B881C139E29EBD86",
+        "STATE-B8CEC32FD746E674",
         "STATE-B963260368579945",
         "STATE-BABE332A90EF299E",
         "STATE-BAD69E10E2018024",
@@ -8621,7 +8622,7 @@
       ],
       "path": "src/weall/runtime/apply/dispute.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "d224ab0d741bf2c13d4cb1739cce12ccd3262ed38fa3edc71d14a72b78693428",
+      "sha256": "d3e796838797c2e2253d17e2c7606759b227de346c9db2b704d2edbf0383237e",
       "source_id": "SRC-2E76D23317EE6BDB"
     },
     {
@@ -21967,6 +21968,21 @@
       "primary_mechanism_id": "M-076",
       "sha256": "42758bcfe6d8f70d3cd56b5da4ceb0a44ea95b4cbbbb44130601195cab2d7667",
       "source_id": "SRC-68F5913977F48E3C"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-0200"
+      ],
+      "path": "tests/test_p2_dispute_appeal_actor.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "475b2dc4f0ffabb614450ff5e7b6ffc294f38c22a99533e332ddedad00382947",
+      "source_id": "SRC-AA9F55576699A616"
     },
     {
       "affected_registers": [

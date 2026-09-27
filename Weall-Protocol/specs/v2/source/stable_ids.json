@@ -6172,6 +6172,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:appeal_actor_unresolved",
+      "kind": "failure",
+      "stable_id": "FAIL-BC84D819E2BC6F8A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_payload:epoch_already_closed",
       "kind": "failure",
       "stable_id": "FAIL-BCE439849E870511",
@@ -23477,6 +23484,13 @@
       "canonical_key": "Identity:retired_height",
       "kind": "state",
       "stable_id": "STATE-B8CD784A7461E77C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:target_type",
+      "kind": "state",
+      "stable_id": "STATE-B8CEC32FD746E674",
       "status": "active"
     },
     {

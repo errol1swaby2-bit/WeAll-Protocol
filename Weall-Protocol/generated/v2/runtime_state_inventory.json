@@ -1,5 +1,5 @@
 {
-  "count": 1121,
+  "count": 1122,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f3c979e5cc801d92e83e42a06197e841dbf1a791435df120ce833c3f352b0a8e"
+    "source_tree_digest": "c195f62bb83fb36cc6d9723da2bde21f73ab3ba13ab887d858b0ceeaba88a082"
   },
   "rows": [
     {
@@ -11500,6 +11500,7 @@
       "reads_by": [
         "TX-0200",
         "TX-0209",
+        "TX-0210",
         "TX-0211"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -11507,6 +11508,34 @@
       "source": "src/weall/runtime/apply/dispute.py",
       "stable_id": "STATE-61C07E5B86598421",
       "state_key_or_namespace": "target_id",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
+        "TX-0210"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-B8CEC32FD746E674",
+      "state_key_or_namespace": "target_type",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",

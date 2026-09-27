@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f3c979e5cc801d92e83e42a06197e841dbf1a791435df120ce833c3f352b0a8e"
+    "source_tree_digest": "c195f62bb83fb36cc6d9723da2bde21f73ab3ba13ab887d858b0ceeaba88a082"
   },
   "required_fields": [
     "stable_id",
@@ -1202,7 +1202,7 @@
       ],
       "implementation_source": {
         "function": "v1_disputes_list",
-        "line": 574,
+        "line": 589,
         "path": "src/weall/api/routes_public_parts/disputes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1259,7 +1259,7 @@
       ],
       "implementation_source": {
         "function": "v1_disputes_current",
-        "line": 672,
+        "line": 687,
         "path": "src/weall/api/routes_public_parts/disputes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1308,7 +1308,7 @@
       ],
       "implementation_source": {
         "function": "v1_disputes_eligible",
-        "line": 634,
+        "line": 649,
         "path": "src/weall/api/routes_public_parts/disputes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1355,7 +1355,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_dispute_get",
-        "line": 803,
+        "line": 818,
         "path": "src/weall/api/routes_public_parts/disputes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1403,7 +1403,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_dispute_accept",
-        "line": 709,
+        "line": 724,
         "path": "src/weall/api/routes_public_parts/disputes.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -1451,7 +1451,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_dispute_vote",
-        "line": 758,
+        "line": 773,
         "path": "src/weall/api/routes_public_parts/disputes.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -1497,7 +1497,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_dispute_votes",
-        "line": 812,
+        "line": 827,
         "path": "src/weall/api/routes_public_parts/disputes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1545,7 +1545,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_dispute_withdraw",
-        "line": 733,
+        "line": 748,
         "path": "src/weall/api/routes_public_parts/disputes.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -7520,6 +7520,7 @@
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_dispute_appeal_actor.py",
         "tests/test_p2_persistence_synchronous.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_p2_scoped_authority_repairs.py",

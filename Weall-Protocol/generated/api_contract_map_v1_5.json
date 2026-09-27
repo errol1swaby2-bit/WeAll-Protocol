@@ -562,7 +562,7 @@
       "route_id": "0ca13142ef0583a9",
       "route_path_without_v1_prefix": "/disputes",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 574,
+      "source_lineno": 589,
       "summary": "",
       "tags": [
         "disputes"
@@ -584,7 +584,7 @@
       "route_id": "b5d4205c4c827d9b",
       "route_path_without_v1_prefix": "/disputes/current",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 672,
+      "source_lineno": 687,
       "summary": "",
       "tags": [
         "disputes"
@@ -606,7 +606,7 @@
       "route_id": "8490e847698c6a7e",
       "route_path_without_v1_prefix": "/disputes/eligible",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 634,
+      "source_lineno": 649,
       "summary": "",
       "tags": [
         "disputes"
@@ -628,7 +628,7 @@
       "route_id": "6b48e858f7dbe6e5",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 803,
+      "source_lineno": 818,
       "summary": "",
       "tags": [
         "disputes"
@@ -650,7 +650,7 @@
       "route_id": "938e25efe2ccbe14",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/accept",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 709,
+      "source_lineno": 724,
       "summary": "",
       "tags": [
         "disputes"
@@ -672,7 +672,7 @@
       "route_id": "178aa3a76252c0d2",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/vote",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 758,
+      "source_lineno": 773,
       "summary": "",
       "tags": [
         "disputes"
@@ -694,7 +694,7 @@
       "route_id": "4828eba89b7123a6",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/votes",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 812,
+      "source_lineno": 827,
       "summary": "",
       "tags": [
         "disputes"
@@ -716,7 +716,7 @@
       "route_id": "5185458f5b421f35",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/withdraw",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 733,
+      "source_lineno": 748,
       "summary": "",
       "tags": [
         "disputes"

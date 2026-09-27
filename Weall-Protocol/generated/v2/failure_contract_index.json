@@ -1,5 +1,5 @@
 {
-  "count": 549,
+  "count": 550,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f3c979e5cc801d92e83e42a06197e841dbf1a791435df120ce833c3f352b0a8e"
+    "source_tree_digest": "c195f62bb83fb36cc6d9723da2bde21f73ab3ba13ab887d858b0ceeaba88a082"
   },
   "rows": [
     {
@@ -1506,6 +1506,25 @@
       "status": "current_partial",
       "transactions": [
         "TX-0600"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "appeal_actor_unresolved",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-BC84D819E2BC6F8A",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0210"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
