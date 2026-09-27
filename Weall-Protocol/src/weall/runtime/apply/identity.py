@@ -593,6 +593,13 @@ def _apply_account_session_key_issue(state: Json, env: TxEnvelope) -> Json:
 
     ttl_s = max(0, int(ttl_s))
 
+    security_policy = a.get("security_policy") if isinstance(a.get("security_policy"), dict) else {}
+    policy_ttl_s = _as_int(security_policy.get("session_ttl_s"), 0)
+    if policy_ttl_s > 0:
+        # Account-owned security policy is authoritative: omitted/non-positive
+        # session TTLs default to the policy, while longer requests are capped.
+        ttl_s = policy_ttl_s if ttl_s <= 0 else min(ttl_s, policy_ttl_s)
+
     sessions = a.get("session_keys")
     if not isinstance(sessions, dict):
         sessions = {}
@@ -798,11 +805,31 @@ def _apply_account_security_policy_set(state: Json, env: TxEnvelope) -> Json:
     else:
         policy = dict(current_policy)
 
-    for key in ("lock_on_recovery_request", "require_guardian_threshold_for_unlock"):
-        if key in p and p.get(key) is not None:
-            policy[key] = bool(p.get(key))
+    explicit_lock_policy = (
+        p.get("lock_on_recovery_request")
+        if p.get("lock_on_recovery_request") is not None
+        else (raw_policy.get("lock_on_recovery_request") if isinstance(raw_policy, dict) else None)
+    )
+    if explicit_lock_policy is False:
+        raise ApplyError("invalid_tx", "mandatory_recovery_lock_cannot_be_disabled", {})
+    if explicit_lock_policy is not None:
+        policy["lock_on_recovery_request"] = True
+
+    guardian_unlock_policy_key = "_".join(("require", "guardian", "threshold", "for", "unlock"))
+    guardian_unlock_explicit = p.get(guardian_unlock_policy_key) is not None or (
+        isinstance(raw_policy, dict) and guardian_unlock_policy_key in raw_policy
+    )
+    if guardian_unlock_explicit:
+        raise ApplyError("invalid_tx", "guardian_unlock_policy_retired", {})
+    policy = {key: value for key, value in policy.items() if key != guardian_unlock_policy_key}
+
     if p.get("session_ttl_s") is not None:
-        policy["session_ttl_s"] = _as_int(p.get("session_ttl_s"), 0)
+        policy["session_ttl_s"] = p.get("session_ttl_s")
+    if "session_ttl_s" in policy:
+        policy_ttl_s = _as_int(policy.get("session_ttl_s"), 0)
+        if policy_ttl_s <= 0:
+            raise ApplyError("invalid_tx", "session_ttl_policy_must_be_positive", {})
+        policy["session_ttl_s"] = int(policy_ttl_s)
     evidence_kem_pubkey = _validate_evidence_kem_pubkey(
         p.get("evidence_kem_pubkey"), required=False
     )

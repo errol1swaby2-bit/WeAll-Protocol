@@ -1,5 +1,5 @@
 {
-  "count": 1120,
+  "count": 1121,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4c4d53423a9ac69c6e49e6346a6d363b36c608d11fa81fe8a002181183607be1"
+    "source_tree_digest": "f66bb81b4c813054c82c050a3ac9e84ad15bcdfb1f925776f88e2b4ce47ea455"
   },
   "rows": [
     {
@@ -19830,6 +19830,42 @@
     },
     {
       "creation_contracts": [
+        "TX-0008"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_security_policy_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0008"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-B5AC21821396CC7A",
+      "state_key_or_namespace": "lock_on_recovery_request",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0008"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0008"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-0009",
         "TX-0010",
         "TX-2103",
@@ -21219,6 +21255,7 @@
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
+        "TX-0006",
         "TX-0008"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -21379,6 +21416,7 @@
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
+        "TX-0006",
         "TX-0008"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",

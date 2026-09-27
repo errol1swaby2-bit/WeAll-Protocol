@@ -3540,6 +3540,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_tx:mandatory_recovery_lock_cannot_be_disabled",
+      "kind": "failure",
+      "stable_id": "FAIL-0BE295525360998E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_payload:missing_account",
       "kind": "failure",
       "stable_id": "FAIL-0C2E384F1DE8759B",
@@ -3578,6 +3585,13 @@
       "canonical_key": "invalid_payload:missing_target",
       "kind": "failure",
       "stable_id": "FAIL-0E0B39EB5BCAC9E6",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:session_ttl_policy_must_be_positive",
+      "kind": "failure",
+      "stable_id": "FAIL-0E2DAC0C47E61CE7",
       "status": "active"
     },
     {
@@ -3935,6 +3949,13 @@
       "canonical_key": "invalid_tx:async_evidence_locked",
       "kind": "failure",
       "stable_id": "FAIL-2AD1F7C018C0DA2C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:guardian_unlock_policy_retired",
+      "kind": "failure",
+      "stable_id": "FAIL-2CD0DB84AAA557F9",
       "status": "active"
     },
     {

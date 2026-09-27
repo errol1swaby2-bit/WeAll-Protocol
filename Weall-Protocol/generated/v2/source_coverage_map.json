@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1956,
+  "file_count": 1957,
   "files": [
     {
       "affected_registers": [
@@ -67,10 +67,10 @@
       "mappings": [
         "M-075"
       ],
-      "path": "../.github/workflows/p2-remediation-autopatch.yml",
+      "path": "../.github/workflows/p2-policy-batch.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "93eef37d8bb15c748564fdc9e9bfa0ca50b9e6ad27fccd22ebe118394899b8ed",
-      "source_id": "SRC-235C5F973B830703"
+      "sha256": "db257b38673d191a7145c649b264ab1749793f26da612435e8e5a8cd8ed897fa",
+      "source_id": "SRC-C7EC1B72C2B8DDB0"
     },
     {
       "affected_registers": [
@@ -6719,7 +6719,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "277fcf164ada403445fe0c3113e6f58d19f620ac9ebd8046d717e45bade77381",
+      "sha256": "c48a2267871fee7008c94795cb773e5ffd48be5af4f3a76ef87d38038f60b273",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6745,7 +6745,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "090e8931f5a7350b0aa2c1e6e469b1c3a7c124519394e6a849ee551ee395ad6e",
+      "sha256": "fbf7ad55d4fbd6720a0541aef0211a6bb25b846784f951aad48aa06dca4536a3",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -8773,7 +8773,7 @@
       ],
       "path": "src/weall/runtime/apply/governance.py",
       "primary_mechanism_id": "M-049",
-      "sha256": "7bfd8739359a9b8f9bcb4f3761fd7014f1d15a13136bd20cd0b0bede7d0885de",
+      "sha256": "46df0963740613244437e36571b73bce59520ff7722d678fa151d42d7da38d2d",
       "source_id": "SRC-A6C282C450952C4C"
     },
     {
@@ -8992,6 +8992,7 @@
         "STATE-B143F5042163B5E0",
         "STATE-B1C3B387DF619DF9",
         "STATE-B47A03B7A89F2EB1",
+        "STATE-B5AC21821396CC7A",
         "STATE-B5B4AC79D2AD8170",
         "STATE-B62083D39A31E651",
         "STATE-B7CC5E9E62D7B398",
@@ -9049,7 +9050,7 @@
       ],
       "path": "src/weall/runtime/apply/identity.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "a710f75b1b735fc6499078938d7bae0185a47dcfc3570ebadc3803e570a0ff42",
+      "sha256": "ee074f03da98642cc8d0e1ee61cdb6f2da98bad2e7d154c62a5c2408a2593504",
       "source_id": "SRC-0163D21FDAB45401"
     },
     {
@@ -21993,6 +21994,26 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d45b21b30aa855fa8d80317f4933077498cac209cd8027e86278ab0c2ea04f94",
       "source_id": "SRC-0A9CFD44CEE51F53"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-0006",
+        "TX-0008",
+        "TX-0400",
+        "TX-0406",
+        "TX-0407",
+        "TX-0408"
+      ],
+      "path": "tests/test_p2_policy_enforcement.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "0e245d3eee4ad1b4990b40b8175f0143a9811057f10ebf24d32987b8dbd8a6b4",
+      "source_id": "SRC-4B9FE1CB97BB43A6"
     },
     {
       "affected_registers": [
