@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "ad62608c069aa4c800e3f3d3eb6770e7a8396319cd51de0d90881f7f0e162ec8"
+    "source_tree_digest": "b7a0c9c49bfde1bf281cc5c43b2576cea76381b65933eec222e34b81500b50d9"
   },
   "rows": [
     {
@@ -17556,6 +17556,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_four_gate_safety.py",
+        "tests/test_helper_execution_lane_alignment.py",
         "tests/test_tx_contract_coverage.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -17657,6 +17658,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_full_node_db_api_dispute_storage_coverage.py",
+        "tests/test_helper_execution_lane_alignment.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "ACCOUNT_REINSTATE",
@@ -20396,6 +20398,8 @@
       "system_followups": [],
       "tests": [
         "tests/test_devnet_permission_probe.py",
+        "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_helper_instance_corpus.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_tx_schema_social_notifications.py"
       ],

@@ -37,9 +37,7 @@ def test_helper_instance_contracts_have_no_placeholder_parallel_keys() -> None:
 def test_helper_instance_corpus_retains_cross_lane_fail_closed_vector() -> None:
     instance_map = build_helper_instance_contract_map()
     degraded = {
-        item["tx_type"]: item
-        for item in instance_map["contracts"]
-        if item["degraded_to_serial"]
+        item["tx_type"]: item for item in instance_map["contracts"] if item["degraded_to_serial"]
     }
     assert set(degraded) == {"CONTENT_SHARE_CREATE"}
     row = degraded["CONTENT_SHARE_CREATE"]
