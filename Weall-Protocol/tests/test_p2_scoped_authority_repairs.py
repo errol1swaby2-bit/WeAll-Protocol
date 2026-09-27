@@ -137,10 +137,18 @@ def test_p2_treas002_remove_cannot_make_threshold_impossible() -> None:
     assert state["roles"]["treasuries_by_id"]["T"]["signers"] == ["@a", "@b"]
 
 
-def test_p2_group002_audit_anchor_is_validated_and_bound_to_group_treasury() -> None:
-    state = {
-        "groups": {"G": {"group_id": "G", "treasury_id": "GT:G"}},
+def _group_anchor_state() -> dict:
+    return {
+        "roles": {
+            "groups_by_id": {
+                "G": {"group_id": "G", "treasury_id": "GT:G"},
+            }
+        }
     }
+
+
+def test_p2_group002_audit_anchor_is_validated_and_bound_to_group_treasury() -> None:
+    state = _group_anchor_state()
     result = apply_groups(
         state,
         _env(
@@ -151,14 +159,15 @@ def test_p2_group002_audit_anchor_is_validated_and_bound_to_group_treasury() -> 
         ),
     )
     assert result["treasury_id"] == "GT:G"
-    record = state["groups"]["G"]["treasury_audit_anchors"][0]
+    record = state["roles"]["groups_by_id"]["G"]["treasury_audit_anchors"][0]
     assert record["group_id"] == "G"
     assert record["treasury_id"] == "GT:G"
     assert record["anchor"] == {"root": "sha256:abc"}
+    assert state["groups_by_id"] is state["roles"]["groups_by_id"]
 
 
 def test_p2_group002_missing_anchor_fails_without_mutation() -> None:
-    state = {"groups": {"G": {"group_id": "G", "treasury_id": "GT:G"}}}
+    state = _group_anchor_state()
     with pytest.raises(GroupsApplyError) as ei:
         apply_groups(
             state,
@@ -170,4 +179,4 @@ def test_p2_group002_missing_anchor_fails_without_mutation() -> None:
             ),
         )
     assert ei.value.reason == "missing_anchor"
-    assert "treasury_audit_anchors" not in state["groups"]["G"]
+    assert "treasury_audit_anchors" not in state["roles"]["groups_by_id"]["G"]
