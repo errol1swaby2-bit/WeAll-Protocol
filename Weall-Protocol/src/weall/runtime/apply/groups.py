@@ -1782,6 +1782,42 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
     }
 
 
+
+def _apply_group_treasury_audit_anchor_set(state: Json, env: TxEnvelope) -> Json:
+    _require_system(env)
+    payload = _as_dict(env.payload)
+    group_id = _as_str(payload.get("group_id")).strip()
+    anchor = payload.get("anchor")
+    if not group_id:
+        raise GroupsApplyError("invalid_payload", "missing_group_id", {})
+    if not isinstance(anchor, dict) or not anchor:
+        raise GroupsApplyError("invalid_payload", "missing_anchor", {"group_id": group_id})
+    groups = _ensure_groups_root(state)
+    group = groups.get(group_id)
+    if not isinstance(group, dict):
+        raise GroupsApplyError("not_found", "group_not_found", {"group_id": group_id})
+    treasury_id = _as_str(group.get("treasury_id") or _group_treasury_id(group_id)).strip()
+    if not treasury_id:
+        raise GroupsApplyError("invalid_state", "missing_group_treasury_id", {"group_id": group_id})
+    anchors = group.get("treasury_audit_anchors")
+    if not isinstance(anchors, list):
+        anchors = []
+    record = {
+        "treasury_id": treasury_id,
+        "group_id": group_id,
+        "anchor": dict(anchor),
+        "set_at_nonce": int(env.nonce),
+    }
+    anchors.append(record)
+    group["treasury_audit_anchors"] = anchors
+    groups[group_id] = group
+    return {
+        "applied": "GROUP_TREASURY_AUDIT_ANCHOR_SET",
+        "group_id": group_id,
+        "treasury_id": treasury_id,
+    }
+
+
 def apply_groups(state: Json, env: TxEnvelope) -> Json | None:
     t = _as_str(env.tx_type).strip().upper()
     if t not in GROUPS_TX_TYPES:
@@ -1822,8 +1858,7 @@ def apply_groups(state: Json, env: TxEnvelope) -> Json | None:
         return _apply_group_treasury_spend_expire(state, env)
 
     if t == "GROUP_TREASURY_AUDIT_ANCHOR_SET":
-        _require_system(env)
-        return {"applied": "GROUP_TREASURY_AUDIT_ANCHOR_SET"}
+        return _apply_group_treasury_audit_anchor_set(state, env)
 
     if t == "GROUP_EMISSARY_ELECTION_CREATE":
         return _apply_group_emissary_election_create(state, env)

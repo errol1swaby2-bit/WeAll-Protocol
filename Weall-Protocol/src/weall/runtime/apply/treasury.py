@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.param_policy import validate_param_blob
 from weall.runtime.tx_admission import TxEnvelope
@@ -606,6 +607,7 @@ def _apply_treasury_wallet_create(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_treasury_signer_add(state: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
     payload = _as_dict(env.payload)
     wallet_id = _as_str(
         payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")
@@ -621,13 +623,33 @@ def _apply_treasury_signer_add(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(w, dict):
         raise TreasuryApplyError("not_found", "wallet_not_found", {"wallet_id": wallet_id})
 
-    signers = w.get("signers")
-    if not isinstance(signers, list):
-        signers = []
+    roles = ensure_roles_schema(state)
+    treasuries = roles.get("treasuries_by_id")
+    authority = treasuries.get(wallet_id) if isinstance(treasuries, dict) else None
+    if not isinstance(authority, dict):
+        raise TreasuryApplyError(
+            "invalid_state", "treasury_signer_authority_missing", {"treasury_id": wallet_id}
+        )
+    signers = sorted(
+        {str(x).strip() for x in authority.get("signers", []) if str(x).strip()}
+    )
+    threshold = max(1, _as_int(authority.get("threshold"), 1))
+    if bool(authority.get("require_emissary_signers", False)) and signer not in _seated_emissaries(state):
+        raise TreasuryApplyError(
+            "forbidden", "signer_must_be_seated_emissary", {"treasury_id": wallet_id, "signer": signer}
+        )
     had = signer in signers
     if not had:
         signers.append(signer)
-    w["signers"] = sorted({str(x).strip() for x in signers if str(x).strip()})
+        signers = sorted(set(signers))
+    if threshold > len(signers):
+        raise TreasuryApplyError(
+            "invalid_state",
+            "threshold_exceeds_signer_set",
+            {"treasury_id": wallet_id, "threshold": threshold, "n_signers": len(signers)},
+        )
+    set_treasury_signers(state, wallet_id, signers, threshold=threshold)
+    w["signers"] = list(signers)
     w["updated_at_nonce"] = int(env.nonce)
     wallets[wallet_id] = w
     return {
@@ -639,6 +661,7 @@ def _apply_treasury_signer_add(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_treasury_signer_remove(state: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
     payload = _as_dict(env.payload)
     wallet_id = _as_str(
         payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")
@@ -654,13 +677,33 @@ def _apply_treasury_signer_remove(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(w, dict):
         raise TreasuryApplyError("not_found", "wallet_not_found", {"wallet_id": wallet_id})
 
-    signers = w.get("signers")
-    if not isinstance(signers, list):
-        signers = []
-    had = signer in signers
-    if had:
-        signers = [s for s in signers if _as_str(s).strip() != signer]
-    w["signers"] = sorted({str(x).strip() for x in signers if str(x).strip()})
+    roles = ensure_roles_schema(state)
+    treasuries = roles.get("treasuries_by_id")
+    authority = treasuries.get(wallet_id) if isinstance(treasuries, dict) else None
+    if not isinstance(authority, dict):
+        raise TreasuryApplyError(
+            "invalid_state", "treasury_signer_authority_missing", {"treasury_id": wallet_id}
+        )
+    current = sorted(
+        {str(x).strip() for x in authority.get("signers", []) if str(x).strip()}
+    )
+    threshold = max(1, _as_int(authority.get("threshold"), 1))
+    had = signer in current
+    signers = [value for value in current if value != signer]
+    if had and threshold > len(signers):
+        raise TreasuryApplyError(
+            "forbidden",
+            "signer_removal_would_break_threshold",
+            {"treasury_id": wallet_id, "threshold": threshold, "n_signers_after": len(signers)},
+        )
+    if bool(authority.get("require_emissary_signers", False)):
+        seated = _seated_emissaries(state)
+        if any(value not in seated for value in signers):
+            raise TreasuryApplyError(
+                "invalid_state", "treasury_signer_not_seated_emissary", {"treasury_id": wallet_id}
+            )
+    set_treasury_signers(state, wallet_id, signers, threshold=threshold)
+    w["signers"] = list(signers)
     w["updated_at_nonce"] = int(env.nonce)
     wallets[wallet_id] = w
     return {
