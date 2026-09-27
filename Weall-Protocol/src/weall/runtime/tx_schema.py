@@ -1606,6 +1606,8 @@ class BalanceTransferPayload(_StrictModel):
         min_length=1,
     )
     memo: str | None = None
+    purpose: str | None = Field(default=None, min_length=1)
+    content_id: str | None = Field(default=None, min_length=1)
 
 
 class FeePayPayload(_StrictModel):

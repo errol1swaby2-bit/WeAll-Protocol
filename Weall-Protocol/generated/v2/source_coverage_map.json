@@ -6706,7 +6706,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c48a2267871fee7008c94795cb773e5ffd48be5af4f3a76ef87d38038f60b273",
+      "sha256": "91027805fb98eb8776beb9267d6a7750b5a08cd71dbbbb21e2b8e2a78a5ff282",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -12129,7 +12129,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "9afcde86036a29f62c5b3f62a41591a2c514f2eda04e379d56aebb6d5bcc6f6d",
+      "sha256": "5b4cdc379d3ce8db94f09c312f293b87cac41cda45db81d2d2c256d380ab2939",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -27983,7 +27983,7 @@
       ],
       "path": "tests/test_tx_schema_remaining_canon_cleanup.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "dce7e5575d0ecfdbb8e29eee78f389a320cecc54de2593319f105bd229871bf4",
+      "sha256": "d44b53a1004e367e5d7713d16056fdd89cabcf22ace128c48e2d96760fab0cc3",
       "source_id": "SRC-F50D877F54040588"
     },
     {
