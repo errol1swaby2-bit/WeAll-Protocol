@@ -382,7 +382,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1778
+      "source_lineno": 1786
     },
     {
       "code": "bad_request",
@@ -580,7 +580,7 @@
       "http_status": null,
       "sample_reason": "spend_id_exists",
       "source": "src/weall/runtime/apply/treasury.py",
-      "source_lineno": 275
+      "source_lineno": 276
     },
     {
       "code": "dev_bootstrap_secret_account_mismatch",
@@ -652,7 +652,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1711
+      "source_lineno": 1719
     },
     {
       "code": "executor_missing",
@@ -877,7 +877,7 @@
       "http_status": null,
       "sample_reason": "system_tx_required",
       "source": "src/weall/runtime/apply/treasury.py",
-      "source_lineno": 42
+      "source_lineno": 43
     },
     {
       "code": "gate_denied",
@@ -1082,9 +1082,9 @@
       "domain": "runtime_apply",
       "family": "RolesApplyError",
       "http_status": null,
-      "sample_reason": "declared_capacity_required",
+      "sample_reason": "helper_reputation_threshold_policy_mismatch",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 585
+      "source_lineno": 514
     },
     {
       "code": "invalid_payload",
@@ -1111,7 +1111,7 @@
       "http_status": null,
       "sample_reason": "missing_treasury_id",
       "source": "src/weall/runtime/apply/treasury.py",
-      "source_lineno": 207
+      "source_lineno": 208
     },
     {
       "code": "invalid_signer",
@@ -1228,7 +1228,7 @@
       "http_status": null,
       "sample_reason": "missing_accounts",
       "source": "src/weall/runtime/apply/treasury.py",
-      "source_lineno": 78
+      "source_lineno": 79
     },
     {
       "code": "invalid_tx",
@@ -1723,7 +1723,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/treasury.py",
-      "source_lineno": 85
+      "source_lineno": 86
     },
     {
       "code": "not_ready",

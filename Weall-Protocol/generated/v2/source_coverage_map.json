@@ -3197,7 +3197,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "6d41eccd3cd01e53c5cf6fe9a4bf0700471c91973aa6428bc1df7665f54dd560",
+      "sha256": "05ba656e4844998d2fa767b0e75b79e835e23b435cf1bbf580a04bf89237504c",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3225,7 +3225,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5ea895c775fef2a7ed339e3e95173271302eef01cbd7d37a1f5c7189638fe755",
+      "sha256": "116f1ad34fa927964ed98f984bdb62fa9180b16f4232e6bb8ea4abae01c843ad",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3323,7 +3323,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "48007aed9c44ea807165056de37ae9995b493a1c676aa85ac4dce08358334aeb",
+      "sha256": "8ac93f0db34e749d61c5c91886b19b28e3244e6299afda6d1274a4d75f259339",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3505,7 +3505,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "ea39f22c12a3fb23b0cde0cd1faff367197cbfe920a3513fd2f46c40a448b693",
+      "sha256": "68f9bd6e614254b2d71d7206d47b004fed9af28100ad104919a345bb99b87c88",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
