@@ -417,7 +417,9 @@ def test_peer_security_transport_host_survives_source_port_reconnect(tmp_path: P
     assert node2.is_banned("tls://203.0.113.7:42002") is True
 
 
-def test_peer_security_identity_does_not_transfer_without_session_bound_proof(tmp_path: Path) -> None:
+def test_peer_security_identity_does_not_transfer_without_session_bound_proof(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "peer-security-identity.sqlite"
     policy = PeerPolicy(max_strikes=1, ban_cooldown_ms=60_000)
 

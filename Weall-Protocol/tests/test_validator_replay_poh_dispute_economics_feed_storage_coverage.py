@@ -268,7 +268,11 @@ def test_full_lifecycle_and_feed_ranking_completion_artifact() -> None:
     }
 
     generator = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "gen_b517_b521_completion_proof_v1_5.py"), "--check"],
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "gen_b517_b521_completion_proof_v1_5.py"),
+            "--check",
+        ],
         cwd=str(ROOT),
         text=True,
         capture_output=True,

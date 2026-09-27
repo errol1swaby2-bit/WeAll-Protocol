@@ -17111,7 +17111,7 @@
       ],
       "path": "tests/test_fresh_ai_error_closure.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "91f5974d95b1dec9266d62073ec3b74e780c6cf68f5078bf551f286365065756",
+      "sha256": "29f9e99b6d9b3c85ab97044d92c8ddf856f875dbf0f9441a1840558b7f9d5f50",
       "source_id": "SRC-504F353121B4CCFB"
     },
     {
@@ -17433,7 +17433,7 @@
       ],
       "path": "tests/test_generated_checker_read_only.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "bdb02ecb9ab0e01d372f525b797e95c45761451e9d9a8a37195f619f1d77d2e1",
+      "sha256": "764060bb9660b8940aab627903395bbf1bcfd609b0f4e2f9cfadb5eba8353685",
       "source_id": "SRC-7016067D3986D630"
     },
     {
@@ -28592,7 +28592,7 @@
       ],
       "path": "tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2a946a98cf9e8e650850187901286a5c21470543f99093d5938420f74fa4962c",
+      "sha256": "17629d9daf027467d2a75a824a895fbe4bcad46c5a5408b5f971df097a54b219",
       "source_id": "SRC-891922944DFA0BAB"
     },
     {
