@@ -36,9 +36,14 @@ jobs:
             Weall-Protocol/src/weall/runtime/apply/rewards.py \
             Weall-Protocol/src/weall/runtime/sqlite_db.py \
             Weall-Protocol/src/weall/net/state_sync.py \
+            Weall-Protocol/src/weall/runtime/apply/roles.py \
+            Weall-Protocol/src/weall/runtime/node_operator_responsibilities.py \
+            Weall-Protocol/src/weall/runtime/apply/treasury.py \
+            Weall-Protocol/src/weall/runtime/apply/groups.py \
             Weall-Protocol/tests/test_reward_issuance_invariants.py \
             Weall-Protocol/tests/test_p2_persistence_synchronous.py \
-            Weall-Protocol/tests/test_p2_state_sync_hardening.py
+            Weall-Protocol/tests/test_p2_state_sync_hardening.py \
+            Weall-Protocol/tests/test_p2_scoped_authority_repairs.py
           git diff --check
 
       - name: Commit patched runtime and tests
@@ -55,8 +60,13 @@ jobs:
             Weall-Protocol/src/weall/runtime/apply/rewards.py \
             Weall-Protocol/src/weall/runtime/sqlite_db.py \
             Weall-Protocol/src/weall/net/state_sync.py \
+            Weall-Protocol/src/weall/runtime/apply/roles.py \
+            Weall-Protocol/src/weall/runtime/node_operator_responsibilities.py \
+            Weall-Protocol/src/weall/runtime/apply/treasury.py \
+            Weall-Protocol/src/weall/runtime/apply/groups.py \
             Weall-Protocol/tests/test_reward_issuance_invariants.py \
             Weall-Protocol/tests/test_p2_persistence_synchronous.py \
-            Weall-Protocol/tests/test_p2_state_sync_hardening.py
-          git commit -m 'Close P2 state-sync trust and authority invariants'
+            Weall-Protocol/tests/test_p2_state_sync_hardening.py \
+            Weall-Protocol/tests/test_p2_scoped_authority_repairs.py
+          git commit -m 'Close P2 scoped authority invariants'
           git push origin HEAD:p2-complete-remediation-20260927
