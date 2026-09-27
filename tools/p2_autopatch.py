@@ -9,28 +9,39 @@ SQLITE = ROOT / "Weall-Protocol/src/weall/runtime/sqlite_db.py"
 SQLITE_TESTS = ROOT / "Weall-Protocol/tests/test_p2_persistence_synchronous.py"
 
 
-def replace_once(text: str, old: str, new: str, *, label: str) -> str:
+def replace_once_or_already(
+    text: str,
+    old: str,
+    new: str,
+    *,
+    label: str,
+    already_marker: str,
+) -> str:
+    if already_marker in text:
+        return text
     count = text.count(old)
     if count != 1:
-        raise SystemExit(f"{label}: expected exactly one match, found {count}")
+        raise SystemExit(f"{label}: expected exactly one unpatched match, found {count}")
     return text.replace(old, new, 1)
 
 
 def patch_rewards() -> None:
     text = REWARDS.read_text(encoding="utf-8")
 
-    text = replace_once(
+    text = replace_once_or_already(
         text,
         """    # Optional but safer: explicit funding must cover explicit distributions.\n    if normalized_debits and debited_total < distributed_total:\n""",
         """    # Every positive distribution must be backed by canonical funding.\n    # An absent/empty debit list is not authority to create balances.\n    if distributed_total > 0 and debited_total < distributed_total:\n""",
         label="P2-ECON-002 funding guard",
+        already_marker="if distributed_total > 0 and debited_total < distributed_total:",
     )
 
-    text = replace_once(
+    text = replace_once_or_already(
         text,
         """        bal = _as_int(acct.get(\"balance\"), 0)\n        new_bal = bal - int(amount)\n        if new_bal < 0:\n            new_bal = 0\n        acct[\"balance\"] = int(new_bal)\n\n        forfeits[forfeit_id] = {\n""",
         """        bal = _as_int(acct.get(\"balance\"), 0)\n        if bal < int(amount):\n            raise RewardsApplyError(\n                \"forbidden\",\n                \"insufficient_balance_for_forfeiture\",\n                {\n                    \"account_id\": str(account_id),\n                    \"balance\": int(bal),\n                    \"amount\": int(amount),\n                },\n            )\n        acct[\"balance\"] = int(bal - int(amount))\n\n        forfeits[forfeit_id] = {\n""",
         label="P2-ECON-003 forfeiture guard",
+        already_marker="insufficient_balance_for_forfeiture",
     )
 
     REWARDS.write_text(text, encoding="utf-8")
@@ -121,12 +132,20 @@ def patch_sqlite() -> None:
     text = SQLITE.read_text(encoding="utf-8")
     old = '''        Override with WEALL_SQLITE_SYNCHRONOUS in {OFF,NORMAL,FULL,EXTRA}.\n        """\n        mode = (os.environ.get("WEALL_MODE") or "prod").strip().lower()\n        default = "FULL" if mode == "prod" else "NORMAL"\n        raw = (os.environ.get("WEALL_SQLITE_SYNCHRONOUS") or default).strip().upper()\n\n        allowed = {"OFF", "NORMAL", "FULL", "EXTRA"}\n        if raw not in allowed:\n            # Fail-safe: never accept unknown values.\n            raw = default\n        return raw\n'''
     new = '''        Override with WEALL_SQLITE_SYNCHRONOUS in {NORMAL,FULL,EXTRA} in\n        production. ``OFF`` remains available only to explicit non-production\n        modes where crash durability is not a production claim.\n        """\n        mode = (os.environ.get("WEALL_MODE") or "prod").strip().lower()\n        default = "FULL" if mode == "prod" else "NORMAL"\n        raw = (os.environ.get("WEALL_SQLITE_SYNCHRONOUS") or default).strip().upper()\n\n        allowed = {"OFF", "NORMAL", "FULL", "EXTRA"}\n        if raw not in allowed:\n            # Fail-safe: never accept unknown values.\n            raw = default\n        if mode == "prod" and raw == "OFF":\n            raise ValueError("unsafe_sqlite_synchronous_off_in_prod")\n        return raw\n'''
-    text = replace_once(text, old, new, label="P2-PERSIST-002 production synchronous guard")
+    text = replace_once_or_already(
+        text,
+        old,
+        new,
+        label="P2-PERSIST-002 production synchronous guard",
+        already_marker="unsafe_sqlite_synchronous_off_in_prod",
+    )
     SQLITE.write_text(text, encoding="utf-8")
 
 
 def patch_sqlite_tests() -> None:
     content = '''from __future__ import annotations\n\nimport pytest\n\nfrom weall.runtime.sqlite_db import SqliteDB\n\n\ndef test_p2_persist002_production_rejects_sqlite_synchronous_off(monkeypatch) -> None:\n    monkeypatch.setenv("WEALL_MODE", "prod")\n    monkeypatch.setenv("WEALL_SQLITE_SYNCHRONOUS", "OFF")\n\n    with pytest.raises(ValueError, match="unsafe_sqlite_synchronous_off_in_prod"):\n        SqliteDB._sqlite_synchronous_pragma()\n\n\ndef test_p2_persist002_nonproduction_can_explicitly_use_off(monkeypatch) -> None:\n    monkeypatch.setenv("WEALL_MODE", "dev")\n    monkeypatch.setenv("WEALL_SQLITE_SYNCHRONOUS", "OFF")\n\n    assert SqliteDB._sqlite_synchronous_pragma() == "OFF"\n\n\ndef test_p2_persist002_production_default_remains_full(monkeypatch) -> None:\n    monkeypatch.setenv("WEALL_MODE", "prod")\n    monkeypatch.delenv("WEALL_SQLITE_SYNCHRONOUS", raising=False)\n\n    assert SqliteDB._sqlite_synchronous_pragma() == "FULL"\n'''
+    if SQLITE_TESTS.exists() and SQLITE_TESTS.read_text(encoding="utf-8") == content:
+        return
     SQLITE_TESTS.write_text(content, encoding="utf-8")
 
 
