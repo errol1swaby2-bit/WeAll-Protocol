@@ -439,8 +439,9 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
                 {"account": src, "balance": bal, "amount": amt},
             )
 
-    # Optional but safer: explicit funding must cover explicit distributions.
-    if normalized_debits and debited_total < distributed_total:
+    # Every positive distribution must be backed by canonical funding.
+    # An absent/empty debit list is not authority to create balances.
+    if distributed_total > 0 and debited_total < distributed_total:
         raise RewardsApplyError(
             "forbidden",
             "distribution_exceeds_debits",
@@ -680,10 +681,17 @@ def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
     if not already:
         acct = _require_account(state, account_id, field="account")
         bal = _as_int(acct.get("balance"), 0)
-        new_bal = bal - int(amount)
-        if new_bal < 0:
-            new_bal = 0
-        acct["balance"] = int(new_bal)
+        if bal < int(amount):
+            raise RewardsApplyError(
+                "forbidden",
+                "insufficient_balance_for_forfeiture",
+                {
+                    "account_id": str(account_id),
+                    "balance": int(bal),
+                    "amount": int(amount),
+                },
+            )
+        acct["balance"] = int(bal - int(amount))
 
         forfeits[forfeit_id] = {
             "forfeit_id": forfeit_id,

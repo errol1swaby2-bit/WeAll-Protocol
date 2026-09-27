@@ -214,3 +214,73 @@ def test_block_reward_distribute_replay_is_deduped_without_double_credit() -> No
     assert st["accounts"]["@validator"]["balance"] == INITIAL_ISSUANCE_PER_EPOCH
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
     assert st["rewards"]["stats"]["distributed_total"] == INITIAL_ISSUANCE_PER_EPOCH
+
+
+def test_p2_econ002_distribution_without_debits_is_rejected() -> None:
+    st = _active_state()
+    before = st["accounts"]["@validator"]["balance"]
+
+    with pytest.raises(RewardsApplyError) as ei:
+        apply_rewards(
+            st,
+            _sys(
+                "BLOCK_REWARD_DISTRIBUTE",
+                {
+                    "block_id": "issuance_epoch:no-debits",
+                    "transfers": [{"to": "@validator", "amount": 100}],
+                    "debits": [],
+                },
+            ),
+        )
+
+    assert ei.value.reason == "distribution_exceeds_debits"
+    assert st["accounts"]["@validator"]["balance"] == before
+    assert "issuance_epoch:no-debits" not in st.get("rewards", {}).get(
+        "block_reward_distributions_by_id", {}
+    )
+
+
+def test_p2_econ003_forfeiture_fails_if_requested_amount_exceeds_balance() -> None:
+    st = _active_state()
+    st["accounts"]["@validator"]["balance"] = 25
+
+    with pytest.raises(RewardsApplyError) as ei:
+        apply_rewards(
+            st,
+            _sys(
+                "FORFEITURE_APPLY",
+                {
+                    "account_id": "@validator",
+                    "forfeit_id": "forfeit:p2-econ-003",
+                    "amount": 40,
+                },
+            ),
+        )
+
+    assert ei.value.reason == "insufficient_balance_for_forfeiture"
+    assert st["accounts"]["@validator"]["balance"] == 25
+    assert "forfeit:p2-econ-003" not in st.get("rewards", {}).get("forfeitures_by_id", {})
+    assert st.get("rewards", {}).get("stats", {}).get("forfeited_total", 0) == 0
+
+
+def test_p2_econ003_forfeiture_records_exact_amount_removed() -> None:
+    st = _active_state()
+    st["accounts"]["@validator"]["balance"] = 100
+
+    result = apply_rewards(
+        st,
+        _sys(
+            "FORFEITURE_APPLY",
+            {
+                "account_id": "@validator",
+                "forfeit_id": "forfeit:p2-econ-003-ok",
+                "amount": 40,
+            },
+        ),
+    )
+
+    assert result["amount"] == 40
+    assert st["accounts"]["@validator"]["balance"] == 60
+    rec = st["rewards"]["forfeitures_by_id"]["forfeit:p2-econ-003-ok"]
+    assert rec["amount"] == 40
+    assert st["rewards"]["stats"]["forfeited_total"] == 40
