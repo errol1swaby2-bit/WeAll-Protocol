@@ -3002,7 +3002,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0d8de8e63020cebfebec76e347c2ccdd4ed55453eaed4efbf951933b967cf48e",
+      "sha256": "18f243fdeb725b309e00fd2af8eae4027440b85ee967c660c40c9ffc8f1bf9ae",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3016,7 +3016,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a0bc1241d5fb68d1b8fd73098676bf266e6ec4fd0c2b718f02ebd3f60feb6a24",
+      "sha256": "236843591f977f685fdd22025af2e6a371847163f5bf97c23980f19107b0a705",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3100,7 +3100,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "1f4f958d97938113f664956e04025e50ab02655d89cb54afcb2c1eea252c9bc7",
+      "sha256": "3b695642c0e6b44d49fd9bd572caa552e81adc038ce6732e4261760d9f35f4b8",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -18347,7 +18347,7 @@
       ],
       "path": "tests/test_helper_contract_coverage.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "53e09dc2cc0252aceac7cf0f135109ffed44bba108fa77517fea3a2a143bc969",
+      "sha256": "1d54064aecb4e93a01792bc56e71368bd8298e901d303b7b6f1d9336db473c26",
       "source_id": "SRC-752716D50BEB5180"
     },
     {
