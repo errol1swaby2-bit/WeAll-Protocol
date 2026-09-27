@@ -4219,6 +4219,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:signer_must_be_seated_emissary",
+      "kind": "failure",
+      "stable_id": "FAIL-3FEA57C88E4A7CA1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_payload:group_tag_target_mismatch",
       "kind": "failure",
       "stable_id": "FAIL-409EE0BB4C88173F",
@@ -4373,6 +4380,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:signer_removal_would_break_threshold",
+      "kind": "failure",
+      "stable_id": "FAIL-48F8054847A95A46",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_tx:reviewer_responsibility_not_active",
       "kind": "failure",
       "stable_id": "FAIL-491E0830491451FE",
@@ -4432,6 +4446,13 @@
       "canonical_key": "invalid_tx:async_threshold_override_forbidden",
       "kind": "failure",
       "stable_id": "FAIL-4B068A687DC4FFBA",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:threshold_exceeds_signer_set",
+      "kind": "failure",
+      "stable_id": "FAIL-4B250FAE461C6108",
       "status": "active"
     },
     {
@@ -4782,6 +4803,13 @@
       "canonical_key": "invalid_payload:missing_signer_account",
       "kind": "failure",
       "stable_id": "FAIL-5FD4C905EEE5D819",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:treasury_signer_authority_missing",
+      "kind": "failure",
+      "stable_id": "FAIL-6054993E4F891D00",
       "status": "active"
     },
     {
@@ -5230,6 +5258,13 @@
       "canonical_key": "invalid_tx:challenged_recovery_not_finalized",
       "kind": "failure",
       "stable_id": "FAIL-7CBD915DB76BD6BD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:helper_reputation_threshold_policy_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-7D18B186C97AFE18",
       "status": "active"
     },
     {
@@ -6466,6 +6501,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_state:treasury_signer_not_seated_emissary",
+      "kind": "failure",
+      "stable_id": "FAIL-D72406A78B49AB03",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_payload:invalid_endpoint",
       "kind": "failure",
       "stable_id": "FAIL-D779EDE03C170A1F",
@@ -6896,6 +6938,13 @@
       "canonical_key": "forbidden:role_eligibility_revoked",
       "kind": "failure",
       "stable_id": "FAIL-F3137043B6823278",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:insufficient_balance_for_forfeiture",
+      "kind": "failure",
+      "stable_id": "FAIL-F3BB828E3F62C462",
       "status": "active"
     },
     {
@@ -17192,6 +17241,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "src/weall/runtime/apply/groups.py:_apply_group_treasury_audit_anchor_set",
+      "kind": "scheduler",
+      "stable_id": "SCHED-47F83C853BE92B17",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "src/weall/runtime/account_recovery_scheduler.py:schedule_account_recovery_system_txs",
       "kind": "scheduler",
       "stable_id": "SCHED-C298622F5EDA55A7",
@@ -23929,6 +23985,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:set_at_nonce",
+      "kind": "state",
+      "stable_id": "STATE-CAC3C2828A70CD9C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Indexing:name",
       "kind": "state",
       "stable_id": "STATE-CAE00863A280967E",
@@ -24475,6 +24538,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:anchor",
+      "kind": "state",
+      "stable_id": "STATE-DB5C6B9821C4F202",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "PoH:approval_threshold",
       "kind": "state",
       "stable_id": "STATE-DB685F524C41C75D",
@@ -24639,6 +24709,13 @@
       "canonical_key": "Content:target_id",
       "kind": "state",
       "stable_id": "STATE-E0E8F080EF035D81",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:treasury_audit_anchors",
+      "kind": "state",
+      "stable_id": "STATE-E12E9CCF4BCA3242",
       "status": "active"
     },
     {

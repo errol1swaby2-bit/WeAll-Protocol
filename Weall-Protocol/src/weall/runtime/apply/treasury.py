@@ -630,13 +630,15 @@ def _apply_treasury_signer_add(state: Json, env: TxEnvelope) -> Json:
         raise TreasuryApplyError(
             "invalid_state", "treasury_signer_authority_missing", {"treasury_id": wallet_id}
         )
-    signers = sorted(
-        {str(x).strip() for x in authority.get("signers", []) if str(x).strip()}
-    )
+    signers = sorted({str(x).strip() for x in authority.get("signers", []) if str(x).strip()})
     threshold = max(1, _as_int(authority.get("threshold"), 1))
-    if bool(authority.get("require_emissary_signers", False)) and signer not in _seated_emissaries(state):
+    if bool(authority.get("require_emissary_signers", False)) and signer not in _seated_emissaries(
+        state
+    ):
         raise TreasuryApplyError(
-            "forbidden", "signer_must_be_seated_emissary", {"treasury_id": wallet_id, "signer": signer}
+            "forbidden",
+            "signer_must_be_seated_emissary",
+            {"treasury_id": wallet_id, "signer": signer},
         )
     had = signer in signers
     if not had:
@@ -684,9 +686,7 @@ def _apply_treasury_signer_remove(state: Json, env: TxEnvelope) -> Json:
         raise TreasuryApplyError(
             "invalid_state", "treasury_signer_authority_missing", {"treasury_id": wallet_id}
         )
-    current = sorted(
-        {str(x).strip() for x in authority.get("signers", []) if str(x).strip()}
-    )
+    current = sorted({str(x).strip() for x in authority.get("signers", []) if str(x).strip()})
     threshold = max(1, _as_int(authority.get("threshold"), 1))
     had = signer in current
     signers = [value for value in current if value != signer]

@@ -1782,7 +1782,6 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
     }
 
 
-
 def _apply_group_treasury_audit_anchor_set(state: Json, env: TxEnvelope) -> Json:
     _require_system(env)
     payload = _as_dict(env.payload)

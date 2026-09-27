@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "332489ff3b9a2b63ca1c55e9ee9e26dad8f36a4731a032207ad5845a163d0c97"
+    "source_tree_digest": "4c4d53423a9ac69c6e49e6346a6d363b36c608d11fa81fe8a002181183607be1"
   },
   "required_fields": [
     "stable_id",
@@ -7520,6 +7520,9 @@
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_persistence_synchronous.py",
+        "tests/test_p2_scoped_authority_repairs.py",
+        "tests/test_p2_state_sync_hardening.py",
         "tests/test_parallel_execution.py",
         "tests/test_parallel_execution_conflict_lanes.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
@@ -8390,6 +8393,7 @@
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
         "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
         "tests/test_pb001bm_validator_authority_fail_closed.py",
@@ -8453,7 +8457,6 @@
         "tests/test_relay_production_binding_safety.py",
         "tests/test_release_docs_truth_sync.py",
         "tests/test_release_evidence_contract_fail_closed.py",
-        "tests/test_reputation_accrual_policy.py",
         "tests/test_reputation_matrix_completion_v1_5.py",
         "tests/test_reputation_matrix_read_model.py",
         "tests/test_restart_api_and_producer_recovery.py",

@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "332489ff3b9a2b63ca1c55e9ee9e26dad8f36a4731a032207ad5845a163d0c97"
+    "source_tree_digest": "4c4d53423a9ac69c6e49e6346a6d363b36c608d11fa81fe8a002181183607be1"
   },
   "rows": [
     {
@@ -11399,7 +11399,7 @@
       "implementation_source": {
         "function": "_apply_treasury_wallet_create",
         "handler": "treasury",
-        "line": 577,
+        "line": 578,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11474,8 +11474,24 @@
       "domain": "Treasury",
       "failure_codes": [
         {
+          "code": "forbidden",
+          "reason": "signer_must_be_seated_emissary"
+        },
+        {
+          "code": "forbidden",
+          "reason": "system_tx_required"
+        },
+        {
           "code": "invalid_payload",
           "reason": "missing_wallet_or_signer"
+        },
+        {
+          "code": "invalid_state",
+          "reason": "threshold_exceeds_signer_set"
+        },
+        {
+          "code": "invalid_state",
+          "reason": "treasury_signer_authority_missing"
         },
         {
           "code": "not_found",
@@ -11486,7 +11502,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signer_add",
         "handler": "treasury",
-        "line": 608,
+        "line": 609,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11513,10 +11529,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "dcedc0f32cdcd3cc5abf346dfa3af03f7288c10efd5507a70cf7392e783bbf7c",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "acca5d12bc85134355733e79763132d77f79cd2f0b1b4413ce107bd71d20d481",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-27T19:18:42Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0501",
@@ -11524,8 +11540,11 @@
         "key:account",
         "key:account_id",
         "key:id",
+        "key:require_emissary_signers",
         "key:signer",
         "key:signers",
+        "key:threshold",
+        "key:treasuries_by_id",
         "key:treasury_id",
         "key:treasury_wallets",
         "key:wallet_id"
@@ -11539,6 +11558,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_cross_tx_treasury_policy_safety.py",
+        "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -11570,8 +11590,24 @@
       "domain": "Treasury",
       "failure_codes": [
         {
+          "code": "forbidden",
+          "reason": "signer_removal_would_break_threshold"
+        },
+        {
+          "code": "forbidden",
+          "reason": "system_tx_required"
+        },
+        {
           "code": "invalid_payload",
           "reason": "missing_wallet_or_signer"
+        },
+        {
+          "code": "invalid_state",
+          "reason": "treasury_signer_authority_missing"
+        },
+        {
+          "code": "invalid_state",
+          "reason": "treasury_signer_not_seated_emissary"
         },
         {
           "code": "not_found",
@@ -11582,7 +11618,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signer_remove",
         "handler": "treasury",
-        "line": 641,
+        "line": 665,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11609,10 +11645,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "5c257fa3ea8b74430a8946987339229d889d053d3d0f2e32c257166a3e8ef8e0",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "b7aa2c30063781c8b809eb7eac14aaa96a3b400fb436048ad74e72819085e7d5",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-27T19:18:42Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0502",
@@ -11620,8 +11656,11 @@
         "key:account",
         "key:account_id",
         "key:id",
+        "key:require_emissary_signers",
         "key:signer",
         "key:signers",
+        "key:threshold",
+        "key:treasuries_by_id",
         "key:treasury_id",
         "key:treasury_wallets",
         "key:wallet_id"
@@ -11634,6 +11673,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_cross_tx_treasury_policy_safety.py",
+        "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -11677,7 +11717,7 @@
       "implementation_source": {
         "function": "_apply_treasury_policy_set",
         "handler": "treasury",
-        "line": 674,
+        "line": 717,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11800,7 +11840,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_propose",
         "handler": "treasury",
-        "line": 250,
+        "line": 251,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11940,7 +11980,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_sign",
         "handler": "treasury",
-        "line": 323,
+        "line": 324,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12068,7 +12108,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_cancel",
         "handler": "treasury",
-        "line": 398,
+        "line": 399,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12177,7 +12217,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_expire",
         "handler": "treasury",
-        "line": 720,
+        "line": 763,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12323,7 +12363,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_execute",
         "handler": "treasury",
-        "line": 443,
+        "line": 444,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12436,7 +12476,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_create",
         "handler": "treasury",
-        "line": 796,
+        "line": 839,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12518,7 +12558,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_update",
         "handler": "treasury",
-        "line": 804,
+        "line": 847,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12600,7 +12640,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_close",
         "handler": "treasury",
-        "line": 812,
+        "line": 855,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12686,7 +12726,7 @@
       "implementation_source": {
         "function": "_apply_treasury_audit_anchor_set",
         "handler": "treasury",
-        "line": 701,
+        "line": 744,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12735,6 +12775,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "TREASURY_AUDIT_ANCHOR_SET",
@@ -14959,9 +15000,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "c8d884c2bdc7e39ef6217d0394bfc21d4a7c375a7ffe9f4b6727c20d1ea653c4",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-27T19:18:42Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0702",
@@ -15074,7 +15115,7 @@
       "implementation_source": {
         "function": "_apply_creator_reward_allocate",
         "handler": "rewards",
-        "line": 545,
+        "line": 546,
         "path": "src/weall/runtime/apply/rewards.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -15203,7 +15244,7 @@
       "implementation_source": {
         "function": "_apply_treasury_reward_allocate",
         "handler": "rewards",
-        "line": 602,
+        "line": 603,
         "path": "src/weall/runtime/apply/rewards.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -15305,6 +15346,10 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "insufficient_balance_for_forfeiture"
+        },
+        {
+          "code": "forbidden",
           "reason": "system_only"
         },
         {
@@ -15320,7 +15365,7 @@
       "implementation_source": {
         "function": "_apply_forfeiture_apply",
         "handler": "rewards",
-        "line": 661,
+        "line": 662,
         "path": "src/weall/runtime/apply/rewards.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -15348,10 +15393,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "25b13cb5504a89c68f16d9977c313819202b60f54e90f6cbd8750574ba89448b",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "879ad8424d7cc322f035f56aebbcefc70253b85a6ad7dfdefc3208733a75a67b",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-27T19:18:42Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0705",
@@ -15384,6 +15429,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "FORFEITURE_APPLY",
@@ -18178,7 +18224,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_enroll",
         "handler": "roles",
-        "line": 1046,
+        "line": 1054,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18316,7 +18362,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_activate",
         "handler": "roles",
-        "line": 1121,
+        "line": 1129,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18430,7 +18476,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_suspend",
         "handler": "roles",
-        "line": 1180,
+        "line": 1188,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18550,7 +18596,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_reinstate",
         "handler": "roles",
-        "line": 1226,
+        "line": 1234,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18687,7 +18733,7 @@
       "implementation_source": {
         "function": "_apply_role_validator_activate",
         "handler": "roles",
-        "line": 1236,
+        "line": 1244,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18799,7 +18845,7 @@
       "implementation_source": {
         "function": "_apply_role_validator_suspend",
         "handler": "roles",
-        "line": 1311,
+        "line": 1319,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18909,6 +18955,10 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "helper_reputation_threshold_policy_mismatch"
+        },
+        {
+          "code": "invalid_payload",
           "reason": "missing_account_id"
         },
         {
@@ -18922,7 +18972,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_enroll",
         "handler": "roles",
-        "line": 1340,
+        "line": 1348,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18951,10 +19001,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "0609f7bd12f8e8585a7b7fa0e4e8c6c5628c02b74609ad3148c305eff89aab0e",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "8a201c38b402d23d3371879c2ce65332fca2a9a727e2e31ed6896b1a2665ff2c",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-27T19:18:42Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1106",
@@ -19094,7 +19144,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_activate",
         "handler": "roles",
-        "line": 1413,
+        "line": 1421,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19233,7 +19283,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_suspend",
         "handler": "roles",
-        "line": 1467,
+        "line": 1475,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19326,7 +19376,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_nominate",
         "handler": "roles",
-        "line": 1510,
+        "line": 1518,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19421,7 +19471,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_vote",
         "handler": "roles",
-        "line": 1543,
+        "line": 1551,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19529,7 +19579,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_seat",
         "handler": "roles",
-        "line": 1576,
+        "line": 1584,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19626,7 +19676,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_remove",
         "handler": "roles",
-        "line": 1616,
+        "line": 1624,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19740,7 +19790,7 @@
       "implementation_source": {
         "function": "_apply_role_gov_executor_set",
         "handler": "roles",
-        "line": 1658,
+        "line": 1666,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23080,209 +23130,29 @@
       "domain": "Groups",
       "failure_codes": [
         {
-          "code": "already_exists",
-          "reason": "election_exists"
-        },
-        {
-          "code": "already_exists",
-          "reason": "group_exists"
-        },
-        {
-          "code": "already_exists",
-          "reason": "spend_exists"
-        },
-        {
-          "code": "bad_payload",
-          "reason": "threshold_exceeds_signers"
-        },
-        {
-          "code": "conflict",
-          "reason": "ballot_already_final"
-        },
-        {
-          "code": "conflict",
-          "reason": "group_treasury_wallet_exists"
-        },
-        {
-          "code": "forbidden",
-          "reason": "ballot_profile_inactive"
-        },
-        {
-          "code": "forbidden",
-          "reason": "economics_disabled"
-        },
-        {
-          "code": "forbidden",
-          "reason": "election_closed"
-        },
-        {
-          "code": "forbidden",
-          "reason": "election_not_open"
-        },
-        {
-          "code": "forbidden",
-          "reason": "election_not_started"
-        },
-        {
-          "code": "forbidden",
-          "reason": "election_still_open"
-        },
-        {
-          "code": "forbidden",
-          "reason": "group_emissary_election_open"
-        },
-        {
-          "code": "forbidden",
-          "reason": "group_scope_mismatch"
-        },
-        {
-          "code": "forbidden",
-          "reason": "group_treasury_spend_open"
-        },
-        {
-          "code": "forbidden",
-          "reason": "insufficient_group_treasury_balance"
-        },
-        {
-          "code": "forbidden",
-          "reason": "insufficient_multisig"
-        },
-        {
-          "code": "forbidden",
-          "reason": "membership_decision_not_required"
-        },
-        {
-          "code": "forbidden",
-          "reason": "no_authorized_signers"
-        },
-        {
-          "code": "forbidden",
-          "reason": "not_authorized_signer"
-        },
-        {
-          "code": "forbidden",
-          "reason": "spend_canceled"
-        },
-        {
-          "code": "forbidden",
-          "reason": "spend_executed"
-        },
-        {
-          "code": "forbidden",
-          "reason": "spend_expired"
-        },
-        {
           "code": "forbidden",
           "reason": "system_tx_required"
         },
         {
-          "code": "forbidden",
-          "reason": "threshold_exceeds_signer_set"
-        },
-        {
-          "code": "forbidden",
-          "reason": "timelock_not_expired"
-        },
-        {
-          "code": "forbidden",
-          "reason": "voter_not_in_snapshot"
-        },
-        {
-          "code": "internal_error",
-          "reason": "group_spend_execute_enqueue_failed"
-        },
-        {
-          "code": "internal_error",
-          "reason": "group_spend_expire_enqueue_failed"
-        },
-        {
-          "code": "internal_error",
-          "reason": "treasury_signer_sync_failed"
-        },
-        {
           "code": "invalid_payload",
-          "reason": "bad_amount"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "bad_balance"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_candidates"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_election_id"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_fields"
+          "reason": "missing_anchor"
         },
         {
           "code": "invalid_payload",
           "reason": "missing_group_id"
         },
         {
-          "code": "invalid_payload",
-          "reason": "missing_group_or_election_id"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_group_or_spend_id"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_ranking"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_spend_id"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_treasury_id"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "ranking_has_no_valid_candidates"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "signers_required"
-        },
-        {
-          "code": "invalid_state",
-          "reason": "bad_spend_amount"
-        },
-        {
           "code": "invalid_state",
           "reason": "missing_group_treasury_id"
         },
         {
-          "code": "invalid_state",
-          "reason": "missing_spend_recipient"
-        },
-        {
-          "code": "not_found",
-          "reason": "election_not_found"
-        },
-        {
           "code": "not_found",
           "reason": "group_not_found"
-        },
-        {
-          "code": "not_found",
-          "reason": "membership_request_not_found"
-        },
-        {
-          "code": "not_found",
-          "reason": "spend_not_found"
         }
       ],
       "frontend_surfaces": [],
       "implementation_source": {
-        "function": "apply_groups",
+        "function": "_apply_group_treasury_audit_anchor_set",
         "handler": "groups",
         "line": 1785,
         "path": "src/weall/runtime/apply/groups.py"
@@ -23296,156 +23166,43 @@
         "kind": "receipt_only_parent_bound",
         "parent": "GOV_EXECUTE",
         "return_fields": [
-          "account",
-          "amount",
           "applied",
-          "auto_accepted",
-          "decision",
-          "deduped",
-          "earliest_execute_height",
-          "election_id",
-          "end_height",
           "group_id",
-          "membership",
-          "membership_mode",
-          "n_ballots",
-          "n_candidates",
-          "n_ranked",
-          "n_signers",
-          "n_voters",
-          "public_ballot_disclosure",
-          "read_visibility",
-          "request_consumed",
-          "role",
-          "seats",
-          "signer",
-          "spend_id",
-          "start_height",
-          "threshold",
-          "to",
-          "treasury_id",
-          "voter",
-          "winners"
+          "treasury_id"
         ],
         "stable_id": "RCP-BF0E3F0CD2225623"
       },
       "replay_behavior": "block_only_parent_and_context_bound_deterministic_replay",
       "role_gate": "GovExecutor",
       "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
-      "semantic_derivation": "function_static",
+      "semantic_derivation": "tx_specific_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
         "authority_effect": "none; broad dispatcher-derived static contract changed because group membership behavior changed; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "9bbcffedf786b11845805c3be8167e8a347ba531feaa36c52264f8d7f9676b0c",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T19:00:00Z",
-        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
+        "review_digest": "8faa410de0df013a61147ecc3ddb009a585295f7139105013e569af35c3aff49",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-27T19:18:42Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1714",
       "state_reads": [
-        "key:account",
-        "key:active",
-        "key:allowed_signers",
-        "key:amount",
-        "key:balance",
-        "key:candidates",
-        "key:cast_at_height",
-        "key:charter",
-        "key:count",
-        "key:decision",
-        "key:duration_blocks",
-        "key:earliest_execute_height",
-        "key:election_id",
-        "key:emissaries",
-        "key:end_height",
+        "key:anchor",
         "key:group_id",
         "key:groups_by_id",
-        "key:id",
-        "key:label",
-        "key:members",
-        "key:membership_mode",
-        "key:membership_requests",
-        "key:meta",
-        "key:moderators",
-        "key:note",
-        "key:policy",
-        "key:profile_id",
-        "key:ranking",
-        "key:reason",
-        "key:requested_at_nonce",
-        "key:require_emissary_signers",
-        "key:role",
         "key:roles",
-        "key:seats",
-        "key:signatures",
-        "key:signers",
-        "key:spend_id",
-        "key:start_height",
-        "key:status",
-        "key:strict",
-        "key:threshold",
-        "key:to",
-        "key:treasuries_by_id",
-        "key:treasury_id",
-        "key:treasury_wallets",
-        "key:voter_snapshot",
-        "key:winners"
+        "key:treasury_audit_anchors",
+        "key:treasury_id"
       ],
       "state_writes": [
-        "key:<add:dynamic>",
         "key:<append:dynamic>",
-        "key:<clear:dynamic>",
-        "key:<pop:dynamic>",
-        "key:<setdefault:dynamic>",
-        "key:balance",
-        "key:canceled_at_nonce",
-        "key:canceled_by",
-        "key:charter",
-        "key:emissaries",
-        "key:emissaries_set_at_height",
-        "key:emissaries_set_at_nonce",
-        "key:executed_at_height",
-        "key:executed_at_nonce",
-        "key:executed_by",
-        "key:expired_at_height",
-        "key:expired_at_nonce",
-        "key:finalized_at_height",
-        "key:finalized_at_nonce",
-        "key:finalized_by",
-        "key:group_id",
-        "key:label",
-        "key:members",
-        "key:membership_mode",
-        "key:membership_requests",
-        "key:meta",
-        "key:moderators",
-        "key:permissions",
-        "key:public_only",
-        "key:read_visibility",
-        "key:require_emissary_signers",
         "key:roles",
-        "key:signatures",
-        "key:signers",
-        "key:status",
-        "key:threshold",
-        "key:transferred_amount",
-        "key:transferred_to",
-        "key:treasuries_by_id",
-        "key:treasury_balance_after",
-        "key:treasury_policy",
-        "key:treasury_policy_set_at_nonce",
-        "key:visibility",
-        "key:winners"
+        "key:treasury_audit_anchors"
       ],
-      "system_followups": [
-        "GROUP_TREASURY_CREATE",
-        "GROUP_TREASURY_POLICY_SET",
-        "GROUP_TREASURY_SPEND_EXECUTE",
-        "GROUP_TREASURY_SPEND_EXPIRE"
-      ],
+      "system_followups": [],
       "tests": [
+        "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_TREASURY_AUDIT_ANCHOR_SET",
@@ -23991,7 +23748,7 @@
       "implementation_source": {
         "function": "_apply_performance_report",
         "handler": "rewards",
-        "line": 726,
+        "line": 734,
         "path": "src/weall/runtime/apply/rewards.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24079,7 +23836,7 @@
       "implementation_source": {
         "function": "_apply_performance_report",
         "handler": "rewards",
-        "line": 726,
+        "line": 734,
         "path": "src/weall/runtime/apply/rewards.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24167,7 +23924,7 @@
       "implementation_source": {
         "function": "_apply_performance_receipt",
         "handler": "rewards",
-        "line": 756,
+        "line": 764,
         "path": "src/weall/runtime/apply/rewards.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24254,7 +24011,7 @@
       "implementation_source": {
         "function": "_apply_performance_receipt",
         "handler": "rewards",
-        "line": 756,
+        "line": 764,
         "path": "src/weall/runtime/apply/rewards.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27377,7 +27134,7 @@
       "implementation_source": {
         "function": "_apply_treasury_create",
         "handler": "roles",
-        "line": 1697,
+        "line": 1705,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27485,7 +27242,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signers_set",
         "handler": "roles",
-        "line": 1732,
+        "line": 1740,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29481,7 +29238,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_storage_opt_in_tx",
         "handler": "roles",
-        "line": 635,
+        "line": 643,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29630,7 +29387,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_validator_opt_in_tx",
         "handler": "roles",
-        "line": 652,
+        "line": 660,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29776,6 +29533,10 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "helper_reputation_threshold_policy_mismatch"
+        },
+        {
+          "code": "invalid_payload",
           "reason": "missing_account_id"
         },
         {
@@ -29791,7 +29552,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_responsibility_update",
         "handler": "roles",
-        "line": 686,
+        "line": 694,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29817,10 +29578,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "39e35db12bcf214a5b5bee95a336a72edaca0f69cd3fc393f287fe2aee26423b",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "334b4ad27ec0e19689f7d2b3afd47ce0a0dd4fdcc839dfd66da7cc64fed554d4",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-27T19:18:42Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2619",
@@ -30108,7 +29869,7 @@
       "implementation_source": {
         "function": "_apply_validator_readiness_verify",
         "handler": "roles",
-        "line": 724,
+        "line": 732,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30498,7 +30259,7 @@
       "implementation_source": {
         "function": "_apply_reviewer_lane_update",
         "handler": "roles",
-        "line": 956,
+        "line": 964,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30637,7 +30398,7 @@
       "implementation_source": {
         "function": "_apply_reviewer_lane_update",
         "handler": "roles",
-        "line": 956,
+        "line": 964,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30763,6 +30524,10 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "helper_reputation_threshold_policy_mismatch"
+        },
+        {
+          "code": "invalid_payload",
           "reason": "missing_account_id"
         },
         {
@@ -30776,7 +30541,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_helper_opt_in_tx",
         "handler": "roles",
-        "line": 669,
+        "line": 677,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30801,10 +30566,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "d86c62b7e4f1227af30c897db167a26cab1faa607cd4b1e94fdb97a879b41037",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "74a903ac81dbde67ae37028651bbfbecdbb01da05b77e0f6f3307288b70ef191",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-09-27T19:18:42Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2626",
@@ -30850,6 +30615,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_exact_responsibility_lane_consent.py",
+        "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_conflict_matrix.py"
       ],
       "tx_type": "NODE_OPERATOR_HELPER_OPT_IN",

@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "332489ff3b9a2b63ca1c55e9ee9e26dad8f36a4731a032207ad5845a163d0c97"
+    "source_tree_digest": "4c4d53423a9ac69c6e49e6346a6d363b36c608d11fa81fe8a002181183607be1"
   },
   "rows": [
     {
@@ -3596,36 +3596,9 @@
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
-        "account",
-        "amount",
         "applied",
-        "auto_accepted",
-        "decision",
-        "deduped",
-        "earliest_execute_height",
-        "election_id",
-        "end_height",
         "group_id",
-        "membership",
-        "membership_mode",
-        "n_ballots",
-        "n_candidates",
-        "n_ranked",
-        "n_signers",
-        "n_voters",
-        "public_ballot_disclosure",
-        "read_visibility",
-        "request_consumed",
-        "role",
-        "seats",
-        "signer",
-        "spend_id",
-        "start_height",
-        "threshold",
-        "to",
-        "treasury_id",
-        "voter",
-        "winners"
+        "treasury_id"
       ],
       "kind": "receipt_only_parent_bound",
       "parent": "GOV_EXECUTE",

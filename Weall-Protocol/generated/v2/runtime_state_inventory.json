@@ -1,5 +1,5 @@
 {
-  "count": 1118,
+  "count": 1120,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "332489ff3b9a2b63ca1c55e9ee9e26dad8f36a4731a032207ad5845a163d0c97"
+    "source_tree_digest": "4c4d53423a9ac69c6e49e6346a6d363b36c608d11fa81fe8a002181183607be1"
   },
   "rows": [
     {
@@ -14857,7 +14857,6 @@
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1716"
       ],
       "domain": "Groups",
@@ -14869,8 +14868,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_ballot_cast",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_ballot_cast"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -14881,7 +14879,6 @@
       "state_key_or_namespace": "<add:dynamic>",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1716"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -14889,7 +14886,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1716"
       ]
     },
@@ -14913,8 +14909,8 @@
         "src/weall/runtime/apply/groups.py#_apply_group_emissary_ballot_cast",
         "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
         "src/weall/runtime/apply/groups.py#_apply_group_role_grant",
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_expire",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_audit_anchor_set",
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_expire"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -14945,7 +14941,6 @@
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1716"
       ],
       "domain": "Groups",
@@ -14957,8 +14952,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_ballot_cast",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_ballot_cast"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -14969,7 +14963,6 @@
       "state_key_or_namespace": "<clear:dynamic>",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1716"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -14977,7 +14970,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1716"
       ]
     },
@@ -14985,8 +14977,7 @@
       "creation_contracts": [
         "TX-1704",
         "TX-1705",
-        "TX-1706",
-        "TX-1714"
+        "TX-1706"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -14999,8 +14990,7 @@
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_membership_decide",
         "src/weall/runtime/apply/groups.py#_apply_group_membership_remove",
-        "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_membership_request"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15013,8 +15003,7 @@
       "transition_contracts": [
         "TX-1704",
         "TX-1705",
-        "TX-1706",
-        "TX-1714"
+        "TX-1706"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -15023,13 +15012,11 @@
       "writes_by": [
         "TX-1704",
         "TX-1705",
-        "TX-1706",
-        "TX-1714"
+        "TX-1706"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1716"
       ],
       "domain": "Groups",
@@ -15041,8 +15028,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_ballot_cast",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_ballot_cast"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15053,7 +15039,6 @@
       "state_key_or_namespace": "<setdefault:dynamic>",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1716"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -15061,7 +15046,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1716"
       ]
     },
@@ -15081,8 +15065,7 @@
         "TX-1702",
         "TX-1703",
         "TX-1705",
-        "TX-1706",
-        "TX-1714"
+        "TX-1706"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -15110,7 +15093,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1716"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -15140,8 +15122,7 @@
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1710",
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -15170,8 +15151,7 @@
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1709",
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -15187,9 +15167,36 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [
-        "TX-1713",
+      "creation_contracts": [],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
         "TX-1714"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-DB5C6B9821C4F202",
+      "state_key_or_namespace": "anchor",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-1713"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15200,14 +15207,12 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1707",
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -15216,22 +15221,19 @@
       "state_key_or_namespace": "balance",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1711",
-        "TX-1714"
+        "TX-1711"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15242,8 +15244,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_cancel",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_cancel"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15254,22 +15255,19 @@
       "state_key_or_namespace": "canceled_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1711",
-        "TX-1714"
+        "TX-1711"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1711",
-        "TX-1714"
+        "TX-1711"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1711",
-        "TX-1714"
+        "TX-1711"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15280,8 +15278,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_cancel",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_cancel"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15292,16 +15289,14 @@
       "state_key_or_namespace": "canceled_by",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1711",
-        "TX-1714"
+        "TX-1711"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1711",
-        "TX-1714"
+        "TX-1711"
       ]
     },
     {
@@ -15317,7 +15312,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1715",
         "TX-1716",
         "TX-1717"
@@ -15348,7 +15342,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1716"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -15366,8 +15359,7 @@
     },
     {
       "creation_contracts": [
-        "TX-1701",
-        "TX-1714"
+        "TX-1701"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15378,14 +15370,12 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_update",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_update"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1700",
-        "TX-1701",
-        "TX-1714"
+        "TX-1701"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -15394,16 +15384,14 @@
       "state_key_or_namespace": "charter",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1701",
-        "TX-1714"
+        "TX-1701"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1701",
-        "TX-1714"
+        "TX-1701"
       ]
     },
     {
@@ -15419,7 +15407,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1716",
         "TX-1717"
       ],
@@ -15449,8 +15436,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1705",
-        "TX-1714"
+        "TX-1705"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -15478,7 +15464,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1715"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -15507,8 +15492,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -15536,7 +15520,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1715",
         "TX-1716",
         "TX-1717",
@@ -15558,7 +15541,6 @@
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -15570,13 +15552,11 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1709",
-        "TX-1714"
+        "TX-1709"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -15585,7 +15565,6 @@
       "state_key_or_namespace": "emissaries",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -15593,13 +15572,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -15611,8 +15588,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15623,7 +15599,6 @@
       "state_key_or_namespace": "emissaries_set_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -15631,13 +15606,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -15649,8 +15622,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15661,7 +15633,6 @@
       "state_key_or_namespace": "emissaries_set_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -15669,7 +15640,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717"
       ]
     },
@@ -15686,7 +15656,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1715",
         "TX-1716",
         "TX-1717"
@@ -15706,8 +15675,7 @@
     },
     {
       "creation_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15718,8 +15686,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15730,22 +15697,19 @@
       "state_key_or_namespace": "executed_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15756,8 +15720,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15768,22 +15731,19 @@
       "state_key_or_namespace": "executed_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15794,8 +15754,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15806,22 +15765,19 @@
       "state_key_or_namespace": "executed_by",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1712",
-        "TX-1714"
+        "TX-1712"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15832,8 +15788,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_expire",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_expire"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15844,22 +15799,19 @@
       "state_key_or_namespace": "expired_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1712",
-        "TX-1714"
+        "TX-1712"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1712",
-        "TX-1714"
+        "TX-1712"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1712",
-        "TX-1714"
+        "TX-1712"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15870,8 +15822,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_expire",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_expire"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15882,21 +15833,18 @@
       "state_key_or_namespace": "expired_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1712",
-        "TX-1714"
+        "TX-1712"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1712",
-        "TX-1714"
+        "TX-1712"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -15908,8 +15856,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15920,7 +15867,6 @@
       "state_key_or_namespace": "finalized_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -15928,13 +15874,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -15946,8 +15890,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15958,7 +15901,6 @@
       "state_key_or_namespace": "finalized_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -15966,13 +15908,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -15984,8 +15924,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -15996,7 +15935,6 @@
       "state_key_or_namespace": "finalized_by",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -16004,7 +15942,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717"
       ]
     },
@@ -16223,8 +16160,7 @@
     },
     {
       "creation_contracts": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16235,8 +16171,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_create",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_create"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
@@ -16265,16 +16200,14 @@
       "state_key_or_namespace": "group_id",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ]
     },
     {
@@ -16525,7 +16458,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1715",
         "TX-1716",
         "TX-1717",
@@ -16547,8 +16479,7 @@
     },
     {
       "creation_contracts": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16559,13 +16490,11 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_create",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_create"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16574,24 +16503,21 @@
       "state_key_or_namespace": "label",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ]
     },
     {
       "creation_contracts": [
         "TX-1704",
         "TX-1705",
-        "TX-1706",
-        "TX-1714"
+        "TX-1706"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16604,15 +16530,13 @@
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_membership_decide",
         "src/weall/runtime/apply/groups.py#_apply_group_membership_remove",
-        "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_membership_request"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1704",
         "TX-1705",
-        "TX-1706",
-        "TX-1714"
+        "TX-1706"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16623,8 +16547,7 @@
       "transition_contracts": [
         "TX-1704",
         "TX-1705",
-        "TX-1706",
-        "TX-1714"
+        "TX-1706"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -16633,15 +16556,13 @@
       "writes_by": [
         "TX-1704",
         "TX-1705",
-        "TX-1706",
-        "TX-1714"
+        "TX-1706"
       ]
     },
     {
       "creation_contracts": [
         "TX-1700",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16653,13 +16574,11 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_create",
-        "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_membership_request"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16669,8 +16588,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-1700",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -16678,15 +16596,13 @@
       ],
       "writes_by": [
         "TX-1700",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ]
     },
     {
       "creation_contracts": [
         "TX-1704",
-        "TX-1705",
-        "TX-1714"
+        "TX-1705"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16698,14 +16614,12 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_membership_decide",
-        "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_membership_request"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1704",
-        "TX-1705",
-        "TX-1714"
+        "TX-1705"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16715,8 +16629,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-1704",
-        "TX-1705",
-        "TX-1714"
+        "TX-1705"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -16724,15 +16637,13 @@
       ],
       "writes_by": [
         "TX-1704",
-        "TX-1705",
-        "TX-1714"
+        "TX-1705"
       ]
     },
     {
       "creation_contracts": [
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16744,13 +16655,11 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
-        "src/weall/runtime/apply/groups.py#_apply_group_update",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_update"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16760,8 +16669,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -16769,13 +16677,11 @@
       ],
       "writes_by": [
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-2506"
       ],
       "domain": "Groups",
@@ -16787,12 +16693,10 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_moderators_set",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_moderators_set"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-2506"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -16802,7 +16706,6 @@
       "state_key_or_namespace": "moderators",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-2506"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -16810,7 +16713,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-2506"
       ]
     },
@@ -16827,8 +16729,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16845,8 +16746,7 @@
     },
     {
       "creation_contracts": [
-        "TX-1701",
-        "TX-1714"
+        "TX-1701"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16857,8 +16757,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_update",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_update"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -16869,16 +16768,14 @@
       "state_key_or_namespace": "permissions",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1701",
-        "TX-1714"
+        "TX-1701"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1701",
-        "TX-1714"
+        "TX-1701"
       ]
     },
     {
@@ -16894,8 +16791,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1708",
-        "TX-1714"
+        "TX-1708"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16923,7 +16819,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1716"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -16943,8 +16838,7 @@
       "creation_contracts": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16957,8 +16851,7 @@
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_create",
         "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
-        "src/weall/runtime/apply/groups.py#_apply_group_update",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_update"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -16971,8 +16864,7 @@
       "transition_contracts": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -16981,8 +16873,7 @@
       "writes_by": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ]
     },
     {
@@ -16998,7 +16889,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1716",
         "TX-1717"
       ],
@@ -17019,8 +16909,7 @@
       "creation_contracts": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17033,8 +16922,7 @@
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_create",
         "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
-        "src/weall/runtime/apply/groups.py#_apply_group_update",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_update"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -17047,8 +16935,7 @@
       "transition_contracts": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -17057,8 +16944,7 @@
       "writes_by": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ]
     },
     {
@@ -17074,7 +16960,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1716"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -17103,8 +16988,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1705",
-        "TX-1714"
+        "TX-1705"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17122,7 +17006,6 @@
     {
       "creation_contracts": [
         "TX-1700",
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -17135,13 +17018,11 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_create",
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1700",
-        "TX-1714"
+        "TX-1700"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17151,7 +17032,6 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-1700",
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -17160,7 +17040,6 @@
       ],
       "writes_by": [
         "TX-1700",
-        "TX-1714",
         "TX-1717"
       ]
     },
@@ -17178,8 +17057,7 @@
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1702",
-        "TX-1703",
-        "TX-1714"
+        "TX-1703"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17230,10 +17108,10 @@
         "src/weall/runtime/apply/groups.py#_apply_group_role_grant",
         "src/weall/runtime/apply/groups.py#_apply_group_role_revoke",
         "src/weall/runtime/apply/groups.py#_apply_group_signers_set",
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_audit_anchor_set",
         "src/weall/runtime/apply/groups.py#_apply_group_treasury_policy_set",
         "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_propose",
-        "src/weall/runtime/apply/groups.py#_apply_group_update",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_update"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
@@ -17308,7 +17186,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1715",
         "TX-1717"
       ],
@@ -17327,8 +17204,7 @@
     },
     {
       "creation_contracts": [
-        "TX-1710",
-        "TX-1714"
+        "TX-1710"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17339,14 +17215,12 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_sign",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_sign"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1710",
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17355,21 +17229,18 @@
       "state_key_or_namespace": "signatures",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1710",
-        "TX-1714"
+        "TX-1710"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1710",
-        "TX-1714"
+        "TX-1710"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717",
         "TX-2505"
       ],
@@ -17383,13 +17254,11 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#_apply_group_signers_set",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_signers_set"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1709",
-        "TX-1714",
         "TX-2505"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -17399,7 +17268,6 @@
       "state_key_or_namespace": "signers",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717",
         "TX-2505"
       ],
@@ -17408,7 +17276,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717",
         "TX-2505"
       ]
@@ -17432,7 +17299,6 @@
         "TX-1711",
         "TX-1712",
         "TX-1713",
-        "TX-1714",
         "TX-2505"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -17461,7 +17327,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1715",
         "TX-1716"
       ],
@@ -17483,7 +17348,6 @@
         "TX-1711",
         "TX-1712",
         "TX-1713",
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -17498,8 +17362,7 @@
         "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
         "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_cancel",
         "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute",
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_expire",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_expire"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
@@ -17508,7 +17371,6 @@
         "TX-1711",
         "TX-1712",
         "TX-1713",
-        "TX-1714",
         "TX-1716",
         "TX-1717",
         "TX-2505"
@@ -17523,7 +17385,6 @@
         "TX-1711",
         "TX-1712",
         "TX-1713",
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -17534,7 +17395,6 @@
         "TX-1711",
         "TX-1712",
         "TX-1713",
-        "TX-1714",
         "TX-1717"
       ]
     },
@@ -17551,7 +17411,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1716"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -17569,7 +17428,6 @@
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717",
         "TX-2505"
       ],
@@ -17583,14 +17441,12 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#_apply_group_signers_set",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_signers_set"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1709",
         "TX-1713",
-        "TX-1714",
         "TX-2505"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -17600,7 +17456,6 @@
       "state_key_or_namespace": "threshold",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717",
         "TX-2505"
       ],
@@ -17609,7 +17464,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717",
         "TX-2505"
       ]
@@ -17628,8 +17482,7 @@
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1709",
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17646,8 +17499,7 @@
     },
     {
       "creation_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17658,8 +17510,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -17670,22 +17521,19 @@
       "state_key_or_namespace": "transferred_amount",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17696,8 +17544,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -17708,21 +17555,18 @@
       "state_key_or_namespace": "transferred_to",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -17734,13 +17578,11 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
         "TX-1700",
-        "TX-1714",
         "TX-1717"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -17750,7 +17592,6 @@
       "state_key_or_namespace": "treasuries_by_id",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -17758,13 +17599,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1713",
         "TX-1714"
       ],
       "domain": "Groups",
@@ -17776,8 +17615,43 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_audit_anchor_set"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-1714"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-E12E9CCF4BCA3242",
+      "state_key_or_namespace": "treasury_audit_anchors",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1714"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1714"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-1713"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_spend_execute"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -17788,16 +17662,14 @@
       "state_key_or_namespace": "treasury_balance_after",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ]
     },
     {
@@ -17835,8 +17707,7 @@
     },
     {
       "creation_contracts": [
-        "TX-1708",
-        "TX-1714"
+        "TX-1708"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17847,8 +17718,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_policy_set",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_policy_set"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -17859,22 +17729,19 @@
       "state_key_or_namespace": "treasury_policy",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1708",
-        "TX-1714"
+        "TX-1708"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1708",
-        "TX-1714"
+        "TX-1708"
       ]
     },
     {
       "creation_contracts": [
-        "TX-1708",
-        "TX-1714"
+        "TX-1708"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17885,8 +17752,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_treasury_policy_set",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_treasury_policy_set"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -17897,16 +17763,14 @@
       "state_key_or_namespace": "treasury_policy_set_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1708",
-        "TX-1714"
+        "TX-1708"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1708",
-        "TX-1714"
+        "TX-1708"
       ]
     },
     {
@@ -17924,8 +17788,7 @@
       "reads_by": [
         "TX-1700",
         "TX-1707",
-        "TX-1713",
-        "TX-1714"
+        "TX-1713"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17944,8 +17807,7 @@
       "creation_contracts": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17958,8 +17820,7 @@
       "mutators": [
         "src/weall/runtime/apply/groups.py#_apply_group_create",
         "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
-        "src/weall/runtime/apply/groups.py#_apply_group_update",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_update"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [],
@@ -17972,8 +17833,7 @@
       "transition_contracts": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -17982,8 +17842,7 @@
       "writes_by": [
         "TX-1700",
         "TX-1701",
-        "TX-1704",
-        "TX-1714"
+        "TX-1704"
       ]
     },
     {
@@ -17999,7 +17858,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1716"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -18053,7 +17911,6 @@
     },
     {
       "creation_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "domain": "Groups",
@@ -18065,12 +17922,10 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize",
-        "src/weall/runtime/apply/groups.py#apply_groups"
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
       ],
       "primary_mechanism_id": "M-039",
       "reads_by": [
-        "TX-1714",
         "TX-1717"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -18080,7 +17935,6 @@
       "state_key_or_namespace": "winners",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1714",
         "TX-1717"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -18088,7 +17942,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1714",
         "TX-1717"
       ]
     },
@@ -43051,11 +42904,13 @@
       "mutators": [],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-2504"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/roles.py",
+      "source": "src/weall/runtime/apply/treasury.py",
       "stable_id": "STATE-BBA683FCEAF42CD2",
       "state_key_or_namespace": "require_emissary_signers",
       "status": "current_partial",
@@ -43446,6 +43301,8 @@
       "mutators": [],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-0508",
         "TX-2504"
       ],
@@ -43621,12 +43478,14 @@
       ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-2503",
         "TX-2504"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/roles.py",
+      "source": "src/weall/runtime/apply/treasury.py",
       "stable_id": "STATE-137370A4D288194F",
       "state_key_or_namespace": "treasuries_by_id",
       "status": "current_partial",

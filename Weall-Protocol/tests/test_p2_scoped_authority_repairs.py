@@ -9,7 +9,9 @@ from weall.runtime.node_operator_responsibilities import evaluate_helper_respons
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, payload: dict, *, nonce: int = 1, system: bool = False) -> TxEnvelope:
+def _env(
+    tx_type: str, signer: str, payload: dict, *, nonce: int = 1, system: bool = False
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -95,7 +97,11 @@ def _treasury_state(*, signers: list[str], threshold: int = 1) -> dict:
         "treasury_wallets": {"T": {"wallet_id": "T", "balance": 100, "signers": list(signers)}},
         "roles": {
             "treasuries_by_id": {
-                "T": {"signers": list(signers), "threshold": threshold, "require_emissary_signers": False}
+                "T": {
+                    "signers": list(signers),
+                    "threshold": threshold,
+                    "require_emissary_signers": False,
+                }
             }
         },
     }
@@ -131,7 +137,9 @@ def test_p2_treas002_remove_cannot_make_threshold_impossible() -> None:
     with pytest.raises(TreasuryApplyError) as ei:
         apply_treasury(
             state,
-            _env("TREASURY_SIGNER_REMOVE", "SYSTEM", {"wallet_id": "T", "signer": "@a"}, system=True),
+            _env(
+                "TREASURY_SIGNER_REMOVE", "SYSTEM", {"wallet_id": "T", "signer": "@a"}, system=True
+            ),
         )
     assert ei.value.reason == "signer_removal_would_break_threshold"
     assert state["roles"]["treasuries_by_id"]["T"]["signers"] == ["@a", "@b"]
