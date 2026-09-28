@@ -1,0 +1,168 @@
+name: Temporary CI repair 20260928
+
+on:
+  push:
+    branches:
+      - chatgpt-p2-final-source-repair-20260928
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chatgpt-ci-repair-20260928
+  cancel-in-progress: false
+
+jobs:
+  repair-validate-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout helper branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Pin audited PR head
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git fetch origin p2-complete-remediation-20260927 --no-tags
+          test "$(git rev-parse origin/p2-complete-remediation-20260927)" = "01bdffdfbcd05da0cf8d4dfb68e35b94b4440e85"
+          git checkout --detach 01bdffdfbcd05da0cf8d4dfb68e35b94b4440e85
+          test "$(git rev-parse 'HEAD^{tree}')" = "73c66505efbbe605085a1a503f32d26e1b0f2752"
+          test -z "$(git status --porcelain)"
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+
+      - name: Repair compiler discovery and Ruff formatting
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('Weall-Protocol/src/weall/runtime/system_tx_engine.py')
+          text = path.read_text(encoding='utf-8')
+          old = '_system_queue_item_envelope'
+          new = '_materialize_system_queue_item'
+          count = text.count(old)
+          if count != 2:
+              raise SystemExit(f'expected exactly 2 {old} occurrences, found {count}')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+
+          cd Weall-Protocol
+          mapfile -t PY_FILES < <(
+            git -C .. diff --name-only --diff-filter=ACMR a555892cdec04bec85961af843bec75713b44fc7...HEAD \
+              | awk '/^Weall-Protocol\/.*\.py$/ {sub(/^Weall-Protocol\//, ""); print}'
+          )
+          ruff format "${PY_FILES[@]}"
+          ruff format --check "${PY_FILES[@]}"
+          ruff check "${PY_FILES[@]}"
+          cd ..
+          git diff --check
+
+      - name: Focused P2 regression proof
+        working-directory: Weall-Protocol
+        env:
+          PYTHONPATH: ${{ github.workspace }}/Weall-Protocol/src
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          pytest -q \
+            tests/test_p2_final_source_closure.py \
+            tests/test_bft_canonical_finality_bridge.py \
+            tests/test_reputation_matrix_completion_v1_5.py \
+            tests/test_system_tx_scheduler_binding.py
+
+      - name: Regenerate v2 derivatives once
+        working-directory: Weall-Protocol
+        env:
+          PYTHONPATH: ${{ github.workspace }}/Weall-Protocol/src
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/compile_v2_spec.py
+
+      - name: Verify generated and claim surfaces
+        working-directory: Weall-Protocol
+        env:
+          PYTHONPATH: ${{ github.workspace }}/Weall-Protocol/src
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_generated.py
+          python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Restore historical M2/M3 evidence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
+
+      - name: Full locked backend suite
+        working-directory: Weall-Protocol
+        env:
+          PYTHONPATH: ${{ github.workspace }}/Weall-Protocol/src
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          pytest -q
+
+      - name: Verify repair scope and push
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          python - <<'PY'
+          import subprocess
+          allowed_exact = {
+              'Weall-Protocol/src/weall/runtime/system_tx_engine.py',
+              'Weall-Protocol/src/weall/runtime/block_replay.py',
+              'Weall-Protocol/tests/test_p2_final_source_closure.py',
+              'web/src/generated/protocolStatus.ts',
+          }
+          changed = subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines()
+          unexpected = [
+              p for p in changed
+              if p not in allowed_exact and not p.startswith('Weall-Protocol/generated/v2/')
+          ]
+          if unexpected:
+              raise SystemExit(f'unexpected tracked repair scope: {unexpected}')
+          if 'Weall-Protocol/src/weall/runtime/system_tx_engine.py' not in changed:
+              raise SystemExit('system_tx_engine.py repair missing')
+          print('tracked repair scope:', *changed, sep='\n  ')
+          PY
+
+          git config user.name "weall-repair-bot"
+          git config user.email "weall-repair-bot@users.noreply.github.com"
+          git add -- \
+            Weall-Protocol/src/weall/runtime/system_tx_engine.py \
+            Weall-Protocol/src/weall/runtime/block_replay.py \
+            Weall-Protocol/tests/test_p2_final_source_closure.py \
+            Weall-Protocol/generated/v2 \
+            web/src/generated/protocolStatus.ts
+          git diff --cached --check
+          test -n "$(git diff --cached --name-only)"
+          git commit -m "CI: repair P2 formatting and refresh v2 derivatives"
+          NEW_SHA="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "01bdffdfbcd05da0cf8d4dfb68e35b94b4440e85"
+          git fetch origin p2-complete-remediation-20260927 --no-tags
+          test "$(git rev-parse origin/p2-complete-remediation-20260927)" = "01bdffdfbcd05da0cf8d4dfb68e35b94b4440e85"
+          git push origin "HEAD:refs/heads/p2-complete-remediation-20260927"
+          echo "Pushed CI repair commit: ${NEW_SHA}"
