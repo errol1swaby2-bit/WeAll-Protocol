@@ -14,8 +14,18 @@ from weall.runtime.helper_merge import verify_materialized_lane_result
 
 def main() -> None:
     txs = [
-        {"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
-        {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},
+        {
+            "tx_id": "c1",
+            "tx_type": "CONTENT_CREATE",
+            "post_id": "1",
+            "state_prefixes": ["content:post:1"],
+        },
+        {
+            "tx_id": "i1",
+            "tx_type": "IDENTITY_UPDATE",
+            "account_id": "alice",
+            "state_prefixes": ["identity:user:alice"],
+        },
     ]
     lane_plans, plan_id = lane_setup(txs=txs)
     helper_lanes = tuple(
@@ -51,6 +61,8 @@ def main() -> None:
                 "verification_code": status.code,
             }
         )
+        if not status.ok:
+            raise SystemExit(f"unexpected_verifier_rejection:{lane.lane_id}:{status.code}")
 
 
 if __name__ == "__main__":
