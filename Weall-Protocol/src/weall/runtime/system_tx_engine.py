@@ -851,7 +851,7 @@ def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[Syst
     ]
 
 
-def _system_queue_item_envelope(state: Json, item: SystemQueueItem) -> TxEnvelope:
+def _materialize_system_queue_item(state: Json, item: SystemQueueItem) -> TxEnvelope:
     payload = dict(item.payload or {})
     payload.setdefault("_due_height", int(item.due_height))
     payload.setdefault("_system_queue_id", item.queue_id)
@@ -880,7 +880,7 @@ def _system_queue_item_envelope(state: Json, item: SystemQueueItem) -> TxEnvelop
     )
 
 
-def bind_due_same_block_system_lineage(
+def bind_same_block_system_lineage(
     state: Json,
     canon: Any,
     *,
@@ -913,9 +913,7 @@ def bind_due_same_block_system_lineage(
             phase=str(phase),
         )
     except Exception as exc:
-        raise SystemSchedulerError(
-            f"block_rewards_schedule_failed:{type(exc).__name__}"
-        ) from exc
+        raise SystemSchedulerError(f"block_rewards_schedule_failed:{type(exc).__name__}") from exc
 
     root = _queue_root(state)
     due_items = _select_due_items_with_indexes(
@@ -973,7 +971,7 @@ def bind_due_same_block_system_lineage(
                 item = SystemQueueItem.from_ledger_obj(root[int(queue_idx)])
                 rebound += 1
 
-        env = _system_queue_item_envelope(state, item)
+        env = _materialize_system_queue_item(state, item)
         tx_id = compute_tx_id_from_envelope(str(chain_id), env)
         current = env.to_json()
         current["tx_id"] = tx_id
@@ -1184,7 +1182,7 @@ __all__ = [
     "BLOCK_FINALIZE_TX_TYPE",
     "EPOCH_FINALITY_SINGLE_TX_CHILDREN",
     "LINEAGE_WITNESS_PAYLOAD_KEY",
-    "bind_due_same_block_system_lineage",
+    "bind_same_block_system_lineage",
     "bind_new_same_block_single_tx_children",
     "build_system_queue_lookup",
     "confirm_system_tx_emitted",

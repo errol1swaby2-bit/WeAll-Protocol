@@ -11,7 +11,7 @@ from weall.runtime.reputation_events import (
 )
 from weall.runtime.system_tx_engine import (
     LINEAGE_WITNESS_PAYLOAD_KEY,
-    bind_due_same_block_system_lineage,
+    bind_same_block_system_lineage,
     enqueue_system_tx,
     system_tx_emitter,
     validate_same_block_single_tx_lineage,
@@ -58,7 +58,7 @@ def test_p2_cons_006_and_econ_001_live_reward_chain_gets_exact_parent_witnesses(
         "payload": {"block_id": "B1", "height": 1},
     }
 
-    rebound = bind_due_same_block_system_lineage(
+    rebound = bind_same_block_system_lineage(
         state,
         idx,
         next_height=30,
@@ -102,9 +102,7 @@ def test_p2_cons_006_and_econ_001_live_reward_chain_gets_exact_parent_witnesses(
 
     mint_json = mint.to_json()
     mint_json["tx_id"] = mint_id
-    assert validate_same_block_single_tx_lineage(
-        idx, mint, prior_txs=[finalize]
-    ) == (True, "")
+    assert validate_same_block_single_tx_lineage(idx, mint, prior_txs=[finalize]) == (True, "")
     assert validate_same_block_single_tx_lineage(
         idx, distribute, prior_txs=[finalize, mint_json]
     ) == (True, "")
@@ -140,7 +138,7 @@ def test_p2_econ_001_dormant_allocation_receipts_bind_to_exact_finalize_parent()
         phase="post",
     )
 
-    rebound = bind_due_same_block_system_lineage(
+    rebound = bind_same_block_system_lineage(
         state,
         idx,
         next_height=30,
@@ -224,7 +222,10 @@ def test_p2_rep_002_reversal_of_reversal_reactivates_original_semantics() -> Non
     )
     eligibility = derive_role_eligibility(state, "@validator")
     assert eligibility["validator_operator"]["eligible"] is False
-    assert "disqualifying_event:VALIDATOR_INVALID_BLOCK" in eligibility["validator_operator"]["reasons"]
+    assert (
+        "disqualifying_event:VALIDATOR_INVALID_BLOCK"
+        in eligibility["validator_operator"]["reasons"]
+    )
 
 
 def test_p2_rep_003_unparameterized_decay_and_farming_are_truthfully_inactive() -> None:

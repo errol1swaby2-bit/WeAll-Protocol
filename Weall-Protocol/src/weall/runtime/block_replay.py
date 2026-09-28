@@ -58,8 +58,8 @@ from weall.runtime.scheduler_pipeline import (
 from weall.runtime.system_tx_engine import (
     BLOCK_FINALIZE_TX_TYPE,
     EPOCH_FINALITY_SINGLE_TX_CHILDREN,
-    bind_due_same_block_system_lineage,
     bind_new_same_block_single_tx_children,
+    bind_same_block_system_lineage,
     build_system_queue_lookup,
     validate_same_block_single_tx_lineage,
 )
@@ -347,7 +347,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         # inserts them into the received block. Canon-driven lineage preparation
         # runs first so expected queue IDs commit to the same exact parent
         # instances as leader construction.
-        bind_due_same_block_system_lineage(
+        bind_same_block_system_lineage(
             working,
             self.tx_index,
             next_height=next_height,
@@ -543,13 +543,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                     block_id="",
                 )
         try:
-            post_prior_txs = (
-                txs[:post_system_start] if post_system_start is not None else txs
-            )
+            post_prior_txs = txs[:post_system_start] if post_system_start is not None else txs
             expected_post_queue_ids = _emitted_queue_ids(
-                _run_system_emitter_side_effects(
-                    "post", prior_txs_for_lineage=list(post_prior_txs)
-                )
+                _run_system_emitter_side_effects("post", prior_txs_for_lineage=list(post_prior_txs))
             )
         except Exception as exc:
             if _consensus_fail_closed():

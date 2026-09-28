@@ -107,7 +107,10 @@
   ],
   "reducer": {
     "appeal_model": "append_reversal_events_no_delete_no_mutate_original",
+    "decay_policy_enforcement": "metadata_only_not_runtime_enforced",
     "dimension_isolation": true,
+    "eligibility_reversal_model": "active_reversal_cancels_target; reversed_reversal_reactivates_target",
+    "farming_policy_enforcement": "metadata_only_not_runtime_enforced",
     "integer_milli_units": true,
     "ordered_by": [
       "occurred_at_block",

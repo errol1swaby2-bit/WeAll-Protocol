@@ -64,8 +64,8 @@ from weall.runtime.scheduler_pipeline import (
 from weall.runtime.system_tx_engine import (
     BLOCK_FINALIZE_TX_TYPE,
     EPOCH_FINALITY_SINGLE_TX_CHILDREN,
-    bind_due_same_block_system_lineage,
     bind_new_same_block_single_tx_children,
+    bind_same_block_system_lineage,
     build_system_queue_lookup,
     validate_same_block_single_tx_lineage,
 )
@@ -395,7 +395,7 @@ def build_block_candidate(
     # Phase: system emitter pre. These side effects also feed state_root and
     # must not be swallowed during local proposal construction in production.
     try:
-        bind_due_same_block_system_lineage(
+        bind_same_block_system_lineage(
             working,
             self.tx_index,
             next_height=next_height,
@@ -619,7 +619,7 @@ def build_block_candidate(
 
     # Phase: system emitter post. Same fail-closed rule in production.
     try:
-        bind_due_same_block_system_lineage(
+        bind_same_block_system_lineage(
             working,
             self.tx_index,
             next_height=next_height,

@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f64dc65b73ea86dab3319c2990ec8d26280aa175e5bba73c99495f1248d92559"
+    "source_tree_digest": "802d6f518b595c15a8fc65c674455b378b59076960a6742e2cedd821ceae3d0f"
   },
   "required_fields": [
     "stable_id",
@@ -14132,6 +14132,7 @@
         "tests/test_bft_canonical_finality_bridge.py",
         "tests/test_epoch_blocks_per_epoch.py",
         "tests/test_lineage_witness_contract.py",
+        "tests/test_p2_final_source_closure.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_system_tx_post_phase_parity.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
@@ -14966,6 +14967,7 @@
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_p2_final_source_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_v15_epoch_issuance_scheduler.py"
@@ -15111,6 +15113,7 @@
       "tests": [
         "tests/test_bft_reward_proposer_binding.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_p2_final_source_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_v15_epoch_issuance_scheduler.py",
@@ -15243,6 +15246,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_final_source_closure.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "CREATOR_REWARD_ALLOCATE",
@@ -15372,6 +15376,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_final_source_closure.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "TREASURY_REWARD_ALLOCATE",
