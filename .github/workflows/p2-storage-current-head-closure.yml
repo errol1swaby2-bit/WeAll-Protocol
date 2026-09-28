@@ -1,0 +1,271 @@
+name: P2 Storage Current-Head Closure
+
+on:
+  push:
+    branches: ["p2-complete-remediation-20260927"]
+    paths:
+      - ".github/workflows/p2-storage-current-head-closure.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p2-storage-current-head-closure
+  cancel-in-progress: false
+
+jobs:
+  close-storage-p2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact trigger branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p2-complete-remediation-20260927
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify exact helper-closed preimage and extract audited storage patch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD^)" = "02d3fb659c71f7dbb243500916b84c4c685af56e"
+          test "$(git hash-object Weall-Protocol/src/weall/runtime/tx_schema.py)" = "5c9f1d87e0ae8ef43b853c682f897d739970fd80"
+          test "$(git hash-object Weall-Protocol/src/weall/runtime/apply/storage.py)" = "d6f73a52461d8ab38fb1919c22066b253668b894"
+          test "$(git hash-object Weall-Protocol/src/weall/runtime/scheduler_pipeline.py)" = "77cc982ed918de7cda461b90be455390be2708bf"
+          test "$(git hash-object Weall-Protocol/scripts/rehearse_storage_operator_durability_v1_5.py)" = "c5c4a166328abf27aea72fd0dafba16e5177c994"
+          git show origin/p2-storage-closure-20260927:.github/ci-p2-storage-closure.py > /tmp/p2_storage_patch.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/p2_storage_patch.py')
+          text = path.read_text(encoding='utf-8')
+          old = 'ROOT = Path(__file__).resolve().parents[1]'
+          new = 'ROOT = Path(os.environ["GITHUB_WORKSPACE"]).resolve()'
+          if text.count(old) != 1:
+              raise SystemExit(f'unexpected storage patch ROOT binding count: {text.count(old)}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          python -m py_compile /tmp/p2_storage_patch.py
+
+      - name: Install locked backend tooling
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Remove one-shot workflow before final source changes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/p2-storage-current-head-closure.yml
+          git add -u .github/workflows/p2-storage-current-head-closure.yml
+
+      - name: Apply audited storage patch and register deterministic storage state identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+
+          workspace = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          proto = workspace / 'Weall-Protocol'
+
+          spec = importlib.util.spec_from_file_location('p2_storage_patch', '/tmp/p2_storage_patch.py')
+          if spec is None or spec.loader is None:
+              raise SystemExit('unable to load audited storage patch')
+          patch = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(patch)
+
+          patch.patch_schema()
+          patch.patch_storage_runtime()
+          patch.patch_scheduler()
+          patch.patch_rehearsal()
+          patch.write_tests()
+
+          stable_path = proto / 'specs/v2/source/stable_ids.json'
+          payload = json.loads(stable_path.read_text(encoding='utf-8'))
+          entries = payload.get('entries')
+          if not isinstance(entries, list):
+              raise SystemExit('stable_ids.json entries must be a list')
+
+          canonical_key = 'Storage:<add:dynamic>'
+          expected = 'STATE-' + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
+          if expected != 'STATE-DA4033015ABB99C7':
+              raise SystemExit(f'unexpected deterministic storage state ID: {expected}')
+
+          by_key = {
+              (str(row.get('kind') or ''), str(row.get('canonical_key') or '')): row
+              for row in entries
+              if isinstance(row, dict)
+          }
+          ids = {str(row.get('stable_id') or '') for row in entries if isinstance(row, dict)}
+          existing = by_key.get(('state', canonical_key))
+          if existing is not None:
+              actual = str(existing.get('stable_id') or '')
+              if actual != expected:
+                  raise SystemExit(
+                      f'existing storage state stable ID mismatch: expected {expected}, found {actual}'
+                  )
+          else:
+              if expected in ids:
+                  raise SystemExit(f'stable ID collision for {canonical_key}: {expected}')
+              entries.append(
+                  {
+                      'aliases': [],
+                      'canonical_key': canonical_key,
+                      'kind': 'state',
+                      'stable_id': expected,
+                      'status': 'active',
+                  }
+              )
+              entries.sort(key=lambda row: str(row.get('stable_id') or ''))
+              stable_path.write_text(
+                  json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
+              )
+          PY
+
+      - name: Format, lint, and canon-check storage changes
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          FILES="src/weall/runtime/tx_schema.py src/weall/runtime/apply/storage.py src/weall/runtime/scheduler_pipeline.py scripts/rehearse_storage_operator_durability_v1_5.py tests/test_p2_storage_closure.py"
+          ruff format $FILES
+          ruff check --fix $FILES
+          ruff format $FILES
+          ruff check $FILES
+          python -m tooling.canon_lint
+
+      - name: Run focused P2 storage proof
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          pytest -q tests/test_p2_storage_closure.py
+          PYTHONPATH=src:scripts python scripts/rehearse_storage_operator_durability_v1_5.py --json
+
+      - name: Refresh explicit storage semantic reviews and failure identities
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src:scripts python scripts/refresh_v2_semantic_reviews.py \
+            --tx-type IPFS_PIN_CONFIRM \
+            --tx-type STORAGE_LEASE_CREATE \
+            --tx-type STORAGE_LEASE_RENEW \
+            --tx-type STORAGE_LEASE_REVOKE \
+            --tx-type STORAGE_PROOF_SUBMIT \
+            --reviewer "WeAll Protocol P2 audit remediation; independent launch review deferred" \
+            --review-method confirmed_audit_finding_repair_with_adversarial_regression \
+            --register-failure invalid_state:offer_missing_operator_id \
+            --register-failure forbidden:lease_not_active \
+            --register-failure forbidden:lease_expired \
+            --register-failure not_found:pin_not_found \
+            --register-failure invalid_state:pin_missing_cid \
+            --register-failure invalid_payload:pin_cid_mismatch \
+            --register-failure invalid_payload:missing_operator_id \
+            --register-failure forbidden:pin_confirm_operator_not_current_target
+
+      - name: Refresh dependent deterministic evidence in final-tree order
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b534_b538_completion_proof_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py --check
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Verify generated freshness and claim hygiene
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_generated.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          git diff --check
+
+      - name: Run full locked backend suite
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          pytest -q
+
+      - name: Create exact storage closure commit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Close P2 storage lifecycle and contract invariants"
+          test -z "$(git status --porcelain)"
+
+      - name: Verify clean checkout of exact storage closure commit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          CLOSURE_SHA="$(git rev-parse HEAD)"
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          git clone --no-local "${GITHUB_WORKSPACE}" "$TMP/repo"
+          cd "$TMP/repo"
+          git checkout --detach "$CLOSURE_SHA"
+          test ! -e .github/workflows/p2-storage-current-head-closure.yml
+          cd Weall-Protocol
+          python -m pip install -e . --no-deps >/dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows = json.loads(Path('specs/v2/source/stable_ids.json').read_text())['entries']
+          hits = [row for row in rows if row.get('kind') == 'state' and row.get('canonical_key') == 'Storage:<add:dynamic>']
+          assert len(hits) == 1
+          assert hits[0]['stable_id'] == 'STATE-DA4033015ABB99C7'
+          PY
+          pytest -q tests/test_p2_storage_closure.py
+          PYTHONPATH=src:scripts python scripts/rehearse_storage_operator_durability_v1_5.py --json >/dev/null
+          PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Push only verified storage closure commit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          REMOTE_SHA="$(git ls-remote origin refs/heads/p2-complete-remediation-20260927 | awk '{print $1}')"
+          test "$REMOTE_SHA" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/p2-complete-remediation-20260927
