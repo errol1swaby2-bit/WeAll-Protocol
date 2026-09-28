@@ -52,14 +52,40 @@ jobs:
           set -Eeuo pipefail
           python - <<'PY'
           from pathlib import Path
-          path = Path('Weall-Protocol/src/weall/runtime/system_tx_engine.py')
-          text = path.read_text(encoding='utf-8')
+
+          engine = Path('Weall-Protocol/src/weall/runtime/system_tx_engine.py')
+          text = engine.read_text(encoding='utf-8')
           old = '_system_queue_item_envelope'
           new = '_materialize_system_queue_item'
           count = text.count(old)
           if count != 2:
               raise SystemExit(f'expected exactly 2 {old} occurrences, found {count}')
-          path.write_text(text.replace(old, new), encoding='utf-8')
+          engine.write_text(text.replace(old, new), encoding='utf-8')
+
+          old = 'bind_due_same_block_system_lineage'
+          new = 'bind_same_block_system_lineage'
+          roots = [Path('Weall-Protocol/src'), Path('Weall-Protocol/tests')]
+          changed = []
+          total = 0
+          for root in roots:
+              for path in root.rglob('*.py'):
+                  text = path.read_text(encoding='utf-8')
+                  n = text.count(old)
+                  if not n:
+                      continue
+                  total += n
+                  path.write_text(text.replace(old, new), encoding='utf-8')
+                  changed.append((path.as_posix(), n))
+          if total < 4:
+              raise SystemExit(f'expected multiple {old} references, found only {total}: {changed}')
+          leftovers = []
+          for root in roots:
+              for path in root.rglob('*.py'):
+                  if old in path.read_text(encoding='utf-8'):
+                      leftovers.append(path.as_posix())
+          if leftovers:
+              raise SystemExit(f'old lineage-helper name remains: {leftovers}')
+          print(f'renamed {old} -> {new} across {total} references: {changed}')
           PY
 
           cd Weall-Protocol
@@ -105,6 +131,7 @@ jobs:
           python scripts/check_generated.py
           python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_api_contract_map.py --check
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
@@ -132,8 +159,9 @@ jobs:
           python - <<'PY'
           import subprocess
           allowed_exact = {
-              'Weall-Protocol/src/weall/runtime/system_tx_engine.py',
+              'Weall-Protocol/src/weall/runtime/block_builder.py',
               'Weall-Protocol/src/weall/runtime/block_replay.py',
+              'Weall-Protocol/src/weall/runtime/system_tx_engine.py',
               'Weall-Protocol/tests/test_p2_final_source_closure.py',
               'web/src/generated/protocolStatus.ts',
           }
@@ -144,8 +172,13 @@ jobs:
           ]
           if unexpected:
               raise SystemExit(f'unexpected tracked repair scope: {unexpected}')
-          if 'Weall-Protocol/src/weall/runtime/system_tx_engine.py' not in changed:
-              raise SystemExit('system_tx_engine.py repair missing')
+          for required in (
+              'Weall-Protocol/src/weall/runtime/system_tx_engine.py',
+              'Weall-Protocol/src/weall/runtime/block_builder.py',
+              'Weall-Protocol/src/weall/runtime/block_replay.py',
+          ):
+              if required not in changed:
+                  raise SystemExit(f'required repair file missing from diff: {required}')
           print('tracked repair scope:', *changed, sep='\n  ')
           PY
 
@@ -153,13 +186,14 @@ jobs:
           git config user.email "weall-repair-bot@users.noreply.github.com"
           git add -- \
             Weall-Protocol/src/weall/runtime/system_tx_engine.py \
+            Weall-Protocol/src/weall/runtime/block_builder.py \
             Weall-Protocol/src/weall/runtime/block_replay.py \
             Weall-Protocol/tests/test_p2_final_source_closure.py \
             Weall-Protocol/generated/v2 \
             web/src/generated/protocolStatus.ts
           git diff --cached --check
           test -n "$(git diff --cached --name-only)"
-          git commit -m "CI: repair P2 formatting and refresh v2 derivatives"
+          git commit -m "CI: repair P2 discovery formatting and refresh v2 derivatives"
           NEW_SHA="$(git rev-parse HEAD)"
           test "$(git rev-parse HEAD^)" = "01bdffdfbcd05da0cf8d4dfb68e35b94b4440e85"
           git fetch origin p2-complete-remediation-20260927 --no-tags
