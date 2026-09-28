@@ -1,0 +1,50 @@
+name: Repair P2 Fully API Storage Fixture
+
+on:
+  push:
+    branches:
+      - p2-complete-remediation-20260927
+    paths:
+      - .github/workflows/p2-fully-api-fixture-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p2-complete-remediation-20260927
+      - name: Guard preimage
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git hash-object Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py)" = "3714d1b49acd64f79880b8e0720e753367909138"
+      - name: Patch fully API lifecycle fixture
+        shell: bash
+        env:
+          PATCH_B64: "ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpwYXRoID0gUGF0aCgiV2VhbGwtUHJvdG9jb2wvc2NyaXB0cy9yZWhlYXJzZV9mdWxseV9hcGlfZHJpdmVuX3YxNV9saWZlY3ljbGUucHkiKQp0ZXh0ID0gcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKb2xkID0gJyAgICBhcHBseV9zdG9yYWdlKFxuICAgICAgICBzdGF0ZSxcbiAgICAgICAgX2VudihcbiAgICAgICAgICAgICJJUEZTX1BJTl9SRVFVRVNUIixcbiAgICAgICAgICAgICJTWVNURU0iLFxuICAgICAgICAgICAgNzIsXG4gICAgICAgICAgICB7InBpbl9pZCI6ICJwaW4tMSIsICJjaWQiOiBjaWQsICJzaXplX2J5dGVzIjogMTAsICJyZXBsaWNhdGlvbl9mYWN0b3IiOiAxfSxcbiAgICAgICAgICAgIHN5c3RlbT1UcnVlLFxuICAgICAgICAgICAgcGFyZW50PSJzdG9yYWdlIixcbiAgICAgICAgKSxcbiAgICApXG4gICAgZmFpbGVkID0gYXBwbHlfc3RvcmFnZShcbiAgICAgICAgc3RhdGUsXG4gICAgICAgIF9lbnYoXG4gICAgICAgICAgICAiSVBGU19QSU5fQ09ORklSTSIsXG4gICAgICAgICAgICAiU1lTVEVNIixcbiAgICAgICAgICAgIDczLFxuICAgICAgICAgICAgeyJwaW5faWQiOiAicGluLTEiLCAiY2lkIjogY2lkLCAib3BlcmF0b3JfaWQiOiAib3AtYSIsICJvayI6IEZhbHNlfSxcbiAgICAgICAgICAgIHN5c3RlbT1UcnVlLFxuICAgICAgICAgICAgcGFyZW50PSJzdG9yYWdlIixcbiAgICAgICAgKSxcbiAgICApXG4gICAgcmVwbGFjZW1lbnQgPSBmYWlsZWQuZ2V0KCJyZWFzc2lnbm1lbnQiLCB7fSkuZ2V0KCJyZXBsYWNlbWVudF9vcGVyYXRvcl9pZCIpIG9yICJvcC1iIlxuICAgIGFwcGx5X3N0b3JhZ2UoXG4gICAgICAgIHN0YXRlLFxuICAgICAgICBfZW52KFxuICAgICAgICAgICAgIklQRlNfUElOX0NPTkZJUk0iLFxuICAgICAgICAgICAgIlNZU1RFTSIsXG4gICAgICAgICAgICA3NCxcbiAgICAgICAgICAgIHtcbiAgICAgICAgICAgICAgICAicGluX2lkIjogInBpbi0xIixcbiAgICAgICAgICAgICAgICAiY2lkIjogY2lkLFxuICAgICAgICAgICAgICAgICJvcGVyYXRvcl9pZCI6IHJlcGxhY2VtZW50LFxuICAgICAgICAgICAgICAgICJvayI6IFRydWUsXG4gICAgICAgICAgICAgICAgInJldHJpZXZhbF9vayI6IFRydWUsXG4gICAgICAgICAgICB9LFxuICAgICAgICAgICAgc3lzdGVtPVRydWUsXG4gICAgICAgICAgICBwYXJlbnQ9InN0b3JhZ2UiLFxuICAgICAgICApLFxuICAgIClcbicKbmV3ID0gJyAgICBhcHBseV9zdG9yYWdlKFxuICAgICAgICBzdGF0ZSxcbiAgICAgICAgX2VudihcbiAgICAgICAgICAgICJJUEZTX1BJTl9SRVFVRVNUIixcbiAgICAgICAgICAgICJTWVNURU0iLFxuICAgICAgICAgICAgNzIsXG4gICAgICAgICAgICB7InBpbl9pZCI6ICJwaW4tMSIsICJjaWQiOiBjaWQsICJzaXplX2J5dGVzIjogMTAsICJyZXBsaWNhdGlvbl9mYWN0b3IiOiAxfSxcbiAgICAgICAgICAgIHN5c3RlbT1UcnVlLFxuICAgICAgICAgICAgcGFyZW50PSJzdG9yYWdlIixcbiAgICAgICAgKSxcbiAgICApXG4gICAgcGluID0gc3RhdGVbInN0b3JhZ2UiXVsicGlucyJdWyJwaW4tMSJdXG4gICAgaW5pdGlhbF90YXJnZXRzID0gbGlzdChwaW4uZ2V0KCJ0YXJnZXRzIikgb3IgW10pXG4gICAgaWYgbGVuKGluaXRpYWxfdGFyZ2V0cykgIT0gMTpcbiAgICAgICAgcmFpc2UgQXNzZXJ0aW9uRXJyb3IoZiJleHBlY3RlZCBvbmUgZGV0ZXJtaW5pc3RpYyBpbml0aWFsIHN0b3JhZ2UgdGFyZ2V0OiB7aW5pdGlhbF90YXJnZXRzIXJ9IilcbiAgICBmYWlsZWRfb3BlcmF0b3IgPSBzdHIoaW5pdGlhbF90YXJnZXRzWzBdKVxuICAgIGZhaWxlZCA9IGFwcGx5X3N0b3JhZ2UoXG4gICAgICAgIHN0YXRlLFxuICAgICAgICBfZW52KFxuICAgICAgICAgICAgIklQRlNfUElOX0NPTkZJUk0iLFxuICAgICAgICAgICAgIlNZU1RFTSIsXG4gICAgICAgICAgICA3MyxcbiAgICAgICAgICAgIHsicGluX2lkIjogInBpbi0xIiwgImNpZCI6IGNpZCwgIm9wZXJhdG9yX2lkIjogZmFpbGVkX29wZXJhdG9yLCAib2siOiBGYWxzZX0sXG4gICAgICAgICAgICBzeXN0ZW09VHJ1ZSxcbiAgICAgICAgICAgIHBhcmVudD0ic3RvcmFnZSIsXG4gICAgICAgICksXG4gICAgKVxuICAgIHJlYXNzaWdubWVudCA9IGZhaWxlZC5nZXQoInJlYXNzaWdubWVudCIsIHt9KSBpZiBpc2luc3RhbmNlKGZhaWxlZCwgZGljdCkgZWxzZSB7fVxuICAgIHJlcGxhY2VtZW50ID0gc3RyKHJlYXNzaWdubWVudC5nZXQoInJlcGxhY2VtZW50X29wZXJhdG9yX2lkIikgb3IgIiIpXG4gICAgaWYgKFxuICAgICAgICBub3QgYm9vbChyZWFzc2lnbm1lbnQuZ2V0KCJyZWFzc2lnbmVkIikpXG4gICAgICAgIG9yIG5vdCByZXBsYWNlbWVudFxuICAgICAgICBvciByZXBsYWNlbWVudCA9PSBmYWlsZWRfb3BlcmF0b3JcbiAgICApOlxuICAgICAgICByYWlzZSBBc3NlcnRpb25FcnJvcihmInVuZXhwZWN0ZWQgc3RvcmFnZSByZWFzc2lnbm1lbnQ6IHtyZWFzc2lnbm1lbnQhcn0iKVxuICAgIGFwcGx5X3N0b3JhZ2UoXG4gICAgICAgIHN0YXRlLFxuICAgICAgICBfZW52KFxuICAgICAgICAgICAgIklQRlNfUElOX0NPTkZJUk0iLFxuICAgICAgICAgICAgIlNZU1RFTSIsXG4gICAgICAgICAgICA3NCxcbiAgICAgICAgICAgIHtcbiAgICAgICAgICAgICAgICAicGluX2lkIjogInBpbi0xIixcbiAgICAgICAgICAgICAgICAiY2lkIjogY2lkLFxuICAgICAgICAgICAgICAgICJvcGVyYXRvcl9pZCI6IHJlcGxhY2VtZW50LFxuICAgICAgICAgICAgICAgICJvayI6IFRydWUsXG4gICAgICAgICAgICAgICAgInJldHJpZXZhbF9vayI6IFRydWUsXG4gICAgICAgICAgICB9LFxuICAgICAgICAgICAgc3lzdGVtPVRydWUsXG4gICAgICAgICAgICBwYXJlbnQ9InN0b3JhZ2UiLFxuICAgICAgICApLFxuICAgIClcbicKaWYgdGV4dC5jb3VudChvbGQpICE9IDE6CiAgICByYWlzZSBTeXN0ZW1FeGl0KGYidW5leHBlY3RlZCBmdWxseS1BUEkgc3RvcmFnZSBmaXh0dXJlIGNvdW50OiB7dGV4dC5jb3VudChvbGQpfSIpCnRleHQgPSB0ZXh0LnJlcGxhY2Uob2xkLCBuZXcsIDEpCnBhdGgud3JpdGVfdGV4dCh0ZXh0LCBlbmNvZGluZz0idXRmLTgiKQo="
+        run: |
+          set -Eeuo pipefail
+          printf '%s' "$PATCH_B64" | base64 -d > /tmp/patch_fully_api.py
+          python /tmp/patch_fully_api.py
+          python -m py_compile Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py
+          git diff --check -- Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/p2-storage-retrigger.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py
+          git add -u .github/p2-storage-retrigger.txt
+          git diff --cached --check
+          git commit -m "Fix fully API storage failover rehearsal"
+          REMOTE_SHA="$(git ls-remote origin refs/heads/p2-complete-remediation-20260927 | awk '{print $1}')"
+          test "$REMOTE_SHA" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/p2-complete-remediation-20260927
