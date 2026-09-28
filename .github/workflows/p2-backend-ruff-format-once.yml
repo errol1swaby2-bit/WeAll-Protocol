@@ -1,0 +1,76 @@
+name: P2 Backend Ruff Format Once
+
+on:
+  push:
+    branches:
+      - p2-complete-remediation-20260927
+
+permissions:
+  contents: write
+
+jobs:
+  format-once:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: p2-complete-remediation-20260927
+          fetch-depth: 2
+
+      - name: Guard exact preimage
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          EXPECTED_PARENT='8ba3d2b2a7001270d89317e69124044336f10c50'
+          EXPECTED_BLOB='ac542c152c093a4cb8f29a1eca0f6c7426b0c02e'
+          TARGET='Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py'
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          test "$(git rev-parse HEAD:"$TARGET")" = "$EXPECTED_BLOB"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Format only failing lifecycle rehearsal
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          TARGET='Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py'
+          python -m pip install --upgrade pip
+          python -m pip install 'ruff==0.15.22'
+          ruff format "$TARGET"
+          ruff format --check "$TARGET"
+          ruff check "$TARGET"
+          mapfile -t CHANGED < <(git diff --name-only)
+          printf 'Changed after formatter: %s\n' "${CHANGED[@]}"
+          test "${#CHANGED[@]}" -eq 1
+          test "${CHANGED[0]}" = "$TARGET"
+
+      - name: Commit format-only repair and remove one-shot workflow
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          TARGET='Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py'
+          SELF='.github/workflows/p2-backend-ruff-format-once.yml'
+          rm "$SELF"
+          git add "$TARGET" "$SELF"
+          mapfile -t STAGED < <(git diff --cached --name-only)
+          printf 'Staged: %s\n' "${STAGED[@]}"
+          test "${#STAGED[@]}" -eq 2
+          printf '%s\n' "${STAGED[@]}" | grep -Fx "$TARGET"
+          printf '%s\n' "${STAGED[@]}" | grep -Fx "$SELF"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'CI: format API lifecycle rehearsal with Ruff 0.15.22'
+
+      - name: Push guarded fast-forward
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          BRANCH='p2-complete-remediation-20260927'
+          git fetch origin "$BRANCH"
+          test "$(git rev-parse origin/$BRANCH)" = "$(git rev-parse HEAD^)"
+          git push origin "HEAD:$BRANCH"
