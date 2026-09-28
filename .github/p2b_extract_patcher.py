@@ -32,18 +32,18 @@ def main() -> None:
     patcher = "\n".join(lines) + "\n"
     patcher += r'''
 
-# Normalize the restart test transactions so their semantic subjects match the
-# explicit namespace prefixes.  The original minimal fixtures omitted post_id
-# and account_id, causing conflict analysis to fail closed to barrier:global.
+# Replace the old planner-only placeholder fixtures with canonical helper-proof
+# transactions.  Their namespace prefixes are derived from the same conflict
+# access sets that the materialized verifier is required to authorize.
 path = root / "tests/test_helper_materialized_merge_restart.py"
 text = path.read_text(encoding="utf-8")
 text = text.replace(
     '{"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}',
-    '{"tx_id": "c1", "tx_type": "CONTENT_CREATE", "post_id": "1", "state_prefixes": ["content:post:1"]}',
+    '{"tx_id": "c1", "tx_type": "CONTENT_POST_CREATE", "payload": {"account_id": "alice", "post_id": "1"}}',
 )
 text = text.replace(
     '{"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]}',
-    '{"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "account_id": "alice", "state_prefixes": ["identity:user:alice"]}',
+    '{"tx_id": "i1", "tx_type": "ACCOUNT_REGISTER", "payload": {"account_id": "alice"}}',
 )
 path.write_text(text, encoding="utf-8")
 '''
