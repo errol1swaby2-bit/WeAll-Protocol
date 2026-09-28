@@ -113,6 +113,17 @@ jobs:
             tests/test_reputation_matrix_completion_v1_5.py \
             tests/test_system_tx_scheduler_binding.py
 
+      - name: Regenerate affected v1.5 reputation derivatives
+        working-directory: Weall-Protocol
+        env:
+          PYTHONPATH: ${{ github.workspace }}/Weall-Protocol/src
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_reputation_event_registry_v1_5.py
+          python scripts/gen_reputation_matrix_contract_v1_5.py
+          python scripts/gen_reputation_invariant_report_v1_5.py
+
       - name: Regenerate v2 derivatives once
         working-directory: Weall-Protocol
         env:
@@ -134,6 +145,9 @@ jobs:
               'Weall-Protocol/src/weall/runtime/block_replay.py',
               'Weall-Protocol/src/weall/runtime/system_tx_engine.py',
               'Weall-Protocol/tests/test_p2_final_source_closure.py',
+              'Weall-Protocol/generated/reputation_event_registry_v1_5.json',
+              'Weall-Protocol/generated/reputation_matrix_contract_v1_5.json',
+              'Weall-Protocol/generated/reputation_invariant_report_v1_5.json',
               'web/src/generated/protocolStatus.ts',
           }
           changed = subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines()
@@ -147,6 +161,9 @@ jobs:
               'Weall-Protocol/src/weall/runtime/system_tx_engine.py',
               'Weall-Protocol/src/weall/runtime/block_builder.py',
               'Weall-Protocol/src/weall/runtime/block_replay.py',
+              'Weall-Protocol/generated/reputation_event_registry_v1_5.json',
+              'Weall-Protocol/generated/reputation_matrix_contract_v1_5.json',
+              'Weall-Protocol/generated/reputation_invariant_report_v1_5.json',
           ):
               if required not in changed:
                   raise SystemExit(f'required repair file missing from diff: {required}')
@@ -160,11 +177,14 @@ jobs:
             Weall-Protocol/src/weall/runtime/block_builder.py \
             Weall-Protocol/src/weall/runtime/block_replay.py \
             Weall-Protocol/tests/test_p2_final_source_closure.py \
+            Weall-Protocol/generated/reputation_event_registry_v1_5.json \
+            Weall-Protocol/generated/reputation_matrix_contract_v1_5.json \
+            Weall-Protocol/generated/reputation_invariant_report_v1_5.json \
             Weall-Protocol/generated/v2 \
             web/src/generated/protocolStatus.ts
           git diff --cached --check
           test -n "$(git diff --cached --name-only)"
-          git commit -m "CI: repair P2 discovery formatting and refresh v2 derivatives"
+          git commit -m "CI: repair P2 discovery formatting and refresh derivatives"
           test "$(git rev-parse HEAD^)" = "01bdffdfbcd05da0cf8d4dfb68e35b94b4440e85"
           echo "Candidate commit: $(git rev-parse HEAD)"
           echo "Candidate tree:   $(git rev-parse 'HEAD^{tree}')"
