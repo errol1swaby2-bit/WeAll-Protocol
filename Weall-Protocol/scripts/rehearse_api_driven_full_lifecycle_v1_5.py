@@ -382,11 +382,12 @@ def run_harness() -> dict[str, Any]:
         "capacity_bytes": 1000,
     }
     state["storage"]["operators"]["opB"] = {"enabled": True, "capacity_bytes": 1000}
+    state["storage"]["operators"]["opC"] = {"enabled": True, "capacity_bytes": 1000}
     state["storage"].setdefault("pins", {})["pin-api"] = {
         "pin_id": "pin-api",
         "cid": CID_A,
-        "targets": ["opA"],
-        "size_bytes": 10,
+        "targets": ["opA", "opB"],
+        "size_bytes": 0,
         "replication_factor": 2,
     }
     failed_pin = apply_storage(
@@ -400,6 +401,10 @@ def run_harness() -> dict[str, Any]:
             parent="storage:pin-api",
         ),
     )
+    reassignment = failed_pin.get("reassignment", {}) if isinstance(failed_pin, dict) else {}
+    replacement = str(reassignment.get("replacement_operator_id") or "")
+    if not bool(reassignment.get("reassigned")) or replacement != "opC":
+        raise AssertionError(f"unexpected storage reassignment: {reassignment!r}")
     apply_storage(
         state,
         _env(
@@ -410,6 +415,23 @@ def run_harness() -> dict[str, Any]:
                 "pin_id": "pin-api",
                 "cid": CID_A,
                 "operator_id": "opB",
+                "ok": True,
+                "retrieval_ok": True,
+            },
+            system=True,
+            parent="storage:pin-api",
+        ),
+    )
+    apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            10,
+            {
+                "pin_id": "pin-api",
+                "cid": CID_A,
+                "operator_id": replacement,
                 "ok": True,
                 "retrieval_ok": True,
             },
@@ -499,9 +521,7 @@ def run_harness() -> dict[str, Any]:
         "final_enforcement_count": len(final.get("enforcement_applied", []))
         if isinstance(final, dict)
         else 0,
-        "storage_failed_pin_reassigned": bool(failed_pin.get("reassignment"))
-        if isinstance(failed_pin, dict)
-        else False,
+        "storage_failed_pin_reassigned": bool(reassignment.get("reassigned")),
         "storage_retrieval_confirmed": bool(
             state.get("storage", {}).get("pins", {}).get("pin-api", {}).get("availability_status")
             == "available"
