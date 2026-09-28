@@ -124,6 +124,17 @@ jobs:
           python scripts/gen_reputation_matrix_contract_v1_5.py
           python scripts/gen_reputation_invariant_report_v1_5.py
 
+      - name: Regenerate source-digest completion proofs
+        working-directory: Weall-Protocol
+        env:
+          PYTHONPATH: ${{ github.workspace }}/Weall-Protocol/src:${{ github.workspace }}/Weall-Protocol/scripts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+
       - name: Regenerate v2 derivatives once
         working-directory: Weall-Protocol
         env:
@@ -148,6 +159,9 @@ jobs:
               'Weall-Protocol/generated/reputation_event_registry_v1_5.json',
               'Weall-Protocol/generated/reputation_matrix_contract_v1_5.json',
               'Weall-Protocol/generated/reputation_invariant_report_v1_5.json',
+              'Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json',
+              'Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json',
+              'Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json',
               'web/src/generated/protocolStatus.ts',
           }
           changed = subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines()
@@ -164,6 +178,9 @@ jobs:
               'Weall-Protocol/generated/reputation_event_registry_v1_5.json',
               'Weall-Protocol/generated/reputation_matrix_contract_v1_5.json',
               'Weall-Protocol/generated/reputation_invariant_report_v1_5.json',
+              'Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json',
+              'Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json',
+              'Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json',
           ):
               if required not in changed:
                   raise SystemExit(f'required repair file missing from diff: {required}')
@@ -180,6 +197,9 @@ jobs:
             Weall-Protocol/generated/reputation_event_registry_v1_5.json \
             Weall-Protocol/generated/reputation_matrix_contract_v1_5.json \
             Weall-Protocol/generated/reputation_invariant_report_v1_5.json \
+            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json \
             Weall-Protocol/generated/v2 \
             web/src/generated/protocolStatus.ts
           git diff --cached --check
@@ -192,7 +212,7 @@ jobs:
       - name: Verify generated and claim surfaces from candidate HEAD
         working-directory: Weall-Protocol
         env:
-          PYTHONPATH: ${{ github.workspace }}/Weall-Protocol/src
+          PYTHONPATH: ${{ github.workspace }}/Weall-Protocol/src:${{ github.workspace }}/Weall-Protocol/scripts
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -203,6 +223,9 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
 
       - name: Restore historical M2/M3 evidence
         shell: bash
