@@ -494,7 +494,9 @@ def run_harness() -> dict[str, Any]:
     pin = state["storage"]["pins"]["pin-1"]
     initial_targets = list(pin.get("targets") or [])
     if len(initial_targets) != 1:
-        raise AssertionError(f"expected one deterministic initial storage target: {initial_targets!r}")
+        raise AssertionError(
+            f"expected one deterministic initial storage target: {initial_targets!r}"
+        )
     failed_operator = str(initial_targets[0])
     failed = apply_storage(
         state,
