@@ -185,6 +185,31 @@ def run_harness() -> dict[str, Any]:
             )
             reassigned = list(state["storage"]["pins"][pin_id].get("targets") or [])
             replacement = next(op for op in reassigned if op not in targets)
+            surviving = next(op for op in targets if op != failed)
+
+            input_queuees[surviving].put({"op": "add_pin", "cid": cid, "data_hex": data.hex()})
+            surviving_add_res = _recv(tx_queue)
+            input_queuees[surviving].put({"op": "cat", "cid": cid})
+            surviving_cat_res = _recv(tx_queue)
+            surviving_confirm = apply_storage(
+                state,
+                _env(
+                    "IPFS_PIN_CONFIRM",
+                    "SYSTEM",
+                    3,
+                    {
+                        "pin_id": pin_id,
+                        "cid": cid,
+                        "operator_id": surviving,
+                        "ok": True,
+                        "retrieval_ok": surviving_cat_res.get("data_hex") == data.hex(),
+                        "proof_hash": surviving_cat_res.get("sha256"),
+                    },
+                    system=True,
+                    parent="storage",
+                ),
+            )
+
             input_queuees[replacement].put({"op": "add_pin", "cid": cid, "data_hex": data.hex()})
             add_res = _recv(tx_queue)
             input_queuees[replacement].put({"op": "cat", "cid": cid})
@@ -194,7 +219,7 @@ def run_harness() -> dict[str, Any]:
                 _env(
                     "IPFS_PIN_CONFIRM",
                     "SYSTEM",
-                    3,
+                    4,
                     {
                         "pin_id": pin_id,
                         "cid": cid,
@@ -210,7 +235,9 @@ def run_harness() -> dict[str, Any]:
             final_pin = state["storage"]["pins"][pin_id]
             return {
                 "ok": bool(
-                    add_res.get("ok")
+                    surviving_add_res.get("ok")
+                    and surviving_cat_res.get("data_hex") == data.hex()
+                    and add_res.get("ok")
                     and cat_res.get("data_hex") == data.hex()
                     and final_pin.get("availability_status") == "available"
                 ),
@@ -220,6 +247,12 @@ def run_harness() -> dict[str, Any]:
                 "failed_operator": failed,
                 "failed_process_exitcode": procs[failed].exitcode,
                 "failure_receipt": fail_receipt,
+                "surviving_operator": surviving,
+                "surviving_add_result": surviving_add_res,
+                "surviving_cat_result": {
+                    k: v for k, v in surviving_cat_res.items() if k != "data_hex"
+                },
+                "surviving_confirm_receipt": surviving_confirm,
                 "replacement_operator": replacement,
                 "reassignment_recorded": replacement in reassigned,
                 "replacement_add_result": add_res,
