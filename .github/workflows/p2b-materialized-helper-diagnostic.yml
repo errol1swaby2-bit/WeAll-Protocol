@@ -1,0 +1,52 @@
+name: P2B Materialized Helper Patch Diagnostic
+
+on:
+  push:
+    branches: ["p2-complete-remediation-20260927"]
+    paths:
+      - ".github/workflows/p2b-materialized-helper-diagnostic.yml"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p2-complete-remediation-20260927
+      - name: Verify source preimages
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git merge-base --is-ancestor 484e1b481d7a5a588fa3f39fb20c0480c3f258c4 HEAD
+          test "$(git hash-object Weall-Protocol/src/weall/runtime/helper_merge.py)" = "067a6e6feedebc237131e995310ef45aac6e824e"
+      - name: Recover and run patcher
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git show f9a283eff272db5fe236482895ad3e205553d05b:.github/workflows/p2b-materialized-helper-local-plan-binding-closure.yml > /tmp/p2b-old-wrapper.yml
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('/tmp/p2b-old-wrapper.yml').read_text(encoding='utf-8')
+          marker = "          python - <<'PY'\n"
+          start = text.index(marker) + len(marker)
+          end = text.index("\n          PY\n", start)
+          block = text[start:end]
+          lines = [line[10:] if line.startswith('          ') else line for line in block.splitlines()]
+          patcher = '\n'.join(lines) + '\n'
+          compile(patcher, '/tmp/p2b_patch.py', 'exec')
+          Path('/tmp/p2b_patch.py').write_text(patcher, encoding='utf-8')
+          PY
+          python /tmp/p2b_patch.py
+      - name: Compile patched helper merge or print failure context
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cd Weall-Protocol
+          if ! python -m py_compile src/weall/runtime/helper_merge.py; then
+            echo '--- helper_merge.py lines 315-350 ---'
+            nl -ba src/weall/runtime/helper_merge.py | sed -n '315,350p'
+            exit 1
+          fi
+          echo 'helper_merge.py compiles'
