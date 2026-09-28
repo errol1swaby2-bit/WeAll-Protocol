@@ -57,6 +57,7 @@ jobs:
           set -Eeuo pipefail
           rm -f .github/workflows/p2b-materialized-helper-local-plan-binding-closure.yml
           rm -f .github/workflows/p2b-materialized-helper-diagnostic.yml
+          rm -f .github/workflows/p2b-restart-code-diagnostic.yml
           rm -f .github/workflows/p2b-final-local-plan-binding-closure.yml
           rm -f .github/p2b_extract_patcher.py
           rm -f .github/p2b_restart_diag.py
@@ -150,6 +151,7 @@ jobs:
           git checkout --detach "$CLOSURE_SHA"
           test ! -e .github/workflows/p2b-materialized-helper-local-plan-binding-closure.yml
           test ! -e .github/workflows/p2b-materialized-helper-diagnostic.yml
+          test ! -e .github/workflows/p2b-restart-code-diagnostic.yml
           test ! -e .github/workflows/p2b-final-local-plan-binding-closure.yml
           test ! -e .github/p2b_extract_patcher.py
           test ! -e .github/p2b_restart_diag.py
