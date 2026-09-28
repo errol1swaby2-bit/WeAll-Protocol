@@ -1,0 +1,185 @@
+name: Repair P2 API Lifecycle Storage Fixture
+
+on:
+  push:
+    branches: ["p2-complete-remediation-20260927"]
+    paths:
+      - ".github/workflows/p2-api-lifecycle-fixture-repair.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p2-api-lifecycle-fixture-repair
+  cancel-in-progress: false
+
+jobs:
+  repair-api-lifecycle-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact trigger branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p2-complete-remediation-20260927
+
+      - name: Guard exact trigger head and lifecycle preimage
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git hash-object Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py)" = "3486c24f1cdd34f681d951b1ed7b4502a15e8e7c"
+
+      - name: Align API lifecycle storage failover fixture
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py')
+          text = path.read_text(encoding='utf-8')
+
+          old = '''    state.setdefault("storage", {}).setdefault("operators", {})["opA"] = {
+        "enabled": True,
+        "capacity_bytes": 1000,
+    }
+    state["storage"]["operators"]["opB"] = {"enabled": True, "capacity_bytes": 1000}
+    state["storage"].setdefault("pins", {})["pin-api"] = {
+        "pin_id": "pin-api",
+        "cid": CID_A,
+        "targets": ["opA"],
+        "size_bytes": 10,
+        "replication_factor": 2,
+    }
+    failed_pin = apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            8,
+            {"pin_id": "pin-api", "cid": CID_A, "operator_id": "opA", "ok": False},
+            system=True,
+            parent="storage:pin-api",
+        ),
+    )
+    apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            9,
+            {
+                "pin_id": "pin-api",
+                "cid": CID_A,
+                "operator_id": "opB",
+                "ok": True,
+                "retrieval_ok": True,
+            },
+            system=True,
+            parent="storage:pin-api",
+        ),
+    )
+'''
+
+          new = '''    state.setdefault("storage", {}).setdefault("operators", {})["opA"] = {
+        "enabled": True,
+        "capacity_bytes": 1000,
+    }
+    state["storage"]["operators"]["opB"] = {"enabled": True, "capacity_bytes": 1000}
+    state["storage"]["operators"]["opC"] = {"enabled": True, "capacity_bytes": 1000}
+    state["storage"].setdefault("pins", {})["pin-api"] = {
+        "pin_id": "pin-api",
+        "cid": CID_A,
+        "targets": ["opA", "opB"],
+        "size_bytes": 0,
+        "replication_factor": 2,
+    }
+    failed_pin = apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            8,
+            {"pin_id": "pin-api", "cid": CID_A, "operator_id": "opA", "ok": False},
+            system=True,
+            parent="storage:pin-api",
+        ),
+    )
+    reassignment = failed_pin.get("reassignment", {}) if isinstance(failed_pin, dict) else {}
+    replacement = str(reassignment.get("replacement_operator_id") or "")
+    if not bool(reassignment.get("reassigned")) or replacement != "opC":
+        raise AssertionError(f"unexpected storage reassignment: {reassignment!r}")
+    apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            9,
+            {
+                "pin_id": "pin-api",
+                "cid": CID_A,
+                "operator_id": "opB",
+                "ok": True,
+                "retrieval_ok": True,
+            },
+            system=True,
+            parent="storage:pin-api",
+        ),
+    )
+    apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            10,
+            {
+                "pin_id": "pin-api",
+                "cid": CID_A,
+                "operator_id": replacement,
+                "ok": True,
+                "retrieval_ok": True,
+            },
+            system=True,
+            parent="storage:pin-api",
+        ),
+    )
+'''
+
+          if text.count(old) != 1:
+              raise SystemExit(f'unexpected lifecycle storage fixture count: {text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          old_status = '''        "storage_failed_pin_reassigned": bool(failed_pin.get("reassignment"))
+        if isinstance(failed_pin, dict)
+        else False,
+'''
+          new_status = '''        "storage_failed_pin_reassigned": bool(reassignment.get("reassigned")),
+'''
+          if text.count(old_status) != 1:
+              raise SystemExit(f'unexpected lifecycle reassignment status count: {text.count(old_status)}')
+          text = text.replace(old_status, new_status, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+          python -m py_compile Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py
+          git diff --check -- Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py
+
+      - name: Commit guarded lifecycle fixture repair
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py
+          git diff --cached --check
+          git commit -m "Fix API lifecycle storage failover rehearsal"
+          test -z "$(git status --porcelain)"
+
+      - name: Push only if trigger head is still remote head
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          REMOTE_SHA="$(git ls-remote origin refs/heads/p2-complete-remediation-20260927 | awk '{print $1}')"
+          test "$REMOTE_SHA" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/p2-complete-remediation-20260927
