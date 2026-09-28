@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1957,
+  "file_count": 1963,
   "files": [
     {
       "affected_registers": [
@@ -54,10 +54,88 @@
       "mappings": [
         "M-075"
       ],
+      "path": "../.github/p2b_extract_patcher.py",
+      "primary_mechanism_id": "M-075",
+      "sha256": "6d58dc1586c13f2eb6482de308af72a62c359c57a508687de998fed7dc1547d4",
+      "source_id": "SRC-189C17BF30C3EE6B"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/p2b_restart_diag.py",
+      "primary_mechanism_id": "M-075",
+      "sha256": "103dd3f2c0a610970bf32b40d600372ad1d7fda6bf8482f2cf9d64e8b37a5c40",
+      "source_id": "SRC-00E62B80601EC3B4"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/p2b-final-local-plan-binding-closure.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "65babf2f216e9ae0a66475b1106f98e692e7634f255950e5867bfa4b1a678ae2",
+      "source_id": "SRC-05F4F2DC0ADF55B7"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/p2b-materialized-helper-diagnostic.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "23c46328e7e88b4b30320e49546993b9a885d21452260f1073c3d6500cd02519",
+      "source_id": "SRC-7B10AAC2736BC7FE"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/p2b-materialized-helper-local-plan-binding-closure.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "c490de6616c47542b80c47923befb7ddc91210db3ba9889d73660dc9df621b88",
+      "source_id": "SRC-9091B40B25350DE5"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/p2b-restart-code-diagnostic.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "58eb7d422aa82aaeeb95c46d29399b1e2aa92cc6fcf3550e1c4b82743ed14a69",
+      "source_id": "SRC-3950BEAB93F3EF17"
     },
     {
       "affected_registers": [
