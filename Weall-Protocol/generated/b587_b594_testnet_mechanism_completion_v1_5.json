@@ -1026,6 +1026,8 @@
     "batch": "593",
     "byzantine_helper_output_rejected": true,
     "byzantine_rejection_code": "lane_delta_hash_mismatch",
+    "coordinator_local_write_scope_binding_proven": true,
+    "duplicate_lane_result_rejected": true,
     "mechanism": "helper_materialized_result_production_verifier_boundary_without_activation",
     "mechanism_complete": false,
     "missing_helper_fallback_to_serial_proven": false,

@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
+    ensure_helper_execution_certificate,
     hash_json,
     hash_ordered_strings,
     hash_receipts,
     make_namespace_hash,
+    make_tx_order_hash,
     validate_certificate_scope,
 )
 from weall.runtime.parallel_execution import LanePlan
@@ -84,6 +87,39 @@ def _hash_delta_ops(delta_ops: list[HelperDeltaOp] | tuple[HelperDeltaOp, ...]) 
     return hash_json(list(_canon_delta_ops(delta_ops)))
 
 
+def _canonical_namespace_prefixes(values: Sequence[str]) -> tuple[str, ...]:
+    return tuple(
+        sorted({str(item or "").strip().lower() for item in values if str(item or "").strip()})
+    )
+
+
+def _planned_access_scope(lane_plan: LanePlan) -> tuple[tuple[str, ...], tuple[str, ...]] | None:
+    access_sets = tuple(lane_plan.access_sets or ())
+    access_tx_ids = tuple(str(item.tx_id) for item in access_sets)
+    expected_tx_ids = tuple(str(tx_id) for tx_id in lane_plan.tx_ids)
+    if access_tx_ids != expected_tx_ids:
+        return None
+    reads = _canon_paths([path for item in access_sets for path in item.reads])
+    writes = _canon_paths([path for item in access_sets for path in item.writes])
+    return reads, writes
+
+
+def _namespace_prefix_contains(prefix: str, key: str) -> bool:
+    prefix2 = str(prefix or "").strip().lower()
+    key2 = str(key or "").strip().lower()
+    if not prefix2 or not key2:
+        return False
+    if key2 == prefix2:
+        return True
+    if prefix2.endswith((":", "/")):
+        return key2.startswith(prefix2)
+    return key2.startswith(f"{prefix2}:") or key2.startswith(f"{prefix2}/")
+
+
+def _receipt_tx_ids(receipts: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    return tuple(str(item.get("tx_id", "")) for item in receipts)
+
+
 def _delta_op_scope_key(path: str) -> tuple[str, str]:
     raw = str(path or "").strip()
     if not raw:
@@ -113,9 +149,7 @@ def _delta_ops_scope_status(
             return "delta_path_duplicate"
         if mode == "namespaced":
             lowered = key.lower()
-            if not any(
-                lowered == prefix or lowered.startswith(prefix) for prefix in allowed_prefixes
-            ):
+            if not any(_namespace_prefix_contains(prefix, lowered) for prefix in allowed_prefixes):
                 return "delta_namespace_scope_invalid"
             if key not in allowed_writes:
                 return "delta_write_scope_mismatch"
@@ -130,32 +164,79 @@ def _delta_ops_scope_status(
     return "ok"
 
 
-def verify_materialized_lane_result(result: MaterializedLaneResult) -> MaterializedVerification:
+def verify_materialized_lane_result(
+    result: MaterializedLaneResult,
+    *,
+    expected_lane_plan: LanePlan,
+    accepted_certificate: HelperExecutionCertificate | Mapping[str, Any],
+) -> MaterializedVerification:
+    """Verify materialized helper output against coordinator-local authority.
+
+    ``expected_lane_plan`` must be the coordinator's locally reconstructed plan,
+    and ``accepted_certificate`` must be the certificate previously accepted by
+    authenticated helper dispatch for that lane.  The helper-supplied result is
+    never allowed to define its own authorization scope.
+    """
+
     cert = result.cert
-    lane_plan = result.lane_plan
-    if str(lane_plan.lane_id) != str(cert.lane_id):
+    lane_plan = expected_lane_plan
+    accepted = ensure_helper_execution_certificate(accepted_certificate)
+
+    if result.lane_plan != lane_plan:
+        return MaterializedVerification(ok=False, code="lane_plan_mismatch")
+    if accepted.to_json() != cert.to_json():
+        return MaterializedVerification(ok=False, code="accepted_certificate_mismatch")
+
+    lane_id = str(lane_plan.lane_id or "")
+    if not lane_id or lane_id != str(cert.lane_id or ""):
         return MaterializedVerification(ok=False, code="lane_id_mismatch")
-    if tuple(lane_plan.tx_ids) != tuple(cert.tx_ids):
+    expected_helper_id = str(lane_plan.helper_id or "")
+    if not expected_helper_id:
+        return MaterializedVerification(ok=False, code="helper_unassigned")
+    if str(cert.helper_id or "") != expected_helper_id:
+        return MaterializedVerification(ok=False, code="helper_id_mismatch")
+
+    expected_tx_ids = tuple(str(tx_id) for tx_id in lane_plan.tx_ids)
+    if expected_tx_ids != tuple(str(tx_id) for tx_id in cert.tx_ids):
         return MaterializedVerification(ok=False, code="tx_set_mismatch")
-    if tuple(result.receipts) and cert.receipts_root != hash_receipts(list(result.receipts)):
+    if str(cert.tx_order_hash or "") != make_tx_order_hash(expected_tx_ids):
+        return MaterializedVerification(ok=False, code="tx_order_hash_mismatch")
+    if _receipt_tx_ids(result.receipts) != expected_tx_ids:
+        return MaterializedVerification(ok=False, code="receipt_tx_order_mismatch")
+    if cert.receipts_root != hash_receipts(list(result.receipts)):
         return MaterializedVerification(ok=False, code="receipts_root_mismatch")
-    if cert.read_set_hash != hash_ordered_strings(list(_canon_paths(result.read_set))):
+
+    planned_scope = _planned_access_scope(lane_plan)
+    if planned_scope is None:
+        return MaterializedVerification(ok=False, code="lane_plan_access_tx_mismatch")
+    expected_reads, expected_writes = planned_scope
+    if _canon_paths(result.read_set) != expected_reads:
+        return MaterializedVerification(ok=False, code="read_set_plan_mismatch")
+    if _canon_paths(result.write_set) != expected_writes:
+        return MaterializedVerification(ok=False, code="write_set_plan_mismatch")
+    if cert.read_set_hash != hash_ordered_strings(list(expected_reads)):
         return MaterializedVerification(ok=False, code="read_set_hash_mismatch")
-    if cert.write_set_hash != hash_ordered_strings(list(_canon_paths(result.write_set))):
+    if cert.write_set_hash != hash_ordered_strings(list(expected_writes)):
         return MaterializedVerification(ok=False, code="write_set_hash_mismatch")
+
+    expected_namespaces = _canonical_namespace_prefixes(lane_plan.namespace_prefixes)
+    observed_namespaces = _canonical_namespace_prefixes(result.namespace_prefixes)
+    if observed_namespaces != expected_namespaces:
+        return MaterializedVerification(ok=False, code="namespace_plan_mismatch")
+    if cert.namespace_hash != make_namespace_hash(expected_namespaces):
+        return MaterializedVerification(ok=False, code="namespace_hash_mismatch")
+    if not validate_certificate_scope(cert, namespace_prefixes=list(expected_namespaces)):
+        return MaterializedVerification(ok=False, code="namespace_scope_invalid")
+
     delta_scope_status = _delta_ops_scope_status(
-        namespace_prefixes=tuple(result.namespace_prefixes),
-        write_set=tuple(result.write_set),
+        namespace_prefixes=expected_namespaces,
+        write_set=expected_writes,
         delta_ops=tuple(result.delta_ops),
     )
     if delta_scope_status != "ok":
         return MaterializedVerification(ok=False, code=delta_scope_status)
     if cert.lane_delta_hash != _hash_delta_ops(result.delta_ops):
         return MaterializedVerification(ok=False, code="lane_delta_hash_mismatch")
-    if cert.namespace_hash != make_namespace_hash(list(result.namespace_prefixes)):
-        return MaterializedVerification(ok=False, code="namespace_hash_mismatch")
-    if not validate_certificate_scope(cert, namespace_prefixes=list(result.namespace_prefixes)):
-        return MaterializedVerification(ok=False, code="namespace_scope_invalid")
     return MaterializedVerification(ok=True, code="ok")
 
 
@@ -228,24 +309,86 @@ def merge_materialized_lane_results(
     *,
     base_state: Json,
     lane_results: list[MaterializedLaneResult],
+    lane_plans: Sequence[LanePlan],
+    accepted_certificates: Mapping[str, HelperExecutionCertificate | Mapping[str, Any]],
 ) -> MaterializedMergeOutcome:
+    """Merge only results bound to local plans and authenticated certificates.
+
+    ``lane_plans`` is the coordinator-local set of lanes expected to materialize.
+    Missing or invalid lanes are returned as serialized so a caller with a serial
+    executor can replay them.  Unknown or duplicate result lanes fail the entire
+    materialized merge closed because they indicate an ambiguous coordinator/helper
+    boundary.
+    """
+
+    local_plans = tuple(lane_plans or ())
+    plan_by_id: dict[str, LanePlan] = {}
+    duplicate_plan_ids: set[str] = set()
+    for plan in local_plans:
+        lane_id = str(plan.lane_id or "")
+        if not lane_id or lane_id in plan_by_id:
+            duplicate_plan_ids.add(lane_id)
+            continue
+        plan_by_id[lane_id] = plan
+
+    expected_lane_ids = set(plan_by_id)
+    if duplicate_plan_ids:
+        serialized = expected_lane_ids | {lane_id for lane_id in duplicate_plan_ids if lane_id}
+        return MaterializedMergeOutcome(
+            merged_state=copy.deepcopy(base_state),
+            accepted_lane_ids=tuple(),
+            serialized_lane_ids=tuple(sorted(serialized)),
+        )
+
+    result_by_id: dict[str, MaterializedLaneResult] = {}
+    duplicate_result_ids: set[str] = set()
+    unknown_result_ids: set[str] = set()
+    for result in list(lane_results or []):
+        lane_id = str(result.cert.lane_id or "")
+        if lane_id not in plan_by_id:
+            unknown_result_ids.add(lane_id)
+            continue
+        if lane_id in result_by_id:
+            duplicate_result_ids.add(lane_id)
+            continue
+        result_by_id[lane_id] = result
+
+    if duplicate_result_ids or unknown_result_ids:
+        serialized = expected_lane_ids | {lane_id for lane_id in unknown_result_ids if lane_id}
+        return MaterializedMergeOutcome(
+            merged_state=copy.deepcopy(base_state),
+            accepted_lane_ids=tuple(),
+            serialized_lane_ids=tuple(sorted(serialized)),
+        )
+
     verified: list[MaterializedLaneResult] = []
-    serialized: list[str] = []
-    for result in sorted(
-        lane_results, key=lambda item: (item.cert.lane_id, list(item.cert.tx_ids))
-    ):
-        status = verify_materialized_lane_result(result)
+    serialized: set[str] = set(expected_lane_ids - set(result_by_id))
+    for lane_id in sorted(expected_lane_ids):
+        result = result_by_id.get(lane_id)
+        if result is None:
+            continue
+        accepted_certificate = accepted_certificates.get(lane_id)
+        if accepted_certificate is None:
+            serialized.add(lane_id)
+            continue
+        status = verify_materialized_lane_result(
+            result,
+            expected_lane_plan=plan_by_id[lane_id],
+            accepted_certificate=accepted_certificate,
+        )
         if not status.ok:
-            serialized.append(str(result.cert.lane_id))
+            serialized.add(lane_id)
             continue
         verified.append(result)
+
     overlap, _reason = detect_materialized_overlap(verified)
     if overlap:
         return MaterializedMergeOutcome(
             merged_state=copy.deepcopy(base_state),
             accepted_lane_ids=tuple(),
-            serialized_lane_ids=tuple(sorted({str(r.cert.lane_id) for r in lane_results})),
+            serialized_lane_ids=tuple(sorted(expected_lane_ids)),
         )
+
     merged = copy.deepcopy(base_state)
     accepted: list[str] = []
     for result in sorted(verified, key=lambda item: (item.cert.lane_id, list(item.cert.tx_ids))):
@@ -254,5 +397,5 @@ def merge_materialized_lane_results(
     return MaterializedMergeOutcome(
         merged_state=merged,
         accepted_lane_ids=tuple(accepted),
-        serialized_lane_ids=tuple(sorted(set(serialized))),
+        serialized_lane_ids=tuple(sorted(serialized)),
     )

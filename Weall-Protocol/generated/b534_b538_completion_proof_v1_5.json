@@ -42,7 +42,7 @@
     "538"
   ],
   "freshness": {
-    "input_digest_sha256": "eedce8e0ed36c2a2d1d800e16f938547247a2b48875535d339116c32825b8f58",
+    "input_digest_sha256": "1fedfc9a5b7c1791173a5cbf2cdd85fa7d2e5944a772e51c1095d7f8a9b0dcda",
     "mode": "deterministic_input_digest_v1"
   },
   "locked_boundaries": {

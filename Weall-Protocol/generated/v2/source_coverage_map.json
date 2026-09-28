@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1963,
+  "file_count": 1957,
   "files": [
     {
       "affected_registers": [
@@ -54,88 +54,10 @@
       "mappings": [
         "M-075"
       ],
-      "path": "../.github/p2b_extract_patcher.py",
-      "primary_mechanism_id": "M-075",
-      "sha256": "6d58dc1586c13f2eb6482de308af72a62c359c57a508687de998fed7dc1547d4",
-      "source_id": "SRC-189C17BF30C3EE6B"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/p2b_restart_diag.py",
-      "primary_mechanism_id": "M-075",
-      "sha256": "103dd3f2c0a610970bf32b40d600372ad1d7fda6bf8482f2cf9d64e8b37a5c40",
-      "source_id": "SRC-00E62B80601EC3B4"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/p2b-final-local-plan-binding-closure.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "65babf2f216e9ae0a66475b1106f98e692e7634f255950e5867bfa4b1a678ae2",
-      "source_id": "SRC-05F4F2DC0ADF55B7"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/p2b-materialized-helper-diagnostic.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "23c46328e7e88b4b30320e49546993b9a885d21452260f1073c3d6500cd02519",
-      "source_id": "SRC-7B10AAC2736BC7FE"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/p2b-materialized-helper-local-plan-binding-closure.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "c490de6616c47542b80c47923befb7ddc91210db3ba9889d73660dc9df621b88",
-      "source_id": "SRC-9091B40B25350DE5"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/p2b-restart-code-diagnostic.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "58eb7d422aa82aaeeb95c46d29399b1e2aa92cc6fcf3550e1c4b82743ed14a69",
-      "source_id": "SRC-3950BEAB93F3EF17"
     },
     {
       "affected_registers": [
@@ -3080,7 +3002,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "18f243fdeb725b309e00fd2af8eae4027440b85ee967c660c40c9ffc8f1bf9ae",
+      "sha256": "4a0beb8770e9e51884e215028d0795f5caabd4a4132fbf588801e71d02a8fe84",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3094,7 +3016,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "236843591f977f685fdd22025af2e6a371847163f5bf97c23980f19107b0a705",
+      "sha256": "ff2ce5f55c2945ebc9d163b36366f8e5ff3680bc4e4dba1425ee07e7532885bd",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3178,7 +3100,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3b695642c0e6b44d49fd9bd572caa552e81adc038ce6732e4261760d9f35f4b8",
+      "sha256": "329f462cea53c34974af2d42a7d26cdfadeb7bc27f7865ffcea57a4eddb14350",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3234,7 +3156,7 @@
       ],
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "27eecf263635e6572746cea2e55bd836c878822caa4542dec526297a4b3ffbb0",
+      "sha256": "8bd0e7c2c2886ee21f73f6336fb920b0cb7e5bece2d805494333fa70797615b2",
       "source_id": "SRC-393D07EE5EBE3C20"
     },
     {
@@ -3275,7 +3197,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8a995b53f78c9831e17c7bf6b479e3bed479f967b3520a20ff53aae0402ad6d7",
+      "sha256": "3cf9f0c4caa172fb70c4134680351a6ca5864f8edac512212d8ffaa21c211808",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3401,7 +3323,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "be03f0bef954e455ede345757f7199e38aaea89f06d2a1801d22fc92fb37aff7",
+      "sha256": "923d9ed79598ee55ba1ff314792093ae372fb5d69fc932bc317065ce6b0d8334",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3583,7 +3505,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3640d5e8eed65ab4f342f8fab579342175830125b2257949ad3824318a3168e2",
+      "sha256": "7a8f4ca597bb00bcd59667987821bd91914e9f4696496c3d3382b0f8686c05d1",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -5780,7 +5702,7 @@
       ],
       "path": "scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7b387879177306b1bbaed8637469e0603d7a56c71a83e47c323c3c0b26caf3d2",
+      "sha256": "1f50f20f549fd93e38dbbe0c5d83ed5433348076662f542b2a3804ca84aff9f2",
       "source_id": "SRC-4CFE0AF1FC43CCE1"
     },
     {
@@ -10824,7 +10746,7 @@
       ],
       "path": "src/weall/runtime/helper_apply.py",
       "primary_mechanism_id": "M-065",
-      "sha256": "2682e2e2651eb24a919d1d18f17edb1c6fad3fcdc16e7fb7c2f30872c2410f32",
+      "sha256": "ea3ff4e54ec0aac1f788bd1e5da05652e70daa54696b8f3f0715d22882322d89",
       "source_id": "SRC-1396DDC2DCCE7343"
     },
     {
@@ -11021,7 +10943,7 @@
       ],
       "path": "src/weall/runtime/helper_merge.py",
       "primary_mechanism_id": "M-065",
-      "sha256": "3d8ba2ff12351afc55b7241b2c05acefaa9e05b2523f7984523766441b105717",
+      "sha256": "cc43edb2eca82060b0e02116acd2c7dc6980f776a3ffa0b7f69ee809b1b03707",
       "source_id": "SRC-0238E75975F73DAC"
     },
     {
@@ -18678,11 +18600,13 @@
       "classification": "test",
       "mappings": [
         "M-076",
-        "ROUTE-150316944D629C32"
+        "ROUTE-150316944D629C32",
+        "TX-0001",
+        "TX-0300"
       ],
       "path": "tests/test_helper_materialized_merge_restart.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "3f95be8abf8b582247cca6710c139dffb552face389447c462fd0951c1a662f8",
+      "sha256": "7d075eb4da66506300059a54c8c1aa3c566d21d0e73aa1867a21b0d92d467d76",
       "source_id": "SRC-1624DA71B9AE85E7"
     },
     {
@@ -18698,7 +18622,7 @@
       ],
       "path": "tests/test_helper_merge.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "1d2e561c08e1b584e6938c1c071e56175272c879a96880f57a7f6505c22ccfa3",
+      "sha256": "21c737a79979c7d5d8d3f07486647c861d0d1b7d3b58fbacd6dde5db0c09f5ba",
       "source_id": "SRC-04DB1C1071A2C83C"
     },
     {

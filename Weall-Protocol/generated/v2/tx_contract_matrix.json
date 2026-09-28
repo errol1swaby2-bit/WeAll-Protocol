@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "ed5854ca6d18544de5e42d31fd0b7dba16abc012cb2292f4d9ba921fe2ec781b"
+    "source_tree_digest": "da9146eeb04adb6f5af56bef7bf0ec83908883d96985d209a2bb3ce71914ecbf"
   },
   "required_fields": [
     "stable_id",
@@ -208,6 +208,7 @@
         "tests/test_governance_runtime_surface.py",
         "tests/test_helper_certificate_safety.py",
         "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_helper_materialized_merge_restart.py",
         "tests/test_helper_profile_pin.py",
         "tests/test_identity_domain_mvp.py",
         "tests/test_invalid_tx_does_not_block_valid_selection.py",
@@ -7837,6 +7838,7 @@
         "tests/test_helper_executor_integration.py",
         "tests/test_helper_executor_metadata_plan.py",
         "tests/test_helper_fallback_equivalence.py",
+        "tests/test_helper_materialized_merge_restart.py",
         "tests/test_helper_merge_binding_safety.py",
         "tests/test_helper_merge_signature_safety.py",
         "tests/test_helper_nonce_reputation_safety.py",

@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "bdac4413205cb654491819f0e40af66de6ccbe2e5c63cff86709145f03a965bb",
+  "artifact_digest": "e50ccba3778f232f183ab0c8b4a44209940fdcb60d51c1b4ed671a622ca5dfeb",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -175,7 +175,7 @@
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "27eecf263635e6572746cea2e55bd836c878822caa4542dec526297a4b3ffbb0",
+      "file_sha256": "8bd0e7c2c2886ee21f73f6336fb920b0cb7e5bece2d805494333fa70797615b2",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
