@@ -45,3 +45,4 @@ jobs:
         run: |
           set -Eeuo pipefail
           python ../.github/p2b_restart_diag.py
+          echo "canonical P2B restart diagnostic passed"
