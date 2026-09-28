@@ -1,0 +1,77 @@
+name: Repair P2 Storage Closure Workflow
+
+on:
+  push:
+    branches: ["p2-complete-remediation-20260927"]
+    paths:
+      - ".github/workflows/p2-storage-workflow-repair.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p2-storage-workflow-repair
+  cancel-in-progress: false
+
+jobs:
+  repair-storage-closure-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact trigger branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p2-complete-remediation-20260927
+
+      - name: Guard exact remote head and workflow preimage
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git hash-object .github/workflows/p2-storage-current-head-closure.yml)" = "fc981f0186559c878d2f8dc08fe1623bfd71995a"
+
+      - name: Register generic runtime apply failure explicitly
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/p2-storage-current-head-closure.yml')
+          text = path.read_text(encoding='utf-8')
+          anchor = "              'forbidden:pin_confirm_operator_not_current_target',\n          }"
+          replacement = (
+              "              'forbidden:pin_confirm_operator_not_current_target',\n"
+              "              'invalid_state:runtime_apply_failure',\n"
+              "          }"
+          )
+          if text.count(anchor) != 1:
+              raise SystemExit(f'unexpected failure_keys anchor count: {text.count(anchor)}')
+          updated = text.replace(anchor, replacement, 1)
+          if updated.count("'invalid_state:runtime_apply_failure',") != 1:
+              raise SystemExit('runtime apply failure registration was not inserted exactly once')
+          path.write_text(updated, encoding='utf-8')
+          PY
+          git diff --check -- .github/workflows/p2-storage-current-head-closure.yml
+          grep -F "'invalid_state:runtime_apply_failure'," .github/workflows/p2-storage-current-head-closure.yml
+
+      - name: Remove repair workflow and commit guarded edit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/p2-storage-workflow-repair.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/p2-storage-current-head-closure.yml
+          git add -u .github/workflows/p2-storage-workflow-repair.yml
+          git diff --cached --check
+          git commit -m "CI: register runtime apply failure before storage discovery"
+          test -z "$(git status --porcelain)"
+
+      - name: Push only if trigger head is still remote head
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          REMOTE_SHA="$(git ls-remote origin refs/heads/p2-complete-remediation-20260927 | awk '{print $1}')"
+          test "$REMOTE_SHA" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/p2-complete-remediation-20260927
