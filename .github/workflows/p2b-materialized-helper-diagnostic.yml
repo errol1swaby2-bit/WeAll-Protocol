@@ -15,68 +15,30 @@ jobs:
         with:
           fetch-depth: 0
           ref: p2-complete-remediation-20260927
+
       - name: Verify source preimages
         shell: bash
         run: |
           set -Eeuo pipefail
           git merge-base --is-ancestor 484e1b481d7a5a588fa3f39fb20c0480c3f258c4 HEAD
           test "$(git hash-object Weall-Protocol/src/weall/runtime/helper_merge.py)" = "067a6e6feedebc237131e995310ef45aac6e824e"
-      - name: Recover and run patcher without damaging raw replacement blocks
+          test "$(git hash-object Weall-Protocol/src/weall/runtime/helper_apply.py)" = "9f70851f1c460772f6f75e88997b589a85b3ad5a"
+
+      - name: Recover and run patcher
         shell: bash
         run: |
           set -Eeuo pipefail
-          git show f9a283eff272db5fe236482895ad3e205553d05b:.github/workflows/p2b-materialized-helper-local-plan-binding-closure.yml > /tmp/p2b-old-wrapper.yml
-          python - <<'PY'
-          from pathlib import Path
-
-          text = Path('/tmp/p2b-old-wrapper.yml').read_text(encoding='utf-8')
-          marker = "          python - <<'PY'\n"
-          start = text.index(marker) + len(marker)
-          end = text.index("\n          PY\n", start)
-          block = text[start:end]
-
-          lines = []
-          in_raw = False
-          for original in block.splitlines():
-              if in_raw:
-                  line = original
-                  lines.append(line)
-                  if line.strip() == "'''":
-                      in_raw = False
-                  continue
-              line = original[10:] if original.startswith('          ') else original
-              lines.append(line)
-              if "= r'''" in line:
-                  in_raw = True
-
-          patcher = '\n'.join(lines) + '\n'
-          compile(patcher, '/tmp/p2b_patch.py', 'exec')
-          Path('/tmp/p2b_patch.py').write_text(patcher, encoding='utf-8')
-          PY
+          python .github/p2b_extract_patcher.py
           python /tmp/p2b_patch.py
-      - name: Compile patched files or print failure context
+
+      - name: Compile patched files
         shell: bash
         run: |
           set -Eeuo pipefail
           cd Weall-Protocol
-          for file in \
-            src/weall/runtime/helper_merge.py \
-            src/weall/runtime/helper_apply.py \
-            tests/test_helper_merge.py \
-            tests/test_helper_materialized_merge_restart.py \
-            scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py
-          do
-            if ! python -m py_compile "$file"; then
-              echo "--- failure context: $file ---"
-              python - <<PY
-from pathlib import Path
-p=Path('$file')
-for i,line in enumerate(p.read_text(encoding='utf-8').splitlines(), 1):
-    if max(1, i-5) <= i <= i+5:
-        pass
-PY
-              nl -ba "$file" | sed -n '300,370p'
-              exit 1
-            fi
-          done
-          echo 'all patched Python files compile'
+          python -m py_compile src/weall/runtime/helper_merge.py
+          python -m py_compile src/weall/runtime/helper_apply.py
+          python -m py_compile tests/test_helper_merge.py
+          python -m py_compile tests/test_helper_materialized_merge_restart.py
+          python -m py_compile scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py
+          echo "all patched Python files compile"
