@@ -1,0 +1,82 @@
+name: Precompute P2 Storage Failure Registry
+
+on:
+  push:
+    branches:
+      - p2-complete-remediation-20260927
+    paths:
+      - .github/workflows/p2-failure-registry-precompute.yml
+
+permissions:
+  contents: write
+
+jobs:
+  precompute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p2-complete-remediation-20260927
+
+      - name: Guard exact preimage and extract audited patch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git hash-object Weall-Protocol/src/weall/runtime/tx_schema.py)" = "5c9f1d87e0ae8ef43b853c682f897d739970fd80"
+          test "$(git hash-object Weall-Protocol/src/weall/runtime/apply/storage.py)" = "d6f73a52461d8ab38fb1919c22066b253668b894"
+          test "$(git hash-object Weall-Protocol/src/weall/runtime/scheduler_pipeline.py)" = "77cc982ed918de7cda461b90be455390be2708bf"
+          test "$(git hash-object Weall-Protocol/scripts/rehearse_storage_operator_durability_v1_5.py)" = "c5c4a166328abf27aea72fd0dafba16e5177c994"
+          git show origin/p2-storage-closure-20260927:.github/ci-p2-storage-closure.py > /tmp/p2_storage_patch.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/p2_storage_patch.py')
+          text = path.read_text(encoding='utf-8')
+          old = 'ROOT = Path(__file__).resolve().parents[1]'
+          new = 'ROOT = Path(os.environ["GITHUB_WORKSPACE"]).resolve()'
+          if text.count(old) != 1:
+              raise SystemExit(f'unexpected storage patch ROOT binding count: {text.count(old)}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          python -m py_compile /tmp/p2_storage_patch.py
+
+      - name: Apply audited patch in working tree only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import importlib.util
+          spec = importlib.util.spec_from_file_location('p2_storage_patch', '/tmp/p2_storage_patch.py')
+          if spec is None or spec.loader is None:
+              raise SystemExit('unable to load audited storage patch')
+          patch = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(patch)
+          patch.patch_schema()
+          patch.patch_storage_runtime()
+          patch.patch_scheduler()
+          patch.patch_rehearsal()
+          patch.write_tests()
+          PY
+
+      - name: Regenerate failure-code registry against patched source
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_failure_code_registry_v1_5.py --check
+
+      - name: Commit only generated registry
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Weall-Protocol/generated/failure_code_registry_v1_5.json
+          test "$(git diff --cached --name-only)" = "Weall-Protocol/generated/failure_code_registry_v1_5.json"
+          git diff --cached --check
+          git commit -m "Refresh P2 storage failure-code registry"
+          REMOTE_SHA="$(git ls-remote origin refs/heads/p2-complete-remediation-20260927 | awk '{print $1}')"
+          test "$REMOTE_SHA" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/p2-complete-remediation-20260927
