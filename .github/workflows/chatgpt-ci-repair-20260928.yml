@@ -76,8 +76,8 @@ jobs:
                   total += n
                   path.write_text(text.replace(old, new), encoding='utf-8')
                   changed.append((path.as_posix(), n))
-          if total < 4:
-              raise SystemExit(f'expected multiple {old} references, found only {total}: {changed}')
+          if total != 10:
+              raise SystemExit(f'expected exactly 10 {old} references, found {total}: {changed}')
           leftovers = []
           for root in roots:
               for path in root.rglob('*.py'):
@@ -93,6 +93,7 @@ jobs:
             git -C .. diff --name-only --diff-filter=ACMR a555892cdec04bec85961af843bec75713b44fc7...HEAD \
               | awk '/^Weall-Protocol\/.*\.py$/ {sub(/^Weall-Protocol\//, ""); print}'
           )
+          ruff check --fix --select I "${PY_FILES[@]}"
           ruff format "${PY_FILES[@]}"
           ruff format --check "${PY_FILES[@]}"
           ruff check "${PY_FILES[@]}"
