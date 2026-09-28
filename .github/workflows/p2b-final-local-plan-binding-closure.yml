@@ -100,6 +100,12 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b534_b538_completion_proof_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py || true
+          PYTHONPATH=src:scripts python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
           PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py || true
           PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check
           PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py || true
@@ -158,6 +164,10 @@ jobs:
           cd Weall-Protocol
           python -m pip install -e . --no-deps >/dev/null
           pytest -q tests/test_helper_merge.py tests/test_helper_materialized_merge_restart.py
+          PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
@@ -173,4 +183,4 @@ jobs:
           test "$REMOTE_SHA" = "$GITHUB_SHA"
           git push origin HEAD:refs/heads/p2-complete-remediation-20260927
 
-# retriggered 2026-09-27 for audited P2 helper closure
+# refresh upstream deterministic evidence before audited P2B closure
