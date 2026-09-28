@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "da9146eeb04adb6f5af56bef7bf0ec83908883d96985d209a2bb3ce71914ecbf"
+    "source_tree_digest": "f64dc65b73ea86dab3319c2990ec8d26280aa175e5bba73c99495f1248d92559"
   },
   "required_fields": [
     "stable_id",
@@ -7525,6 +7525,7 @@
         "tests/test_p2_policy_enforcement.py",
         "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_p2_state_sync_hardening.py",
+        "tests/test_p2_storage_closure.py",
         "tests/test_parallel_execution.py",
         "tests/test_parallel_execution_conflict_lanes.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
@@ -8397,6 +8398,7 @@
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_p2_state_sync_hardening.py",
+        "tests/test_p2_storage_closure.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
         "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
         "tests/test_pb001bm_validator_authority_fail_closed.py",

@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "da9146eeb04adb6f5af56bef7bf0ec83908883d96985d209a2bb3ce71914ecbf"
+    "source_tree_digest": "f64dc65b73ea86dab3319c2990ec8d26280aa175e5bba73c99495f1248d92559"
   },
   "rows": [
     {
@@ -27,7 +27,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "329f462cea53c34974af2d42a7d26cdfadeb7bc27f7865ffcea57a4eddb14350",
+      "sha256": "16df7911dbd9d926439855eea4cd5277c5cf1af04d1664d263ab4f78b5a9d83f",
       "stable_id": "EVD-014AE7A3258C314F",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -69,7 +69,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "c58cfa213c821d64d5ec0eedd1806da2de8876d68f3083e493d0b6462164c562",
+      "sha256": "93f170f426646159aa065b80b2e54671d1d3e47fb5ff9edc7a0634cb639b04ec",
       "stable_id": "EVD-0524901BF4D5FCD1",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -167,7 +167,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "923d9ed79598ee55ba1ff314792093ae372fb5d69fc932bc317065ce6b0d8334",
+      "sha256": "9a11a1cb212783a3540af247f5c1b1e2c2027377417469b9c7a3143d69d825b2",
       "stable_id": "EVD-224E96B1E6D9984E",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -279,7 +279,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "ff2ce5f55c2945ebc9d163b36366f8e5ff3680bc4e4dba1425ee07e7532885bd",
+      "sha256": "249cab484a9556e7d8ae0dff42032dbc77aa49912a072379f876a4ceeda69e3c",
       "stable_id": "EVD-3D6DB963CB2B1ECB",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -293,7 +293,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "31050baf460d3e53715f1f7cf78cd5c9ed54c3ee2b05e359128cdddf2fe5e6f2",
+      "sha256": "ea00ba672cd1e94683e64c1f3621ecb2145c690052209dc9513833825603acfa",
       "stable_id": "EVD-3DF622D20626E052",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -321,7 +321,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "7a8f4ca597bb00bcd59667987821bd91914e9f4696496c3d3382b0f8686c05d1",
+      "sha256": "5596531925591e478eb26d32be070ba04429bde6abbec7fb9d85575247e9d0a9",
       "stable_id": "EVD-4F9C5188B5C90E01",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -349,7 +349,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "5c904fb3538983337b0e427c3d7509416bd12f3bf025440728bb27def3f7ed13",
+      "sha256": "92f9610ab1f10b0b6b401eca2c7b3d955b3dc068f32351dfa6c33818cd28e8ec",
       "stable_id": "EVD-53061E3DE6083DDC",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -531,7 +531,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "ad8e45312f75a46e3d062734afa7e5cb18e08b1975eeb2c8d0a1ee121069a8a7",
+      "sha256": "bf9495b5559b47ac2ddbcabe7f3757042f579fcf3c5946f7e69ad5332ffd75e0",
       "stable_id": "EVD-69845895721C0428",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -545,7 +545,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "facd08594df3c00b4c76571f06c6a8abbb18af367e5ba52a0067e104db14cd6e",
+      "sha256": "2c722d2e44415b25bf3fced1ce7b98cfad651b4bcf45faf9944dcc045d35d1de",
       "stable_id": "EVD-69FA26A11DB5F23A",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -615,7 +615,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "51ef1452443a51ab4ca50e6981824654c5b36efc065b344a53266dcdb2b169d6",
+      "sha256": "7338cc9a54a0c23ca1eae8fcfbb3dd53ea50a69257b4a5ad0a0cb596cc03174b",
       "stable_id": "EVD-843D17467D1AAAD3",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -867,7 +867,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "4a0beb8770e9e51884e215028d0795f5caabd4a4132fbf588801e71d02a8fe84",
+      "sha256": "e4ec1140df099205c692079fef922f5c412db19fea6337c2ca55f50288f6e626",
       "stable_id": "EVD-D01357C7600DACB4",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -881,7 +881,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "081e519f6afd2359d31de12742ca74517fe485cb6089dac11ce45e83a37624e0",
+      "sha256": "461f86fb8b8342f089090b9ee31a4fae77c5ff10539414ce662f9f4b50fe03a8",
       "stable_id": "EVD-D0AECF645E544A11",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -1091,7 +1091,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "bad3121c328528faef36ba03a2753f0fbdb8f425b6c0725da3d40425bdf61613",
+      "sha256": "052d205d14c91149935b10a690ca98a6dfe4f4ef2348de60a5969fa16829b981",
       "stable_id": "EVD-F47E2373CB956305",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -1175,7 +1175,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": false,
       "reviewer": "automated CI and maintainer review",
-      "sha256": "bc93b48f17a8d833b8c8f815feb58cef3c4ca07336be60d2e51d3bbd3692ed2f",
+      "sha256": "cd64f0658dab246ae122b90bcb13233947072297a8c95ba68e133e13dbb42f08",
       "stable_id": "EVD-W1-COMPILER-TESTS",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."

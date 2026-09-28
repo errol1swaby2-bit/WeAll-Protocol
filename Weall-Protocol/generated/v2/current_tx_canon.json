@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "da9146eeb04adb6f5af56bef7bf0ec83908883d96985d209a2bb3ce71914ecbf"
+    "source_tree_digest": "f64dc65b73ea86dab3319c2990ec8d26280aa175e5bba73c99495f1248d92559"
   },
   "rows": [
     {
@@ -15511,7 +15511,7 @@
       "implementation_source": {
         "function": "_apply_ipfs_pin_request",
         "handler": "storage",
-        "line": 1437,
+        "line": 1491,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -15616,7 +15616,15 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "pin_confirm_operator_not_current_target"
+        },
+        {
+          "code": "forbidden",
           "reason": "system_only"
+        },
+        {
+          "code": "invalid_payload",
+          "reason": "missing_operator_id"
         },
         {
           "code": "invalid_payload",
@@ -15624,14 +15632,26 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "pin_cid_mismatch"
+        },
+        {
+          "code": "invalid_state",
+          "reason": "pin_missing_cid"
+        },
+        {
+          "code": "invalid_state",
           "reason": "runtime_apply_failure"
+        },
+        {
+          "code": "not_found",
+          "reason": "pin_not_found"
         }
       ],
       "frontend_surfaces": [],
       "implementation_source": {
         "function": "_apply_ipfs_pin_confirm",
         "handler": "storage",
-        "line": 1497,
+        "line": 1593,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -15644,10 +15664,13 @@
         "parent": "IPFS_PIN_REQUEST",
         "return_fields": [
           "applied",
+          "confirmed_target_count",
           "ok",
+          "operator_id",
           "pin_id",
           "reassignment",
-          "receipt"
+          "receipt",
+          "retrieval_confirmed_target_count"
         ],
         "stable_id": "RCP-5AF06E430E99D819"
       },
@@ -15659,10 +15682,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "f1f07a290dae998edcc6b6383ee9d9c5939f476622477c02c910b541ef2bd98d",
+        "review_digest": "d851d7d790d5591c86facd10b8e9b5c641abe66f6809fba9a23273020f3d7c1f",
         "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-09-28T16:02:04Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0801",
@@ -15670,7 +15693,7 @@
         "key:availability_ok",
         "key:challenges",
         "key:cid",
-        "key:latest_reassignment",
+        "key:confirmed_target_count",
         "key:leases",
         "key:offers",
         "key:ok",
@@ -15678,25 +15701,25 @@
         "key:operators",
         "key:payouts",
         "key:pin_confirms",
-        "key:pin_id",
         "key:pins",
         "key:proofs",
         "key:release",
         "key:reports",
+        "key:retrieval_confirmed_target_count",
         "key:retrieval_ok",
         "key:retrieval_proofs",
         "key:size_bytes",
         "key:status"
       ],
       "state_writes": [
+        "key:<add:dynamic>",
         "key:<append:dynamic>",
-        "key:availability_status",
+        "key:<discard:dynamic>",
         "key:challenges",
-        "key:cid",
         "key:confirm_payload",
         "key:confirmed_at_height",
         "key:confirmed_at_nonce",
-        "key:durability_status",
+        "key:confirmed_targets",
         "key:failed_at_height",
         "key:failed_at_nonce",
         "key:latest_reassignment",
@@ -15709,7 +15732,9 @@
         "key:proofs",
         "key:released_at_height",
         "key:released_at_nonce",
+        "key:released_targets",
         "key:reports",
+        "key:retrieval_confirmed_targets",
         "key:retrieval_proofs",
         "key:status"
       ],
@@ -15718,6 +15743,7 @@
         "tests/test_coverage_behavior.py",
         "tests/test_ipfs_cid_and_capacity_gates.py",
         "tests/test_ipfs_replication_assignment.py",
+        "tests/test_p2_storage_closure.py",
         "tests/test_storage_revalidation_and_accounting.py",
         "tests/test_tx_schema_networking_storage.py",
         "tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py"
@@ -15774,7 +15800,7 @@
       "implementation_source": {
         "function": "_apply_storage_offer_create",
         "handler": "storage",
-        "line": 563,
+        "line": 602,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -15889,7 +15915,7 @@
       "implementation_source": {
         "function": "_apply_storage_offer_withdraw",
         "handler": "storage",
-        "line": 622,
+        "line": 661,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -16006,7 +16032,7 @@
       "implementation_source": {
         "function": "_apply_storage_lease_create",
         "handler": "storage",
-        "line": 651,
+        "line": 690,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -16032,10 +16058,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "89a73b91ccba87698f6c97776cd93bef21428d49ab24d2743d40f84de616e541",
+        "review_digest": "49e75d5aba55ebc4b7607027b2cef1d948c20c0cc33a80d6a287f16958d1ab2c",
         "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-09-28T16:02:04Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0804",
@@ -16057,6 +16083,7 @@
         "key:status"
       ],
       "state_writes": [
+        "key:capacity_released",
         "key:challenges",
         "key:leases",
         "key:offers",
@@ -16072,6 +16099,7 @@
       "tests": [
         "tests/test_apply_storage_peer_validator.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_storage_closure.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
       "tx_type": "STORAGE_LEASE_CREATE",
@@ -16107,6 +16135,14 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "lease_expired"
+        },
+        {
+          "code": "forbidden",
+          "reason": "lease_not_active"
+        },
+        {
+          "code": "forbidden",
           "reason": "only_lessee_can_renew"
         },
         {
@@ -16122,7 +16158,7 @@
       "implementation_source": {
         "function": "_apply_storage_lease_renew",
         "handler": "storage",
-        "line": 716,
+        "line": 758,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -16148,10 +16184,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "50b9296504ff3cfd8943c7db7397ffc0f98f3469ee6859752e49d8bbdbcf767a",
+        "review_digest": "b149a2cd2e3c6aef1c8864101625de814db34a99ee2e436fd03d4ec9e70c2234",
         "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-09-28T16:02:04Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0805",
@@ -16168,7 +16204,8 @@
         "key:pin_confirms",
         "key:pins",
         "key:proofs",
-        "key:reports"
+        "key:reports",
+        "key:status"
       ],
       "state_writes": [
         "key:challenges",
@@ -16186,6 +16223,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_storage_closure.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
       "tx_type": "STORAGE_LEASE_RENEW",
@@ -16236,7 +16274,7 @@
       "implementation_source": {
         "function": "_apply_storage_lease_revoke",
         "handler": "storage",
-        "line": 744,
+        "line": 790,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -16250,7 +16288,8 @@
         "return_fields": [
           "applied",
           "deduped",
-          "lease_id"
+          "lease_id",
+          "status"
         ],
         "stable_id": "RCP-6B126E95998D7E74"
       },
@@ -16262,10 +16301,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "70d96bcda63863e2b73550d2fb8f27b2098296e872ab14ac1694f3780c87edb1",
+        "review_digest": "2be244f87d0be2fa8b61fb5815386edd2b6656e142a416203f4a8cb087ba452d",
         "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-09-28T16:02:04Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0806",
@@ -16281,7 +16320,6 @@
         "key:pins",
         "key:proofs",
         "key:reports",
-        "key:size_bytes",
         "key:status"
       ],
       "state_writes": [
@@ -16336,6 +16374,14 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "lease_expired"
+        },
+        {
+          "code": "forbidden",
+          "reason": "lease_not_active"
+        },
+        {
+          "code": "forbidden",
           "reason": "only_operator_account_can_submit_proof"
         },
         {
@@ -16351,7 +16397,7 @@
       "implementation_source": {
         "function": "_apply_storage_proof_submit",
         "handler": "storage",
-        "line": 778,
+        "line": 827,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -16377,15 +16423,16 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "e7cb5419cae53ff11333d959d86777e4548c10ff532f16707884788f80ba97f9",
+        "review_digest": "f6b06bb681a207b0411bc86c363bd06746f14e8c4dea6674b1cbe01bb4a54a85",
         "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-09-28T16:02:04Z",
+        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0807",
       "state_reads": [
         "key:challenges",
+        "key:end_height",
         "key:leases",
         "key:offers",
         "key:operator",
@@ -16395,7 +16442,8 @@
         "key:pin_confirms",
         "key:pins",
         "key:proofs",
-        "key:reports"
+        "key:reports",
+        "key:status"
       ],
       "state_writes": [
         "key:<append:dynamic>",
@@ -16414,6 +16462,7 @@
       ],
       "tests": [
         "tests/test_helper_serial_equivalence_mixed_lane.py",
+        "tests/test_p2_storage_closure.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
       "tx_type": "STORAGE_PROOF_SUBMIT",
@@ -16516,7 +16565,7 @@
       "implementation_source": {
         "function": "_apply_storage_challenge_issue",
         "handler": "storage",
-        "line": 813,
+        "line": 867,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -16705,7 +16754,7 @@
       "implementation_source": {
         "function": "_apply_storage_challenge_respond",
         "handler": "storage",
-        "line": 1029,
+        "line": 1083,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -16856,7 +16905,7 @@
       "implementation_source": {
         "function": "_apply_storage_payout_execute",
         "handler": "storage",
-        "line": 1380,
+        "line": 1434,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -16957,7 +17006,7 @@
       "implementation_source": {
         "function": "_apply_storage_report_anchor",
         "handler": "storage",
-        "line": 1411,
+        "line": 1465,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29761,7 +29810,7 @@
       "implementation_source": {
         "function": "_apply_storage_capacity_proof_verify",
         "handler": "storage",
-        "line": 1193,
+        "line": 1247,
         "path": "src/weall/runtime/apply/storage.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

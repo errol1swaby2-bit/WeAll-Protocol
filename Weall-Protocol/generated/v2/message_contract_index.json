@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "da9146eeb04adb6f5af56bef7bf0ec83908883d96985d209a2bb3ce71914ecbf"
+    "source_tree_digest": "f64dc65b73ea86dab3319c2990ec8d26280aa175e5bba73c99495f1248d92559"
   },
   "rows": [
     {
@@ -3148,7 +3148,7 @@
       "fields": [],
       "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
       "kind": "message_builder_or_handler",
-      "line": 1486,
+      "line": 1500,
       "name": "_validate_vote_or_verdict",
       "primary_mechanism_id": "M-012",
       "replay_rules": "domain_context_sender_and_logical_position_binding_required",
@@ -3166,7 +3166,7 @@
       "fields": [],
       "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
       "kind": "message_builder_or_handler",
-      "line": 2619,
+      "line": 2633,
       "name": "validate_tx_envelope",
       "primary_mechanism_id": "M-012",
       "replay_rules": "domain_context_sender_and_logical_position_binding_required",

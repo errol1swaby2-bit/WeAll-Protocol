@@ -3855,6 +3855,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_payload:missing_operator_id",
+      "kind": "failure",
+      "stable_id": "FAIL-223B7074B1198648",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_tx:missing_device_id",
       "kind": "failure",
       "stable_id": "FAIL-22A5380C7FCAFC5F",
@@ -4159,6 +4166,13 @@
       "canonical_key": "forbidden:reviewer_not_assigned",
       "kind": "failure",
       "stable_id": "FAIL-38DE2E915BC4A0A3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:pin_missing_cid",
+      "kind": "failure",
+      "stable_id": "FAIL-390D4E2AFD0AD1A6",
       "status": "active"
     },
     {
@@ -4765,6 +4779,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:pin_confirm_operator_not_current_target",
+      "kind": "failure",
+      "stable_id": "FAIL-5BFBDBD1A45F3B08",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_block:finalized_block_height_mismatch",
       "kind": "failure",
       "stable_id": "FAIL-5C4B5766EB2048C9",
@@ -5150,6 +5171,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_state:runtime_apply_failure",
+      "kind": "failure",
+      "stable_id": "FAIL-751BEA25B58D9B93",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "forbidden:only_account_can_update_reviewer_lane",
       "kind": "failure",
       "stable_id": "FAIL-75D7BAC9B26AB0BD",
@@ -5272,6 +5300,13 @@
       "canonical_key": "forbidden:storage_capacity_probe_expired",
       "kind": "failure",
       "stable_id": "FAIL-7B614891E64B152B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:lease_expired",
+      "kind": "failure",
+      "stable_id": "FAIL-7C3CF08FAA14248A",
       "status": "active"
     },
     {
@@ -5489,6 +5524,13 @@
       "canonical_key": "invalid_payload:missing_group_id_for_group_scope",
       "kind": "failure",
       "stable_id": "FAIL-8DB85782CD8DC657",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "not_found:pin_not_found",
+      "kind": "failure",
+      "stable_id": "FAIL-8DC2F2AAA82257FB",
       "status": "active"
     },
     {
@@ -6214,6 +6256,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_payload:pin_cid_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-BF814204C65E5137",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_payload:missing_endpoints",
       "kind": "failure",
       "stable_id": "FAIL-C0292369988C5886",
@@ -6455,6 +6504,13 @@
       "canonical_key": "invalid_payload:cannot_block_self",
       "kind": "failure",
       "stable_id": "FAIL-CFFA1EAD4DE2848B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:lease_not_active",
+      "kind": "failure",
+      "stable_id": "FAIL-D0CEE1FA9A024D9E",
       "status": "active"
     },
     {
@@ -18910,6 +18966,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:capacity_released",
+      "kind": "state",
+      "stable_id": "STATE-21FC2CD0F991E366",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Notifications:topics",
       "kind": "state",
       "stable_id": "STATE-21FDA6480B3BD4BC",
@@ -20852,6 +20915,13 @@
       "canonical_key": "Performance:reports",
       "kind": "state",
       "stable_id": "STATE-620B2AB333606560",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:confirmed_target_count",
+      "kind": "state",
+      "stable_id": "STATE-62B8291368648D29",
       "status": "active"
     },
     {
@@ -22851,6 +22921,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:retrieval_confirmed_target_count",
+      "kind": "state",
+      "stable_id": "STATE-A67AC930C1E80322",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Indexing:tx_id",
       "kind": "state",
       "stable_id": "STATE-A682A10A4F10D6DB",
@@ -23012,6 +23089,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:<discard:dynamic>",
+      "kind": "state",
+      "stable_id": "STATE-ABB3D3E0CC6CDD1C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Roles:proven_capacity_bytes",
       "kind": "state",
       "stable_id": "STATE-ABD7BDAE28B0E6DD",
@@ -23124,6 +23208,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:retrieval_confirmed_targets",
+      "kind": "state",
+      "stable_id": "STATE-AF09AFC4C2840336",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Consensus:attestations_by_validator",
       "kind": "state",
       "stable_id": "STATE-AF1751D2E0965080",
@@ -23162,6 +23253,13 @@
       "canonical_key": "PoH:configured_approval_threshold",
       "kind": "state",
       "stable_id": "STATE-B050A08676C82CBD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:released_targets",
+      "kind": "state",
+      "stable_id": "STATE-B083380623387B72",
       "status": "active"
     },
     {
@@ -24510,6 +24608,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:<add:dynamic>",
+      "kind": "state",
+      "stable_id": "STATE-DA4033015ABB99C7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Storage:response_payload",
       "kind": "state",
       "stable_id": "STATE-DA71CFD60A69C7D2",
@@ -25052,6 +25157,13 @@
       "canonical_key": "PoH:poh_bootstrap_max_height",
       "kind": "state",
       "stable_id": "STATE-EA07107A5AFAA439",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:confirmed_targets",
+      "kind": "state",
+      "stable_id": "STATE-EA082684091EBEE9",
       "status": "active"
     },
     {

@@ -320,7 +320,7 @@
     "wrong_chain_rejected": true
   },
   "freshness": {
-    "input_digest_sha256": "31ef76daf9777c63399ab2150cc8e63416b528c9c37b673b5a7f9c1610c15354",
+    "input_digest_sha256": "92fcfa4253ed5d1f6c45542ecc02b1730786854de72d31db04dffb51d1d35907",
     "mode": "deterministic_input_digest_v1"
   },
   "multiprocess_ipfs_operator_durability": {
@@ -328,24 +328,23 @@
     "batch": "569",
     "confirm_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 2,
       "ok": true,
+      "operator_id": "op-a",
       "pin_id": "pin-b569",
       "reassignment": {
-        "failed_operator_id": "op-b",
-        "reassigned": true,
-        "replacement_operator_id": "op-a",
-        "targets": [
-          "op-a",
-          "op-c"
-        ]
+        "reassigned": false
       },
-      "receipt": true
+      "receipt": true,
+      "retrieval_confirmed_target_count": 2
     },
     "failed_operator": "op-b",
     "failed_process_exitcode": -15,
     "failure_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 0,
       "ok": false,
+      "operator_id": "op-b",
       "pin_id": "pin-b569",
       "reassignment": {
         "failed_operator_id": "op-b",
@@ -356,7 +355,8 @@
           "op-c"
         ]
       },
-      "receipt": true
+      "receipt": true,
+      "retrieval_confirmed_target_count": 0
     },
     "ok": true,
     "operator_count": 4,
@@ -378,7 +378,34 @@
     },
     "replacement_operator": "op-a",
     "retrieval_confirmed": true,
-    "retrieval_proof_count": 1,
+    "retrieval_proof_count": 2,
+    "surviving_add_result": {
+      "cid": "QmYwAPJzv5CZsnAzt8auVZRnGzr1rRkNvztNFVQVw1Gc7Y",
+      "ok": true,
+      "op": "add_pin",
+      "operator_id": "op-c",
+      "sha256": "c7c476d0c031c895cf7709b603720abe89907b0221b29844df8b061fa6636594"
+    },
+    "surviving_cat_result": {
+      "cid": "QmYwAPJzv5CZsnAzt8auVZRnGzr1rRkNvztNFVQVw1Gc7Y",
+      "ok": true,
+      "op": "cat",
+      "operator_id": "op-c",
+      "sha256": "c7c476d0c031c895cf7709b603720abe89907b0221b29844df8b061fa6636594"
+    },
+    "surviving_confirm_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 1,
+      "ok": true,
+      "operator_id": "op-c",
+      "pin_id": "pin-b569",
+      "reassignment": {
+        "reassigned": false
+      },
+      "receipt": true,
+      "retrieval_confirmed_target_count": 1
+    },
+    "surviving_operator": "op-c",
     "worker_model": "multiprocess_ipfs_compatible_operator_workers"
   },
   "ok": true,

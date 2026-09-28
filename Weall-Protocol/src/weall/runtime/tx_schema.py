@@ -762,6 +762,13 @@ class StorageLeaseCreatePayload(_StrictModel):
         default=None,
         ge=0,
     )
+    # Canonical reservation quantity.  Runtime legacy aliases remain replay-only;
+    # new admission must carry this field explicitly when reserving less than the
+    # offer's full capacity.
+    size_bytes: int | None = Field(
+        default=None,
+        ge=1,
+    )
 
 
 class StorageLeaseRenewPayload(_StrictModel):
@@ -974,6 +981,13 @@ class IpfsPinConfirmPayload(_OptionalCidPayload):
         min_length=1,
     )
     ok: bool | int | None = None
+    release: bool | None = None
+    status: str | None = Field(default=None, min_length=1)
+    retrieval_ok: bool | int | None = None
+    availability_ok: bool | int | None = None
+    retrieval_probe_id: str | None = Field(default=None, min_length=1)
+    retrieval_sha256: str | None = Field(default=None, min_length=1)
+    proof_hash: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
     def _validate_optional_cid(self) -> IpfsPinConfirmPayload:
