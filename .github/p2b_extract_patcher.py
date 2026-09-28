@@ -30,6 +30,23 @@ def main() -> None:
             in_raw = True
 
     patcher = "\n".join(lines) + "\n"
+    patcher += r'''
+
+# Normalize the restart test transactions so their semantic subjects match the
+# explicit namespace prefixes.  The original minimal fixtures omitted post_id
+# and account_id, causing conflict analysis to fail closed to barrier:global.
+path = root / "tests/test_helper_materialized_merge_restart.py"
+text = path.read_text(encoding="utf-8")
+text = text.replace(
+    '{"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}',
+    '{"tx_id": "c1", "tx_type": "CONTENT_CREATE", "post_id": "1", "state_prefixes": ["content:post:1"]}',
+)
+text = text.replace(
+    '{"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]}',
+    '{"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "account_id": "alice", "state_prefixes": ["identity:user:alice"]}',
+)
+path.write_text(text, encoding="utf-8")
+'''
     compile(patcher, "/tmp/p2b_patch.py", "exec")
     Path("/tmp/p2b_patch.py").write_text(patcher, encoding="utf-8")
 
