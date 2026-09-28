@@ -259,18 +259,103 @@ def run_harness() -> dict[str, Any]:
                     parent="d-api",
                 ),
             )
-            simulated.setdefault("storage", {}).setdefault("operators", {})["op-a"] = {
-                "enabled": True,
-                "capacity_bytes": 1000,
-                "used_bytes": 0,
-                "allocated_bytes": 0,
-            }
-            simulated["storage"]["operators"]["op-b"] = {
-                "enabled": True,
-                "capacity_bytes": 1000,
-                "used_bytes": 0,
-                "allocated_bytes": 0,
-            }
+            simulated.setdefault("params", {})["ipfs_replication_factor"] = 2
+            roles = (
+                simulated.setdefault("roles", {})
+                if isinstance(simulated.get("roles"), dict)
+                else {}
+            )
+            simulated["roles"] = roles
+            node_ops = (
+                roles.setdefault("node_operators", {})
+                if isinstance(roles.get("node_operators"), dict)
+                else {}
+            )
+            roles["node_operators"] = node_ops
+            active_set = (
+                node_ops.setdefault("active_set", [])
+                if isinstance(node_ops.get("active_set"), list)
+                else []
+            )
+            node_ops["active_set"] = active_set
+            by_id = (
+                node_ops.setdefault("by_id", {}) if isinstance(node_ops.get("by_id"), dict) else {}
+            )
+            node_ops["by_id"] = by_id
+            accounts = (
+                simulated.setdefault("accounts", {})
+                if isinstance(simulated.get("accounts"), dict)
+                else {}
+            )
+            simulated["accounts"] = accounts
+            storage = (
+                simulated.setdefault("storage", {})
+                if isinstance(simulated.get("storage"), dict)
+                else {}
+            )
+            simulated["storage"] = storage
+            storage_ops = (
+                storage.setdefault("operators", {})
+                if isinstance(storage.get("operators"), dict)
+                else {}
+            )
+            storage["operators"] = storage_ops
+
+            for operator_id in ("op-a", "op-b", "op-c"):
+                node_pubkey = f"{operator_id}-node"
+                account = accounts.setdefault(operator_id, {})
+                account["poh_tier"] = 2
+                account["reputation_milli"] = 2000
+                devices = (
+                    account.setdefault("devices", {})
+                    if isinstance(account.get("devices"), dict)
+                    else {}
+                )
+                account["devices"] = devices
+                device_by_id = (
+                    devices.setdefault("by_id", {})
+                    if isinstance(devices.get("by_id"), dict)
+                    else {}
+                )
+                devices["by_id"] = device_by_id
+                device_by_id[node_pubkey] = {
+                    "device_type": "node",
+                    "pubkey": node_pubkey,
+                    "revoked": False,
+                }
+                if operator_id not in active_set:
+                    active_set.append(operator_id)
+                by_id[operator_id] = {
+                    "account_id": operator_id,
+                    "status": "active",
+                    "active": True,
+                    "enrolled": True,
+                    "node_pubkey": node_pubkey,
+                    "responsibilities": {
+                        "storage": {
+                            "opted_in": True,
+                            "active": True,
+                            "proof_status": "verified",
+                            "declared_capacity_bytes": 1000,
+                            "reserved_capacity_bytes": 1000,
+                            "probed_capacity_bytes": 1000,
+                            "proven_capacity_bytes": 1000,
+                            "allocated_capacity_bytes": 0,
+                            "used_capacity_bytes": 0,
+                            "proof_expires_height": 10000,
+                            "availability_score_milli": 1000,
+                            "failed_challenge_count": 0,
+                            "missed_challenge_count": 0,
+                        }
+                    },
+                }
+                storage_ops[operator_id] = {
+                    "enabled": True,
+                    "capacity_bytes": 1000,
+                    "used_bytes": 0,
+                    "allocated_bytes": 0,
+                }
+
             apply_storage(
                 simulated,
                 _env(
@@ -284,13 +369,51 @@ def run_harness() -> dict[str, Any]:
                     },
                 ),
             )
-            apply_storage(
+            pin = simulated["storage"]["pins"]["pin-api"]
+            initial_targets = list(pin.get("targets") or [])
+            if len(initial_targets) != 2:
+                raise AssertionError(
+                    f"expected two deterministic initial storage targets: {initial_targets!r}"
+                )
+            failed_operator = str(initial_targets[0])
+            surviving_operator = str(initial_targets[1])
+
+            failed = apply_storage(
                 simulated,
                 _env(
                     "IPFS_PIN_CONFIRM",
                     "SYSTEM",
                     5,
-                    {"pin_id": "pin-api", "operator_id": "op-a", "ok": False},
+                    {
+                        "pin_id": "pin-api",
+                        "operator_id": failed_operator,
+                        "ok": False,
+                    },
+                    system=True,
+                    parent="pin-api",
+                ),
+            )
+            reassignment = failed.get("reassignment", {}) if isinstance(failed, dict) else {}
+            replacement_operator = str(reassignment.get("replacement_operator_id") or "")
+            if (
+                not bool(reassignment.get("reassigned"))
+                or not replacement_operator
+                or replacement_operator in initial_targets
+            ):
+                raise AssertionError(f"unexpected storage reassignment: {reassignment!r}")
+
+            apply_storage(
+                simulated,
+                _env(
+                    "IPFS_PIN_CONFIRM",
+                    "SYSTEM",
+                    6,
+                    {
+                        "pin_id": "pin-api",
+                        "operator_id": surviving_operator,
+                        "ok": True,
+                        "retrieval_ok": True,
+                    },
                     system=True,
                     parent="pin-api",
                 ),
@@ -300,10 +423,10 @@ def run_harness() -> dict[str, Any]:
                 _env(
                     "IPFS_PIN_CONFIRM",
                     "SYSTEM",
-                    6,
+                    7,
                     {
                         "pin_id": "pin-api",
-                        "operator_id": "op-b",
+                        "operator_id": replacement_operator,
                         "ok": True,
                         "retrieval_ok": True,
                     },

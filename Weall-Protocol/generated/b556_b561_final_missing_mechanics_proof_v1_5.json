@@ -143,7 +143,9 @@
     "failed_operator": "op-b",
     "failure_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 0,
       "ok": false,
+      "operator_id": "op-b",
       "pin_id": "pin-b558",
       "reassignment": {
         "failed_operator_id": "op-b",
@@ -154,7 +156,8 @@
           "op-c"
         ]
       },
-      "receipt": true
+      "receipt": true,
+      "retrieval_confirmed_target_count": 0
     },
     "initial_targets": [
       "op-b",
@@ -169,22 +172,34 @@
     ],
     "replacement_confirm_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 2,
       "ok": true,
+      "operator_id": "op-a",
       "pin_id": "pin-b558",
       "reassignment": {
-        "failed_operator_id": "op-b",
-        "reassigned": true,
-        "replacement_operator_id": "op-a",
-        "targets": [
-          "op-a",
-          "op-c"
-        ]
+        "reassigned": false
       },
-      "receipt": true
+      "receipt": true,
+      "retrieval_confirmed_target_count": 2
     },
     "replacement_operator": "op-a",
     "retrieval_confirmed": true,
-    "retrieval_proof_count": 1,
+    "retrieval_proof_count": 2,
+    "surviving_confirm_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 1,
+      "ok": true,
+      "operator_id": "op-c",
+      "pin_id": "pin-b558",
+      "reassignment": {
+        "reassigned": false
+      },
+      "receipt": true,
+      "retrieval_confirmed_target_count": 1
+    },
+    "surviving_operator": "op-c",
+    "surviving_replica_read_ok": true,
+    "surviving_replica_written": true,
     "worker_model": "multi_operator_local_file_pin_workers"
   },
   "ok": true,
