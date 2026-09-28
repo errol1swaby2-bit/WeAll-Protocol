@@ -77,18 +77,11 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          ruff format \
-            src/weall/runtime/helper_merge.py \
-            src/weall/runtime/helper_apply.py \
-            tests/test_helper_merge.py \
-            tests/test_helper_materialized_merge_restart.py \
-            scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py
-          ruff check \
-            src/weall/runtime/helper_merge.py \
-            src/weall/runtime/helper_apply.py \
-            tests/test_helper_merge.py \
-            tests/test_helper_materialized_merge_restart.py \
-            scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py
+          FILES="src/weall/runtime/helper_merge.py src/weall/runtime/helper_apply.py tests/test_helper_merge.py tests/test_helper_materialized_merge_restart.py scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py"
+          ruff format $FILES
+          ruff check --fix $FILES
+          ruff format $FILES
+          ruff check $FILES
 
       - name: Run focused P2B adversarial proof
         working-directory: Weall-Protocol
