@@ -1102,7 +1102,7 @@
       "http_status": null,
       "sample_reason": "missing_offer_id",
       "source": "src/weall/runtime/apply/storage.py",
-      "source_lineno": 628
+      "source_lineno": 667
     },
     {
       "code": "invalid_payload",
@@ -1219,7 +1219,7 @@
       "http_status": null,
       "sample_reason": "offer_missing_operator_id",
       "source": "src/weall/runtime/apply/storage.py",
-      "source_lineno": 667
+      "source_lineno": 706
     },
     {
       "code": "invalid_state",
@@ -1714,7 +1714,7 @@
       "http_status": null,
       "sample_reason": "offer_not_found",
       "source": "src/weall/runtime/apply/storage.py",
-      "source_lineno": 633
+      "source_lineno": 672
     },
     {
       "code": "not_found",
