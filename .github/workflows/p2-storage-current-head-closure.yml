@@ -66,7 +66,7 @@ jobs:
           rm -f .github/workflows/p2-storage-current-head-closure.yml
           git add -u .github/workflows/p2-storage-current-head-closure.yml
 
-      - name: Apply audited storage patch and register deterministic storage state identities
+      - name: Apply audited storage patch and seed known deterministic storage state identities
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -152,6 +152,101 @@ jobs:
               stable_path.write_text(
                   json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
               )
+          PY
+
+      - name: Exhaustively register compiler-discovered Storage state identities
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          root = Path.cwd()
+          stable_path = root / 'specs/v2/source/stable_ids.json'
+          env = os.environ.copy()
+          env['PYTHONPATH'] = 'src'
+          pattern = re.compile(
+              r'unregistered stable ID: kind=([^ ]+) canonical_key=([^\n\r]+)'
+          )
+          registered: list[tuple[str, str]] = []
+
+          for _attempt in range(128):
+              proc = subprocess.run(
+                  [sys.executable, 'scripts/compile_v2_spec.py'],
+                  cwd=root,
+                  env=env,
+                  text=True,
+                  capture_output=True,
+              )
+              if proc.returncode == 0:
+                  if proc.stdout:
+                      print(proc.stdout, end='')
+                  print('compiler-discovered Storage state IDs:', registered)
+                  break
+
+              combined = (proc.stdout or '') + '\n' + (proc.stderr or '')
+              match = pattern.search(combined)
+              if match is None:
+                  print(combined, file=sys.stderr)
+                  raise SystemExit(proc.returncode)
+              kind = match.group(1).strip()
+              canonical_key = match.group(2).strip()
+              if kind != 'state' or not canonical_key.startswith('Storage:'):
+                  print(combined, file=sys.stderr)
+                  raise SystemExit(
+                      f'refusing automatic registration outside Storage state namespace: '
+                      f'kind={kind} canonical_key={canonical_key}'
+                  )
+
+              payload = json.loads(stable_path.read_text(encoding='utf-8'))
+              entries = payload.get('entries')
+              if not isinstance(entries, list):
+                  raise SystemExit('stable_ids.json entries must be a list')
+              expected = (
+                  'STATE-'
+                  + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
+              )
+              for row in entries:
+                  if not isinstance(row, dict):
+                      continue
+                  if str(row.get('stable_id') or '') == expected:
+                      raise SystemExit(
+                          f'stable ID collision: {expected} already belongs to '
+                          f'{row.get("canonical_key")!r}'
+                      )
+                  if (
+                      str(row.get('kind') or '') == 'state'
+                      and str(row.get('canonical_key') or '') == canonical_key
+                  ):
+                      raise SystemExit(
+                          f'compiler reported already-registered Storage state key: {canonical_key}'
+                      )
+              entries.append(
+                  {
+                      'aliases': [],
+                      'canonical_key': canonical_key,
+                      'kind': 'state',
+                      'stable_id': expected,
+                      'status': 'active',
+                  }
+              )
+              entries.sort(key=lambda row: str(row.get('stable_id') or ''))
+              stable_path.write_text(
+                  json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
+              )
+              registered.append((canonical_key, expected))
+              print(f'registered {canonical_key} -> {expected}')
+          else:
+              raise SystemExit('exhausted Storage stable-ID registration attempts')
           PY
 
       - name: Format, lint, and canon-check storage changes
