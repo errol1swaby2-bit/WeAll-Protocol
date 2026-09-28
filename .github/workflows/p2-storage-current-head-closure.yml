@@ -102,6 +102,7 @@ jobs:
               'invalid_payload:pin_cid_mismatch',
               'invalid_payload:missing_operator_id',
               'forbidden:pin_confirm_operator_not_current_target',
+              'invalid_state:runtime_apply_failure',
           }
           stable_path = proto / 'specs/v2/source/stable_ids.json'
           payload = json.loads(stable_path.read_text(encoding='utf-8'))
