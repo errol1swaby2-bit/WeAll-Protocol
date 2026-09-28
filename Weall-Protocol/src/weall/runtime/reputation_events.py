@@ -94,6 +94,18 @@ class ReputationEventSpec:
             "eligibility_impact": self.eligibility_impact,
             "explanation": self.explanation,
             "farming_policy": self.farming_policy,
+            "policy_enforcement": {
+                "decay": (
+                    "not_applicable"
+                    if self.decay_policy == "none"
+                    else "metadata_only_not_runtime_enforced"
+                ),
+                "farming": (
+                    "not_applicable"
+                    if self.farming_policy == "none"
+                    else "metadata_only_not_runtime_enforced"
+                ),
+            },
             "visibility": self.visibility,
             "can_trigger_ineligibility": bool(self.can_trigger_ineligibility),
         }
@@ -1098,6 +1110,9 @@ def registry_payload() -> Json:
             "appeals_are_reversal_events": True,
             "frontend_timer_inputs_forbidden": True,
             "wall_clock_penalties_forbidden": True,
+            "decay_runtime_enforced": False,
+            "farming_policy_runtime_enforced": False,
+            "unparameterized_policy_metadata_is_not_protocol_semantics": True,
         },
     }
 
@@ -1377,6 +1392,50 @@ def canonical_reputation_events_for_actor(state: Json, actor_id: str) -> list[Js
     ]
 
 
+def effective_reputation_events_for_eligibility(
+    events: Iterable[Mapping[str, Any]],
+) -> list[Json]:
+    """Return the canonical event history whose eligibility effects remain active.
+
+    Reversals are append-only and may themselves be reversed. Processing the
+    canonical history from newest to oldest preserves that algebra: an active
+    reversal cancels its target, while a cancelled reversal does not cancel the
+    earlier event. Score reduction remains unchanged and continues to sum every
+    append-only delta.
+    """
+
+    history: list[Json] = []
+    seen_ids: set[str] = set()
+    for raw in events:
+        if not isinstance(raw, Mapping):
+            continue
+        event_id = _as_str(raw.get("event_id"))
+        if not event_id or event_id in seen_ids:
+            continue
+        seen_ids.add(event_id)
+        history.append(dict(raw))
+    history.sort(
+        key=lambda ev: (
+            _as_int(ev.get("occurred_at_block"), 0),
+            _as_str(ev.get("event_id")),
+        )
+    )
+
+    cancelled: set[str] = set()
+    for ev in reversed(history):
+        event_id = _as_str(ev.get("event_id"))
+        if event_id in cancelled:
+            continue
+        code = _as_str(ev.get("event_code") or ev.get("reason_code")).upper()
+        if code != "REPUTATION_EVENT_REVERSED":
+            continue
+        target = _as_str(ev.get("reversal_of_optional"))
+        if target:
+            cancelled.add(target)
+
+    return [ev for ev in history if _as_str(ev.get("event_id")) not in cancelled]
+
+
 def reduce_reputation_events(events: Iterable[Mapping[str, Any]]) -> Json:
     actors: dict[str, Json] = {}
     history: list[Mapping[str, Any]] = []
@@ -1476,9 +1535,7 @@ def derive_role_eligibility_from_dimensions(
 ) -> Json:
     out: Json = {}
     disqualifying: dict[str, list[str]] = {role: [] for role in ELIGIBILITY_ROLES}
-    for raw in events:
-        if not isinstance(raw, Mapping):
-            continue
+    for raw in effective_reputation_events_for_eligibility(events):
         dimension = _as_str(raw.get("dimension"))
         code = _as_str(raw.get("event_code") or raw.get("reason_code"))
         severity = _as_int(raw.get("severity"), 0)
@@ -1539,6 +1596,11 @@ def matrix_contract_payload() -> Json:
             "score_min_milli": REPUTATION_MIN_UNITS,
             "score_max_milli": REPUTATION_MAX_UNITS,
             "appeal_model": "append_reversal_events_no_delete_no_mutate_original",
+            "eligibility_reversal_model": (
+                "active_reversal_cancels_target; reversed_reversal_reactivates_target"
+            ),
+            "decay_policy_enforcement": "metadata_only_not_runtime_enforced",
+            "farming_policy_enforcement": "metadata_only_not_runtime_enforced",
             "dimension_isolation": True,
         },
         "eligibility_roles": list(ELIGIBILITY_ROLES),
@@ -1659,6 +1721,7 @@ def invariant_report_payload() -> Json:
         "source_tx_object_actor_event_dimension_deduped",
         "scores_reduced_from_ordered_events",
         "appeals_append_reversal_events",
+        "reversed_disqualifications_removed_from_active_eligibility",
         "dimension_isolation_enforced_by_registry_dimension",
         "juror_time_penalties_use_block_height_not_browser_clock",
         "voting_against_majority_has_no_negative_event",
@@ -1676,6 +1739,9 @@ def invariant_report_payload() -> Json:
             "frontend_timer_manipulation": "not_input_to_append_reputation_event",
             "timeout_divergence": "block_height_deadlines_only",
             "appeal_history_deletion": "appeals_use_reversal_of_optional",
+            "reversed_disqualification_stickiness": (
+                "eligibility scans only effective non-cancelled events"
+            ),
             "dimension_bleed": "event_has_single_registry_dimension; aliases are read_model_only",
             "conflicted_dispute_acceptance": "eligible/current endpoints expose reasons; apply path uses assignment snapshot",
             "helper_receipt_replay": "helper event family is receipt/context bound; helper runtime remains consensus authority",
@@ -1709,6 +1775,7 @@ __all__ = [
     "canonical_reputation_events_for_actor",
     "derive_role_eligibility",
     "derive_role_eligibility_from_dimensions",
+    "effective_reputation_events_for_eligibility",
     "event_code_for_reason",
     "event_spec",
     "flow_coverage_payload",
