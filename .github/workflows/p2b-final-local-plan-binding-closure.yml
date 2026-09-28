@@ -172,3 +172,5 @@ jobs:
           REMOTE_SHA="$(git ls-remote origin refs/heads/p2-complete-remediation-20260927 | awk '{print $1}')"
           test "$REMOTE_SHA" = "$GITHUB_SHA"
           git push origin HEAD:refs/heads/p2-complete-remediation-20260927
+
+# retriggered 2026-09-27 for audited P2 helper closure
