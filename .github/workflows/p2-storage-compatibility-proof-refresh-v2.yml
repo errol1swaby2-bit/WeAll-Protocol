@@ -29,6 +29,7 @@ jobs:
           set -Eeuo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git hash-object Weall-Protocol/scripts/rehearse_public_api_write_lifecycle_v1_5.py)" = "5a3887e5e9578683e1552e2a4eaa210f9fd1be0a"
+          test "$(git hash-object Weall-Protocol/scripts/rehearse_multi_operator_storage_workers_v1_5.py)" = "d2c6aa04316a999cc69ce948a506c6833308560a"
           test "$(git hash-object Weall-Protocol/tests/test_v2_spec_compiler.py)" = "66427d747cb53de878735fc7b2d633c0f698fbfe"
           test "$(git hash-object Weall-Protocol/src/weall/runtime/tx_schema.py)" = "5c9f1d87e0ae8ef43b853c682f897d739970fd80"
           test "$(git hash-object Weall-Protocol/src/weall/runtime/apply/storage.py)" = "d6f73a52461d8ab38fb1919c22066b253668b894"
@@ -56,7 +57,7 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Apply audited storage patch and compatibility repair in runner
+      - name: Apply audited storage patch and compatibility repairs in runner
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -74,7 +75,9 @@ jobs:
           patch.write_tests()
           PY
           python .github/p2-storage-compatibility-patch.py
+          python .github/p2-storage-b558-compatibility-patch.py
           python -m py_compile Weall-Protocol/scripts/rehearse_public_api_write_lifecycle_v1_5.py
+          python -m py_compile Weall-Protocol/scripts/rehearse_multi_operator_storage_workers_v1_5.py
           git diff --check
 
       - name: Format and validate compatibility edits
@@ -82,11 +85,13 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          ruff format scripts/rehearse_public_api_write_lifecycle_v1_5.py tests/test_v2_spec_compiler.py
-          ruff check --fix scripts/rehearse_public_api_write_lifecycle_v1_5.py tests/test_v2_spec_compiler.py
-          ruff format scripts/rehearse_public_api_write_lifecycle_v1_5.py tests/test_v2_spec_compiler.py
-          ruff check scripts/rehearse_public_api_write_lifecycle_v1_5.py tests/test_v2_spec_compiler.py
+          FILES="scripts/rehearse_public_api_write_lifecycle_v1_5.py scripts/rehearse_multi_operator_storage_workers_v1_5.py tests/test_v2_spec_compiler.py"
+          ruff format $FILES
+          ruff check --fix $FILES
+          ruff format $FILES
+          ruff check $FILES
           PYTHONPATH=src:scripts python scripts/rehearse_public_api_write_lifecycle_v1_5.py --json
+          PYTHONPATH=src:scripts python scripts/rehearse_multi_operator_storage_workers_v1_5.py --json
 
       - name: Refresh all full-suite stale proof artifacts
         working-directory: Weall-Protocol
@@ -113,6 +118,7 @@ jobs:
           set -Eeuo pipefail
           files=(
             Weall-Protocol/scripts/rehearse_public_api_write_lifecycle_v1_5.py
+            Weall-Protocol/scripts/rehearse_multi_operator_storage_workers_v1_5.py
             Weall-Protocol/tests/test_v2_spec_compiler.py
             Weall-Protocol/generated/b517_b521_completion_proof_v1_5.json
             Weall-Protocol/generated/b523_b527_completion_proof_v1_5.json
@@ -129,7 +135,7 @@ jobs:
           test -n "$(git diff --cached --name-only)"
           while IFS= read -r path; do
             case "$path" in
-              Weall-Protocol/scripts/rehearse_public_api_write_lifecycle_v1_5.py|Weall-Protocol/tests/test_v2_spec_compiler.py|Weall-Protocol/generated/b517_b521_completion_proof_v1_5.json|Weall-Protocol/generated/b523_b527_completion_proof_v1_5.json|Weall-Protocol/generated/b539_b543_production_path_proof_v1_5.json|Weall-Protocol/generated/b544_b548_live_network_final_proof_v1_5.json|Weall-Protocol/generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json|Weall-Protocol/generated/b556_b561_final_missing_mechanics_proof_v1_5.json|Weall-Protocol/generated/b562_b566_mechanics_hardening_proof_v1_5.json) ;;
+              Weall-Protocol/scripts/rehearse_public_api_write_lifecycle_v1_5.py|Weall-Protocol/scripts/rehearse_multi_operator_storage_workers_v1_5.py|Weall-Protocol/tests/test_v2_spec_compiler.py|Weall-Protocol/generated/b517_b521_completion_proof_v1_5.json|Weall-Protocol/generated/b523_b527_completion_proof_v1_5.json|Weall-Protocol/generated/b539_b543_production_path_proof_v1_5.json|Weall-Protocol/generated/b544_b548_live_network_final_proof_v1_5.json|Weall-Protocol/generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json|Weall-Protocol/generated/b556_b561_final_missing_mechanics_proof_v1_5.json|Weall-Protocol/generated/b562_b566_mechanics_hardening_proof_v1_5.json) ;;
               *) echo "refusing unexpected staged path: $path" >&2; exit 1 ;;
             esac
           done < <(git diff --cached --name-only)
