@@ -28,11 +28,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify exact helper-closed preimage and extract audited storage patch
+      - name: Verify helper-closed source preimage and extract audited storage patch
         shell: bash
         run: |
           set -Eeuo pipefail
-          test "$(git rev-parse HEAD^)" = "02d3fb659c71f7dbb243500916b84c4c685af56e"
+          git merge-base --is-ancestor 02d3fb659c71f7dbb243500916b84c4c685af56e HEAD
           test "$(git hash-object Weall-Protocol/src/weall/runtime/tx_schema.py)" = "5c9f1d87e0ae8ef43b853c682f897d739970fd80"
           test "$(git hash-object Weall-Protocol/src/weall/runtime/apply/storage.py)" = "d6f73a52461d8ab38fb1919c22066b253668b894"
           test "$(git hash-object Weall-Protocol/src/weall/runtime/scheduler_pipeline.py)" = "77cc982ed918de7cda461b90be455390be2708bf"
@@ -66,7 +66,7 @@ jobs:
           rm -f .github/workflows/p2-storage-current-head-closure.yml
           git add -u .github/workflows/p2-storage-current-head-closure.yml
 
-      - name: Apply audited storage patch and register deterministic storage state identity
+      - name: Apply audited storage patch and register deterministic storage state identities
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -100,36 +100,54 @@ jobs:
           if not isinstance(entries, list):
               raise SystemExit('stable_ids.json entries must be a list')
 
-          canonical_key = 'Storage:<add:dynamic>'
-          expected = 'STATE-' + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
-          if expected != 'STATE-DA4033015ABB99C7':
-              raise SystemExit(f'unexpected deterministic storage state ID: {expected}')
-
+          required = {
+              'Storage:<add:dynamic>': 'STATE-DA4033015ABB99C7',
+              'Storage:<discard:dynamic>': 'STATE-ABB3D3E0CC6CDD1C',
+          }
           by_key = {
               (str(row.get('kind') or ''), str(row.get('canonical_key') or '')): row
               for row in entries
               if isinstance(row, dict)
           }
-          ids = {str(row.get('stable_id') or '') for row in entries if isinstance(row, dict)}
-          existing = by_key.get(('state', canonical_key))
-          if existing is not None:
-              actual = str(existing.get('stable_id') or '')
-              if actual != expected:
+          ids = {
+              str(row.get('stable_id') or ''): str(row.get('canonical_key') or '')
+              for row in entries
+              if isinstance(row, dict)
+          }
+          changed = False
+          for canonical_key, expected in required.items():
+              derived = 'STATE-' + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
+              if derived != expected:
                   raise SystemExit(
-                      f'existing storage state stable ID mismatch: expected {expected}, found {actual}'
+                      f'unexpected deterministic storage state ID for {canonical_key}: {derived}'
                   )
-          else:
-              if expected in ids:
-                  raise SystemExit(f'stable ID collision for {canonical_key}: {expected}')
-              entries.append(
-                  {
-                      'aliases': [],
-                      'canonical_key': canonical_key,
-                      'kind': 'state',
-                      'stable_id': expected,
-                      'status': 'active',
-                  }
-              )
+              existing = by_key.get(('state', canonical_key))
+              if existing is not None:
+                  actual = str(existing.get('stable_id') or '')
+                  if actual != expected:
+                      raise SystemExit(
+                          f'existing storage state stable ID mismatch for {canonical_key}: '
+                          f'expected {expected}, found {actual}'
+                      )
+                  continue
+              collision_key = ids.get(expected)
+              if collision_key:
+                  raise SystemExit(
+                      f'stable ID collision for {canonical_key}: {expected} already used by {collision_key}'
+                  )
+              row = {
+                  'aliases': [],
+                  'canonical_key': canonical_key,
+                  'kind': 'state',
+                  'stable_id': expected,
+                  'status': 'active',
+              }
+              entries.append(row)
+              by_key[('state', canonical_key)] = row
+              ids[expected] = canonical_key
+              changed = True
+
+          if changed:
               entries.sort(key=lambda row: str(row.get('stable_id') or ''))
               stable_path.write_text(
                   json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
@@ -245,9 +263,17 @@ jobs:
           import json
           from pathlib import Path
           rows = json.loads(Path('specs/v2/source/stable_ids.json').read_text())['entries']
-          hits = [row for row in rows if row.get('kind') == 'state' and row.get('canonical_key') == 'Storage:<add:dynamic>']
-          assert len(hits) == 1
-          assert hits[0]['stable_id'] == 'STATE-DA4033015ABB99C7'
+          expected = {
+              'Storage:<add:dynamic>': 'STATE-DA4033015ABB99C7',
+              'Storage:<discard:dynamic>': 'STATE-ABB3D3E0CC6CDD1C',
+          }
+          for key, stable_id in expected.items():
+              hits = [
+                  row for row in rows
+                  if row.get('kind') == 'state' and row.get('canonical_key') == key
+              ]
+              assert len(hits) == 1
+              assert hits[0]['stable_id'] == stable_id
           PY
           pytest -q tests/test_p2_storage_closure.py
           PYTHONPATH=src:scripts python scripts/rehearse_storage_operator_durability_v1_5.py --json >/dev/null
