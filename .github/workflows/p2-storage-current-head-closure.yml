@@ -66,7 +66,7 @@ jobs:
           rm -f .github/workflows/p2-storage-current-head-closure.yml
           git add -u .github/workflows/p2-storage-current-head-closure.yml
 
-      - name: Apply audited storage patch and seed known deterministic storage state identities
+      - name: Apply audited storage patch and register explicit failure identities
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -87,66 +87,57 @@ jobs:
               raise SystemExit('unable to load audited storage patch')
           patch = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(patch)
-
           patch.patch_schema()
           patch.patch_storage_runtime()
           patch.patch_scheduler()
           patch.patch_rehearsal()
           patch.write_tests()
 
+          failure_keys = {
+              'invalid_state:offer_missing_operator_id',
+              'forbidden:lease_not_active',
+              'forbidden:lease_expired',
+              'not_found:pin_not_found',
+              'invalid_state:pin_missing_cid',
+              'invalid_payload:pin_cid_mismatch',
+              'invalid_payload:missing_operator_id',
+              'forbidden:pin_confirm_operator_not_current_target',
+          }
           stable_path = proto / 'specs/v2/source/stable_ids.json'
           payload = json.loads(stable_path.read_text(encoding='utf-8'))
           entries = payload.get('entries')
           if not isinstance(entries, list):
               raise SystemExit('stable_ids.json entries must be a list')
-
-          required = {
-              'Storage:<add:dynamic>': 'STATE-DA4033015ABB99C7',
-              'Storage:<discard:dynamic>': 'STATE-ABB3D3E0CC6CDD1C',
-          }
           by_key = {
               (str(row.get('kind') or ''), str(row.get('canonical_key') or '')): row
-              for row in entries
-              if isinstance(row, dict)
+              for row in entries if isinstance(row, dict)
           }
-          ids = {
+          by_id = {
               str(row.get('stable_id') or ''): str(row.get('canonical_key') or '')
-              for row in entries
-              if isinstance(row, dict)
+              for row in entries if isinstance(row, dict)
           }
           changed = False
-          for canonical_key, expected in required.items():
-              derived = 'STATE-' + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
-              if derived != expected:
-                  raise SystemExit(
-                      f'unexpected deterministic storage state ID for {canonical_key}: {derived}'
-                  )
-              existing = by_key.get(('state', canonical_key))
+          for key in sorted(failure_keys):
+              expected = 'FAIL-' + hashlib.sha256(key.encode('utf-8')).hexdigest()[:16].upper()
+              existing = by_key.get(('failure', key))
               if existing is not None:
-                  actual = str(existing.get('stable_id') or '')
-                  if actual != expected:
-                      raise SystemExit(
-                          f'existing storage state stable ID mismatch for {canonical_key}: '
-                          f'expected {expected}, found {actual}'
-                      )
+                  if str(existing.get('stable_id') or '') != expected:
+                      raise SystemExit(f'failure stable-ID mismatch for {key}')
                   continue
-              collision_key = ids.get(expected)
-              if collision_key:
-                  raise SystemExit(
-                      f'stable ID collision for {canonical_key}: {expected} already used by {collision_key}'
-                  )
+              collision = by_id.get(expected)
+              if collision:
+                  raise SystemExit(f'failure stable-ID collision {expected}: {collision}')
               row = {
                   'aliases': [],
-                  'canonical_key': canonical_key,
-                  'kind': 'state',
+                  'canonical_key': key,
+                  'kind': 'failure',
                   'stable_id': expected,
                   'status': 'active',
               }
               entries.append(row)
-              by_key[('state', canonical_key)] = row
-              ids[expected] = canonical_key
+              by_key[('failure', key)] = row
+              by_id[expected] = key
               changed = True
-
           if changed:
               entries.sort(key=lambda row: str(row.get('stable_id') or ''))
               stable_path.write_text(
@@ -154,7 +145,7 @@ jobs:
               )
           PY
 
-      - name: Exhaustively register compiler-discovered Storage state identities
+      - name: Exhaust compiler-discovered Storage state identities in discovery mode
         working-directory: Weall-Protocol
         shell: bash
         run: |
@@ -163,95 +154,116 @@ jobs:
           from __future__ import annotations
 
           import hashlib
+          import importlib
           import json
-          import os
           import re
-          import subprocess
           import sys
           from pathlib import Path
 
           root = Path.cwd()
+          sys.path.insert(0, str(root / 'scripts'))
+          compiler = importlib.import_module('compile_v2_spec')
           stable_path = root / 'specs/v2/source/stable_ids.json'
-          env = os.environ.copy()
-          env['PYTHONPATH'] = 'src'
-          pattern = re.compile(
-              r'unregistered stable ID: kind=([^ ]+) canonical_key=([^\n\r]+)'
-          )
+          pattern = re.compile(r'unregistered stable ID: kind=([^ ]+) canonical_key=(.+)')
           registered: list[tuple[str, str]] = []
 
-          for _attempt in range(128):
-              proc = subprocess.run(
-                  [sys.executable, 'scripts/compile_v2_spec.py'],
-                  cwd=root,
-                  env=env,
-                  text=True,
-                  capture_output=True,
-              )
-              if proc.returncode == 0:
-                  if proc.stdout:
-                      print(proc.stdout, end='')
-                  print('compiler-discovered Storage state IDs:', registered)
-                  break
+          original_apply_reviews = compiler.apply_semantic_reviews
 
-              combined = (proc.stdout or '') + '\n' + (proc.stderr or '')
-              if 'transaction semantic-review digest is stale:' in combined:
-                  print('Storage state-ID enumeration complete; semantic review refresh required next')
-                  print('compiler-discovered Storage state IDs:', registered)
-                  break
-
-              match = pattern.search(combined)
-              if match is None:
-                  print(combined, file=sys.stderr)
-                  raise SystemExit(proc.returncode)
-              kind = match.group(1).strip()
-              canonical_key = match.group(2).strip()
-              if kind != 'state' or not canonical_key.startswith('Storage:'):
-                  print(combined, file=sys.stderr)
-                  raise SystemExit(
-                      f'refusing automatic registration outside Storage state namespace: '
-                      f'kind={kind} canonical_key={canonical_key}'
-                  )
-
-              payload = json.loads(stable_path.read_text(encoding='utf-8'))
-              entries = payload.get('entries')
-              if not isinstance(entries, list):
-                  raise SystemExit('stable_ids.json entries must be a list')
-              expected = (
-                  'STATE-'
-                  + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
-              )
-              for row in entries:
-                  if not isinstance(row, dict):
-                      continue
-                  if str(row.get('stable_id') or '') == expected:
-                      raise SystemExit(
-                          f'stable ID collision: {expected} already belongs to '
-                          f'{row.get("canonical_key")!r}'
-                      )
-                  if (
-                      str(row.get('kind') or '') == 'state'
-                      and str(row.get('canonical_key') or '') == canonical_key
-                  ):
-                      raise SystemExit(
-                          f'compiler reported already-registered Storage state key: {canonical_key}'
-                      )
-              entries.append(
-                  {
-                      'aliases': [],
-                      'canonical_key': canonical_key,
-                      'kind': 'state',
-                      'stable_id': expected,
-                      'status': 'active',
+          def discovery_reviews(tx_rows, route_rows, reviews):
+              del reviews
+              for row in tx_rows:
+                  row['semantic_derivation'] = row.get('semantic_precision')
+                  row['semantic_review'] = {
+                      'review_digest': 'STORAGE_ID_DISCOVERY_ONLY',
+                      'reviewer': 'STORAGE_ID_DISCOVERY_ONLY',
+                      'reviewed_at': '1970-01-01T00:00:00Z',
+                      'review_method': 'STORAGE_ID_DISCOVERY_ONLY',
+                      'independent_review': False,
+                      'authority_effect': 'STORAGE_ID_DISCOVERY_ONLY',
                   }
-              )
-              entries.sort(key=lambda row: str(row.get('stable_id') or ''))
-              stable_path.write_text(
-                  json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
-              )
-              registered.append((canonical_key, expected))
-              print(f'registered {canonical_key} -> {expected}')
-          else:
-              raise SystemExit('exhausted Storage stable-ID registration attempts')
+              for row in route_rows:
+                  row['semantic_derivation'] = row.get('semantic_precision')
+                  row['semantic_review'] = {
+                      'review_digest': 'STORAGE_ID_DISCOVERY_ONLY',
+                      'reviewer': 'STORAGE_ID_DISCOVERY_ONLY',
+                      'reviewed_at': '1970-01-01T00:00:00Z',
+                      'review_method': 'STORAGE_ID_DISCOVERY_ONLY',
+                      'independent_review': False,
+                      'authority_effect': 'STORAGE_ID_DISCOVERY_ONLY',
+                  }
+              return {
+                  'transaction_review_count': 0,
+                  'route_review_count': 0,
+                  'independent_transaction_reviews': 0,
+                  'independent_route_reviews': 0,
+                  'validation_result': 'STORAGE_ID_DISCOVERY_ONLY',
+              }
+
+          compiler.apply_semantic_reviews = discovery_reviews
+          try:
+              for _attempt in range(128):
+                  try:
+                      compiler.compile_artifacts()
+                  except compiler.CompileError as exc:
+                      message = str(exc).strip()
+                      match = pattern.fullmatch(message)
+                      if match is None:
+                          raise
+                      kind = match.group(1).strip()
+                      canonical_key = match.group(2).strip()
+                      if kind != 'state' or not canonical_key.startswith('Storage:'):
+                          raise SystemExit(
+                              'refusing discovery registration outside Storage state namespace: '
+                              f'kind={kind} canonical_key={canonical_key}'
+                          ) from exc
+
+                      payload = json.loads(stable_path.read_text(encoding='utf-8'))
+                      entries = payload.get('entries')
+                      if not isinstance(entries, list):
+                          raise SystemExit('stable_ids.json entries must be a list')
+                      expected = (
+                          'STATE-'
+                          + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
+                      )
+                      for row in entries:
+                          if not isinstance(row, dict):
+                              continue
+                          if str(row.get('stable_id') or '') == expected:
+                              raise SystemExit(
+                                  f'stable-ID collision {expected} with {row.get("canonical_key")!r}'
+                              )
+                          if (
+                              str(row.get('kind') or '') == 'state'
+                              and str(row.get('canonical_key') or '') == canonical_key
+                          ):
+                              raise SystemExit(
+                                  f'compiler reported already-registered Storage state key: {canonical_key}'
+                              )
+                      entries.append(
+                          {
+                              'aliases': [],
+                              'canonical_key': canonical_key,
+                              'kind': 'state',
+                              'stable_id': expected,
+                              'status': 'active',
+                          }
+                      )
+                      entries.sort(key=lambda row: str(row.get('stable_id') or ''))
+                      stable_path.write_text(
+                          json.dumps(payload, indent=2, ensure_ascii=False) + '\n',
+                          encoding='utf-8',
+                      )
+                      registered.append((canonical_key, expected))
+                      print(f'registered Storage state: {canonical_key} -> {expected}')
+                      continue
+                  else:
+                      print('compiler discovery pass completed')
+                      print('registered Storage states:', registered)
+                      break
+              else:
+                  raise SystemExit('exhausted Storage state-ID discovery attempts')
+          finally:
+              compiler.apply_semantic_reviews = original_apply_reviews
           PY
 
       - name: Format, lint, and canon-check storage changes
@@ -274,7 +286,7 @@ jobs:
           pytest -q tests/test_p2_storage_closure.py
           PYTHONPATH=src:scripts python scripts/rehearse_storage_operator_durability_v1_5.py --json
 
-      - name: Refresh explicit storage semantic reviews and failure identities
+      - name: Refresh explicit storage semantic reviews
         working-directory: Weall-Protocol
         shell: bash
         run: |
@@ -296,7 +308,7 @@ jobs:
             --register-failure invalid_payload:missing_operator_id \
             --register-failure forbidden:pin_confirm_operator_not_current_target
 
-      - name: Refresh dependent deterministic evidence in final-tree order
+      - name: Refresh deterministic evidence in final-tree order
         working-directory: Weall-Protocol
         shell: bash
         run: |
