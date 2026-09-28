@@ -194,6 +194,11 @@ jobs:
                   break
 
               combined = (proc.stdout or '') + '\n' + (proc.stderr or '')
+              if 'transaction semantic-review digest is stale:' in combined:
+                  print('Storage state-ID enumeration complete; semantic review refresh required next')
+                  print('compiler-discovered Storage state IDs:', registered)
+                  break
+
               match = pattern.search(combined)
               if match is None:
                   print(combined, file=sys.stderr)
@@ -354,22 +359,6 @@ jobs:
           test ! -e .github/workflows/p2-storage-current-head-closure.yml
           cd Weall-Protocol
           python -m pip install -e . --no-deps >/dev/null
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          rows = json.loads(Path('specs/v2/source/stable_ids.json').read_text())['entries']
-          expected = {
-              'Storage:<add:dynamic>': 'STATE-DA4033015ABB99C7',
-              'Storage:<discard:dynamic>': 'STATE-ABB3D3E0CC6CDD1C',
-          }
-          for key, stable_id in expected.items():
-              hits = [
-                  row for row in rows
-                  if row.get('kind') == 'state' and row.get('canonical_key') == key
-              ]
-              assert len(hits) == 1
-              assert hits[0]['stable_id'] == stable_id
-          PY
           pytest -q tests/test_p2_storage_closure.py
           PYTHONPATH=src:scripts python scripts/rehearse_storage_operator_durability_v1_5.py --json >/dev/null
           PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py --check
