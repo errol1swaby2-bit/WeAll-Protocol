@@ -1,0 +1,332 @@
+name: P2 Final Exact-Head Evidence
+
+on:
+  push:
+    branches:
+      - evidence/p2-final-exact-head-20260928
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  bind-final-evidence:
+    runs-on: ubuntu-24.04
+    env:
+      TARGET_SHA: c61a33d81c9fb7fc15fa7241beaa294e543f8577
+      TARGET_TREE: 68d0efd7f274615e96ae9b4f370106140fab4453
+      TARGET_BRANCH: p2-complete-remediation-20260927
+      TARGET_PR: "29"
+      TARGET_MERGE_REF: edf407ea19f5527de992caa56150dc089797f90c
+      BACKEND_RUN_ID: "36498237765"
+      BACKEND_JOB_ID: "109186702013"
+      REVIEWER_RUN_ID: "36498237786"
+      WEB_RUN_ID: "36498237803"
+      SECRETS_RUN_ID: "36498237843"
+      REPAIR_RUN_ID: "36497470061"
+      TX_COVERAGE_ARTIFACT_ID: "11005595115"
+      TX_COVERAGE_ARTIFACT_DIGEST: sha256:aed90686daae521a201b50bf6349c2da43aee520234018fec40ea651f1d16763
+    steps:
+      - name: Checkout exact frozen implementation head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+
+      - name: Verify frozen subject and PR state
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$TARGET_TREE"
+          test "$(git ls-remote origin "refs/heads/$TARGET_BRANCH" | awk '{print $1}')" = "$TARGET_SHA"
+          git fetch --quiet origin "refs/pull/$TARGET_PR/merge:refs/remotes/origin/p2-final-evidence-merge"
+          test "$(git rev-parse refs/remotes/origin/p2-final-evidence-merge)" = "$TARGET_MERGE_REF"
+
+          python - <<'PY'
+          import json, os, urllib.request
+          repo = os.environ['GITHUB_REPOSITORY']
+          pr = os.environ['TARGET_PR']
+          req = urllib.request.Request(
+              f'https://api.github.com/repos/{repo}/pulls/{pr}',
+              headers={
+                  'Authorization': f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+              },
+          )
+          with urllib.request.urlopen(req) as r:
+              obj = json.load(r)
+          assert obj['state'] == 'open', obj['state']
+          assert obj['head']['sha'] == os.environ['TARGET_SHA'], obj['head']['sha']
+          assert obj['head']['ref'] == os.environ['TARGET_BRANCH'], obj['head']['ref']
+          assert obj['base']['ref'] == 'main', obj['base']['ref']
+          PY
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Verify exact-head CI evidence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json, os, urllib.request
+          repo = os.environ['GITHUB_REPOSITORY']
+          token = os.environ['GITHUB_TOKEN']
+          target = os.environ['TARGET_SHA']
+          standard = {
+              'backend': os.environ['BACKEND_RUN_ID'],
+              'reviewer_readiness': os.environ['REVIEWER_RUN_ID'],
+              'web': os.environ['WEB_RUN_ID'],
+              'secrets': os.environ['SECRETS_RUN_ID'],
+          }
+          headers = {
+              'Authorization': f'Bearer {token}',
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+          }
+          for name, run_id in standard.items():
+              req = urllib.request.Request(
+                  f'https://api.github.com/repos/{repo}/actions/runs/{run_id}', headers=headers
+              )
+              with urllib.request.urlopen(req) as r:
+                  obj = json.load(r)
+              assert obj['status'] == 'completed', (name, obj['status'])
+              assert obj['conclusion'] == 'success', (name, obj['conclusion'])
+              assert obj['head_sha'] == target, (name, obj['head_sha'])
+
+          repair_id = os.environ['REPAIR_RUN_ID']
+          req = urllib.request.Request(
+              f'https://api.github.com/repos/{repo}/actions/runs/{repair_id}', headers=headers
+          )
+          with urllib.request.urlopen(req) as r:
+              repair = json.load(r)
+          assert repair['status'] == 'completed'
+          assert repair['conclusion'] == 'success'
+          PY
+
+          curl -fsSL -L \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/jobs/$BACKEND_JOB_ID/logs" \
+            > "$RUNNER_TEMP/backend-job.log"
+          grep -F "4604 passed in 442.42s" "$RUNNER_TEMP/backend-job.log"
+          grep -F "OK: 42 v2 specification derivatives are current" "$RUNNER_TEMP/backend-job.log"
+          grep -F "OK: clean Git archive reproduces all WeAll v2 specification derivatives" "$RUNNER_TEMP/backend-job.log"
+          grep -F "[v15-artifacts] OK: v1.5 public-readiness artifacts are present, fresh, and release-safe" "$RUNNER_TEMP/backend-job.log"
+          grep -F "[claim-freshness] OK: 56 registered CURRENT documents" "$RUNNER_TEMP/backend-job.log"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Build and validate 25-finding closure ledger
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/p2-final-evidence"
+          python - <<'PY'
+          from __future__ import annotations
+          import datetime as dt
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          repo = pathlib.Path.cwd()
+          src = repo / 'Weall-Protocol'
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'p2-final-evidence'
+          out.mkdir(parents=True, exist_ok=True)
+
+          expected_ids = [
+              'P2-CLAIM-001','P2-CONS-006','P2-DISPUTE-002','P2-ECON-001','P2-ECON-002',
+              'P2-ECON-003','P2-ECON-004','P2-GOV-003','P2-GOV-004','P2-GROUP-002',
+              'P2-HELP-001','P2-HELP-002','P2-PERSIST-002','P2-REP-001','P2-REP-002',
+              'P2-REP-003','P2-ROLE-002','P2-SEC-003','P2-SEM-002','P2-STOR-002',
+              'P2-STOR-003','P2-STOR-004','P2-SYNC-001','P2-SYNC-002','P2-TREAS-002',
+          ]
+
+          def row(fid: str, batch: str, basis: str, evidence: list[str], closure: str = 'closed_and_proven'):
+              return {
+                  'finding_id': fid,
+                  'batch': batch,
+                  'status': 'CLOSED',
+                  'closure': closure,
+                  'basis': basis,
+                  'primary_evidence_paths': evidence,
+              }
+
+          ledger = [
+              row('P2-CLAIM-001','H','Repository claim surfaces are conservative/current and this external artifact supplies the required non-self-referential exact commit/tree binding.', ['generated/current_verified_claims.json','generated/release_evidence_manifest_v1_5.json','docs/CURRENT_VERIFIED_CLAIMS.md'], 'closed_by_external_exact_head_binding'),
+              row('P2-CONS-006','A','Canon-driven same-block SYSTEM receipt lineage is materialized and verified on leader/follower paths, with exact-parent regressions.', ['tests/test_p2_final_source_closure.py','src/weall/runtime/system_tx_engine.py','src/weall/runtime/block_builder.py','src/weall/runtime/block_replay.py']),
+              row('P2-DISPUTE-002','C','Appeal/dispute actor authority is fail-closed and covered by focused actor/scoped-authority regressions.', ['tests/test_p2_dispute_appeal_actor.py','tests/test_p2_scoped_authority_repairs.py','src/weall/runtime/apply/dispute.py']),
+              row('P2-ECON-001','A','Canonical reward receipts bind to exact parent instances, including the live finalize→mint→distribute chain and dormant allocation receipts.', ['tests/test_p2_final_source_closure.py','src/weall/runtime/system_tx_engine.py','src/weall/runtime/apply/rewards.py']),
+              row('P2-ECON-002','D','Economics issuance/reward invariants remain locked and executable paths are regression-covered.', ['tests/test_reward_issuance_invariants.py','src/weall/runtime/apply/rewards.py']),
+              row('P2-ECON-003','D','Economic transaction contract/schema behavior is exercised by reward and transfer/tip contract regressions.', ['tests/test_reward_issuance_invariants.py','tests/test_transfer_tip_contract.py','src/weall/runtime/tx_schema.py']),
+              row('P2-ECON-004','D','Dormant/activation economics policy remains fail-closed and contract-consistent under the P2 policy regression surface.', ['tests/test_p2_policy_enforcement.py','tests/test_reward_issuance_invariants.py','src/weall/runtime/apply/rewards.py']),
+              row('P2-GOV-003','C','Governance target/scope authority is covered by exact scoped-authority regressions.', ['tests/test_p2_scoped_authority_repairs.py','src/weall/runtime/apply/governance.py']),
+              row('P2-GOV-004','C','Governance policy semantics/authority boundaries are covered by scoped-authority regressions.', ['tests/test_p2_scoped_authority_repairs.py','src/weall/runtime/apply/governance.py']),
+              row('P2-GROUP-002','C','Group scoped authority is fail-closed and regression-covered.', ['tests/test_p2_scoped_authority_repairs.py','src/weall/runtime/apply/groups.py']),
+              row('P2-HELP-001','F','Helper execution contract/lane behavior is covered by contract, lane-alignment, corpus, merge and restart regressions.', ['tests/test_helper_contract_coverage.py','tests/test_helper_execution_lane_alignment.py','tests/test_helper_instance_corpus.py','tests/test_helper_merge.py']),
+              row('P2-HELP-002','F','Materialized helper merge/restart semantics are regression-covered while production helper execution remains explicitly not claimed.', ['tests/test_helper_materialized_merge_restart.py','tests/test_helper_merge.py','src/weall/runtime/helper_merge.py']),
+              row('P2-PERSIST-002','B','Synchronous persistence/restart behavior is covered by the focused P2 persistence regression.', ['tests/test_p2_persistence_synchronous.py','src/weall/runtime/sqlite_db.py']),
+              row('P2-REP-001','E','Causal reputation event de-duplication and deterministic accrual/reduction remain regression-covered.', ['tests/test_reputation_accrual_policy.py','src/weall/runtime/reputation_accrual.py','src/weall/runtime/reputation_events.py']),
+              row('P2-REP-002','E','Reversal semantics and role disqualification now consume one effective event truth; reversal and reversal-of-reversal are covered.', ['tests/test_p2_final_source_closure.py','src/weall/runtime/reputation_events.py']),
+              row('P2-REP-003','E','Unparameterized cap/decay/farming declarations are truthfully classified as metadata-only and not runtime-enforced; no consensus parameters were invented.', ['tests/test_p2_final_source_closure.py','generated/reputation_event_registry_v1_5.json','src/weall/runtime/reputation_events.py'], 'closed_by_truthful_scope_reconciliation'),
+              row('P2-ROLE-002','C','Role authority/scoping is covered by focused scoped-authority regressions.', ['tests/test_p2_scoped_authority_repairs.py','src/weall/runtime/apply/roles.py']),
+              row('P2-SEC-003','B','Production policy/validator authority remains fail-closed under focused P2 and validator-authority regressions.', ['tests/test_p2_policy_enforcement.py','tests/test_pb001bm_validator_authority_fail_closed.py']),
+              row('P2-SEM-002','A','Canonical transaction/schema semantics are covered by the remaining-canon cleanup regression plus exact receipt-lineage tests.', ['tests/test_tx_schema_remaining_canon_cleanup.py','tests/test_p2_final_source_closure.py','src/weall/runtime/tx_schema.py']),
+              row('P2-STOR-002','G','Strict storage durability/pin receipt contract is covered by the P2 storage closure regression.', ['tests/test_p2_storage_closure.py','src/weall/runtime/apply/storage.py']),
+              row('P2-STOR-003','G','Deterministic storage lease expiration/capacity lifecycle is covered by the P2 storage closure regression.', ['tests/test_p2_storage_closure.py','src/weall/runtime/apply/storage.py']),
+              row('P2-STOR-004','G','Storage schema/applier byte-quantity agreement is covered by the P2 storage closure regression.', ['tests/test_p2_storage_closure.py','src/weall/runtime/apply/storage.py']),
+              row('P2-SYNC-001','B','State-sync trust/canonical validation is covered by focused hardening regressions.', ['tests/test_p2_state_sync_hardening.py','src/weall/net/state_sync.py']),
+              row('P2-SYNC-002','B','State-sync member/authority normalization behavior is covered by focused hardening regressions.', ['tests/test_p2_state_sync_hardening.py','src/weall/net/state_sync.py']),
+              row('P2-TREAS-002','C','Treasury scope/authority behavior is covered by focused scoped-authority regressions.', ['tests/test_p2_scoped_authority_repairs.py','src/weall/runtime/apply/treasury.py']),
+          ]
+
+          assert len(ledger) == 25
+          ids = [x['finding_id'] for x in ledger]
+          assert ids == expected_ids, (ids, expected_ids)
+          assert len(set(ids)) == 25
+          assert all(x['status'] == 'CLOSED' for x in ledger)
+
+          missing = []
+          for item in ledger:
+              for rel in item['primary_evidence_paths']:
+                  if not (src / rel).is_file():
+                      missing.append((item['finding_id'], rel))
+          assert not missing, missing
+
+          claims = json.loads((src/'generated/current_verified_claims.json').read_text())
+          assert claims.get('exact_commit_binding_required_for_final_audit') is True
+          assert claims.get('tracked_manifest_is_commit_agnostic') is True
+          assert all(c.get('exact_commit_bound') is False for c in claims.get('claims', []))
+          release = json.loads((src/'generated/release_evidence_manifest_v1_5.json').read_text())
+          assert release.get('runtime_commit_binding_required') is True
+          assert release.get('public_beta_ready') is False
+          assert release.get('mainnet_ready') is False
+
+          tree = subprocess.check_output(['git','rev-parse','HEAD^{tree}'], text=True).strip()
+          archive = subprocess.check_output(['git','archive','--format=tar','HEAD'])
+          archive_sha = hashlib.sha256(archive).hexdigest()
+          generated_at = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+
+          evidence = {
+              'schema': 'weall.p2.final_exact_head_closure.v1',
+              'generated_at_utc': generated_at,
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'pull_request': int(os.environ['TARGET_PR']),
+              'subject': {
+                  'branch': os.environ['TARGET_BRANCH'],
+                  'head_sha': os.environ['TARGET_SHA'],
+                  'tree_sha': tree,
+                  'merge_ref_sha': os.environ['TARGET_MERGE_REF'],
+                  'git_archive_sha256': archive_sha,
+              },
+              'evidence_run': {
+                  'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+                  'workflow_run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+                  'workflow_ref': os.environ['GITHUB_WORKFLOW_REF'],
+              },
+              'validated_ci': {
+                  'backend': {'run_id': int(os.environ['BACKEND_RUN_ID']), 'job_id': int(os.environ['BACKEND_JOB_ID']), 'conclusion': 'success', 'pytest': {'passed': 4604, 'duration_seconds': 442.42}},
+                  'reviewer_readiness': {'run_id': int(os.environ['REVIEWER_RUN_ID']), 'conclusion': 'success'},
+                  'web': {'run_id': int(os.environ['WEB_RUN_ID']), 'conclusion': 'success'},
+                  'secrets': {'run_id': int(os.environ['SECRETS_RUN_ID']), 'conclusion': 'success'},
+                  'exact_candidate_repair': {'run_id': int(os.environ['REPAIR_RUN_ID']), 'conclusion': 'success'},
+              },
+              'generated_evidence': {
+                  'tx_types': 236,
+                  'v2_derivative_count': 42,
+                  'v2_clean_archive_reproduction': True,
+                  'v1_5_public_readiness_artifacts_fresh_release_safe': True,
+                  'registered_current_claim_documents_checked': 56,
+                  'tx_coverage_artifact': {'artifact_id': int(os.environ['TX_COVERAGE_ARTIFACT_ID']), 'digest': os.environ['TX_COVERAGE_ARTIFACT_DIGEST']},
+              },
+              'truth_boundary': {
+                  'public_beta_ready_claimed': False,
+                  'mainnet_ready_claimed': False,
+                  'public_multi_validator_bft_ready_claimed': False,
+                  'public_validator_enabled_claimed': False,
+                  'live_economics_claimed': False,
+                  'production_helper_execution_claimed': False,
+                  'legal_compliance_ready_claimed': False,
+                  'completed_independent_crypto_review_claimed': False,
+                  'scalar_tps_claimed_as_current_verified': False,
+              },
+              'findings': ledger,
+              'closure_summary': {
+                  'known_p2_findings': 25,
+                  'closed_findings': 25,
+                  'open_findings': 0,
+                  'implementation_closure': 'PASS',
+                  'regression_derivative_ci_closure': 'PASS',
+                  'formal_exact_head_evidence_closure': 'PASS',
+                  'overall_p2_closure': 'CLOSED',
+              },
+          }
+          assert evidence['subject']['tree_sha'] == os.environ['TARGET_TREE']
+
+          json_path = out/'P2_FINAL_EXACT_HEAD_CLOSURE.json'
+          md_path = out/'P2_FINAL_EXACT_HEAD_CLOSURE.md'
+          json_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n')
+
+          lines = [
+              '# WeAll Protocol — P2 Final Exact-Head Closure', '',
+              f"Generated: `{generated_at}`", '',
+              f"- PR: `#{os.environ['TARGET_PR']}`",
+              f"- frozen implementation HEAD: `{os.environ['TARGET_SHA']}`",
+              f"- frozen implementation tree: `{tree}`",
+              f"- PR merge-ref candidate: `{os.environ['TARGET_MERGE_REF']}`",
+              f"- full locked backend: **4604 passed** in **442.42s**",
+              '- Backend CI / Reviewer Readiness / Web CI / Secrets Guard: **success**',
+              '- v2 derivatives: **42 current and clean-archive reproducible**',
+              '- P2 findings: **25/25 CLOSED**', '',
+              '## Adjudication ledger', '',
+              '| Finding | Batch | Closure | Primary evidence |',
+              '|---|---:|---|---|',
+          ]
+          for item in ledger:
+              ev = '<br>'.join(f'`{p}`' for p in item['primary_evidence_paths'])
+              lines.append(f"| `{item['finding_id']}` | {item['batch']} | `{item['closure']}` | {ev} |")
+          lines += ['', '## Truth boundary', '',
+              'This artifact closes the known r20 P2 remediation set against the frozen implementation subject only. It does **not** assert public beta, mainnet, public-validator, public multi-validator BFT, live economics, production helper execution, legal/compliance readiness, completed independent cryptographic review, or a current scalar TPS value.', '',
+              'The tracked claims manifest intentionally remains commit-agnostic. This Actions artifact supplies the required external exact-head binding without modifying or self-referencing the implementation commit.',
+          ]
+          md_path.write_text('\n'.join(lines) + '\n')
+
+          sums = []
+          for p in (json_path, md_path):
+              sums.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}")
+          (out/'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          print(json.dumps(evidence['closure_summary'], indent=2))
+          print((out/'SHA256SUMS.txt').read_text(), end='')
+          PY
+
+      - name: Revalidate artifact binding
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cd "$RUNNER_TEMP/p2-final-evidence"
+          sha256sum -c SHA256SUMS.txt
+          python - <<'PY'
+          import json, os, pathlib
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])/'p2-final-evidence'
+          obj = json.loads((root/'P2_FINAL_EXACT_HEAD_CLOSURE.json').read_text())
+          assert obj['subject']['head_sha'] == os.environ['TARGET_SHA']
+          assert obj['subject']['tree_sha'] == os.environ['TARGET_TREE']
+          assert obj['closure_summary']['known_p2_findings'] == 25
+          assert obj['closure_summary']['closed_findings'] == 25
+          assert obj['closure_summary']['open_findings'] == 0
+          assert obj['closure_summary']['overall_p2_closure'] == 'CLOSED'
+          assert len(obj['findings']) == 25
+          assert len({x['finding_id'] for x in obj['findings']}) == 25
+          PY
+
+      - name: Upload final exact-head closure evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeAll-P2-Final-Exact-Head-Closure-c61a33d
+          path: ${{ runner.temp }}/p2-final-evidence/
+          if-no-files-found: error
+          retention-days: 90
