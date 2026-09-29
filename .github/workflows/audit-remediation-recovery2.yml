@@ -1,0 +1,174 @@
+name: Audit remediation recovery v2
+
+on:
+  push:
+    branches: ["audit-remediation-20260929"]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: audit-remediation-20260929
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply source repairs with targeted runner correction
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          root = Path.cwd()
+          workflow = Path("../.github/workflows/audit-remediation-apply.yml").read_text(encoding="utf-8")
+          marker = "          python - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          code = textwrap.dedent(workflow[start:end])
+
+          replacements = {
+              r'block[idx] = f"  {key}: {value}\\n"': r'block[idx] = f"  {key}: {value}\n"',
+              r'block.insert(insert_at, f"  {key}: {value}\\n")': r'block.insert(insert_at, f"  {key}: {value}\n")',
+          }
+          for old, new in replacements.items():
+              if code.count(old) != 1:
+                  raise SystemExit(f"targeted runner correction mismatch: {old!r} count={code.count(old)}")
+              code = code.replace(old, new, 1)
+
+          exec(compile(code, "audit-remediation-source-patch-v2", "exec"), {"__name__": "__main__"})
+
+          # Dynamic import of compile_v2_spec defines dataclasses; register the
+          # module before exec_module so dataclass annotation resolution works.
+          compiler_test = root / "tests/test_audit_remediation_spec_compiler.py"
+          text = compiler_test.read_text(encoding="utf-8")
+          text = text.replace(
+              "import importlib.util\nfrom pathlib import Path\n",
+              "import importlib.util\nimport sys\nfrom pathlib import Path\n",
+              1,
+          )
+          text = text.replace(
+              "MODULE = importlib.util.module_from_spec(SPEC)\nSPEC.loader.exec_module(MODULE)\n",
+              "MODULE = importlib.util.module_from_spec(SPEC)\nsys.modules[SPEC.name] = MODULE\nSPEC.loader.exec_module(MODULE)\n",
+              1,
+          )
+          compiler_test.write_text(text, encoding="utf-8")
+
+          # The generated tx-index shape is {tx_types:[...]}; make the regression
+          # assert against the actual canonical format rather than a guessed key.
+          validator_test = root / "tests/test_audit_remediation_validator_transitions.py"
+          text = validator_test.read_text(encoding="utf-8")
+          text = text.replace(
+              '    rows = payload.get("transactions") or payload.get("rows") or []\n',
+              '    rows = payload.get("tx_types") or []\n',
+              1,
+          )
+          validator_test.write_text(text, encoding="utf-8")
+
+          # Close the documented Account-page path: the validator opt-in UI now
+          # accepts the complete readiness receipt JSON and forwards only the
+          # strict schema fields needed to reconstruct and verify its hash.
+          account_page = Path("../web/src/pages/Account.tsx")
+          account_text = account_page.read_text(encoding="utf-8")
+          old = '''          if (kind === "validator") {\n            return submitSignedTx({\n              account: acct,\n              tx_type: "NODE_OPERATOR_VALIDATOR_OPT_IN",\n              payload: {\n                account_id: acct,\n                validator_opt_in: true,\n                node_pubkey: nodePubkey,\n                validator_readiness_commitment: String(validatorReadinessCommitment || "").trim() || undefined,\n              },\n              base,\n              headers: observerSyncSubmitHeaders,\n            });\n          }\n'''
+          new = '''          if (kind === "validator") {\n            const readinessRaw = String(validatorReadinessCommitment || "").trim();\n            if (!readinessRaw) throw new Error("validator_readiness_receipt_required");\n            let readinessReceipt: Record<string, any>;\n            try {\n              readinessReceipt = asRecord(JSON.parse(readinessRaw));\n            } catch {\n              throw new Error("validator_readiness_receipt_json_invalid");\n            }\n            const readinessReceiptHash = String(readinessReceipt.readiness_receipt_hash || "").trim();\n            const readinessNodePubkey = String(readinessReceipt.node_pubkey || "").trim();\n            const readinessExpiresHeight = Number(readinessReceipt.readiness_expires_height || 0);\n            if (!readinessReceiptHash) throw new Error("validator_readiness_receipt_hash_required");\n            if (!readinessNodePubkey || readinessNodePubkey !== nodePubkey) {\n              throw new Error("validator_readiness_node_key_mismatch");\n            }\n            if (!Number.isInteger(readinessExpiresHeight) || readinessExpiresHeight <= 0) {\n              throw new Error("validator_readiness_expiry_required");\n            }\n            return submitSignedTx({\n              account: acct,\n              tx_type: "NODE_OPERATOR_VALIDATOR_OPT_IN",\n              payload: {\n                account_id: acct,\n                validator_opt_in: true,\n                node_pubkey: nodePubkey,\n                validator_readiness_commitment: readinessReceiptHash,\n                validator_readiness_receipt_hash: readinessReceiptHash,\n                bft_pubkey: String(readinessReceipt.bft_pubkey || "").trim() || undefined,\n                chain_id: String(readinessReceipt.chain_id || "").trim() || undefined,\n                schema_version: String(readinessReceipt.schema_version || "").trim() || undefined,\n                protocol_version: String(readinessReceipt.protocol_version || "").trim() || undefined,\n                manifest_hash: String(readinessReceipt.manifest_hash || "").trim() || undefined,\n                tx_index_hash: String(readinessReceipt.tx_index_hash || "").trim() || undefined,\n                runtime_profile_hash: String(readinessReceipt.runtime_profile_hash || "").trim() || undefined,\n                readiness_expires_height: readinessExpiresHeight,\n                readiness_checks: asRecord(readinessReceipt.readiness_checks),\n              },\n              base,\n              headers: observerSyncSubmitHeaders,\n            });\n          }\n'''
+          if account_text.count(old) != 1:
+              raise SystemExit(f"Account validator payload target count={account_text.count(old)}")
+          account_text = account_text.replace(old, new, 1)
+          account_text = account_text.replace(
+              'placeholder="optional readiness commitment"',
+              'placeholder="paste validator readiness receipt JSON"',
+              1,
+          )
+          account_page.write_text(account_text, encoding="utf-8")
+          PY
+
+      - name: Install locked backend toolchain
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and lint repaired backend sources
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          ruff format \
+            src/weall/runtime/apply/roles.py \
+            src/weall/runtime/validator_transition_scheduler.py \
+            src/weall/runtime/scheduler_pipeline.py \
+            src/weall/api/routes_public_parts/health.py \
+            scripts/compile_v2_spec.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py
+          ruff check \
+            src/weall/runtime/apply/roles.py \
+            src/weall/runtime/validator_transition_scheduler.py \
+            src/weall/runtime/scheduler_pipeline.py \
+            src/weall/api/routes_public_parts/health.py \
+            scripts/compile_v2_spec.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py
+
+      - name: Regenerate canonical and V2 derivatives from source
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python scripts/gen_tx_index.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+
+      - name: Focused remediation tests
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          pytest -q \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py \
+            tests/test_validator_live_readiness_runner.py \
+            tests/test_node_operator_auto_activation_and_responsibilities.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_v2_spec_compiler.py \
+            tests/test_canonical_poh_eligibility_and_node_controls.py
+          python -m tooling.canon_lint
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Full backend suite
+        working-directory: Weall-Protocol
+        shell: bash
+        run: pytest -q
+
+      - name: Commit exact validated repair tree
+        shell: bash
+        run: |
+          rm -f .github/workflows/audit-remediation-apply.yml
+          rm -f .github/workflows/audit-remediation-recovery.yml
+          rm -f .github/workflows/audit-remediation-recovery2.yml
+          git status --short
+          git config user.name "weall-audit-remediation-bot"
+          git config user.email "weall-audit-remediation-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: repair audit validator, canon, evidence, and readiness findings [audit-remediation-applied]"
+          git push origin HEAD:audit-remediation-20260929
