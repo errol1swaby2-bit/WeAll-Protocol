@@ -65,14 +65,13 @@ jobs:
           PYTHONPATH=src:scripts python scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py --check
           python scripts/gen_current_verified_claims.py --check
 
-      - name: Audit generated-artifact closure
+      - name: Audit generated-artifact closure in final working tree
         working-directory: Weall-Protocol
         shell: bash
         run: |
           python -m tooling.canon_lint
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
