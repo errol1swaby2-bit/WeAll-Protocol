@@ -1,0 +1,141 @@
+name: Audit remediation semantic delta discovery
+
+on:
+  push:
+    branches: ["audit-remediation-20260929"]
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  discover:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: audit-remediation-20260929
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend toolchain
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Capture baseline semantic-review material
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path.cwd() / "scripts"))
+          import refresh_v2_semantic_reviews as refresh
+
+          _compiler, validation, rows = refresh._derive_transaction_rows()
+          material = {
+              str(row.get("tx_type") or ""): validation.tx_review_material(row)
+              for row in rows
+              if str(row.get("tx_type") or "")
+          }
+          Path("/tmp/weall-baseline-review-material.json").write_text(
+              json.dumps(material, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+          )
+          print(f"captured baseline review material for {len(material)} transactions")
+          PY
+
+      - name: Apply exact pending repair in worktree only
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          root = Path.cwd()
+          workflow = Path("../.github/workflows/audit-remediation-apply.yml").read_text(encoding="utf-8")
+          marker = "          python - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          code = textwrap.dedent(workflow[start:end])
+          replacements = {
+              r'block[idx] = f"  {key}: {value}\\n"': r'block[idx] = f"  {key}: {value}\n"',
+              r'block.insert(insert_at, f"  {key}: {value}\\n")': r'block.insert(insert_at, f"  {key}: {value}\n")',
+          }
+          for old, new in replacements.items():
+              if code.count(old) != 1:
+                  raise SystemExit(f"targeted runner correction mismatch: {old!r} count={code.count(old)}")
+              code = code.replace(old, new, 1)
+          exec(compile(code, "audit-remediation-source-patch-discovery", "exec"), {"__name__": "__main__"})
+
+          # Apply the same frontend reachability bridge as recovery v2.
+          account_page = Path("../web/src/pages/Account.tsx")
+          account_text = account_page.read_text(encoding="utf-8")
+          old = '''          if (kind === "validator") {\n            return submitSignedTx({\n              account: acct,\n              tx_type: "NODE_OPERATOR_VALIDATOR_OPT_IN",\n              payload: {\n                account_id: acct,\n                validator_opt_in: true,\n                node_pubkey: nodePubkey,\n                validator_readiness_commitment: String(validatorReadinessCommitment || "").trim() || undefined,\n              },\n              base,\n              headers: observerSyncSubmitHeaders,\n            });\n          }\n'''
+          new = '''          if (kind === "validator") {\n            const readinessRaw = String(validatorReadinessCommitment || "").trim();\n            if (!readinessRaw) throw new Error("validator_readiness_receipt_required");\n            let readinessReceipt: Record<string, any>;\n            try {\n              readinessReceipt = asRecord(JSON.parse(readinessRaw));\n            } catch {\n              throw new Error("validator_readiness_receipt_json_invalid");\n            }\n            const readinessReceiptHash = String(readinessReceipt.readiness_receipt_hash || "").trim();\n            const readinessNodePubkey = String(readinessReceipt.node_pubkey || "").trim();\n            const readinessExpiresHeight = Number(readinessReceipt.readiness_expires_height || 0);\n            if (!readinessReceiptHash) throw new Error("validator_readiness_receipt_hash_required");\n            if (!readinessNodePubkey || readinessNodePubkey !== nodePubkey) {\n              throw new Error("validator_readiness_node_key_mismatch");\n            }\n            if (!Number.isInteger(readinessExpiresHeight) || readinessExpiresHeight <= 0) {\n              throw new Error("validator_readiness_expiry_required");\n            }\n            return submitSignedTx({\n              account: acct,\n              tx_type: "NODE_OPERATOR_VALIDATOR_OPT_IN",\n              payload: {\n                account_id: acct,\n                validator_opt_in: true,\n                node_pubkey: nodePubkey,\n                validator_readiness_commitment: readinessReceiptHash,\n                validator_readiness_receipt_hash: readinessReceiptHash,\n                bft_pubkey: String(readinessReceipt.bft_pubkey || "").trim() || undefined,\n                chain_id: String(readinessReceipt.chain_id || "").trim() || undefined,\n                schema_version: String(readinessReceipt.schema_version || "").trim() || undefined,\n                protocol_version: String(readinessReceipt.protocol_version || "").trim() || undefined,\n                manifest_hash: String(readinessReceipt.manifest_hash || "").trim() || undefined,\n                tx_index_hash: String(readinessReceipt.tx_index_hash || "").trim() || undefined,\n                runtime_profile_hash: String(readinessReceipt.runtime_profile_hash || "").trim() || undefined,\n                readiness_expires_height: readinessExpiresHeight,\n                readiness_checks: asRecord(readinessReceipt.readiness_checks),\n              },\n              base,\n              headers: observerSyncSubmitHeaders,\n            });\n          }\n'''
+          if account_text.count(old) != 1:
+              raise SystemExit(f"Account validator payload target count={account_text.count(old)}")
+          account_page.write_text(account_text.replace(old, new, 1), encoding="utf-8")
+          PY
+          python scripts/gen_tx_index.py
+
+      - name: Print exact semantic-review material delta
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          baseline = json.loads(Path("/tmp/weall-baseline-review-material.json").read_text(encoding="utf-8"))
+          code = r'''
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd() / "scripts"))
+          import refresh_v2_semantic_reviews as refresh
+          _compiler, validation, rows = refresh._derive_transaction_rows()
+          material = {
+              str(row.get("tx_type") or ""): validation.tx_review_material(row)
+              for row in rows
+              if str(row.get("tx_type") or "")
+          }
+          print(json.dumps(material, sort_keys=True))
+          '''
+          proc = subprocess.run([sys.executable, "-c", code], text=True, capture_output=True, check=True)
+          current = json.loads(proc.stdout.strip().splitlines()[-1])
+          changed = []
+          for tx_type in sorted(set(baseline) | set(current)):
+              before = baseline.get(tx_type)
+              after = current.get(tx_type)
+              if before == after:
+                  continue
+              keys = sorted(set((before or {}).keys()) | set((after or {}).keys()))
+              changed_keys = [key for key in keys if (before or {}).get(key) != (after or {}).get(key)]
+              changed.append((tx_type, changed_keys))
+          print("SEMANTIC_REVIEW_CHANGED_TX_TYPES=" + json.dumps([name for name, _ in changed]))
+          for name, keys in changed:
+              print(f"SEMANTIC_DELTA {name}: {','.join(keys)}")
+              for key in keys:
+                  print("  BEFORE", key, json.dumps((baseline.get(name) or {}).get(key), sort_keys=True))
+                  print("  AFTER ", key, json.dumps((current.get(name) or {}).get(key), sort_keys=True))
+          if not changed:
+              print("NO_SEMANTIC_REVIEW_MATERIAL_CHANGES")
+          PY
