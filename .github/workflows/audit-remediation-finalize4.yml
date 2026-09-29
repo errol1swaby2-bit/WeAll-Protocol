@@ -1,0 +1,211 @@
+name: Finalize audit remediation v4
+
+on:
+  push:
+    branches: ["audit-remediation-20260929"]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: audit-remediation-20260929
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Apply repair within existing canonical scheduler surface
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          # Reuse the already-vetted source patch and frontend reachability patch.
+          workflow = Path("../.github/workflows/audit-remediation-recovery2.yml").read_text(encoding="utf-8")
+          marker = "          python - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          code = textwrap.dedent(workflow[start:end])
+          exec(compile(code, "audit-remediation-final-source-patch-v4", "exec"), {"__name__": "__main__"})
+
+          # Keep only established readiness state keys.
+          roles = Path("src/weall/runtime/apply/roles.py")
+          text = roles.read_text(encoding="utf-8")
+          for item in (
+              '        validator["validator_readiness_receipt_hash"] = receipt_hash\n',
+              '    if receipt_hash:\n        validator["readiness_evidence_received_at_nonce"] = int(nonce)\n',
+          ):
+              if text.count(item) != 1:
+                  raise SystemExit(f"validator state normalization target count={text.count(item)}: {item!r}")
+              text = text.replace(item, "", 1)
+          roles.write_text(text, encoding="utf-8")
+
+          # Do not create a new scheduler contract/stable ID. Fold validator
+          # readiness and role activation into the existing registered
+          # schedule_node_operator_system_txs responsibility scheduler.
+          new_scheduler = Path("src/weall/runtime/validator_transition_scheduler.py")
+          if new_scheduler.exists():
+              new_scheduler.unlink()
+
+          pipeline = Path("src/weall/runtime/scheduler_pipeline.py")
+          ptext = pipeline.read_text(encoding="utf-8")
+          import_block = (
+              "from weall.runtime.validator_transition_scheduler import (\n"
+              "    schedule_validator_transition_system_txs,\n"
+              ")\n"
+          )
+          if ptext.count(import_block) != 1:
+              raise SystemExit(f"validator scheduler import target count={ptext.count(import_block)}")
+          ptext = ptext.replace(import_block, "", 1)
+          call_line = "    schedule_validator_transition_system_txs(state, next_height=next_height)\n"
+          if ptext.count(call_line) != 1:
+              raise SystemExit(f"validator scheduler call target count={ptext.count(call_line)}")
+          pipeline.write_text(ptext.replace(call_line, "", 1), encoding="utf-8")
+
+          scheduler = Path("src/weall/runtime/node_operator_scheduler.py")
+          stext = scheduler.read_text(encoding="utf-8")
+          old_import = '''from weall.runtime.node_operator_responsibilities import (\n    evaluate_baseline_node_operator,\n    first_blocking_reason,\n)\nfrom weall.runtime.system_tx_engine import enqueue_system_tx\n'''
+          new_import = '''from weall.runtime.node_operator_responsibilities import (\n    evaluate_baseline_node_operator,\n    evaluate_validator_responsibility,\n    first_blocking_reason,\n)\nfrom weall.runtime.system_tx_engine import enqueue_system_tx\nfrom weall.runtime.validator_readiness_runner import (\n    ValidatorReadinessError,\n    validate_validator_readiness_payload,\n)\n'''
+          if stext.count(old_import) != 1:
+              raise SystemExit(f"node operator scheduler import target count={stext.count(old_import)}")
+          stext = stext.replace(old_import, new_import, 1)
+
+          old_tail = '''        enq += 1\n    return enq\n'''
+          new_tail = '''        enq += 1\n\n    validators = roles.get("validators")\n    if not isinstance(validators, dict):\n        validators = {"by_id": {}, "active_set": []}\n        roles["validators"] = validators\n    validator_active_raw = validators.get("active_set")\n    validator_active = (\n        {str(value).strip() for value in validator_active_raw if str(value).strip()}\n        if isinstance(validator_active_raw, list)\n        else set()\n    )\n\n    for account_id in sorted(str(k).strip() for k in by_id.keys() if str(k).strip()):\n        operator = _as_dict(by_id.get(account_id))\n        responsibilities = _as_dict(operator.get("responsibilities"))\n        validator = _as_dict(responsibilities.get("validator"))\n        if not bool(validator.get("opted_in", False)):\n            continue\n\n        node_pubkey = str(validator.get("node_pubkey") or "").strip()\n        evaluation = evaluate_validator_responsibility(\n            state, account_id, node_pubkey=node_pubkey\n        )\n        readiness_status = str(validator.get("readiness_status") or "").strip().lower()\n\n        if not bool(validator.get("active", False)) or readiness_status not in {\n            "ready",\n            "verified",\n            "active",\n        }:\n            blockers = set(evaluation.reasons) - {"validator_readiness_pending"}\n            if blockers:\n                continue\n            payload = {\n                "account_id": account_id,\n                "verification_status": "verified",\n                "node_pubkey": node_pubkey,\n                "bft_pubkey": str(validator.get("bft_pubkey") or "").strip(),\n                "chain_id": str(validator.get("chain_id") or "").strip(),\n                "schema_version": str(validator.get("schema_version") or "").strip(),\n                "protocol_version": str(validator.get("protocol_version") or "").strip(),\n                "manifest_hash": str(validator.get("manifest_hash") or "").strip(),\n                "tx_index_hash": str(validator.get("tx_index_hash") or "").strip(),\n                "runtime_profile_hash": str(\n                    validator.get("runtime_profile_hash") or ""\n                ).strip(),\n                "readiness_expires_height": int(\n                    validator.get("readiness_expires_height") or 0\n                ),\n                "readiness_checks": dict(_as_dict(validator.get("readiness_checks"))),\n                "readiness_receipt_hash": str(\n                    validator.get("readiness_receipt_hash") or ""\n                ).strip(),\n            }\n            try:\n                validate_validator_readiness_payload(\n                    payload,\n                    account_id=account_id,\n                    expected_node_pubkey=node_pubkey,\n                    current_height=int(state.get("height") or 0),\n                )\n            except (ValidatorReadinessError, TypeError, ValueError):\n                continue\n            enqueue_system_tx(\n                state,\n                tx_type="VALIDATOR_READINESS_VERIFY",\n                payload=payload,\n                due_height=int(next_height),\n                signer="SYSTEM",\n                once=True,\n                parent=None,\n                phase="post",\n            )\n            enq += 1\n            continue\n\n        if account_id in validator_active or not evaluation.active:\n            continue\n        enqueue_system_tx(\n            state,\n            tx_type="ROLE_VALIDATOR_ACTIVATE",\n            payload={"account_id": account_id, "node_pubkey": node_pubkey},\n            due_height=int(next_height),\n            signer="SYSTEM",\n            once=True,\n            parent=None,\n            phase="post",\n        )\n        enq += 1\n\n    return enq\n'''
+          if stext.count(old_tail) != 1:
+              raise SystemExit(f"node operator scheduler tail target count={stext.count(old_tail)}")
+          scheduler.write_text(stext.replace(old_tail, new_tail, 1), encoding="utf-8")
+
+          # Focused tests must call the actual registered scheduler surface.
+          test_path = Path("tests/test_audit_remediation_validator_transitions.py")
+          ttext = test_path.read_text(encoding="utf-8")
+          old = '''from weall.runtime.scheduler_pipeline import run_leader_post_schedulers, run_replay_post_schedulers\nfrom weall.runtime.system_tx_engine import system_tx_emitter\nfrom weall.runtime.validator_readiness_runner import build_validator_readiness_receipt\nfrom weall.runtime.validator_transition_scheduler import schedule_validator_transition_system_txs\n'''
+          new = '''from weall.runtime.node_operator_scheduler import schedule_node_operator_system_txs\nfrom weall.runtime.scheduler_pipeline import run_leader_post_schedulers, run_replay_post_schedulers\nfrom weall.runtime.system_tx_engine import system_tx_emitter\nfrom weall.runtime.validator_readiness_runner import build_validator_readiness_receipt\n'''
+          if ttext.count(old) != 1:
+              raise SystemExit(f"validator test import target count={ttext.count(old)}")
+          ttext = ttext.replace(old, new, 1)
+          ttext = ttext.replace("schedule_validator_transition_system_txs", "schedule_node_operator_system_txs")
+          test_path.write_text(ttext, encoding="utf-8")
+          PY
+
+      - name: Install locked backend toolchain
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and lint repaired backend sources
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          ruff format \
+            src/weall/runtime/apply/roles.py \
+            src/weall/runtime/node_operator_scheduler.py \
+            src/weall/runtime/scheduler_pipeline.py \
+            src/weall/api/routes_public_parts/health.py \
+            scripts/compile_v2_spec.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py
+          ruff check \
+            src/weall/runtime/apply/roles.py \
+            src/weall/runtime/node_operator_scheduler.py \
+            src/weall/runtime/scheduler_pipeline.py \
+            src/weall/api/routes_public_parts/health.py \
+            scripts/compile_v2_spec.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py
+
+      - name: Regenerate transaction canon derivative
+        working-directory: Weall-Protocol
+        run: python scripts/gen_tx_index.py
+
+      - name: Refresh only explicitly reviewed semantic bindings and V2 derivatives
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python scripts/refresh_v2_semantic_reviews.py \
+            --tx-type GOV_EXECUTE \
+            --tx-type ROLE_NODE_OPERATOR_ACTIVATE \
+            --tx-type VALIDATOR_READINESS_VERIFY \
+            --tx-type ROLE_VALIDATOR_ACTIVATE \
+            --reviewer "AI-assisted audit remediation requested by repository maintainer; not independent review" \
+            --review-method "AI-assisted source review of authority/canonical-emission repair with targeted regression evidence"
+
+      - name: Focused remediation tests and generation gates
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          pytest -q \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py \
+            tests/test_validator_live_readiness_runner.py \
+            tests/test_node_operator_auto_activation_and_responsibilities.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_v2_spec_compiler.py \
+            tests/test_canonical_poh_eligibility_and_node_controls.py \
+            tests/test_p2_final_source_closure.py
+          python -m tooling.canon_lint
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Full backend suite
+        working-directory: Weall-Protocol
+        run: pytest -q
+
+      - name: Frontend install
+        working-directory: web
+        run: npm ci
+
+      - name: Frontend typecheck and build
+        working-directory: web
+        shell: bash
+        run: |
+          npm run typecheck
+          npm run build
+
+      - name: Commit exact validated repair tree
+        shell: bash
+        run: |
+          rm -f .github/workflows/audit-remediation-apply.yml
+          rm -f .github/workflows/audit-remediation-recovery.yml
+          rm -f .github/workflows/audit-remediation-recovery2.yml
+          rm -f .github/workflows/audit-remediation-semantic-discovery.yml
+          rm -f .github/workflows/audit-remediation-finalize.yml
+          rm -f .github/workflows/audit-remediation-finalize2.yml
+          rm -f .github/workflows/audit-remediation-finalize3.yml
+          rm -f .github/workflows/audit-remediation-finalize4.yml
+          git status --short
+          git config user.name "weall-audit-remediation-bot"
+          git config user.email "weall-audit-remediation-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: repair validator reachability, canon, evidence, and readiness truth [audit-remediation-applied]"
+          git push origin HEAD:audit-remediation-20260929
