@@ -1,8 +1,8 @@
 {
   "chain_id": "weall-testnet-v1",
   "economics_active": false,
-  "genesis_hash": "f2796de68e743bd54fbdce3689891b23eeda0e4a7d2f55a9485d55fbca6ecca0",
-  "genesis_state_root": "f2796de68e743bd54fbdce3689891b23eeda0e4a7d2f55a9485d55fbca6ecca0",
+  "genesis_hash": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
+  "genesis_state_root": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
   "network_id": "weall-public-observer-testnet-v1",
   "notes": [
     "These commitments are the repo-pinned identity for the resettable public observer testnet v1.",
@@ -13,5 +13,5 @@
   "resettable_testnet": true,
   "source_genesis_ledger": "configs/genesis.ledger.testnet-v1.json",
   "source_manifest": "configs/chains/weall-testnet-v1.json",
-  "tx_index_hash": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
+  "tx_index_hash": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
 }

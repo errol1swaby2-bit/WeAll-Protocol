@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "802d6f518b595c15a8fc65c674455b378b59076960a6742e2cedd821ceae3d0f"
+    "source_tree_digest": "b3de0f27bf27890776749be63985a61de9edaa32877a73525e76fc99da1eca5d"
   },
   "required_fields": [
     "stable_id",
@@ -2856,6 +2856,7 @@
       "stable_id": "ROUTE-B0DFBDB7B4066104",
       "tests": [
         "tests/test_api_tx_status_routes.py",
+        "tests/test_audit_remediation_readyz_truth.py",
         "tests/test_constitution_source_traceability.py",
         "tests/test_diagnostics_helper_fail_closed.py",
         "tests/test_executor_atomic_commit_crash_recovery.py",
@@ -2899,7 +2900,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "healthz",
-        "line": 508,
+        "line": 516,
         "path": "src/weall/api/routes_public_parts/health.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6263,7 +6264,7 @@
       ],
       "implementation_source": {
         "function": "readyz",
-        "line": 503,
+        "line": 511,
         "path": "src/weall/api/routes_public_parts/health.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6291,6 +6292,7 @@
       },
       "stable_id": "ROUTE-4CBFA6847142B599",
       "tests": [
+        "tests/test_audit_remediation_readyz_truth.py",
         "tests/test_external_observer_live_gate_docs.py",
         "tests/test_full_node_db_api_dispute_storage_coverage.py",
         "tests/test_health_authority_contract.py",
@@ -7051,6 +7053,9 @@
         "tests/test_async_poh_reviewability_truth.py",
         "tests/test_async_verification_submission_reviewer_feed.py",
         "tests/test_atomic_store_concurrency.py",
+        "tests/test_audit_remediation_readyz_truth.py",
+        "tests/test_audit_remediation_spec_compiler.py",
+        "tests/test_audit_remediation_validator_transitions.py",
         "tests/test_auth_metrics_helper_fail_closed.py",
         "tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py",
         "tests/test_backup_restore_smoke.py",
@@ -8243,6 +8248,7 @@
         "tests/test_apply_poh_tier2_flows_mvp.py",
         "tests/test_apply_storage_peer_validator.py",
         "tests/test_async_bind_scheduler_and_live_route.py",
+        "tests/test_audit_remediation_validator_transitions.py",
         "tests/test_auth_metrics_helper_fail_closed.py",
         "tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py",
         "tests/test_backup_restore_smoke.py",

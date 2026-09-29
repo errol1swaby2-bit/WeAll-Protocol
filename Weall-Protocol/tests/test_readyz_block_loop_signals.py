@@ -91,8 +91,8 @@ def test_readyz_reflects_injected_block_loop_state() -> None:
 
     body = r.json()
 
-    # Current implementation only reports ok=true when chain_id + tx_index_hash exist.
-    assert body["ok"] is True
+    # Production readiness must fail closed when the block loop explicitly reports unhealthy.
+    assert body["ok"] is False
 
     block_loop = body["block_loop"]
     assert block_loop["running"] is True

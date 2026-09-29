@@ -425,6 +425,38 @@ def _all_string_constants(node: ast.AST) -> set[str]:
     }
 
 
+def _direct_emitted_system_transactions(node: ast.AST, system_names: set[str]) -> list[str]:
+    """Return SYSTEM TxTypes passed literally to enqueue-like calls.
+
+    Static evidence must distinguish a producer from a consumer that merely
+    mentions a TxType in a return value, branch, comment-adjacent constant, or
+    dispatch table.  We intentionally require an enqueue-like call and a
+    literal ``tx_type=...`` keyword so generated scheduler evidence never
+    upgrades string occurrence into emission authority.
+    """
+
+    emitted: set[str] = set()
+    for child in ast.walk(node):
+        if not isinstance(child, ast.Call):
+            continue
+        if isinstance(child.func, ast.Name):
+            call_name = child.func.id
+        elif isinstance(child.func, ast.Attribute):
+            call_name = child.func.attr
+        else:
+            call_name = ""
+        if "enqueue" not in call_name.lower():
+            continue
+        tx_type = None
+        for keyword in child.keywords:
+            if keyword.arg == "tx_type":
+                tx_type = _literal_string(keyword.value)
+                break
+        if tx_type and tx_type in system_names:
+            emitted.add(tx_type)
+    return sorted(emitted)
+
+
 def _function_source_functions(tree: ast.AST) -> dict[str, SourceFunction]:
     out: dict[str, SourceFunction] = {}
     for node in ast.walk(tree):
@@ -1310,7 +1342,7 @@ def _scheduler_index(
                 if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                     continue
                 lowered = node.name.lower()
-                emitted = sorted(system_names.intersection(_all_string_constants(node)))
+                emitted = _direct_emitted_system_transactions(node, system_names)
                 if not emitted and not any(token in lowered for token in tokens):
                     continue
                 rel = _relative(path)

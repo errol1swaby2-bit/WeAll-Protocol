@@ -1310,7 +1310,7 @@
       "route_id": "36912f0eca7b3e4f",
       "route_path_without_v1_prefix": "/healthz",
       "source": "src/weall/api/routes_public_parts/health.py",
-      "source_lineno": 508,
+      "source_lineno": 516,
       "summary": "",
       "tags": [
         "health"
@@ -2718,7 +2718,7 @@
       "route_id": "64443de16ddcc57b",
       "route_path_without_v1_prefix": "/readyz",
       "source": "src/weall/api/routes_public_parts/health.py",
-      "source_lineno": 503,
+      "source_lineno": 511,
       "summary": "",
       "tags": [
         "health"

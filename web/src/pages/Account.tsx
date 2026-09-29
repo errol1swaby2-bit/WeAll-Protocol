@@ -721,6 +721,24 @@ export default function Account({ account }: { account: string }): JSX.Element {
             });
           }
           if (kind === "validator") {
+            const readinessRaw = String(validatorReadinessCommitment || "").trim();
+            if (!readinessRaw) throw new Error("validator_readiness_receipt_required");
+            let readinessReceipt: Record<string, any>;
+            try {
+              readinessReceipt = asRecord(JSON.parse(readinessRaw));
+            } catch {
+              throw new Error("validator_readiness_receipt_json_invalid");
+            }
+            const readinessReceiptHash = String(readinessReceipt.readiness_receipt_hash || "").trim();
+            const readinessNodePubkey = String(readinessReceipt.node_pubkey || "").trim();
+            const readinessExpiresHeight = Number(readinessReceipt.readiness_expires_height || 0);
+            if (!readinessReceiptHash) throw new Error("validator_readiness_receipt_hash_required");
+            if (!readinessNodePubkey || readinessNodePubkey !== nodePubkey) {
+              throw new Error("validator_readiness_node_key_mismatch");
+            }
+            if (!Number.isInteger(readinessExpiresHeight) || readinessExpiresHeight <= 0) {
+              throw new Error("validator_readiness_expiry_required");
+            }
             return submitSignedTx({
               account: acct,
               tx_type: "NODE_OPERATOR_VALIDATOR_OPT_IN",
@@ -728,7 +746,17 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 account_id: acct,
                 validator_opt_in: true,
                 node_pubkey: nodePubkey,
-                validator_readiness_commitment: String(validatorReadinessCommitment || "").trim() || undefined,
+                validator_readiness_commitment: readinessReceiptHash,
+                validator_readiness_receipt_hash: readinessReceiptHash,
+                bft_pubkey: String(readinessReceipt.bft_pubkey || "").trim() || undefined,
+                chain_id: String(readinessReceipt.chain_id || "").trim() || undefined,
+                schema_version: String(readinessReceipt.schema_version || "").trim() || undefined,
+                protocol_version: String(readinessReceipt.protocol_version || "").trim() || undefined,
+                manifest_hash: String(readinessReceipt.manifest_hash || "").trim() || undefined,
+                tx_index_hash: String(readinessReceipt.tx_index_hash || "").trim() || undefined,
+                runtime_profile_hash: String(readinessReceipt.runtime_profile_hash || "").trim() || undefined,
+                readiness_expires_height: readinessExpiresHeight,
+                readiness_checks: asRecord(readinessReceipt.readiness_checks),
               },
               base,
               headers: observerSyncSubmitHeaders,
@@ -1683,7 +1711,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <input
                   value={validatorReadinessCommitment}
                   onChange={(e) => setValidatorReadinessCommitment(e.target.value)}
-                  placeholder="optional readiness commitment"
+                  placeholder="paste validator readiness receipt JSON"
                 />
               </label>
               <div className="buttonRow">

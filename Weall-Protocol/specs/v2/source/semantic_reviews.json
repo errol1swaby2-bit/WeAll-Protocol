@@ -3574,10 +3574,10 @@
         "path": "src/weall/runtime/apply/governance.py"
       },
       "independent_review": false,
-      "review_digest": "9edac884c8c7420295fd81467be1e8eaef7dc13b27e0020391dca02345552e94",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-30T18:24:45Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "review_digest": "ddb6ff327661c1b374da1ba40d8a9b5719738302364ffa18666ce3f8a4557c69",
+      "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+      "reviewed_at": "2026-09-29T22:53:56Z",
+      "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review",
       "stable_id": "TX-0408",
       "tx_type": "GOV_EXECUTE"
     },
@@ -4336,10 +4336,10 @@
         "path": "src/weall/runtime/apply/roles.py"
       },
       "independent_review": false,
-      "review_digest": "25970d07e334c9cc6e473b553460c3da12e763c4bb60dcaffb7c3045e33e3182",
-      "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-      "reviewed_at": "2026-09-26T22:30:00Z",
-      "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "review_digest": "f64112945d92ef91e3fbcc3ffe14b949929e95e79b5e53e6f409da9ba215a7ba",
+      "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+      "reviewed_at": "2026-09-29T22:53:56Z",
+      "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review",
       "stable_id": "TX-1104",
       "tx_type": "ROLE_VALIDATOR_ACTIVATE"
     },
@@ -4370,10 +4370,10 @@
         "path": "src/weall/runtime/apply/roles.py"
       },
       "independent_review": false,
-      "review_digest": "8a201c38b402d23d3371879c2ce65332fca2a9a727e2e31ed6896b1a2665ff2c",
-      "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-      "reviewed_at": "2026-09-27T19:18:42Z",
-      "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred",
+      "review_digest": "4abfe757c52e6a5c12507e7a60d104aab69557520cdf4511d28522297579a70f",
+      "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+      "reviewed_at": "2026-09-29T22:53:56Z",
+      "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review",
       "stable_id": "TX-1106",
       "tx_type": "ROLE_NODE_OPERATOR_ENROLL"
     },
@@ -4387,10 +4387,10 @@
         "path": "src/weall/runtime/apply/roles.py"
       },
       "independent_review": false,
-      "review_digest": "cf113b6edc4935c7a53aa3367da9db89b5d4048d2f5b91648a06815933cca599",
-      "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-      "reviewed_at": "2026-09-26T22:30:00Z",
-      "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "review_digest": "b88824f667e247700e774d8361d333671145fcf98f99478330439dc58fc84f78",
+      "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+      "reviewed_at": "2026-09-29T22:53:56Z",
+      "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review",
       "stable_id": "TX-1107",
       "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE"
     },
@@ -5606,10 +5606,10 @@
         "path": "src/weall/runtime/apply/roles.py"
       },
       "independent_review": false,
-      "review_digest": "74a8ec7ee38b5df6d62b07c96f3c5a161a27153e022367a9e17783a14fc115fe",
-      "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-      "reviewed_at": "2026-09-26T22:30:00Z",
-      "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "review_digest": "183fe5c6c425dc35b278e7a53edbc2af43b9b723cf58971ffbea85d810501df0",
+      "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+      "reviewed_at": "2026-09-29T22:53:56Z",
+      "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review",
       "stable_id": "TX-2618",
       "tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN"
     },
@@ -5623,10 +5623,10 @@
         "path": "src/weall/runtime/apply/roles.py"
       },
       "independent_review": false,
-      "review_digest": "334b4ad27ec0e19689f7d2b3afd47ce0a0dd4fdcc839dfd66da7cc64fed554d4",
-      "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-      "reviewed_at": "2026-09-27T19:18:42Z",
-      "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred",
+      "review_digest": "1c9c1afa18a8ceb650c8ab94c16678c272b64d48f0fea472cf3946594aeaaf16",
+      "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+      "reviewed_at": "2026-09-29T22:53:56Z",
+      "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review",
       "stable_id": "TX-2619",
       "tx_type": "NODE_OPERATOR_RESPONSIBILITY_UPDATE"
     },
@@ -5651,10 +5651,10 @@
         "path": "src/weall/runtime/apply/roles.py"
       },
       "independent_review": false,
-      "review_digest": "c475f05a1f9173fa480438a5ba6fd1975f5d21f0be471f41e6931aa94aa311a6",
-      "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-      "reviewed_at": "2026-09-26T22:30:00Z",
-      "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "review_digest": "bf9ebd9ca674bd8b85b54a6f3d0065ef9c805ba5bea1504b4b9ae126ac66f71d",
+      "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+      "reviewed_at": "2026-09-29T22:53:56Z",
+      "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review",
       "stable_id": "TX-2621",
       "tx_type": "VALIDATOR_READINESS_VERIFY"
     },

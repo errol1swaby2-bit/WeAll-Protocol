@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "802d6f518b595c15a8fc65c674455b378b59076960a6742e2cedd821ceae3d0f"
+    "source_tree_digest": "b3de0f27bf27890776749be63985a61de9edaa32877a73525e76fc99da1eca5d"
   },
   "rows": [
     {
@@ -10687,10 +10687,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "9edac884c8c7420295fd81467be1e8eaef7dc13b27e0020391dca02345552e94",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-30T18:24:45Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "ddb6ff327661c1b374da1ba40d8a9b5719738302364ffa18666ce3f8a4557c69",
+        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+        "reviewed_at": "2026-09-29T22:53:56Z",
+        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0408",
@@ -10728,9 +10728,7 @@
         "ROLE_JUROR_ACTIVATE",
         "ROLE_JUROR_REINSTATE",
         "ROLE_JUROR_SUSPEND",
-        "ROLE_NODE_OPERATOR_ACTIVATE",
         "ROLE_NODE_OPERATOR_SUSPEND",
-        "ROLE_VALIDATOR_ACTIVATE",
         "ROLE_VALIDATOR_SUSPEND",
         "TREASURY_AUDIT_ANCHOR_SET",
         "TREASURY_POLICY_SET",
@@ -17925,6 +17923,7 @@
         "STATE_SNAPSHOT_ACCEPT"
       ],
       "tests": [
+        "tests/test_audit_remediation_spec_compiler.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "STATE_SNAPSHOT_DECLARE",
@@ -18311,7 +18310,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_enroll",
         "handler": "roles",
-        "line": 1054,
+        "line": 1086,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18449,7 +18448,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_activate",
         "handler": "roles",
-        "line": 1129,
+        "line": 1161,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18563,7 +18562,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_suspend",
         "handler": "roles",
-        "line": 1188,
+        "line": 1220,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18683,7 +18682,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_reinstate",
         "handler": "roles",
-        "line": 1234,
+        "line": 1266,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18820,7 +18819,7 @@
       "implementation_source": {
         "function": "_apply_role_validator_activate",
         "handler": "roles",
-        "line": 1244,
+        "line": 1276,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18829,8 +18828,8 @@
       "poh_gate": "none",
       "primary_mechanism_id": "M-028",
       "receipt_contract": {
-        "kind": "receipt_only_parent_bound",
-        "parent": "GOV_EXECUTE",
+        "kind": "system_apply_result",
+        "parent": null,
         "return_fields": [
           "account_id",
           "applied",
@@ -18839,17 +18838,17 @@
         "stable_id": "RCP-3D8CC856FBD7B948"
       },
       "replay_behavior": "block_only_parent_and_context_bound_deterministic_replay",
-      "role_gate": "GovExecutor",
+      "role_gate": "Validator",
       "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "25970d07e334c9cc6e473b553460c3da12e763c4bb60dcaffb7c3045e33e3182",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "f64112945d92ef91e3fbcc3ffe14b949929e95e79b5e53e6f409da9ba215a7ba",
+        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+        "reviewed_at": "2026-09-29T22:53:56Z",
+        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1104",
@@ -18882,6 +18881,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_audit_remediation_validator_transitions.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_four_gate_safety.py",
         "tests/test_observer_to_validator_authority_path.py",
@@ -18932,7 +18932,7 @@
       "implementation_source": {
         "function": "_apply_role_validator_suspend",
         "handler": "roles",
-        "line": 1319,
+        "line": 1351,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19059,7 +19059,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_enroll",
         "handler": "roles",
-        "line": 1348,
+        "line": 1380,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19088,10 +19088,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "8a201c38b402d23d3371879c2ce65332fca2a9a727e2e31ed6896b1a2665ff2c",
-        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T19:18:42Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "review_digest": "4abfe757c52e6a5c12507e7a60d104aab69557520cdf4511d28522297579a70f",
+        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+        "reviewed_at": "2026-09-29T22:53:56Z",
+        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1106",
@@ -19143,6 +19143,9 @@
         "key:opted_in",
         "key:proof_status",
         "key:proven_capacity_bytes",
+        "key:readiness_checks",
+        "key:readiness_expires_height",
+        "key:readiness_receipt_hash",
         "key:readiness_status",
         "key:reputation_required_milli",
         "key:responsibilities",
@@ -19231,7 +19234,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_activate",
         "handler": "roles",
-        "line": 1421,
+        "line": 1453,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19240,8 +19243,8 @@
       "poh_gate": "none",
       "primary_mechanism_id": "M-028",
       "receipt_contract": {
-        "kind": "receipt_only_parent_bound",
-        "parent": "GOV_EXECUTE",
+        "kind": "system_apply_result",
+        "parent": null,
         "return_fields": [
           "account_id",
           "applied",
@@ -19250,17 +19253,17 @@
         "stable_id": "RCP-BC029A2043AF7EE0"
       },
       "replay_behavior": "block_only_parent_and_context_bound_deterministic_replay",
-      "role_gate": "GovExecutor",
+      "role_gate": "Validator",
       "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "cf113b6edc4935c7a53aa3367da9db89b5d4048d2f5b91648a06815933cca599",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "b88824f667e247700e774d8361d333671145fcf98f99478330439dc58fc84f78",
+        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+        "reviewed_at": "2026-09-29T22:53:56Z",
+        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1107",
@@ -19312,6 +19315,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_audit_remediation_validator_transitions.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_exact_responsibility_lane_consent.py",
         "tests/test_four_gate_safety.py",
@@ -19370,7 +19374,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_suspend",
         "handler": "roles",
-        "line": 1475,
+        "line": 1507,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19463,7 +19467,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_nominate",
         "handler": "roles",
-        "line": 1518,
+        "line": 1550,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19558,7 +19562,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_vote",
         "handler": "roles",
-        "line": 1551,
+        "line": 1583,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19666,7 +19670,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_seat",
         "handler": "roles",
-        "line": 1584,
+        "line": 1616,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19763,7 +19767,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_remove",
         "handler": "roles",
-        "line": 1624,
+        "line": 1656,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19877,7 +19881,7 @@
       "implementation_source": {
         "function": "_apply_role_gov_executor_set",
         "handler": "roles",
-        "line": 1666,
+        "line": 1698,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27223,7 +27227,7 @@
       "implementation_source": {
         "function": "_apply_treasury_create",
         "handler": "roles",
-        "line": 1705,
+        "line": 1737,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27331,7 +27335,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signers_set",
         "handler": "roles",
-        "line": 1740,
+        "line": 1772,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29327,7 +29331,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_storage_opt_in_tx",
         "handler": "roles",
-        "line": 643,
+        "line": 675,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29476,7 +29480,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_validator_opt_in_tx",
         "handler": "roles",
-        "line": 660,
+        "line": 692,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29501,10 +29505,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "74a8ec7ee38b5df6d62b07c96f3c5a161a27153e022367a9e17783a14fc115fe",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "183fe5c6c425dc35b278e7a53edbc2af43b9b723cf58971ffbea85d810501df0",
+        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+        "reviewed_at": "2026-09-29T22:53:56Z",
+        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2618",
@@ -29541,6 +29545,9 @@
         "key:opted_in",
         "key:proof_status",
         "key:proven_capacity_bytes",
+        "key:readiness_checks",
+        "key:readiness_expires_height",
+        "key:readiness_receipt_hash",
         "key:readiness_status",
         "key:reputation_required_milli",
         "key:responsibilities",
@@ -29549,10 +29556,9 @@
         "key:validator_endpoint_commitment",
         "key:validator_readiness_commitment"
       ],
-      "system_followups": [
-        "VALIDATOR_READINESS_VERIFY"
-      ],
+      "system_followups": [],
       "tests": [
+        "tests/test_audit_remediation_validator_transitions.py",
         "tests/test_canonical_poh_eligibility_and_node_controls.py",
         "tests/test_fresh_node_to_service_e2e.py",
         "tests/test_observer_to_validator_authority_path.py",
@@ -29641,7 +29647,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_responsibility_update",
         "handler": "roles",
-        "line": 694,
+        "line": 726,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29667,10 +29673,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "334b4ad27ec0e19689f7d2b3afd47ce0a0dd4fdcc839dfd66da7cc64fed554d4",
-        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T19:18:42Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "review_digest": "1c9c1afa18a8ceb650c8ab94c16678c272b64d48f0fea472cf3946594aeaaf16",
+        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+        "reviewed_at": "2026-09-29T22:53:56Z",
+        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2619",
@@ -29714,6 +29720,9 @@
         "key:opted_in",
         "key:proof_status",
         "key:proven_capacity_bytes",
+        "key:readiness_checks",
+        "key:readiness_expires_height",
+        "key:readiness_receipt_hash",
         "key:readiness_status",
         "key:reputation_required_milli",
         "key:responsibilities",
@@ -29958,7 +29967,7 @@
       "implementation_source": {
         "function": "_apply_validator_readiness_verify",
         "handler": "roles",
-        "line": 732,
+        "line": 764,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29967,8 +29976,8 @@
       "poh_gate": "none",
       "primary_mechanism_id": "M-028",
       "receipt_contract": {
-        "kind": "receipt_only_parent_bound",
-        "parent": "NODE_OPERATOR_VALIDATOR_OPT_IN",
+        "kind": "system_apply_result",
+        "parent": null,
         "return_fields": [
           "account_id",
           "applied",
@@ -29977,17 +29986,17 @@
         "stable_id": "RCP-7F8265930D050155"
       },
       "replay_behavior": "block_only_parent_and_context_bound_deterministic_replay",
-      "role_gate": "none",
+      "role_gate": "Validator",
       "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "c475f05a1f9173fa480438a5ba6fd1975f5d21f0be471f41e6931aa94aa311a6",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "bf9ebd9ca674bd8b85b54a6f3d0065ef9c805ba5bea1504b4b9ae126ac66f71d",
+        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
+        "reviewed_at": "2026-09-29T22:53:56Z",
+        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-2621",
@@ -30038,6 +30047,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_audit_remediation_validator_transitions.py",
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_promoted_validator_reboot_gate.py",
@@ -30348,7 +30358,7 @@
       "implementation_source": {
         "function": "_apply_reviewer_lane_update",
         "handler": "roles",
-        "line": 964,
+        "line": 996,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30487,7 +30497,7 @@
       "implementation_source": {
         "function": "_apply_reviewer_lane_update",
         "handler": "roles",
-        "line": 964,
+        "line": 996,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30630,7 +30640,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_helper_opt_in_tx",
         "handler": "roles",
-        "line": 677,
+        "line": 709,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

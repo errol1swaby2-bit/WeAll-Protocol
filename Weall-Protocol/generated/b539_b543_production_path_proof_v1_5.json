@@ -145,7 +145,7 @@
     "committed_state_unchanged_by_direct_apply": true,
     "direct_apply_persisted": false,
     "direct_apply_simulation_source": "copy_of_committed_executor_state",
-    "direct_apply_state_root": "0908b7fba10bc66168f5fc1aacb2b5c2a19a713d34cd19da2f165b1554e1b63c",
+    "direct_apply_state_root": "a48092c3e1ad935eda865d15c25af30483021c9578a21947a86297ef95e6e8ee",
     "direct_apply_write_domains_remaining": [
       "poh_challenge",
       "dispute_final_receipt",
@@ -155,7 +155,7 @@
     "dispute_remedy_applied": true,
     "feed_items": 1,
     "feed_rank_mode": "production",
-    "final_state_root": "604af158fa3a65b642e92b098d6018737df6e7dd81c5ee04c5c0d58de97ae22a",
+    "final_state_root": "6ba2e5e66d4086e600e402b3754a18c325e72421268647ed0b210eb026c6bf2e",
     "ok": true,
     "poh_challenge_status": "resolved",
     "protocol_upgrade_record_only": true,
