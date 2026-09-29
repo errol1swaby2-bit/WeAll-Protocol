@@ -1,0 +1,121 @@
+name: Audit remediation recovery
+
+on:
+  push:
+    branches: ["audit-remediation-20260929"]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: audit-remediation-20260929
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Reuse source repair script with corrected newline serialization
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path("../.github/workflows/audit-remediation-apply.yml").read_text(encoding="utf-8")
+          marker = "          python - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          code = textwrap.dedent(workflow[start:end])
+          # The first runner accidentally encoded two backslashes before n only
+          # in the YAML field writer.  Normalize that source escape to one
+          # backslash so the executed Python writes a real newline.
+          code = code.replace(r"\\n", r"\n")
+          exec(compile(code, "audit-remediation-source-patch", "exec"), {"__name__": "__main__"})
+          PY
+
+      - name: Install locked backend toolchain
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and lint repaired Python sources
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          ruff format \
+            src/weall/runtime/apply/roles.py \
+            src/weall/runtime/validator_transition_scheduler.py \
+            src/weall/runtime/scheduler_pipeline.py \
+            src/weall/api/routes_public_parts/health.py \
+            scripts/compile_v2_spec.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py
+          ruff check \
+            src/weall/runtime/apply/roles.py \
+            src/weall/runtime/validator_transition_scheduler.py \
+            src/weall/runtime/scheduler_pipeline.py \
+            src/weall/api/routes_public_parts/health.py \
+            scripts/compile_v2_spec.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py
+
+      - name: Regenerate canonical and V2 derivatives from source
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python scripts/gen_tx_index.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+
+      - name: Focused remediation tests
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          pytest -q \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py \
+            tests/test_validator_live_readiness_runner.py \
+            tests/test_node_operator_auto_activation_and_responsibilities.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_v2_spec_compiler.py
+          python -m tooling.canon_lint
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Full backend suite
+        working-directory: Weall-Protocol
+        shell: bash
+        run: pytest -q
+
+      - name: Commit exact validated repair tree
+        shell: bash
+        run: |
+          rm -f .github/workflows/audit-remediation-apply.yml
+          rm -f .github/workflows/audit-remediation-recovery.yml
+          git status --short
+          git config user.name "weall-audit-remediation-bot"
+          git config user.email "weall-audit-remediation-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: repair audit validator, canon, evidence, and readiness findings [audit-remediation-applied]"
+          git push origin HEAD:audit-remediation-20260929
