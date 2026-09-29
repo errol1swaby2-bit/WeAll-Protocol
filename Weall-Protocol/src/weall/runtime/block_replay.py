@@ -59,6 +59,7 @@ from weall.runtime.system_tx_engine import (
     BLOCK_FINALIZE_TX_TYPE,
     EPOCH_FINALITY_SINGLE_TX_CHILDREN,
     bind_new_same_block_single_tx_children,
+    bind_same_block_system_lineage,
     build_system_queue_lookup,
     validate_same_block_single_tx_lineage,
 )
@@ -339,11 +340,23 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         run_replay_post_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
         _invalidate_queue_lookup()
 
-    def _run_system_emitter_side_effects(phase: str) -> list[TxEnvelope]:
+    def _run_system_emitter_side_effects(
+        phase: str, *, prior_txs_for_lineage: list[Json]
+    ) -> list[TxEnvelope]:
         # Materialize deterministic envelopes even though follower replay never
-        # inserts them into the received block. Their queue IDs are the
-        # completeness commitment for this phase: emitter side effects alone
-        # must never let an omitted SYSTEM transition look emitted.
+        # inserts them into the received block. Canon-driven lineage preparation
+        # runs first so expected queue IDs commit to the same exact parent
+        # instances as leader construction.
+        bind_same_block_system_lineage(
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase=str(phase),
+            prior_txs=prior_txs_for_lineage,
+            chain_id=self.chain_id,
+            proposer=reward_proposer,
+        )
+        _invalidate_queue_lookup()
         emitted = emit_system_txs(
             working,
             self.tx_index,
@@ -411,7 +424,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 block_id="",
             )
     try:
-        expected_pre_queue_ids = _emitted_queue_ids(_run_system_emitter_side_effects("pre"))
+        expected_pre_queue_ids = _emitted_queue_ids(
+            _run_system_emitter_side_effects("pre", prior_txs_for_lineage=[])
+        )
     except Exception as exc:
         if _consensus_fail_closed():
             return ExecutorMeta(
@@ -528,7 +543,10 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                     block_id="",
                 )
         try:
-            expected_post_queue_ids = _emitted_queue_ids(_run_system_emitter_side_effects("post"))
+            post_prior_txs = txs[:post_system_start] if post_system_start is not None else txs
+            expected_post_queue_ids = _emitted_queue_ids(
+                _run_system_emitter_side_effects("post", prior_txs_for_lineage=list(post_prior_txs))
+            )
         except Exception as exc:
             if _consensus_fail_closed():
                 return ExecutorMeta(

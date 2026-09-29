@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from weall.runtime.apply.content import apply_content
-from weall.runtime.apply.reputation import apply_reputation
 from weall.runtime.reputation_accrual import schedule_reputation_accrual_system_txs
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -62,7 +61,7 @@ def _queued_reputation_payloads(state: dict) -> list[dict]:
     ]
 
 
-def test_tier2_post_matures_into_system_reputation_delta() -> None:
+def test_tier2_post_maturity_does_not_create_noncanonical_reputation_delta() -> None:
     state = _state()
     apply_content(
         state,
@@ -76,31 +75,12 @@ def test_tier2_post_matures_into_system_reputation_delta() -> None:
 
     assert schedule_reputation_accrual_system_txs(state, next_height=11) == 0
     state["height"] = 12
-    assert schedule_reputation_accrual_system_txs(state, next_height=13) == 1
-
-    payload = _queued_reputation_payloads(state)[0]
-    assert payload == {
-        "account_id": "@alice",
-        "delta_milli": 10,
-        "delta_id": "repaccrual:post:post:1",
-        "reason": "content_post_matured",
-    }
-
-    apply_reputation(
-        state,
-        _env(
-            "REPUTATION_DELTA_APPLY",
-            "SYSTEM",
-            2,
-            payload,
-            system=True,
-            parent="repaccrual:post:post:1",
-        ),
-    )
-    assert state["accounts"]["@alice"]["reputation_milli"] == 10
+    assert schedule_reputation_accrual_system_txs(state, next_height=13) == 0
+    assert _queued_reputation_payloads(state) == []
+    assert state["accounts"]["@alice"]["reputation_milli"] == 0
 
 
-def test_deleted_or_flagged_content_does_not_accrue_reputation() -> None:
+def test_deleted_or_flagged_content_still_cannot_create_reputation_delta() -> None:
     state = _state()
     apply_content(
         state,
@@ -127,11 +107,9 @@ def test_deleted_or_flagged_content_does_not_accrue_reputation() -> None:
     state["height"] = 12
     assert schedule_reputation_accrual_system_txs(state, next_height=13) == 0
     assert _queued_reputation_payloads(state) == []
-    assert state["content"]["posts"]["post:deleted"]["reputation_accrual"]["status"] == "blocked"
-    assert state["content"]["posts"]["post:flagged"]["reputation_accrual"]["status"] == "blocked"
 
 
-def test_media_declare_matures_into_capped_system_reputation_delta() -> None:
+def test_media_maturity_does_not_create_noncanonical_reputation_delta() -> None:
     state = _state()
     apply_content(
         state,
@@ -144,9 +122,6 @@ def test_media_declare_matures_into_capped_system_reputation_delta() -> None:
     )
 
     state["height"] = 12
-    assert schedule_reputation_accrual_system_txs(state, next_height=13) == 1
-    payload = _queued_reputation_payloads(state)[0]
-    assert payload["account_id"] == "@alice"
-    assert payload["delta_milli"] == 25
-    assert payload["delta_id"] == "repaccrual:media:media:1"
-    assert payload["reason"] == "content_media_matured"
+    assert schedule_reputation_accrual_system_txs(state, next_height=13) == 0
+    assert _queued_reputation_payloads(state) == []
+    assert state["accounts"]["@alice"]["reputation_milli"] == 0

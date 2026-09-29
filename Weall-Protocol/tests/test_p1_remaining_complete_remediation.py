@@ -168,9 +168,7 @@ def test_p1_stor001_user_offer_cannot_target_another_operator() -> None:
     assert state == {}
 
 
-def test_p1_cons004_reputation_scheduler_emits_integer_payload_and_block_admission_rejects_float() -> (
-    None
-):
+def test_p1_cons004_reputation_consensus_payload_domain_is_integer_and_float_is_rejected() -> None:
     state = {
         "chain_id": "test",
         "height": 12,
@@ -197,24 +195,34 @@ def test_p1_cons004_reputation_scheduler_emits_integer_payload_and_block_admissi
             "flags": {},
         },
     }
-    assert schedule_reputation_accrual_system_txs(state, next_height=13) == 1
-    queued = [x for x in state["system_queue"] if x["tx_type"] == "REPUTATION_DELTA_APPLY"][0]
-    assert queued["payload"]["delta_milli"] == 10
-    assert "delta" not in queued["payload"]
-    assert not any(isinstance(v, float) for v in queued["payload"].values())
+
+    # P2-SEM-002 retires the noncanonical maturity-only producer. Its retirement
+    # strengthens rather than weakens the P1-CONS-004 fixed-point requirement.
+    assert schedule_reputation_accrual_system_txs(state, next_height=13) == 0
+    assert not any(
+        x.get("tx_type") == "REPUTATION_DELTA_APPLY" for x in state.get("system_queue", [])
+    )
 
     canon = load_default_tx_index()
+    good_payload = {
+        "account_id": "@alice",
+        "delta_milli": 10,
+        "delta_id": "p1-cons004-canonical",
+        "reason": "p1_cons004_integer_domain",
+    }
+    assert not any(isinstance(v, float) for v in good_payload.values())
     good = env(
         "REPUTATION_DELTA_APPLY",
         "SYSTEM",
         13,
-        dict(queued["payload"]),
+        good_payload,
         system=True,
-        parent=queued.get("parent"),
+        parent="dispute:p1-cons004",
     )
     verdict = admit_tx(good, state, canon=canon, context="block")
     assert verdict.ok, (verdict.code, verdict.reason, verdict.details)
-    bad_payload = dict(queued["payload"])
+
+    bad_payload = dict(good_payload)
     bad_payload.pop("delta_milli", None)
     bad_payload["delta"] = 0.01
     bad = env(
@@ -223,7 +231,7 @@ def test_p1_cons004_reputation_scheduler_emits_integer_payload_and_block_admissi
         13,
         bad_payload,
         system=True,
-        parent=queued.get("parent"),
+        parent="dispute:p1-cons004",
     )
     rejected = admit_tx(bad, state, canon=canon, context="block")
     assert rejected.ok is False

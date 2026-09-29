@@ -471,7 +471,8 @@ def evaluate_helper_responsibility(
     rec = responsibility_record(state, account_id, "helper")
     opted_in = bool(rec.get("opted_in", False))
     active_flag = bool(rec.get("active", False))
-    required = _as_int(rec.get("reputation_required_milli"), 2000)
+    # Recompute helper reputation policy independently of persisted applicant data.
+    required = 2000
     actual = account_reputation_units(account, default=0)
     details: Json = {
         "account_id": account_id,

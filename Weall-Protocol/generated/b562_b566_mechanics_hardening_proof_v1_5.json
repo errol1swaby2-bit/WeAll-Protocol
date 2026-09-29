@@ -149,22 +149,36 @@
     ],
     "replacement_confirm_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 2,
       "ok": true,
+      "operator_id": "op-d",
       "pin_id": "pin-b564",
       "reassignment": {
-        "failed_operator_id": "op-b",
-        "reassigned": true,
-        "replacement_operator_id": "op-d",
-        "targets": [
-          "op-c",
-          "op-d"
-        ]
+        "reassigned": false
       },
-      "receipt": true
+      "receipt": true,
+      "retrieval_confirmed_target_count": 2
     },
     "replacement_operator": "op-d",
     "retrieval_confirmed": true,
-    "retrieval_proof_count": 1,
+    "retrieval_proof_count": 2,
+    "surviving_attempt_results": [
+      false,
+      true
+    ],
+    "surviving_confirm_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 1,
+      "ok": true,
+      "operator_id": "op-c",
+      "pin_id": "pin-b564",
+      "reassignment": {
+        "reassigned": false
+      },
+      "receipt": true,
+      "retrieval_confirmed_target_count": 1
+    },
+    "surviving_operator": "op-c",
     "worker_model": "multi_operator_local_file_pin_workers_with_retry_loop"
   },
   "validator_follower_apply_hardening": {

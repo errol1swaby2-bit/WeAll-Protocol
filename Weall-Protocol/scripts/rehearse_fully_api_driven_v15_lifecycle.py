@@ -491,18 +491,32 @@ def run_harness() -> dict[str, Any]:
             parent="storage",
         ),
     )
+    pin = state["storage"]["pins"]["pin-1"]
+    initial_targets = list(pin.get("targets") or [])
+    if len(initial_targets) != 1:
+        raise AssertionError(
+            f"expected one deterministic initial storage target: {initial_targets!r}"
+        )
+    failed_operator = str(initial_targets[0])
     failed = apply_storage(
         state,
         _env(
             "IPFS_PIN_CONFIRM",
             "SYSTEM",
             73,
-            {"pin_id": "pin-1", "cid": cid, "operator_id": "op-a", "ok": False},
+            {"pin_id": "pin-1", "cid": cid, "operator_id": failed_operator, "ok": False},
             system=True,
             parent="storage",
         ),
     )
-    replacement = failed.get("reassignment", {}).get("replacement_operator_id") or "op-b"
+    reassignment = failed.get("reassignment", {}) if isinstance(failed, dict) else {}
+    replacement = str(reassignment.get("replacement_operator_id") or "")
+    if (
+        not bool(reassignment.get("reassigned"))
+        or not replacement
+        or replacement == failed_operator
+    ):
+        raise AssertionError(f"unexpected storage reassignment: {reassignment!r}")
     apply_storage(
         state,
         _env(

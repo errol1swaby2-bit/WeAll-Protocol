@@ -7,6 +7,7 @@
     "duplicate_rewards": "blocked_by_event_source_index",
     "frontend_timer_manipulation": "not_input_to_append_reputation_event",
     "helper_receipt_replay": "helper event family is receipt/context bound; helper runtime remains consensus authority",
+    "reversed_disqualification_stickiness": "eligibility scans only effective non-cancelled events",
     "timeout_divergence": "block_height_deadlines_only"
   },
   "invariants": [
@@ -15,6 +16,7 @@
     "source_tx_object_actor_event_dimension_deduped",
     "scores_reduced_from_ordered_events",
     "appeals_append_reversal_events",
+    "reversed_disqualifications_removed_from_active_eligibility",
     "dimension_isolation_enforced_by_registry_dimension",
     "juror_time_penalties_use_block_height_not_browser_clock",
     "voting_against_majority_has_no_negative_event",

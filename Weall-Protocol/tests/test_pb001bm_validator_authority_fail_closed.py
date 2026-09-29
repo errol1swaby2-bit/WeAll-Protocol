@@ -128,6 +128,23 @@ def test_state_sync_rejects_malformed_materialized_validator_membership() -> Non
         build_snapshot_anchor(state)
 
 
+def test_p2_sync002_state_sync_rejects_non_string_validator_member_before_normalization() -> None:
+    state = _state(active_set=[1], epoch=3)
+    service, response, anchor = _response_for(state)
+
+    with pytest.raises(
+        StateSyncVerifyError,
+        match="snapshot_validator_authority_invalid:active_set_member_not_string",
+    ):
+        service.verify_response(response, trusted_anchor=anchor)
+
+    with pytest.raises(
+        StateSyncVerifyError,
+        match="snapshot_validator_authority_invalid:active_set_member_not_string",
+    ):
+        build_snapshot_anchor(state)
+
+
 def test_state_sync_rejects_malformed_declared_validator_generation() -> None:
     state = _state(active_set=["new"], epoch="not-an-int")
     service, response, anchor = _response_for(state)

@@ -360,6 +360,8 @@
       "batch": "593",
       "byzantine_helper_output_rejected": true,
       "byzantine_rejection_code": "lane_delta_hash_mismatch",
+      "coordinator_local_write_scope_binding_proven": true,
+      "duplicate_lane_result_rejected": true,
       "mechanism": "helper_materialized_result_production_verifier_boundary_without_activation",
       "mechanism_complete": false,
       "missing_helper_fallback_to_serial_proven": false,
@@ -485,7 +487,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "db957bbe1552315845afc8acf9a097b924028fa6bb846cc3dca230bd17d37860",
+      "artifact_digest": "1106540f38a24d07215caa2cb0daf933582cd4c4acdd19ca033f2acb56a19b75",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",

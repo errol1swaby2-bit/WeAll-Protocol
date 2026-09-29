@@ -19,6 +19,7 @@ from weall.runtime.helper_merge import (
     verify_materialized_lane_result,
 )
 from weall.runtime.parallel_execution import LanePlan
+from weall.runtime.read_write_sets import TxAccessSet
 
 Json = dict[str, Any]
 
@@ -41,6 +42,17 @@ def _materialized_result(*, value: str) -> MaterializedLaneResult:
         helper_id="@helper-b593",
         txs=tuple(),
         tx_ids=tx_ids,
+        access_sets=(
+            TxAccessSet(
+                tx_id=tx_ids[0],
+                lane_hint="CONTENT",
+                reads=read_set,
+                writes=write_set,
+                fail_closed_serial=False,
+                family="CONTENT",
+                barrier_class="SCOPED_PARALLEL",
+            ),
+        ),
         namespace_prefixes=namespace_prefixes,
     )
     cert = HelperExecutionCertificate(
@@ -76,7 +88,11 @@ def _materialized_result(*, value: str) -> MaterializedLaneResult:
 def run_harness() -> Json:
     base_state: Json = {"namespaced": {"content:post:1": {"body": "before"}}}
     valid = _materialized_result(value="after")
-    valid_status = verify_materialized_lane_result(valid)
+    valid_status = verify_materialized_lane_result(
+        valid,
+        expected_lane_plan=valid.lane_plan,
+        accepted_certificate=valid.cert,
+    )
 
     tampered_ops = (
         HelperDeltaOp(
@@ -94,10 +110,42 @@ def run_harness() -> Json:
         write_set=valid.write_set,
         delta_ops=tampered_ops,
     )
-    tampered_status = verify_materialized_lane_result(tampered)
+    tampered_status = verify_materialized_lane_result(
+        tampered,
+        expected_lane_plan=valid.lane_plan,
+        accepted_certificate=valid.cert,
+    )
     tampered_merge = merge_materialized_lane_results(
         base_state=base_state,
         lane_results=[tampered],
+        lane_plans=(valid.lane_plan,),
+        accepted_certificates={valid.cert.lane_id: valid.cert},
+    )
+
+    widened_write_set = ("content:post:1", "content:post:2")
+    widened_cert = HelperExecutionCertificate(
+        **{**valid.cert.to_json(), "write_set_hash": hash_ordered_strings(widened_write_set)}
+    )
+    widened = MaterializedLaneResult(
+        cert=widened_cert,
+        lane_plan=valid.lane_plan,
+        namespace_prefixes=valid.namespace_prefixes,
+        receipts=valid.receipts,
+        read_set=valid.read_set,
+        write_set=widened_write_set,
+        delta_ops=valid.delta_ops,
+    )
+    widened_status = verify_materialized_lane_result(
+        widened,
+        expected_lane_plan=valid.lane_plan,
+        accepted_certificate=widened_cert,
+    )
+
+    duplicate_merge = merge_materialized_lane_results(
+        base_state=base_state,
+        lane_results=[valid, valid],
+        lane_plans=(valid.lane_plan,),
+        accepted_certificates={valid.cert.lane_id: valid.cert},
     )
 
     production_verifier_boundary_ok = bool(
@@ -107,6 +155,10 @@ def run_harness() -> Json:
         and tampered_merge.accepted_lane_ids == ()
         and tampered_merge.serialized_lane_ids == (valid.cert.lane_id,)
         and tampered_merge.merged_state == base_state
+        and not widened_status.ok
+        and widened_status.code == "write_set_plan_mismatch"
+        and duplicate_merge.accepted_lane_ids == ()
+        and duplicate_merge.merged_state == base_state
     )
 
     return {
@@ -119,6 +171,12 @@ def run_harness() -> Json:
         "byzantine_rejection_code": tampered_status.code,
         "tampered_lane_serialized": tampered_merge.serialized_lane_ids == (valid.cert.lane_id,),
         "tampered_delta_not_applied": tampered_merge.merged_state == base_state,
+        "coordinator_local_write_scope_binding_proven": (
+            not widened_status.ok and widened_status.code == "write_set_plan_mismatch"
+        ),
+        "duplicate_lane_result_rejected": (
+            duplicate_merge.accepted_lane_ids == () and duplicate_merge.merged_state == base_state
+        ),
         # These stronger properties are deliberately not claimed by this harness.
         # They require a real production helper-vs-serial state execution and restart
         # path, which is not enabled in the current release posture.

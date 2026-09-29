@@ -45,12 +45,24 @@ def test_planner_parallel_execution_serial_mismatches_are_explicitly_fail_closed
     contract_map = build_helper_contract_map(TX_INDEX)
     degraded = [item for item in contract_map["contracts"] if item["degraded_to_serial"]]
     assert degraded, "expected at least one known degraded-to-serial tx in current snapshot"
+    expected_lane_by_hint = {
+        "IDENTITY": "PARALLEL_IDENTITY",
+        "SOCIAL": "PARALLEL_SOCIAL",
+        "CONTENT": "PARALLEL_CONTENT",
+        "STORAGE": "PARALLEL_CONTENT",
+        "ECONOMICS": "PARALLEL_ECONOMY",
+    }
     for item in degraded:
         assert item["helper_eligible"] is False
         assert item["effective_lane_id"] == LANE_SERIAL
-        assert item["execution_lane_id"] == LANE_SERIAL
         assert item["planner_lane_hint"] != "SERIAL"
-        assert item["reason"] == "execution_lane_serial"
+        if item["reason"] == "planner_execution_lane_mismatch":
+            expected_lane = expected_lane_by_hint[item["planner_lane_hint"]]
+            assert item["execution_lane_id"] != LANE_SERIAL
+            assert item["execution_lane_id"] != expected_lane
+        else:
+            assert item["execution_lane_id"] == LANE_SERIAL
+            assert item["reason"] == "execution_lane_serial"
 
 
 def test_helper_contract_for_tx_is_deterministic() -> None:

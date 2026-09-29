@@ -226,3 +226,23 @@ def test_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert "Extra inputs are not permitted" in str(excinfo.value)
+
+
+def test_balance_transfer_content_tip_fields_pass_strict_schema() -> None:
+    _, parsed = validate_tx_envelope(
+        _env(
+            "BALANCE_TRANSFER",
+            {
+                "from_account_id": "@alice",
+                "to_account_id": "@creator",
+                "amount": 250,
+                "memo": "Tip for post:abc",
+                "purpose": "content_tip",
+                "content_id": "post:abc",
+            },
+        )
+    )
+    assert parsed is not None
+    payload = parsed.model_dump()
+    assert payload["purpose"] == "content_tip"
+    assert payload["content_id"] == "post:abc"

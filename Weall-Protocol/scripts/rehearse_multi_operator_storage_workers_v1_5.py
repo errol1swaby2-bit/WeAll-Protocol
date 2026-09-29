@@ -161,6 +161,26 @@ def run_harness() -> dict[str, Any]:
             or []
         )
         replacement = next(op for op in reassigned_targets if op not in {primary, secondary})
+        secondary_written = workers[secondary].pin(cid, data)
+        secondary_read = workers[secondary].cat(cid)
+        secondary_confirm = apply_storage(
+            state,
+            _env(
+                "IPFS_PIN_CONFIRM",
+                "SYSTEM",
+                3,
+                {
+                    "pin_id": pin_id,
+                    "cid": cid,
+                    "operator_id": secondary,
+                    "ok": True,
+                    "retrieval_ok": secondary_read == data,
+                    "proof_hash": hashlib.sha256(secondary_read or b"").hexdigest(),
+                },
+                system=True,
+                parent="storage",
+            ),
+        )
         replacement_written = workers[replacement].pin(cid, data)
         replacement_read = workers[replacement].cat(cid)
         ok_confirm = apply_storage(
@@ -168,7 +188,7 @@ def run_harness() -> dict[str, Any]:
             _env(
                 "IPFS_PIN_CONFIRM",
                 "SYSTEM",
-                3,
+                4,
                 {
                     "pin_id": pin_id,
                     "cid": cid,
@@ -185,6 +205,8 @@ def run_harness() -> dict[str, Any]:
         return {
             "ok": bool(
                 not primary_written
+                and secondary_written
+                and secondary_read == data
                 and replacement_written
                 and replacement_read == data
                 and final_pin.get("availability_status") == "available"
@@ -195,9 +217,13 @@ def run_harness() -> dict[str, Any]:
             "operator_count": len(operators),
             "initial_targets": targets,
             "failed_operator": primary,
+            "surviving_operator": secondary,
             "replacement_operator": replacement,
             "reassigned_targets": reassigned_targets,
             "failure_receipt": failed,
+            "surviving_replica_written": secondary_written,
+            "surviving_replica_read_ok": secondary_read == data,
+            "surviving_confirm_receipt": secondary_confirm,
             "replacement_confirm_receipt": ok_confirm,
             "retrieval_confirmed": final_pin.get("durability_status") == "retrieval_confirmed",
             "availability_status": final_pin.get("availability_status"),

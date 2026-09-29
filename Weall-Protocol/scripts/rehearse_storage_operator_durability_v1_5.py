@@ -80,7 +80,12 @@ def _env(
 
 
 def run_harness() -> dict[str, Any]:
-    state: dict[str, Any] = {"height": 100, "accounts": {"SYSTEM": {}}, "storage": {}}
+    state: dict[str, Any] = {
+        "height": 100,
+        "params": {"ipfs_replication_factor": 2},
+        "accounts": {"SYSTEM": {}},
+        "storage": {},
+    }
     cid = "bafy" + "z" * 55
     for op in ["op-a", "op-b", "op-c"]:
         _enable_storage_responsibility(state, op, capacity=8192)
@@ -117,7 +122,7 @@ def run_harness() -> dict[str, Any]:
             "IPFS_PIN_REQUEST",
             "SYSTEM",
             4,
-            {"pin_id": "pin-live", "cid": cid, "size_bytes": 128, "replication_factor": 2},
+            {"pin_id": "pin-live", "cid": cid, "size_bytes": 128},
             system=True,
             parent="storage",
         ),
@@ -139,7 +144,11 @@ def run_harness() -> dict[str, Any]:
     replacement = fail.get("reassignment", {}).get("replacement_operator_id")
     if not replacement:
         replacement = next(op for op in ["op-a", "op-b", "op-c"] if op not in targets)
-    ok = apply_storage(
+    if not replacement:
+        return {"ok": False, "batch": "538", "reason": "reassignment_missing"}
+    current_targets = list(state["storage"]["pins"]["pin-live"].get("targets") or [])
+    survivor = next(op for op in current_targets if op != replacement)
+    first_ok = apply_storage(
         state,
         _env(
             "IPFS_PIN_CONFIRM",
@@ -148,10 +157,29 @@ def run_harness() -> dict[str, Any]:
             {
                 "pin_id": "pin-live",
                 "cid": cid,
+                "operator_id": survivor,
+                "ok": True,
+                "retrieval_ok": True,
+                "retrieval_probe_id": "probe-survivor",
+            },
+            system=True,
+            parent="storage",
+        ),
+    )
+    partial = state["storage"]["pins"]["pin-live"].get("durability_status")
+    ok = apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            7,
+            {
+                "pin_id": "pin-live",
+                "cid": cid,
                 "operator_id": replacement,
                 "ok": True,
                 "retrieval_ok": True,
-                "retrieval_probe_id": "probe-1",
+                "retrieval_probe_id": "probe-replacement",
             },
             system=True,
             parent="storage",
@@ -161,14 +189,19 @@ def run_harness() -> dict[str, Any]:
     return {
         "ok": bool(req)
         and bool(fail.get("reassignment", {}).get("reassigned"))
+        and bool(first_ok.get("ok"))
+        and partial != "retrieval_confirmed"
         and bool(ok.get("ok"))
-        and rec.get("durability_status") == "retrieval_confirmed",
+        and rec.get("durability_status") == "retrieval_confirmed"
+        and rec.get("retrieval_confirmed_target_count") == 2,
         "batch": "538",
         "pin_id": "pin-live",
         "cid": cid,
         "initial_targets": targets,
         "failed_operator": failed_operator,
         "replacement_operator": replacement,
+        "surviving_operator": survivor,
+        "partial_durability_status": partial,
         "reassignment_recorded": bool(fail.get("reassignment", {}).get("reassigned")),
         "retrieval_confirmed": rec.get("durability_status") == "retrieval_confirmed",
         "availability_status": rec.get("availability_status"),

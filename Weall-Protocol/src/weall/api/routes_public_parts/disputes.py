@@ -87,15 +87,30 @@ def _content_target_owner(st: dict[str, Any], *, target_type: str, target_id: st
     return ""
 
 
+def _direct_target_account(st: dict[str, Any], obj: dict[str, Any]) -> str:
+    target_type = str(obj.get("target_type") or "").strip().lower()
+    if target_type not in {"account", "moderator", "reviewer", "poh"}:
+        return ""
+    target_id = str(obj.get("target_id") or "").strip()
+    accounts = _as_dict(st.get("accounts"))
+    for variant in _identity_variants(target_id):
+        if variant in accounts:
+            return variant
+    return ""
+
+
 def _resolved_target_owner(st: dict[str, Any], obj: dict[str, Any]) -> str:
     owner = str(obj.get("target_owner") or obj.get("target_author") or "").strip()
     if owner:
         return owner
-    return _content_target_owner(
+    owner = _content_target_owner(
         st,
         target_type=str(obj.get("target_type") or "content"),
         target_id=str(obj.get("target_id") or ""),
     )
+    if owner:
+        return owner
+    return _direct_target_account(st, obj)
 
 
 def _content_target_snapshot(

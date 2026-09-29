@@ -1501,49 +1501,70 @@ def _same_account(a: str, b: str) -> bool:
     return aa == bb or aa.lstrip("@") == bb.lstrip("@")
 
 
+def _direct_dispute_target_account(state: Json, d: Json) -> str:
+    target_type = _as_str(d.get("target_type") or "").strip().lower()
+    if target_type not in {"account", "moderator", "reviewer", "poh"}:
+        return ""
+    target_id = _as_str(d.get("target_id") or "").strip()
+    if not target_id:
+        return ""
+    accounts = _as_dict(state.get("accounts"))
+    for variant in _identity_variants(target_id):
+        if variant in accounts:
+            return variant
+    return ""
+
+
 def _appeal_allowed_accounts(state: Json, d: Json) -> list[str]:
     raw = d.get("appeal_allowed_accounts")
-    out: list[str] = []
+    candidates: list[str] = []
     if isinstance(raw, list):
-        out.extend(_as_str(x).strip() for x in raw if _as_str(x).strip())
-    owner = _as_str(d.get("target_owner") or d.get("target_author") or "").strip()
-    if not owner:
-        owner = _content_target_owner(
-            state,
-            target_type=_as_str(d.get("target_type") or "content"),
-            target_id=_as_str(d.get("target_id") or ""),
-        )
+        candidates.extend(_as_str(x).strip() for x in raw if _as_str(x).strip())
+
+    owner = _dispute_target_owner(state, d)
     if owner:
-        out.append(owner)
-    seen: set[str] = set()
+        candidates.append(owner)
+
+    direct_target = _direct_dispute_target_account(state, d)
+    if direct_target:
+        candidates.append(direct_target)
+
     normalized: list[str] = []
-    for acct in out:
-        key = acct.lstrip("@")
-        if key in seen:
+    for candidate in candidates:
+        resolved = _resolve_account_identity(state, candidate)
+        if not resolved:
             continue
-        seen.add(key)
-        normalized.append(acct)
+        if any(_same_account(resolved, existing) for existing in normalized):
+            continue
+        normalized.append(resolved)
     return normalized
 
 
 def _require_dispute_appeal_actor(state: Json, d: Json, signer: str) -> None:
-    """Appeals are for the person directly affected by the outcome.
+    """Require an affected or explicitly authorized appellant.
 
-    For content moderation outcomes, that is the content creator/owner, not the
-    reviewer who voted on the report and not every Tier 2 account that can see
-    the appeal window.  Older non-content dispute records without an owner keep
-    their historical permissive behavior until a dedicated subject field exists.
+    Empty actor bindings fail closed.  Account-like targets are resolved only
+    when their target id maps to canonical account state; unresolved group,
+    membership, or other resource identifiers do not widen appeal authority.
     """
 
     allowed = _appeal_allowed_accounts(state, d)
     if not allowed:
-        return
+        raise DisputeApplyError(
+            "forbidden",
+            "appeal_actor_unresolved",
+            {
+                "dispute_id": _as_str(d.get("id") or d.get("dispute_id") or ""),
+                "target_type": _as_str(d.get("target_type") or ""),
+                "target_id": _as_str(d.get("target_id") or ""),
+            },
+        )
     if not any(_same_account(signer, acct) for acct in allowed):
         raise DisputeApplyError(
             "forbidden",
             "appeal_not_target_owner",
             {
-                "dispute_id": _as_str(d.get("id") or d.get("dispute_id")),
+                "dispute_id": _as_str(d.get("id") or d.get("dispute_id") or ""),
                 "signer": signer,
                 "allowed_accounts": allowed,
             },
@@ -1631,6 +1652,13 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
     eligible_jurors = _dispute_eligible_juror_ids(state, {"opened_by": env.signer}, fallback_signer)
 
     target_owner = _content_target_owner(state, target_type=target_type, target_id=target_id)
+    target_binding = {"target_type": target_type, "target_id": target_id}
+    direct_target_account = _direct_dispute_target_account(state, target_binding)
+    appeal_allowed_accounts = _normalized_str_list(
+        [value for value in (target_owner, direct_target_account) if value]
+    )
+    if not target_owner and direct_target_account:
+        target_owner = direct_target_account
     reported_by = _as_str(
         payload.get("reported_by") or payload.get("flagged_by") or payload.get("reporter") or ""
     ).strip()
@@ -1647,7 +1675,7 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
         "target_type": target_type,
         "target_id": target_id,
         "target_owner": target_owner or None,
-        "appeal_allowed_accounts": [target_owner] if target_owner else [],
+        "appeal_allowed_accounts": list(appeal_allowed_accounts),
         "reason": reason,
         "evidence": [],
         "jurors": {},

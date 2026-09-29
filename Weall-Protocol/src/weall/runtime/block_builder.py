@@ -65,6 +65,7 @@ from weall.runtime.system_tx_engine import (
     BLOCK_FINALIZE_TX_TYPE,
     EPOCH_FINALITY_SINGLE_TX_CHILDREN,
     bind_new_same_block_single_tx_children,
+    bind_same_block_system_lineage,
     build_system_queue_lookup,
     validate_same_block_single_tx_lineage,
 )
@@ -294,19 +295,18 @@ def build_block_candidate(
         j = env.to_json()
         tx_id2 = compute_tx_id(j, chain_id=self.chain_id)
 
-        if tx_type in EPOCH_FINALITY_SINGLE_TX_CHILDREN:
-            lineage_ok, lineage_reason = validate_same_block_single_tx_lineage(
-                self.tx_index,
-                env,
-                prior_txs=applied_envs,
-                required_child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+        lineage_ok, lineage_reason = validate_same_block_single_tx_lineage(
+            self.tx_index,
+            env,
+            prior_txs=applied_envs,
+            required_child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+        )
+        if not lineage_ok:
+            raise ApplyError(
+                "invalid_tx",
+                "single_tx_lineage_invalid",
+                {"tx_type": tx_type, "reason": lineage_reason},
             )
-            if not lineage_ok:
-                raise ApplyError(
-                    "invalid_tx",
-                    "single_tx_lineage_invalid",
-                    {"tx_type": tx_type, "reason": lineage_reason},
-                )
 
         verdict = admit_tx(
             env, LedgerView.from_ledger(working), canon=self.tx_index, context="block"
@@ -395,6 +395,16 @@ def build_block_candidate(
     # Phase: system emitter pre. These side effects also feed state_root and
     # must not be swallowed during local proposal construction in production.
     try:
+        bind_same_block_system_lineage(
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase="pre",
+            prior_txs=applied_envs,
+            chain_id=self.chain_id,
+            proposer=str(proposer or "").strip(),
+        )
+        _invalidate_queue_lookup()
         sys_pre = emit_system_txs(
             working,
             self.tx_index,
@@ -609,6 +619,16 @@ def build_block_candidate(
 
     # Phase: system emitter post. Same fail-closed rule in production.
     try:
+        bind_same_block_system_lineage(
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase="post",
+            prior_txs=applied_envs,
+            chain_id=self.chain_id,
+            proposer=str(proposer or "").strip(),
+        )
+        _invalidate_queue_lookup()
         sys_post = emit_system_txs(
             working,
             self.tx_index,

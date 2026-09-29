@@ -167,6 +167,32 @@ def run_harness() -> dict[str, Any]:
             or []
         )
         replacement = next(op for op in reassigned_targets if op not in initial_targets)
+        surviving = next(op for op in initial_targets if op != failing)
+        surviving_attempts: list[bool] = []
+        while True:
+            ok = workers[surviving].pin(cid, data)
+            surviving_attempts.append(ok)
+            if ok or len(surviving_attempts) >= 3:
+                break
+        surviving_read = workers[surviving].cat(cid)
+        surviving_confirm = apply_storage(
+            state,
+            _env(
+                "IPFS_PIN_CONFIRM",
+                "SYSTEM",
+                3,
+                {
+                    "pin_id": pin_id,
+                    "cid": cid,
+                    "operator_id": surviving,
+                    "ok": bool(surviving_read == data),
+                    "retrieval_ok": surviving_read == data,
+                    "proof_hash": hashlib.sha256(surviving_read or b"").hexdigest(),
+                },
+                system=True,
+                parent="storage",
+            ),
+        )
         replacement_attempts: list[bool] = []
         while True:
             ok = workers[replacement].pin(cid, data)
@@ -179,7 +205,7 @@ def run_harness() -> dict[str, Any]:
             _env(
                 "IPFS_PIN_CONFIRM",
                 "SYSTEM",
-                3,
+                4,
                 {
                     "pin_id": pin_id,
                     "cid": cid,
@@ -196,15 +222,21 @@ def run_harness() -> dict[str, Any]:
         return {
             "ok": bool(
                 local_retry_results == [False, False]
+                and any(surviving_attempts)
+                and surviving_read == data
                 and any(replacement_attempts)
                 and replacement_read == data
                 and final_pin.get("availability_status") == "available"
+                and final_pin.get("durability_status") == "retrieval_confirmed"
             ),
             "batch": "564",
             "worker_model": "multi_operator_local_file_pin_workers_with_retry_loop",
             "operator_count": len(operators),
             "initial_targets": initial_targets,
             "failed_operator": failing,
+            "surviving_operator": surviving,
+            "surviving_attempt_results": surviving_attempts,
+            "surviving_confirm_receipt": surviving_confirm,
             "failed_operator_retry_attempts": workers[failing].attempts,
             "failed_operator_retry_results": local_retry_results,
             "failure_receipt_reason": failed_receipt.get("reason")

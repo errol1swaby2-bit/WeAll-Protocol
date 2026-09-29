@@ -3540,6 +3540,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_tx:mandatory_recovery_lock_cannot_be_disabled",
+      "kind": "failure",
+      "stable_id": "FAIL-0BE295525360998E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_payload:missing_account",
       "kind": "failure",
       "stable_id": "FAIL-0C2E384F1DE8759B",
@@ -3578,6 +3585,13 @@
       "canonical_key": "invalid_payload:missing_target",
       "kind": "failure",
       "stable_id": "FAIL-0E0B39EB5BCAC9E6",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:session_ttl_policy_must_be_positive",
+      "kind": "failure",
+      "stable_id": "FAIL-0E2DAC0C47E61CE7",
       "status": "active"
     },
     {
@@ -3841,6 +3855,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_payload:missing_operator_id",
+      "kind": "failure",
+      "stable_id": "FAIL-223B7074B1198648",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_tx:missing_device_id",
       "kind": "failure",
       "stable_id": "FAIL-22A5380C7FCAFC5F",
@@ -3935,6 +3956,13 @@
       "canonical_key": "invalid_tx:async_evidence_locked",
       "kind": "failure",
       "stable_id": "FAIL-2AD1F7C018C0DA2C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:guardian_unlock_policy_retired",
+      "kind": "failure",
+      "stable_id": "FAIL-2CD0DB84AAA557F9",
       "status": "active"
     },
     {
@@ -4142,6 +4170,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_state:pin_missing_cid",
+      "kind": "failure",
+      "stable_id": "FAIL-390D4E2AFD0AD1A6",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_tx:invalid_threshold",
       "kind": "failure",
       "stable_id": "FAIL-390D5B6F4DE9500B",
@@ -4215,6 +4250,13 @@
       "canonical_key": "invalid_tx:runtime_apply_failure",
       "kind": "failure",
       "stable_id": "FAIL-3FBE9E4D77B78210",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:signer_must_be_seated_emissary",
+      "kind": "failure",
+      "stable_id": "FAIL-3FEA57C88E4A7CA1",
       "status": "active"
     },
     {
@@ -4373,6 +4415,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:signer_removal_would_break_threshold",
+      "kind": "failure",
+      "stable_id": "FAIL-48F8054847A95A46",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_tx:reviewer_responsibility_not_active",
       "kind": "failure",
       "stable_id": "FAIL-491E0830491451FE",
@@ -4432,6 +4481,13 @@
       "canonical_key": "invalid_tx:async_threshold_override_forbidden",
       "kind": "failure",
       "stable_id": "FAIL-4B068A687DC4FFBA",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:threshold_exceeds_signer_set",
+      "kind": "failure",
+      "stable_id": "FAIL-4B250FAE461C6108",
       "status": "active"
     },
     {
@@ -4723,6 +4779,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:pin_confirm_operator_not_current_target",
+      "kind": "failure",
+      "stable_id": "FAIL-5BFBDBD1A45F3B08",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_block:finalized_block_height_mismatch",
       "kind": "failure",
       "stable_id": "FAIL-5C4B5766EB2048C9",
@@ -4782,6 +4845,13 @@
       "canonical_key": "invalid_payload:missing_signer_account",
       "kind": "failure",
       "stable_id": "FAIL-5FD4C905EEE5D819",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:treasury_signer_authority_missing",
+      "kind": "failure",
+      "stable_id": "FAIL-6054993E4F891D00",
       "status": "active"
     },
     {
@@ -5101,6 +5171,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_state:runtime_apply_failure",
+      "kind": "failure",
+      "stable_id": "FAIL-751BEA25B58D9B93",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "forbidden:only_account_can_update_reviewer_lane",
       "kind": "failure",
       "stable_id": "FAIL-75D7BAC9B26AB0BD",
@@ -5227,9 +5304,23 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:lease_expired",
+      "kind": "failure",
+      "stable_id": "FAIL-7C3CF08FAA14248A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_tx:challenged_recovery_not_finalized",
       "kind": "failure",
       "stable_id": "FAIL-7CBD915DB76BD6BD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:helper_reputation_threshold_policy_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-7D18B186C97AFE18",
       "status": "active"
     },
     {
@@ -5433,6 +5524,13 @@
       "canonical_key": "invalid_payload:missing_group_id_for_group_scope",
       "kind": "failure",
       "stable_id": "FAIL-8DB85782CD8DC657",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "not_found:pin_not_found",
+      "kind": "failure",
+      "stable_id": "FAIL-8DC2F2AAA82257FB",
       "status": "active"
     },
     {
@@ -6116,6 +6214,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:appeal_actor_unresolved",
+      "kind": "failure",
+      "stable_id": "FAIL-BC84D819E2BC6F8A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_payload:epoch_already_closed",
       "kind": "failure",
       "stable_id": "FAIL-BCE439849E870511",
@@ -6147,6 +6252,13 @@
       "canonical_key": "invalid_tx:live_production_panel_size_required",
       "kind": "failure",
       "stable_id": "FAIL-BF6CAB581D474C2B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:pin_cid_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-BF814204C65E5137",
       "status": "active"
     },
     {
@@ -6396,6 +6508,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:lease_not_active",
+      "kind": "failure",
+      "stable_id": "FAIL-D0CEE1FA9A024D9E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_block:finality_threshold_not_met",
       "kind": "failure",
       "stable_id": "FAIL-D136074F53F7D47F",
@@ -6462,6 +6581,13 @@
       "canonical_key": "invalid_tx:invalid_guardian_configuration",
       "kind": "failure",
       "stable_id": "FAIL-D6A5C66EE34D882B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:treasury_signer_not_seated_emissary",
+      "kind": "failure",
+      "stable_id": "FAIL-D72406A78B49AB03",
       "status": "active"
     },
     {
@@ -6896,6 +7022,13 @@
       "canonical_key": "forbidden:role_eligibility_revoked",
       "kind": "failure",
       "stable_id": "FAIL-F3137043B6823278",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:insufficient_balance_for_forfeiture",
+      "kind": "failure",
+      "stable_id": "FAIL-F3BB828E3F62C462",
       "status": "active"
     },
     {
@@ -17192,6 +17325,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "src/weall/runtime/apply/groups.py:_apply_group_treasury_audit_anchor_set",
+      "kind": "scheduler",
+      "stable_id": "SCHED-47F83C853BE92B17",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "src/weall/runtime/account_recovery_scheduler.py:schedule_account_recovery_system_txs",
       "kind": "scheduler",
       "stable_id": "SCHED-C298622F5EDA55A7",
@@ -18822,6 +18962,13 @@
       "canonical_key": "Dispute:conflicted_juror_ids",
       "kind": "state",
       "stable_id": "STATE-21E75CFA0D02D376",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:capacity_released",
+      "kind": "state",
+      "stable_id": "STATE-21FC2CD0F991E366",
       "status": "active"
     },
     {
@@ -20768,6 +20915,13 @@
       "canonical_key": "Performance:reports",
       "kind": "state",
       "stable_id": "STATE-620B2AB333606560",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:confirmed_target_count",
+      "kind": "state",
+      "stable_id": "STATE-62B8291368648D29",
       "status": "active"
     },
     {
@@ -22767,6 +22921,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:retrieval_confirmed_target_count",
+      "kind": "state",
+      "stable_id": "STATE-A67AC930C1E80322",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Indexing:tx_id",
       "kind": "state",
       "stable_id": "STATE-A682A10A4F10D6DB",
@@ -22928,6 +23089,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:<discard:dynamic>",
+      "kind": "state",
+      "stable_id": "STATE-ABB3D3E0CC6CDD1C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Roles:proven_capacity_bytes",
       "kind": "state",
       "stable_id": "STATE-ABD7BDAE28B0E6DD",
@@ -23040,6 +23208,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:retrieval_confirmed_targets",
+      "kind": "state",
+      "stable_id": "STATE-AF09AFC4C2840336",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Consensus:attestations_by_validator",
       "kind": "state",
       "stable_id": "STATE-AF1751D2E0965080",
@@ -23078,6 +23253,13 @@
       "canonical_key": "PoH:configured_approval_threshold",
       "kind": "state",
       "stable_id": "STATE-B050A08676C82CBD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:released_targets",
+      "kind": "state",
+      "stable_id": "STATE-B083380623387B72",
       "status": "active"
     },
     {
@@ -23400,6 +23582,13 @@
       "canonical_key": "Identity:retired_height",
       "kind": "state",
       "stable_id": "STATE-B8CD784A7461E77C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:target_type",
+      "kind": "state",
+      "stable_id": "STATE-B8CEC32FD746E674",
       "status": "active"
     },
     {
@@ -23929,6 +24118,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:set_at_nonce",
+      "kind": "state",
+      "stable_id": "STATE-CAC3C2828A70CD9C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Indexing:name",
       "kind": "state",
       "stable_id": "STATE-CAE00863A280967E",
@@ -24412,6 +24608,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Storage:<add:dynamic>",
+      "kind": "state",
+      "stable_id": "STATE-DA4033015ABB99C7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Storage:response_payload",
       "kind": "state",
       "stable_id": "STATE-DA71CFD60A69C7D2",
@@ -24471,6 +24674,13 @@
       "canonical_key": "Economics:params",
       "kind": "state",
       "stable_id": "STATE-DB22998588772A1F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:anchor",
+      "kind": "state",
+      "stable_id": "STATE-DB5C6B9821C4F202",
       "status": "active"
     },
     {
@@ -24639,6 +24849,13 @@
       "canonical_key": "Content:target_id",
       "kind": "state",
       "stable_id": "STATE-E0E8F080EF035D81",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:treasury_audit_anchors",
+      "kind": "state",
+      "stable_id": "STATE-E12E9CCF4BCA3242",
       "status": "active"
     },
     {
@@ -24940,6 +25157,13 @@
       "canonical_key": "PoH:poh_bootstrap_max_height",
       "kind": "state",
       "stable_id": "STATE-EA07107A5AFAA439",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:confirmed_targets",
+      "kind": "state",
+      "stable_id": "STATE-EA082684091EBEE9",
       "status": "active"
     },
     {

@@ -31,6 +31,7 @@ from weall.runtime.lineage_witness import (
     validate_lineage_witness,
 )
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.tx_id import compute_tx_id_from_envelope
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
@@ -127,27 +128,55 @@ def _canon_parent_tx_type(canon: Any, tx_type: str) -> str:
     return _as_str(info.get("parent_tx_type") or "").strip().upper()
 
 
+def _canon_parent_tx_types(canon: Any, tx_type: str) -> tuple[str, ...]:
+    info = _canon_info(canon, tx_type)
+    if not isinstance(info, dict):
+        return ()
+
+    raw_many = info.get("parent_tx_types")
+    if isinstance(raw_many, (list, tuple)):
+        out: list[str] = []
+        seen: set[str] = set()
+        for raw in raw_many:
+            parent = _as_str(raw).strip().upper()
+            if parent and parent not in seen:
+                out.append(parent)
+                seen.add(parent)
+        if out:
+            return tuple(out)
+
+    parent = _canon_parent_tx_type(canon, tx_type)
+    return (parent,) if parent else ()
+
+
 def _single_tx_lineage_shape(
     canon: Any,
     env: TxEnvelope,
     *,
-    required_child_tx_types: Collection[str],
+    required_child_tx_types: Collection[str] = (),
 ) -> tuple[bool, str, LineageWitness | None]:
     tx_type = _as_str(getattr(env, "tx_type", "") or "").strip().upper()
-    required = {_as_str(value).strip().upper() for value in required_child_tx_types}
-    if tx_type not in required:
-        return True, "", None
-
-    expected_parent = _canon_parent_tx_type(canon, tx_type)
-    if not expected_parent:
-        return False, "lineage_parent_tx_type_missing", None
-
     payload = env.payload if isinstance(env.payload, dict) else {}
     raw = payload.get(LINEAGE_WITNESS_PAYLOAD_KEY)
+    required = {_as_str(value).strip().upper() for value in required_child_tx_types}
+
+    # Epoch finality children remain mandatory. Other deterministic SYSTEM
+    # receipts are validated whenever the canonical emission preparation
+    # layer attached an exact same-block witness.
+    if tx_type not in required and not isinstance(raw, Mapping):
+        return True, "", None
+
+    expected_parents = _canon_parent_tx_types(canon, tx_type)
+    if not expected_parents:
+        return False, "lineage_parent_tx_type_missing", None
     if not isinstance(raw, Mapping):
         return False, "lineage_witness_missing", None
 
-    verdict = validate_lineage_witness(raw, expected_parent_tx_type=expected_parent)
+    witness_parent = _as_str(raw.get("parent_tx_type") or "").strip().upper()
+    if witness_parent not in set(expected_parents):
+        return False, "lineage_parent_tx_type_not_canonical", None
+
+    verdict = validate_lineage_witness(raw, expected_parent_tx_type=witness_parent)
     if not verdict.ok or verdict.witness is None:
         return False, f"lineage_witness_invalid:{verdict.reason}", None
     witness = verdict.witness
@@ -165,7 +194,7 @@ def validate_same_block_single_tx_lineage(
     env: TxEnvelope,
     *,
     prior_txs: Sequence[Mapping[str, Any]],
-    required_child_tx_types: Collection[str],
+    required_child_tx_types: Collection[str] = (),
 ) -> tuple[bool, str]:
     """Verify an enforced SINGLE_TX witness against an earlier block transaction."""
 
@@ -331,6 +360,51 @@ def _monetary_policy_snapshot(state: Json) -> dict[str, int]:
     return {"issued": _as_int(mp.get("issued"), 0)}
 
 
+def _enqueue_reward_system_tx_once(
+    state: Json,
+    *,
+    tx_type: str,
+    payload: Json,
+    due_height: int,
+    signer: str = "SYSTEM",
+    once: bool = True,
+    parent: str | None = None,
+    phase: str = "post",
+) -> str:
+    tx_type_u = _as_str(tx_type).strip().upper()
+    block_id = _as_str(payload.get("block_id") if isinstance(payload, dict) else "").strip()
+    root = state.get("system_queue")
+    if isinstance(root, list):
+        for raw in root:
+            if not isinstance(raw, dict):
+                continue
+            if _as_str(raw.get("tx_type")).strip().upper() != tx_type_u:
+                continue
+            if _as_int(raw.get("due_height"), 0) != int(due_height):
+                continue
+            if _as_str(raw.get("phase")).strip().lower() != _as_str(phase).strip().lower():
+                continue
+            raw_payload = raw.get("payload")
+            if not isinstance(raw_payload, dict):
+                continue
+            if _as_str(raw_payload.get("block_id")).strip() != block_id:
+                continue
+            qid = _as_str(raw.get("queue_id")).strip()
+            if qid:
+                return qid
+
+    return enqueue_system_tx(
+        state,
+        tx_type=tx_type_u,
+        payload=payload,
+        due_height=int(due_height),
+        signer=signer,
+        once=bool(once),
+        parent=parent,
+        phase=phase,
+    )
+
+
 def schedule_block_rewards_system_txs(
     state: Json,
     *,
@@ -426,7 +500,7 @@ def schedule_block_rewards_system_txs(
     if total_reward > 0:
         debits.append({"from": MINT_POOL_ACCOUNT_ID, "amount": int(total_reward)})
 
-    enqueue_system_tx(
+    _enqueue_reward_system_tx_once(
         state,
         tx_type="BLOCK_REWARD_MINT",
         payload={
@@ -446,7 +520,7 @@ def schedule_block_rewards_system_txs(
         phase="post",
     )
 
-    enqueue_system_tx(
+    _enqueue_reward_system_tx_once(
         state,
         tx_type="BLOCK_REWARD_DISTRIBUTE",
         payload={
@@ -777,6 +851,135 @@ def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[Syst
     ]
 
 
+def _materialize_system_queue_item(state: Json, item: SystemQueueItem) -> TxEnvelope:
+    payload = dict(item.payload or {})
+    payload.setdefault("_due_height", int(item.due_height))
+    payload.setdefault("_system_queue_id", item.queue_id)
+
+    signer = item.signer or "SYSTEM"
+    if str(signer).strip() == "SYSTEM":
+        params = state.get("params")
+        if isinstance(params, dict):
+            override = str(params.get("system_signer") or "").strip()
+            if override:
+                signer = override
+
+    payload_parent_ref = _as_opt_str(payload.get("_parent_ref")).strip()
+    parent_ref = item.parent.strip() if item.parent else payload_parent_ref
+    if parent_ref:
+        payload.setdefault("_parent_ref", parent_ref)
+
+    return TxEnvelope(
+        tx_type=item.tx_type,
+        signer=signer,
+        nonce=0,
+        payload=payload,
+        sig="",
+        parent=parent_ref if parent_ref else None,
+        system=True,
+    )
+
+
+def bind_same_block_system_lineage(
+    state: Json,
+    canon: Any,
+    *,
+    next_height: int,
+    phase: str,
+    prior_txs: Sequence[Mapping[str, Any]],
+    chain_id: str,
+    proposer: str = "",
+) -> int:
+    """Bind unambiguous same-block SYSTEM receipt parents before emission.
+
+    Canonical ``parent_tx_type`` metadata is not assumed to mean same-block
+    globally. Binding occurs only when a receipt-only SYSTEM queue item has
+    exactly one canonical parent TxType and exactly one already-known SYSTEM
+    parent instance in this block order. Multi-causal or ambiguous relations
+    remain untouched rather than guessing a consensus-critical parent.
+
+    The due batch is processed in canonical queue order. Each prepared SYSTEM
+    envelope is assigned its canonical tx-id and becomes eligible to parent a
+    later receipt in the same due batch. This is what binds the live reward
+    chain BLOCK_FINALIZE -> BLOCK_REWARD_MINT -> BLOCK_REWARD_DISTRIBUTE while
+    preserving cross-block and multi-parent relationships.
+    """
+
+    try:
+        schedule_block_rewards_system_txs(
+            state,
+            next_height=int(next_height),
+            proposer=str(proposer or ""),
+            phase=str(phase),
+        )
+    except Exception as exc:
+        raise SystemSchedulerError(f"block_rewards_schedule_failed:{type(exc).__name__}") from exc
+
+    root = _queue_root(state)
+    due_items = _select_due_items_with_indexes(
+        state, next_height=int(next_height), phase=str(phase)
+    )
+    seen: list[Json] = [dict(raw) for raw in prior_txs if isinstance(raw, Mapping)]
+    rebound = 0
+
+    for queue_idx, original_item in due_items:
+        item = original_item
+        info = _canon_info(canon, item.tx_type)
+        parent_types = _canon_parent_tx_types(canon, item.tx_type)
+        payload = dict(item.payload or {})
+
+        if (
+            isinstance(info, dict)
+            and info.get("receipt_only") is True
+            and len(parent_types) == 1
+            and LINEAGE_WITNESS_PAYLOAD_KEY not in payload
+        ):
+            expected_parent = parent_types[0]
+            candidates: list[tuple[int, Json]] = []
+            for position, raw_parent in enumerate(seen):
+                if raw_parent.get("system") is not True:
+                    continue
+                parent_type = _as_str(raw_parent.get("tx_type") or "").strip().upper()
+                parent_id = _as_str(raw_parent.get("tx_id") or "").strip()
+                if parent_type == expected_parent and parent_id:
+                    candidates.append((position, raw_parent))
+
+            if len(candidates) == 1:
+                parent_position, parent_raw = candidates[0]
+                parent_id = _as_str(parent_raw.get("tx_id") or "").strip()
+                payload[LINEAGE_WITNESS_PAYLOAD_KEY] = make_single_tx_witness(
+                    parent_tx_type=expected_parent,
+                    parent_tx_id=parent_id,
+                    same_block_position=int(parent_position),
+                ).to_json()
+                new_qid = _queue_id_for_fields(
+                    tx_type=item.tx_type,
+                    payload=payload,
+                    signer=item.signer,
+                    due_height=item.due_height,
+                    parent=item.parent,
+                    phase=item.phase,
+                    once=item.once,
+                )
+                for idx, other in _validated_queue_items_from_root(root):
+                    if idx != int(queue_idx) and other.queue_id == new_qid:
+                        raise SystemQueueCorruptionError(
+                            f"single_tx_lineage_queue_id_collision:{item.tx_type}:{new_qid}"
+                        )
+                root[int(queue_idx)]["payload"] = payload
+                root[int(queue_idx)]["queue_id"] = new_qid
+                item = SystemQueueItem.from_ledger_obj(root[int(queue_idx)])
+                rebound += 1
+
+        env = _materialize_system_queue_item(state, item)
+        tx_id = compute_tx_id_from_envelope(str(chain_id), env)
+        current = env.to_json()
+        current["tx_id"] = tx_id
+        seen.append(current)
+
+    return rebound
+
+
 def system_tx_emitter(
     state: Json,
     canon: Any,
@@ -979,6 +1182,7 @@ __all__ = [
     "BLOCK_FINALIZE_TX_TYPE",
     "EPOCH_FINALITY_SINGLE_TX_CHILDREN",
     "LINEAGE_WITNESS_PAYLOAD_KEY",
+    "bind_same_block_system_lineage",
     "bind_new_same_block_single_tx_children",
     "build_system_queue_lookup",
     "confirm_system_tx_emitted",

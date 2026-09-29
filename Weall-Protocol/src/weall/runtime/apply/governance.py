@@ -1526,7 +1526,11 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if proposal_id in root:
         raise ApplyError("conflict", "proposal_already_exists", {"proposal_id": proposal_id})
 
-    rules = _d(p.get("rules"))
+    rules = dict(_d(p.get("rules")))
+    governed_quorum = _d(_d(state.get("gov_config")).get("quorum"))
+    for quorum_key in sorted(_ALLOWED_GOV_QUORUM_KEYS):
+        if quorum_key not in rules and quorum_key in governed_quorum:
+            rules[quorum_key] = governed_quorum[quorum_key]
     actions = _extract_actions(p)
     options = _proposal_options_from_payload(p)
     _assert_valid_proposal_options(options, proposal_id=proposal_id)
@@ -2613,6 +2617,40 @@ def _apply_gov_rules_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if isinstance(cfg, dict):
         cfg["rules"] = _sorted_dict(dict(p))
         cfg["rules"]["_height"] = int(rec["_height"])
+
+    params_blob = p.get("params")
+    if isinstance(params_blob, dict):
+        params_root = state.get("params")
+        if not isinstance(params_root, dict):
+            params_root = {}
+            state["params"] = params_root
+        for namespace in sorted(params_blob.keys(), key=lambda value: str(value)):
+            updates = params_blob[namespace]
+            if not isinstance(updates, dict):
+                continue
+            current = params_root.get(str(namespace))
+            if not isinstance(current, dict):
+                current = {}
+            for key in sorted(updates.keys(), key=lambda value: str(value)):
+                current[str(key)] = updates[key]
+            params_root[str(namespace)] = current
+
+    treasury_blob = p.get("treasury")
+    if isinstance(treasury_blob, dict):
+        treasury_root = state.get("treasury")
+        if not isinstance(treasury_root, dict):
+            treasury_root = {}
+            state["treasury"] = treasury_root
+        for namespace in sorted(treasury_blob.keys(), key=lambda value: str(value)):
+            updates = treasury_blob[namespace]
+            if not isinstance(updates, dict):
+                continue
+            current = treasury_root.get(str(namespace))
+            if not isinstance(current, dict):
+                current = {}
+            for key in sorted(updates.keys(), key=lambda value: str(value)):
+                current[str(key)] = updates[key]
+            treasury_root[str(namespace)] = current
 
     return {"applied": True}
 

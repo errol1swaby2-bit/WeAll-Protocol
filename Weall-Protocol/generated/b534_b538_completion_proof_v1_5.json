@@ -25,7 +25,7 @@
       "uses_reputation_weighting": true
     },
     "feed_status_code": 200,
-    "final_state_root": "92dc098c18db5683467e57e9ca0302ca093eb0bc9b37a262405cf4bbd155774a",
+    "final_state_root": "8467251a4fca5559c5072a825505ddef2b86a754222aa20faa7089bc5bc2aeb1",
     "group_status_code": 200,
     "ok": true,
     "poh_reverification_status": "completed",
@@ -42,7 +42,7 @@
     "538"
   ],
   "freshness": {
-    "input_digest_sha256": "f024667e6dc045d7af8f9e59a3d22c56c14c89c46826141c3e5fd523d0e3b4a2",
+    "input_digest_sha256": "41d16667a02e2acf4eb6031917d9a4568a5fca3d3f3568beeb8b4af07c4f8d6a",
     "mode": "deterministic_input_digest_v1"
   },
   "locked_boundaries": {
@@ -84,15 +84,18 @@
     "cid": "bafyzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
     "failed_operator": "op-c",
     "initial_targets": [
-      "op-c"
+      "op-c",
+      "op-a"
     ],
     "ok": true,
     "operator_failure_recovery": "failed_pin_reassigned_then_retrieval_confirmed",
+    "partial_durability_status": "reassignment_pending_confirmation",
     "pin_id": "pin-live",
     "reassignment_recorded": true,
-    "replacement_operator": "op-a",
+    "replacement_operator": "op-b",
     "retrieval_confirmed": true,
-    "retrieval_proof_count": 1
+    "retrieval_proof_count": 2,
+    "surviving_operator": "op-a"
   },
   "truth_boundary": "local_private_full_node_process_rehearsal_not_public_beta_or_mainnet",
   "validator_rehearsal": {

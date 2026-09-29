@@ -507,11 +507,19 @@ def _apply_node_helper_responsibility_opt_in(
     if not is_node_operator_active(ledger, acct):
         raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
 
-    reputation_required = _as_int(
-        _payload_helper_field(payload, "reputation_required_milli", 2000), 2000
-    )
-    if reputation_required < 0:
-        reputation_required = 2000
+    # Helper eligibility is protocol policy, never an applicant-selected threshold.
+    reputation_required = 2000
+    asserted_required = _payload_helper_field(payload, "reputation_required_milli", None)
+    if asserted_required is not None and _as_int(asserted_required, -1) != reputation_required:
+        raise RolesApplyError(
+            "invalid_payload",
+            "helper_reputation_threshold_policy_mismatch",
+            {
+                "account_id": acct,
+                "required_milli": int(reputation_required),
+                "asserted_milli": asserted_required,
+            },
+        )
     reputation_actual = account_reputation_units(account, default=0)
     if reputation_actual < reputation_required:
         raise RolesApplyError(
