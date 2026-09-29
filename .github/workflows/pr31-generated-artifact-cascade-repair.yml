@@ -40,6 +40,12 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      - name: Regenerate stale B549-B553 evidence first
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          PYTHONPATH=src:scripts python scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py
+
       - name: Regenerate current verified claims
         working-directory: Weall-Protocol
         shell: bash
@@ -52,11 +58,12 @@ jobs:
         run: |
           PYTHONPATH=src python scripts/compile_v2_spec.py
 
-      - name: Re-run claims generator to prove no reverse dependency
+      - name: Prove upstream generators are fixed points
         working-directory: Weall-Protocol
         shell: bash
         run: |
-          python scripts/gen_current_verified_claims.py
+          PYTHONPATH=src:scripts python scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py --check
+          python scripts/gen_current_verified_claims.py --check
 
       - name: Audit generated-artifact closure
         working-directory: Weall-Protocol
@@ -65,18 +72,23 @@ jobs:
           python -m tooling.canon_lint
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py --check
           git diff --check
 
-      - name: Search for direct claims-manifest consumers
+      - name: Search direct evidence consumers
         working-directory: Weall-Protocol
         shell: bash
         run: |
           printf '%s\n' 'Direct references to current_verified_claims:'
           grep -RIn --exclude='current_verified_claims.json' --exclude='CURRENT_VERIFIED_CLAIMS.md' \
             'current_verified_claims' scripts src specs generated docs tests || true
+          printf '%s\n' 'Direct references to B549-B553 proof:'
+          grep -RIn --exclude='b549_b553_controlled_testnet_candidate_proof_v1_5.json' \
+            'b549_b553_controlled_testnet_candidate_proof_v1_5' scripts src specs generated docs tests || true
 
       - name: Restore historical M2/M3 closure evidence
         working-directory: .
@@ -106,5 +118,5 @@ jobs:
             echo "No generated-artifact changes remain to commit."
             exit 0
           fi
-          git commit -m "fix: refresh claims manifest and cascading derivatives [pr31-ci-closure]"
+          git commit -m "fix: refresh PR31 evidence and cascading derivatives [pr31-ci-closure]"
           git push origin HEAD:audit-remediation-20260929
