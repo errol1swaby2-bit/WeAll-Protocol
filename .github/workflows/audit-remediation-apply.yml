@@ -1,0 +1,282 @@
+name: One-shot audit remediation
+
+on:
+  push:
+    branches: ["audit-remediation-20260929"]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: audit-remediation-20260929
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply source-of-truth repairs
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import re
+          from pathlib import Path
+
+          ROOT = Path.cwd()
+
+          def replace_once(path: Path, old: str, new: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement target, found {count}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          # ------------------------------------------------------------------
+          # P1-CONS-002: preserve the complete validator readiness receipt in
+          # canonical node-operator responsibility state instead of discarding
+          # everything except commitment/endpoint/node key.
+          # ------------------------------------------------------------------
+          roles = ROOT / "src/weall/runtime/apply/roles.py"
+          replace_once(
+              roles,
+              '''    if readiness_commitment:\n        validator["validator_readiness_commitment"] = readiness_commitment\n    if endpoint_commitment:\n        validator["validator_endpoint_commitment"] = endpoint_commitment\n    if node_pubkey:\n        validator["node_pubkey"] = node_pubkey\n    responsibilities["validator"] = validator\n''',
+              '''    if readiness_commitment:\n        validator["validator_readiness_commitment"] = readiness_commitment\n    if endpoint_commitment:\n        validator["validator_endpoint_commitment"] = endpoint_commitment\n    if node_pubkey:\n        validator["node_pubkey"] = node_pubkey\n\n    # Persist the complete account-submitted readiness receipt so the shared\n    # deterministic scheduler can verify it from canonical state.  The USER\n    # transaction only stores evidence; it never grants validator authority.\n    receipt_hash = _as_str(\n        _payload_validator_field(payload, "validator_readiness_receipt_hash", "")\n    ).strip()\n    if receipt_hash:\n        validator["readiness_receipt_hash"] = receipt_hash\n        validator["validator_readiness_receipt_hash"] = receipt_hash\n        validator.setdefault("validator_readiness_commitment", receipt_hash)\n\n    for field in (\n        "manifest_hash",\n        "tx_index_hash",\n        "runtime_profile_hash",\n        "chain_id",\n        "schema_version",\n        "protocol_version",\n        "bft_pubkey",\n    ):\n        value = _as_str(_payload_validator_field(payload, field, "")).strip()\n        if value:\n            validator[field] = value\n\n    expires_raw = _payload_validator_field(payload, "readiness_expires_height", None)\n    if expires_raw is not None:\n        validator["readiness_expires_height"] = max(0, _as_int(expires_raw, 0))\n\n    checks = _payload_validator_field(payload, "readiness_checks", None)\n    if isinstance(checks, dict):\n        validator["readiness_checks"] = dict(checks)\n\n    if receipt_hash:\n        validator["readiness_evidence_received_at_nonce"] = int(nonce)\n    responsibilities["validator"] = validator\n''',
+          )
+
+          # Deterministic validator transition scheduler.  Both leader and
+          # replay paths invoke run_core_schedulers, so the same canonical state
+          # derives the same SYSTEM queue.
+          (ROOT / "src/weall/runtime/validator_transition_scheduler.py").write_text(
+              '''from __future__ import annotations\n\nfrom typing import Any\n\nfrom weall.runtime.node_operator_responsibilities import evaluate_validator_responsibility\nfrom weall.runtime.system_tx_engine import enqueue_system_tx\nfrom weall.runtime.validator_readiness_runner import (\n    ValidatorReadinessError,\n    validate_validator_readiness_payload,\n)\n\nJson = dict[str, Any]\n\n\ndef _as_dict(value: Any) -> Json:\n    return value if isinstance(value, dict) else {}\n\n\ndef _as_str(value: Any) -> str:\n    return str(value or "").strip()\n\n\ndef _readiness_payload(account_id: str, validator: Json) -> Json:\n    return {\n        "account_id": account_id,\n        "verification_status": "verified",\n        "node_pubkey": _as_str(validator.get("node_pubkey")),\n        "bft_pubkey": _as_str(validator.get("bft_pubkey")),\n        "chain_id": _as_str(validator.get("chain_id")),\n        "schema_version": _as_str(validator.get("schema_version")),\n        "protocol_version": _as_str(validator.get("protocol_version")),\n        "manifest_hash": _as_str(validator.get("manifest_hash")),\n        "tx_index_hash": _as_str(validator.get("tx_index_hash")),\n        "runtime_profile_hash": _as_str(validator.get("runtime_profile_hash")),\n        "readiness_expires_height": int(validator.get("readiness_expires_height") or 0),\n        "readiness_checks": dict(_as_dict(validator.get("readiness_checks"))),\n        "readiness_receipt_hash": _as_str(\n            validator.get("readiness_receipt_hash")\n            or validator.get("validator_readiness_receipt_hash")\n        ),\n    }\n\n\ndef schedule_validator_transition_system_txs(state: Json, *, next_height: int) -> int:\n    \"\"\"Derive readiness verification and validator-role activation from canonical state.\n\n    The scheduler never trusts node-local memory.  A USER opt-in must first\n    commit the complete readiness receipt into the node-operator responsibility\n    record.  This function independently validates that receipt and only then\n    queues VALIDATOR_READINESS_VERIFY.  ROLE_VALIDATOR_ACTIVATE is queued on a\n    later pass after the verified responsibility is active and currently\n    eligible.  Application handlers re-check authority again before mutation.\n    \"\"\"\n\n    roles = _as_dict(state.get("roles"))\n    operators = _as_dict(roles.get("node_operators"))\n    by_id = _as_dict(operators.get("by_id"))\n    validators_role = _as_dict(roles.get("validators"))\n    active_validators = {\n        _as_str(value)\n        for value in validators_role.get("active_set", [])\n        if _as_str(value)\n    } if isinstance(validators_role.get("active_set"), list) else set()\n\n    enqueued = 0\n    for account_id in sorted(_as_str(key) for key in by_id if _as_str(key)):\n        operator = _as_dict(by_id.get(account_id))\n        responsibilities = _as_dict(operator.get("responsibilities"))\n        validator = _as_dict(responsibilities.get("validator"))\n        if not bool(validator.get("opted_in", False)):\n            continue\n\n        node_pubkey = _as_str(validator.get("node_pubkey"))\n        evaluation = evaluate_validator_responsibility(\n            state, account_id, node_pubkey=node_pubkey\n        )\n        readiness_status = _as_str(validator.get("readiness_status")).lower()\n\n        if not bool(validator.get("active", False)) or readiness_status not in {\n            "ready",\n            "verified",\n            "active",\n        }:\n            # Readiness is the only missing condition allowed at this stage.\n            # A ban, lock, Tier-2 loss, duplicate/missing node key, or reputation\n            # failure prevents the scheduler from manufacturing a verification.\n            blockers = set(evaluation.reasons) - {"validator_readiness_pending"}\n            if blockers:\n                continue\n            payload = _readiness_payload(account_id, validator)\n            try:\n                validate_validator_readiness_payload(\n                    payload,\n                    account_id=account_id,\n                    expected_node_pubkey=node_pubkey,\n                    current_height=int(state.get("height") or 0),\n                )\n            except (ValidatorReadinessError, TypeError, ValueError):\n                continue\n            enqueue_system_tx(\n                state,\n                tx_type="VALIDATOR_READINESS_VERIFY",\n                payload=payload,\n                due_height=int(next_height),\n                signer="SYSTEM",\n                once=True,\n                parent=None,\n                phase="post",\n            )\n            enqueued += 1\n            continue\n\n        # Responsibility verification alone is not consensus membership.  The\n        # explicit role transition remains a second SYSTEM action and is queued\n        # only while the current responsibility evaluator says it is active.\n        if account_id in active_validators or not evaluation.active:\n            continue\n        enqueue_system_tx(\n            state,\n            tx_type="ROLE_VALIDATOR_ACTIVATE",\n            payload={"account_id": account_id, "node_pubkey": node_pubkey},\n            due_height=int(next_height),\n            signer="SYSTEM",\n            once=True,\n            parent=None,\n            phase="post",\n        )\n        enqueued += 1\n\n    return enqueued\n\n\n__all__ = ["schedule_validator_transition_system_txs"]\n''',
+              encoding="utf-8",
+          )
+
+          pipeline = ROOT / "src/weall/runtime/scheduler_pipeline.py"
+          replace_once(
+              pipeline,
+              'from weall.runtime.runtime_context import SchedulerSet\n',
+              'from weall.runtime.runtime_context import SchedulerSet\nfrom weall.runtime.validator_transition_scheduler import (\n    schedule_validator_transition_system_txs,\n)\n',
+          )
+          replace_once(
+              pipeline,
+              '    schedulers.schedule_node_operator_system_txs(state, next_height=next_height)\n    schedulers.schedule_reputation_accrual_system_txs(state, next_height=next_height)\n',
+              '    schedulers.schedule_node_operator_system_txs(state, next_height=next_height)\n    schedule_validator_transition_system_txs(state, next_height=next_height)\n    schedulers.schedule_reputation_accrual_system_txs(state, next_height=next_height)\n',
+          )
+
+          # ------------------------------------------------------------------
+          # P2-API-001: readiness is production-fatal on an explicitly stopped
+          # or unhealthy block loop. Unknown telemetry remains non-fatal so an
+          # observer/fake executor is not rejected solely because the field is
+          # unavailable.
+          # ------------------------------------------------------------------
+          health = ROOT / "src/weall/api/routes_public_parts/health.py"
+          replace_once(
+              health,
+              '''    require_block_loop = _env_bool("WEALL_READYZ_REQUIRE_BLOCK_LOOP", False)\n    bl = _try_block_loop_status(ex)\n    if require_block_loop:\n        ready = bool(ready) and (bl.get("running") is True) and (bl.get("unhealthy") is not True)\n''',
+              '''    require_block_loop = _env_bool("WEALL_READYZ_REQUIRE_BLOCK_LOOP", _is_prod())\n    bl = _try_block_loop_status(ex)\n    if require_block_loop:\n        ready = (\n            bool(ready)\n            and (bl.get("running") is not False)\n            and (bl.get("unhealthy") is not True)\n        )\n''',
+          )
+
+          readyz_test = ROOT / "tests/test_readyz_block_loop_signals.py"
+          replace_once(
+              readyz_test,
+              '''    # Current implementation only reports ok=true when chain_id + tx_index_hash exist.\n    assert body["ok"] is True\n''',
+              '''    # Production readiness must fail closed when the block loop explicitly reports unhealthy.\n    assert body["ok"] is False\n''',
+          )
+
+          # ------------------------------------------------------------------
+          # P2-EVIDENCE-001: generated scheduler evidence may only call a tx an
+          # emission when the AST contains an enqueue-like call with a literal
+          # tx_type. Merely mentioning a SYSTEM TxType string is not production.
+          # ------------------------------------------------------------------
+          compiler = ROOT / "scripts/compile_v2_spec.py"
+          old_constants = '''def _all_string_constants(node: ast.AST) -> set[str]:\n    return {\n        value\n        for child in ast.walk(node)\n        if isinstance(child, ast.Constant)\n        and isinstance(child.value, str)\n        and (value := child.value.strip())\n    }\n\n\n'''
+          new_constants = old_constants + '''def _direct_emitted_system_transactions(\n    node: ast.AST, system_names: set[str]\n) -> list[str]:\n    \"\"\"Return SYSTEM TxTypes passed literally to enqueue-like calls.\n\n    Static evidence must distinguish a producer from a consumer that merely\n    mentions a TxType in a return value, branch, comment-adjacent constant, or\n    dispatch table.  We intentionally require an enqueue-like call and a\n    literal ``tx_type=...`` keyword so generated scheduler evidence never\n    upgrades string occurrence into emission authority.\n    \"\"\"\n\n    emitted: set[str] = set()\n    for child in ast.walk(node):\n        if not isinstance(child, ast.Call):\n            continue\n        if isinstance(child.func, ast.Name):\n            call_name = child.func.id\n        elif isinstance(child.func, ast.Attribute):\n            call_name = child.func.attr\n        else:\n            call_name = ""\n        if "enqueue" not in call_name.lower():\n            continue\n        tx_type = None\n        for keyword in child.keywords:\n            if keyword.arg == "tx_type":\n                tx_type = _literal_string(keyword.value)\n                break\n        if tx_type and tx_type in system_names:\n            emitted.add(tx_type)\n    return sorted(emitted)\n\n\n'''
+          replace_once(compiler, old_constants, new_constants)
+          replace_once(
+              compiler,
+              '                emitted = sorted(system_names.intersection(_all_string_constants(node)))\n',
+              '                emitted = _direct_emitted_system_transactions(node, system_names)\n',
+          )
+
+          # ------------------------------------------------------------------
+          # P2-CANON-001 + validator transition authority: these are autonomous
+          # deterministic SYSTEM actions, not GOV_EXECUTE receipts.  Keep the
+          # YAML formatting stable and patch only top-level fields in each block.
+          # ------------------------------------------------------------------
+          canon = ROOT / "specs/tx_canon/tx_canon.yaml"
+          lines = canon.read_text(encoding="utf-8").splitlines(keepends=True)
+
+          def patch_tx_block(name: str) -> None:
+              name_index = next(
+                  (i for i, line in enumerate(lines) if line.strip() == f"name: {name}"),
+                  None,
+              )
+              if name_index is None:
+                  raise SystemExit(f"tx canon entry not found: {name}")
+              start = name_index
+              while start >= 0 and not lines[start].startswith("- id:"):
+                  start -= 1
+              if start < 0:
+                  raise SystemExit(f"tx canon block start not found: {name}")
+              end = start + 1
+              while end < len(lines) and not lines[end].startswith("- id:"):
+                  end += 1
+              block = lines[start:end]
+
+              remove = {"parent", "parent_any_of", "via_gov_execute"}
+              block = [
+                  line
+                  for line in block
+                  if not any(line.startswith(f"  {key}:") for key in remove)
+              ]
+              updates = {
+                  "origin": "SYSTEM",
+                  "gate": "Validator",
+                  "context": "block",
+                  "receipt_only": "false",
+                  "system_only": "true",
+              }
+              for key, value in updates.items():
+                  for idx, line in enumerate(block):
+                      if line.startswith(f"  {key}:"):
+                          block[idx] = f"  {key}: {value}\\n"
+                          break
+                  else:
+                      insert_at = next(
+                          (idx + 1 for idx, line in enumerate(block) if line.startswith("  domain:")),
+                          min(4, len(block)),
+                      )
+                      block.insert(insert_at, f"  {key}: {value}\\n")
+              lines[start:end] = block
+
+          for tx_name in (
+              "ROLE_NODE_OPERATOR_ACTIVATE",
+              "VALIDATOR_READINESS_VERIFY",
+              "ROLE_VALIDATOR_ACTIVATE",
+          ):
+              patch_tx_block(tx_name)
+          canon.write_text("".join(lines), encoding="utf-8")
+
+          # ------------------------------------------------------------------
+          # Focused regression tests for the repaired contracts.
+          # ------------------------------------------------------------------
+          (ROOT / "tests/test_audit_remediation_validator_transitions.py").write_text(
+              '''from __future__ import annotations\n\nimport copy\nimport json\nfrom pathlib import Path\n\nfrom weall.runtime.domain_apply import apply_tx\nfrom weall.runtime.scheduler_pipeline import run_leader_post_schedulers, run_replay_post_schedulers\nfrom weall.runtime.system_tx_engine import system_tx_emitter\nfrom weall.runtime.validator_readiness_runner import build_validator_readiness_receipt\nfrom weall.runtime.validator_transition_scheduler import schedule_validator_transition_system_txs\nfrom weall.tx.canon import load_tx_index_json\n\nROOT = Path(__file__).resolve().parents[1]\n\n\ndef _state() -> dict:\n    return {\n        "height": 5,\n        "accounts": {\n            "@op": {\n                "poh_tier": 2,\n                "reputation_milli": 6000,\n                "devices": {\n                    "by_id": {\n                        "node:1": {\n                            "device_type": "node",\n                            "pubkey": "node-pub",\n                            "revoked": False,\n                        }\n                    }\n                },\n            }\n        },\n        "roles": {\n            "node_operators": {\n                "active_set": ["@op"],\n                "by_id": {\n                    "@op": {\n                        "account_id": "@op",\n                        "active": True,\n                        "enrolled": True,\n                    }\n                },\n            },\n            "validators": {"active_set": [], "by_id": {}},\n        },\n        "system_queue": [],\n    }\n\n\ndef _receipt() -> dict:\n    return build_validator_readiness_receipt(\n        account_id="@op",\n        node_pubkey="node-pub",\n        bft_pubkey="bft-pub",\n        chain_id="weall-prod",\n        schema_version="1",\n        protocol_version="1.25.0",\n        manifest_hash="sha256:manifest",\n        tx_index_hash="sha256:tx-index",\n        runtime_profile_hash="sha256:runtime-profile",\n        readiness_expires_height=50,\n    )\n\n\ndef _opt_in_payload() -> dict:\n    receipt = _receipt()\n    return {\n        "account_id": "@op",\n        "node_pubkey": receipt["node_pubkey"],\n        "bft_pubkey": receipt["bft_pubkey"],\n        "chain_id": receipt["chain_id"],\n        "schema_version": receipt["schema_version"],\n        "protocol_version": receipt["protocol_version"],\n        "manifest_hash": receipt["manifest_hash"],\n        "tx_index_hash": receipt["tx_index_hash"],\n        "runtime_profile_hash": receipt["runtime_profile_hash"],\n        "readiness_expires_height": receipt["readiness_expires_height"],\n        "readiness_checks": receipt["readiness_checks"],\n        "validator_readiness_receipt_hash": receipt["readiness_receipt_hash"],\n    }\n\n\ndef _user_env(payload: dict) -> dict:\n    return {\n        "tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN",\n        "signer": "@op",\n        "nonce": 1,\n        "payload": payload,\n        "system": False,\n        "sig": "",\n    }\n\n\ndef test_full_readiness_receipt_survives_opt_in_and_drives_system_lifecycle() -> None:\n    state = _state()\n    apply_tx(state, _user_env(_opt_in_payload()))\n    validator = state["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"][\n        "validator"\n    ]\n    assert validator["readiness_status"] == "pending"\n    assert validator["bft_pubkey"] == "bft-pub"\n    assert validator["readiness_receipt_hash"].startswith("sha256:")\n    assert validator["readiness_checks"]["restart_safe"] is True\n\n    assert schedule_validator_transition_system_txs(state, next_height=6) == 1\n    idx = load_tx_index_json(ROOT / "generated" / "tx_index.json")\n    emitted = system_tx_emitter(state, idx, next_height=6, phase="post")\n    readiness = next(env for env in emitted if env.tx_type == "VALIDATOR_READINESS_VERIFY")\n    apply_tx(state, readiness.to_json())\n\n    assert schedule_validator_transition_system_txs(state, next_height=7) == 1\n    emitted2 = system_tx_emitter(state, idx, next_height=7, phase="post")\n    activation = next(env for env in emitted2 if env.tx_type == "ROLE_VALIDATOR_ACTIVATE")\n    apply_tx(state, activation.to_json())\n    assert "@op" in state["roles"]["validators"]["active_set"]\n\n\ndef test_invalid_readiness_receipt_never_schedules_verification() -> None:\n    state = _state()\n    payload = _opt_in_payload()\n    payload["validator_readiness_receipt_hash"] = "sha256:tampered"\n    apply_tx(state, _user_env(payload))\n    assert schedule_validator_transition_system_txs(state, next_height=6) == 0\n    assert not state["system_queue"]\n\n\ndef test_leader_and_replay_derive_identical_validator_transition_queue() -> None:\n    base = _state()\n    apply_tx(base, _user_env(_opt_in_payload()))\n    leader = copy.deepcopy(base)\n    replay = copy.deepcopy(base)\n    run_leader_post_schedulers(leader, next_height=6)\n    run_replay_post_schedulers(replay, next_height=6)\n    assert leader["system_queue"] == replay["system_queue"]\n\n\ndef test_scheduler_system_transitions_are_not_gov_receipts() -> None:\n    payload = json.loads((ROOT / "generated" / "tx_index.json").read_text(encoding="utf-8"))\n    rows = payload.get("transactions") or payload.get("rows") or []\n    by_name = {str(row.get("name")): row for row in rows if isinstance(row, dict)}\n    for name in (\n        "ROLE_NODE_OPERATOR_ACTIVATE",\n        "VALIDATOR_READINESS_VERIFY",\n        "ROLE_VALIDATOR_ACTIVATE",\n    ):\n        row = by_name[name]\n        assert row["origin"] == "SYSTEM"\n        assert row["receipt_only"] is False\n        assert row.get("parent_tx_type") in (None, "")\n        assert row.get("subject_gate") == "Validator"\n''',
+              encoding="utf-8",
+          )
+
+          (ROOT / "tests/test_audit_remediation_spec_compiler.py").write_text(
+              '''from __future__ import annotations\n\nimport ast\nimport importlib.util\nfrom pathlib import Path\n\nROOT = Path(__file__).resolve().parents[1]\nSPEC = importlib.util.spec_from_file_location(\n    "weall_compile_v2_spec_audit_test", ROOT / "scripts" / "compile_v2_spec.py"\n)\nassert SPEC is not None and SPEC.loader is not None\nMODULE = importlib.util.module_from_spec(SPEC)\nSPEC.loader.exec_module(MODULE)\n\n\ndef _fn(source: str):\n    return ast.parse(source).body[0]\n\n\ndef test_scheduler_evidence_does_not_promote_string_mentions_to_emissions() -> None:\n    node = _fn(\n        \"def consumer():\\n    return {'applied': 'STATE_SNAPSHOT_DECLARE'}\\n\"\n    )\n    assert MODULE._direct_emitted_system_transactions(\n        node, {"STATE_SNAPSHOT_DECLARE"}\n    ) == []\n\n\ndef test_scheduler_evidence_detects_literal_enqueue_tx_type() -> None:\n    node = _fn(\n        \"def producer(state):\\n\"\n        \"    enqueue_system_tx(state, tx_type='STATE_SNAPSHOT_DECLARE', payload={}, due_height=1)\\n\"\n    )\n    assert MODULE._direct_emitted_system_transactions(\n        node, {"STATE_SNAPSHOT_DECLARE"}\n    ) == ["STATE_SNAPSHOT_DECLARE"]\n''',
+              encoding="utf-8",
+          )
+
+          (ROOT / "tests/test_audit_remediation_readyz_truth.py").write_text(
+              '''from __future__ import annotations\n\nfrom fastapi.testclient import TestClient\n\nfrom weall.api.app import create_app\n\n\nclass _Executor:\n    block_loop_running = True\n    block_loop_unhealthy = False\n    block_loop_last_error = ""\n    block_loop_consecutive_failures = 0\n\n    def read_state(self) -> dict:\n        return {"chain_id": "readyz-audit", "height": 1, "tip": "1:tip", "params": {}}\n\n    def tx_index_hash(self) -> str:\n        return "sha256:tx-index"\n\n\ndef _client(monkeypatch) -> tuple[TestClient, _Executor]:\n    monkeypatch.setenv("WEALL_MODE", "prod")\n    app = create_app(boot_runtime=False)\n    executor = _Executor()\n    app.state.executor = executor\n    return TestClient(app), executor\n\n\ndef test_readyz_fails_when_block_loop_is_unhealthy(monkeypatch) -> None:\n    client, executor = _client(monkeypatch)\n    executor.block_loop_unhealthy = True\n    body = client.get("/v1/readyz").json()\n    assert body["ok"] is False\n    assert body["block_loop"]["unhealthy"] is True\n\n\ndef test_readyz_fails_when_block_loop_is_explicitly_stopped(monkeypatch) -> None:\n    client, executor = _client(monkeypatch)\n    executor.block_loop_running = False\n    body = client.get("/v1/readyz").json()\n    assert body["ok"] is False\n    assert body["block_loop"]["running"] is False\n''',
+              encoding="utf-8",
+          )
+
+          # Keep operator-facing documentation aligned with executable authority.
+          quickstart = ROOT / "docs/NEW_NODE_OPERATOR_QUICKSTART.md"
+          qtext = quickstart.read_text(encoding="utf-8")
+          marker = "Validator readiness and reputation checks must pass before consensus authority."
+          if marker in qtext and "full readiness receipt fields" not in qtext:
+              qtext = qtext.replace(
+                  marker,
+                  marker
+                  + " The validator opt-in transaction must carry the full readiness receipt fields "
+                  + "(including the receipt hash, checks, BFT key, manifest/tx-index/runtime-profile hashes, "
+                  + "chain/schema/protocol versions, and expiry height); the deterministic scheduler validates "
+                  + "that committed evidence before emitting validator readiness and role transitions.",
+                  1,
+              )
+              quickstart.write_text(qtext, encoding="utf-8")
+
+          print("source repairs applied")
+          PY
+
+      - name: Install locked backend toolchain
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and lint repaired Python sources
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          ruff format \
+            src/weall/runtime/apply/roles.py \
+            src/weall/runtime/validator_transition_scheduler.py \
+            src/weall/runtime/scheduler_pipeline.py \
+            src/weall/api/routes_public_parts/health.py \
+            scripts/compile_v2_spec.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py
+          ruff check \
+            src/weall/runtime/apply/roles.py \
+            src/weall/runtime/validator_transition_scheduler.py \
+            src/weall/runtime/scheduler_pipeline.py \
+            src/weall/api/routes_public_parts/health.py \
+            scripts/compile_v2_spec.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py
+
+      - name: Regenerate canonical and V2 derivatives from source
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          python scripts/gen_tx_index.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+
+      - name: Focused remediation tests
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          pytest -q \
+            tests/test_audit_remediation_validator_transitions.py \
+            tests/test_audit_remediation_spec_compiler.py \
+            tests/test_audit_remediation_readyz_truth.py \
+            tests/test_validator_live_readiness_runner.py \
+            tests/test_node_operator_auto_activation_and_responsibilities.py \
+            tests/test_readyz_block_loop_signals.py \
+            tests/test_v2_spec_compiler.py
+          python -m tooling.canon_lint
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Full backend suite
+        working-directory: Weall-Protocol
+        shell: bash
+        run: pytest -q
+
+      - name: Remove one-shot workflow and commit exact validated tree
+        shell: bash
+        run: |
+          rm -f .github/workflows/audit-remediation-apply.yml
+          git status --short
+          git config user.name "weall-audit-remediation-bot"
+          git config user.email "weall-audit-remediation-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: repair audit validator, canon, evidence, and readiness findings [audit-remediation-applied]"
+          git push origin HEAD:audit-remediation-20260929
