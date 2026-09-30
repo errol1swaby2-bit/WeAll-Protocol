@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.econ_phase import econ_allowed_from_state
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = dict[str, Any]
@@ -72,10 +73,22 @@ def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> str | None
     Determinism:
       - enqueue_system_tx de-dupes by deterministic queue_id
       - repeated calls are safe.
+
+    Economic safety:
+      - reaching a multisig threshold while economics is locked must not enqueue
+        a SYSTEM value movement that the apply layer is guaranteed to reject.
+      - expiry bookkeeping remains independently schedulable while economics is
+        locked; only value execution is gated here.
     """
     if not isinstance(spend, dict):
         return None
     if _is_terminal(spend):
+        return None
+
+    # Fail closed at the scheduler boundary as well as at apply time. This keeps
+    # deterministic mandatory SYSTEM work from being populated with a transition
+    # that cannot legally execute while the Genesis economics lock is active.
+    if not econ_allowed_from_state(state):
         return None
 
     spend_id = _as_str(spend.get("spend_id"))
