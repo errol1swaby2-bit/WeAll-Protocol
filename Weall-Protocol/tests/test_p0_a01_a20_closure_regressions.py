@@ -4,9 +4,11 @@ import copy
 
 import pytest
 
+from weall.runtime.ballot_policy import ballot_profile_status
 from weall.runtime.block_commit import commit_block_candidate
 from weall.runtime.block_hash import compute_block_hash, compute_receipts_root
 from weall.runtime.block_id import compute_block_id
+from weall.runtime.group_treasury_scheduler import maybe_enqueue_group_spend_execute
 from weall.runtime.poh.async_scheduler import schedule_poh_async_system_txs
 from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
@@ -174,3 +176,41 @@ def test_durable_commit_rejects_unbound_received_receipt_body(
     )
 
     assert meta.ok is False
+
+
+def test_production_chain_identity_activates_strict_launch_gated_ballot_posture() -> None:
+    """A09-F001: weall-prod may not silently inherit legacy/local ballot semantics."""
+
+    status = ballot_profile_status({"chain_id": "weall-prod", "params": {}})
+
+    assert status["strict"] is True
+    assert status["active"] is False
+    assert status["reason"] == "launch_gated_profile_unassigned"
+    assert status["mode"] == "production"
+
+
+def test_group_treasury_execute_is_not_enqueued_while_economics_is_disabled() -> None:
+    """A10-F001: mandatory SYSTEM work must not be scheduled to fail on the econ lock."""
+
+    state = {
+        "height": 100,
+        "time": 10_000,
+        "params": {
+            "economic_unlock_time": 1,
+            "economics_enabled": False,
+        },
+        "system_queue": [],
+    }
+    spend = {
+        "spend_id": "spend-1",
+        "status": "proposed",
+        "threshold": 1,
+        "allowed_signers": ["@alice"],
+        "signatures": {"@alice": {"signature": "test"}},
+        "earliest_execute_height": 1,
+    }
+
+    queue_id = maybe_enqueue_group_spend_execute(state, spend=spend)
+
+    assert queue_id is None
+    assert state["system_queue"] == []
