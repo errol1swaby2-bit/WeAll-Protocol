@@ -6,12 +6,12 @@ import os
 import uvicorn
 
 from weall.env import load_dotenv_if_present
+from weall.runtime.protocol_profile import runtime_mode
 
 
 def _mode() -> str:
-    # Runtime posture is explicit; production code never infers pytest state.
-    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
-    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+    # Use the same posture resolver as admission, API routes, and account policy.
+    return runtime_mode()
 
 
 def _env_str(name: str, default: str) -> str:

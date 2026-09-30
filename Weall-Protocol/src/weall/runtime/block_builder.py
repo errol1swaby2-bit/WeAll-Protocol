@@ -488,6 +488,7 @@ def build_block_candidate(
     # signer whose earlier tx rejected during apply must also be rejected
     # deterministically within this block.
     blocked_signers_after_apply_reject: set[str] = set()
+    mempool_applied_count = 0
 
     for env, env_obj, parse_ok, tx_id, rej in zip(
         txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False
@@ -590,6 +591,7 @@ def build_block_candidate(
 
         applied_envs.append(env)
         applied_ids.append(tx_id)
+        mempool_applied_count += 1
 
         receipt: Json = {
             "tx_id": str(tx_id),
@@ -667,6 +669,49 @@ def build_block_candidate(
                 invalid_ids,
                 f"system_tx_apply_post_failed:{type(exc).__name__}",
             )
+
+    # Mandatory post-phase protocol work has priority over optional
+    # mempool utilization. If post scheduling made the candidate exceed the
+    # hard protocol cap, deterministically trim the canonical mempool suffix and
+    # rebuild from the unchanged committed pre-state. This prevents a full user
+    # block from repeatedly starving due SYSTEM transitions.
+    if len(applied_envs) > final_block_tx_cap:
+        overflow = int(len(applied_envs) - final_block_tx_cap)
+        if mempool_applied_count <= 0:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                "block_reject:too_large:mandatory_system_txs_exceed_limit",
+            )
+        reduced_mempool_limit = max(0, int(mempool_applied_count) - overflow)
+        if reduced_mempool_limit >= int(mempool_applied_count):
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                "block_reject:too_large:capacity_retry_not_reducing",
+            )
+        retry = build_block_candidate(
+            self,
+            max_txs=int(reduced_mempool_limit),
+            allow_empty=True,
+            force_ts_ms=force_ts_ms,
+            helper_certificates=helper_certificates,
+            helper_receipts_by_lane=helper_receipts_by_lane,
+            bft_justify_qc=bft_justify_qc,
+            proposer=proposer,
+        )
+        retry_block = retry[0]
+        if (
+            not bool(allow_empty)
+            and isinstance(retry_block, dict)
+            and not list(retry_block.get("txs") or [])
+        ):
+            return None, None, [], list(retry[3]), "no_applicable"
+        return retry
 
     # System queue items are consensus scheduling scratch. Once their
     # envelopes have been emitted into this block and applied, the leader

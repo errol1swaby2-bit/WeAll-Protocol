@@ -22,13 +22,15 @@ Environment
 import os
 import re
 
+from weall.runtime.protocol_profile import runtime_mode
+
 # Conservative, URL/UI friendly handle:
 #   @ + 1..32 of lowercase letters, digits, underscore
 _ACCOUNT_ID_RE = re.compile(r"^@[a-z0-9_]{1,32}$")
 
 
 def strict_account_ids_enabled() -> bool:
-    mode = (os.environ.get("WEALL_MODE") or "testnet").strip().lower()
+    mode = runtime_mode()
     if (os.environ.get("WEALL_STRICT_ACCOUNT_ID") or "").strip() == "1":
         return True
     return bool(mode == "prod")

@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "dbb1b959b244bcf8d1017117205b877a3e0f34711590fcb8681fe7783581be25"
+    "source_tree_digest": "8e6079f55f57ca4cb35185365e0ee10b2b826ac494045fb1bf6f89dbfd0af3ab"
   },
   "required_fields": [
     "stable_id",
@@ -7596,6 +7596,7 @@
         "tests/test_poh_two_tier_hard_invariant.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_poh_video_upload_request_cap.py",
+        "tests/test_post31_closure_pack.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_pq_mldsa_signature_profile.py",
         "tests/test_priority0_account_key_normalization.py",
@@ -7997,7 +7998,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_block",
-        "line": 383,
+        "line": 384,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8043,7 +8044,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_block_header",
-        "line": 367,
+        "line": 368,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8091,7 +8092,7 @@
       ],
       "implementation_source": {
         "function": "state_snapshot",
-        "line": 346,
+        "line": 347,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8137,6 +8138,7 @@
         "tests/test_node_lifecycle_dev_helper_compat.py",
         "tests/test_node_lifecycle_production_preflight.py",
         "tests/test_node_lifecycle_profile.py",
+        "tests/test_post31_closure_pack.py",
         "tests/test_priority1_concurrent_determinism.py",
         "tests/test_priority3_profile_startup_alignment.py",
         "tests/test_protocol_blocker_safety.py",
@@ -9040,7 +9042,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_sync_apply",
-        "line": 463,
+        "line": 464,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9091,7 +9093,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_sync_request",
-        "line": 400,
+        "line": 401,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9121,6 +9123,7 @@
       "tests": [
         "tests/test_net_partition_fail_closed.py",
         "tests/test_observer_bypass_and_sync_auth.py",
+        "tests/test_post31_closure_pack.py",
         "tests/test_priority2_state_sync_transport_safety.py",
         "tests/test_public_api_redaction_and_route_surface.py",
         "tests/test_state_media_surface_safety.py",

@@ -3070,7 +3070,7 @@
       "route_id": "9d1bb8513d4d68c9",
       "route_path_without_v1_prefix": "/state/block/{block_id}",
       "source": "src/weall/api/routes_public_parts/state.py",
-      "source_lineno": 383,
+      "source_lineno": 384,
       "summary": "",
       "tags": [
         "state"
@@ -3092,7 +3092,7 @@
       "route_id": "ee4b90d19e7416af",
       "route_path_without_v1_prefix": "/state/block/{block_id}/header",
       "source": "src/weall/api/routes_public_parts/state.py",
-      "source_lineno": 367,
+      "source_lineno": 368,
       "summary": "",
       "tags": [
         "state"
@@ -3114,7 +3114,7 @@
       "route_id": "e753fee4ba5af388",
       "route_path_without_v1_prefix": "/state/snapshot",
       "source": "src/weall/api/routes_public_parts/state.py",
-      "source_lineno": 346,
+      "source_lineno": 347,
       "summary": "",
       "tags": [
         "state"
@@ -3356,7 +3356,7 @@
       "route_id": "b0673eb0794f4129",
       "route_path_without_v1_prefix": "/sync/apply",
       "source": "src/weall/api/routes_public_parts/state.py",
-      "source_lineno": 463,
+      "source_lineno": 464,
       "summary": "",
       "tags": [
         "state"
@@ -3378,7 +3378,7 @@
       "route_id": "e746fc307c5a29df",
       "route_path_without_v1_prefix": "/sync/request",
       "source": "src/weall/api/routes_public_parts/state.py",
-      "source_lineno": 400,
+      "source_lineno": 401,
       "summary": "",
       "tags": [
         "state"

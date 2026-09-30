@@ -1,0 +1,27 @@
+{
+  "base_commit": "9913952a6f4e2babe51eea794a143a70dd443866",
+  "branch": "post31-closure-pack-20260929",
+  "findings": {
+    "POST31-001": "mandatory pre-SYSTEM prefix completeness equality",
+    "POST31-002": "mandatory post-SYSTEM capacity priority",
+    "POST31-003": "single runtime-mode posture resolver"
+  },
+  "schema": "weall.post31-closure.v1",
+  "sha256": {
+    "src/weall/api/__main__.py": "c30caf33db9ab22f48b4b111cf6c5d2c805a06b29e831850289d73b20d7384f3",
+    "src/weall/api/routes_public_parts/state.py": "74152ed311db0f668400b6746cf1f7f2c97ea61a1e2a3197e1c286d77471f188",
+    "src/weall/runtime/account_id.py": "139806538d5bdda6950c0c1a9b2e525a28d1edf34575e88b7fa4ede56048c5d8",
+    "src/weall/runtime/block_builder.py": "f0e40a8668b7bd92ddeb5e43336aaec4c3ade7f2463701391242d60673dd960d",
+    "src/weall/runtime/block_replay.py": "523196d202b49ccae3784d7f520a3f891d9a448a4b27a679b396c43aa61e1858",
+    "tests/test_post31_closure_pack.py": "8d5004887817429484cc90984b0b0944391baa22fa386b6a9bfb91512c621e32"
+  },
+  "toolchain": {
+    "pytest": "pytest 9.0.3",
+    "python": "3.12.14",
+    "ruff": "ruff 0.15.22"
+  },
+  "validation": {
+    "focused_pytest": "............                                                             [100%]\n12 passed in 2.99s",
+    "full_pytest": "........................................................................ [ 92%]\n........................................................................ [ 93%]\n........................................................................ [ 95%]\n....................................................................s... [ 96%]\n........................................................................ [ 98%]\n........................................................................ [ 99%]\n.....                                                                    [100%]\n4612 passed, 1 skipped in 429.31s (0:07:09)"
+  }
+}

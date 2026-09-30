@@ -14,6 +14,7 @@ from weall.api.public_redaction import redact_public_state
 from weall.api.routes_public_parts.common import _read_json_limited
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
 from weall.runtime.executor import ExecutorError
+from weall.runtime.protocol_profile import runtime_mode
 
 router = APIRouter()
 
@@ -39,7 +40,7 @@ def _as_bool_env(name: str, default: bool = False) -> bool:
 
 
 def _mode() -> str:
-    return str(os.environ.get("WEALL_MODE") or "").strip().lower()
+    return runtime_mode()
 
 
 def _sync_request_routes_enabled() -> bool:
