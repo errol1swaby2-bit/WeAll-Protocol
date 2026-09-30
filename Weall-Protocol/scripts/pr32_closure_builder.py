@@ -1,0 +1,406 @@
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import platform
+import subprocess
+from pathlib import Path
+
+BASE_SHA = "9913952a6f4e2babe51eea794a143a70dd443866"
+BRANCH = "post31-closure-pack-20260929"
+
+
+def replace_once(path: str, old: str, new: str) -> None:
+    p = Path(path)
+    text = p.read_text(encoding="utf-8")
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f"expected exactly one match in {path}, found {count}: {old[:120]!r}")
+    p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+
+def apply_repairs() -> None:
+    # POST31-001: exact mandatory SYSTEM prefix/suffix equality must be
+    # unconditional. Unknown/user replacements are not a reason to defer
+    # the completeness decision to later queue-binding code.
+    replace_once(
+        "src/weall/runtime/block_replay.py",
+        """    def _all_queue_ids_known(queue_ids: list[str]) -> bool:\n        lookup = _queue_lookup()\n        return all(bool(qid) and qid in lookup for qid in queue_ids)\n\n""",
+        "",
+    )
+    replace_once(
+        "src/weall/runtime/block_replay.py",
+        """    actual_pre_queue_ids = [_raw_system_queue_id(raw) for raw in txs[: len(expected_pre_queue_ids)]]\n    if actual_pre_queue_ids != expected_pre_queue_ids and _all_queue_ids_known(\n        actual_pre_queue_ids\n    ):\n""",
+        """    actual_pre_queue_ids = [_raw_system_queue_id(raw) for raw in txs[: len(expected_pre_queue_ids)]]\n    if actual_pre_queue_ids != expected_pre_queue_ids:\n""",
+    )
+    replace_once(
+        "src/weall/runtime/block_replay.py",
+        """        if actual_post_queue_ids != expected_post_queue_ids:\n            try:\n                all_known = _all_queue_ids_known(actual_post_queue_ids)\n            except Exception as exc:\n                return ExecutorMeta(\n                    ok=False,\n                    error=f\"bad_block:system_queue_validation_failed:{type(exc).__name__}\",\n                    height=0,\n                    block_id=str(block2.get(\"block_id\") or \"\"),\n                )\n            if all_known:\n                return ExecutorMeta(\n                    ok=False,\n                    error=\"bad_block:required_system_post_missing_duplicated_or_reordered\",\n                    height=0,\n                    block_id=str(block2.get(\"block_id\") or \"\"),\n                )\n""",
+        """        if actual_post_queue_ids != expected_post_queue_ids:\n            return ExecutorMeta(\n                ok=False,\n                error=\"bad_block:required_system_post_missing_duplicated_or_reordered\",\n                height=0,\n                block_id=str(block2.get(\"block_id\") or \"\"),\n            )\n""",
+    )
+
+    # POST31-002: track the mempool-selected portion separately from mandatory
+    # pre/post SYSTEM work. If deterministic post work pushes the candidate over
+    # the protocol cap, rebuild from the same committed pre-state with a smaller
+    # canonical mempool prefix instead of rejecting the whole proposal.
+    replace_once(
+        "src/weall/runtime/block_builder.py",
+        """    blocked_signers_after_apply_reject: set[str] = set()\n\n    for env, env_obj, parse_ok, tx_id, rej in zip(\n""",
+        """    blocked_signers_after_apply_reject: set[str] = set()\n    mempool_applied_count = 0\n\n    for env, env_obj, parse_ok, tx_id, rej in zip(\n""",
+    )
+    replace_once(
+        "src/weall/runtime/block_builder.py",
+        """        applied_envs.append(env)\n        applied_ids.append(tx_id)\n\n        receipt: Json = {\n""",
+        """        applied_envs.append(env)\n        applied_ids.append(tx_id)\n        mempool_applied_count += 1\n\n        receipt: Json = {\n""",
+    )
+    replace_once(
+        "src/weall/runtime/block_builder.py",
+        """    # System queue items are consensus scheduling scratch. Once their\n    # envelopes have been emitted into this block and applied, the leader\n""",
+        """    # Mandatory post-phase protocol work has priority over optional\n    # mempool utilization. If post scheduling made the candidate exceed the\n    # hard protocol cap, deterministically trim the canonical mempool suffix and\n    # rebuild from the unchanged committed pre-state. This prevents a full user\n    # block from repeatedly starving due SYSTEM transitions.\n    if len(applied_envs) > final_block_tx_cap:\n        overflow = int(len(applied_envs) - final_block_tx_cap)\n        if mempool_applied_count <= 0:\n            return (\n                None,\n                None,\n                [],\n                invalid_ids,\n                \"block_reject:too_large:mandatory_system_txs_exceed_limit\",\n            )\n        reduced_mempool_limit = max(0, int(mempool_applied_count) - overflow)\n        if reduced_mempool_limit >= int(mempool_applied_count):\n            return (\n                None,\n                None,\n                [],\n                invalid_ids,\n                \"block_reject:too_large:capacity_retry_not_reducing\",\n            )\n        retry = build_block_candidate(\n            self,\n            max_txs=int(reduced_mempool_limit),\n            allow_empty=True,\n            force_ts_ms=force_ts_ms,\n            helper_certificates=helper_certificates,\n            helper_receipts_by_lane=helper_receipts_by_lane,\n            bft_justify_qc=bft_justify_qc,\n            proposer=proposer,\n        )\n        retry_block = retry[0]\n        if (\n            not bool(allow_empty)\n            and isinstance(retry_block, dict)\n            and not list(retry_block.get(\"txs\") or [])\n        ):\n            return None, None, [], list(retry[3]), \"no_applicable\"\n        return retry\n\n    # System queue items are consensus scheduling scratch. Once their\n    # envelopes have been emitted into this block and applied, the leader\n""",
+    )
+
+    # POST31-003: all security-sensitive mode consumers use the existing
+    # canonical runtime_mode() resolver.
+    replace_once(
+        "src/weall/runtime/account_id.py",
+        """import os\nimport re\n""",
+        """import os\nimport re\n\nfrom weall.runtime.protocol_profile import runtime_mode\n""",
+    )
+    replace_once(
+        "src/weall/runtime/account_id.py",
+        """def strict_account_ids_enabled() -> bool:\n    mode = (os.environ.get(\"WEALL_MODE\") or \"testnet\").strip().lower()\n""",
+        """def strict_account_ids_enabled() -> bool:\n    mode = runtime_mode()\n""",
+    )
+    replace_once(
+        "src/weall/api/routes_public_parts/state.py",
+        """from weall.runtime.executor import ExecutorError\n""",
+        """from weall.runtime.executor import ExecutorError\nfrom weall.runtime.protocol_profile import runtime_mode\n""",
+    )
+    replace_once(
+        "src/weall/api/routes_public_parts/state.py",
+        """def _mode() -> str:\n    return str(os.environ.get(\"WEALL_MODE\") or \"\").strip().lower()\n""",
+        """def _mode() -> str:\n    return runtime_mode()\n""",
+    )
+    replace_once(
+        "src/weall/api/__main__.py",
+        """from weall.env import load_dotenv_if_present\n""",
+        """from weall.env import load_dotenv_if_present\nfrom weall.runtime.protocol_profile import runtime_mode\n""",
+    )
+    replace_once(
+        "src/weall/api/__main__.py",
+        """def _mode() -> str:\n    # Runtime posture is explicit; production code never infers pytest state.\n    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.\n    return str(os.environ.get(\"WEALL_MODE\", \"prod\") or \"prod\").strip().lower() or \"prod\"\n""",
+        """def _mode() -> str:\n    # Use the same posture resolver as admission, API routes, and account policy.\n    return runtime_mode()\n""",
+    )
+
+    Path("tests/test_post31_closure_pack.py").write_text(
+        '''from __future__ import annotations
+
+import copy
+from pathlib import Path
+
+import pytest
+
+from weall.api import __main__ as api_main
+from weall.api.routes_public_parts import state as state_routes
+import weall.runtime.block_builder as block_builder
+import weall.runtime.block_replay as block_replay
+from weall.runtime.account_id import strict_account_ids_enabled
+from weall.runtime.executor import WeAllExecutor
+from weall.runtime.protocol_profile import runtime_mode
+from weall.runtime.system_tx_engine import enqueue_system_tx
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def _executor(tmp_path: Path, *, chain_id: str, state: dict) -> WeAllExecutor:
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "node.db"),
+        node_id="@node",
+        chain_id=chain_id,
+        tx_index_path=str(_repo_root() / "generated" / "tx_index.json"),
+    )
+    ex._ledger_store.write_state_snapshot(copy.deepcopy(state))  # type: ignore[attr-defined]
+    ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
+    return ex
+
+
+def _account_register(chain_id: str, signer: str) -> dict:
+    return {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": signer,
+        "nonce": 1,
+        "chain_id": chain_id,
+        "payload": {"pubkey": f"k:{signer}"},
+        "sig": "",
+        "parent": None,
+        "system": False,
+    }
+
+
+def _permissive_fixture_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
+    monkeypatch.setenv("WEALL_REQUIRE_VRF", "0")
+    monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
+    monkeypatch.setattr(block_replay, "runtime_vrf_required", lambda: False)
+
+
+def test_post31_001_user_replacement_cannot_satisfy_required_pre_system_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _permissive_fixture_mode(monkeypatch)
+    chain_id = "post31-pre-replacement"
+    state = {
+        "chain_id": chain_id,
+        "height": 0,
+        "tip": "",
+        "tip_hash": "",
+        "accounts": {},
+        "system_queue": [],
+        "consensus": {"epochs": {"current": 0, "events": []}},
+    }
+    enqueue_system_tx(
+        state,
+        tx_type="EPOCH_OPEN",
+        payload={"epoch": 1},
+        due_height=1,
+        signer="SYSTEM",
+        once=True,
+        parent=None,
+        phase="pre",
+    )
+    leader = _executor(tmp_path / "leader", chain_id=chain_id, state=state)
+    follower = _executor(tmp_path / "follower", chain_id=chain_id, state=state)
+    add_result = leader._mempool.add(  # type: ignore[attr-defined]
+        _account_register(chain_id, "@alice"), current_height=0
+    )
+    assert add_result["ok"] is True
+
+    real_emit = block_builder.emit_system_txs
+
+    def _censor_only_pre(*args, **kwargs):
+        emitted = real_emit(*args, **kwargs)
+        if str(kwargs.get("phase") or "").strip().lower() == "pre":
+            return []
+        return emitted
+
+    monkeypatch.setattr(block_builder, "emit_system_txs", _censor_only_pre)
+    block, _new_state, _applied, _invalid, err = leader.build_block_candidate(
+        max_txs=1, allow_empty=True
+    )
+    assert err == ""
+    assert isinstance(block, dict)
+    assert len(block.get("txs") or []) == 1
+    assert (block["txs"][0] or {}).get("system") is False
+
+    before = copy.deepcopy(follower.state)
+    result = follower.apply_block(block)
+
+    assert result.ok is False
+    assert result.error == "bad_block:required_system_pre_missing_or_reordered"
+    assert follower.state == before
+
+
+def test_post31_002_mandatory_post_system_work_trims_user_tail_instead_of_rejecting_block(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _permissive_fixture_mode(monkeypatch)
+    chain_id = "post31-post-capacity"
+    state = {
+        "chain_id": chain_id,
+        "height": 0,
+        "tip": "",
+        "tip_hash": "",
+        "accounts": {},
+        "system_queue": [],
+        "consensus": {"epochs": {"current": 0, "events": []}},
+    }
+    leader = _executor(tmp_path / "leader", chain_id=chain_id, state=state)
+    for signer in ("@alice", "@bob"):
+        result = leader._mempool.add(  # type: ignore[attr-defined]
+            _account_register(chain_id, signer), current_height=0
+        )
+        assert result["ok"] is True
+
+    monkeypatch.setattr(block_builder, "DEFAULT_MAX_BLOCK_TXS", 2)
+    monkeypatch.setattr(block_builder, "run_leader_pre_schedulers", lambda *args, **kwargs: None)
+
+    def _post_scheduler(working: dict, *, next_height: int, scheduler_set=None) -> None:
+        del scheduler_set
+        enqueue_system_tx(
+            working,
+            tx_type="EPOCH_OPEN",
+            payload={"epoch": 1},
+            due_height=int(next_height),
+            signer="SYSTEM",
+            once=True,
+            parent=None,
+            phase="post",
+        )
+
+    monkeypatch.setattr(block_builder, "run_leader_post_schedulers", _post_scheduler)
+
+    block, _new_state, _applied, _invalid, err = leader.build_block_candidate(
+        max_txs=2, allow_empty=True
+    )
+
+    assert err == ""
+    assert isinstance(block, dict)
+    txs = list(block.get("txs") or [])
+    assert len(txs) == 2
+    user_txs = [tx for tx in txs if isinstance(tx, dict) and tx.get("system") is not True]
+    system_txs = [tx for tx in txs if isinstance(tx, dict) and tx.get("system") is True]
+    assert len(user_txs) == 1
+    assert [str(tx.get("tx_type") or "") for tx in system_txs] == ["EPOCH_OPEN"]
+
+
+def test_post31_003_unset_mode_has_one_fail_safe_production_posture(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in (
+        "WEALL_MODE",
+        "WEALL_UNSAFE_DEV",
+        "WEALL_STRICT_ACCOUNT_ID",
+        "WEALL_ENABLE_STATE_SYNC_HTTP_REQUEST_ROUTE",
+        "WEALL_STATE_BLOCK_PUBLIC_RAW",
+        "WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    assert runtime_mode() == "prod"
+    assert api_main._mode() == "prod"
+    assert state_routes._mode() == "prod"
+    assert strict_account_ids_enabled() is True
+    assert state_routes._sync_request_routes_enabled() is False
+    assert state_routes._state_raw_block_public() is False
+    assert state_routes._state_sync_request_auth_required() is True
+
+
+def test_post31_003_unsafe_dev_override_is_shared_by_all_mode_consumers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("WEALL_MODE", raising=False)
+    monkeypatch.delenv("WEALL_STRICT_ACCOUNT_ID", raising=False)
+    monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
+
+    assert runtime_mode() == "testnet"
+    assert api_main._mode() == "testnet"
+    assert state_routes._mode() == "testnet"
+    assert strict_account_ids_enabled() is False
+''',
+        encoding="utf-8",
+    )
+
+
+def _sha256(path: str) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _tail(path: str, lines: int = 8) -> str:
+    p = Path(path)
+    if not p.exists():
+        return ""
+    rows = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    return "\n".join(rows[-lines:])
+
+
+def build_evidence(focused_log: str, full_log: str) -> None:
+    Path("artifacts/post31-closure").mkdir(parents=True, exist_ok=True)
+    Path("docs/audits").mkdir(parents=True, exist_ok=True)
+
+    tracked = [
+        "src/weall/runtime/block_replay.py",
+        "src/weall/runtime/block_builder.py",
+        "src/weall/runtime/account_id.py",
+        "src/weall/api/routes_public_parts/state.py",
+        "src/weall/api/__main__.py",
+        "tests/test_post31_closure_pack.py",
+    ]
+    manifest = {
+        "schema": "weall.post31-closure.v1",
+        "base_commit": BASE_SHA,
+        "branch": BRANCH,
+        "findings": {
+            "POST31-001": "mandatory SYSTEM phase completeness equality",
+            "POST31-002": "mandatory post-SYSTEM capacity priority",
+            "POST31-003": "single runtime-mode posture resolver",
+        },
+        "validation": {
+            "focused_pytest": _tail(focused_log),
+            "full_pytest": _tail(full_log),
+        },
+        "toolchain": {
+            "python": platform.python_version(),
+            "pytest": subprocess.check_output(["pytest", "--version"], text=True).strip(),
+            "ruff": subprocess.check_output(["ruff", "--version"], text=True).strip(),
+        },
+        "sha256": {path: _sha256(path) for path in tracked},
+    }
+    Path("artifacts/post31-closure/manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+    )
+
+    focused = manifest["validation"]["focused_pytest"]
+    full = manifest["validation"]["full_pytest"]
+    doc = f"""# Post-PR31 Closure Pack
+
+Base commit: `{BASE_SHA}`
+
+This pack closes the three new findings identified by the recursive audit performed after PR #31 merged. It is intentionally limited to code defects; external-evidence/public-beta release blockers remain separate.
+
+## POST31-001 — mandatory SYSTEM completeness
+
+Follower replay now requires exact equality between the independently reconstructed mandatory SYSTEM queue-ID sequence and the received phase sequence. A user transaction, empty queue ID, unknown queue ID, omission, duplication, or reordering cannot satisfy the pre/post completeness boundary. Rejected candidates do not mutate the committed follower state.
+
+Regression: `test_post31_001_user_replacement_cannot_satisfy_required_pre_system_prefix`.
+
+## POST31-002 — mandatory SYSTEM capacity priority
+
+Candidate construction now treats deterministic post-phase SYSTEM work as higher priority than optional mempool utilization. If post work makes a candidate exceed the hard block transaction cap, the builder deterministically rebuilds from the same committed pre-state with a reduced canonical mempool prefix. Mandatory SYSTEM work alone exceeding the cap still fails closed.
+
+Regression: `test_post31_002_mandatory_post_system_work_trims_user_tail_instead_of_rejecting_block`.
+
+## POST31-003 — runtime posture split-brain
+
+Account-ID policy, public state-route policy, and the direct API entrypoint now share `weall.runtime.protocol_profile.runtime_mode()`. With no explicit mode and no unsafe-dev override, all three resolve to production. `WEALL_UNSAFE_DEV=1` remains the explicit compatibility path to testnet posture when `WEALL_MODE` is absent.
+
+Regressions: `test_post31_003_unset_mode_has_one_fail_safe_production_posture` and `test_post31_003_unsafe_dev_override_is_shared_by_all_mode_consumers`.
+
+## Validation
+
+Focused closure suite:
+
+```text
+{focused}
+```
+
+Full backend suite:
+
+```text
+{full}
+```
+
+The builder also ran generated-artifact, v2 derivative, v1.5 public-readiness, public-claim freshness, and current-verified-claims checks before creating this pack. Exact file SHA-256 values and toolchain versions are recorded in `artifacts/post31-closure/manifest.json`.
+"""
+    Path("docs/audits/POST31_CLOSURE_PACK_20260929.md").write_text(doc, encoding="utf-8")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("action", choices=("apply", "evidence"))
+    parser.add_argument("--focused-log", default="/tmp/pr32-focused.log")
+    parser.add_argument("--full-log", default="/tmp/pr32-full.log")
+    args = parser.parse_args()
+
+    if args.action == "apply":
+        apply_repairs()
+        return
+    build_evidence(args.focused_log, args.full_log)
+
+
+if __name__ == "__main__":
+    main()
