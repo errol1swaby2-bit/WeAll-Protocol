@@ -23,6 +23,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
       - name: Regenerate and verify exact v2 derivative set
         working-directory: Weall-Protocol
         shell: bash
