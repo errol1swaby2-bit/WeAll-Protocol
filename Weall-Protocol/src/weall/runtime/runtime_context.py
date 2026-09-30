@@ -104,11 +104,39 @@ class SchedulerSet:
         )
 
 
+def _included_tx_apply(target: Callable[..., Any]) -> Callable[..., Any]:
+    """Bind canonical block inclusion to one-shot nonce semantics.
+
+    Leader construction and follower replay both use ``RuntimeContext``.  Once a
+    non-SYSTEM transaction is admitted into a canonical block, even an execution
+    failure is itself a canonical included outcome with a receipt.  Consuming the
+    envelope nonce on that failure makes the exact signed identity one-shot and
+    closes the cross-block replay window without changing direct/local apply
+    helpers, which still retain their historical non-consuming failure semantics.
+
+    The public executor symbol is wrapped rather than bypassed so tests that
+    monkeypatch ``weall.runtime.executor.apply_tx_atomic_meta`` continue to
+    exercise the same inclusion boundary.
+    """
+
+    def _apply(state: Any, env: Any, *, consume_nonce_on_fail: bool = False) -> Any:
+        del consume_nonce_on_fail
+        return target(state, env, consume_nonce_on_fail=True)
+
+    return _apply
+
+
 @dataclass(frozen=True)
 class TxExecutionSet:
-    """Tx execution callables used by leader construction and replay."""
+    """Tx execution callables used by leader construction and replay.
 
-    apply_tx_atomic_meta: Callable[..., Any] = apply_tx_atomic_meta
+    Block inclusion is intentionally stricter than direct/local apply: an
+    included user transaction consumes its nonce even when domain execution
+    fails and emits a failed receipt.  This prevents the same canonical signed
+    transaction from being included again in a later block.
+    """
+
+    apply_tx_atomic_meta: Callable[..., Any] = _included_tx_apply(apply_tx_atomic_meta)
 
     @classmethod
     def defaults(cls) -> TxExecutionSet:
@@ -120,9 +148,8 @@ class TxExecutionSet:
             from weall.runtime import executor as executor_mod
         except Exception:
             return cls.defaults()
-        return cls(
-            apply_tx_atomic_meta=getattr(executor_mod, "apply_tx_atomic_meta", apply_tx_atomic_meta)
-        )
+        target = getattr(executor_mod, "apply_tx_atomic_meta", apply_tx_atomic_meta)
+        return cls(apply_tx_atomic_meta=_included_tx_apply(target))
 
 
 @dataclass(frozen=True)
