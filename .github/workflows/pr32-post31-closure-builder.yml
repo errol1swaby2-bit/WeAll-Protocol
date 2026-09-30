@@ -49,10 +49,11 @@ jobs:
           set -Eeuo pipefail
           pytest -q tests/test_post31_closure_pack.py tests/test_system_tx_completeness.py | tee /tmp/pr32-focused.log
 
-      - name: Validate generated and specification artifacts
+      - name: Refresh and validate generated/specification artifacts
         run: |
           set -Eeuo pipefail
           python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
