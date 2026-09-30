@@ -37,6 +37,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python scripts/pr32_closure_builder.py apply
+          python scripts/pr32_fixture_adjust.py
           ruff format src/weall/runtime/block_replay.py src/weall/runtime/block_builder.py src/weall/runtime/account_id.py src/weall/api/routes_public_parts/state.py src/weall/api/__main__.py tests/test_post31_closure_pack.py
           ruff check --fix src/weall/runtime/block_replay.py src/weall/runtime/block_builder.py src/weall/runtime/account_id.py src/weall/api/routes_public_parts/state.py src/weall/api/__main__.py tests/test_post31_closure_pack.py
           ruff format src/weall/runtime/block_replay.py src/weall/runtime/block_builder.py src/weall/runtime/account_id.py src/weall/api/routes_public_parts/state.py src/weall/api/__main__.py tests/test_post31_closure_pack.py
@@ -71,6 +72,7 @@ jobs:
           set -Eeuo pipefail
           rm -f .github/workflows/pr32-post31-closure-builder.yml
           rm -f Weall-Protocol/scripts/pr32_closure_builder.py
+          rm -f Weall-Protocol/scripts/pr32_fixture_adjust.py
           git diff --check
           git status --short
           git config user.name "github-actions[bot]"
