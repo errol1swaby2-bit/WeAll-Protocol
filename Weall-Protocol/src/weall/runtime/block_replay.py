@@ -448,9 +448,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             block_id=str(block2.get("block_id") or ""),
         )
     actual_pre_queue_ids = [_raw_system_queue_id(raw) for raw in txs[: len(expected_pre_queue_ids)]]
-    if actual_pre_queue_ids != expected_pre_queue_ids and _all_queue_ids_known(
-        actual_pre_queue_ids
-    ):
+    if actual_pre_queue_ids != expected_pre_queue_ids:
         return ExecutorMeta(
             ok=False,
             error="bad_block:required_system_pre_missing_or_reordered",

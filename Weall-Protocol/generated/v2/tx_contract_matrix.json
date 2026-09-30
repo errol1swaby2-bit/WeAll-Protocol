@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "dbb1b959b244bcf8d1017117205b877a3e0f34711590fcb8681fe7783581be25"
+    "source_tree_digest": "cad75e220a31e0cb78523ea14a4f70b7a0956c2491826acf3e8af22710595159"
   },
   "required_fields": [
     "stable_id",
@@ -258,6 +258,7 @@
         "tests/test_pb001bo_canonical_block_hash_persistence.py",
         "tests/test_pending_block_identity_surface.py",
         "tests/test_pending_tx_survives_failed_commit.py",
+        "tests/test_post31_closure_pack.py",
         "tests/test_priority0_account_key_normalization.py",
         "tests/test_priority0_block_signature_enforcement.py",
         "tests/test_priority0_chainid_and_schema_safety.py",
@@ -14265,6 +14266,7 @@
         "tests/test_epoch_transition_ordering.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_post31_closure_pack.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_state_sync_semantic_projection.py",
         "tests/test_system_queue_lifecycle_integrity.py",
@@ -19352,6 +19354,7 @@
         "tests/test_node_operator_onboarding_ux.py",
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_post31_closure_pack.py",
         "tests/test_promoted_validator_reboot_gate.py",
         "tests/test_responsibility_opt_in_safety.py",
         "tests/test_tx_conflict_matrix.py",
