@@ -32,16 +32,22 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Regenerate and verify exact v2 derivative set
+      - name: Remove helper, regenerate, and verify exact final derivative set
         working-directory: Weall-Protocol
         shell: bash
         run: |
           set -Eeuo pipefail
 
+          # This workflow is temporary repair machinery. Remove it from the
+          # working tree before compilation so the generated source inventory
+          # and source-tree digest describe the final repository tree.
+          rm ../.github/workflows/pr32-regenerate-v2-once.yml
+
           python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
 
           cat > /tmp/allowed.txt <<'EOF'
+          .github/workflows/pr32-regenerate-v2-once.yml
           Weall-Protocol/generated/v2/current_tx_canon.json
           Weall-Protocol/generated/v2/divergence_registry.json
           Weall-Protocol/generated/v2/evidence_index.json
@@ -72,13 +78,13 @@ jobs:
           sort -o /tmp/allowed.txt /tmp/allowed.txt
 
           git -C .. diff --name-only | sort > /tmp/actual.txt
-          echo "Generated changes:"
+          echo "Final changes:"
           cat /tmp/actual.txt
 
-          test -s /tmp/actual.txt
+          grep -Fxq '.github/workflows/pr32-regenerate-v2-once.yml' /tmp/actual.txt
           comm -23 /tmp/actual.txt /tmp/allowed.txt > /tmp/unexpected.txt
           if [[ -s /tmp/unexpected.txt ]]; then
-            echo "Unexpected generated changes:" >&2
+            echo "Unexpected final changes:" >&2
             cat /tmp/unexpected.txt >&2
             exit 1
           fi
@@ -86,11 +92,11 @@ jobs:
           git -C .. add -- $(cat /tmp/actual.txt)
           git -C .. diff --cached --check
 
-      - name: Commit regenerated derivatives
+      - name: Commit final clean-tree derivatives
         shell: bash
         run: |
           set -Eeuo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "ci: regenerate v2 specification derivatives"
+          git commit -m "ci: finalize v2 derivatives for clean tree"
           git push origin HEAD:post31-closure-pack-20260929
