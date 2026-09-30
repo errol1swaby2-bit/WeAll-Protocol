@@ -49,10 +49,22 @@ jobs:
           set -Eeuo pipefail
           pytest -q tests/test_post31_closure_pack.py tests/test_system_tx_completeness.py | tee /tmp/pr32-focused.log
 
-      - name: Refresh and validate generated/specification artifacts
+      - name: Refresh v1.5 evidence cascade
         run: |
           set -Eeuo pipefail
           python scripts/check_generated.py
+          python scripts/gen_api_contract_map.py
+          python scripts/gen_api_response_vectors_v1_5.py
+          python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py
+          python scripts/run_controlled_testnet_go_gate_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_public_only_protocol_audit_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_current_verified_claims.py
+
+      - name: Refresh v2 derivatives and validate fixed point
+        run: |
+          set -Eeuo pipefail
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
