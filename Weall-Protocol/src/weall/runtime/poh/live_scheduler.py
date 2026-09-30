@@ -126,6 +126,10 @@ def _live_partial_panels_allowed(state: Json, *, next_height: int) -> bool:
 def _session_commitment(
     state: Json, *, case_id: str, account_id: str, case: Json | None = None
 ) -> str:
+    # Dedicated Live requests must provide a session commitment up front.  Keep
+    # the deterministic fallback for legacy in-memory fixtures only; strict
+    # apply-layer validation will reject missing case commitments before init or
+    # assignment can affect canonical state.
     if isinstance(case, dict):
         existing = _as_str(case.get("session_commitment") or "").strip()
         if existing:
@@ -185,8 +189,19 @@ def _case_needs_assign(case: Json) -> bool:
     if not isinstance(case, dict):
         return False
     status = _as_str(case.get("status") or "").strip().lower()
+    # Batch 424: requested Live cases are allowed to receive an assignment in
+    # the same post-system pass that emits POH_LIVE_SESSION_INIT.  Without this,
+    # a live request can open the deterministic room but strand the genesis
+    # reviewer at an unassigned pending session until some unrelated tx causes
+    # another block/scheduler pass.  Assignment still requires committed request
+    # commitments and remains a SYSTEM tx; this only removes the extra-block
+    # liveness dependency.
     if status not in ("requested", "open", "init"):
         return False
+    # Batch 425: strict commitment gating applies to pre-init requested
+    # Live cases only.  Legacy fixtures and already-open/init cases represent
+    # canonical state after POH_LIVE_SESSION_INIT and must remain assignable
+    # without re-validating request-open commitment fields in the scheduler.
     if status == "requested" and not _case_has_live_commitments(case):
         return False
     jm = case.get("jurors")
@@ -216,6 +231,8 @@ def _case_needs_finalize(case: Json) -> bool:
     if not active or len(active) > MAX_LIVE_INTERACTING_JURORS:
         return False
 
+    # Observers/watchers are audit witnesses and may attend, but they do not
+    # block finalization. The active reviewer set is the n-of-m decision set.
     have_verdicts = 0
     for jrec in active:
         if jrec.get("accepted") is not True or jrec.get("attended") is not True:
@@ -237,11 +254,20 @@ def _case_needs_receipt(case: Json) -> bool:
 
 
 def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
-    """Enqueue system txs needed to progress Live cases deterministically.
+    """Enqueue system txs needed to progress Live cases.
 
-    Mapping insertion order is not committed by the canonical state root, while
-    ``system_queue`` order is consensus-visible. Live cases are therefore always
-    processed in canonical case-key order.
+    Production correctness:
+      - This scheduler must NOT fabricate attendance or verdicts.
+      - Attendance marks and verdict submissions must come from real txs.
+      - The scheduler only progresses deterministic, system-owned steps.
+
+    Live lifecycle:
+      - POH_LIVE_SESSION_INIT: opens the on-chain case (session anchor)
+      - POH_LIVE_JUROR_ASSIGN: assigns jurors
+      - POH_LIVE_FINALIZE: finalizes if attendance+verdicts are ready
+      - POH_LIVE_RECEIPT: receipt-only marker
+
+    Returns number of enqueued system txs.
     """
 
     enq = 0
@@ -254,6 +280,8 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
         default_units=DEFAULT_LIVE_MIN_REP_UNITS,
     )
 
+    # JSON object member order is not committed by the state root. Canonicalize
+    # before producing the ordered, consensus-visible SYSTEM queue.
     for case_id, case in sorted(cases.items(), key=lambda item: str(item[0])):
         if not isinstance(case, dict):
             continue
@@ -264,6 +292,7 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
 
         account_id = _as_str(case.get("account_id") or "").strip()
 
+        # INIT (once) for requested cases
         if _case_needs_init(case):
             if account_id:
                 payload = {
@@ -287,6 +316,7 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                 )
                 enq += 1
 
+        # ASSIGN (once)
         if _case_needs_assign(case):
             if account_id:
                 try:
@@ -339,6 +369,7 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                     )
                     enq += 1
 
+        # Finalize + receipt
         if _case_needs_finalize(case):
             enqueue_system_tx(
                 state,
@@ -364,6 +395,9 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
             )
             enq += 1
 
+        # A finalize and its parent-bound receipt can conflict on the same
+        # case in one block. If the receipt is not included, the finalized
+        # case must deterministically enqueue it again on the next height.
         if _case_needs_receipt(case):
             enqueue_system_tx(
                 state,
