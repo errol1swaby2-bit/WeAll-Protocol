@@ -133,10 +133,8 @@ def _case_ready_to_finalize(
         return True
 
     if total >= max(0, int(min_total)):
-        # even if not enough passes, finalize can mark rejected deterministically
         return True
 
-    # Optional: if passes already meet threshold and min_total is also met.
     if total >= max(0, int(min_total)) and passes >= max(0, int(pass_threshold)):
         return True
 
@@ -155,19 +153,10 @@ def _case_needs_receipt(case: Json) -> bool:
 def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
     """Block-path automation for Tier 2.
 
-    Production intent:
-      - Tier1 user can request Tier2 by submitting a short video.
-      - Jurors swipe in a gated feed. On-chain records attestations.
-      - After enough attestations, system finalizes and emits a receipt.
-
-    Deterministic defaults (used only when on-chain params are absent):
-      - tier2_n_jurors=25
-      - tier2_min_total_reviews=25
-      - tier2_pass_threshold=20
-      - tier2_fail_max=3
-      - tier2_min_rep_milli=0
-
-    Returns number of system txs enqueued (best-effort, dedupe-safe).
+    Consensus-visible work derived from the unordered ``tier2_cases`` mapping is
+    processed in canonical case-key order. This is required because state-root
+    hashing treats mapping insertion order as non-semantic while ``system_queue``
+    is an ordered consensus-visible list.
     """
 
     enq = 0
@@ -188,13 +177,12 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
 
     cases = _tier2_cases(state)
 
-    for case_id, case_any in list(cases.items()):
+    for case_id, case_any in sorted(cases.items(), key=lambda item: str(item[0])):
         case = _as_dict(case_any)
         cid = _as_str(case.get("case_id") or case_id).strip() or _as_str(case_id).strip()
         if not cid:
             continue
 
-        # ASSIGN
         if _case_needs_assign(case):
             account_id = _as_str(case.get("account_id") or "").strip()
             if account_id:
@@ -232,7 +220,6 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
                     )
                     enq += 1
 
-        # FINALIZE
         if _case_ready_to_finalize(
             case, min_total=min_total, pass_threshold=pass_threshold, fail_max=fail_max
         ):
@@ -254,7 +241,6 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
             )
             enq += 1
 
-            # Receipt matches canon (parent auto-filled as POH_TIER2_FINALIZE)
             enqueue_system_tx(
                 state,
                 tx_type="POH_TIER2_RECEIPT",
