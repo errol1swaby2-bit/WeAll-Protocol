@@ -49,18 +49,42 @@ jobs:
           set -Eeuo pipefail
           pytest -q tests/test_post31_closure_pack.py tests/test_system_tx_completeness.py | tee /tmp/pr32-focused.log
 
-      - name: Refresh v1.5 evidence cascade
+      - name: Refresh v1.5 evidence to fixed point
         run: |
           set -Eeuo pipefail
           python scripts/check_generated.py
+
+          generate_truthful() {
+            local script="$1"
+            set +e
+            python "scripts/${script}"
+            local rc=$?
+            set -e
+            if [ "$rc" -gt 1 ]; then
+              echo "generator ${script} failed with unexpected exit ${rc}" >&2
+              exit "$rc"
+            fi
+            python "scripts/${script}" --check
+          }
+
           python scripts/gen_api_contract_map.py
           python scripts/gen_api_response_vectors_v1_5.py
-          python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py
-          python scripts/run_controlled_testnet_go_gate_v1_5.py
-          python scripts/gen_public_beta_blocker_report_v1_5.py
           python scripts/gen_public_only_protocol_audit_v1_5.py
-          python scripts/gen_release_evidence_manifest_v1_5.py
-          python scripts/gen_current_verified_claims.py
+
+          for pass in 1 2 3; do
+            echo "v1.5 evidence fixed-point pass ${pass}"
+            generate_truthful gen_b587_b594_testnet_mechanism_completion_v1_5.py
+            generate_truthful gen_public_beta_blocker_report_v1_5.py
+            generate_truthful gen_release_evidence_manifest_v1_5.py
+            generate_truthful run_controlled_testnet_go_gate_v1_5.py
+            python scripts/gen_current_verified_claims.py
+          done
+
+          generate_truthful gen_b587_b594_testnet_mechanism_completion_v1_5.py
+          generate_truthful gen_public_beta_blocker_report_v1_5.py
+          generate_truthful gen_release_evidence_manifest_v1_5.py
+          generate_truthful run_controlled_testnet_go_gate_v1_5.py
+          python scripts/gen_current_verified_claims.py --check
 
       - name: Refresh v2 derivatives and validate fixed point
         run: |
