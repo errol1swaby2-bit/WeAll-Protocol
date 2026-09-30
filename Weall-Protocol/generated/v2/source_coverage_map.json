@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1964,
+  "file_count": 1965,
   "files": [
     {
       "affected_registers": [
@@ -67,10 +67,10 @@
       "mappings": [
         "M-075"
       ],
-      "path": "../.github/workflows/pr32-post31-closure-builder.yml",
+      "path": "../.github/workflows/pr32-regenerate-v2-once.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "10b0a2a862af0742587d1dac01d216e14f86af1876cab8b1d370aef54db2abd9",
-      "source_id": "SRC-73A69860E0F0CF0F"
+      "sha256": "15b703e1b952b20003fbe3c8d492c8f1b51a7a95c04dedc23ab2cdb95f3315d7",
+      "source_id": "SRC-A5F122DD6C1A4A42"
     },
     {
       "affected_registers": [
@@ -1471,6 +1471,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "022f54020aa5e15b65f26ea2d2df78be62d27b768727bd7e948f5bf9674eeeba",
       "source_id": "SRC-5D8E4DAD1BF436FB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/audits/POST31_CLOSURE_PACK_20260929.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "c238a8927aafbae51265a78d42ac1c447fdf089bd6ccfad42aea6c5f6a2ef29e",
+      "source_id": "SRC-5B3DE40059C0A2E3"
     },
     {
       "affected_registers": [
