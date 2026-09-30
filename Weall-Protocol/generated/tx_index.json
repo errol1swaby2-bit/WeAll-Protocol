@@ -480,7 +480,7 @@
     "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
     "version": "1.25.0"
   },
-  "source_sha256": "9f633dd411ba7ea7b18904105d23238a1f761621039b58b378e3c86377c92fe4",
+  "source_sha256": "f260a9635e09da433c1a95124cc8f4152103f7f9142a1c91564156eaebb9d220",
   "tx_types": [
     {
       "context": "mempool",
@@ -2191,15 +2191,14 @@
       "context": "block",
       "domain": "Roles",
       "gates": {
-        "subject_gate": "GovExecutor"
+        "subject_gate": "Validator"
       },
       "id": "3d8cc856fbd7b948",
       "name": "ROLE_VALIDATOR_ACTIVATE",
       "origin": "SYSTEM",
-      "parent_tx_type": "GOV_EXECUTE",
-      "receipt_only": true,
-      "subject_gate": "GovExecutor",
-      "via_gov_execute": true
+      "receipt_only": false,
+      "subject_gate": "Validator",
+      "system_only": true
     },
     {
       "context": "block",
@@ -2231,15 +2230,14 @@
       "context": "block",
       "domain": "Roles",
       "gates": {
-        "subject_gate": "GovExecutor"
+        "subject_gate": "Validator"
       },
       "id": "bc029a2043af7ee0",
       "name": "ROLE_NODE_OPERATOR_ACTIVATE",
       "origin": "SYSTEM",
-      "parent_tx_type": "GOV_EXECUTE",
-      "receipt_only": true,
-      "subject_gate": "GovExecutor",
-      "via_gov_execute": true
+      "receipt_only": false,
+      "subject_gate": "Validator",
+      "system_only": true
     },
     {
       "context": "block",
@@ -3388,11 +3386,14 @@
     {
       "context": "block",
       "domain": "Roles",
+      "gates": {
+        "subject_gate": "Validator"
+      },
       "id": "7f8265930d050155",
       "name": "VALIDATOR_READINESS_VERIFY",
       "origin": "SYSTEM",
-      "parent_tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN",
-      "receipt_only": true,
+      "receipt_only": false,
+      "subject_gate": "Validator",
       "system_only": true
     },
     {

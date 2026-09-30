@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "802d6f518b595c15a8fc65c674455b378b59076960a6742e2cedd821ceae3d0f"
+    "source_tree_digest": "dbb1b959b244bcf8d1017117205b877a3e0f34711590fcb8681fe7783581be25"
   },
   "rows": [
     {
@@ -36820,7 +36820,11 @@
       ]
     },
     {
-      "creation_contracts": [],
+      "creation_contracts": [
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
+      ],
       "domain": "Roles",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -36829,7 +36833,11 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
+      "mutators": [
+        "src/weall/runtime/apply/roles.py#_apply_node_operator_responsibility_update",
+        "src/weall/runtime/apply/roles.py#_apply_node_operator_validator_opt_in_tx",
+        "src/weall/runtime/apply/roles.py#_apply_role_node_operator_enroll"
+      ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
         "TX-2621"
@@ -36840,15 +36848,27 @@
       "stable_id": "STATE-C91BE837E9201D8B",
       "state_key_or_namespace": "readiness_checks",
       "status": "current_partial",
-      "transition_contracts": [],
+      "transition_contracts": [
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
+      ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": []
+      "writes_by": [
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
+      ]
     },
     {
-      "creation_contracts": [],
+      "creation_contracts": [
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
+      ],
       "domain": "Roles",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -36857,7 +36877,11 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
+      "mutators": [
+        "src/weall/runtime/apply/roles.py#_apply_node_operator_responsibility_update",
+        "src/weall/runtime/apply/roles.py#_apply_node_operator_validator_opt_in_tx",
+        "src/weall/runtime/apply/roles.py#_apply_role_node_operator_enroll"
+      ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
         "TX-1104",
@@ -36869,16 +36893,27 @@
       "stable_id": "STATE-A618C1613EE5DBFC",
       "state_key_or_namespace": "readiness_expires_height",
       "status": "current_partial",
-      "transition_contracts": [],
+      "transition_contracts": [
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
+      ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": []
+      "writes_by": [
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
+      ]
     },
     {
       "creation_contracts": [
-        "TX-1104"
+        "TX-1104",
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
       ],
       "domain": "Roles",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -36889,6 +36924,9 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
+        "src/weall/runtime/apply/roles.py#_apply_node_operator_responsibility_update",
+        "src/weall/runtime/apply/roles.py#_apply_node_operator_validator_opt_in_tx",
+        "src/weall/runtime/apply/roles.py#_apply_role_node_operator_enroll",
         "src/weall/runtime/apply/roles.py#_apply_role_validator_activate"
       ],
       "primary_mechanism_id": "M-028",
@@ -36903,14 +36941,20 @@
       "state_key_or_namespace": "readiness_receipt_hash",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-1104"
+        "TX-1104",
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-1104"
+        "TX-1104",
+        "TX-1106",
+        "TX-2618",
+        "TX-2619"
       ]
     },
     {

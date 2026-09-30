@@ -459,10 +459,18 @@ def _ready_payload(request: Request) -> dict[str, object]:
 
     ready = bool(chain_id) and bool(tx_index_hash)
 
-    require_block_loop = _env_bool("WEALL_READYZ_REQUIRE_BLOCK_LOOP", False)
+    require_block_loop = _env_bool("WEALL_READYZ_REQUIRE_BLOCK_LOOP", _is_prod())
     bl = _try_block_loop_status(ex)
-    if require_block_loop:
-        ready = bool(ready) and (bl.get("running") is True) and (bl.get("unhealthy") is not True)
+
+    # An executor that explicitly declares itself unhealthy is never ready,
+    # regardless of environment.  The production/default strictness flag also
+    # makes an explicitly stopped block loop readiness-fatal.  Unknown telemetry
+    # remains non-fatal so observer/test doubles without a producer loop are not
+    # rejected merely because the signal is unavailable.
+    if bl.get("unhealthy") is True:
+        ready = False
+    if require_block_loop and bl.get("running") is False:
+        ready = False
 
     helper_payload = _helper_status_surface(request, chain_id or "")
     from weall.runtime.helper_status_surface import HelperStatusSurface

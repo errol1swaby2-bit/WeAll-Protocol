@@ -490,6 +490,38 @@ def _apply_node_validator_responsibility_opt_in(
         validator["validator_endpoint_commitment"] = endpoint_commitment
     if node_pubkey:
         validator["node_pubkey"] = node_pubkey
+
+    # Persist the complete account-submitted readiness receipt so the shared
+    # deterministic scheduler can verify it from canonical state.  The USER
+    # transaction only stores evidence; it never grants validator authority.
+    receipt_hash = _as_str(
+        _payload_validator_field(payload, "validator_readiness_receipt_hash", "")
+    ).strip()
+    if receipt_hash:
+        validator["readiness_receipt_hash"] = receipt_hash
+        validator.setdefault("validator_readiness_commitment", receipt_hash)
+
+    for field in (
+        "manifest_hash",
+        "tx_index_hash",
+        "runtime_profile_hash",
+        "chain_id",
+        "schema_version",
+        "protocol_version",
+        "bft_pubkey",
+    ):
+        value = _as_str(_payload_validator_field(payload, field, "")).strip()
+        if value:
+            validator[field] = value
+
+    expires_raw = _payload_validator_field(payload, "readiness_expires_height", None)
+    if expires_raw is not None:
+        validator["readiness_expires_height"] = max(0, _as_int(expires_raw, 0))
+
+    checks = _payload_validator_field(payload, "readiness_checks", None)
+    if isinstance(checks, dict):
+        validator["readiness_checks"] = dict(checks)
+
     responsibilities["validator"] = validator
 
 

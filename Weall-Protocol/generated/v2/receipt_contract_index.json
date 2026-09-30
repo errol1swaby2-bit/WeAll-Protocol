@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "802d6f518b595c15a8fc65c674455b378b59076960a6742e2cedd821ceae3d0f"
+    "source_tree_digest": "dbb1b959b244bcf8d1017117205b877a3e0f34711590fcb8681fe7783581be25"
   },
   "rows": [
     {
@@ -2798,8 +2798,8 @@
         "applied",
         "deduped"
       ],
-      "kind": "receipt_only_parent_bound",
-      "parent": "GOV_EXECUTE",
+      "kind": "system_apply_result",
+      "parent": null,
       "primary_mechanism_id": "M-028",
       "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
       "stable_id": "RCP-3D8CC856FBD7B948",
@@ -2861,8 +2861,8 @@
         "applied",
         "deduped"
       ],
-      "kind": "receipt_only_parent_bound",
-      "parent": "GOV_EXECUTE",
+      "kind": "system_apply_result",
+      "parent": null,
       "primary_mechanism_id": "M-028",
       "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
       "stable_id": "RCP-BC029A2043AF7EE0",
@@ -4700,8 +4700,8 @@
         "applied",
         "verified"
       ],
-      "kind": "receipt_only_parent_bound",
-      "parent": "NODE_OPERATOR_VALIDATOR_OPT_IN",
+      "kind": "system_apply_result",
+      "parent": null,
       "primary_mechanism_id": "M-028",
       "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
       "stable_id": "RCP-7F8265930D050155",
