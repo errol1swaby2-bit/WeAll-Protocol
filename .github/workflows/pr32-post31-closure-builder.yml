@@ -41,6 +41,8 @@ jobs:
           ruff format src/weall/runtime/block_replay.py src/weall/runtime/block_builder.py src/weall/runtime/account_id.py src/weall/api/routes_public_parts/state.py src/weall/api/__main__.py tests/test_post31_closure_pack.py
           ruff check --fix src/weall/runtime/block_replay.py src/weall/runtime/block_builder.py src/weall/runtime/account_id.py src/weall/api/routes_public_parts/state.py src/weall/api/__main__.py tests/test_post31_closure_pack.py
           ruff format src/weall/runtime/block_replay.py src/weall/runtime/block_builder.py src/weall/runtime/account_id.py src/weall/api/routes_public_parts/state.py src/weall/api/__main__.py tests/test_post31_closure_pack.py
+          cp scripts/pr32_closure_builder.py /tmp/pr32_closure_builder.py
+          rm -f scripts/pr32_closure_builder.py scripts/pr32_fixture_adjust.py
 
       - name: Run focused closure regressions
         run: |
@@ -64,15 +66,13 @@ jobs:
       - name: Build closure evidence pack
         run: |
           set -Eeuo pipefail
-          python scripts/pr32_closure_builder.py evidence --focused-log /tmp/pr32-focused.log --full-log /tmp/pr32-full.log
+          python /tmp/pr32_closure_builder.py evidence --focused-log /tmp/pr32-focused.log --full-log /tmp/pr32-full.log
 
       - name: Final diff and push closure commit
         working-directory: .
         run: |
           set -Eeuo pipefail
           rm -f .github/workflows/pr32-post31-closure-builder.yml
-          rm -f Weall-Protocol/scripts/pr32_closure_builder.py
-          rm -f Weall-Protocol/scripts/pr32_fixture_adjust.py
           git diff --check
           git status --short
           git config user.name "github-actions[bot]"
