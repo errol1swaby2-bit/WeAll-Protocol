@@ -73,6 +73,19 @@ def _base_state() -> dict[str, Any]:
             "economics_enabled": False,
             "ipfs_replication_factor": 2,
         },
+        "ballot_profile": {
+            "profile_id": "production-reviewed-v15-api-lifecycle-v1",
+            "active": True,
+        },
+        "ballot_profile_activation_receipts": [
+            {
+                "profile_id": "production-reviewed-v15-api-lifecycle-v1",
+                "status": "active",
+                "profile_hash": "b" * 64,
+                "allowed_modes": ["prod", "production"],
+                "independent_review_complete": True,
+            }
+        ],
         "accounts": {
             "@alice": {
                 "nonce": 0,
