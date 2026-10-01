@@ -64,3 +64,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'fix(p0): freeze production ballots and enforce economics readiness'
           git push origin HEAD:p0-closure-a01-a20-20260930
+
+# Temporary branch-only workflow; delete immediately after successful patch commit.
