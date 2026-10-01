@@ -1,0 +1,42 @@
+name: P0 helper inspect state stable IDs
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-inspect-state-stable-ids.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+      - name: Inspect state ID samples
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path('Weall-Protocol/specs/v2/source/stable_ids.json').read_text())
+          rows = [row for row in payload['entries'] if row.get('kind') == 'state']
+          print('state_count', len(rows))
+          print('groups_rows')
+          for row in rows:
+              if str(row.get('canonical_key', '')).startswith('Groups:'):
+                  print(json.dumps(row, sort_keys=True))
+          print('current_like_samples')
+          for row in rows:
+              sid = str(row.get('stable_id', ''))
+              if not sid.startswith('STATE-FS-'):
+                  print(json.dumps(row, sort_keys=True))
+                  if sum(1 for r in rows[:rows.index(row)+1] if not str(r.get('stable_id','')).startswith('STATE-FS-')) >= 20:
+                      break
+          PY
