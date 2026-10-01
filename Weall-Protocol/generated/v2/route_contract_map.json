@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "6a82abde2bacdaf9f576adaa126d7c34415ba2ef037db41997ee6bf38f718a38"
+    "source_tree_digest": "4632f465590b0570ab3b6c8000758918b6df06c696ed58c07b5cdbb645510d04"
   },
   "required_fields": [
     "stable_id",
@@ -4415,6 +4415,7 @@
       "stable_id": "ROUTE-72B078F0A5B7B780",
       "tests": [
         "tests/test_async_verification_submission_reviewer_feed.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_review_coverage_read_models.py"
       ],
       "vector_ids": [
@@ -4463,6 +4464,7 @@
       },
       "stable_id": "ROUTE-DA85A2E56923B444",
       "tests": [
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_restricted_poh_session_and_webrtc_transport.py"
       ],
       "vector_ids": [
@@ -4711,6 +4713,7 @@
       "stable_id": "ROUTE-36FC58B3F61A2F45",
       "tests": [
         "tests/test_async_bind_scheduler_and_live_route.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_review_coverage_read_models.py"
       ],
       "vector_ids": [
@@ -4851,7 +4854,8 @@
       },
       "stable_id": "ROUTE-E99CD408C0DE7F1A",
       "tests": [
-        "tests/test_frontend_poh_media_and_live_room.py"
+        "tests/test_frontend_poh_media_and_live_room.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -5868,6 +5872,7 @@
       },
       "stable_id": "ROUTE-0D67770619CA0647",
       "tests": [
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_review_coverage_read_models.py"
       ],
       "vector_ids": [
@@ -5916,7 +5921,8 @@
       },
       "stable_id": "ROUTE-1C48982950B7E289",
       "tests": [
-        "tests/test_p0_a01_a20_closure_regressions.py"
+        "tests/test_p0_a01_a20_closure_regressions.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -7527,6 +7533,7 @@
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_dispute_appeal_actor.py",
@@ -8410,6 +8417,7 @@
         "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_scoped_authority_repairs.py",

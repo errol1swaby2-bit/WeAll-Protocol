@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1968,
+  "file_count": 1969,
   "files": [
     {
       "affected_registers": [
@@ -21949,6 +21949,28 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d29605cafcecc81d0d5b6524fb5ac2dd4329e07ad0d8547fd98fe2a76de0a5e9",
       "source_id": "SRC-3D23102E1896FA0F"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-0D67770619CA0647",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-1C48982950B7E289",
+        "ROUTE-36FC58B3F61A2F45",
+        "ROUTE-72B078F0A5B7B780",
+        "ROUTE-DA85A2E56923B444",
+        "ROUTE-E99CD408C0DE7F1A",
+        "TX-0001"
+      ],
+      "path": "tests/test_p0_restart_and_poh_privacy_closure.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "c2af388ee2bb9d637fcc5cf99030bde1ebd9d3efc545a2dee208587d520cf995",
+      "source_id": "SRC-67C929249E141FCD"
     },
     {
       "affected_registers": [
