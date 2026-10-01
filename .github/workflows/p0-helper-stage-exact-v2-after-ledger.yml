@@ -153,12 +153,10 @@ jobs:
           set -Eeuo pipefail
           ruff format --check \
             tests/test_p0_a10_treasury_restart_replay.py \
-            tests/test_p0_a12_generated_vector_runtime_truth.py \
-            tests/test_p0_a10_a12_generated_contract_closure.py
+            tests/test_p0_a12_generated_vector_runtime_truth.py
           ruff check \
             tests/test_p0_a10_treasury_restart_replay.py \
-            tests/test_p0_a12_generated_vector_runtime_truth.py \
-            tests/test_p0_a10_a12_generated_contract_closure.py
+            tests/test_p0_a12_generated_vector_runtime_truth.py
 
       - name: Regenerate A12 truth evidence dependency chain and exact V2 derivatives
         working-directory: Weall-Protocol
