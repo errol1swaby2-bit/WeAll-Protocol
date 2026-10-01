@@ -34,7 +34,9 @@ def _assert_replay_rejected(result: dict) -> None:
     assert result.get("ok") is False or result.get("already_known") is True, result
 
 
-def test_failed_block_apply_consumes_nonce_and_rejects_replay_across_restart(tmp_path: Path) -> None:
+def test_failed_block_apply_consumes_nonce_and_rejects_replay_across_restart(
+    tmp_path: Path,
+) -> None:
     """A02-F001/A16-F002: a failed canonical inclusion is a one-shot signed identity."""
 
     signer = "@user000"

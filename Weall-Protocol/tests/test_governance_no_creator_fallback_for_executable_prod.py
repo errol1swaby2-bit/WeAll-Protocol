@@ -175,6 +175,4 @@ def test_editing_actions_into_existing_decision_preserves_verified_human_elector
     assert proposal["electorate_source"] == "protocol_tier2_accounts"
     assert proposal["eligible_voter_ids"] == ["@alice"]
     assert proposal["required_votes"] == 1
-    assert proposal["actions"] == [
-        {"tx_type": "ECONOMICS_ACTIVATION", "payload": {"enable": True}}
-    ]
+    assert proposal["actions"] == [{"tx_type": "ECONOMICS_ACTIVATION", "payload": {"enable": True}}]

@@ -47,7 +47,6 @@ def _delta_response_from(
         assert isinstance(blk, dict)
         blk2 = dict(blk)
         blk2["parent_block_id"] = str(blk2.get("prev_block_id") or "")
-        blk2["prev_block_hash"] = ""
         blocks.append(blk2)
     hdr = WireHeader(
         type=MsgType.STATE_SYNC_RESPONSE,

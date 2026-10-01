@@ -484,9 +484,10 @@ def build_block_candidate(
         return None, None, [], [], f"block_reject:{block_reject.code}:{block_reject.reason}"
 
     # Apply txs (fail-atomic) and always emit deterministic receipts.
-    # Nonces are only consumed on success, so any later non-system tx from a
-    # signer whose earlier tx rejected during apply must also be rejected
-    # deterministically within this block.
+    # RuntimeContext binds canonical inclusion to one-shot nonce semantics:
+    # a non-system tx consumes its signer nonce even when domain application
+    # fails and the block records a failed receipt. Later same-signer work
+    # must therefore advance from that canonical included nonce.
     blocked_signers_after_apply_reject: set[str] = set()
     mempool_applied_count = 0
 
