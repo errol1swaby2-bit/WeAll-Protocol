@@ -115,6 +115,83 @@ def test_governance_execute_binds_group_spend_plan_and_queues_signed_execution()
     assert payload["_approved_spend_plan_hash"] == approval["spend_plan_hash"]
 
 
+def test_governance_approved_signed_group_spend_moves_value_once() -> None:
+    state = _economic_state()
+    state["accounts"] = {
+        "@recipient": {
+            "balance": 0,
+            "nonce": 0,
+            "poh_tier": 2,
+            "banned": False,
+            "locked": False,
+        }
+    }
+    state["treasury_wallets"] = {
+        "TREASURY_GROUP::group-1": {
+            "wallet_id": "TREASURY_GROUP::group-1",
+            "balance": 25,
+        }
+    }
+    spend = _signed_spend()
+    state["group_treasury_spends"] = {"spend-1": spend}
+    action = {
+        "tx_type": "GROUP_TREASURY_SPEND_EXECUTE",
+        "payload": {"spend_id": "spend-1"},
+    }
+    state["gov_proposals_by_id"] = {
+        "proposal-1": {
+            "proposal_id": "proposal-1",
+            "stage": "tallied",
+            "group_id": "group-1",
+            "electorate_scope": "group_members",
+            "electorate_commitment": "electorate-commitment-1",
+            "actions": [action],
+            "tallied_at_height": 19,
+            "tallies": [{"height": 19, "payload": {"passed": True}}],
+        }
+    }
+
+    _apply_gov_execute(
+        state,
+        TxEnvelope(
+            tx_type="GOV_EXECUTE",
+            signer="SYSTEM",
+            nonce=0,
+            payload={"proposal_id": "proposal-1", "actions": [action]},
+            system=True,
+            chain_id="weall-prod",
+        ),
+    )
+    queued = [
+        row for row in state["system_queue"] if row.get("tx_type") == "GROUP_TREASURY_SPEND_EXECUTE"
+    ]
+    assert len(queued) == 1
+
+    result = apply_groups(
+        state,
+        TxEnvelope(
+            tx_type="GROUP_TREASURY_SPEND_EXECUTE",
+            signer="SYSTEM",
+            nonce=1,
+            payload=dict(queued[0]["payload"]),
+            system=True,
+            chain_id="weall-prod",
+        ),
+    )
+
+    assert result == {
+        "applied": "GROUP_TREASURY_SPEND_EXECUTE",
+        "spend_id": "spend-1",
+        "to": "@recipient",
+        "amount": 10,
+    }
+    assert state["treasury_wallets"]["TREASURY_GROUP::group-1"]["balance"] == 15
+    assert state["accounts"]["@recipient"]["balance"] == 10
+    assert spend["status"] == "executed"
+    assert spend["transferred_to"] == "@recipient"
+    assert spend["transferred_amount"] == 10
+
+
 def test_strict_execute_rejects_spend_plan_mutation_after_governance_approval() -> None:
     state = _economic_state()
     spend = _signed_spend()
