@@ -102,13 +102,13 @@ jobs:
       - name: Commit reviewed source and derived semantic artifacts
         run: |
           set -Eeuo pipefail
-          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/src/weall/runtime/apply/economics.py" && p != "Weall-Protocol/specs/v2/source/source_mappings.json" && p != "Weall-Protocol/specs/v2/source/semantic_reviews.json" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/src/weall/runtime/apply/economics.py" && p != "Weall-Protocol/specs/v2/source/source_mappings.json" && p != "Weall-Protocol/specs/v2/source/semantic_reviews.json" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
           if [[ -n "$BAD" ]]; then
             echo 'Unexpected changed files:' >&2
             printf '%s\n' "$BAD" >&2
             exit 1
           fi
-          git add Weall-Protocol/src/weall/runtime/apply/economics.py Weall-Protocol/specs/v2/source/source_mappings.json Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated/v2
+          git add Weall-Protocol/src/weall/runtime/apply/economics.py Weall-Protocol/specs/v2/source/source_mappings.json Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
           if git diff --cached --quiet; then
             echo 'No semantic derivative changes required'
             exit 0
