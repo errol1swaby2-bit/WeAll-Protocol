@@ -122,6 +122,7 @@ jobs:
           # posture, not its digest, so this reaches a deterministic fixed point.
           write("generated/release_evidence_manifest_v1_5.json", build_release())
           PY
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
@@ -129,7 +130,7 @@ jobs:
       - name: Commit bounded closure evidence refresh
         run: |
           set -Eeuo pipefail
-          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py" && p != "Weall-Protocol/generated/api_response_vectors_v1_5.json" && p != "Weall-Protocol/generated/b587_b594_testnet_mechanism_completion_v1_5.json" && p != "Weall-Protocol/generated/controlled_testnet_go_gate_v1_5.json" && p != "Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json" && p != "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json" && p != "Weall-Protocol/generated/release_evidence_manifest_v1_5.json" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py" && p != "Weall-Protocol/generated/api_response_vectors_v1_5.json" && p != "Weall-Protocol/generated/b587_b594_testnet_mechanism_completion_v1_5.json" && p != "Weall-Protocol/generated/controlled_testnet_go_gate_v1_5.json" && p != "Weall-Protocol/generated/current_verified_claims.json" && p != "Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json" && p != "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json" && p != "Weall-Protocol/generated/release_evidence_manifest_v1_5.json" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
           if [[ -n "$BAD" ]]; then
             echo 'Unexpected closure-refresh changes:' >&2
             printf '%s\n' "$BAD" >&2
@@ -140,6 +141,7 @@ jobs:
             Weall-Protocol/generated/api_response_vectors_v1_5.json \
             Weall-Protocol/generated/b587_b594_testnet_mechanism_completion_v1_5.json \
             Weall-Protocol/generated/controlled_testnet_go_gate_v1_5.json \
+            Weall-Protocol/generated/current_verified_claims.json \
             Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json \
             Weall-Protocol/generated/public_beta_blocker_report_v1_5.json \
             Weall-Protocol/generated/release_evidence_manifest_v1_5.json \
