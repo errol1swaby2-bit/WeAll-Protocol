@@ -32,7 +32,7 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Regenerate exact V2 derivatives twice and verify
+      - name: Regenerate exact V2 derivatives twice and verify working output
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -42,7 +42,6 @@ jobs:
           done
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
-          python scripts/check_v2_spec_clean_checkout.py
 
       - name: Commit derivative-only staging refresh
         run: |
@@ -56,9 +55,20 @@ jobs:
           git add Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
           if git diff --cached --quiet; then
             echo 'V2 derivatives already exact-current'
-            exit 0
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'chore(p0): refresh exact-tree V2 derivatives after evidence ledger'
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'chore(p0): refresh exact-tree V2 derivatives after evidence ledger'
+          test -z "$(git status --short --untracked-files=all)"
+
+      - name: Prove committed exact-tree reproducibility and push staging ref
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
+          python scripts/check_v2_spec_clean_checkout.py
+          cd ..
+          test -z "$(git status --short --untracked-files=all)"
           git push origin HEAD:p0-v2-exact-staging-20261001
