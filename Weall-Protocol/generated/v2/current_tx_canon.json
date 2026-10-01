@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "77e11ea9569fbe6af1b6bcc32c10a7b88cd3fad18a688cbb1605e96086849338"
+    "source_tree_digest": "0b83fb7a10980033256665968845817a24d8b098f9ed2fec19188795b0758741"
   },
   "rows": [
     {
@@ -224,6 +224,7 @@
         "tests/test_operator_ingress_signature_required_prod.py",
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
+        "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
         "tests/test_pb001bab_http_relay_bft_admission_ack_boundary.py",
         "tests/test_pb001bah_checkpoint_signing_authority_atomicity.py",

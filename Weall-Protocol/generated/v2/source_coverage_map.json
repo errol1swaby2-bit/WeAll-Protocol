@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1972,
+  "file_count": 1973,
   "files": [
     {
       "affected_registers": [
@@ -22026,6 +22026,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "c2af388ee2bb9d637fcc5cf99030bde1ebd9d3efc545a2dee208587d520cf995",
       "source_id": "SRC-67C929249E141FCD"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0001"
+      ],
+      "path": "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "b1835e7d89f3a3cb7020cbf6a7fa0690ca7cc3fa4bc0a49b2df277be1cd4ace4",
+      "source_id": "SRC-EDE23E266ABACCEC"
     },
     {
       "affected_registers": [
