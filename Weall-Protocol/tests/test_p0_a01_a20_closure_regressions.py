@@ -51,7 +51,12 @@ def _tier2_receipt_state(order: tuple[str, str]) -> dict:
         }
         for case_id in order
     }
-    return {"height": 10, "tip": "b10", "poh": {"tier2_cases": cases}, "system_queue": []}
+    return {
+        "height": 10,
+        "tip": "b10",
+        "poh": {"tier2_cases": cases},
+        "system_queue": [],
+    }
 
 
 def _async_receipt_state(order: tuple[str, str]) -> dict:
@@ -64,7 +69,12 @@ def _async_receipt_state(order: tuple[str, str]) -> dict:
         }
         for case_id in order
     }
-    return {"height": 10, "tip": "b10", "poh": {"async_cases": cases}, "system_queue": []}
+    return {
+        "height": 10,
+        "tip": "b10",
+        "poh": {"async_cases": cases},
+        "system_queue": [],
+    }
 
 
 def _live_receipt_state(order: tuple[str, str]) -> dict:
@@ -77,7 +87,12 @@ def _live_receipt_state(order: tuple[str, str]) -> dict:
         }
         for case_id in order
     }
-    return {"height": 10, "tip": "b10", "poh": {"live_cases": cases}, "system_queue": []}
+    return {
+        "height": 10,
+        "tip": "b10",
+        "poh": {"live_cases": cases},
+        "system_queue": [],
+    }
 
 
 @pytest.mark.parametrize(
@@ -88,7 +103,10 @@ def _live_receipt_state(order: tuple[str, str]) -> dict:
         (_live_receipt_state, schedule_poh_live_system_txs),
     ],
 )
-def test_equal_root_poh_case_permutations_schedule_identical_system_work(factory, scheduler) -> None:
+def test_equal_root_poh_case_permutations_schedule_identical_system_work(
+    factory,
+    scheduler,
+) -> None:
     """A04-F001/A16-F003: mapping insertion order cannot affect consensus work."""
 
     state_a = factory(("case-a", "case-b"))
@@ -156,7 +174,11 @@ def test_durable_commit_rejects_unbound_received_receipt_body(
     class DummyExecutor:
         chain_id = "weall-p0-test"
 
-    monkeypatch.setattr(block_commit_mod, "prune_emitted_system_queue", lambda state: None)
+    monkeypatch.setattr(
+        block_commit_mod,
+        "prune_emitted_system_queue",
+        lambda state: None,
+    )
 
     block = _complete_empty_block()
     malformed = copy.deepcopy(block)
@@ -181,7 +203,9 @@ def test_durable_commit_rejects_unbound_received_receipt_body(
     assert meta.ok is False
 
 
-def test_production_chain_identity_activates_strict_launch_gated_ballot_posture() -> None:
+def test_production_chain_identity_activates_strict_launch_gated_ballot_posture() -> (
+    None
+):
     """A09-F001: weall-prod may not silently inherit legacy/local ballot semantics."""
 
     status = ballot_profile_status({"chain_id": "weall-prod", "params": {}})
@@ -192,7 +216,9 @@ def test_production_chain_identity_activates_strict_launch_gated_ballot_posture(
     assert status["mode"] == "production"
 
 
-def test_group_treasury_execute_is_not_enqueued_while_economics_is_disabled() -> None:
+def test_group_treasury_execute_is_not_enqueued_while_economics_is_disabled() -> (
+    None
+):
     """A10-F001: mandatory SYSTEM work must not be scheduled to fail on the econ lock."""
 
     state = {
@@ -275,17 +301,27 @@ def test_poh_scoped_queue_requires_session_and_exact_identity(
         enforce_poh_read_authorization(request)
     assert missing_exc.value.status_code == 403
 
-    monkeypatch.setattr(poh_route_auth, "require_account_session", lambda _r, _s: "@mallory")
+    monkeypatch.setattr(
+        poh_route_auth,
+        "require_account_session",
+        lambda _r, _s: "@mallory",
+    )
     with pytest.raises(ApiError) as mismatch_exc:
         enforce_poh_read_authorization(request)
     assert mismatch_exc.value.status_code == 403
     assert mismatch_exc.value.code == "poh_session_identity_mismatch"
 
-    monkeypatch.setattr(poh_route_auth, "require_account_session", lambda _r, _s: "@alice")
+    monkeypatch.setattr(
+        poh_route_auth,
+        "require_account_session",
+        lambda _r, _s: "@alice",
+    )
     assert enforce_poh_read_authorization(request) is None
 
 
-def test_poh_full_tier2_case_is_participant_only(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_poh_full_tier2_case_is_participant_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A12-F001: Tier-2 juror/evidence maps may not be enumerated by unrelated viewers."""
 
     from weall.api import poh_route_auth
@@ -308,11 +344,19 @@ def test_poh_full_tier2_case_is_participant_only(monkeypatch: pytest.MonkeyPatch
         path_params={"case_id": "case-1"},
     )
 
-    monkeypatch.setattr(poh_route_auth, "require_account_session", lambda _r, _s: "@mallory")
+    monkeypatch.setattr(
+        poh_route_auth,
+        "require_account_session",
+        lambda _r, _s: "@mallory",
+    )
     with pytest.raises(ApiError) as forbidden_exc:
         enforce_poh_read_authorization(request)
     assert forbidden_exc.value.status_code == 403
     assert forbidden_exc.value.code == "poh_case_viewer_forbidden"
 
-    monkeypatch.setattr(poh_route_auth, "require_account_session", lambda _r, _s: "@juror")
+    monkeypatch.setattr(
+        poh_route_auth,
+        "require_account_session",
+        lambda _r, _s: "@juror",
+    )
     assert enforce_poh_read_authorization(request) is None
