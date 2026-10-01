@@ -87,15 +87,12 @@ jobs:
           )
 
           text = fully.read_text(encoding="utf-8")
-          marker = (
-              '    apply_dispute(\n'
-              '        state,\n'
-              '        _env("DISPUTE_APPEAL", "@alice", 63, {"dispute_id": "d1", "reason": "remedy"}),\n'
-              '    )\n'
-          )
           if "@appeal-1" not in text:
-              if marker not in text:
-                  raise SystemExit("appeal insertion anchor not found")
+              appeal_token = '"DISPUTE_APPEAL"'
+              appeal_pos = text.index(appeal_token, text.index("def run_harness()"))
+              insert_pos = text.rfind("    apply_dispute(", 0, appeal_pos)
+              if insert_pos < 0:
+                  raise SystemExit("appeal apply_dispute insertion point not found")
               pool = "".join(
                   [
                       "    # Strict production appeals require a completely fresh constitutional panel.\n",
@@ -123,7 +120,7 @@ jobs:
                       "\n",
                   ]
               )
-              text = text.replace(marker, pool + marker, 1)
+              text = text[:insert_pos] + pool + text[insert_pos:]
               fully.write_text(text, encoding="utf-8")
           PY
 
