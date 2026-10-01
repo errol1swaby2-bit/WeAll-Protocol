@@ -58,3 +58,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'chore(p0): refresh exact-head V2 derivatives after authority closure'
           git push origin HEAD:p0-closure-a01-a20-20260930
+
+# Branch-only helper; never merge this workflow into the P0 target.
