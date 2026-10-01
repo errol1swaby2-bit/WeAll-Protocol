@@ -26,11 +26,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
-      - name: Ruff closure test
+      - name: Format disposable closure test checkout
         working-directory: Weall-Protocol
         run: |
-          ruff format --check tests/test_p0_03_production_composition.py
+          ruff format tests/test_p0_03_production_composition.py
           ruff check tests/test_p0_03_production_composition.py
+          git diff --check
       - name: Execute production composition rehearsal
         working-directory: Weall-Protocol
         run: |
