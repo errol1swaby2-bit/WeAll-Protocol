@@ -1,0 +1,64 @@
+name: P0 helper stage exact V2 after ledger refresh
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-stage-exact-v2-after-ledger.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-staging:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-v2-exact-staging-20261001
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Regenerate exact V2 derivatives twice and verify
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          for pass in 1 2; do
+            echo "v2 generation pass ${pass}"
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+          done
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
+          python scripts/check_v2_spec_clean_checkout.py
+
+      - name: Commit derivative-only staging refresh
+        run: |
+          set -Eeuo pipefail
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          if [[ -n "$BAD" ]]; then
+            echo 'Unexpected non-V2 changes:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          git add Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          if git diff --cached --quiet; then
+            echo 'V2 derivatives already exact-current'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(p0): refresh exact-tree V2 derivatives after evidence ledger'
+          git push origin HEAD:p0-v2-exact-staging-20261001
