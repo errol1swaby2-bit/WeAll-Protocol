@@ -54,12 +54,15 @@ jobs:
               root / "tests/test_priority2_state_sync_anchor_coverage.py",
           ]
           for path in state_sync_files:
-              text = path.read_text(encoding="utf-8")
-              needle = '        blk2["prev_block_hash"] = ""\n'
-              count = text.count(needle)
-              if count <= 0:
+              lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+              kept = [
+                  line
+                  for line in lines
+                  if line.strip() != 'blk2["prev_block_hash"] = ""'
+              ]
+              if len(kept) == len(lines):
                   raise SystemExit(f"expected stale state-sync alias fixture not found: {path}")
-              path.write_text(text.replace(needle, ""), encoding="utf-8")
+              path.write_text("".join(kept), encoding="utf-8")
 
           path = root / "tests/test_review_coverage_read_models.py"
           text = path.read_text(encoding="utf-8")
@@ -170,7 +173,12 @@ jobs:
             tests/test_governance_no_creator_fallback_for_executable_prod.py \
             tests/test_economics_activation_requires_hardened_governance_electorate.py \
             tests/test_nonce_failure_block_progression.py \
+            tests/test_executor_state_sync.py \
+            tests/test_executor_state_sync_progress.py \
+            tests/test_executor_state_sync_progress_rejection.py \
+            tests/test_priority2_state_sync_anchor_coverage.py \
             tests/test_review_coverage_read_models.py \
+            tests/test_v2_spec_compiler.py \
             tests/test_validator_bft_economics_go_gates.py \
             tests/test_p0_group_treasury_governance_binding.py \
             src/weall/runtime/block_builder.py
@@ -189,7 +197,12 @@ jobs:
             tests/test_governance_no_creator_fallback_for_executable_prod.py \
             tests/test_economics_activation_requires_hardened_governance_electorate.py \
             tests/test_nonce_failure_block_progression.py \
+            tests/test_executor_state_sync.py \
+            tests/test_executor_state_sync_progress.py \
+            tests/test_executor_state_sync_progress_rejection.py \
+            tests/test_priority2_state_sync_anchor_coverage.py \
             tests/test_review_coverage_read_models.py \
+            tests/test_v2_spec_compiler.py \
             tests/test_validator_bft_economics_go_gates.py \
             tests/test_p0_group_treasury_governance_binding.py \
             src/weall/runtime/block_builder.py
@@ -197,7 +210,12 @@ jobs:
             tests/test_governance_no_creator_fallback_for_executable_prod.py \
             tests/test_economics_activation_requires_hardened_governance_electorate.py \
             tests/test_nonce_failure_block_progression.py \
+            tests/test_executor_state_sync.py \
+            tests/test_executor_state_sync_progress.py \
+            tests/test_executor_state_sync_progress_rejection.py \
+            tests/test_priority2_state_sync_anchor_coverage.py \
             tests/test_review_coverage_read_models.py \
+            tests/test_v2_spec_compiler.py \
             tests/test_validator_bft_economics_go_gates.py \
             tests/test_p0_group_treasury_governance_binding.py \
             src/weall/runtime/block_builder.py
