@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from weall.runtime.ballot_policy import chain_mode
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission import TxEnvelope
@@ -766,8 +767,7 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
         desired = _as_bool(payload.get("enabled"), True)
 
     activation_report: Json | None = None
-    chain_id = _as_str(params.get("chain_id") or state.get("chain_id")).lower()
-    production_chain = chain_id == "weall-prod"
+    production_chain = chain_mode(state) == "production"
     if bool(desired) and (
         production_chain
         or _as_bool(payload.get("enforce_preconditions"), False)

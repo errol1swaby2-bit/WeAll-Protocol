@@ -4567,9 +4567,9 @@
       "disposition": "accepted_current_semantic_contract",
       "independent_review": false,
       "review_digest": "a213a111cc9b2367f87912858b27d83efe4308f36d34b46698dddf0ae4e8c75a",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+      "reviewed_at": "2026-10-01T00:42:07Z",
+      "reviewer": "ChatGPT-assisted maintainer P0 closure review; independent review deferred",
       "stable_id": "TX-1301",
       "tx_type": "ECONOMICS_ACTIVATION"
     },

@@ -3338,6 +3338,16 @@
         "failures"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/poh_route_auth.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "src/weall/api/public_redaction.py",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"

@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "cad75e220a31e0cb78523ea14a4f70b7a0956c2491826acf3e8af22710595159"
+    "source_tree_digest": "e4db3f0a490925945b2264959b122228d1d48238c51eaec133955e52eb3c837b"
   },
   "required_fields": [
     "stable_id",
@@ -673,6 +673,7 @@
         "tests/test_m2_chain_manifest_closure_gates.py",
         "tests/test_observer_reconciliation_and_bounded_details.py",
         "tests/test_observer_tx_queue_safety.py",
+        "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_promoted_validator_reboot_gate.py",
         "tests/test_reviewer_rehearsal_wrappers.py",
         "tests/test_runtime_config_env_precedence.py",
@@ -5915,7 +5916,7 @@
       },
       "stable_id": "ROUTE-1C48982950B7E289",
       "tests": [
-        "tests/test_v2_spec_compiler.py"
+        "tests/test_p0_a01_a20_closure_regressions.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -7521,6 +7522,8 @@
         "tests/test_operator_observability_truthfulness.py",
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p0_a01_a20_closure_regressions.py",
+        "tests/test_p0_governance_economics_closure.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
@@ -8402,6 +8405,7 @@
         "tests/test_operator_observability_truthfulness.py",
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
