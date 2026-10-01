@@ -3,9 +3,59 @@ from __future__ import annotations
 import pytest
 
 from weall.runtime.apply import economics as economics_apply
-from weall.runtime.apply.governance import _apply_gov_proposal_edit
+from weall.runtime.apply.governance import (
+    _apply_gov_proposal_create,
+    _apply_gov_proposal_edit,
+)
 from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
+
+
+def test_production_executable_governance_uses_tier2_humans_not_validators() -> None:
+    """A09-F002: production political authority comes from the Tier-2 human electorate."""
+
+    state = {
+        "chain_id": "weall-prod",
+        "height": 10,
+        "accounts": {
+            "@human": {"poh_tier": 2},
+            "@validator-only": {"poh_tier": 0},
+        },
+        "consensus": {
+            "validator_set": {
+                "active_set": ["@validator-only"],
+            }
+        },
+    }
+    env = TxEnvelope(
+        tx_type="GOV_PROPOSAL_CREATE",
+        signer="@human",
+        nonce=1,
+        payload={
+            "proposal_id": "proposal-tier2-electorate",
+            "title": "Tier-2 electorate proof",
+            "rules": {"start_stage": "draft"},
+            "actions": [
+                {
+                    "tx_type": "GOV_QUORUM_SET",
+                    "payload": {"quorum_percent": 60},
+                }
+            ],
+        },
+        chain_id="weall-prod",
+    )
+
+    result = _apply_gov_proposal_create(state, env)
+
+    assert result == {"applied": True, "proposal_id": "proposal-tier2-electorate"}
+    proposal = state["gov_proposals_by_id"]["proposal-tier2-electorate"]
+    assert proposal["electorate_scope"] == "protocol_tier2"
+    assert proposal["electorate_source"] == "protocol_tier2_accounts"
+    assert proposal["eligible_voter_ids"] == ["@human"]
+    assert proposal["eligible_voter_count"] == 1
+    assert proposal["required_votes"] == 1
+    assert proposal["electorate_commitment"]
+    assert "@validator-only" not in proposal["eligible_voter_ids"]
 
 
 def test_strict_production_proposal_cannot_be_edited_after_voting_opens() -> None:
