@@ -6,12 +6,12 @@ on:
       - p0-03-production-closure-staging-20261001
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   p0-03-production-composition:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,14 +26,101 @@ jobs:
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
-      - name: Normalize disposable closure test checkout
+      - name: Apply candidate P0-03 runtime repair
         working-directory: Weall-Protocol
         run: |
-          ruff check --fix tests/test_p0_03_production_composition.py
-          ruff format tests/test_p0_03_production_composition.py
-          ruff check tests/test_p0_03_production_composition.py
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              return text.replace(old, new, 1)
+
+          hotstuff = Path("src/weall/runtime/bft_hotstuff.py")
+          text = hotstuff.read_text(encoding="utf-8")
+          text = replace_once(
+              text,
+              "        self.high_qc: QuorumCert | None = None\n        self.locked_qc: QuorumCert | None = None\n",
+              "        self.high_qc: QuorumCert | None = None\n        self.locked_qc: QuorumCert | None = None\n        # Generation-local certificate proving that the current validator set\n        # threshold-certified the canonical transition boundary. Unlike high_qc,\n        # this must remain available after later QCs advance the HotStuff head.\n        self.validator_transition_qc: QuorumCert | None = None\n",
+              "hotstuff init transition qc",
+          )
+          text = replace_once(
+              text,
+              "        self.high_qc = None\n        self.locked_qc = None\n        self.finalized_block_id = str(finalized_block_id or \"\").strip()\n",
+              "        self.high_qc = None\n        self.locked_qc = None\n        self.validator_transition_qc = None\n        self.finalized_block_id = str(finalized_block_id or \"\").strip()\n",
+              "hotstuff generation reset transition qc",
+          )
+          text = replace_once(
+              text,
+              "        lqc = b.get(\"locked_qc\")\n        if isinstance(lqc, dict):\n            q = qc_from_json(lqc)\n            if q is not None:\n                self.locked_qc = q\n\n        self.finalized_block_id = _as_str(b.get(\"finalized_block_id\") or self.finalized_block_id)\n",
+              "        lqc = b.get(\"locked_qc\")\n        if isinstance(lqc, dict):\n            q = qc_from_json(lqc)\n            if q is not None:\n                self.locked_qc = q\n\n        transition_qc = b.get(\"validator_transition_qc\")\n        if isinstance(transition_qc, dict):\n            q = qc_from_json(transition_qc)\n            if q is not None:\n                self.validator_transition_qc = q\n\n        self.finalized_block_id = _as_str(b.get(\"finalized_block_id\") or self.finalized_block_id)\n",
+              "hotstuff load transition qc",
+          )
+          text = replace_once(
+              text,
+              "        if self.locked_qc is not None:\n            out[\"locked_qc\"] = self.locked_qc.to_json()\n        if self.last_timeout_certificate is not None and self._last_timeout_certificate_verified:\n",
+              "        if self.locked_qc is not None:\n            out[\"locked_qc\"] = self.locked_qc.to_json()\n        if self.validator_transition_qc is not None:\n            out[\"validator_transition_qc\"] = self.validator_transition_qc.to_json()\n        if self.last_timeout_certificate is not None and self._last_timeout_certificate_verified:\n",
+              "hotstuff export transition qc",
+          )
+          hotstuff.write_text(text, encoding="utf-8")
+
+          adapter = Path("src/weall/runtime/bft_runtime_adapter.py")
+          text = adapter.read_text(encoding="utf-8")
+          old_has = '''def _bft_transition_bridge_has_qc(self, descriptor: Json | None = None) -> bool:\n    desc = descriptor if isinstance(descriptor, dict) else _bft_transition_bridge_descriptor(self)\n    if not isinstance(desc, dict):\n        return False\n    qc = getattr(self._bft, "high_qc", None)\n    if qc is None:\n        return False\n    if str(getattr(qc, "block_id", "") or "").strip() != str(desc.get("block_id") or ""):\n        return False\n    if str(getattr(qc, "block_hash", "") or "").strip() != str(desc.get("block_hash") or ""):\n        return False\n    if int(getattr(qc, "validator_epoch", 0) or 0) != int(self._current_validator_epoch()):\n        return False\n    if (\n        str(getattr(qc, "validator_set_hash", "") or "").strip()\n        != str(self._current_validator_set_hash() or "").strip()\n    ):\n        return False\n    return self.bft_verify_qc_json(qc.to_json()) is not None\n'''
+          new_has = '''def _bft_transition_bridge_has_qc(self, descriptor: Json | None = None) -> bool:\n    desc = descriptor if isinstance(descriptor, dict) else _bft_transition_bridge_descriptor(self)\n    if not isinstance(desc, dict):\n        return False\n    current_epoch = int(self._current_validator_epoch())\n    current_set_hash = str(self._current_validator_set_hash() or "").strip()\n    candidates = (\n        getattr(self._bft, "validator_transition_qc", None),\n        getattr(self._bft, "high_qc", None),\n    )\n    for qc in candidates:\n        if qc is None:\n            continue\n        if str(getattr(qc, "block_id", "") or "").strip() != str(desc.get("block_id") or ""):\n            continue\n        if str(getattr(qc, "block_hash", "") or "").strip() != str(desc.get("block_hash") or ""):\n            continue\n        if int(getattr(qc, "view", -1)) != int(desc.get("view") or 0):\n            continue\n        if int(getattr(qc, "validator_epoch", 0) or 0) != current_epoch:\n            continue\n        if str(getattr(qc, "validator_set_hash", "") or "").strip() != current_set_hash:\n            continue\n        if self.bft_verify_qc_json(qc.to_json()) is not None:\n            return True\n    return False\n'''
+          text = replace_once(text, old_has, new_has, "adapter transition qc gate")
+
+          old_remote = '''def bft_handle_qc(self, qcj: Json) -> bool:\n    qc = self.bft_verify_qc_json(qcj)\n    if qc is None:\n        return False\n    blocks_map = self._bft_speculative_blocks_map()\n'''
+          new_remote = '''def bft_handle_qc(self, qcj: Json) -> bool:\n    qc = self.bft_verify_qc_json(qcj)\n    if qc is None:\n        return False\n    transition = _bft_transition_bridge_descriptor(self)\n    if (\n        isinstance(transition, dict)\n        and str(qc.block_id) == str(transition.get("block_id") or "")\n        and str(qc.block_hash) == str(transition.get("block_hash") or "")\n        and int(qc.view) == int(transition.get("view") or 0)\n        and int(qc.validator_epoch) == int(self._current_validator_epoch())\n        and str(qc.validator_set_hash) == str(self._current_validator_set_hash() or "")\n    ):\n        self._bft.validator_transition_qc = qc\n    blocks_map = self._bft_speculative_blocks_map()\n'''
+          text = replace_once(text, old_remote, new_remote, "adapter remote transition qc retention")
+
+          old_local = '''    blocks_map = self._bft_speculative_blocks_map()\n    prev_finalized = str(self._bft.finalized_block_id or "").strip()\n    self._bft.observe_qc(blocks=blocks_map, qc=qc)\n    self._put_pending_missing_qc(qc.to_json())\n'''
+          new_local = '''    transition = _bft_transition_bridge_descriptor(self)\n    if (\n        isinstance(transition, dict)\n        and str(qc.block_id) == str(transition.get("block_id") or "")\n        and str(qc.block_hash) == str(transition.get("block_hash") or "")\n        and int(qc.view) == int(transition.get("view") or 0)\n        and int(qc.validator_epoch) == int(self._current_validator_epoch())\n        and str(qc.validator_set_hash) == str(self._current_validator_set_hash() or "")\n    ):\n        self._bft.validator_transition_qc = qc\n    blocks_map = self._bft_speculative_blocks_map()\n    prev_finalized = str(self._bft.finalized_block_id or "").strip()\n    self._bft.observe_qc(blocks=blocks_map, qc=qc)\n    self._put_pending_missing_qc(qc.to_json())\n'''
+          # The same post-QC sequence appears once in bft_handle_qc (already preceded by
+          # the remote retention block) and once in bft_handle_vote. Replace the latter
+          # by targeting the second occurrence only.
+          first = text.find(old_local)
+          if first < 0:\n              raise SystemExit("adapter local transition qc retention: no post-QC sequence")
+          second = text.find(old_local, first + len(old_local))
+          if second < 0:\n              raise SystemExit("adapter local transition qc retention: second post-QC sequence missing")
+          text = text[:second] + new_local + text[second + len(old_local):]
+
+          old_qcless = '''    elif _mode() == "prod":\n        state = getattr(self, "state", None)\n        phase_reader = getattr(self, "_current_consensus_phase", None)\n        current_phase = phase_reader() if callable(phase_reader) else ""\n        if isinstance(state, dict) and current_phase == CONSENSUS_PHASE_BFT_ACTIVE:\n            height = _safe_int(state.get("height"), 0)\n            tip = str(state.get("tip") or "").strip()\n            if height > 0 or tip:\n                return None\n'''
+          new_qcless = '''    elif _mode() == "prod":\n        state = getattr(self, "state", None)\n        phase_reader = getattr(self, "_current_consensus_phase", None)\n        current_phase = phase_reader() if callable(phase_reader) else ""\n        if isinstance(state, dict) and current_phase == CONSENSUS_PHASE_BFT_ACTIVE:\n            # The production profile requires every BFT-active proposal to carry\n            # a verified justify QC. Bootstrap must cross an authenticated\n            # transition boundary first; height zero is not a QC-less exception.\n            return None\n'''
+          text = replace_once(text, old_qcless, new_qcless, "adapter production qcless removal")
+          adapter.write_text(text, encoding="utf-8")
+          PY
+      - name: Normalize candidate source and closure test
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check --fix src/weall/runtime/bft_hotstuff.py src/weall/runtime/bft_runtime_adapter.py tests/test_p0_03_production_composition.py
+          ruff format src/weall/runtime/bft_hotstuff.py src/weall/runtime/bft_runtime_adapter.py tests/test_p0_03_production_composition.py
+          ruff check src/weall/runtime/bft_hotstuff.py src/weall/runtime/bft_runtime_adapter.py tests/test_p0_03_production_composition.py
           git diff --check
-      - name: Execute production composition rehearsal
+      - name: Execute P0-03 production and adjacent regressions
         working-directory: Weall-Protocol
         run: |
-          pytest -q -vv tests/test_p0_03_production_composition.py
+          set -Eeuo pipefail
+          pytest -q -vv \
+            tests/test_p0_03_production_composition.py \
+            tests/test_p0_03_certified_branch_transition.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_bft_production_safety.py \
+            tests/test_bft_pending_frontier_restart_persistence.py \
+            tests/test_executor_epoch_transition_pending_prune.py
+      - name: Commit tested helper-free staging tree
+        if: success()
+        run: |
+          set -Eeuo pipefail
+          rm .github/workflows/tmp-p0-03-production-composition.yml
+          git config user.name 'errol1swaby2-bit'
+          git config user.email 'errol1swaby2@gmail.com'
+          git add -A
+          git diff --cached --check
+          test ! -e .github/workflows/tmp-p0-03-production-composition.yml
+          git commit -m 'fix(p0-03): persist validator transition certificate across highQC advancement'
+          git push origin HEAD:p0-03-production-closure-staging-20261001
