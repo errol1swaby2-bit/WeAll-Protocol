@@ -86,13 +86,42 @@ jobs:
             tests/test_p0_a10_treasury_restart_replay.py \
             tests/test_p0_a12_generated_vector_runtime_truth.py
 
-      - name: Regenerate A12 v1.5 truth evidence and exact V2 derivatives
+      - name: Regenerate A12 truth evidence dependency chain and exact V2 derivatives
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py
-          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
-          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src:scripts python - <<'PY'
+          import json
+          from pathlib import Path
+
+          from gen_b587_b594_testnet_mechanism_completion_v1_5 import build as build_b587
+          from gen_final_public_observer_controlled_testnet_go_gate_v1_5 import build as build_final
+          from gen_public_beta_blocker_report_v1_5 import build as build_blockers
+          from gen_release_evidence_manifest_v1_5 import build as build_release
+          from run_controlled_testnet_go_gate_v1_5 import build as build_controlled
+
+          root = Path.cwd()
+
+          def write(rel: str, payload: dict) -> None:
+              path = root / rel
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+              print(f"wrote {rel}")
+
+          # B587 intentionally remains a bounded NO-GO artifact when its own
+          # mechanism-completion conditions are false. Generate it without
+          # treating that truthful NO-GO return posture as a workflow failure.
+          write("generated/b587_b594_testnet_mechanism_completion_v1_5.json", build_b587())
+          write("generated/public_beta_blocker_report_v1_5.json", build_blockers())
+          write("generated/release_evidence_manifest_v1_5.json", build_release())
+          write("generated/controlled_testnet_go_gate_v1_5.json", build_controlled())
+          write("generated/final_public_observer_controlled_testnet_go_gate_v1_5.json", build_final())
+          # Release manifest hashes the final gate and B587. Refresh once more
+          # after both are current. Final/controlled only summarize release
+          # posture, not its digest, so this reaches a deterministic fixed point.
+          write("generated/release_evidence_manifest_v1_5.json", build_release())
+          PY
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
@@ -100,7 +129,7 @@ jobs:
       - name: Commit bounded closure evidence refresh
         run: |
           set -Eeuo pipefail
-          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py" && p != "Weall-Protocol/generated/api_response_vectors_v1_5.json" && p != "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json" && p != "Weall-Protocol/generated/release_evidence_manifest_v1_5.json" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py" && p != "Weall-Protocol/generated/api_response_vectors_v1_5.json" && p != "Weall-Protocol/generated/b587_b594_testnet_mechanism_completion_v1_5.json" && p != "Weall-Protocol/generated/controlled_testnet_go_gate_v1_5.json" && p != "Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json" && p != "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json" && p != "Weall-Protocol/generated/release_evidence_manifest_v1_5.json" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
           if [[ -n "$BAD" ]]; then
             echo 'Unexpected closure-refresh changes:' >&2
             printf '%s\n' "$BAD" >&2
@@ -109,6 +138,9 @@ jobs:
           git add \
             Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py \
             Weall-Protocol/generated/api_response_vectors_v1_5.json \
+            Weall-Protocol/generated/b587_b594_testnet_mechanism_completion_v1_5.json \
+            Weall-Protocol/generated/controlled_testnet_go_gate_v1_5.json \
+            Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json \
             Weall-Protocol/generated/public_beta_blocker_report_v1_5.json \
             Weall-Protocol/generated/release_evidence_manifest_v1_5.json \
             Weall-Protocol/generated/v2 \
@@ -140,7 +172,10 @@ jobs:
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
           PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check
           PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check
           PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
@@ -169,4 +204,4 @@ jobs:
           git push origin HEAD:p0-evidence-closure-a10-a12-vectors-20261001
 
 # Branch-only helper; never merge this workflow into a product branch.
-# Retry after Ruff cleanup on the evidence branch.
+# Refreshes truthful NO-GO evidence dependencies to a deterministic fixed point.
