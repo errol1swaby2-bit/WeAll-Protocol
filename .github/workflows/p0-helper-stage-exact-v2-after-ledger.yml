@@ -165,6 +165,17 @@ jobs:
           path.write_text(text.replace(old, new, 1), encoding="utf-8")
           PY
 
+          cd Weall-Protocol
+          ruff format \
+            tests/test_governance_no_creator_fallback_for_executable_prod.py \
+            tests/test_economics_activation_requires_hardened_governance_electorate.py \
+            tests/test_nonce_failure_block_progression.py \
+            tests/test_review_coverage_read_models.py \
+            tests/test_validator_bft_economics_go_gates.py \
+            tests/test_p0_group_treasury_governance_binding.py \
+            src/weall/runtime/block_builder.py
+          cd ..
+
           git add Weall-Protocol/tests Weall-Protocol/src/weall/runtime/block_builder.py
           if ! git diff --cached --quiet; then
             git commit -m 'test(p0): align legacy fixtures with hardened closure semantics'
