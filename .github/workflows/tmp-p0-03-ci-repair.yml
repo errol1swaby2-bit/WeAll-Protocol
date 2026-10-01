@@ -38,7 +38,7 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Repair helper-free source tree and regenerate v2 derivatives
+      - name: Repair helper-free source tree and regenerate artifacts
         run: |
           set -Eeuo pipefail
           cd Weall-Protocol
@@ -81,15 +81,16 @@ jobs:
           cd ..
           rm .github/workflows/tmp-p0-03-ci-repair.yml
           cd Weall-Protocol
+          PYTHONPATH=src:scripts python scripts/gen_failure_code_registry_v1_5.py
           PYTHONPATH=src python scripts/compile_v2_spec.py
           cd ..
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git diff --cached --check
-          git commit -m 'fix(ci): register P0-03 contracts and format runtime [tested-tree]'
+          git commit -m 'fix(ci): synchronize P0-03 protocol contracts and generated evidence [tested-tree]'
 
-      - name: Ruff and v2 exact-current checks
+      - name: Exact-current and focused validation
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -103,16 +104,11 @@ jobs:
             src/weall/runtime/bft_runtime_adapter.py \
             src/weall/runtime/bft_votecheck.py \
             tests/test_p0_03_certified_branch_transition.py
+          PYTHONPATH=src:scripts python scripts/gen_failure_code_registry_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
-
-      - name: Focused P0-03 and compiler regressions
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          PYTHONPATH=src pytest -q \
-            tests/test_p0_03_certified_branch_transition.py \
-            tests/test_v2_spec_compiler.py
+          PYTHONPATH=src pytest -q tests/test_p0_03_certified_branch_transition.py tests/test_v2_spec_compiler.py
 
       - name: Install frontend dependencies
         working-directory: web
