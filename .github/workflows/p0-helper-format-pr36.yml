@@ -1,0 +1,57 @@
+name: P0 helper format PR36
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-format-pr36.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-pr36:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout product branch
+        uses: actions/checkout@v4
+        with:
+          ref: p0-evidence-closure-a10-a12-vectors-20261001
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Ruff
+        run: python -m pip install 'ruff==0.15.22'
+
+      - name: Format exact stale files
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format \
+            scripts/gen_api_response_vectors_v1_5.py \
+            tests/test_p0_a10_a12_generated_contract_closure.py
+          ruff format --check \
+            scripts/gen_api_response_vectors_v1_5.py \
+            tests/test_p0_a10_a12_generated_contract_closure.py
+          ruff check \
+            scripts/gen_api_response_vectors_v1_5.py \
+            tests/test_p0_a10_a12_generated_contract_closure.py
+
+      - name: Commit bounded formatting repair
+        run: |
+          set -Eeuo pipefail
+          git add \
+            Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py \
+            Weall-Protocol/tests/test_p0_a10_a12_generated_contract_closure.py
+          test -z "$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py" && p != "Weall-Protocol/tests/test_p0_a10_a12_generated_contract_closure.py") print}')"
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'style(p0): satisfy PR-wide Ruff formatting gate'
+            git push origin HEAD:p0-evidence-closure-a10-a12-vectors-20261001
+          fi
