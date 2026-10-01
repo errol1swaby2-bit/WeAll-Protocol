@@ -766,8 +766,11 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
         desired = _as_bool(payload.get("enabled"), True)
 
     activation_report: Json | None = None
+    chain_id = _as_str(params.get("chain_id") or state.get("chain_id")).lower()
+    production_chain = chain_id == "weall-prod"
     if bool(desired) and (
-        _as_bool(payload.get("enforce_preconditions"), False)
+        production_chain
+        or _as_bool(payload.get("enforce_preconditions"), False)
         or bool(params.get("economics_activation_preconditions_required", False))
     ):
         activation_report = _require_activation_preconditions(state)

@@ -1697,8 +1697,15 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
         raise ApplyError("forbidden", "only_creator_can_edit", {"proposal_id": proposal_id})
 
     stg = _stage(pr)
-    # Creator may edit in Draft and Revision. We also keep "voting" editable for
-    # legacy proposals that started in voting (older tests / deployments).
+    # In strict/production civic governance, opening the ballot freezes the
+    # proposal object that existing votes authorize. Legacy/local compatibility
+    # fixtures may retain historical voting-stage edits, but production cannot.
+    if stg == "voting" and strict_civic_governance_enabled(state):
+        raise ApplyError(
+            "forbidden",
+            "proposal_frozen_for_voting",
+            {"proposal_id": proposal_id, "stage": stg},
+        )
     if stg not in {"draft", "revision", "voting"}:
         raise ApplyError(
             "forbidden", "proposal_not_editable", {"proposal_id": proposal_id, "stage": stg}
