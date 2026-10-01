@@ -328,7 +328,7 @@
   "evidence_gate_summaries": {
     "api_response_vectors": {
       "ok": true,
-      "vector_count": 42
+      "vector_count": 47
     },
     "clean_clone_gate": {
       "backend_wrapper_path": "Weall-Protocol/scripts/run_clean_clone_go_gate_v1_5.sh",
@@ -487,7 +487,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "31f35005c30af53736465700acb3279c95bcfdc271fd434d7ba8df8894c30682",
+      "artifact_digest": "c0daacfd74a98d16460520b490db8ed60ef9ae5677a7cc00396de48a26e5af09",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
