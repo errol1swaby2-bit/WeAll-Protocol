@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "b220825eef695e767905c5ac022c95707342239d19b835d48a6b6c946b0708c1"
+    "source_tree_digest": "849aac2cf14fe346bd06e2f96d8ab2a12dfacfd060d42432f963eef75ba339be"
   },
   "required_fields": [
     "stable_id",
@@ -7524,6 +7524,7 @@
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
@@ -8406,6 +8407,7 @@
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_a01_a20_closure_regressions.py",
+        "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",

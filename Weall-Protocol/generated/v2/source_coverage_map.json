@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1967,
+  "file_count": 1968,
   "files": [
     {
       "affected_registers": [
@@ -6719,7 +6719,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "ef2f0180677a1be3fa884d15ba65aba22af6d4c3b158c9f5e6d5203ebf77848a",
+      "sha256": "22660c23647bf49a93c1a8a18706379442b41dae9a4d3f1935655633edc3659a",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6745,7 +6745,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "00a1754d358d9558bc40c7472f6ee707040528a52114633d649549a2b699f1d5",
+      "sha256": "ea6976bdd0f672552e1eadd21000025acacc90d2e27ef71f6040f3f4aded56ae",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -8755,7 +8755,7 @@
       ],
       "path": "src/weall/runtime/apply/governance.py",
       "primary_mechanism_id": "M-049",
-      "sha256": "8955f33c572c377e6473633656c0b5163e4cc8f3fe24bfa8ab82248ad9f3cdc8",
+      "sha256": "a7b0e22816efecfbb03e69f5262c58f876e578d7bde36ab872d2b2434d4128a7",
       "source_id": "SRC-A6C282C450952C4C"
     },
     {
@@ -8771,6 +8771,7 @@
         "STATE-095308102B6D3E50",
         "STATE-0C50D20F3DFA8EC0",
         "STATE-0CBF73C7F7AA0334",
+        "STATE-0D9C4F570C55E4C1",
         "STATE-0F33849FBC2D7E12",
         "STATE-11728A289742C9D6",
         "STATE-1243AE833EA25395",
@@ -8779,6 +8780,7 @@
         "STATE-15F560A8F4A3C665",
         "STATE-20007B48C20E0DE7",
         "STATE-25D22476E5525971",
+        "STATE-25E5261F17FC6847",
         "STATE-2C618968914C3685",
         "STATE-2FAE0AA965115180",
         "STATE-32B80BE6447BCEB1",
@@ -8804,8 +8806,10 @@
         "STATE-7009CE978FDE1F1A",
         "STATE-7544C4D554F0399C",
         "STATE-75CC4DC646825617",
+        "STATE-77AEC9D4075070E1",
         "STATE-79BFBB247E034A56",
         "STATE-7CBF18AB180C1ADB",
+        "STATE-808FC2C8D6D73D88",
         "STATE-818A9D89BCA77A06",
         "STATE-8277B97A5F9F8805",
         "STATE-82C342DF742F1F1F",
@@ -8823,6 +8827,7 @@
         "STATE-A475BA5E600FE69D",
         "STATE-A807A091EA646F7F",
         "STATE-AC3F2B6D10F26726",
+        "STATE-B0BAA8A40027CF32",
         "STATE-B18921EA6946043C",
         "STATE-B3EBC1CF7F74427C",
         "STATE-B6502060EAEB1888",
@@ -8876,7 +8881,7 @@
       ],
       "path": "src/weall/runtime/apply/groups.py",
       "primary_mechanism_id": "M-039",
-      "sha256": "01923dbe38f80463cc31f66d36adceac0cad11b38d811ca33a9ac7c3981a3e92",
+      "sha256": "198850a60f999ec9b536cf71be1ad1319184f6101ca29a813406916b672c6a23",
       "source_id": "SRC-A3A8E7E2A1832F87"
     },
     {
@@ -10650,7 +10655,7 @@
       ],
       "path": "src/weall/runtime/group_treasury_scheduler.py",
       "primary_mechanism_id": "M-063",
-      "sha256": "dab118391991638fe2e9bf05d57965d0230b31190ffce4def72bb821f246898d",
+      "sha256": "25212fe950caa44570b6063db1ee9a7acb6444408712a33309d74254b47e07e3",
       "source_id": "SRC-FB6E5739DC3CBD99"
     },
     {
@@ -21878,13 +21883,34 @@
       "mappings": [
         "M-076",
         "ROUTE-150316944D629C32",
+        "TX-0400",
         "TX-0401",
+        "TX-0406",
         "TX-1301"
       ],
       "path": "tests/test_p0_governance_economics_closure.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "aa2fe2598c77b9b3533b100939b4d7b28e2aeb1824fb9898919271bba39917e8",
+      "sha256": "bdfc2c8a43db8015e8e2b95ae32afffeb1fdf4571c5d3699b6b8ce91643d27e2",
       "source_id": "SRC-06F4ADFDE58A100D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0406",
+        "TX-0408",
+        "TX-0508",
+        "TX-1713"
+      ],
+      "path": "tests/test_p0_group_treasury_governance_binding.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "8b3390ee90153c69f7fa679ffbdafaac2cdcb966101357973cc85af5f929ff3b",
+      "source_id": "SRC-10F616BC31579562"
     },
     {
       "affected_registers": [

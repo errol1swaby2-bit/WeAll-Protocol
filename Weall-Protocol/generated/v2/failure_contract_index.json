@@ -1,5 +1,5 @@
 {
-  "count": 558,
+  "count": 561,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "b220825eef695e767905c5ac022c95707342239d19b835d48a6b6c946b0708c1"
+    "source_tree_digest": "849aac2cf14fe346bd06e2f96d8ab2a12dfacfd060d42432f963eef75ba339be"
   },
   "rows": [
     {
@@ -2206,6 +2206,63 @@
         "TX-1710",
         "TX-1711",
         "TX-1717"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "group_spend_governance_approval_required",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-02A9019B0E52AC96",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1713"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "group_spend_governance_plan_mismatch",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-7DD872F0D3FC9AB9",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1713"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "group_spend_governance_queue_binding_mismatch",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-7A7C0462ED3B372E",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1713"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"

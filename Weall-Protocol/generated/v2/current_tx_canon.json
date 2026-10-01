@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "b220825eef695e767905c5ac022c95707342239d19b835d48a6b6c946b0708c1"
+    "source_tree_digest": "849aac2cf14fe346bd06e2f96d8ab2a12dfacfd060d42432f963eef75ba339be"
   },
   "rows": [
     {
@@ -9888,7 +9888,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9955,6 +9955,7 @@
         "tests/test_lineage_witness_contract.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_m3_electorate_round_policy.py",
+        "tests/test_p0_governance_economics_closure.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_priority4_invariant_fuzz.py",
@@ -10007,7 +10008,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10098,7 +10099,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10185,7 +10186,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10283,7 +10284,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10390,7 +10391,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10478,7 +10479,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10529,6 +10530,8 @@
         "tests/test_governance_no_creator_fallback_for_executable_prod.py",
         "tests/test_governance_runtime_surface.py",
         "tests/test_governance_system_queue_autoprogress.py",
+        "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_protocol_blocker_safety.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
@@ -10576,7 +10579,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10668,7 +10671,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10691,9 +10694,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "ddb6ff327661c1b374da1ba40d8a9b5719738302364ffa18666ce3f8a4557c69",
-        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
-        "reviewed_at": "2026-09-29T22:53:56Z",
-        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-01T01:11:01Z",
+        "reviewer": "ChatGPT-assisted maintainer P0 closure review; independent review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0408",
@@ -10763,6 +10766,7 @@
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_protocol_blocker_safety.py",
@@ -10812,7 +10816,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12468,6 +12472,7 @@
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_four_gate_safety.py",
         "tests/test_governance_execution_vectors_v1.py",
+        "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_tx_schema_treasury_groups.py",
         "tests/test_wallet_treasury_governance_reputation_safety.py"
@@ -21271,7 +21276,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21359,7 +21364,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21453,7 +21458,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21548,7 +21553,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21640,7 +21645,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2684,
+        "line": 2774,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21730,7 +21735,7 @@
       "implementation_source": {
         "function": "_apply_group_create",
         "handler": "groups",
-        "line": 520,
+        "line": 521,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21841,7 +21846,7 @@
       "implementation_source": {
         "function": "_apply_group_update",
         "handler": "groups",
-        "line": 612,
+        "line": 613,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21932,7 +21937,7 @@
       "implementation_source": {
         "function": "_apply_group_role_grant",
         "handler": "groups",
-        "line": 637,
+        "line": 638,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22022,7 +22027,7 @@
       "implementation_source": {
         "function": "_apply_group_role_revoke",
         "handler": "groups",
-        "line": 664,
+        "line": 665,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22114,7 +22119,7 @@
       "implementation_source": {
         "function": "_apply_group_membership_request",
         "handler": "groups",
-        "line": 690,
+        "line": 691,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22234,7 +22239,7 @@
       "implementation_source": {
         "function": "_apply_group_membership_decide",
         "handler": "groups",
-        "line": 793,
+        "line": 794,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22334,7 +22339,7 @@
       "implementation_source": {
         "function": "_apply_group_membership_remove",
         "handler": "groups",
-        "line": 852,
+        "line": 853,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22427,7 +22432,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_create",
         "handler": "groups",
-        "line": 982,
+        "line": 983,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22523,7 +22528,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_policy_set",
         "handler": "groups",
-        "line": 1333,
+        "line": 1369,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22654,7 +22659,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_propose",
         "handler": "groups",
-        "line": 1016,
+        "line": 1017,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22782,7 +22787,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_sign",
         "handler": "groups",
-        "line": 1120,
+        "line": 1121,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22810,9 +22815,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "958c0ca36ba121903d4cb362fc861dee3355b6e1dc441517e29692c96c940745",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T19:00:00Z",
-        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-01T01:11:01Z",
+        "reviewer": "ChatGPT-assisted maintainer P0 closure review; independent review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1710",
@@ -22893,7 +22898,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_cancel",
         "handler": "groups",
-        "line": 1186,
+        "line": 1187,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22987,7 +22992,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_expire",
         "handler": "groups",
-        "line": 1371,
+        "line": 1407,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23076,6 +23081,18 @@
         },
         {
           "code": "forbidden",
+          "reason": "group_spend_governance_approval_required"
+        },
+        {
+          "code": "forbidden",
+          "reason": "group_spend_governance_plan_mismatch"
+        },
+        {
+          "code": "forbidden",
+          "reason": "group_spend_governance_queue_binding_mismatch"
+        },
+        {
+          "code": "forbidden",
           "reason": "insufficient_group_treasury_balance"
         },
         {
@@ -23131,7 +23148,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_execute",
         "handler": "groups",
-        "line": 1223,
+        "line": 1224,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23159,21 +23176,26 @@
       "semantic_review": {
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "efc2d3931533d875c8e488ed873ee9b8dfb8ce725388ec2ccdba05b8784c078b",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T19:00:00Z",
-        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
+        "review_digest": "b846d2a941335b88ff3b66a3b375faa4df27d6afbf248c9137b7921236736d79",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-01T01:11:01Z",
+        "reviewer": "ChatGPT-assisted maintainer P0 closure review; independent review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1713",
       "state_reads": [
+        "key:_approved_spend_plan_hash",
+        "key:_governance_proposal_id",
         "key:allowed_signers",
         "key:amount",
         "key:balance",
         "key:earliest_execute_height",
+        "key:governance_approval",
         "key:group_treasury_spends",
+        "key:proposal_id",
         "key:signatures",
         "key:spend_id",
+        "key:spend_plan_hash",
         "key:status",
         "key:threshold",
         "key:to",
@@ -23197,6 +23219,7 @@
       "tests": [
         "tests/test_four_gate_safety.py",
         "tests/test_governance_execution_vectors_v1.py",
+        "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_tx_schema_treasury_groups.py",
         "tests/test_wallet_treasury_governance_reputation_safety.py"
@@ -23253,7 +23276,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_audit_anchor_set",
         "handler": "groups",
-        "line": 1785,
+        "line": 1821,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23356,7 +23379,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_election_create",
         "handler": "groups",
-        "line": 1402,
+        "line": 1438,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23498,7 +23521,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_ballot_cast",
         "handler": "groups",
-        "line": 1479,
+        "line": 1515,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23628,7 +23651,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_election_finalize",
         "handler": "groups",
-        "line": 1653,
+        "line": 1689,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27463,7 +27486,7 @@
       "implementation_source": {
         "function": "_apply_group_signers_set",
         "handler": "groups",
-        "line": 873,
+        "line": 874,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27569,7 +27592,7 @@
       "implementation_source": {
         "function": "_apply_group_moderators_set",
         "handler": "groups",
-        "line": 951,
+        "line": 952,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
