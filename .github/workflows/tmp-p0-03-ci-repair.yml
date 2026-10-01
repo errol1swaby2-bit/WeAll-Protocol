@@ -82,6 +82,8 @@ jobs:
           rm .github/workflows/tmp-p0-03-ci-repair.yml
           cd Weall-Protocol
           PYTHONPATH=src:scripts python scripts/gen_failure_code_registry_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
           PYTHONPATH=src python scripts/compile_v2_spec.py
           cd ..
           git config user.name 'github-actions[bot]'
@@ -105,6 +107,8 @@ jobs:
             src/weall/runtime/bft_votecheck.py \
             tests/test_p0_03_certified_branch_transition.py
           PYTHONPATH=src:scripts python scripts/gen_failure_code_registry_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
           PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
