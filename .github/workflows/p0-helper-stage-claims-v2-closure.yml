@@ -1,0 +1,91 @@
+name: P0 helper stage claims and exact V2 closure
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-stage-claims-v2-closure.yml
+
+permissions:
+  contents: write
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-v2-exact-staging-20261001
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Refresh current verified claims before V2 evidence
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_current_verified_claims.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_public_claim_freshness.py
+
+      - name: Refresh V2 against the final claims tree
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Commit only claims and V2 derivatives
+        run: |
+          set -Eeuo pipefail
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/generated/current_verified_claims.json" && p != "Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          if [[ -n "$BAD" ]]; then
+            echo 'Unexpected changes:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          git add \
+            Weall-Protocol/generated/current_verified_claims.json \
+            Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md \
+            Weall-Protocol/generated/v2 \
+            web/src/generated/protocolStatus.ts
+          if git diff --cached --quiet; then
+            echo 'Claims and V2 derivatives already current'
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'chore(p0): refresh current claims and exact-tree V2 evidence'
+          fi
+          test -z "$(git status --short --untracked-files=all)"
+
+      - name: Prove the committed tree and push staging ref
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+          cd ..
+          test -z "$(git status --short --untracked-files=all)"
+          git push origin HEAD:p0-v2-exact-staging-20261001
