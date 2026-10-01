@@ -49,20 +49,21 @@ jobs:
               start = text.index(start_token)
               marker = '        "accounts": {\n'
               pos = text.index(marker, start)
-              block = f'''        "ballot_profile": {{
-              "profile_id": "{profile_id}",
-              "active": True,
-          }},
-          "ballot_profile_activation_receipts": [
-              {{
-                  "profile_id": "{profile_id}",
-                  "status": "active",
-                  "profile_hash": "{hash_char}" * 64,
-                  "allowed_modes": ["prod", "production"],
-                  "independent_review_complete": True,
-              }}
-          ],
-          '''
+              block = (
+                  '        "ballot_profile": {\n'
+                  f'            "profile_id": "{profile_id}",\n'
+                  '            "active": True,\n'
+                  '        },\n'
+                  '        "ballot_profile_activation_receipts": [\n'
+                  '            {\n'
+                  f'                "profile_id": "{profile_id}",\n'
+                  '                "status": "active",\n'
+                  f'                "profile_hash": "{hash_char}" * 64,\n'
+                  '                "allowed_modes": ["prod", "production"],\n'
+                  '                "independent_review_complete": True,\n'
+                  '            }\n'
+                  '        ],\n'
+              )
               path.write_text(text[:pos] + block + text[pos:], encoding="utf-8")
 
           insert_profile(
@@ -86,34 +87,42 @@ jobs:
           )
 
           text = fully.read_text(encoding="utf-8")
-          marker = '    apply_dispute(\n        state, _env("DISPUTE_APPEAL", "@alice", 63, {"dispute_id": "d1", "reason": "remedy"})\n    )\n'
+          marker = (
+              '    apply_dispute(\n'
+              '        state,\n'
+              '        _env("DISPUTE_APPEAL", "@alice", 63, {"dispute_id": "d1", "reason": "remedy"}),\n'
+              '    )\n'
+          )
           if "@appeal-1" not in text:
               if marker not in text:
                   raise SystemExit("appeal insertion anchor not found")
-              pool = '''    # Strict production appeals require a completely fresh constitutional panel.
-          # Add nine Tier-2 dispute-review volunteers after the original decision so
-          # they cannot alter the first-round panel, but can satisfy 7 jurors + 2 substitutes.
-          for idx in range(1, 10):
-              account_id = f"@appeal-{idx}"
-              state["accounts"][account_id] = {
-                  "nonce": 0,
-                  "poh_tier": 2,
-                  "reputation": 5,
-              }
-              state["roles"]["jurors"]["active_set"].append(account_id)
-              state["roles"]["jurors"]["by_id"][account_id] = {
-                  "account_id": account_id,
-                  "active": True,
-                  "status": "active",
-                  "enrolled": True,
-                  "responsibilities": {
-                      "reviewer": {
-                          "dispute_review": {"opted_in": True, "active": True}
-                      }
-                  },
-              }
-
-          '''
+              pool = "".join(
+                  [
+                      "    # Strict production appeals require a completely fresh constitutional panel.\n",
+                      "    # Add nine Tier-2 dispute-review volunteers after the original decision so\n",
+                      "    # they cannot alter the first-round panel, but can satisfy 7 jurors + 2 substitutes.\n",
+                      "    for idx in range(1, 10):\n",
+                      '        account_id = f"@appeal-{idx}"\n',
+                      '        state["accounts"][account_id] = {\n',
+                      '            "nonce": 0,\n',
+                      '            "poh_tier": 2,\n',
+                      '            "reputation": 5,\n',
+                      '        }\n',
+                      '        state["roles"]["jurors"]["active_set"].append(account_id)\n',
+                      '        state["roles"]["jurors"]["by_id"][account_id] = {\n',
+                      '            "account_id": account_id,\n',
+                      '            "active": True,\n',
+                      '            "status": "active",\n',
+                      '            "enrolled": True,\n',
+                      '            "responsibilities": {\n',
+                      '                "reviewer": {\n',
+                      '                    "dispute_review": {"opted_in": True, "active": True}\n',
+                      '                }\n',
+                      '            },\n',
+                      '        }\n',
+                      "\n",
+                  ]
+              )
               text = text.replace(marker, pool + marker, 1)
               fully.write_text(text, encoding="utf-8")
           PY
