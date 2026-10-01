@@ -1,0 +1,58 @@
+name: P0 temporary dev-lock refresh
+
+on:
+  push:
+    branches:
+      - p0-closure-a01-a20-20260930
+    paths:
+      - .github/workflows/p0-temp-refresh-dev-lock.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-dev-lock:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Regenerate only the vulnerable urllib3 resolution
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          python -m pip install 'pip-tools==7.6.1' 'pip-audit==2.10.1'
+          pip-compile \
+            --allow-unsafe \
+            --generate-hashes \
+            --no-emit-index-url \
+            --no-emit-trusted-host \
+            --strip-extras \
+            --upgrade-package urllib3 \
+            --output-file=requirements-dev.lock \
+            requirements-dev.in
+          pip-audit -r requirements-dev.lock
+          grep -A3 '^urllib3==' requirements-dev.lock
+
+      - name: Commit regenerated lock only
+        run: |
+          set -Eeuo pipefail
+          git diff --exit-code -- Weall-Protocol/requirements.in Weall-Protocol/requirements.lock
+          test -z "$(git status --short --untracked-files=all | awk '$2 != "Weall-Protocol/requirements-dev.lock" {print}')"
+          git add Weall-Protocol/requirements-dev.lock
+          if git diff --cached --quiet; then
+            echo 'requirements-dev.lock already current'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(deps): refresh audited dev lock'
+          git push origin HEAD:p0-closure-a01-a20-20260930
