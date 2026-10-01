@@ -25,8 +25,8 @@ This document is deliberately stricter than a normal PR checklist. A runtime pat
 | P0-04 Follower receipt canonicality | A06-F001, A16-F002 | PATCHED / EVIDENCE PENDING | Durable commit now revalidates complete block commitments before persistence. Needs follower tamper, restart/readback, proposal/replay parity, and full-suite proof. |
 | P0-05 P2P mutual auth / frame sizing | A07-F001, A07-F002 | IMPLEMENTATION BLOCKER | Requires fresh session-bound mutual peer authentication and a single protocol-valid wire-size contract/chunking strategy. Audit explicitly rejects a boolean-only or limit-only cosmetic fix. |
 | P0-06 Human uniqueness / reviewer anti-grinding | A08-F001, A20-F001 | DESIGN BLOCKER | Must define protocol-level global uniqueness authority and commit-before-unpredictable-entropy reviewer selection. Applicant-controlled case ID cannot remain selection entropy. |
-| P0-07 Governance electorate / proposal binding / constitutional authority | A09-F001..F004, A16-F005 | PARTIAL | A09-F001 patched: `weall-prod` is recognized as production and ballot policy fails closed to the launch gate. A09-F003 patched for strict/production governance: once voting begins, the creator cannot mutate the proposal object existing ballots authorize. Remaining: verified-human electorate (A09-F002), constitutional amendment class + rights floor (A09-F004), and complete mutation/property proof (A16-F005). |
-| P0-08 Economics activation / treasury governance binding | A10-F001, A10-F002, A10-F005 | PARTIAL | A10-F001 patched: group-treasury execution is not scheduled while economics is locked/disabled. A10-F002 patched: enabling economics on `weall-prod` always executes the existing activation-precondition report even if the payload/state opt-in flags are false. Remaining: governance-approved spend commitment binding (A10-F005). |
+| P0-07 Governance electorate / proposal binding / constitutional authority | A09-F001..F004, A16-F005 | PARTIAL | A09-F001 patched: `weall-prod` is strict production civic governance. A09-F002 patched/evidence-pending: strict executable governance uses a snapshotted Tier-2 human electorate, with a regression proving a Tier-0 validator is excluded while a non-validator Tier-2 human is included. A09-F003 patched/evidence-pending: voting-stage mutation is rejected on strict chains and `GOV_EXECUTE` must execute the exact proposal action snapshot rather than substituted SYSTEM payload actions. Remaining design blocker: constitutional amendment class + rights-floor enforcement (A09-F004), plus broader mutation/property/restart evidence (A16-F005). |
+| P0-08 Economics activation / treasury governance binding | A10-F001, A10-F002, A10-F005 | PATCHED / EVIDENCE PENDING | A10-F001: strict/configured economic states do not schedule group-treasury value execution while economics is locked/disabled. A10-F002: enabling economics on `weall-prod` unconditionally runs the existing readiness-precondition report. A10-F005: strict group-treasury execution now requires both execution multisig and a governance approval bound to the immutable spend plan; scheduler and apply paths verify proposal/plan bindings. Focused authority regressions reached 25/25. Remaining closure evidence includes restart/replay, finalization/challenge-delay policy proof, broader group cases, generated exact-head proof, and full suite. |
 | P0-09 PoH API authorization/privacy | A12-F001, A18-F002 | PATCHED / EVIDENCE PENDING | Scoped account/juror queues are session/principal bound; Tier-2/Live full-case internal projections are participant-only. Needs runtime API matrix, generated contract/vector regeneration, and same-tree contract truth proof. |
 | P0-10 Bounded production state / state sync / permanent account state | A15-F001..F003 | DESIGN + IMPLEMENTATION BLOCKER | Requires bounded ancestry commitment/history architecture, finite authenticated state-sync work/response envelope, and protocol-level permanent-state scarcity/identity bootstrap policy. |
 | P0-11 Property/mutation gate | A16-F001 | IMPLEMENTATION BLOCKER | Add locked property/mutation framework, deterministic seeds, P0 mutation operators, survivor artifact, and CI gate. Must exercise lifecycle boundaries rather than only local functions. |
@@ -35,6 +35,22 @@ This document is deliberately stricter than a normal PR checklist. A runtime pat
 ## Additional CI blocker discovered during closure
 
 The first P0 branch backend run reached the dependency audit and found that `requirements-dev.lock` pinned `urllib3==2.7.0`, which the current advisory feed reports vulnerable. The runtime lock audited clean. A temporary branch-only workflow regenerated the dev lock with `urllib3==2.8.0`, ran `pip-audit`, committed only the regenerated lock, and was then deleted. This is a CI/readiness repair discovered while preparing closure; it is not being retroactively counted as one of the A01–A20 findings.
+
+## Current focused evidence
+
+The governance/economics/treasury authority closure batch has passed 25 focused regressions covering:
+
+- production executable-governance Tier-2 electorate selection;
+- production voting-stage proposal immutability;
+- unconditional production economics readiness checks;
+- strict multisig threshold without governance approval does not schedule execution;
+- strict treasury execution without governance approval is rejected;
+- governance approval binds the exact group/spend/treasury/recipient/amount plan;
+- mutation of approved spend terms is rejected;
+- strict `GOV_EXECUTE` rejects executable actions that differ from the proposal action snapshot;
+- existing fail-closed group-treasury, system-queue lifecycle, and four-gate safety regressions.
+
+These focused passes are not equivalent to full P0 closure. Exact-head generated derivatives and the complete backend/reviewer-readiness suites are still required after the final source tree is frozen.
 
 ## Merge / closure prohibition
 
@@ -50,10 +66,10 @@ PR #33 remains a draft and MUST NOT be converted to merge-ready while any of the
 
 ## Next implementation order
 
-1. Get current mechanical patches through dependency audit, canon/generated checks, focused regressions, and full pytest.
-2. Close A10-F005 with an explicit governance approval/spend-plan commitment contract; do not treat multisig threshold as political authorization.
-3. Implement A05/A07/A15 architecture tracks with dedicated adversarial/multinode tests.
+1. Refresh exact-head V2 derivatives for the current source tree, then get Backend CI and Reviewer Readiness through full pytest rather than stopping at generated-artifact verification.
+2. Add restart/replay and broader adversarial closure evidence for the already-patched A02/A04/A06/A09/A10/A12 findings.
+3. Implement A05/A07/A15 architecture tracks only from explicit designs, with dedicated adversarial/multinode/stress evidence.
 4. Adjudicate A08/A20 human-uniqueness and anti-grinding design together so reviewer selection and uniqueness have one coherent trust model.
-5. Complete the remaining governance electorate/constitutional authority design and implementation for A09-F002/A09-F004.
+5. Design and implement the A09-F004 constitutional amendment class and rights-floor enforcement rather than reusing ordinary governance thresholds.
 6. Install the A16 property/mutation gate and kill the P0 mutation classes.
 7. Regenerate A18 claim/evidence truth artifacts and capture final exact-commit closure evidence.
