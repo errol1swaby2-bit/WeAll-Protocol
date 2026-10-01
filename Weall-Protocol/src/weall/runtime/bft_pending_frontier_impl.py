@@ -227,7 +227,13 @@ def _prune_pending_bft_artifacts_on_local_validator_transition(
         and str(previous_set_hash or "").strip() == str(current_set_hash or "").strip()
     ):
         return False
-    return self._prune_pending_bft_artifacts()
+    changed = self._prune_pending_bft_artifacts()
+    reset = getattr(self._bft, "reset_for_validator_generation", None)
+    if not callable(reset):
+        raise ExecutorError("bft_validator_generation_reset_missing")
+    reset(finalized_block_id=str(self.state.get("tip") or "").strip())
+    self._persist_bft_state()
+    return bool(changed or True)
 
 
 def _cache_known_block_hash(self, block_id: str, block_hash: str) -> None:
@@ -1170,6 +1176,30 @@ def _bft_parent_ready_for_apply(self, block: Json) -> bool:
     return self._has_local_block(parent_id)
 
 
+def _finalized_replay_path_ids(self, finalized_block_id: str) -> set[str] | None:
+    finalized = str(finalized_block_id or "").strip()
+    local_tip = str(self.state.get("tip") or "").strip()
+    if not finalized or finalized == local_tip:
+        return set()
+    blocks = self._bft_speculative_blocks_map()
+    path: set[str] = set()
+    cur = finalized
+    seen: set[str] = set()
+    limit = max(1, int(getattr(self, "_max_pending_remote_blocks", 1024) or 1024)) + 1
+    while cur and cur != local_tip:
+        if cur in seen or len(path) >= limit:
+            return None
+        seen.add(cur)
+        rec = blocks.get(cur)
+        if not isinstance(rec, dict):
+            return None
+        path.add(cur)
+        cur = str(rec.get("prev_block_id") or "").strip()
+    if cur != local_tip:
+        return None
+    return path
+
+
 def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
     """Attempt deterministic catch-up replay for pending BFT blocks.
 
@@ -1186,6 +1216,11 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
     allow_qc_replay = _mode() != "prod"
     if not finalized_block_id and not allow_qc_replay:
         return results
+    finalized_replay_path: set[str] | None = None
+    if finalized_block_id and not allow_qc_replay:
+        finalized_replay_path = _finalized_replay_path_ids(self, finalized_block_id)
+        if finalized_replay_path is None:
+            return results
 
     scan_budget = max(1, int(getattr(self, "_max_pending_replay_scans_per_call", 64) or 64))
     apply_budget = max(1, int(getattr(self, "_max_pending_replay_applies_per_call", 8) or 8))
@@ -1224,7 +1259,17 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
             self._pending_replay_cursor = bid
             continue
         if finalized_block_id:
-            if not self._bft_block_is_applyable_finalized_descendant(blk, finalized_block_id):
+            if (
+                not allow_qc_replay
+                and finalized_replay_path is not None
+                and bid not in finalized_replay_path
+            ):
+                self._pending_replay_cursor = bid
+                scanned += 1
+                continue
+            if allow_qc_replay and not self._bft_block_is_applyable_finalized_descendant(
+                blk, finalized_block_id
+            ):
                 self._pending_replay_cursor = bid
                 scanned += 1
                 continue

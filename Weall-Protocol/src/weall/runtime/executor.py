@@ -1922,6 +1922,7 @@ class WeAllExecutor:
         helper_receipts_by_lane: dict[str, list[Json]] | None = None,
         bft_justify_qc: Json | None = None,
         proposer: str = "",
+        base_state: Json | None = None,
     ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
         from weall.runtime import block_builder as _impl
 
@@ -1935,6 +1936,7 @@ class WeAllExecutor:
                 helper_receipts_by_lane=helper_receipts_by_lane,
                 bft_justify_qc=bft_justify_qc,
                 proposer=proposer,
+                base_state=base_state,
             )
 
     # ----------------------------
