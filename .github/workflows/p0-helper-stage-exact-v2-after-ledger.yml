@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: p0-evidence-closure-a02-a06-a12-20261001
+          ref: p0-evidence-closure-a10-a12-vectors-20261001
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -40,48 +40,97 @@ jobs:
           cd ../web
           npm ci
 
-      - name: Ruff closure evidence
-        working-directory: Weall-Protocol
+      - name: Patch A12 generated-vector truth source exactly
         run: |
           set -Eeuo pipefail
-          ruff format --check tests/test_p0_restart_and_poh_privacy_closure.py
-          ruff check tests/test_p0_restart_and_poh_privacy_closure.py
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Regenerate exact evidence-head V2 derivatives
+          path = Path("Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py")
+          text = path.read_text(encoding="utf-8")
+          vector_ids = (
+              "poh-async-my-cases-requires-session",
+              "poh-tier2-my-cases-session",
+              "poh-live-my-cases-session",
+          )
+          for vector_id in vector_ids:
+              marker = f'"id": "{vector_id}"'
+              start = text.index(marker)
+              next_start = text.find('\n    {\n        "id":', start + len(marker))
+              end = len(text) if next_start < 0 else next_start
+              block = text[start:end]
+              assert '"code": "session_required"' in block, vector_id
+              assert '["session_required", "session_mismatch"]' in block, vector_id
+              patched = block.replace(
+                  '"code": "session_required"',
+                  '"code": "poh_session_required"',
+                  1,
+              ).replace(
+                  '["session_required", "session_mismatch"]',
+                  '["poh_session_required", "poh_session_identity_mismatch"]',
+                  1,
+              )
+              assert patched != block, vector_id
+              text = text[:start] + patched + text[end:]
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Ruff A10 A12 closure evidence
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
+          ruff format --check \
+            tests/test_p0_a10_treasury_restart_replay.py \
+            tests/test_p0_a12_generated_vector_runtime_truth.py
+          ruff check \
+            tests/test_p0_a10_treasury_restart_replay.py \
+            tests/test_p0_a12_generated_vector_runtime_truth.py
+
+      - name: Regenerate A12 v1.5 truth evidence and exact V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
 
-      - name: Commit derivative-only refresh
+      - name: Commit bounded closure evidence refresh
         run: |
           set -Eeuo pipefail
-          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py" && p != "Weall-Protocol/generated/api_response_vectors_v1_5.json" && p != "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json" && p != "Weall-Protocol/generated/release_evidence_manifest_v1_5.json" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
           if [[ -n "$BAD" ]]; then
-            echo 'Unexpected non-derivative changes:' >&2
+            echo 'Unexpected closure-refresh changes:' >&2
             printf '%s\n' "$BAD" >&2
             exit 1
           fi
-          git add Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          git add \
+            Weall-Protocol/scripts/gen_api_response_vectors_v1_5.py \
+            Weall-Protocol/generated/api_response_vectors_v1_5.json \
+            Weall-Protocol/generated/public_beta_blocker_report_v1_5.json \
+            Weall-Protocol/generated/release_evidence_manifest_v1_5.json \
+            Weall-Protocol/generated/v2 \
+            web/src/generated/protocolStatus.ts
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m 'chore(p0): refresh A02 A06 A12 closure derivatives'
+            git commit -m 'chore(p0): bind A12 vectors and refresh A10 A12 evidence'
           fi
           test -z "$(git status --short --untracked-files=all)"
 
-      - name: Prove A02 A06 A12 closure paths
+      - name: Prove A10 restart replay and A12 generated-vector runtime truth
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           pytest -q \
-            tests/test_nonce_failure_block_progression.py \
-            tests/test_p0_restart_and_poh_privacy_closure.py \
+            tests/test_p0_a10_treasury_restart_replay.py \
+            tests/test_p0_a12_generated_vector_runtime_truth.py \
+            tests/test_p0_group_treasury_governance_binding.py \
+            tests/test_p0_governance_economics_closure.py \
             tests/test_p0_a01_a20_closure_regressions.py \
-            tests/test_pb001bo_canonical_block_hash_persistence.py \
-            tests/test_restricted_poh_session_and_webrtc_transport.py
+            tests/test_p0_restart_and_poh_privacy_closure.py
 
       - name: Verify exact committed generated state
         working-directory: Weall-Protocol
@@ -90,6 +139,9 @@ jobs:
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
+          PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
@@ -114,6 +166,6 @@ jobs:
       - name: Push validated evidence branch
         run: |
           set -Eeuo pipefail
-          git push origin HEAD:p0-evidence-closure-a02-a06-a12-20261001
+          git push origin HEAD:p0-evidence-closure-a10-a12-vectors-20261001
 
 # Branch-only helper; never merge this workflow into a product branch.
