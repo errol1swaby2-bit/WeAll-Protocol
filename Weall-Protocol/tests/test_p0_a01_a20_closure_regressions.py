@@ -203,9 +203,7 @@ def test_durable_commit_rejects_unbound_received_receipt_body(
     assert meta.ok is False
 
 
-def test_production_chain_identity_activates_strict_launch_gated_ballot_posture() -> (
-    None
-):
+def test_production_chain_identity_activates_strict_launch_gated_ballot_posture() -> None:
     """A09-F001: weall-prod may not silently inherit legacy/local ballot semantics."""
 
     status = ballot_profile_status({"chain_id": "weall-prod", "params": {}})
@@ -216,9 +214,7 @@ def test_production_chain_identity_activates_strict_launch_gated_ballot_posture(
     assert status["mode"] == "production"
 
 
-def test_group_treasury_execute_is_not_enqueued_while_economics_is_disabled() -> (
-    None
-):
+def test_group_treasury_execute_is_not_enqueued_while_economics_is_disabled() -> None:
     """A10-F001: mandatory SYSTEM work must not be scheduled to fail on the econ lock."""
 
     state = {
