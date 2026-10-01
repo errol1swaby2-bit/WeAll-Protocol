@@ -3,7 +3,10 @@ from __future__ import annotations
 import copy
 
 import pytest
+from fastapi import FastAPI, Request
 
+from weall.api.errors import ApiError
+from weall.api.poh_route_auth import enforce_poh_read_authorization
 from weall.runtime.ballot_policy import ballot_profile_status
 from weall.runtime.block_commit import commit_block_candidate
 from weall.runtime.block_hash import compute_block_hash, compute_receipts_root
@@ -214,3 +217,102 @@ def test_group_treasury_execute_is_not_enqueued_while_economics_is_disabled() ->
 
     assert queue_id is None
     assert state["system_queue"] == []
+
+
+class _ReadStateExecutor:
+    def __init__(self, state: dict) -> None:
+        self._state = state
+
+    def read_state(self) -> dict:
+        return copy.deepcopy(self._state)
+
+
+def _poh_request(
+    *,
+    path: str,
+    state: dict,
+    query_string: bytes = b"",
+    path_params: dict | None = None,
+) -> Request:
+    app = FastAPI()
+    app.state.executor = _ReadStateExecutor(state)
+    return Request(
+        {
+            "type": "http",
+            "http_version": "1.1",
+            "method": "GET",
+            "scheme": "http",
+            "path": path,
+            "raw_path": path.encode("utf-8"),
+            "query_string": query_string,
+            "headers": [],
+            "client": ("127.0.0.1", 12345),
+            "server": ("testserver", 80),
+            "app": app,
+            "path_params": dict(path_params or {}),
+        }
+    )
+
+
+def test_poh_scoped_queue_requires_session_and_exact_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A12-F001: query selectors cannot substitute for the authenticated principal."""
+
+    from weall.api import poh_route_auth
+
+    request = _poh_request(
+        path="/v1/poh/tier2/my-cases",
+        state={},
+        query_string=b"account=%40alice",
+    )
+
+    def missing_session(_request, _state):
+        raise PermissionError("session_missing")
+
+    monkeypatch.setattr(poh_route_auth, "require_account_session", missing_session)
+    with pytest.raises(ApiError) as missing_exc:
+        enforce_poh_read_authorization(request)
+    assert missing_exc.value.status_code == 403
+
+    monkeypatch.setattr(poh_route_auth, "require_account_session", lambda _r, _s: "@mallory")
+    with pytest.raises(ApiError) as mismatch_exc:
+        enforce_poh_read_authorization(request)
+    assert mismatch_exc.value.status_code == 403
+    assert mismatch_exc.value.code == "poh_session_identity_mismatch"
+
+    monkeypatch.setattr(poh_route_auth, "require_account_session", lambda _r, _s: "@alice")
+    assert enforce_poh_read_authorization(request) is None
+
+
+def test_poh_full_tier2_case_is_participant_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A12-F001: Tier-2 juror/evidence maps may not be enumerated by unrelated viewers."""
+
+    from weall.api import poh_route_auth
+
+    state = {
+        "poh": {
+            "tier2_cases": {
+                "case-1": {
+                    "case_id": "case-1",
+                    "account_id": "@alice",
+                    "jurors": {"@juror": {"verdict": "pass"}},
+                    "evidence": {"commitment": "secret-metadata"},
+                }
+            }
+        }
+    }
+    request = _poh_request(
+        path="/v1/poh/tier2/case/case-1",
+        state=state,
+        path_params={"case_id": "case-1"},
+    )
+
+    monkeypatch.setattr(poh_route_auth, "require_account_session", lambda _r, _s: "@mallory")
+    with pytest.raises(ApiError) as forbidden_exc:
+        enforce_poh_read_authorization(request)
+    assert forbidden_exc.value.status_code == 403
+    assert forbidden_exc.value.code == "poh_case_viewer_forbidden"
+
+    monkeypatch.setattr(poh_route_auth, "require_account_session", lambda _r, _s: "@juror")
+    assert enforce_poh_read_authorization(request) is None
