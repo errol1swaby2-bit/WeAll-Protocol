@@ -90,7 +90,7 @@ def test_strict_production_proposal_cannot_be_edited_after_voting_opens() -> Non
         _apply_gov_proposal_edit(state, env)
 
     assert exc_info.value.code == "forbidden"
-    assert exc_info.value.message == "proposal_frozen_for_voting"
+    assert exc_info.value.reason == "proposal_frozen_for_voting"
     assert state["gov_proposals_by_id"]["proposal-1"]["title"] == "approved title"
 
 
