@@ -8,7 +8,7 @@ on:
       - .github/workflows/p0-helper-stage-exact-v2-after-ledger.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   refresh-staging:
@@ -23,6 +23,12 @@ jobs:
         with:
           python-version: "3.12"
           check-latest: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
 
       - name: Verify locked backend install path
         working-directory: Weall-Protocol
@@ -43,13 +49,15 @@ jobs:
           deactivate
           rm -rf .venv-lock-check
 
-      - name: Install backend
-        working-directory: Weall-Protocol
+      - name: Install backend and frontend
         run: |
           set -Eeuo pipefail
+          cd Weall-Protocol
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
+          cd ../web
+          npm ci
 
       - name: Ruff repaired branch Python changes
         working-directory: Weall-Protocol
@@ -66,18 +74,40 @@ jobs:
             ruff check "${PY_FILES[@]}"
           fi
 
-      - name: Dependency audit
+      - name: Dependency audit and canon lint
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           pip-audit -r requirements.lock
           pip-audit -r requirements-dev.lock
+          python -m tooling.canon_lint
 
-      - name: Canon lint
+      - name: Regenerate exact repaired-head V2 derivatives
         working-directory: Weall-Protocol
-        run: python -m tooling.canon_lint
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
 
-      - name: Check generated artifacts
+      - name: Commit derivative-only refresh to repaired P0 branch
+        run: |
+          set -Eeuo pipefail
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          if [[ -n "$BAD" ]]; then
+            echo 'Unexpected non-derivative changes:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          git add Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'chore(p0): refresh exact repaired-head V2 derivatives'
+          fi
+          test -z "$(git status --short --untracked-files=all)"
+
+      - name: Verify exact committed generated state
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -97,7 +127,22 @@ jobs:
         working-directory: Weall-Protocol
         run: pytest -q
 
+      - name: Reviewer readiness gate
+        env:
+          WEALL_RELEASE_TREE_ALREADY_VERIFIED: "1"
+        run: |
+          set -Eeuo pipefail
+          cd Weall-Protocol
+          bash scripts/reviewer_production_readiness_gate.sh
+
+      - name: Push validated repaired head
+        run: |
+          set -Eeuo pipefail
+          git push origin HEAD:p0-full-suite-repair-staging-20261001
+
       - name: Generate Tx coverage report
         if: always()
         working-directory: Weall-Protocol
         run: python scripts/generate_tx_coverage_report.py
+
+# Branch-only helper; never merge this workflow into the P0 target.
