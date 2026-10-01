@@ -55,6 +55,55 @@
       "status": "SUPPORTED_BUT_QUALIFICATION_REQUIRED"
     },
     {
+      "claim_id": "AUDIT-P0-001",
+      "claim_text": "Open same-tree A01\u2013A20 P0/HIGH findings block stronger release claims.",
+      "claim_type": "audit_gate",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "P0 is the audit program's mapping of every A01\u2013A20 HIGH finding. The tracked closure ledger is now a required claim-generation input; an unresolved P0 track therefore cannot coexist with an enabled release boundary.",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS",
+      "value": {
+        "closed_track_ids": [
+          "P0-01",
+          "P0-02",
+          "P0-04",
+          "P0-08",
+          "P0-09",
+          "P0-12"
+        ],
+        "open_high_finding_ids": [
+          "A05-F001",
+          "A05-F002",
+          "A07-F001",
+          "A07-F002",
+          "A08-F001",
+          "A09-F001..F004",
+          "A15-F001..F003",
+          "A16-F001",
+          "A16-F004",
+          "A16-F005",
+          "A20-F001"
+        ],
+        "open_track_ids": [
+          "P0-03",
+          "P0-05",
+          "P0-06",
+          "P0-07",
+          "P0-10",
+          "P0-11"
+        ],
+        "stronger_release_claims_blocked": true,
+        "total_tracks": 12
+      }
+    },
+    {
       "claim_id": "TX-CANON-001",
       "claim_text": "The canonical transaction index count and version are generated facts.",
       "claim_type": "structural_count",
@@ -350,6 +399,7 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
+    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "484de0aea43d56f9abfce4e6871aa15c43669fb7b11c46e33e44aba5f1e518e3",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
     "generated/public_beta_blocker_report_v1_5.json": "a1e35019c21537b1e8dd536ed74110c014a6aecdbc6bd027de860b398419dbef",
     "generated/release_evidence_manifest_v1_5.json": "1f4b6bf708e4519a7c995c195acb1025943384f09e871ffb99cc92915d10ae10",
@@ -357,5 +407,5 @@
   },
   "schema": "weall.current_verified_claims.v1",
   "tracked_manifest_is_commit_agnostic": true,
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

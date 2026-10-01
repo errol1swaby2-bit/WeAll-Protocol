@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1973,
+  "file_count": 1974,
   "files": [
     {
       "affected_registers": [
@@ -539,7 +539,7 @@
       ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "561e305aab31a8265f69be392201926aed63883b8ecd7afcf0566ab5ddc170c1",
+      "sha256": "f867b5bc934964d664ef76c3d99d50afbc31d9a4ad35912b3ec32f0bef13334c",
       "source_id": "SRC-251A50F3DB56A30F"
     },
     {
@@ -3210,7 +3210,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "88132cc51f477bdea6465ab7b5b91ec8746fdda30a74bdb2376b5642e413e20c",
+      "sha256": "faf6dab3052e44be0718b2fb12f61cc94f3b013eacec59fe00f571cfe04d1db5",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -4327,7 +4327,7 @@
       ],
       "path": "scripts/gen_api_response_vectors_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "5587083a927f277b19acbd9028d799a6edb9a895794e63186eff85e5f2f66609",
+      "sha256": "8528a40c561953597f4088623ee3ba5e6999f9d8fa3f1a2ebd8c73e71937413e",
       "source_id": "SRC-B36B907AEE547D60"
     },
     {
@@ -4621,7 +4621,7 @@
       ],
       "path": "scripts/gen_current_verified_claims.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e19c7e56169289c7bf02d11edf3c0939005e27cb237d3efe4737c58b1054f227",
+      "sha256": "2cb7ea3e567c11a723a57443b8ff40b0a7239a03674d219ec692ee8e0d32d2f1",
       "source_id": "SRC-93B86585553DBDA5"
     },
     {
@@ -21897,7 +21897,7 @@
       ],
       "path": "tests/test_p0_a10_a12_generated_contract_closure.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "934a7ed80474397cfb933899064289dc2165a0a2a0fd06bd4dd85a751ebdf637",
+      "sha256": "07e361af1d01c038cccbf953eb981dd832b0df2a52a9a03e851a3a11ee1a527e",
       "source_id": "SRC-E1E2830DD8A326FE"
     },
     {
@@ -21931,6 +21931,21 @@
       "primary_mechanism_id": "M-076",
       "sha256": "adc6973558151a21aac66ecc8f965aa5efdb4eac771a07ac37b8f77c6b8fcee7",
       "source_id": "SRC-9D34A41CF3BB56AF"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p0_claim_audit_binding.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "ab91d33d25850af7f59457286ea24ede07d286e15a84afed22a41a286b8781bd",
+      "source_id": "SRC-B0C14D40E164058C"
     },
     {
       "affected_registers": [

@@ -30,7 +30,7 @@ This document is deliberately stricter than a normal PR checklist. A runtime pat
 | P0-09 PoH API authorization/privacy | A12-F001, A18-F002 | CLOSED — PATCHED AND PROVEN | All six scoped account/juror queues and Tier-2/Live full-case reads are session/principal or participant bound. Anonymous, wrong-principal, and authorized runtime matrices pass, and all protected surfaces are represented by current generated auth/privacy vectors executed against runtime truth. |
 | P0-10 Bounded production state / state sync / permanent account state | A15-F001..F003 | DESIGN + IMPLEMENTATION BLOCKER | Requires bounded ancestry commitment/history architecture, finite authenticated state-sync work/response envelope, and protocol-level permanent-state scarcity/identity bootstrap policy. |
 | P0-11 Property/mutation gate | A16-F001 | IMPLEMENTATION BLOCKER | Add locked property/mutation framework, deterministic seeds, P0 mutation operators, survivor artifact, and CI gate. Must exercise lifecycle boundaries rather than only local functions. |
-| P0-12 Claim/evidence truth binding | A18-F001, A18-F002 | EVIDENCE GATE | Regenerate only after runtime closure. Claim generation must consume open same-tree audit findings so unresolved HIGH findings automatically block/downgrade broader claims. |
+| P0-12 Claim/evidence truth binding | A18-F001, A18-F002 | CLOSED — PATCHED AND PROVEN | Current claim generation now consumes the canonical same-tree A01–A20 P0 closure ledger, enumerates open HIGH/P0 tracks and findings, hashes the ledger as a required generation input, and fails closed if any release claim boundary is enabled while a P0 track remains open. Dedicated malformed/missing-track and claim-promotion regressions pass. |
 
 ## Additional CI blockers discovered during closure
 
@@ -72,4 +72,4 @@ PR #36 remains the single canonical closure PR and MUST NOT be represented as fu
 2. Implement the architecture-heavy P0-03 HotStuff transition, P0-05 P2P session/frame, and P0-10 bounded-state/state-sync tracks with adversarial multinode or stress evidence.
 3. Adjudicate P0-06 A08/A20 together so global human uniqueness and reviewer anti-grinding share one coherent protocol trust model.
 4. Install P0-11's locked property/mutation gate with deterministic seeds and survivor artifacts across the closed and remaining P0 surfaces.
-5. Implement P0-12 generalized same-tree audit-finding-to-claim binding, regenerate exact-head public evidence, and capture the final closure SHA/tree only after all remaining HIGH findings are actually resolved.
+5. After the remaining implementation/design tracks close, capture the final closure SHA/tree and regenerate final exact-head public evidence.
