@@ -119,7 +119,7 @@ jobs:
         run: npm ci
 
       - name: Restore historical M2/M3 evidence
-        working-directory: Weall-Protocol
+        working-directory: .
         run: bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
 
       - name: Reviewer Readiness
