@@ -787,6 +787,11 @@ def bft_drive_timeouts(self, now_ms: int) -> list[Json]:
     same pacemaker deadline and same-view emission guard as ``bft_timeout_check``;
     network polling cadence is not a consensus timeout.
     """
+    transition = _bft_transition_bridge_descriptor(self)
+    if isinstance(transition, dict) and not _bft_transition_bridge_has_qc(self, transition):
+        _bft_prepare_transition_vote(self)
+        return []
+
     if not _env_bool("WEALL_AUTOTIMEOUT", False):
         return []
     try:
@@ -1568,6 +1573,121 @@ def bft_handle_qc(self, qcj: Json) -> bool:
     return True
 
 
+def _bft_transition_bridge_descriptor(self) -> Json | None:
+    c = self.state.get("consensus")
+    if not isinstance(c, dict):
+        return None
+    vs = c.get("validator_set")
+    if not isinstance(vs, dict):
+        return None
+    bridge = vs.get("transition_bridge")
+    if not isinstance(bridge, dict):
+        return None
+    if str(bridge.get("rule") or "") != "new_set_qc_over_canonical_boundary":
+        return None
+    if self._current_consensus_phase() != CONSENSUS_PHASE_BFT_ACTIVE:
+        return None
+    boundary_height = _safe_int(bridge.get("boundary_height"), 0)
+    local_height = _safe_int(self.state.get("height"), 0)
+    if boundary_height <= 0 or local_height != boundary_height:
+        return None
+    current_epoch = int(self._current_validator_epoch())
+    current_set_hash = str(self._current_validator_set_hash() or "").strip()
+    if _safe_int(bridge.get("to_validator_epoch"), 0) != current_epoch:
+        return None
+    if str(bridge.get("to_validator_set_hash") or "").strip() != current_set_hash:
+        return None
+    tip = str(self.state.get("tip") or "").strip()
+    if not tip:
+        return None
+    try:
+        latest = self.get_latest_block()
+    except Exception:
+        latest = None
+    if not isinstance(latest, dict):
+        return None
+    if str(latest.get("block_id") or "").strip() != tip:
+        return None
+    if _safe_int(latest.get("height"), 0) != boundary_height:
+        return None
+    block_hash = str(latest.get("block_hash") or "").strip()
+    if not block_hash:
+        block_hash = str(self._known_block_hash_for_id(tip) or "").strip()
+    if not block_hash:
+        return None
+    if _safe_int(bridge.get("transition_view"), 0) != 0:
+        return None
+    return {
+        **dict(bridge),
+        "block_id": tip,
+        "block_hash": block_hash,
+        "parent_id": str(latest.get("prev_block_id") or "").strip(),
+        "view": 0,
+    }
+
+
+def _bft_transition_bridge_has_qc(self, descriptor: Json | None = None) -> bool:
+    desc = descriptor if isinstance(descriptor, dict) else _bft_transition_bridge_descriptor(self)
+    if not isinstance(desc, dict):
+        return False
+    qc = getattr(self._bft, "high_qc", None)
+    if qc is None:
+        return False
+    if str(getattr(qc, "block_id", "") or "").strip() != str(desc.get("block_id") or ""):
+        return False
+    if str(getattr(qc, "block_hash", "") or "").strip() != str(desc.get("block_hash") or ""):
+        return False
+    if int(getattr(qc, "validator_epoch", 0) or 0) != int(self._current_validator_epoch()):
+        return False
+    if str(getattr(qc, "validator_set_hash", "") or "").strip() != str(
+        self._current_validator_set_hash() or ""
+    ).strip():
+        return False
+    return self.bft_verify_qc_json(qc.to_json()) is not None
+
+
+def _bft_prepare_transition_vote(self) -> Json | None:
+    desc = _bft_transition_bridge_descriptor(self)
+    if not isinstance(desc, dict) or _bft_transition_bridge_has_qc(self, desc):
+        return None
+    validators = self._active_validators()
+    local = self._local_validator_account()
+    if not local or local not in set(validators):
+        return None
+    if not self._validator_signing_permitted():
+        return None
+    if int(self._bft.view) != 0:
+        return None
+    key = (0, str(desc["block_id"]), str(desc["block_hash"]))
+    bucket = getattr(self._bft, "_votes", {}).get(key)
+    if isinstance(bucket, dict) and isinstance(bucket.get(local), dict):
+        return None
+    votej = self.bft_make_vote_for_block(
+        view=0,
+        block_id=str(desc["block_id"]),
+        block_hash=str(desc["block_hash"]),
+        parent_id=str(desc.get("parent_id") or ""),
+    )
+    if not isinstance(votej, dict) or not votej:
+        return None
+    if not self._bft.record_local_vote(
+        view=0,
+        block_id=str(desc["block_id"]),
+        block_hash=str(desc["block_hash"]),
+    ):
+        return None
+    self._persist_bft_state()
+    self._bft_enqueue_outbound("vote", votej)
+    self.bft_handle_vote(votej)
+    self._bft_record_event(
+        "bft_validator_transition_vote_prepared",
+        block_id=str(desc["block_id"]),
+        validator_epoch=int(self._current_validator_epoch()),
+        validator_set_hash=str(self._current_validator_set_hash() or ""),
+    )
+    return votej
+
+
 def _bft_best_justify_qc_json(self) -> Json | None:
     if self._bft.high_qc is not None:
         return self._bft.high_qc.to_json()
@@ -1588,6 +1708,11 @@ def _bft_best_justify_qc_json(self) -> Json | None:
 
 def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
     if not self._validator_signing_permitted():
+        return None
+
+    transition = _bft_transition_bridge_descriptor(self)
+    if isinstance(transition, dict) and not _bft_transition_bridge_has_qc(self, transition):
+        _bft_prepare_transition_vote(self)
         return None
 
     validators = self._active_validators()
@@ -1625,11 +1750,27 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         return None
 
     best_justify_qc = self._bft_best_justify_qc_json()
+    candidate_base_state: Json | None = None
+    if isinstance(best_justify_qc, dict):
+        verified_parent_qc = self.bft_verify_qc_json(best_justify_qc)
+        if verified_parent_qc is None:
+            if _mode() == "prod":
+                raise BftLeaderProposalError("candidate_parent_qc_invalid")
+            return None
+        candidate_base_state = _bft_votecheck._speculative_parent_state(
+            self, str(verified_parent_qc.block_id)
+        )
+        if not isinstance(candidate_base_state, dict):
+            return None
+    elif _mode() == "prod" and self._current_consensus_phase() == CONSENSUS_PHASE_BFT_ACTIVE:
+        return None
+
     blk, st2, applied_ids, invalid_ids, err = self.build_block_candidate(
         max_txs=max_txs,
         allow_empty=True,
         bft_justify_qc=best_justify_qc,
         proposer=local_validator,
+        base_state=candidate_base_state,
     )
     if err == "empty":
         return None
@@ -1641,6 +1782,15 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         if _mode() == "prod":
             raise BftLeaderProposalError("candidate_build_missing_result")
         return None
+
+    if isinstance(best_justify_qc, dict):
+        expected_parent_id = str(best_justify_qc.get("block_id") or "").strip()
+        expected_parent_hash = str(best_justify_qc.get("block_hash") or "").strip()
+        if str(blk.get("prev_block_id") or "").strip() != expected_parent_id:
+            raise BftLeaderProposalError("candidate_parent_does_not_extend_justify_qc")
+        header = blk.get("header") if isinstance(blk.get("header"), dict) else {}
+        if expected_parent_hash and str(header.get("prev_block_hash") or "").strip() != expected_parent_hash:
+            raise BftLeaderProposalError("candidate_parent_hash_does_not_extend_justify_qc")
 
     justify_qc_id = ""
     if isinstance(best_justify_qc, dict):
@@ -1854,6 +2004,9 @@ def bft_make_vote_for_block(
 
 
 def bft_make_timeout(self, *, view: int) -> Json | None:
+    transition = _bft_transition_bridge_descriptor(self)
+    if isinstance(transition, dict) and not _bft_transition_bridge_has_qc(self, transition):
+        return None
     if not self._validator_signing_permitted():
         return None
     if not self._bft_phase_allows_artifact_processing():
