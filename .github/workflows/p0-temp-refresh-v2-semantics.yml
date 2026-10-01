@@ -60,6 +60,35 @@ jobs:
           ruff format src/weall/runtime/apply/economics.py
           ruff check src/weall/runtime/apply/economics.py
 
+      - name: Register the PoH authorization source in V2 traceability
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('Weall-Protocol/specs/v2/source/source_mappings.json')
+          payload = json.loads(path.read_text())
+          mappings = payload.get('mappings')
+          if not isinstance(mappings, list):
+              raise SystemExit('source_mappings.json mappings must be a list')
+
+          source_path = 'src/weall/api/poh_route_auth.py'
+          matches = [row for row in mappings if isinstance(row, dict) and row.get('path') == source_path]
+          if len(matches) > 1:
+              raise SystemExit(f'duplicate source mapping for {source_path}')
+          if not matches:
+              mappings.append({
+                  'affected_registers': ['routes', 'failures'],
+                  'classification': 'authoritative_or_launch_critical',
+                  'path': source_path,
+                  'primary_mechanism_id': 'M-069',
+                  'review_status': 'mapped_current_snapshot',
+              })
+              mappings.sort(key=lambda row: str(row.get('path') or '') if isinstance(row, dict) else '')
+              path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n')
+          PY
+
       - name: Refresh explicitly reviewed economics semantic binding
         working-directory: Weall-Protocol
         run: |
@@ -73,18 +102,18 @@ jobs:
       - name: Commit reviewed source and derived semantic artifacts
         run: |
           set -Eeuo pipefail
-          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/src/weall/runtime/apply/economics.py" && p != "Weall-Protocol/specs/v2/source/semantic_reviews.json" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/src/weall/runtime/apply/economics.py" && p != "Weall-Protocol/specs/v2/source/source_mappings.json" && p != "Weall-Protocol/specs/v2/source/semantic_reviews.json" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
           if [[ -n "$BAD" ]]; then
             echo 'Unexpected changed files:' >&2
             printf '%s\n' "$BAD" >&2
             exit 1
           fi
-          git add Weall-Protocol/src/weall/runtime/apply/economics.py Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated/v2
+          git add Weall-Protocol/src/weall/runtime/apply/economics.py Weall-Protocol/specs/v2/source/source_mappings.json Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated/v2
           if git diff --cached --quiet; then
             echo 'No semantic derivative changes required'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'fix(p0): unify economics production posture and refresh semantics'
+          git commit -m 'fix(p0): unify production posture and refresh V2 traceability'
           git push origin HEAD:p0-closure-a01-a20-20260930
