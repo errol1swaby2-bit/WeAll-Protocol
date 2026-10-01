@@ -1,0 +1,72 @@
+name: P0 helper refresh v1.5 failure evidence chain
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-refresh-v15-failure-chain.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-target:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Regenerate v1.5 failure evidence dependency chain twice
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          for pass in 1 2; do
+            echo "generation pass ${pass}"
+            PYTHONPATH=src python scripts/gen_failure_code_registry_v1_5.py
+            PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py
+            PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
+          done
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+          python scripts/gen_failure_code_registry_v1_5.py --check
+          python scripts/gen_api_response_vectors_v1_5.py --check
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+
+      - name: Commit only deterministic v1.5 failure-chain derivatives
+        run: |
+          set -Eeuo pipefail
+          ALLOWED='^(Weall-Protocol/generated/failure_code_registry_v1_5.json|Weall-Protocol/generated/api_response_vectors_v1_5.json|Weall-Protocol/generated/release_evidence_manifest_v1_5.json)$'
+          BAD="$(git status --short --untracked-files=all | awk '{print $2}' | grep -Ev "${ALLOWED}" || true)"
+          if [[ -n "${BAD}" ]]; then
+            echo 'Unexpected generated/non-generated changes:' >&2
+            printf '%s\n' "${BAD}" >&2
+            exit 1
+          fi
+          git add \
+            Weall-Protocol/generated/failure_code_registry_v1_5.json \
+            Weall-Protocol/generated/api_response_vectors_v1_5.json \
+            Weall-Protocol/generated/release_evidence_manifest_v1_5.json
+          if git diff --cached --quiet; then
+            echo 'v1.5 failure evidence chain already current'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(p0): refresh v1.5 failure evidence chain'
+          git push origin HEAD:p0-closure-a01-a20-20260930
