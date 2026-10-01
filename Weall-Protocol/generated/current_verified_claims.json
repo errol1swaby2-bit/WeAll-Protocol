@@ -401,8 +401,8 @@
   "generation_inputs": {
     "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "484de0aea43d56f9abfce4e6871aa15c43669fb7b11c46e33e44aba5f1e518e3",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
-    "generated/public_beta_blocker_report_v1_5.json": "a1e35019c21537b1e8dd536ed74110c014a6aecdbc6bd027de860b398419dbef",
-    "generated/release_evidence_manifest_v1_5.json": "1f4b6bf708e4519a7c995c195acb1025943384f09e871ffb99cc92915d10ae10",
+    "generated/public_beta_blocker_report_v1_5.json": "24d765efe6e1a4fe78b21f5d90d85e130dae008002d06fbe0cdaa8e6ddf88134",
+    "generated/release_evidence_manifest_v1_5.json": "0dd9d47cb18b9697cd9d1664eead89a099fc94e87b39ac55f8cc380dbcced959",
     "generated/tx_index.json": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
   },
   "schema": "weall.current_verified_claims.v1",
