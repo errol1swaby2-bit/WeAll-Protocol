@@ -37,7 +37,6 @@ def test_governance_approved_group_spend_is_one_shot_across_restart(tmp_path: Pa
     )
     state = executor.read_state()
     state["chain_id"] = "weall-prod"
-    state["height"] = 20
     state["time"] = 100
     params = state.get("params")
     if not isinstance(params, dict):
@@ -74,8 +73,8 @@ def test_governance_approved_group_spend_is_one_shot_across_restart(tmp_path: Pa
         "signatures": {"@signer": {"at_nonce": 1}},
         "allowed_signers": ["@signer"],
         "threshold": 1,
-        "created_at_height": 10,
-        "earliest_execute_height": 15,
+        "created_at_height": 0,
+        "earliest_execute_height": 0,
     }
     approved_hash = group_spend_plan_hash(spend)
     spend["governance_approval"] = {
