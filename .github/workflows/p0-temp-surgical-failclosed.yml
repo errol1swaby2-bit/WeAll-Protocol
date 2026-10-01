@@ -1,0 +1,66 @@
+name: P0 temporary surgical fail-closed patches
+
+on:
+  push:
+    branches:
+      - p0-closure-a01-a20-20260930
+    paths:
+      - .github/workflows/p0-temp-surgical-failclosed.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Apply exact fail-closed replacements
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          gov = Path('Weall-Protocol/src/weall/runtime/apply/governance.py')
+          text = gov.read_text()
+          old = '''    stg = _stage(pr)\n    # Creator may edit in Draft and Revision. We also keep "voting" editable for\n    # legacy proposals that started in voting (older tests / deployments).\n    if stg not in {"draft", "revision", "voting"}:\n        raise ApplyError(\n            "forbidden", "proposal_not_editable", {"proposal_id": proposal_id, "stage": stg}\n        )\n'''
+          new = '''    stg = _stage(pr)\n    # In strict/production civic governance, opening the ballot freezes the\n    # proposal object that existing votes authorize. Legacy/local compatibility\n    # fixtures may retain historical voting-stage edits, but production cannot.\n    if stg == "voting" and strict_civic_governance_enabled(state):\n        raise ApplyError(\n            "forbidden",\n            "proposal_frozen_for_voting",\n            {"proposal_id": proposal_id, "stage": stg},\n        )\n    if stg not in {"draft", "revision", "voting"}:\n        raise ApplyError(\n            "forbidden", "proposal_not_editable", {"proposal_id": proposal_id, "stage": stg}\n        )\n'''
+          if text.count(old) != 1:
+              raise SystemExit(f'governance replacement count={text.count(old)}')
+          gov.write_text(text.replace(old, new))
+
+          econ = Path('Weall-Protocol/src/weall/runtime/apply/economics.py')
+          text = econ.read_text()
+          old = '''    activation_report: Json | None = None\n    if bool(desired) and (\n        _as_bool(payload.get("enforce_preconditions"), False)\n        or bool(params.get("economics_activation_preconditions_required", False))\n    ):\n        activation_report = _require_activation_preconditions(state)\n'''
+          new = '''    activation_report: Json | None = None\n    chain_id = _as_str(params.get("chain_id") or state.get("chain_id")).lower()\n    production_chain = chain_id == "weall-prod"\n    if bool(desired) and (\n        production_chain\n        or _as_bool(payload.get("enforce_preconditions"), False)\n        or bool(params.get("economics_activation_preconditions_required", False))\n    ):\n        activation_report = _require_activation_preconditions(state)\n'''
+          if text.count(old) != 1:
+              raise SystemExit(f'economics replacement count={text.count(old)}')
+          econ.write_text(text.replace(old, new))
+          PY
+
+      - name: Format and lint patched files
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'ruff==0.15.22'
+          ruff format src/weall/runtime/apply/governance.py src/weall/runtime/apply/economics.py
+          ruff check src/weall/runtime/apply/governance.py src/weall/runtime/apply/economics.py
+
+      - name: Commit source patches only
+        run: |
+          set -Eeuo pipefail
+          test -z "$(git status --short --untracked-files=all | awk '$2 != "Weall-Protocol/src/weall/runtime/apply/governance.py" && $2 != "Weall-Protocol/src/weall/runtime/apply/economics.py" {print}')"
+          git add Weall-Protocol/src/weall/runtime/apply/governance.py Weall-Protocol/src/weall/runtime/apply/economics.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(p0): freeze production ballots and enforce economics readiness'
+          git push origin HEAD:p0-closure-a01-a20-20260930
