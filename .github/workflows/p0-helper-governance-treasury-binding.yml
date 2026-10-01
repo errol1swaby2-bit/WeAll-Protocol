@@ -1,0 +1,318 @@
+name: P0 helper governance treasury binding
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-governance-treasury-binding.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-target:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Patch A09-F003 and A10-F005 authority boundaries
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          groups = Path('Weall-Protocol/src/weall/runtime/apply/groups.py')
+          text = groups.read_text()
+          old_import = '''from weall.runtime.group_treasury_scheduler import (\n    maybe_enqueue_group_spend_execute,\n    maybe_enqueue_group_spend_expire,\n)\n'''
+          new_import = '''from weall.runtime.group_treasury_scheduler import (\n    group_spend_plan_hash,\n    maybe_enqueue_group_spend_execute,\n    maybe_enqueue_group_spend_expire,\n)\n'''
+          if text.count(old_import) != 1:
+              raise SystemExit(f'groups scheduler import count={text.count(old_import)}')
+          text = text.replace(old_import, new_import)
+
+          fn = text.index('def _apply_group_treasury_spend_execute')
+          marker = '''    s = spends.get(spend_id)\n    if not isinstance(s, dict):\n        raise GroupsApplyError("not_found", "spend_not_found", {"spend_id": spend_id})\n\n    status = _as_str(s.get("status")).strip().lower()\n'''
+          pos = text.index(marker, fn)
+          replacement = '''    s = spends.get(spend_id)\n    if not isinstance(s, dict):\n        raise GroupsApplyError("not_found", "spend_not_found", {"spend_id": spend_id})\n\n    if strict_civic_governance_enabled(state):\n        approval = s.get("governance_approval")\n        if not isinstance(approval, dict):\n            raise GroupsApplyError(\n                "forbidden",\n                "group_spend_governance_approval_required",\n                {"spend_id": spend_id},\n            )\n        proposal_id = _as_str(approval.get("proposal_id")).strip()\n        approved_hash = _as_str(approval.get("spend_plan_hash")).strip()\n        current_hash = group_spend_plan_hash(s)\n        queued_proposal_id = _as_str(payload.get("_governance_proposal_id")).strip()\n        queued_hash = _as_str(payload.get("_approved_spend_plan_hash")).strip()\n        if not proposal_id or not approved_hash or approved_hash != current_hash:\n            raise GroupsApplyError(\n                "forbidden",\n                "group_spend_governance_plan_mismatch",\n                {\n                    "spend_id": spend_id,\n                    "proposal_id": proposal_id,\n                    "approved_hash": approved_hash,\n                    "current_hash": current_hash,\n                },\n            )\n        if queued_proposal_id != proposal_id or queued_hash != approved_hash:\n            raise GroupsApplyError(\n                "forbidden",\n                "group_spend_governance_queue_binding_mismatch",\n                {\n                    "spend_id": spend_id,\n                    "proposal_id": proposal_id,\n                    "queued_proposal_id": queued_proposal_id,\n                },\n            )\n\n    status = _as_str(s.get("status")).strip().lower()\n'''
+          text = text[:pos] + text[pos:].replace(marker, replacement, 1)
+          groups.write_text(text)
+
+          governance = Path('Weall-Protocol/src/weall/runtime/apply/governance.py')
+          text = governance.read_text()
+          import_marker = 'from weall.runtime.errors import ApplyError\nfrom weall.runtime.param_policy import validate_param_blob\n'
+          import_replacement = '''from weall.runtime.errors import ApplyError\nfrom weall.runtime.group_treasury_scheduler import (\n    group_spend_plan_hash,\n    maybe_enqueue_group_spend_execute,\n)\nfrom weall.runtime.param_policy import validate_param_blob\n'''
+          if text.count(import_marker) != 1:
+              raise SystemExit(f'governance import marker count={text.count(import_marker)}')
+          text = text.replace(import_marker, import_replacement)
+
+          fn = text.index('def _apply_gov_execute')
+          start = text.index('    actions = _extract_actions(p)\n', fn)
+          end_marker = '    _assert_governance_actions_allowed(state, actions)\n'
+          end = text.index(end_marker, start)
+          old = text[start:end]
+          new = '''    approved_actions: list[dict[str, Any]] = []\n    snap = pr.get("actions")\n    if isinstance(snap, list):\n        for action in snap:\n            if not isinstance(action, dict):\n                continue\n            approved_actions.append(\n                {\n                    "tx_type": _s(action.get("tx_type")).strip().upper(),\n                    "payload": materialize_journaled(_d(action.get("payload"))),\n                }\n            )\n\n    supplied_actions = _extract_actions(p)\n    if strict_civic_governance_enabled(state):\n        if supplied_actions and _canonical_json_hash(supplied_actions) != _canonical_json_hash(\n            approved_actions\n        ):\n            raise ApplyError(\n                "forbidden",\n                "governance_execution_actions_mismatch",\n                {"proposal_id": proposal_id},\n            )\n        actions = approved_actions\n    else:\n        actions = supplied_actions or approved_actions\n\n'''
+          text = text[:start] + new + text[end:]
+
+          fn = text.index('def _apply_gov_execute')
+          queue_marker = '''        if parent_ref:\n            ap.setdefault("_parent_ref", parent_ref)\n\n        queue_id = enqueue_system_tx(\n'''
+          qpos = text.index(queue_marker, fn)
+          special = '''        if parent_ref:\n            ap.setdefault("_parent_ref", parent_ref)\n\n        if tx_type == "GROUP_TREASURY_SPEND_EXECUTE" and strict_civic_governance_enabled(\n            state\n        ):\n            spend_id = _s(ap.get("spend_id")).strip()\n            spends = _d(state.get("group_treasury_spends"))\n            spend = spends.get(spend_id)\n            if not spend_id or not isinstance(spend, dict):\n                raise ApplyError(\n                    "not_found",\n                    "group_treasury_spend_not_found",\n                    {"proposal_id": proposal_id, "spend_id": spend_id},\n                )\n            proposal_group_id = _proposal_group_id(pr)\n            spend_group_id = _s(spend.get("group_id")).strip()\n            electorate_scope = _normalized_or_default_electorate_scope(state, pr)\n            if proposal_group_id != spend_group_id or electorate_scope != "group_members":\n                raise ApplyError(\n                    "forbidden",\n                    "group_treasury_spend_governance_scope_mismatch",\n                    {\n                        "proposal_id": proposal_id,\n                        "proposal_group_id": proposal_group_id,\n                        "spend_group_id": spend_group_id,\n                        "electorate_scope": electorate_scope,\n                    },\n                )\n            plan_hash = group_spend_plan_hash(spend)\n            existing_approval = spend.get("governance_approval")\n            if isinstance(existing_approval, dict):\n                existing_proposal = _s(existing_approval.get("proposal_id")).strip()\n                existing_hash = _s(existing_approval.get("spend_plan_hash")).strip()\n                if existing_proposal and (\n                    existing_proposal != proposal_id or existing_hash != plan_hash\n                ):\n                    raise ApplyError(\n                        "conflict",\n                        "group_treasury_spend_already_governance_approved",\n                        {\n                            "spend_id": spend_id,\n                            "existing_proposal_id": existing_proposal,\n                            "proposal_id": proposal_id,\n                        },\n                    )\n            approval = {\n                "proposal_id": proposal_id,\n                "spend_plan_hash": plan_hash,\n                "group_id": spend_group_id,\n                "treasury_id": _s(spend.get("treasury_id")).strip(),\n                "to": _s(spend.get("to")).strip(),\n                "amount": _i(spend.get("amount"), 0),\n                "approved_at_height": int(h),\n                "tallied_at_height": _i(pr.get("tallied_at_height"), 0),\n                "electorate_scope": electorate_scope,\n                "electorate_commitment": _s(pr.get("electorate_commitment")).strip(),\n            }\n            spend["governance_approval"] = approval\n            spends[spend_id] = spend\n            state["group_treasury_spends"] = spends\n            ap["_governance_proposal_id"] = proposal_id\n            ap["_approved_spend_plan_hash"] = plan_hash\n            queue_id = maybe_enqueue_group_spend_execute(state, spend=spend)\n            emitted_actions.append(\n                {\n                    "index": int(index),\n                    "tx_type": tx_type,\n                    "payload_hash": _canonical_json_hash(ap),\n                    "queue_id": str(queue_id or ""),\n                    "due_height": max(\n                        _i(spend.get("earliest_execute_height"), 0),\n                        int(h),\n                    ),\n                }\n            )\n            continue\n\n        queue_id = enqueue_system_tx(\n'''
+          text = text[:qpos] + text[qpos:].replace(queue_marker, special, 1)
+          governance.write_text(text)
+          PY
+
+      - name: Add focused P0 authority-binding regressions
+        run: |
+          set -Eeuo pipefail
+          cat > Weall-Protocol/tests/test_p0_group_treasury_governance_binding.py <<'PY'
+          from __future__ import annotations
+
+          import pytest
+
+          from weall.runtime.apply.governance import _apply_gov_execute
+          from weall.runtime.apply.groups import GroupsApplyError, apply_groups
+          from weall.runtime.errors import ApplyError
+          from weall.runtime.group_treasury_scheduler import (
+              group_spend_plan_hash,
+              maybe_enqueue_group_spend_execute,
+          )
+          from weall.runtime.tx_admission_types import TxEnvelope
+
+
+          def _economic_state() -> dict:
+              return {
+                  "chain_id": "weall-prod",
+                  "height": 20,
+                  "time": 100,
+                  "params": {
+                      "economic_unlock_time": 0,
+                      "economics_enabled": True,
+                  },
+                  "system_queue": [],
+              }
+
+
+          def _signed_spend() -> dict:
+              return {
+                  "spend_id": "spend-1",
+                  "group_id": "group-1",
+                  "treasury_id": "TREASURY_GROUP::group-1",
+                  "to": "@recipient",
+                  "amount": 10,
+                  "status": "proposed",
+                  "signatures": {"@signer": {"at_nonce": 1}},
+                  "allowed_signers": ["@signer"],
+                  "threshold": 1,
+                  "created_at_height": 10,
+                  "earliest_execute_height": 15,
+              }
+
+
+          def test_strict_multisig_threshold_does_not_schedule_without_governance_approval() -> None:
+              state = _economic_state()
+              spend = _signed_spend()
+
+              assert maybe_enqueue_group_spend_execute(state, spend=spend) is None
+              assert state["system_queue"] == []
+
+
+          def test_strict_execute_rejects_missing_governance_approval() -> None:
+              state = _economic_state()
+              state["group_treasury_spends"] = {"spend-1": _signed_spend()}
+
+              env = TxEnvelope(
+                  tx_type="GROUP_TREASURY_SPEND_EXECUTE",
+                  signer="SYSTEM",
+                  nonce=0,
+                  payload={"spend_id": "spend-1"},
+                  system=True,
+                  chain_id="weall-prod",
+              )
+
+              with pytest.raises(GroupsApplyError) as exc_info:
+                  apply_groups(state, env)
+
+              assert exc_info.value.reason == "group_spend_governance_approval_required"
+
+
+          def test_governance_execute_binds_group_spend_plan_and_queues_signed_execution() -> None:
+              state = _economic_state()
+              spend = _signed_spend()
+              state["group_treasury_spends"] = {"spend-1": spend}
+              action = {
+                  "tx_type": "GROUP_TREASURY_SPEND_EXECUTE",
+                  "payload": {"spend_id": "spend-1"},
+              }
+              state["gov_proposals_by_id"] = {
+                  "proposal-1": {
+                      "proposal_id": "proposal-1",
+                      "stage": "tallied",
+                      "group_id": "group-1",
+                      "electorate_scope": "group_members",
+                      "electorate_commitment": "electorate-commitment-1",
+                      "actions": [action],
+                      "tallied_at_height": 19,
+                      "tallies": [{"height": 19, "payload": {"passed": True}}],
+                  }
+              }
+              env = TxEnvelope(
+                  tx_type="GOV_EXECUTE",
+                  signer="SYSTEM",
+                  nonce=0,
+                  payload={"proposal_id": "proposal-1", "actions": [action]},
+                  system=True,
+                  chain_id="weall-prod",
+              )
+
+              result = _apply_gov_execute(state, env)
+
+              assert result == {"applied": True, "proposal_id": "proposal-1"}
+              approval = spend["governance_approval"]
+              assert approval["proposal_id"] == "proposal-1"
+              assert approval["group_id"] == "group-1"
+              assert approval["amount"] == 10
+              assert approval["to"] == "@recipient"
+              assert approval["spend_plan_hash"] == group_spend_plan_hash(spend)
+              queued = [
+                  row
+                  for row in state["system_queue"]
+                  if row.get("tx_type") == "GROUP_TREASURY_SPEND_EXECUTE"
+              ]
+              assert len(queued) == 1
+              payload = queued[0]["payload"]
+              assert payload["_governance_proposal_id"] == "proposal-1"
+              assert payload["_approved_spend_plan_hash"] == approval["spend_plan_hash"]
+
+
+          def test_strict_execute_rejects_spend_plan_mutation_after_governance_approval() -> None:
+              state = _economic_state()
+              spend = _signed_spend()
+              approved_hash = group_spend_plan_hash(spend)
+              spend["governance_approval"] = {
+                  "proposal_id": "proposal-1",
+                  "spend_plan_hash": approved_hash,
+              }
+              spend["amount"] = 11
+              state["group_treasury_spends"] = {"spend-1": spend}
+              env = TxEnvelope(
+                  tx_type="GROUP_TREASURY_SPEND_EXECUTE",
+                  signer="SYSTEM",
+                  nonce=0,
+                  payload={
+                      "spend_id": "spend-1",
+                      "_governance_proposal_id": "proposal-1",
+                      "_approved_spend_plan_hash": approved_hash,
+                  },
+                  system=True,
+                  chain_id="weall-prod",
+              )
+
+              with pytest.raises(GroupsApplyError) as exc_info:
+                  apply_groups(state, env)
+
+              assert exc_info.value.reason == "group_spend_governance_plan_mismatch"
+
+
+          def test_strict_governance_execute_rejects_actions_not_approved_by_voters() -> None:
+              state = _economic_state()
+              approved_action = {
+                  "tx_type": "GOV_QUORUM_SET",
+                  "payload": {"quorum_percent": 60},
+              }
+              state["gov_proposals_by_id"] = {
+                  "proposal-1": {
+                      "proposal_id": "proposal-1",
+                      "stage": "tallied",
+                      "actions": [approved_action],
+                      "tallies": [{"height": 19, "payload": {"passed": True}}],
+                  }
+              }
+              env = TxEnvelope(
+                  tx_type="GOV_EXECUTE",
+                  signer="SYSTEM",
+                  nonce=0,
+                  payload={
+                      "proposal_id": "proposal-1",
+                      "actions": [
+                          {
+                              "tx_type": "GOV_QUORUM_SET",
+                              "payload": {"quorum_percent": 90},
+                          }
+                      ],
+                  },
+                  system=True,
+                  chain_id="weall-prod",
+              )
+
+              with pytest.raises(ApplyError) as exc_info:
+                  _apply_gov_execute(state, env)
+
+              assert exc_info.value.message == "governance_execution_actions_mismatch"
+          PY
+
+      - name: Format lint and run focused regressions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format \
+            src/weall/runtime/apply/groups.py \
+            src/weall/runtime/apply/governance.py \
+            tests/test_p0_group_treasury_governance_binding.py
+          ruff check \
+            src/weall/runtime/group_treasury_scheduler.py \
+            src/weall/runtime/apply/groups.py \
+            src/weall/runtime/apply/governance.py \
+            tests/test_p0_group_treasury_governance_binding.py \
+            tests/test_p0_governance_economics_closure.py
+          pytest -q \
+            tests/test_p0_group_treasury_governance_binding.py \
+            tests/test_p0_governance_economics_closure.py \
+            tests/test_fail_closed_group_treasury.py \
+            tests/test_system_queue_lifecycle_integrity.py \
+            tests/test_four_gate_safety.py
+
+      - name: Refresh semantic review bindings for changed authority paths
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          for tx in GOV_EXECUTE GROUP_TREASURY_SPEND_SIGN GROUP_TREASURY_SPEND_EXECUTE; do
+            python scripts/refresh_v2_semantic_reviews.py \
+              --tx-type "$tx" \
+              --reviewer 'ChatGPT-assisted maintainer P0 closure review; independent review deferred'
+          done
+
+      - name: Commit source tests and semantic reviews to P0 target
+        run: |
+          set -Eeuo pipefail
+          ALLOWED='^(Weall-Protocol/src/weall/runtime/apply/groups.py|Weall-Protocol/src/weall/runtime/apply/governance.py|Weall-Protocol/tests/test_p0_group_treasury_governance_binding.py|Weall-Protocol/specs/v2/source/semantic_reviews.json)$'
+          BAD="$(git status --short --untracked-files=all | awk '{print $2}' | grep -Ev "$ALLOWED" || true)"
+          if [[ -n "$BAD" ]]; then
+            echo 'Unexpected changed files:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          git add \
+            Weall-Protocol/src/weall/runtime/apply/groups.py \
+            Weall-Protocol/src/weall/runtime/apply/governance.py \
+            Weall-Protocol/tests/test_p0_group_treasury_governance_binding.py \
+            Weall-Protocol/specs/v2/source/semantic_reviews.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(p0): bind group treasury execution to approved governance plan'
+          git push origin HEAD:p0-closure-a01-a20-20260930
