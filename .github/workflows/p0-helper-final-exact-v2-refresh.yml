@@ -1,0 +1,60 @@
+name: P0 helper final exact-head V2 refresh
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-final-exact-v2-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-target:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Regenerate exact-current-target V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
+
+      - name: Commit derivative-only refresh to P0 target
+        run: |
+          set -Eeuo pipefail
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          if [[ -n "$BAD" ]]; then
+            echo 'Unexpected non-derivative changes:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          git add Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          if git diff --cached --quiet; then
+            echo 'Derivatives already exact-current'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(p0): refresh exact-head V2 derivatives after authority closure'
+          git push origin HEAD:p0-closure-a01-a20-20260930
