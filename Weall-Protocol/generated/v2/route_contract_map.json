@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "0f6c88e4044afa9a8b8e78b567089f6b512751226910bd99750b00c069c5a096"
+    "source_tree_digest": "6a82abde2bacdaf9f576adaa126d7c34415ba2ef037db41997ee6bf38f718a38"
   },
   "required_fields": [
     "stable_id",
@@ -8391,6 +8391,7 @@
         "tests/test_node_operator_gate.py",
         "tests/test_node_operator_onboarding_ux.py",
         "tests/test_node_operator_responsibility_readiness.py",
+        "tests/test_nonce_failure_block_progression.py",
         "tests/test_nonce_pipelining_throughput.py",
         "tests/test_observer_boot_onboarding_safety.py",
         "tests/test_observer_bypass_and_sync_auth.py",
@@ -9339,6 +9340,7 @@
         "tests/test_external_observer_live_gate_docs.py",
         "tests/test_genesis_multi_user_rehearsal_safety.py",
         "tests/test_group_governance_contract.py",
+        "tests/test_nonce_failure_block_progression.py",
         "tests/test_observer_live_upstream_sync_truth.py",
         "tests/test_observer_tx_queue_and_scoped_reads.py",
         "tests/test_public_profile_contract.py",
