@@ -169,3 +169,4 @@ jobs:
           git push origin HEAD:p0-evidence-closure-a10-a12-vectors-20261001
 
 # Branch-only helper; never merge this workflow into a product branch.
+# Retry after Ruff cleanup on the evidence branch.
