@@ -1,0 +1,135 @@
+name: Temporary P0-03 CI repair
+
+on:
+  push:
+    branches:
+      - p0-03-ci-repair-20261001
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Repair stable ID, formatting, and generated v2 derivatives
+        run: |
+          set -Eeuo pipefail
+          cd Weall-Protocol
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('specs/v2/source/stable_ids.json')
+          payload = json.loads(path.read_text(encoding='utf-8'))
+          key = 'src/weall/runtime/bft_runtime_adapter.py:_bft_prepare_transition_vote:message_builder_or_handler'
+          stable_id = 'MSG-AD7439A7CF9B54D7'
+          entries = payload.get('entries')
+          if not isinstance(entries, list):
+              raise SystemExit('stable_ids entries must be a list')
+          ids = {str(row.get('stable_id') or '') for row in entries if isinstance(row, dict)}
+          matches = [row for row in entries if isinstance(row, dict) and row.get('kind') == 'message' and row.get('canonical_key') == key]
+          if matches:
+              if len(matches) != 1 or matches[0].get('stable_id') != stable_id:
+                  raise SystemExit(f'existing transition message stable-ID binding is unexpected: {matches}')
+          else:
+              if stable_id in ids:
+                  raise SystemExit(f'new stable ID already bound elsewhere: {stable_id}')
+              entries.append({
+                  'aliases': [],
+                  'canonical_key': key,
+                  'kind': 'message',
+                  'stable_id': stable_id,
+                  'status': 'active',
+              })
+              entries.sort(key=lambda row: (str(row.get('stable_id') or ''), str(row.get('kind') or ''), str(row.get('canonical_key') or '')))
+              path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+          PY
+          ruff format \
+            src/weall/runtime/apply/consensus.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          cd ..
+          rm .github/workflows/tmp-p0-03-ci-repair.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix(ci): register P0-03 transition contract and format runtime [tested-tree]'
+
+      - name: Ruff and v2 exact-current checks
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format --check \
+            src/weall/runtime/apply/consensus.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py \
+            tests/test_p0_03_certified_branch_transition.py
+          ruff check \
+            src/weall/runtime/apply/consensus.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py \
+            tests/test_p0_03_certified_branch_transition.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+
+      - name: Focused P0-03 and compiler regressions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src pytest -q \
+            tests/test_p0_03_certified_branch_transition.py \
+            tests/test_v2_spec_compiler.py
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Restore historical M2/M3 evidence
+        working-directory: Weall-Protocol
+        run: bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
+
+      - name: Reviewer Readiness
+        working-directory: Weall-Protocol
+        env:
+          WEALL_RELEASE_TREE_ALREADY_VERIFIED: '0'
+        run: bash scripts/reviewer_production_readiness_gate.sh
+
+      - name: Full backend suite
+        working-directory: Weall-Protocol
+        run: PYTHONPATH=src pytest -q
+
+      - name: Push tested helper-free tree
+        run: |
+          set -Eeuo pipefail
+          git status --short
+          test ! -e .github/workflows/tmp-p0-03-ci-repair.yml
+          git push origin HEAD:p0-03-ci-repair-20261001
