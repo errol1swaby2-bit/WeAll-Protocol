@@ -114,6 +114,13 @@ jobs:
           python scripts/check_v2_spec_clean_checkout.py
           PYTHONPATH=src pytest -q tests/test_p0_03_certified_branch_transition.py tests/test_v2_spec_compiler.py
 
+      - name: Verify helper-free candidate release tree
+        run: |
+          set -Eeuo pipefail
+          git worktree add --detach /tmp/p0-03-clean HEAD
+          bash /tmp/p0-03-clean/Weall-Protocol/scripts/verify_release_tree.sh
+          git worktree remove --force /tmp/p0-03-clean
+
       - name: Install frontend dependencies
         working-directory: web
         run: npm ci
@@ -125,7 +132,7 @@ jobs:
       - name: Reviewer Readiness
         working-directory: Weall-Protocol
         env:
-          WEALL_RELEASE_TREE_ALREADY_VERIFIED: '0'
+          WEALL_RELEASE_TREE_ALREADY_VERIFIED: '1'
         run: bash scripts/reviewer_production_readiness_gate.sh
 
       - name: Full backend suite
