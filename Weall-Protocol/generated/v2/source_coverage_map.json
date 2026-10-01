@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1968,
+  "file_count": 1967,
   "files": [
     {
       "affected_registers": [
@@ -58,19 +58,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/p0-temp-refresh-v2-semantics.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "3367b7f164ff061531b1d4cf52d1c7c0de843eab39390d9375d765d48e7bfc58",
-      "source_id": "SRC-F10EFAF38C4F7B6B"
     },
     {
       "affected_registers": [
