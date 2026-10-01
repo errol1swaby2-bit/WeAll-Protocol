@@ -1,0 +1,72 @@
+name: P0 helper governance treasury binding rerun
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-governance-treasury-binding-rerun.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-target:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Replay corrected closure steps from reviewed helper
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+
+          import yaml
+
+          helper_ref = 'origin/p0-tooling-exact-v2-refresh-20261001'
+          helper_path = '.github/workflows/p0-helper-governance-treasury-binding.yml'
+          raw = subprocess.check_output(
+              ['git', 'show', f'{helper_ref}:{helper_path}'],
+              text=True,
+          )
+          doc = yaml.safe_load(raw)
+          steps = doc['jobs']['patch-target']['steps']
+          by_name = {step.get('name'): step for step in steps if isinstance(step, dict)}
+
+          def run_step(name: str, cwd: str = '.') -> None:
+              script = by_name[name]['run']
+              subprocess.run(['bash', '-lc', script], cwd=cwd, check=True)
+
+          run_step('Patch A09-F003 and A10-F005 authority boundaries')
+          run_step('Add focused P0 authority-binding regressions')
+
+          test_path = Path('Weall-Protocol/tests/test_p0_group_treasury_governance_binding.py')
+          text = test_path.read_text()
+          text = text.replace(
+              'assert exc_info.value.message == "governance_execution_actions_mismatch"',
+              'assert exc_info.value.reason == "governance_execution_actions_mismatch"',
+          )
+          test_path.write_text(text)
+
+          run_step('Format lint and run focused regressions', 'Weall-Protocol')
+          run_step('Refresh semantic review bindings for changed authority paths', 'Weall-Protocol')
+          run_step('Commit source tests and semantic reviews to P0 target')
+          PY
