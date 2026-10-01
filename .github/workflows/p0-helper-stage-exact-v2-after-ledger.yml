@@ -42,11 +42,17 @@ jobs:
 
           root = Path("Weall-Protocol")
 
-          def insert_profile(path: Path, profile_id: str, hash_char: str) -> None:
+          def insert_profile(
+              path: Path,
+              profile_id: str,
+              hash_char: str,
+              *,
+              start_token: str,
+          ) -> None:
               text = path.read_text(encoding="utf-8")
               if f'"profile_id": "{profile_id}"' in text:
                   return
-              start = text.index("def _base_state()")
+              start = text.index(start_token)
               marker = '        "accounts": {\n'
               pos = text.index(marker, start)
               block = f'''        "ballot_profile": {{
@@ -69,21 +75,31 @@ jobs:
               root / "scripts/rehearse_v15_full_lifecycle.py",
               "production-reviewed-v15-lifecycle-v1",
               "a",
+              start_token="def _base_state()",
           )
           insert_profile(
               root / "scripts/rehearse_api_driven_full_lifecycle_v1_5.py",
               "production-reviewed-v15-api-lifecycle-v1",
               "b",
+              start_token="def _base_state()",
+          )
+          insert_profile(
+              root / "scripts/rehearse_fully_api_driven_v15_lifecycle.py",
+              "production-reviewed-v15-fully-api-lifecycle-v1",
+              "c",
+              start_token="def run_harness()",
           )
           PY
 
           cd Weall-Protocol
           ruff format \
             scripts/rehearse_v15_full_lifecycle.py \
-            scripts/rehearse_api_driven_full_lifecycle_v1_5.py
+            scripts/rehearse_api_driven_full_lifecycle_v1_5.py \
+            scripts/rehearse_fully_api_driven_v15_lifecycle.py
           ruff check \
             scripts/rehearse_v15_full_lifecycle.py \
-            scripts/rehearse_api_driven_full_lifecycle_v1_5.py
+            scripts/rehearse_api_driven_full_lifecycle_v1_5.py \
+            scripts/rehearse_fully_api_driven_v15_lifecycle.py
 
       - name: Prove repaired lifecycle rehearsals
         working-directory: Weall-Protocol
@@ -91,6 +107,7 @@ jobs:
           set -Eeuo pipefail
           python scripts/rehearse_v15_full_lifecycle.py --json
           python scripts/rehearse_api_driven_full_lifecycle_v1_5.py --json
+          python scripts/rehearse_fully_api_driven_v15_lifecycle.py --json
 
       - name: Regenerate deterministic lifecycle proof artifacts
         working-directory: Weall-Protocol
@@ -114,6 +131,7 @@ jobs:
           git add \
             Weall-Protocol/scripts/rehearse_v15_full_lifecycle.py \
             Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py \
+            Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py \
             Weall-Protocol/generated/b517_b521_completion_proof_v1_5.json \
             Weall-Protocol/generated/b523_b527_completion_proof_v1_5.json \
             Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
