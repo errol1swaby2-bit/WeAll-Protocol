@@ -6,6 +6,7 @@ on:
       - p0-tooling-exact-v2-refresh-20261001
     paths:
       - .github/workflows/p0-helper-close-p012.yml
+      - .github/scripts/p0_close_p012.py
 
 permissions:
   contents: write
@@ -14,16 +15,21 @@ jobs:
   close-p012:
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout exact product branch
+      - name: Checkout product branch
         uses: actions/checkout@v4
         with:
           ref: p0-evidence-closure-a10-a12-vectors-20261001
           fetch-depth: 0
 
-      - name: Assert expected validated base
-        run: |
-          set -Eeuo pipefail
-          test "$(git rev-parse HEAD)" = "ed7776f41cea2ee4d6026dc0f26fda9e7096dc00"
+      - name: Checkout helper scripts
+        uses: actions/checkout@v4
+        with:
+          ref: p0-tooling-exact-v2-refresh-20261001
+          path: .p0-helper
+          sparse-checkout: .github/scripts
+
+      - name: Assert expected product base
+        run: test "$(git rev-parse HEAD)" = "ed7776f41cea2ee4d6026dc0f26fda9e7096dc00"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -37,7 +43,7 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install locked backend and frontend dependencies
+      - name: Install locked dependencies
         run: |
           set -Eeuo pipefail
           cd Weall-Protocol
@@ -47,332 +53,22 @@ jobs:
           cd ../web
           npm ci
 
-      - name: Bind current claims to same-tree P0 audit status
+      - name: Apply P0-12 bounded patch
+        run: python .p0-helper/.github/scripts/p0_close_p012.py
+
+      - name: Format and focused tests
         run: |
           set -Eeuo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("Weall-Protocol/scripts/gen_current_verified_claims.py")
-          text = path.read_text(encoding="utf-8")
-          assert "AUDIT_STATUS =" not in text
-
-          text = text.replace(
-              'PERFORMANCE = ROOT / "evidence" / "performance" / "current_performance_evidence.json"\n\nJSON_OUT',
-              'PERFORMANCE = ROOT / "evidence" / "performance" / "current_performance_evidence.json"\n'
-              'AUDIT_STATUS = ROOT.parent / "docs" / "audit" / "WeAll-A01-A20-P0-Closure-Status-20260930.md"\n\nJSON_OUT',
-              1,
-          )
-          text = text.replace('VERSION = "1.0.0"', 'VERSION = "1.1.0"', 1)
-
-          marker = "\n\ndef _require_bool("
-          assert marker in text
-          insertion = r'''
-
-AUDIT_CLOSED_STATUS = "CLOSED — PATCHED AND PROVEN"
-AUDIT_TRACK_IDS = tuple(f"P0-{index:02d}" for index in range(1, 13))
-AUDIT_ALLOWED_STATUSES = {
-    AUDIT_CLOSED_STATUS,
-    "PATCHED / EVIDENCE PENDING",
-    "PARTIAL",
-    "DESIGN BLOCKER",
-    "IMPLEMENTATION BLOCKER",
-    "DESIGN + IMPLEMENTATION BLOCKER",
-    "EVIDENCE GATE",
-}
-
-
-def _read_p0_audit_status(path: Path) -> dict[str, Any]:
-    if not path.is_file():
-        raise SystemExit(f"missing required P0 audit status: {path}")
-    text = path.read_text(encoding="utf-8")
-    start_marker = "## Track status"
-    end_marker = "## Additional CI blockers discovered during closure"
-    if start_marker not in text or end_marker not in text:
-        raise SystemExit("P0 audit status is missing the canonical track-status section")
-    section = text.split(start_marker, 1)[1].split(end_marker, 1)[0]
-
-    tracks: dict[str, dict[str, Any]] = {}
-    for raw_line in section.splitlines():
-        if not raw_line.startswith("| P0-"):
-            continue
-        cells = [cell.strip() for cell in raw_line.strip().strip("|").split("|")]
-        if len(cells) != 4:
-            raise SystemExit(f"malformed P0 audit status row: {raw_line}")
-        label, finding_cell, status, detail = cells
-        track_id = label.split(" ", 1)[0]
-        if track_id in tracks:
-            raise SystemExit(f"duplicate P0 audit track: {track_id}")
-        if status not in AUDIT_ALLOWED_STATUSES:
-            raise SystemExit(f"unrecognized P0 audit status for {track_id}: {status}")
-        findings = [item.strip() for item in finding_cell.split(",") if item.strip()]
-        if not findings:
-            raise SystemExit(f"P0 audit track {track_id} has no finding IDs")
-        tracks[track_id] = {
-            "status": status,
-            "findings": findings,
-            "detail": detail,
-        }
-
-    expected = set(AUDIT_TRACK_IDS)
-    actual = set(tracks)
-    if actual != expected:
-        missing = sorted(expected - actual)
-        extra = sorted(actual - expected)
-        raise SystemExit(f"P0 audit status track set mismatch: missing={missing}, extra={extra}")
-
-    open_track_ids = [
-        track_id
-        for track_id in AUDIT_TRACK_IDS
-        if tracks[track_id]["status"] != AUDIT_CLOSED_STATUS
-    ]
-    open_finding_ids = sorted(
-        {
-            finding
-            for track_id in open_track_ids
-            for finding in tracks[track_id]["findings"]
-        }
-    )
-    return {
-        "tracks": tracks,
-        "open_track_ids": open_track_ids,
-        "open_finding_ids": open_finding_ids,
-        "closed_track_ids": [
-            track_id for track_id in AUDIT_TRACK_IDS if track_id not in open_track_ids
-        ],
-    }
-'''
-          text = text.replace(marker, insertion + marker, 1)
-
-          old = '''    performance = _read_json(PERFORMANCE)\n    performance_summary = _validate_performance_registry(performance)\n'''
-          new = '''    performance = _read_json(PERFORMANCE)\n    audit_status = _read_p0_audit_status(AUDIT_STATUS)\n    performance_summary = _validate_performance_registry(performance)\n'''
-          assert old in text
-          text = text.replace(old, new, 1)
-
-          marker = '''    if boundaries.get("mainnet_ready") is not mainnet_ready:\n        raise SystemExit("release evidence manifest mainnet_ready disagrees with claim_boundaries")\n\n    claims: list[dict[str, Any]] = []\n'''
-          replacement = '''    if boundaries.get("mainnet_ready") is not mainnet_ready:\n        raise SystemExit("release evidence manifest mainnet_ready disagrees with claim_boundaries")\n\n    open_p0_track_ids = audit_status["open_track_ids"]\n    if open_p0_track_ids:\n        enabled_boundaries = sorted(key for key, value in boundaries.items() if value)\n        if public_beta_ready or mainnet_ready or enabled_boundaries:\n            raise SystemExit(\n                "open P0 audit tracks block stronger release claims: "\n                f"open={open_p0_track_ids}, enabled_boundaries={enabled_boundaries}, "\n                f"public_beta_ready={public_beta_ready}, mainnet_ready={mainnet_ready}"\n            )\n\n    claims: list[dict[str, Any]] = []\n'''
-          assert marker in text
-          text = text.replace(marker, replacement, 1)
-
-          marker = '''    claims.append(\n        _claim(\n            "TX-CANON-001",\n'''
-          insertion = '''    claims.append(\n        _claim(\n            "AUDIT-P0-001",\n            "audit_gate",\n            (\n                "Open same-tree A01–A20 P0/HIGH findings block stronger release claims."\n                if open_p0_track_ids\n                else "The same-tree A01–A20 P0/HIGH closure ledger has no open tracks."\n            ),\n            (\n                "OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS"\n                if open_p0_track_ids\n                else "PROVEN_GENERATED_CURRENT"\n            ),\n            ["../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md"],\n            value={\n                "total_tracks": len(AUDIT_TRACK_IDS),\n                "open_track_ids": list(open_p0_track_ids),\n                "open_high_finding_ids": list(audit_status["open_finding_ids"]),\n                "closed_track_ids": list(audit_status["closed_track_ids"]),\n                "stronger_release_claims_blocked": bool(open_p0_track_ids),\n            },\n            notes=(\n                "P0 is the audit program's mapping of every A01–A20 HIGH finding. "\n                "The tracked closure ledger is now a required claim-generation input; "\n                "an unresolved P0 track therefore cannot coexist with an enabled release boundary."\n            ),\n        )\n    )\n\n'''
-          assert marker in text
-          text = text.replace(marker, insertion + marker, 1)
-
-          old = '''    return {\n        "schema": SCHEMA,\n        "version": VERSION,\n        "tracked_manifest_is_commit_agnostic": True,\n        "exact_commit_binding_required_for_final_audit": True,\n        "generation_inputs": {\n            str(path.relative_to(ROOT)): _sha256(path)\n            for path in (TX_INDEX, BLOCKERS, RELEASE, PERFORMANCE)\n        },\n        "claims": claims,\n    }\n'''
-          new = '''    generation_inputs = {\n        str(path.relative_to(ROOT)): _sha256(path)\n        for path in (TX_INDEX, BLOCKERS, RELEASE, PERFORMANCE)\n    }\n    generation_inputs[\n        "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md"\n    ] = _sha256(AUDIT_STATUS)\n\n    return {\n        "schema": SCHEMA,\n        "version": VERSION,\n        "tracked_manifest_is_commit_agnostic": True,\n        "exact_commit_binding_required_for_final_audit": True,\n        "generation_inputs": generation_inputs,\n        "claims": claims,\n    }\n'''
-          assert old in text
-          text = text.replace(old, new, 1)
-
-          old = '''    external = by_id["EXTERNAL-VALIDATION-001"]["value"]\n\n    lines += [\n'''
-          new = '''    external = by_id["EXTERNAL-VALIDATION-001"]["value"]\n    audit_gate = by_id["AUDIT-P0-001"]["value"]\n\n    lines += [\n'''
-          assert old in text
-          text = text.replace(old, new, 1)
-
-          old = '''        f"- Remaining external-evidence blocker IDs: `{', '.join(external['remaining_external_evidence_required_ids'])}`.",\n        "",\n'''
-          new = '''        f"- Remaining external-evidence blocker IDs: `{', '.join(external['remaining_external_evidence_required_ids'])}`.",\n        f"- Open A01–A20 P0 audit tracks: `{', '.join(audit_gate['open_track_ids']) if audit_gate['open_track_ids'] else 'none'}`.",\n        "",\n'''
-          assert old in text
-          text = text.replace(old, new, 1)
-
-          path.write_text(text, encoding="utf-8")
-          PY
-
-          cat > Weall-Protocol/tests/test_p0_claim_audit_binding.py <<'PYTEST'
-          from __future__ import annotations
-
-          import importlib.util
-          import json
-          from pathlib import Path
-
-          import pytest
-
-          MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "gen_current_verified_claims.py"
-
-
-          def _load_module():
-              spec = importlib.util.spec_from_file_location("p0_claims_under_test", MODULE_PATH)
-              assert spec is not None and spec.loader is not None
-              module = importlib.util.module_from_spec(spec)
-              spec.loader.exec_module(module)
-              return module
-
-
-          def _write_json(path: Path, value: dict) -> None:
-              path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
-
-
-          def _write_audit_status(path: Path, *, open_tracks: dict[str, str]) -> None:
-              lines = [
-                  "# test audit status",
-                  "",
-                  "## Track status",
-                  "",
-                  "| Track | Findings | Current status | Branch work / remaining gate |",
-                  "| --- | --- | --- | --- |",
-              ]
-              for index in range(1, 13):
-                  track_id = f"P0-{index:02d}"
-                  status = open_tracks.get(track_id, "CLOSED — PATCHED AND PROVEN")
-                  lines.append(
-                      f"| {track_id} Test track | A{index:02d}-F001 | {status} | test detail |"
-                  )
-              lines += [
-                  "",
-                  "## Additional CI blockers discovered during closure",
-                  "",
-                  "none",
-              ]
-              path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
-          def _bind(module, tmp_path: Path, *, open_tracks: dict[str, str]) -> dict:
-              tx = tmp_path / "tx.json"
-              blockers = tmp_path / "blockers.json"
-              release = tmp_path / "release.json"
-              performance = tmp_path / "performance.json"
-              audit = tmp_path / "audit.md"
-
-              _write_json(tx, {"tx_types": ["ACCOUNT_CREATE"], "meta": {"version": "test", "law": "append-only"}})
-              _write_json(blockers, {"remaining_external_evidence_required_ids": ["AUD-633-P0-004"]})
-              release_payload = {
-                  "public_beta_ready": False,
-                  "mainnet_ready": False,
-                  "claim_boundaries": {
-                      "public_beta_ready": False,
-                      "mainnet_ready": False,
-                      "live_economics": False,
-                  },
-              }
-              _write_json(release, release_payload)
-              _write_json(
-                  performance,
-                  {
-                      "schema": "weall.current_performance_evidence.v1",
-                      "version": "1.0.0",
-                      "subject_scope": "repository-current",
-                      "current_scalar_tps_claim_allowed": False,
-                      "qualifying_benchmarks": [],
-                      "qualification_requirements": list(module.PERFORMANCE_REQUIRED_BENCHMARK_FIELDS),
-                      "historical_measurements_current_claim_eligible": False,
-                      "notes": [],
-                  },
-              )
-              _write_audit_status(audit, open_tracks=open_tracks)
-
-              module.ROOT = tmp_path
-              module.TX_INDEX = tx
-              module.BLOCKERS = blockers
-              module.RELEASE = release
-              module.PERFORMANCE = performance
-              module.AUDIT_STATUS = audit
-              return {"release": release, "release_payload": release_payload, "audit": audit}
-
-
-          def _claim(payload: dict, claim_id: str) -> dict:
-              return next(row for row in payload["claims"] if row["claim_id"] == claim_id)
-
-
-          def test_open_p0_tracks_are_current_claim_input_and_machine_readable(tmp_path: Path) -> None:
-              module = _load_module()
-              _bind(module, tmp_path, open_tracks={"P0-03": "IMPLEMENTATION BLOCKER"})
-
-              payload = module.build()
-              audit_claim = _claim(payload, "AUDIT-P0-001")
-
-              assert audit_claim["status"] == "OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS"
-              assert audit_claim["value"]["open_track_ids"] == ["P0-03"]
-              assert audit_claim["value"]["open_high_finding_ids"] == ["A03-F001"]
-              assert audit_claim["value"]["stronger_release_claims_blocked"] is True
-              assert "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md" in payload["generation_inputs"]
-
-
-          def test_open_p0_track_rejects_enabled_release_boundary(tmp_path: Path) -> None:
-              module = _load_module()
-              bound = _bind(module, tmp_path, open_tracks={"P0-05": "IMPLEMENTATION BLOCKER"})
-              release_payload = bound["release_payload"]
-              release_payload["claim_boundaries"]["live_economics"] = True
-              _write_json(bound["release"], release_payload)
-
-              with pytest.raises(SystemExit, match="open P0 audit tracks block stronger release claims"):
-                  module.build()
-
-
-          def test_missing_p0_track_fails_closed(tmp_path: Path) -> None:
-              module = _load_module()
-              bound = _bind(module, tmp_path, open_tracks={})
-              text = bound["audit"].read_text(encoding="utf-8")
-              text = "\n".join(line for line in text.splitlines() if not line.startswith("| P0-12 ")) + "\n"
-              bound["audit"].write_text(text, encoding="utf-8")
-
-              with pytest.raises(SystemExit, match="track set mismatch"):
-                  module.build()
-
-
-          def test_all_closed_tracks_do_not_block_non_readiness_boundary(tmp_path: Path) -> None:
-              module = _load_module()
-              bound = _bind(module, tmp_path, open_tracks={})
-              release_payload = bound["release_payload"]
-              release_payload["claim_boundaries"]["live_economics"] = True
-              _write_json(bound["release"], release_payload)
-
-              payload = module.build()
-              audit_claim = _claim(payload, "AUDIT-P0-001")
-              assert audit_claim["status"] == "PROVEN_GENERATED_CURRENT"
-              assert audit_claim["value"]["open_track_ids"] == []
-              assert audit_claim["value"]["stronger_release_claims_blocked"] is False
-          PYTEST
-
           cd Weall-Protocol
           ruff format scripts/gen_current_verified_claims.py tests/test_p0_claim_audit_binding.py
           ruff check scripts/gen_current_verified_claims.py tests/test_p0_claim_audit_binding.py
           ruff format --check scripts/gen_current_verified_claims.py tests/test_p0_claim_audit_binding.py
-
-      - name: Prove P0-12 focused fail-closed behavior
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
           pytest -q tests/test_p0_claim_audit_binding.py tests/test_current_verified_claims_fail_closed.py
 
-      - name: Mark P0-12 closed in canonical ledger
-        run: |
-          set -Eeuo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md")
-          text = path.read_text(encoding="utf-8")
-          lines = text.splitlines()
-          matched = False
-          for index, line in enumerate(lines):
-              if not line.startswith("| P0-12 Claim/evidence truth binding "):
-                  continue
-              cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-              assert len(cells) == 4
-              cells[2] = "CLOSED — PATCHED AND PROVEN"
-              cells[3] = (
-                  "Current claim generation now consumes the canonical same-tree A01–A20 P0 closure ledger, "
-                  "enumerates open HIGH/P0 tracks and findings, hashes the ledger as a required generation input, "
-                  "and fails closed if any release claim boundary is enabled while a P0 track remains open. "
-                  "Dedicated malformed/missing-track and claim-promotion regressions pass."
-              )
-              lines[index] = "| " + " | ".join(cells) + " |"
-              matched = True
-              break
-          assert matched
-
-          text = "\n".join(lines) + "\n"
-          text = text.replace(
-              "5. Implement P0-12 generalized same-tree audit-finding-to-claim binding, regenerate exact-head public evidence, and capture the final closure SHA/tree only after all remaining HIGH findings are actually resolved.\n",
-              "5. After the remaining implementation/design tracks close, capture the final closure SHA/tree and regenerate final exact-head public evidence.\n",
-              1,
-          )
-          path.write_text(text, encoding="utf-8")
-          PY
-
       - name: Regenerate exact claims and V2 derivatives
-        working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
+          cd Weall-Protocol
           PYTHONPATH=src python scripts/gen_current_verified_claims.py
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
@@ -383,29 +79,25 @@ def _read_p0_audit_status(path: Path) -> dict[str, Any]:
       - name: Commit bounded P0-12 closure
         run: |
           set -Eeuo pipefail
+          rm -rf .p0-helper
           BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/scripts/gen_current_verified_claims.py" && p != "Weall-Protocol/tests/test_p0_claim_audit_binding.py" && p != "docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md" && p != "Weall-Protocol/generated/current_verified_claims.json" && p != "Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
-          if [[ -n "$BAD" ]]; then
-            echo 'Unexpected P0-12 closure changes:' >&2
-            printf '%s\n' "$BAD" >&2
-            exit 1
-          fi
-          git add \
-            Weall-Protocol/scripts/gen_current_verified_claims.py \
-            Weall-Protocol/tests/test_p0_claim_audit_binding.py \
-            docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md \
-            Weall-Protocol/generated/current_verified_claims.json \
-            Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md \
-            Weall-Protocol/generated/v2 \
-            web/src/generated/protocolStatus.ts
+          test -z "$BAD"
+          git add Weall-Protocol/scripts/gen_current_verified_claims.py
+          git add Weall-Protocol/tests/test_p0_claim_audit_binding.py
+          git add docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md
+          git add Weall-Protocol/generated/current_verified_claims.json
+          git add Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md
+          git add Weall-Protocol/generated/v2
+          git add web/src/generated/protocolStatus.ts
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'feat(p0): bind current claims to open audit findings'
           test -z "$(git status --short --untracked-files=all)"
 
       - name: Verify exact committed generated state
-        working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
+          cd Weall-Protocol
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
@@ -413,19 +105,19 @@ def _read_p0_audit_status(path: Path) -> dict[str, Any]:
           python scripts/check_public_claim_freshness.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
 
-      - name: Restore historical M2/M3 closure evidence
+      - name: Restore historical M2/M3 evidence
         working-directory: Weall-Protocol
         run: bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
 
-      - name: Full pytest
+      - name: Full backend suite
         working-directory: Weall-Protocol
         run: pytest -q
 
-      - name: Reviewer readiness gate
+      - name: Reviewer readiness
         working-directory: Weall-Protocol
         env:
           WEALL_RELEASE_TREE_ALREADY_VERIFIED: '1'
         run: bash scripts/reviewer_production_readiness_gate.sh
 
-      - name: Push validated P0-12 closure
+      - name: Push validated product branch
         run: git push origin HEAD:p0-evidence-closure-a10-a12-vectors-20261001
