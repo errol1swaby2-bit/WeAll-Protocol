@@ -32,206 +32,151 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Apply adjudicated fixture and evidence repairs
+      - name: Activate reviewed ballot profile in production lifecycle rehearsals
         run: |
           set -Eeuo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-
-          if ! git merge-base --is-ancestor cb787810ac92fbb2e447b3a64698bf973802ecd3 HEAD; then
-            git cherry-pick cb787810ac92fbb2e447b3a64698bf973802ecd3
-          fi
-
           python - <<'PY'
           from pathlib import Path
 
           root = Path("Weall-Protocol")
 
-          state_sync_files = [
-              root / "tests/test_executor_state_sync.py",
-              root / "tests/test_executor_state_sync_progress.py",
-              root / "tests/test_executor_state_sync_progress_rejection.py",
-              root / "tests/test_priority2_state_sync_anchor_coverage.py",
-          ]
-          for path in state_sync_files:
-              lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
-              kept = [
-                  line
-                  for line in lines
-                  if line.strip() != 'blk2["prev_block_hash"] = ""'
-              ]
-              if len(kept) == len(lines):
-                  raise SystemExit(f"expected stale state-sync alias fixture not found: {path}")
-              path.write_text("".join(kept), encoding="utf-8")
-
-          path = root / "tests/test_review_coverage_read_models.py"
+          path = root / "scripts/rehearse_v15_full_lifecycle.py"
           text = path.read_text(encoding="utf-8")
-          replacements = {
-              'client.get("/v1/poh/async/juror-cases?juror=%40genesis")':
-                  'client.get("/v1/poh/async/juror-cases?juror=%40genesis", headers=_auth("@genesis"))',
-              'client.get("/v1/poh/async/juror-cases?juror=%40genesis&include_completed=1")':
-                  'client.get("/v1/poh/async/juror-cases?juror=%40genesis&include_completed=1", headers=_auth("@genesis"))',
-              'client.get("/v1/poh/tier2/juror-cases?juror=%40genesis")':
-                  'client.get("/v1/poh/tier2/juror-cases?juror=%40genesis", headers=_auth("@genesis"))',
-              'client.get("/v1/poh/tier2/juror-cases?juror=%40genesis&include_completed=1")':
-                  'client.get("/v1/poh/tier2/juror-cases?juror=%40genesis&include_completed=1", headers=_auth("@genesis"))',
-              'client.get("/v1/poh/live/assigned?juror=%40genesis")':
-                  'client.get("/v1/poh/live/assigned?juror=%40genesis", headers=_auth("@genesis"))',
-              'client.get("/v1/poh/live/assigned?juror=%40genesis&include_completed=1")':
-                  'client.get("/v1/poh/live/assigned?juror=%40genesis&include_completed=1", headers=_auth("@genesis"))',
-              'client.get("/v1/poh/live/juror-cases?juror=%40genesis")':
-                  'client.get("/v1/poh/live/juror-cases?juror=%40genesis", headers=_auth("@genesis"))',
-          }
-          for old, new in replacements.items():
-              if old not in text:
-                  raise SystemExit(f"expected PoH review fixture not found: {old}")
-              text = text.replace(old, new)
-          path.write_text(text, encoding="utf-8")
-
-          path = root / "tests/test_v2_spec_compiler.py"
-          text = path.read_text(encoding="utf-8")
-          old = '    assert runtime["count"] == 1127\n'
-          new = (
-              '    assert runtime["count"] == len(runtime["rows"])\n'
-              '    assert runtime["count"] >= exact["count"]\n'
-          )
-          if old not in text:
-              raise SystemExit("expected stale runtime inventory count assertion not found")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
-
-          path = root / "tests/test_validator_bft_economics_go_gates.py"
-          text = path.read_text(encoding="utf-8")
-          old = '        "economics": {"fee_policy": {"transfer_fee_int": 0}},\n'
-          new = '''        "tokenomics_simulation": {
-              "cap": 21_000_000,
-              "epoch_count": 8,
-              "checksum": "sim-v1",
+          if '"profile_id": "production-reviewed-v15-lifecycle-v1"' not in text:
+              needle = '''        "params": {
+              "economic_unlock_time": 1,
+              "economics_enabled": False,
+              "ipfs_replication_factor": 1,
           },
-          "treasury_wallets": {
-              "public_goods": {"account_id": "treasury:public_goods", "balance": 0}
-          },
-          "economics": {
-              "fee_policy": {
-                  "transfer_fee_int": 0,
-                  "post_fee_int": 0,
-                  "comment_fee_int": 0,
-                  "governance_vote_fee_int": 0,
-              },
-              "wallet_policy": {
-                  "initialization": "explicit_account_register_or_genesis",
-                  "recovery": "manual_governance_or_user_key_rotation",
-                  "pending_failed_read_model": True,
-              },
-              "reward_policy": {
-                  "eligible_roles": ["juror", "reviewer", "operator", "validator", "creator"],
-                  "recipient_eligibility": {
-                      "requires_active_poh": True,
-                      "no_locked_or_banned_accounts": True,
-                  },
-              },
-              "anti_farming_policy": {
-                  "duplicate_reward_window_blocks": 1000,
-                  "max_reward_claims_per_epoch": 1,
-                  "requires_unique_work_id": True,
-              },
-              "transfer_receipt_policy": {
-                  "pending_receipts": True,
-                  "failed_receipts": True,
-                  "dedupe_by_transfer_id": True,
-              },
-              "treasury_accountability_policy": {
-                  "public_report_required": True,
-                  "spend_receipt_required": True,
-                  "governance_parent_required": True,
-              },
-          },
+          "accounts": {
           '''
-          if old not in text:
-              raise SystemExit("expected minimal economics fixture not found")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+              replacement = '''        "params": {
+              "economic_unlock_time": 1,
+              "economics_enabled": False,
+              "ipfs_replication_factor": 1,
+          },
+          "ballot_profile": {
+              "profile_id": "production-reviewed-v15-lifecycle-v1",
+              "active": True,
+          },
+          "ballot_profile_activation_receipts": [
+              {
+                  "profile_id": "production-reviewed-v15-lifecycle-v1",
+                  "status": "active",
+                  "profile_hash": "a" * 64,
+                  "allowed_modes": ["prod", "production"],
+                  "independent_review_complete": True,
+              }
+          ],
+          "accounts": {
+          '''
+              if needle not in text:
+                  raise SystemExit("v15 lifecycle params anchor not found")
+              text = text.replace(needle, replacement, 1)
+              path.write_text(text, encoding="utf-8")
 
-          path = root / "src/weall/runtime/block_builder.py"
+          path = root / "scripts/rehearse_api_driven_full_lifecycle_v1_5.py"
           text = path.read_text(encoding="utf-8")
-          old = '''    # Apply txs (fail-atomic) and always emit deterministic receipts.
-              # Nonces are only consumed on success, so any later non-system tx from a
-              # signer whose earlier tx rejected during apply must also be rejected
-              # deterministically within this block.
+          if '"profile_id": "production-reviewed-v15-api-lifecycle-v1"' not in text:
+              needle = '''        "params": {
+              "economic_unlock_time": 1,
+              "economics_enabled": False,
+              "ipfs_replication_factor": 2,
+          },
+          "accounts": {
           '''
-          new = '''    # Apply txs (fail-atomic) and always emit deterministic receipts.
-              # RuntimeContext binds canonical inclusion to one-shot nonce semantics:
-              # a non-system tx consumes its signer nonce even when domain application
-              # fails and the block records a failed receipt. Later same-signer work
-              # must therefore advance from that canonical included nonce.
+              replacement = '''        "params": {
+              "economic_unlock_time": 1,
+              "economics_enabled": False,
+              "ipfs_replication_factor": 2,
+          },
+          "ballot_profile": {
+              "profile_id": "production-reviewed-v15-api-lifecycle-v1",
+              "active": True,
+          },
+          "ballot_profile_activation_receipts": [
+              {
+                  "profile_id": "production-reviewed-v15-api-lifecycle-v1",
+                  "status": "active",
+                  "profile_hash": "b" * 64,
+                  "allowed_modes": ["prod", "production"],
+                  "independent_review_complete": True,
+              }
+          ],
+          "accounts": {
           '''
-          if old not in text:
-              raise SystemExit("expected stale nonce comment not found")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+              if needle not in text:
+                  raise SystemExit("api lifecycle params anchor not found")
+              text = text.replace(needle, replacement, 1)
+              path.write_text(text, encoding="utf-8")
           PY
 
           cd Weall-Protocol
           ruff format \
-            tests/test_governance_no_creator_fallback_for_executable_prod.py \
-            tests/test_economics_activation_requires_hardened_governance_electorate.py \
-            tests/test_nonce_failure_block_progression.py \
-            tests/test_executor_state_sync.py \
-            tests/test_executor_state_sync_progress.py \
-            tests/test_executor_state_sync_progress_rejection.py \
-            tests/test_priority2_state_sync_anchor_coverage.py \
-            tests/test_review_coverage_read_models.py \
-            tests/test_v2_spec_compiler.py \
-            tests/test_validator_bft_economics_go_gates.py \
-            tests/test_p0_group_treasury_governance_binding.py \
-            src/weall/runtime/block_builder.py
-          cd ..
+            scripts/rehearse_v15_full_lifecycle.py \
+            scripts/rehearse_api_driven_full_lifecycle_v1_5.py
+          ruff check \
+            scripts/rehearse_v15_full_lifecycle.py \
+            scripts/rehearse_api_driven_full_lifecycle_v1_5.py
 
-          git add Weall-Protocol/tests Weall-Protocol/src/weall/runtime/block_builder.py
-          if ! git diff --cached --quiet; then
-            git commit -m 'test(p0): align legacy fixtures with hardened closure semantics'
-          fi
-
-      - name: Validate first repair batch
+      - name: Prove repaired lifecycle rehearsals
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff format --check \
-            tests/test_governance_no_creator_fallback_for_executable_prod.py \
-            tests/test_economics_activation_requires_hardened_governance_electorate.py \
-            tests/test_nonce_failure_block_progression.py \
-            tests/test_executor_state_sync.py \
-            tests/test_executor_state_sync_progress.py \
-            tests/test_executor_state_sync_progress_rejection.py \
-            tests/test_priority2_state_sync_anchor_coverage.py \
-            tests/test_review_coverage_read_models.py \
-            tests/test_v2_spec_compiler.py \
-            tests/test_validator_bft_economics_go_gates.py \
-            tests/test_p0_group_treasury_governance_binding.py \
-            src/weall/runtime/block_builder.py
-          ruff check \
-            tests/test_governance_no_creator_fallback_for_executable_prod.py \
-            tests/test_economics_activation_requires_hardened_governance_electorate.py \
-            tests/test_nonce_failure_block_progression.py \
-            tests/test_executor_state_sync.py \
-            tests/test_executor_state_sync_progress.py \
-            tests/test_executor_state_sync_progress_rejection.py \
-            tests/test_priority2_state_sync_anchor_coverage.py \
-            tests/test_review_coverage_read_models.py \
-            tests/test_v2_spec_compiler.py \
-            tests/test_validator_bft_economics_go_gates.py \
-            tests/test_p0_group_treasury_governance_binding.py \
-            src/weall/runtime/block_builder.py
+          python scripts/rehearse_v15_full_lifecycle.py --json
+          python scripts/rehearse_api_driven_full_lifecycle_v1_5.py --json
+
+      - name: Regenerate deterministic lifecycle proof artifacts
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          generators=(
+            scripts/gen_b517_b521_completion_proof_v1_5.py
+            scripts/gen_b523_b527_completion_proof_v1_5.py
+            scripts/gen_b528_b532_completion_proof_v1_5.py
+            scripts/gen_b534_b538_completion_proof_v1_5.py
+            scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          )
+          for gen in "${generators[@]}"; do
+            python "$gen"
+            python "$gen" --check
+          done
+
+      - name: Commit only rehearsals and deterministic proof artifacts
+        run: |
+          set -Eeuo pipefail
+          allowed='^( M|M |A |\?\?) (Weall-Protocol/scripts/rehearse_v15_full_lifecycle.py|Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py|Weall-Protocol/generated/b517_b521_completion_proof_v1_5.json|Weall-Protocol/generated/b523_b527_completion_proof_v1_5.json|Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json|Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json|Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json)$'
+          unexpected="$(git status --short --untracked-files=all | grep -Ev "$allowed" || true)"
+          if [[ -n "$unexpected" ]]; then
+            echo 'Unexpected generated changes:' >&2
+            printf '%s\n' "$unexpected" >&2
+            exit 1
+          fi
+          git add \
+            Weall-Protocol/scripts/rehearse_v15_full_lifecycle.py \
+            Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py \
+            Weall-Protocol/generated/b517_b521_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b523_b527_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'test(p0): refresh production lifecycle proof fixtures'
+          fi
+
+      - name: Validate proof consumers
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
           pytest -q \
-            tests/test_governance_no_creator_fallback_for_executable_prod.py \
-            tests/test_economics_activation_requires_hardened_governance_electorate.py \
-            tests/test_nonce_failure_block_progression.py \
-            tests/test_executor_state_sync.py \
-            tests/test_executor_state_sync_progress.py \
-            tests/test_executor_state_sync_progress_rejection.py \
-            tests/test_priority2_state_sync_anchor_coverage.py \
-            tests/test_review_coverage_read_models.py \
-            tests/test_v2_spec_compiler.py::test_exact_state_contracts_are_separate_from_runtime_inventory \
-            tests/test_validator_bft_economics_go_gates.py \
-            tests/test_p0_group_treasury_governance_binding.py \
-            tests/test_p0_governance_economics_closure.py
+            tests/test_generated_checker_read_only.py \
+            tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py \
+            tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py \
+            tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py \
+            tests/test_full_node_db_api_dispute_storage_coverage.py \
+            tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py
 
       - name: Push validated staging branch
         run: |
