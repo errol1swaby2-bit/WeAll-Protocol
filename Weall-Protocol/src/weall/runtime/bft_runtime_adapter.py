@@ -1574,7 +1574,10 @@ def bft_handle_qc(self, qcj: Json) -> bool:
 
 
 def _bft_transition_bridge_descriptor(self) -> Json | None:
-    c = self.state.get("consensus")
+    state = getattr(self, "state", None)
+    if not isinstance(state, dict):
+        return None
+    c = state.get("consensus")
     if not isinstance(c, dict):
         return None
     vs = c.get("validator_set")
@@ -1585,10 +1588,11 @@ def _bft_transition_bridge_descriptor(self) -> Json | None:
         return None
     if str(bridge.get("rule") or "") != "new_set_qc_over_canonical_boundary":
         return None
-    if self._current_consensus_phase() != CONSENSUS_PHASE_BFT_ACTIVE:
+    phase_reader = getattr(self, "_current_consensus_phase", None)
+    if not callable(phase_reader) or phase_reader() != CONSENSUS_PHASE_BFT_ACTIVE:
         return None
     boundary_height = _safe_int(bridge.get("boundary_height"), 0)
-    local_height = _safe_int(self.state.get("height"), 0)
+    local_height = _safe_int(state.get("height"), 0)
     if boundary_height <= 0 or local_height != boundary_height:
         return None
     current_epoch = int(self._current_validator_epoch())
@@ -1597,11 +1601,12 @@ def _bft_transition_bridge_descriptor(self) -> Json | None:
         return None
     if str(bridge.get("to_validator_set_hash") or "").strip() != current_set_hash:
         return None
-    tip = str(self.state.get("tip") or "").strip()
+    tip = str(state.get("tip") or "").strip()
     if not tip:
         return None
+    latest_reader = getattr(self, "get_latest_block", None)
     try:
-        latest = self.get_latest_block()
+        latest = latest_reader() if callable(latest_reader) else None
     except Exception:
         latest = None
     if not isinstance(latest, dict):
@@ -1612,7 +1617,8 @@ def _bft_transition_bridge_descriptor(self) -> Json | None:
         return None
     block_hash = str(latest.get("block_hash") or "").strip()
     if not block_hash:
-        block_hash = str(self._known_block_hash_for_id(tip) or "").strip()
+        hash_reader = getattr(self, "_known_block_hash_for_id", None)
+        block_hash = str(hash_reader(tip) if callable(hash_reader) else "").strip()
     if not block_hash:
         return None
     if _safe_int(bridge.get("transition_view"), 0) != 0:
@@ -1639,9 +1645,10 @@ def _bft_transition_bridge_has_qc(self, descriptor: Json | None = None) -> bool:
         return False
     if int(getattr(qc, "validator_epoch", 0) or 0) != int(self._current_validator_epoch()):
         return False
-    if str(getattr(qc, "validator_set_hash", "") or "").strip() != str(
-        self._current_validator_set_hash() or ""
-    ).strip():
+    if (
+        str(getattr(qc, "validator_set_hash", "") or "").strip()
+        != str(self._current_validator_set_hash() or "").strip()
+    ):
         return False
     return self.bft_verify_qc_json(qc.to_json()) is not None
 
@@ -1762,8 +1769,15 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         )
         if not isinstance(candidate_base_state, dict):
             return None
-    elif _mode() == "prod" and self._current_consensus_phase() == CONSENSUS_PHASE_BFT_ACTIVE:
-        return None
+    elif _mode() == "prod":
+        state = getattr(self, "state", None)
+        phase_reader = getattr(self, "_current_consensus_phase", None)
+        current_phase = phase_reader() if callable(phase_reader) else ""
+        if isinstance(state, dict) and current_phase == CONSENSUS_PHASE_BFT_ACTIVE:
+            height = _safe_int(state.get("height"), 0)
+            tip = str(state.get("tip") or "").strip()
+            if height > 0 or tip:
+                return None
 
     blk, st2, applied_ids, invalid_ids, err = self.build_block_candidate(
         max_txs=max_txs,
@@ -1789,7 +1803,10 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         if str(blk.get("prev_block_id") or "").strip() != expected_parent_id:
             raise BftLeaderProposalError("candidate_parent_does_not_extend_justify_qc")
         header = blk.get("header") if isinstance(blk.get("header"), dict) else {}
-        if expected_parent_hash and str(header.get("prev_block_hash") or "").strip() != expected_parent_hash:
+        if (
+            expected_parent_hash
+            and str(header.get("prev_block_hash") or "").strip() != expected_parent_hash
+        ):
             raise BftLeaderProposalError("candidate_parent_hash_does_not_extend_justify_qc")
 
     justify_qc_id = ""

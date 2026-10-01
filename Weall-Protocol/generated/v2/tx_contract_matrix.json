@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "9053e665487044c5063befbe5e26f4019e5ce4e06629fb3a14d9b3a4163e5900"
+    "source_tree_digest": "5620cc9902b68f113aabda23f15f2a2bc59aa1bbd025c7f60f90fab0492ac7b8"
   },
   "required_fields": [
     "stable_id",
@@ -13476,7 +13476,7 @@
       "implementation_source": {
         "function": "_apply_validator_heartbeat",
         "handler": "consensus",
-        "line": 1234,
+        "line": 1262,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13591,7 +13591,7 @@
       "implementation_source": {
         "function": "_apply_validator_set_update",
         "handler": "consensus",
-        "line": 1139,
+        "line": 1167,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13737,7 +13737,7 @@
       "implementation_source": {
         "function": "_apply_block_propose",
         "handler": "consensus",
-        "line": 1351,
+        "line": 1379,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13872,7 +13872,7 @@
       "implementation_source": {
         "function": "_apply_block_attest",
         "handler": "consensus",
-        "line": 1426,
+        "line": 1454,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14051,7 +14051,7 @@
       "implementation_source": {
         "function": "_apply_block_finalize",
         "handler": "consensus",
-        "line": 1578,
+        "line": 1606,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14211,7 +14211,7 @@
       "implementation_source": {
         "function": "_apply_epoch_open",
         "handler": "consensus",
-        "line": 1745,
+        "line": 1773,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14347,7 +14347,7 @@
       "implementation_source": {
         "function": "_apply_epoch_close",
         "handler": "consensus",
-        "line": 1815,
+        "line": 1843,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14458,7 +14458,7 @@
       "implementation_source": {
         "function": "_apply_slash_propose",
         "handler": "consensus",
-        "line": 1860,
+        "line": 1888,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14563,7 +14563,7 @@
       "implementation_source": {
         "function": "_apply_slash_vote",
         "handler": "consensus",
-        "line": 1882,
+        "line": 1910,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14675,7 +14675,7 @@
       "implementation_source": {
         "function": "_apply_slash_execute",
         "handler": "consensus",
-        "line": 2029,
+        "line": 2057,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23815,7 +23815,7 @@
       "implementation_source": {
         "function": "_apply_validator_performance_report",
         "handler": "consensus",
-        "line": 1285,
+        "line": 1313,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

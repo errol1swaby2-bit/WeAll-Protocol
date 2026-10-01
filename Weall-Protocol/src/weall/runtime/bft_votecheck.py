@@ -260,7 +260,10 @@ def _speculative_parent_state(self, parent_id: str) -> Json | None:
             and str(candidate_state.get("tip") or "").strip() == target
         ):
             expected_hash = _block_hash_from_any(block)
-            if expected_hash and str(candidate_state.get("tip_hash") or "").strip() == expected_hash:
+            if (
+                expected_hash
+                and str(candidate_state.get("tip_hash") or "").strip() == expected_hash
+            ):
                 return copy.deepcopy(candidate_state)
 
     slot: tuple[str, str] | None = None

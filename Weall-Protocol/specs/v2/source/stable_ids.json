@@ -10663,6 +10663,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_runtime_adapter.py:_bft_prepare_transition_vote:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-AD7439A7CF9B54D7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "src/weall/runtime/apply/governance.py:_electorate_required_votes:message_builder_or_handler",
       "kind": "message",
       "stable_id": "MSG-AD82C7C16E411A84",
@@ -17353,9 +17360,37 @@
     },
     {
       "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_runtime_adapter.py:_bft_prepare_transition_vote",
+      "kind": "scheduler",
+      "stable_id": "SCHED-4BE4EA54F6651572",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_runtime_adapter.py:_bft_transition_bridge_descriptor",
+      "kind": "scheduler",
+      "stable_id": "SCHED-4C631AD6E7165325",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_pending_frontier_impl.py:_finalized_replay_path_ids",
+      "kind": "scheduler",
+      "stable_id": "SCHED-4EF22601E3CD8CDD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "src/weall/runtime/account_recovery_scheduler.py:schedule_account_recovery_system_txs",
       "kind": "scheduler",
       "stable_id": "SCHED-C298622F5EDA55A7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_runtime_adapter.py:_bft_transition_bridge_has_qc",
+      "kind": "scheduler",
+      "stable_id": "SCHED-ED875704F7B8767A",
       "status": "active"
     },
     {

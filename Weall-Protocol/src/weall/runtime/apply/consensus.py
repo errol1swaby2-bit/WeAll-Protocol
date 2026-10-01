@@ -1124,9 +1124,7 @@ def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Json |
     vs = _require_dict_invariant(c.get("validator_set"), field="vs")
 
     if _as_str(pending.get("phase")):
-        pending_phase = normalize_consensus_phase(
-            pending.get("phase"), validator_count=len(out)
-        )
+        pending_phase = normalize_consensus_phase(pending.get("phase"), validator_count=len(out))
     elif previous_phase == CONSENSUS_PHASE_BFT_ACTIVE:
         pending_phase = _phase_for_active_set(out, bft_requested=True)
     else:

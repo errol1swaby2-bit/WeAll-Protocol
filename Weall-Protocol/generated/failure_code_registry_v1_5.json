@@ -931,7 +931,7 @@
       "http_status": null,
       "sample_reason": "bad_proposer",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 1378
+      "source_lineno": 1406
     },
     {
       "code": "invalid_payload",
@@ -1282,7 +1282,7 @@
       "http_status": null,
       "sample_reason": "single_tx_lineage_invalid",
       "source": "src/weall/runtime/block_builder.py",
-      "source_lineno": 305
+      "source_lineno": 336
     },
     {
       "code": "invalid_tx",
