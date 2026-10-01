@@ -3358,6 +3358,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:group_spend_governance_approval_required",
+      "kind": "failure",
+      "stable_id": "FAIL-02A9019B0E52AC96",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "duplicate:treasury_id_exists",
       "kind": "failure",
       "stable_id": "FAIL-0360564AC249F717",
@@ -5290,6 +5297,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:group_spend_governance_queue_binding_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-7A7C0462ED3B372E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "forbidden:account_not_registered",
       "kind": "failure",
       "stable_id": "FAIL-7AF1EFB97C8D074E",
@@ -5356,6 +5370,13 @@
       "canonical_key": "not_found:wallet_not_found",
       "kind": "failure",
       "stable_id": "FAIL-7D970DDF749D466C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:group_spend_governance_plan_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-7DD872F0D3FC9AB9",
       "status": "active"
     },
     {
@@ -18245,6 +18266,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:proposal_id",
+      "kind": "state",
+      "stable_id": "STATE-0D9C4F570C55E4C1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "PoH:assigned_juror_count",
       "kind": "state",
       "stable_id": "STATE-0DAC1073A33BB740",
@@ -19074,6 +19102,13 @@
       "canonical_key": "Content:labels",
       "kind": "state",
       "stable_id": "STATE-25D6ABF26D40BBFF",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:spend_plan_hash",
+      "kind": "state",
+      "stable_id": "STATE-25E5261F17FC6847",
       "status": "active"
     },
     {
@@ -21584,6 +21619,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:_governance_proposal_id",
+      "kind": "state",
+      "stable_id": "STATE-77AEC9D4075070E1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Storage:capacity_challenges",
       "kind": "state",
       "stable_id": "STATE-77BD8D778EA2C887",
@@ -21804,6 +21846,13 @@
       "canonical_key": "Identity:revoked",
       "kind": "state",
       "stable_id": "STATE-808B8B82F068A20D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:governance_approval",
+      "kind": "state",
+      "stable_id": "STATE-808FC2C8D6D73D88",
       "status": "active"
     },
     {
@@ -23281,6 +23330,13 @@
       "canonical_key": "PoH:challenge_id",
       "kind": "state",
       "stable_id": "STATE-B0B6016845174BEE",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:_approved_spend_plan_hash",
+      "kind": "state",
+      "stable_id": "STATE-B0BAA8A40027CF32",
       "status": "active"
     },
     {

@@ -16,6 +16,10 @@ from weall.runtime.bounded_rollback import materialize_journaled
 from weall.runtime.commitments import consensus_active_validator_ids
 from weall.runtime.econ_phase import is_econ_unlocked, is_economic_system_tx
 from weall.runtime.errors import ApplyError
+from weall.runtime.group_treasury_scheduler import (
+    group_spend_plan_hash,
+    maybe_enqueue_group_spend_execute,
+)
 from weall.runtime.param_policy import validate_param_blob
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission_types import TxEnvelope
@@ -2292,19 +2296,32 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     h = _height_hint(state, env)
 
-    actions = _extract_actions(p)
-    if not actions:
-        snap = pr.get("actions")
-        if isinstance(snap, list):
-            actions = []
-            for a in snap:
-                if isinstance(a, dict):
-                    actions.append(
-                        {
-                            "tx_type": _s(a.get("tx_type")).strip().upper(),
-                            "payload": _d(a.get("payload")),
-                        }
-                    )
+    approved_actions: list[dict[str, Any]] = []
+    snap = pr.get("actions")
+    if isinstance(snap, list):
+        for action in snap:
+            if not isinstance(action, dict):
+                continue
+            approved_actions.append(
+                {
+                    "tx_type": _s(action.get("tx_type")).strip().upper(),
+                    "payload": materialize_journaled(_d(action.get("payload"))),
+                }
+            )
+
+    supplied_actions = _extract_actions(p)
+    if strict_civic_governance_enabled(state):
+        if supplied_actions and _canonical_json_hash(supplied_actions) != _canonical_json_hash(
+            approved_actions
+        ):
+            raise ApplyError(
+                "forbidden",
+                "governance_execution_actions_mismatch",
+                {"proposal_id": proposal_id},
+            )
+        actions = approved_actions
+    else:
+        actions = supplied_actions or approved_actions
 
     _assert_governance_actions_allowed(state, actions)
 
@@ -2319,6 +2336,79 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
             raise ApplyError("invalid_payload", "governance_action_payload_not_object", {})
         if parent_ref:
             ap.setdefault("_parent_ref", parent_ref)
+
+        if tx_type == "GROUP_TREASURY_SPEND_EXECUTE" and strict_civic_governance_enabled(state):
+            spend_id = _s(ap.get("spend_id")).strip()
+            spends = _d(state.get("group_treasury_spends"))
+            spend = spends.get(spend_id)
+            if not spend_id or not isinstance(spend, dict):
+                raise ApplyError(
+                    "not_found",
+                    "group_treasury_spend_not_found",
+                    {"proposal_id": proposal_id, "spend_id": spend_id},
+                )
+            proposal_group_id = _proposal_group_id(pr)
+            spend_group_id = _s(spend.get("group_id")).strip()
+            electorate_scope = _normalized_or_default_electorate_scope(state, pr)
+            if proposal_group_id != spend_group_id or electorate_scope != "group_members":
+                raise ApplyError(
+                    "forbidden",
+                    "group_treasury_spend_governance_scope_mismatch",
+                    {
+                        "proposal_id": proposal_id,
+                        "proposal_group_id": proposal_group_id,
+                        "spend_group_id": spend_group_id,
+                        "electorate_scope": electorate_scope,
+                    },
+                )
+            plan_hash = group_spend_plan_hash(spend)
+            existing_approval = spend.get("governance_approval")
+            if isinstance(existing_approval, dict):
+                existing_proposal = _s(existing_approval.get("proposal_id")).strip()
+                existing_hash = _s(existing_approval.get("spend_plan_hash")).strip()
+                if existing_proposal and (
+                    existing_proposal != proposal_id or existing_hash != plan_hash
+                ):
+                    raise ApplyError(
+                        "conflict",
+                        "group_treasury_spend_already_governance_approved",
+                        {
+                            "spend_id": spend_id,
+                            "existing_proposal_id": existing_proposal,
+                            "proposal_id": proposal_id,
+                        },
+                    )
+            approval = {
+                "proposal_id": proposal_id,
+                "spend_plan_hash": plan_hash,
+                "group_id": spend_group_id,
+                "treasury_id": _s(spend.get("treasury_id")).strip(),
+                "to": _s(spend.get("to")).strip(),
+                "amount": _i(spend.get("amount"), 0),
+                "approved_at_height": int(h),
+                "tallied_at_height": _i(pr.get("tallied_at_height"), 0),
+                "electorate_scope": electorate_scope,
+                "electorate_commitment": _s(pr.get("electorate_commitment")).strip(),
+            }
+            spend["governance_approval"] = approval
+            spends[spend_id] = spend
+            state["group_treasury_spends"] = spends
+            ap["_governance_proposal_id"] = proposal_id
+            ap["_approved_spend_plan_hash"] = plan_hash
+            queue_id = maybe_enqueue_group_spend_execute(state, spend=spend)
+            emitted_actions.append(
+                {
+                    "index": int(index),
+                    "tx_type": tx_type,
+                    "payload_hash": _canonical_json_hash(ap),
+                    "queue_id": str(queue_id or ""),
+                    "due_height": max(
+                        _i(spend.get("earliest_execute_height"), 0),
+                        int(h),
+                    ),
+                }
+            )
+            continue
 
         queue_id = enqueue_system_tx(
             state,
