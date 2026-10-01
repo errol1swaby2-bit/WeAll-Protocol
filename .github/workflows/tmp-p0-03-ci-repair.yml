@@ -38,7 +38,7 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Repair stable ID, formatting, and generated v2 derivatives
+      - name: Repair stable IDs, formatting, and generated v2 derivatives
         run: |
           set -Eeuo pipefail
           cd Weall-Protocol
@@ -48,28 +48,42 @@ jobs:
 
           path = Path('specs/v2/source/stable_ids.json')
           payload = json.loads(path.read_text(encoding='utf-8'))
-          key = 'src/weall/runtime/bft_runtime_adapter.py:_bft_prepare_transition_vote:message_builder_or_handler'
-          stable_id = 'MSG-AD7439A7CF9B54D7'
           entries = payload.get('entries')
           if not isinstance(entries, list):
               raise SystemExit('stable_ids entries must be a list')
-          ids = {str(row.get('stable_id') or '') for row in entries if isinstance(row, dict)}
-          matches = [row for row in entries if isinstance(row, dict) and row.get('kind') == 'message' and row.get('canonical_key') == key]
-          if matches:
-              if len(matches) != 1 or matches[0].get('stable_id') != stable_id:
-                  raise SystemExit(f'existing transition message stable-ID binding is unexpected: {matches}')
-          else:
+
+          bindings = [
+              ('message', 'src/weall/runtime/bft_runtime_adapter.py:_bft_prepare_transition_vote:message_builder_or_handler', 'MSG-AD7439A7CF9B54D7'),
+              ('scheduler', 'src/weall/runtime/bft_pending_frontier_impl.py:_finalized_replay_path_ids', 'SCHED-4EF22601E3CD8CDD'),
+              ('scheduler', 'src/weall/runtime/bft_runtime_adapter.py:_bft_transition_bridge_descriptor', 'SCHED-4C631AD6E7165325'),
+              ('scheduler', 'src/weall/runtime/bft_runtime_adapter.py:_bft_transition_bridge_has_qc', 'SCHED-ED875704F7B8767A'),
+              ('scheduler', 'src/weall/runtime/bft_runtime_adapter.py:_bft_prepare_transition_vote', 'SCHED-4BE4EA54F6651572'),
+          ]
+
+          for kind, key, stable_id in bindings:
+              ids = {str(row.get('stable_id') or '') for row in entries if isinstance(row, dict)}
+              matches = [
+                  row for row in entries
+                  if isinstance(row, dict)
+                  and row.get('kind') == kind
+                  and row.get('canonical_key') == key
+              ]
+              if matches:
+                  if len(matches) != 1 or matches[0].get('stable_id') != stable_id:
+                      raise SystemExit(f'unexpected stable-ID binding for {kind}:{key}: {matches}')
+                  continue
               if stable_id in ids:
                   raise SystemExit(f'new stable ID already bound elsewhere: {stable_id}')
               entries.append({
                   'aliases': [],
                   'canonical_key': key,
-                  'kind': 'message',
+                  'kind': kind,
                   'stable_id': stable_id,
                   'status': 'active',
               })
-              entries.sort(key=lambda row: (str(row.get('stable_id') or ''), str(row.get('kind') or ''), str(row.get('canonical_key') or '')))
-              path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+
+          entries.sort(key=lambda row: (str(row.get('stable_id') or ''), str(row.get('kind') or ''), str(row.get('canonical_key') or '')))
+          path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
           PY
           ruff format \
             src/weall/runtime/apply/consensus.py \
@@ -82,7 +96,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git diff --cached --check
-          git commit -m 'fix(ci): register P0-03 transition contract and format runtime [tested-tree]'
+          git commit -m 'fix(ci): register P0-03 contracts and format runtime [tested-tree]'
 
       - name: Ruff and v2 exact-current checks
         working-directory: Weall-Protocol
