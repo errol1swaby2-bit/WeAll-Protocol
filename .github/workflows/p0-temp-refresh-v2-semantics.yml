@@ -1,0 +1,62 @@
+name: P0 temporary V2 semantic refresh
+
+on:
+  push:
+    branches:
+      - p0-closure-a01-a20-20260930
+    paths:
+      - .github/workflows/p0-temp-refresh-v2-semantics.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Refresh explicitly reviewed economics semantic binding
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/refresh_v2_semantic_reviews.py \
+            --tx-type ECONOMICS_ACTIVATION \
+            --reviewer 'ChatGPT-assisted maintainer P0 closure review; independent review deferred'
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
+
+      - name: Commit only semantic review and V2 derivatives
+        run: |
+          set -Eeuo pipefail
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/specs/v2/source/semantic_reviews.json" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          if [[ -n "$BAD" ]]; then
+            echo 'Unexpected changed files:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          git add Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated/v2
+          if git diff --cached --quiet; then
+            echo 'No semantic derivative changes required'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(p0): refresh economics semantic review derivatives'
+          git push origin HEAD:p0-closure-a01-a20-20260930
