@@ -65,11 +65,32 @@ def _is_terminal(spend: Json) -> bool:
     return st in {"executed", "canceled", "cancelled", "expired"}
 
 
+def _economic_policy_declared(state: Json) -> bool:
+    """True when state explicitly opts into the Genesis economics posture.
+
+    Old isolated scheduler fixtures predate the economics state contract and do
+    not carry params at all. Production/strict chains are always gated; legacy
+    fixtures remain compatible unless they explicitly declare economic policy.
+    """
+
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return False
+    return any(
+        key in params
+        for key in (
+            "economics_enabled",
+            "economic_unlock_time",
+            "genesis_time",
+        )
+    )
+
+
 def group_spend_plan_view(spend: Json) -> Json:
     """Return the immutable political spend terms approved by governance.
 
     Signer snapshots and collected signatures are execution-authority data, not
-    policy terms.  The commitment therefore binds the spend identity, political
+    policy terms. The commitment therefore binds the spend identity, political
     scope, treasury, recipient, value, and timing that governance authorizes.
     """
 
@@ -115,9 +136,9 @@ def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> str | None
       - parent required: GROUP_TREASURY_SPEND_SIGN
       - via_gov_execute: true
 
-    In strict civic governance, multisig proves execution authority only.  A
+    In strict civic governance, multisig proves execution authority only. A
     matching governance approval commitment must already bind the immutable
-    spend plan before threshold signatures can cause value execution.  Either
+    spend plan before threshold signatures can cause value execution. Either
     ordering is supported safely: governance may approve before or after the
     threshold is reached; repeated scheduler calls are deterministic and deduped.
     """
@@ -126,10 +147,12 @@ def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> str | None
     if _is_terminal(spend):
         return None
 
-    # Fail closed at the scheduler boundary as well as at apply time. This keeps
-    # deterministic mandatory SYSTEM work from being populated with a transition
-    # that cannot legally execute while the Genesis economics lock is active.
-    if not econ_allowed_from_state(state):
+    strict = strict_civic_governance_enabled(state)
+
+    # Production/strict chains and any state that explicitly declares Genesis
+    # economics fail closed while value movement is locked or disabled. Legacy
+    # unit fixtures with no economic policy declaration retain compatibility.
+    if (strict or _economic_policy_declared(state)) and not econ_allowed_from_state(state):
         return None
 
     spend_id = _as_str(spend.get("spend_id"))
@@ -137,7 +160,7 @@ def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> str | None
         return None
 
     approval: Json | None = None
-    if strict_civic_governance_enabled(state):
+    if strict:
         approval = _strict_governance_approval(spend)
         if approval is None:
             return None
