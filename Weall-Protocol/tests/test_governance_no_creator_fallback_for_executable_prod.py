@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import pytest
-
 from weall.runtime.domain_dispatch import apply_tx
-from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
@@ -33,7 +30,26 @@ def _base_state() -> dict:
         "height": 10,
         "time": 9_999,
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "balance": 0},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "balance": 0,
+            },
+            "@validator-only": {
+                "nonce": 0,
+                "poh_tier": 0,
+                "banned": False,
+                "locked": False,
+                "balance": 0,
+            },
+        },
+        "roles": {
+            "validators": {
+                "active_set": ["@validator-only"],
+                "by_id": {"@validator-only": {"status": "active", "active": True}},
+            }
         },
         "params": {
             "genesis_time": 0,
@@ -49,43 +65,36 @@ def _base_state() -> dict:
     }
 
 
-def _state_with_explicit_electorate() -> dict:
-    st = _base_state()
-    st["roles"] = {
-        "validators": {
-            "active_set": ["@alice"],
-            "by_id": {"@alice": {"status": "active", "active": True}},
-        }
-    }
-    return st
-
-
-def test_executable_governance_rejects_creator_fallback_when_no_explicit_electorate() -> None:
+def test_executable_governance_uses_protocol_tier2_electorate_without_validator_fallback() -> None:
     st = _base_state()
 
-    with pytest.raises(ApplyError) as ei:
-        apply_tx(
-            st,
-            _env(
-                "GOV_PROPOSAL_CREATE",
-                "@alice",
-                1,
-                {
-                    "proposal_id": "p-econ",
-                    "title": "activate economics",
-                    "rules": {"start_stage": "voting"},
-                    "actions": [{"tx_type": "ECONOMICS_ACTIVATION", "payload": {"enable": True}}],
-                },
-            ),
-        )
+    out = apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            "@alice",
+            1,
+            {
+                "proposal_id": "p-econ",
+                "title": "activate economics",
+                "rules": {"start_stage": "voting"},
+                "actions": [{"tx_type": "ECONOMICS_ACTIVATION", "payload": {"enable": True}}],
+            },
+        ),
+    )
 
-    assert ei.value.code == "forbidden"
-    assert ei.value.reason == "executable_governance_requires_explicit_electorate"
-    assert not st.get("gov_proposals_by_id")
-    assert not st.get("system_queue")
+    assert out == {"applied": True, "proposal_id": "p-econ"}
+    proposal = st["gov_proposals_by_id"]["p-econ"]
+    assert proposal["electorate_scope"] == "protocol_tier2"
+    assert proposal["electorate_source"] == "protocol_tier2_accounts"
+    assert proposal["eligible_voter_ids"] == ["@alice"]
+    assert proposal["eligible_validator_ids"] == ["@alice"]
+    assert proposal["required_votes"] == 1
+    assert proposal["electorate_commitment"]
+    assert "@validator-only" not in proposal["eligible_voter_ids"]
 
 
-def test_non_executable_community_decision_preserves_creator_fallback() -> None:
+def test_non_executable_production_decision_uses_same_verified_human_scope() -> None:
     st = _base_state()
 
     apply_tx(
@@ -103,13 +112,14 @@ def test_non_executable_community_decision_preserves_creator_fallback() -> None:
     )
     proposal = st["gov_proposals_by_id"]["p-community"]
 
-    assert proposal["eligible_validator_ids"] == ["@alice"]
+    assert proposal["electorate_scope"] == "protocol_tier2"
+    assert proposal["eligible_voter_ids"] == ["@alice"]
     assert proposal["required_votes"] == 1
     assert proposal["actions"] == []
 
 
-def test_executable_governance_uses_explicit_electorate_and_not_creator_fallback() -> None:
-    st = _state_with_explicit_electorate()
+def test_validator_role_does_not_grant_production_governance_vote_authority() -> None:
+    st = _base_state()
 
     apply_tx(
         st,
@@ -127,12 +137,14 @@ def test_executable_governance_uses_explicit_electorate_and_not_creator_fallback
     )
     proposal = st["gov_proposals_by_id"]["p-safe"]
 
+    assert proposal["eligible_voter_ids"] == ["@alice"]
     assert proposal["eligible_validator_ids"] == ["@alice"]
-    assert proposal["required_votes"] == 1
+    assert "@validator-only" not in proposal["eligible_voter_ids"]
+    assert proposal["electorate_source"] == "protocol_tier2_accounts"
     assert "electorate_failure_reason" not in proposal
 
 
-def test_editing_actions_into_existing_decision_requires_explicit_electorate() -> None:
+def test_editing_actions_into_existing_decision_preserves_verified_human_electorate() -> None:
     st = _base_state()
     apply_tx(
         st,
@@ -144,18 +156,25 @@ def test_editing_actions_into_existing_decision_requires_explicit_electorate() -
         ),
     )
 
-    with pytest.raises(ApplyError) as ei:
-        apply_tx(
-            st,
-            _env(
-                "GOV_PROPOSAL_EDIT",
-                "@alice",
-                2,
-                {
-                    "proposal_id": "p-edit",
-                    "actions": [{"tx_type": "ECONOMICS_ACTIVATION", "payload": {"enable": True}}],
-                },
-            ),
-        )
+    out = apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_EDIT",
+            "@alice",
+            2,
+            {
+                "proposal_id": "p-edit",
+                "actions": [{"tx_type": "ECONOMICS_ACTIVATION", "payload": {"enable": True}}],
+            },
+        ),
+    )
 
-    assert ei.value.reason == "executable_governance_requires_explicit_electorate"
+    assert out == {"applied": True, "proposal_id": "p-edit"}
+    proposal = st["gov_proposals_by_id"]["p-edit"]
+    assert proposal["electorate_scope"] == "protocol_tier2"
+    assert proposal["electorate_source"] == "protocol_tier2_accounts"
+    assert proposal["eligible_voter_ids"] == ["@alice"]
+    assert proposal["required_votes"] == 1
+    assert proposal["actions"] == [
+        {"tx_type": "ECONOMICS_ACTIVATION", "payload": {"enable": True}}
+    ]
