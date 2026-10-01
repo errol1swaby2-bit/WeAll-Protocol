@@ -34,7 +34,7 @@ class _ReadStateExecutor:
 def _request(*, path: str, selector: str, account: str) -> Request:
     app = FastAPI()
     app.state.executor = _ReadStateExecutor()
-    query = f"{selector}={account}".encode("utf-8")
+    query = f"{selector}={account}".encode()
     return Request(
         {
             "type": "http",
@@ -42,7 +42,7 @@ def _request(*, path: str, selector: str, account: str) -> Request:
             "method": "GET",
             "scheme": "http",
             "path": path,
-            "raw_path": path.encode("utf-8"),
+            "raw_path": path.encode(),
             "query_string": query,
             "headers": [],
             "client": ("127.0.0.1", 12345),
