@@ -40,18 +40,20 @@ jobs:
             echo "generation pass ${pass}"
             PYTHONPATH=src python scripts/gen_failure_code_registry_v1_5.py
             PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py
+            PYTHONPATH=src python scripts/gen_public_beta_blocker_report_v1_5.py
             PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
           done
           PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
           PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
           python scripts/gen_failure_code_registry_v1_5.py --check
           python scripts/gen_api_response_vectors_v1_5.py --check
+          python scripts/gen_public_beta_blocker_report_v1_5.py --check
           python scripts/gen_release_evidence_manifest_v1_5.py --check
 
       - name: Commit only deterministic v1.5 failure-chain derivatives
         run: |
           set -Eeuo pipefail
-          ALLOWED='^(Weall-Protocol/generated/failure_code_registry_v1_5.json|Weall-Protocol/generated/api_response_vectors_v1_5.json|Weall-Protocol/generated/release_evidence_manifest_v1_5.json)$'
+          ALLOWED='^(Weall-Protocol/generated/failure_code_registry_v1_5.json|Weall-Protocol/generated/api_response_vectors_v1_5.json|Weall-Protocol/generated/public_beta_blocker_report_v1_5.json|Weall-Protocol/generated/release_evidence_manifest_v1_5.json)$'
           BAD="$(git status --short --untracked-files=all | awk '{print $2}' | grep -Ev "${ALLOWED}" || true)"
           if [[ -n "${BAD}" ]]; then
             echo 'Unexpected generated/non-generated changes:' >&2
@@ -61,6 +63,7 @@ jobs:
           git add \
             Weall-Protocol/generated/failure_code_registry_v1_5.json \
             Weall-Protocol/generated/api_response_vectors_v1_5.json \
+            Weall-Protocol/generated/public_beta_blocker_report_v1_5.json \
             Weall-Protocol/generated/release_evidence_manifest_v1_5.json
           if git diff --cached --quiet; then
             echo 'v1.5 failure evidence chain already current'
