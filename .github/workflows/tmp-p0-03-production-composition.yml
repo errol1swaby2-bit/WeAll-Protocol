@@ -1,0 +1,37 @@
+name: Temporary P0-03 production composition
+
+on:
+  push:
+    branches:
+      - p0-03-production-closure-staging-20261001
+
+permissions:
+  contents: read
+
+jobs:
+  p0-03-production-composition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Ruff closure test
+        working-directory: Weall-Protocol
+        run: |
+          ruff format --check tests/test_p0_03_production_composition.py
+          ruff check tests/test_p0_03_production_composition.py
+      - name: Execute production composition rehearsal
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q -vv tests/test_p0_03_production_composition.py
