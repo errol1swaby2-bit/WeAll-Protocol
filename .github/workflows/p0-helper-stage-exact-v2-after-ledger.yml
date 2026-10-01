@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: p0-a10-positive-proof-staging-20261001
+          ref: p0-closure-a01-a20-20260930
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -32,15 +32,76 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Prove positive A10 governance-to-value-transfer path
+      - name: Probe real failed-inclusion replay and restart behavior
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff format --check tests/test_p0_group_treasury_governance_binding.py
-          ruff check tests/test_p0_group_treasury_governance_binding.py
-          pytest -q \
-            tests/test_p0_group_treasury_governance_binding.py \
-            tests/test_p0_governance_economics_closure.py \
-            tests/test_fail_closed_group_treasury.py \
-            tests/test_system_queue_lifecycle_integrity.py \
-            tests/test_four_gate_safety.py
+          python - <<'PY'
+          import json
+          import tempfile
+          from pathlib import Path
+
+          from weall.runtime.executor import WeAllExecutor
+
+          root = Path.cwd()
+          tx_index_path = str(root / "generated" / "tx_index.json")
+          with tempfile.TemporaryDirectory() as td:
+              db_path = str(Path(td) / "weall.db")
+              ex = WeAllExecutor(
+                  db_path=db_path,
+                  node_id="@validator",
+                  chain_id="p0-a02-replay-test",
+                  tx_index_path=tx_index_path,
+              )
+              reg = {
+                  "tx_type": "ACCOUNT_REGISTER",
+                  "signer": "@alice",
+                  "nonce": 1,
+                  "payload": {"pubkey": "k:alice"},
+              }
+              s1 = ex.submit_tx(reg)
+              print("register_submit", json.dumps(s1, sort_keys=True, default=str))
+              assert s1["ok"] is True
+              b1 = ex.produce_block(max_txs=1)
+              print("register_block", b1)
+              assert b1.ok is True
+
+              failing = {
+                  "tx_type": "CONTENT_COMMENT_CREATE",
+                  "signer": "@alice",
+                  "nonce": 2,
+                  "payload": {
+                      "comment_id": "comment-missing-parent",
+                      "post_id": "post-does-not-exist",
+                      "body": "must fail after admission",
+                  },
+              }
+              s2 = ex.submit_tx(failing)
+              print("failing_submit", json.dumps(s2, sort_keys=True, default=str))
+              assert s2["ok"] is True
+              tx_id = str(s2["tx_id"])
+              b2 = ex.produce_block(max_txs=1)
+              print("failing_block", b2)
+              assert b2.ok is True
+              st = ex.read_state()
+              print("post_failure_account", json.dumps(st.get("accounts", {}).get("@alice"), sort_keys=True, default=str))
+              print("post_failure_status", json.dumps(ex.get_tx_status(tx_id), sort_keys=True, default=str))
+
+              replay_same_process = ex.submit_tx(failing)
+              print("same_process_resubmit", json.dumps(replay_same_process, sort_keys=True, default=str))
+
+              ex2 = WeAllExecutor(
+                  db_path=db_path,
+                  node_id="@validator-restart",
+                  chain_id="p0-a02-replay-test",
+                  tx_index_path=tx_index_path,
+              )
+              print("restart_status", json.dumps(ex2.get_tx_status(tx_id), sort_keys=True, default=str))
+              replay_after_restart = ex2.submit_tx(failing)
+              print("restart_resubmit", json.dumps(replay_after_restart, sort_keys=True, default=str))
+
+              assert ex.get_tx_status(tx_id)["status"] == "confirmed"
+              assert ex2.get_tx_status(tx_id)["status"] == "confirmed"
+              assert replay_same_process.get("ok") is False or replay_same_process.get("already_known") is True
+              assert replay_after_restart.get("ok") is False or replay_after_restart.get("already_known") is True
+          PY
