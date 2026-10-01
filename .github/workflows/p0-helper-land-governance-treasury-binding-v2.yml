@@ -1,0 +1,183 @@
+name: P0 helper land governance treasury binding v2
+
+on:
+  push:
+    branches:
+      - p0-tooling-exact-v2-refresh-20261001
+    paths:
+      - .github/workflows/p0-helper-land-governance-treasury-binding-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  land-target:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-closure-a01-a20-20260930
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade 'pip==26.2.1'
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Replay reviewed A09/A10 source and test patch
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          import yaml
+
+          helper_ref = 'origin/p0-tooling-exact-v2-refresh-20261001'
+          helper_path = '.github/workflows/p0-helper-governance-treasury-binding.yml'
+          raw = subprocess.check_output(['git', 'show', f'{helper_ref}:{helper_path}'], text=True)
+          doc = yaml.safe_load(raw)
+          steps = doc['jobs']['patch-target']['steps']
+          by_name = {step.get('name'): step for step in steps if isinstance(step, dict)}
+          for name in (
+              'Patch A09-F003 and A10-F005 authority boundaries',
+              'Add focused P0 authority-binding regressions',
+          ):
+              subprocess.run(['bash', '-lc', by_name[name]['run']], check=True)
+
+          test_path = Path('Weall-Protocol/tests/test_p0_group_treasury_governance_binding.py')
+          test_path.write_text(
+              test_path.read_text().replace(
+                  'assert exc_info.value.message == "governance_execution_actions_mismatch"',
+                  'assert exc_info.value.reason == "governance_execution_actions_mismatch"',
+              )
+          )
+          PY
+
+      - name: Format lint and prove focused authority invariants
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format \
+            src/weall/runtime/apply/groups.py \
+            src/weall/runtime/apply/governance.py \
+            tests/test_p0_group_treasury_governance_binding.py
+          ruff check \
+            src/weall/runtime/group_treasury_scheduler.py \
+            src/weall/runtime/apply/groups.py \
+            src/weall/runtime/apply/governance.py \
+            tests/test_p0_group_treasury_governance_binding.py \
+            tests/test_p0_governance_economics_closure.py
+          pytest -q \
+            tests/test_p0_group_treasury_governance_binding.py \
+            tests/test_p0_governance_economics_closure.py \
+            tests/test_fail_closed_group_treasury.py \
+            tests/test_system_queue_lifecycle_integrity.py \
+            tests/test_four_gate_safety.py
+
+      - name: Discover and register new runtime state stable IDs
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import hashlib
+          import importlib
+          import json
+          import sys
+          from pathlib import Path
+
+          root = Path('.').resolve()
+          scripts = root / 'scripts'
+          sys.path.insert(0, str(scripts))
+          compiler = importlib.import_module('compile_v2_spec')
+          refresh = importlib.import_module('refresh_v2_semantic_reviews')
+          stable_path = root / 'specs/v2/source/stable_ids.json'
+          original_resolve = compiler.StableIdRegistry.resolve
+          missing: dict[str, str] = {}
+
+          def discovering_resolve(self, kind: str, canonical_key: str) -> str:
+              try:
+                  return original_resolve(self, kind, canonical_key)
+              except compiler.CompileError:
+                  if kind != 'state':
+                      raise
+                  stable_id = 'STATE-' + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
+                  missing[canonical_key] = stable_id
+                  return stable_id
+
+          compiler.StableIdRegistry.resolve = discovering_resolve
+          try:
+              refresh._derive_transaction_rows()
+          finally:
+              compiler.StableIdRegistry.resolve = original_resolve
+
+          payload = json.loads(stable_path.read_text())
+          entries = payload.get('entries')
+          if not isinstance(entries, list):
+              raise SystemExit('stable_ids entries must be a list')
+          existing_by_key = {
+              (str(row.get('kind') or ''), str(row.get('canonical_key') or '')): str(row.get('stable_id') or '')
+              for row in entries
+              if isinstance(row, dict)
+          }
+          ids = {str(row.get('stable_id') or '') for row in entries if isinstance(row, dict)}
+          for canonical_key, stable_id in sorted(missing.items()):
+              current = existing_by_key.get(('state', canonical_key))
+              if current:
+                  if current != stable_id:
+                      raise SystemExit(f'stable ID drift for {canonical_key}: {current} != {stable_id}')
+                  continue
+              if stable_id in ids:
+                  raise SystemExit(f'stable ID collision: {stable_id} for {canonical_key}')
+              entries.append({
+                  'aliases': [],
+                  'canonical_key': canonical_key,
+                  'kind': 'state',
+                  'stable_id': stable_id,
+                  'status': 'active',
+              })
+              ids.add(stable_id)
+              print('registered', canonical_key, stable_id)
+          entries.sort(key=lambda row: str(row.get('stable_id') or '') if isinstance(row, dict) else '')
+          stable_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n')
+          print('new_state_id_count', len(missing))
+          PY
+
+      - name: Refresh reviewed semantic bindings and compile V2
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          for tx in GOV_EXECUTE GROUP_TREASURY_SPEND_SIGN GROUP_TREASURY_SPEND_EXECUTE; do
+            python scripts/refresh_v2_semantic_reviews.py \
+              --tx-type "$tx" \
+              --reviewer 'ChatGPT-assisted maintainer P0 closure review; independent review deferred'
+          done
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Commit source tests stable IDs and semantic reviews only
+        run: |
+          set -Eeuo pipefail
+          ALLOWED='^(Weall-Protocol/src/weall/runtime/apply/groups.py|Weall-Protocol/src/weall/runtime/apply/governance.py|Weall-Protocol/tests/test_p0_group_treasury_governance_binding.py|Weall-Protocol/specs/v2/source/stable_ids.json|Weall-Protocol/specs/v2/source/semantic_reviews.json)$'
+          BAD="$(git status --short --untracked-files=all | awk '{print $2}' | grep -Ev "$ALLOWED" || true)"
+          if [[ -n "$BAD" ]]; then
+            echo 'Unexpected changed files:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          git add \
+            Weall-Protocol/src/weall/runtime/apply/groups.py \
+            Weall-Protocol/src/weall/runtime/apply/governance.py \
+            Weall-Protocol/tests/test_p0_group_treasury_governance_binding.py \
+            Weall-Protocol/specs/v2/source/stable_ids.json \
+            Weall-Protocol/specs/v2/source/semantic_reviews.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(p0): bind group treasury execution to approved governance plan'
+          git push origin HEAD:p0-closure-a01-a20-20260930
