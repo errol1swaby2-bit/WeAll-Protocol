@@ -38,7 +38,7 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Repair stable IDs, formatting, and generated v2 derivatives
+      - name: Repair helper-free source tree and regenerate v2 derivatives
         run: |
           set -Eeuo pipefail
           cd Weall-Protocol
@@ -62,25 +62,14 @@ jobs:
 
           for kind, key, stable_id in bindings:
               ids = {str(row.get('stable_id') or '') for row in entries if isinstance(row, dict)}
-              matches = [
-                  row for row in entries
-                  if isinstance(row, dict)
-                  and row.get('kind') == kind
-                  and row.get('canonical_key') == key
-              ]
+              matches = [row for row in entries if isinstance(row, dict) and row.get('kind') == kind and row.get('canonical_key') == key]
               if matches:
                   if len(matches) != 1 or matches[0].get('stable_id') != stable_id:
                       raise SystemExit(f'unexpected stable-ID binding for {kind}:{key}: {matches}')
                   continue
               if stable_id in ids:
                   raise SystemExit(f'new stable ID already bound elsewhere: {stable_id}')
-              entries.append({
-                  'aliases': [],
-                  'canonical_key': key,
-                  'kind': kind,
-                  'stable_id': stable_id,
-                  'status': 'active',
-              })
+              entries.append({'aliases': [], 'canonical_key': key, 'kind': kind, 'stable_id': stable_id, 'status': 'active'})
 
           entries.sort(key=lambda row: (str(row.get('stable_id') or ''), str(row.get('kind') or ''), str(row.get('canonical_key') or '')))
           path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
@@ -89,9 +78,11 @@ jobs:
             src/weall/runtime/apply/consensus.py \
             src/weall/runtime/bft_runtime_adapter.py \
             src/weall/runtime/bft_votecheck.py
-          PYTHONPATH=src python scripts/compile_v2_spec.py
           cd ..
           rm .github/workflows/tmp-p0-03-ci-repair.yml
+          cd Weall-Protocol
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          cd ..
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
