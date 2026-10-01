@@ -72,6 +72,78 @@ jobs:
               )
               assert patched != block, vector_id
               text = text[:start] + patched + text[end:]
+
+          missing_vector_ids = (
+              "poh-async-juror-cases-session",
+              "poh-tier2-juror-cases-session",
+              "poh-live-assigned-session",
+              "poh-tier2-case-participant-session",
+              "poh-live-case-participant-session",
+          )
+          for vector_id in missing_vector_ids:
+              assert f'"id": "{vector_id}"' not in text, vector_id
+
+          anchor = '    {\n        "id": "account-operator-status-readiness",'
+          assert anchor in text
+          insertion = '''    {
+              "id": "poh-async-juror-cases-session",
+              "method": "GET",
+              "path": "/v1/poh/async/juror-cases",
+              "route_key": "GET /v1/poh/async/juror-cases",
+              "expected_http_statuses": [403],
+              "expected_error_envelope": {"ok": False, "error": {"code": "poh_session_required"}},
+              "auth_case": "juror_session_required",
+              "error_codes": ["poh_session_required", "poh_session_identity_mismatch"],
+              "privacy_boundary": "async reviewer queue is visible only to the authenticated juror principal",
+          },
+          {
+              "id": "poh-tier2-juror-cases-session",
+              "method": "GET",
+              "path": "/v1/poh/tier2/juror-cases",
+              "route_key": "GET /v1/poh/tier2/juror-cases",
+              "expected_http_statuses": [403],
+              "expected_error_envelope": {"ok": False, "error": {"code": "poh_session_required"}},
+              "auth_case": "juror_session_required",
+              "error_codes": ["poh_session_required", "poh_session_identity_mismatch"],
+              "privacy_boundary": "Tier-2 reviewer queue is visible only to the authenticated juror principal",
+          },
+          {
+              "id": "poh-live-assigned-session",
+              "method": "GET",
+              "path": "/v1/poh/live/assigned",
+              "route_key": "GET /v1/poh/live/assigned",
+              "expected_http_statuses": [403],
+              "expected_error_envelope": {"ok": False, "error": {"code": "poh_session_required"}},
+              "auth_case": "juror_session_required",
+              "error_codes": ["poh_session_required", "poh_session_identity_mismatch"],
+              "privacy_boundary": "live reviewer assignments are visible only to the authenticated juror principal",
+          },
+          {
+              "id": "poh-tier2-case-participant-session",
+              "method": "GET",
+              "path": "/v1/poh/tier2/case/{case_id}",
+              "route_key": "GET /v1/poh/tier2/case/{case_id}",
+              "expected_http_statuses": [200, 403, 404],
+              "expected_error_envelope": {"ok": False, "error": {"code": "poh_session_required"}},
+              "auth_case": "case_participant_session_required",
+              "error_codes": ["poh_session_required", "poh_case_viewer_forbidden", "not_found"],
+              "privacy_boundary": "Tier-2 full-case evidence is visible only to the applicant or assigned jurors",
+          },
+          {
+              "id": "poh-live-case-participant-session",
+              "method": "GET",
+              "path": "/v1/poh/live/case/{case_id}",
+              "route_key": "GET /v1/poh/live/case/{case_id}",
+              "expected_http_statuses": [200, 403, 404],
+              "expected_error_envelope": {"ok": False, "error": {"code": "poh_session_required"}},
+              "auth_case": "case_participant_session_required",
+              "error_codes": ["poh_session_required", "poh_case_viewer_forbidden", "not_found"],
+              "privacy_boundary": "Live full-case evidence is visible only to the applicant or assigned jurors",
+          },
+          '''
+          text = text.replace(anchor, insertion + anchor, 1)
+          for vector_id in missing_vector_ids:
+              assert text.count(f'"id": "{vector_id}"') == 1, vector_id
           path.write_text(text, encoding="utf-8")
           PY
 
@@ -81,10 +153,12 @@ jobs:
           set -Eeuo pipefail
           ruff format --check \
             tests/test_p0_a10_treasury_restart_replay.py \
-            tests/test_p0_a12_generated_vector_runtime_truth.py
+            tests/test_p0_a12_generated_vector_runtime_truth.py \
+            tests/test_p0_a10_a12_generated_contract_closure.py
           ruff check \
             tests/test_p0_a10_treasury_restart_replay.py \
-            tests/test_p0_a12_generated_vector_runtime_truth.py
+            tests/test_p0_a12_generated_vector_runtime_truth.py \
+            tests/test_p0_a10_a12_generated_contract_closure.py
 
       - name: Regenerate A12 truth evidence dependency chain and exact V2 derivatives
         working-directory: Weall-Protocol
@@ -150,17 +224,18 @@ jobs:
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m 'chore(p0): bind A12 vectors and refresh A10 A12 evidence'
+            git commit -m 'chore(p0): complete A12 auth vectors and refresh evidence'
           fi
           test -z "$(git status --short --untracked-files=all)"
 
-      - name: Prove A10 restart replay and A12 generated-vector runtime truth
+      - name: Prove A10 restart replay and complete A12 generated-vector runtime truth
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           pytest -q \
             tests/test_p0_a10_treasury_restart_replay.py \
             tests/test_p0_a12_generated_vector_runtime_truth.py \
+            tests/test_p0_a10_a12_generated_contract_closure.py \
             tests/test_p0_group_treasury_governance_binding.py \
             tests/test_p0_governance_economics_closure.py \
             tests/test_p0_a01_a20_closure_regressions.py \
