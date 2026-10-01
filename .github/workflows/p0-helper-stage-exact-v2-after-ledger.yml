@@ -32,7 +32,16 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Regenerate exact V2 derivatives twice and verify working output
+      - name: Refresh current verified claims first
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_current_verified_claims.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_public_claim_freshness.py
+
+      - name: Regenerate exact V2 against final claims tree
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -42,33 +51,43 @@ jobs:
           done
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/gen_current_verified_claims.py --check
 
-      - name: Commit derivative-only staging refresh
+      - name: Commit claims and V2 derivatives only
         run: |
           set -Eeuo pipefail
-          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
+          BAD="$(git status --short --untracked-files=all | awk '{p=$2; if (p != "Weall-Protocol/generated/current_verified_claims.json" && p != "Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md" && p != "web/src/generated/protocolStatus.ts" && p !~ /^Weall-Protocol\/generated\/v2\//) print}')"
           if [[ -n "$BAD" ]]; then
-            echo 'Unexpected non-V2 changes:' >&2
+            echo 'Unexpected changes:' >&2
             printf '%s\n' "$BAD" >&2
             exit 1
           fi
-          git add Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          git add \
+            Weall-Protocol/generated/current_verified_claims.json \
+            Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md \
+            Weall-Protocol/generated/v2 \
+            web/src/generated/protocolStatus.ts
           if git diff --cached --quiet; then
-            echo 'V2 derivatives already exact-current'
+            echo 'Claims and V2 derivatives already exact-current'
           else
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m 'chore(p0): refresh exact-tree V2 derivatives after evidence ledger'
+            git commit -m 'chore(p0): refresh current claims and exact-tree V2 evidence'
           fi
           test -z "$(git status --short --untracked-files=all)"
 
-      - name: Prove committed exact-tree reproducibility and push staging ref
+      - name: Prove committed exact-tree closure and push staging ref
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
           cd ..
           test -z "$(git status --short --untracked-files=all)"
           git push origin HEAD:p0-v2-exact-staging-20261001
