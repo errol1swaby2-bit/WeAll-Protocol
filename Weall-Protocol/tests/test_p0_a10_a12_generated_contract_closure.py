@@ -18,9 +18,7 @@ def _repo_root() -> Path:
 
 def _api_vectors() -> dict[str, dict]:
     payload = json.loads(
-        (_repo_root() / "generated" / "api_response_vectors_v1_5.json").read_text(
-            encoding="utf-8"
-        )
+        (_repo_root() / "generated" / "api_response_vectors_v1_5.json").read_text(encoding="utf-8")
     )
     vectors = payload.get("vectors") if isinstance(payload, dict) else None
     assert isinstance(vectors, list)
