@@ -8,7 +8,7 @@ on:
       - .github/workflows/p0-helper-stage-exact-v2-after-ledger.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   refresh-staging:
@@ -24,170 +24,80 @@ jobs:
           python-version: "3.12"
           check-latest: false
 
-      - name: Install locked backend dependencies
+      - name: Verify locked backend install path
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          python -m pip install --upgrade 'pip==26.2.1'
+          python -m pip install --upgrade pip
+          python -m venv .venv-lock-check
+          . .venv-lock-check/bin/activate
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+          python - <<'PY'
+          import fastapi  # noqa: F401
+          import httpx2  # noqa: F401
+          import pytest  # noqa: F401
+          import weall  # noqa: F401
+          PY
+          deactivate
+          rm -rf .venv-lock-check
+
+      - name: Install backend
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Patch hardened lifecycle fixtures
-        run: |
-          set -Eeuo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          python - <<'PY'
-          from pathlib import Path
-
-          root = Path("Weall-Protocol")
-
-          def insert_profile(path: Path, profile_id: str, hash_char: str, start_token: str) -> None:
-              text = path.read_text(encoding="utf-8")
-              if f'"profile_id": "{profile_id}"' in text:
-                  return
-              start = text.index(start_token)
-              marker = '        "accounts": {\n'
-              pos = text.index(marker, start)
-              block = (
-                  '        "ballot_profile": {\n'
-                  f'            "profile_id": "{profile_id}",\n'
-                  '            "active": True,\n'
-                  '        },\n'
-                  '        "ballot_profile_activation_receipts": [\n'
-                  '            {\n'
-                  f'                "profile_id": "{profile_id}",\n'
-                  '                "status": "active",\n'
-                  f'                "profile_hash": "{hash_char}" * 64,\n'
-                  '                "allowed_modes": ["prod", "production"],\n'
-                  '                "independent_review_complete": True,\n'
-                  '            }\n'
-                  '        ],\n'
-              )
-              path.write_text(text[:pos] + block + text[pos:], encoding="utf-8")
-
-          insert_profile(
-              root / "scripts/rehearse_v15_full_lifecycle.py",
-              "production-reviewed-v15-lifecycle-v1",
-              "a",
-              "def _base_state()",
-          )
-          insert_profile(
-              root / "scripts/rehearse_api_driven_full_lifecycle_v1_5.py",
-              "production-reviewed-v15-api-lifecycle-v1",
-              "b",
-              "def _base_state()",
-          )
-          fully = root / "scripts/rehearse_fully_api_driven_v15_lifecycle.py"
-          insert_profile(
-              fully,
-              "production-reviewed-v15-fully-api-lifecycle-v1",
-              "c",
-              "def run_harness()",
-          )
-
-          text = fully.read_text(encoding="utf-8")
-          if "@appeal-1" not in text:
-              appeal_token = '"DISPUTE_APPEAL"'
-              appeal_pos = text.index(appeal_token, text.index("def run_harness()"))
-              insert_pos = text.rfind("    apply_dispute(", 0, appeal_pos)
-              if insert_pos < 0:
-                  raise SystemExit("appeal apply_dispute insertion point not found")
-              pool = "".join(
-                  [
-                      "    # Strict production appeals require a completely fresh constitutional panel.\n",
-                      "    # Add nine Tier-2 dispute-review volunteers after the original decision so\n",
-                      "    # they cannot alter the first-round panel, but can satisfy 7 jurors + 2 substitutes.\n",
-                      "    for idx in range(1, 10):\n",
-                      '        account_id = f"@appeal-{idx}"\n',
-                      '        state["accounts"][account_id] = {\n',
-                      '            "nonce": 0,\n',
-                      '            "poh_tier": 2,\n',
-                      '            "reputation": 5,\n',
-                      '        }\n',
-                      '        state["roles"]["jurors"]["active_set"].append(account_id)\n',
-                      '        state["roles"]["jurors"]["by_id"][account_id] = {\n',
-                      '            "account_id": account_id,\n',
-                      '            "active": True,\n',
-                      '            "status": "active",\n',
-                      '            "enrolled": True,\n',
-                      '            "responsibilities": {\n',
-                      '                "reviewer": {\n',
-                      '                    "dispute_review": {"opted_in": True, "active": True}\n',
-                      '                }\n',
-                      '            },\n',
-                      '        }\n',
-                      "\n",
-                  ]
-              )
-              text = text[:insert_pos] + pool + text[insert_pos:]
-              fully.write_text(text, encoding="utf-8")
-          PY
-
-          cd Weall-Protocol
-          ruff format \
-            scripts/rehearse_v15_full_lifecycle.py \
-            scripts/rehearse_api_driven_full_lifecycle_v1_5.py \
-            scripts/rehearse_fully_api_driven_v15_lifecycle.py
-          ruff check \
-            scripts/rehearse_v15_full_lifecycle.py \
-            scripts/rehearse_api_driven_full_lifecycle_v1_5.py \
-            scripts/rehearse_fully_api_driven_v15_lifecycle.py
-
-      - name: Prove repaired lifecycle rehearsals
+      - name: Ruff repaired branch Python changes
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          python scripts/rehearse_v15_full_lifecycle.py --json
-          python scripts/rehearse_api_driven_full_lifecycle_v1_5.py --json
-          python scripts/rehearse_fully_api_driven_v15_lifecycle.py --json
-
-      - name: Regenerate deterministic lifecycle proof artifacts
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          generators=(
-            scripts/gen_b517_b521_completion_proof_v1_5.py
-            scripts/gen_b523_b527_completion_proof_v1_5.py
-            scripts/gen_b528_b532_completion_proof_v1_5.py
-            scripts/gen_b534_b538_completion_proof_v1_5.py
-            scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          RANGE="cd7f10a8b62e9f5a3711f4263d04e3fd62f0d351...HEAD"
+          PY_FILES=()
+          mapfile -t PY_FILES < <(
+            git -C .. diff --name-only --diff-filter=ACMR "$RANGE" \
+              | awk '/^Weall-Protocol\/.*\.py$/ {sub(/^Weall-Protocol\//, ""); print}'
           )
-          for gen in "${generators[@]}"; do
-            python "$gen"
-            python "$gen" --check
-          done
-
-      - name: Commit proof refresh
-        run: |
-          set -Eeuo pipefail
-          git add \
-            Weall-Protocol/scripts/rehearse_v15_full_lifecycle.py \
-            Weall-Protocol/scripts/rehearse_api_driven_full_lifecycle_v1_5.py \
-            Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py \
-            Weall-Protocol/generated/b517_b521_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b523_b527_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'test(p0): refresh production lifecycle proof fixtures'
+          if (( ${#PY_FILES[@]} > 0 )); then
+            ruff format --check "${PY_FILES[@]}"
+            ruff check "${PY_FILES[@]}"
           fi
-          test -z "$(git status --short --untracked-files=all)"
 
-      - name: Validate proof consumers
+      - name: Dependency audit
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          pytest -q \
-            tests/test_generated_checker_read_only.py \
-            tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py \
-            tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py \
-            tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py \
-            tests/test_full_node_db_api_dispute_storage_coverage.py \
-            tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py
+          pip-audit -r requirements.lock
+          pip-audit -r requirements-dev.lock
 
-      - name: Push validated staging branch
+      - name: Canon lint
+        working-directory: Weall-Protocol
+        run: python -m tooling.canon_lint
+
+      - name: Check generated artifacts
+        working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          git push origin HEAD:p0-full-suite-repair-staging-20261001
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Restore historical M2/M3 closure evidence
+        run: |
+          set -Eeuo pipefail
+          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
+
+      - name: Full pytest
+        working-directory: Weall-Protocol
+        run: pytest -q
+
+      - name: Generate Tx coverage report
+        if: always()
+        working-directory: Weall-Protocol
+        run: python scripts/generate_tx_coverage_report.py
