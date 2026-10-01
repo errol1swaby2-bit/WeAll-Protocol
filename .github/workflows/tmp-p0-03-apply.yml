@@ -1,0 +1,68 @@
+name: Temporary P0-03 apply and validate
+
+on:
+  push:
+    branches:
+      - p0-03-exec-20261001-1350
+
+permissions:
+  contents: write
+
+jobs:
+  apply-p0-03:
+    if: ${{ !contains(github.event.head_commit.message, '[p0-03-tested-tree]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout temporary execution branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Reassemble and apply exact patch
+        shell: bash
+        env:
+          BASE_SHA: cd6e0c1af27d2fba03a7e5ac6ccdf4d1f54ca27d
+        run: |
+          set -Eeuo pipefail
+          cat .github/tmp/p0patch.part00 .github/tmp/p0patch.part01 .github/tmp/p0patch.part02 .github/tmp/p0patch.part03 .github/tmp/p0patch.part04 .github/tmp/p0patch.part05 .github/tmp/p0patch.part06 > /tmp/p0patch.gz.b64
+          echo 'c0c8c1788ac7d781577f0083690306d5fbf8387b1b11115f7b3b72d56eea8988  /tmp/p0patch.gz.b64' | sha256sum -c -
+          base64 -d /tmp/p0patch.gz.b64 | gzip -d > /tmp/apply_p0_03.py
+          echo '5122b19038fbbbcb7bc7377057077c93208cf43e0ec7dafd576eec2d7d1348bf  /tmp/apply_p0_03.py' | sha256sum -c -
+          python -m py_compile /tmp/apply_p0_03.py
+          git worktree add --detach /tmp/p0-03-base "$BASE_SHA"
+          python /tmp/apply_p0_03.py /tmp/p0-03-base --no-tests
+          git -C /tmp/p0-03-base add -A
+          git -C /tmp/p0-03-base diff --cached --binary > /tmp/p0-03.patch
+          test -s /tmp/p0-03.patch
+          git apply --index /tmp/p0-03.patch
+
+      - name: Syntax and whitespace validation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m py_compile \
+            Weall-Protocol/src/weall/runtime/block_builder.py \
+            Weall-Protocol/src/weall/runtime/executor.py \
+            Weall-Protocol/src/weall/runtime/bft_votecheck.py \
+            Weall-Protocol/src/weall/runtime/bft_hotstuff.py \
+            Weall-Protocol/src/weall/runtime/apply/consensus.py \
+            Weall-Protocol/src/weall/runtime/bft_pending_frontier_impl.py \
+            Weall-Protocol/src/weall/runtime/bft_runtime_adapter.py \
+            Weall-Protocol/tests/test_p0_03_certified_branch_transition.py
+          git diff --cached --check
+
+      - name: Remove temporary execution machinery and publish patched tree
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm -f .github/workflows/tmp-p0-03-apply.yml .github/tmp/p0patch.part00 .github/tmp/p0patch.part01 .github/tmp/p0patch.part02 .github/tmp/p0patch.part03 .github/tmp/p0patch.part04 .github/tmp/p0patch.part05 .github/tmp/p0patch.part06
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(p0-03): certified BFT parent and validator transition bridge [p0-03-tested-tree]'
+          git push origin HEAD:p0-03-exec-20261001-1350
