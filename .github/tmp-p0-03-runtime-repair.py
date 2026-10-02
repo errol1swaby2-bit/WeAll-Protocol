@@ -184,3 +184,65 @@ new_vote_map = '''    # Vote safety must reason over the certified speculative b
 '''
 text = replace_once(text, old_vote_map, new_vote_map, "adapter follower speculative vote ancestry")
 adapter.write_text(text, encoding="utf-8")
+
+votecheck = root / "src/weall/runtime/bft_votecheck.py"
+text = votecheck.read_text(encoding="utf-8")
+old_missing_parent = '''    parent_id = str(block2.get("prev_block_id") or "").strip()
+    if parent_id and not self._has_local_block(parent_id):
+        if parent_id in self._pending_missing_fetches:
+            # Missing-parent work is retryable local state, not intrinsic block invalidity.
+            return False
+'''
+new_missing_parent = '''    parent_id = str(block2.get("prev_block_id") or "").strip()
+    if parent_id and not self._has_local_block(parent_id):
+        # A speculative parent is valid local ancestry even though it is not yet
+        # in the canonical block table. If neither canonical nor pending ancestry
+        # exists, fail retryably and let the fetch-descriptor machinery request it.
+        pending_parent = self._bft_pending_block_json(parent_id)
+        if not isinstance(pending_parent, dict):
+            return False
+'''
+text = replace_once(
+    text,
+    old_missing_parent,
+    new_missing_parent,
+    "votecheck nonexistent pending fetch state",
+)
+votecheck.write_text(text, encoding="utf-8")
+
+priority2 = root / "tests/test_priority2_votecheck_dos_hardening.py"
+text = priority2.read_text(encoding="utf-8")
+text = replace_once(
+    text,
+    '''    if not hasattr(ex, "_pending_missing_fetches"):
+        ex._pending_missing_fetches = {}  # type: ignore[attr-defined]
+    return ex
+''',
+    '''    return ex
+''',
+    "remove votecheck fake pending-fetch fixture",
+)
+priority2.write_text(text, encoding="utf-8")
+
+fresh = root / "tests/test_fresh_ai_error_closure.py"
+text = fresh.read_text(encoding="utf-8")
+text = replace_once(
+    text,
+    '''    parent_id = str(block2.get("block_id") or "")
+    if not hasattr(follower, "_pending_missing_fetches"):
+        follower._pending_missing_fetches = {}  # type: ignore[attr-defined]
+    follower._pending_missing_fetches[parent_id] = {"requested_ms": 1}
+    assert follower._validate_remote_proposal_for_vote(block3) is False
+
+    follower._pending_missing_fetches.pop(parent_id, None)
+    assert follower.apply_block(block2).ok is True
+''',
+    '''    # Missing-parent work is retryable and derived from the real canonical/
+    # pending frontier; no synthetic runtime attribute is required.
+    assert follower._validate_remote_proposal_for_vote(block3) is False
+
+    assert follower.apply_block(block2).ok is True
+''',
+    "remove votecheck fake missing-parent state",
+)
+fresh.write_text(text, encoding="utf-8")
