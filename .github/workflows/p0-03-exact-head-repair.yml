@@ -1,0 +1,81 @@
+name: P0-03 Exact-Head Repair
+
+on:
+  push:
+    branches:
+      - p0-03-production-closure-staging-20261001
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p0-03-exact-head-repair
+  cancel-in-progress: false
+
+jobs:
+  repair-and-probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout canonical P0 branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Regenerate exact-head derivatives
+        if: github.actor != 'github-actions[bot]'
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/compile_v2_spec.py
+          python scripts/gen_current_verified_claims.py
+
+      - name: Commit exact-head generated artifacts
+        if: github.actor != 'github-actions[bot]'
+        run: |
+          if git diff --quiet; then
+            echo 'No generated changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Weall-Protocol/generated web/src/generated/protocolStatus.ts
+          git commit -m 'chore(p0): refresh exact-head generated derivatives'
+          git push origin HEAD:p0-03-production-closure-staging-20261001
+
+      - name: Verify exact-head generated artifacts
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Run focused P0-03 production and transition regressions
+        working-directory: Weall-Protocol
+        env:
+          WEALL_MODE: prod
+        run: |
+          pytest -q \
+            tests/test_p0_03_production_composition.py \
+            tests/test_p0_03_certified_branch_transition.py
+
+      - name: Remove temporary repair workflow after focused green
+        if: github.actor == 'github-actions[bot]' && success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/p0-03-exact-head-repair.yml
+          git commit -m 'chore(p0-03): remove temporary exact-head repair workflow'
+          git push origin HEAD:p0-03-production-closure-staging-20261001
