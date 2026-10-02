@@ -30,7 +30,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python .github/tmp-p0-03-runtime-repair.py
-      - name: Instrument exact QC1 boundary in disposable checkout
+      - name: Instrument speculative execution in disposable checkout
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -38,8 +38,8 @@ jobs:
           from pathlib import Path
           p = Path('tests/test_p0_03_production_composition.py')
           s = p.read_text(encoding='utf-8')
-          old = '''    votes1 = _follower_votes(nodes, b1, leader=leader1, pubs=pubs, privs=privs)\n    qc1 = _form_qc(nodes[leader1], leader1, votes1, pubs=pubs, privs=privs)\n    _broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)\n'''
-          new = '''    votes1 = _follower_votes(nodes, b1, leader=leader1, pubs=pubs, privs=privs)\n    print("P003 BEFORE_QC1", {vid: {"pending": list(n._pending_remote_blocks), "has_b1": n._has_local_block(str(b1["block_id"])), "epoch_ok": n._bft_pending_artifact_matches_current_epoch(b1), "desc": n._bft_block_is_applyable_finalized_descendant(b1, str(n._bft.finalized_block_id or ""))} for vid, n in nodes.items()}, flush=True)\n    qc1 = _form_qc(nodes[leader1], leader1, votes1, pubs=pubs, privs=privs)\n    _broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)\n    print("P003 AFTER_QC1", {vid: {"pending": list(n._pending_remote_blocks), "has_b1": n._has_local_block(str(b1["block_id"])), "epoch_ok": n._bft_pending_artifact_matches_current_epoch(b1), "desc": n._bft_block_is_applyable_finalized_descendant(b1, str(n._bft.finalized_block_id or "")), "tip": str(n.state.get("tip") or ""), "finalized": str(n._bft.finalized_block_id or "")} for vid, n in nodes.items()}, flush=True)\n'''
+          old = '''    assert b2["prev_block_id"] == b1["block_id"]\n    assert b2["justify_qc"]["block_id"] == b1["block_id"]\n\n    wrong = _signed_wrong_parent(\n'''
+          new = '''    assert b2["prev_block_id"] == b1["block_id"]\n    assert b2["justify_qc"]["block_id"] == b1["block_id"]\n\n    from weall.runtime import bft_votecheck as _votecheck\n    from weall.runtime.bft_hotstuff import qc_from_json as _qc_from_json\n    probe_id = next(v for v in VALIDATORS if v != leader2)\n    probe = nodes[probe_id]\n    with _env(_prod_env(probe_id, pub=pubs[probe_id], priv=privs[probe_id])):\n        slot = _votecheck._acquire_spec_exec_slot(probe)\n        try:\n            clone = _votecheck._reset_spec_exec_slot(probe, slot)\n            seeded = _votecheck._seed_spec_exec_to_parent(probe, clone, str(b1["block_id"]))\n            meta = clone.apply_block(copy.deepcopy(b2)) if seeded else None\n        finally:\n            _votecheck._release_spec_exec_slot(probe, slot)\n        smap = probe._bft_speculative_blocks_map()\n        smap[str(b2["block_id"])] = {\n            "height": int(b2.get("height") or 0),\n            "prev_block_id": str(b2.get("prev_block_id") or ""),\n            "block_hash": str(b2.get("block_hash") or ""),\n        }\n        can_vote = probe._bft.can_vote_for(blocks=smap, block_id=str(b2["block_id"]), justify_qc=_qc_from_json(qc1))\n        print("P003 B2_PROBE", {"probe": probe_id, "pending": list(probe._pending_remote_blocks), "seeded": seeded, "meta": None if meta is None else {"ok": meta.ok, "error": meta.error, "height": meta.height, "block_id": meta.block_id}, "can_vote": can_vote, "high_qc": None if probe._bft.high_qc is None else probe._bft.high_qc.block_id, "locked_qc": None if probe._bft.locked_qc is None else probe._bft.locked_qc.block_id}, flush=True)\n\n    wrong = _signed_wrong_parent(\n'''
           if s.count(old) != 1:
               raise SystemExit(f'marker count={s.count(old)}')
           p.write_text(s.replace(old, new, 1), encoding='utf-8')
