@@ -38,12 +38,31 @@ jobs:
           ruff format src/weall/runtime/bft_hotstuff.py src/weall/runtime/bft_runtime_adapter.py tests/test_p0_03_production_composition.py
           ruff check src/weall/runtime/bft_hotstuff.py src/weall/runtime/bft_runtime_adapter.py tests/test_p0_03_production_composition.py
           git diff --check
-      - name: Execute P0-03 production and adjacent regressions
+      - name: Instrument follower rejection in disposable checkout
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tests/test_p0_03_production_composition.py")
+          text = path.read_text(encoding="utf-8")
+          old = '''        assert isinstance(vote, dict) and vote, f"follower {vid} rejected proposal"\n'''
+          new = '''        if not (isinstance(vote, dict) and vote):\n            from weall.runtime import bft_runtime_adapter as _bft_adapter\n\n            admit_ok, admit_rej = _bft_adapter._call_admit_bft_block(\n                block=copy.deepcopy(proposal),\n                state=node.state,\n                bft_enabled=True,\n            )\n            bft = node._bft\n            high_qc = bft.high_qc.to_json() if bft.high_qc is not None else None\n            locked_qc = bft.locked_qc.to_json() if bft.locked_qc is not None else None\n            raise AssertionError(\n                f"follower {vid} rejected proposal; "\n                f"admit_ok={admit_ok!r} admit_rej={admit_rej!r} "\n                f"view={bft.view!r} last_voted_view={bft.last_voted_view!r} "\n                f"last_voted_block_id={bft.last_voted_block_id!r} "\n                f"high_qc={high_qc!r} locked_qc={locked_qc!r} "\n                f"pending_remote={list(node._pending_remote_blocks)!r} "\n                f"pending_candidates={list(node._pending_candidates)!r} "\n                f"quarantined={list(node._quarantined_remote_blocks)!r} "\n                f"diag={node.bft_diagnostics()!r}"\n            )\n'''
+          if text.count(old) != 1:
+              raise SystemExit(f"diagnostic assertion target count={text.count(old)}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+      - name: Execute failing production composition with diagnostics
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
+          pytest -q -vv tests/test_p0_03_production_composition.py
+      - name: Execute adjacent P0-03 regressions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          git checkout -- tests/test_p0_03_production_composition.py
           pytest -q -vv \
-            tests/test_p0_03_production_composition.py \
             tests/test_p0_03_certified_branch_transition.py \
             tests/test_bft_timeout_certificate.py \
             tests/test_bft_production_safety.py \
@@ -55,6 +74,7 @@ jobs:
         if: success()
         run: |
           set -Eeuo pipefail
+          git checkout -- Weall-Protocol/tests/test_p0_03_production_composition.py
           rm .github/workflows/tmp-p0-03-production-composition.yml
           rm .github/tmp-p0-03-runtime-repair.py
           git config user.name 'errol1swaby2-bit'
