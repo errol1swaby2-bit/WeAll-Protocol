@@ -36,6 +36,80 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      - name: Apply focused P0-03 runtime repairs
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_exact(path: str, old: str, new: str, label: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              target.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_exact(
+              "Weall-Protocol/src/weall/runtime/bft_runtime_adapter.py",
+              '''    elif _mode() == "prod":
+                  state = getattr(self, "state", None)
+                  phase_reader = getattr(self, "_current_consensus_phase", None)
+                  current_phase = phase_reader() if callable(phase_reader) else ""
+                  if isinstance(state, dict) and current_phase == CONSENSUS_PHASE_BFT_ACTIVE:
+                      height = _safe_int(state.get("height"), 0)
+                      tip = str(state.get("tip") or "").strip()
+                      if height > 0 or tip:
+                          return None
+          ''',
+              '''    elif _mode() == "prod":
+                  phase_reader = getattr(self, "_current_consensus_phase", None)
+                  current_phase = phase_reader() if callable(phase_reader) else ""
+                  if current_phase == CONSENSUS_PHASE_BFT_ACTIVE:
+                      return None
+          ''',
+              "production BFT-active QC-less proposal fence",
+          )
+
+          replace_exact(
+              "Weall-Protocol/src/weall/runtime/block_replay.py",
+              '''            ok_bft, rej_bft = _call_admit_bft_commit_block(
+                          block=block2,
+                          state=self.state,
+                          blocks_map=self._bft_speculative_blocks_map(),
+                          bft_enabled=effective_bft_enabled(executor=self, default=False),
+                      )
+          ''',
+              '''            admission_blocks_map = self._bft_speculative_blocks_map()
+                      current_bid = str(block2.get("block_id") or "").strip()
+                      if current_bid:
+                          admission_blocks_map = dict(admission_blocks_map)
+                          admission_blocks_map[current_bid] = {
+                              "height": int(height),
+                              "prev_block_id": advertised_prev_block_id,
+                              "block_ts_ms": int(ts_ms),
+                              "block_hash": str(block2.get("block_hash") or "").strip(),
+                          }
+                      ok_bft, rej_bft = _call_admit_bft_commit_block(
+                          block=block2,
+                          state=self.state,
+                          blocks_map=admission_blocks_map,
+                          bft_enabled=effective_bft_enabled(executor=self, default=False),
+                      )
+          ''',
+              "BFT replay admission current-block ancestry map",
+          )
+          PY
+
+      - name: Normalize repaired runtime files
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check --fix src/weall/runtime/bft_runtime_adapter.py src/weall/runtime/block_replay.py
+          ruff format src/weall/runtime/bft_runtime_adapter.py src/weall/runtime/block_replay.py
+          ruff check src/weall/runtime/bft_runtime_adapter.py src/weall/runtime/block_replay.py
+          git diff --check
+
       - name: Remove superseded P0-03 repair surfaces
         run: |
           set -Eeuo pipefail
@@ -98,7 +172,7 @@ jobs:
           test ! -e .github/tmp-p0-03-runtime-repair.py
           test ! -e .github/workflows/tmp-p0-03-production-composition.yml
           test ! -e .github/workflows/p0-03-exact-head-repair.yml
-          git commit -m 'fix(p0-03): publish validated helper-free exact tree'
+          git commit -m 'fix(p0-03): close production transition and replay gaps'
 
       - name: Verify clean-checkout reproducibility of committed tree
         working-directory: Weall-Protocol
