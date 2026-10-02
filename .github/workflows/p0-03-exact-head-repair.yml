@@ -110,6 +110,92 @@ jobs:
           ruff check src/weall/runtime/bft_runtime_adapter.py src/weall/runtime/block_replay.py
           git diff --check
 
+      - name: Diagnose restart speculative parent reconstruction
+        working-directory: Weall-Protocol
+        env:
+          WEALL_MODE: prod
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import copy
+          import importlib.util
+          import tempfile
+          from pathlib import Path
+
+          from weall.runtime import bft_votecheck
+
+          test_path = Path('tests/test_p0_03_production_composition.py').resolve()
+          spec = importlib.util.spec_from_file_location('p0diag', test_path)
+          assert spec is not None and spec.loader is not None
+          t = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(t)
+
+          pubs, privs = t._key_material()
+          with tempfile.TemporaryDirectory(prefix='weall-p0diag-') as td:
+              tmp_path = Path(td)
+              nodes, boundary_id, _ = t._install_prod_boundary(tmp_path, pubs=pubs, privs=privs)
+              qc0 = t._prepare_transition_qc(nodes, boundary_id=boundary_id, pubs=pubs, privs=privs)
+              leader1, b1 = t._propose(nodes, view=1, pubs=pubs, privs=privs)
+              votes1 = t._follower_votes(nodes, b1, leader=leader1, pubs=pubs, privs=privs)
+              qc1 = t._form_qc(nodes[leader1], leader1, votes1, pubs=pubs, privs=privs)
+              t._broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)
+
+              leader2 = t.leader_for_view(t.VALIDATORS, 2)
+              with t._env(t._prod_env(leader2, pub=pubs[leader2], priv=privs[leader2])):
+                  nodes[leader2].mark_clean_shutdown()
+                  nodes[leader2] = t._make_executor(tmp_path, leader2, node_id=leader2)
+
+              node = nodes[leader2]
+              b1_id = str(b1['block_id'])
+              print('P0DIAG', {
+                  'leader1': leader1,
+                  'leader2': leader2,
+                  'boundary_id': boundary_id,
+                  'b1_id': b1_id,
+                  'state_tip': str(node.state.get('tip') or ''),
+                  'state_height': int(node.state.get('height') or 0),
+                  'high_qc': node._bft.high_qc.to_json() if node._bft.high_qc is not None else None,
+                  'locked_qc': node._bft.locked_qc.to_json() if node._bft.locked_qc is not None else None,
+                  'finalized_block_id': str(node._bft.finalized_block_id or ''),
+                  'pending_remote_ids': list(node._pending_remote_blocks.keys()),
+                  'pending_candidate_ids': list(node._pending_candidates.keys()),
+                  'speculative_map_ids': list(node._bft_speculative_blocks_map().keys()),
+                  'pending_b1': node._bft_pending_block_json(b1_id),
+              }, flush=True)
+
+              chain = bft_votecheck._speculative_chain_to_parent(node, b1_id)
+              print('P0DIAG_CHAIN', chain, flush=True)
+              parent_state = bft_votecheck._speculative_parent_state(node, b1_id)
+              print('P0DIAG_PARENT_STATE', {
+                  'present': isinstance(parent_state, dict),
+                  'tip': str((parent_state or {}).get('tip') or ''),
+                  'height': int((parent_state or {}).get('height') or 0),
+              }, flush=True)
+
+              pending = node._bft_pending_block_json(b1_id)
+              if isinstance(pending, dict):
+                  slot = node._acquire_spec_exec_slot()
+                  try:
+                      clone = node._reset_spec_exec_slot(slot)
+                      clone.state = copy.deepcopy(node.state)
+                      clone._ledger_store.write(clone.state)
+                      clone._bft.load_from_state(clone.state)
+                      try:
+                          meta = clone.apply_block(copy.deepcopy(pending))
+                          print('P0DIAG_DIRECT_REPLAY', {
+                              'meta': repr(meta),
+                              'ok': bool(getattr(meta, 'ok', False)) if meta is not None else False,
+                              'clone_tip': str(clone.state.get('tip') or ''),
+                              'clone_height': int(clone.state.get('height') or 0),
+                          }, flush=True)
+                      except Exception as exc:
+                          print('P0DIAG_DIRECT_REPLAY_EXCEPTION', type(exc).__name__, repr(exc), flush=True)
+                  finally:
+                      node._release_spec_exec_slot(slot)
+          PY
+
       - name: Remove superseded P0-03 repair surfaces
         run: |
           set -Eeuo pipefail
