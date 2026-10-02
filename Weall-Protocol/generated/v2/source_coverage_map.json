@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1975,
+  "file_count": 1979,
   "files": [
     {
       "affected_registers": [
@@ -54,10 +54,36 @@
       "mappings": [
         "M-075"
       ],
+      "path": "../.github/tmp-p0-03-runtime-repair.py",
+      "primary_mechanism_id": "M-075",
+      "sha256": "f3d962fed0402f9e3678958a2d2edfd924be051a799ba2221b43573f2a51542f",
+      "source_id": "SRC-52765B0829A0C819"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/p0-03-exact-head-repair.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "38e4f19cfe30a12b8eb899a8ab0e83978fd044fe0aba8a0e3afd9e75cbc10e2a",
+      "source_id": "SRC-37977B213CFA8445"
     },
     {
       "affected_registers": [
@@ -84,6 +110,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "02b8b65a3b88e84940e1218a9a8ab280d12a819bbe41bfcb6e2e99d3275e8714",
       "source_id": "SRC-EFC50317C3E5E615"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/tmp-p0-03-production-composition.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "f410376b2e5390defe415b972b01656e71f5ace192b33429a7df86952711bafe",
+      "source_id": "SRC-29F3BCA16A4B1F02"
     },
     {
       "affected_registers": [
@@ -21877,6 +21916,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "e08872168a77e17247556f6ea52faa3a73f49bac03124aa110cd2ccdf3bb8c45",
       "source_id": "SRC-89928FD06F99F6D1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-EE2EFB47FA6F30A2"
+      ],
+      "path": "tests/test_p0_03_production_composition.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "9414a4d34f60fb4c12d80cc52ec254237e1924d6b45e0efb4c255938d5c728bd",
+      "source_id": "SRC-DF1D27D330664F95"
     },
     {
       "affected_registers": [

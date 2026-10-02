@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "1a094e43120cedb13e3f3f2d945321218d1d5d75b059f2c078e4f5a39ab2b912"
+    "source_tree_digest": "3f937788aa2bf669737612acc4bbd37a4f55893cb40c10e26a73cdfde0115d5f"
   },
   "required_fields": [
     "stable_id",
@@ -3797,6 +3797,7 @@
         "tests/test_local_rehearsal_account_register_state_fallback.py",
         "tests/test_m3_closure_integrity.py",
         "tests/test_operator_helpers_fail_closed.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_pb001bm_validator_authority_fail_closed.py",
         "tests/test_priority1_cross_node_merge_consistency.py",
         "tests/test_priority1_deterministic_execution.py",
@@ -7535,6 +7536,7 @@
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_03_certified_branch_transition.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_p0_a10_a12_generated_contract_closure.py",
         "tests/test_p0_a10_treasury_restart_replay.py",
@@ -8426,6 +8428,7 @@
         "tests/test_operator_observability_truthfulness.py",
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_p0_a10_a12_generated_contract_closure.py",
         "tests/test_p0_a10_treasury_restart_replay.py",
