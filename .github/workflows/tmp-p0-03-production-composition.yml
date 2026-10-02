@@ -6,12 +6,12 @@ on:
       - p0-03-production-closure-staging-20261001
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   p0-03-production-composition:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,23 +30,70 @@ jobs:
         run: |
           set -Eeuo pipefail
           python .github/tmp-p0-03-runtime-repair.py
-      - name: Instrument post-wrong B2 gates in disposable checkout
+      - name: Normalize candidate source and tests
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('tests/test_p0_03_production_composition.py')
-          s = p.read_text(encoding='utf-8')
-          old = '''    with _env(_prod_env(victim, pub=pubs[victim], priv=privs[victim])):\n        assert nodes[victim].bft_on_proposal(copy.deepcopy(wrong)) is None\n\n    votes2 = _follower_votes(nodes, b2, leader=leader2, pubs=pubs, privs=privs)\n'''
-          new = '''    with _env(_prod_env(victim, pub=pubs[victim], priv=privs[victim])):\n        assert nodes[victim].bft_on_proposal(copy.deepcopy(wrong)) is None\n        probe = nodes[victim]\n        from weall.runtime import bft_artifact_cache as _artifact_cache\n        from weall.runtime import bft_votecheck as _votecheck\n        from weall.runtime.bft_hotstuff import qc_from_json as _qc_from_json, verify_proposal_json as _verify_proposal\n        from weall.runtime.block_admission import admit_bft_block as _admit\n\n        bid = str(b2["block_id"])\n        bh = str(b2["block_hash"])\n        parent = str(b2["prev_block_id"])\n        jqc = _qc_from_json(b2["justify_qc"])\n        admit_ok, admit_rej = _admit(block=copy.deepcopy(b2), state=probe.state, bft_enabled=True)\n        smap = probe._bft_speculative_blocks_map()\n        smap[bid] = {\n            "height": int(b2.get("height") or 0),\n            "prev_block_id": parent,\n            "block_hash": bh,\n        }\n        checks = {\n            "recent": _artifact_cache._has_recent_bft_artifact(probe, b2, cache_attr="_recent_bft_proposals"),\n            "phase": probe._bft_payload_phase_matches_current_security_model(b2),\n            "epoch": probe._bft_epoch_binding_matches(b2),\n            "id_conflict": probe._block_identity_conflicts(copy.deepcopy(b2), record_conflicts=False),\n            "proposal_sig": _verify_proposal(proposal=copy.deepcopy(b2), validators=probe._active_validators(), vpub=probe._validator_pubkeys(), expected_leader=leader2),\n            "admission": admit_ok,\n            "admission_reject": None if admit_rej is None else {"code": admit_rej.code, "reason": admit_rej.reason, "details": admit_rej.details},\n            "votecheck_static": _votecheck._proposal_votecheck_static_ok(probe, copy.deepcopy(b2)),\n            "votecheck_full": _votecheck._validate_remote_proposal_for_vote(probe, copy.deepcopy(b2)),\n            "can_vote": probe._bft.can_vote_for(blocks=smap, block_id=bid, justify_qc=jqc),\n            "signing_permitted": probe._validator_signing_permitted(),\n            "vote_preview": isinstance(probe.bft_make_vote_for_block(view=2, block_id=bid, block_hash=bh, parent_id=parent), dict),\n            "last_voted_view": probe._bft.last_voted_view,\n            "last_voted_block_id": probe._bft.last_voted_block_id,\n            "view": probe._bft.view,\n            "pending": list(probe._pending_remote_blocks),\n            "quarantined": list(probe._quarantined_remote_blocks),\n            "sender_budgets": dict(getattr(probe, "_recent_bft_sender_budgets", {})),\n            "peer_budget": dict(getattr(probe, "_proposal_peer_budget", {})),\n            "votecheck_cache": dict(getattr(probe, "_votecheck_cache", {})),\n            "high_qc": None if probe._bft.high_qc is None else probe._bft.high_qc.block_id,\n            "locked_qc": None if probe._bft.locked_qc is None else probe._bft.locked_qc.block_id,\n        }\n        print("P003 FINAL_GATE_PROBE", checks, flush=True)\n        raise AssertionError("diagnostic_stop_after_final_gate_probe")\n\n    votes2 = _follower_votes(nodes, b2, leader=leader2, pubs=pubs, privs=privs)\n'''
-          if s.count(old) != 1:
-              raise SystemExit(f'marker count={s.count(old)}')
-          p.write_text(s.replace(old, new, 1), encoding='utf-8')
-          PY
-          ruff format tests/test_p0_03_production_composition.py
-      - name: Execute production composition diagnostic
+          ruff check --fix \
+            src/weall/runtime/bft_hotstuff.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/block_admission.py \
+            src/weall/runtime/executor.py \
+            tests/test_p0_03_production_composition.py \
+            tests/test_priority2_votecheck_dos_hardening.py \
+            tests/test_fresh_ai_error_closure.py
+          ruff format \
+            src/weall/runtime/bft_hotstuff.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/block_admission.py \
+            src/weall/runtime/executor.py \
+            tests/test_p0_03_production_composition.py \
+            tests/test_priority2_votecheck_dos_hardening.py \
+            tests/test_fresh_ai_error_closure.py
+          ruff check \
+            src/weall/runtime/bft_hotstuff.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/block_admission.py \
+            src/weall/runtime/executor.py \
+            tests/test_p0_03_production_composition.py \
+            tests/test_priority2_votecheck_dos_hardening.py \
+            tests/test_fresh_ai_error_closure.py
+          git diff --check
+      - name: Execute P0-03 production and adjacent regressions
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          pytest -s -q -vv tests/test_p0_03_production_composition.py::test_four_validator_prod_three_chain_restart_delayed_qc_and_wrong_parent_rejection
+          pytest -q -vv \
+            tests/test_p0_03_production_composition.py \
+            tests/test_p0_03_certified_branch_transition.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_bft_production_safety.py \
+            tests/test_bft_pending_frontier_restart_persistence.py \
+            tests/test_executor_epoch_transition_pending_prune.py \
+            tests/test_priority1_bft_sender_rate_budget.py \
+            tests/test_pb001br_proposal_duplicate_cache_trust_boundary.py \
+            tests/test_priority2_votecheck_dos_hardening.py \
+            tests/test_bft_votecheck_safety.py \
+            tests/test_fresh_ai_error_closure.py \
+            tests/test_protocol_blocker_safety.py \
+            tests/test_production_consensus_profile.py \
+            tests/test_node_lifecycle_block_admission_authority.py \
+            tests/test_helper_block_plan_admission.py \
+            tests/test_block_signature_profiles.py
+      - name: Commit tested helper-free canonical tree
+        if: success()
+        run: |
+          set -Eeuo pipefail
+          rm .github/workflows/tmp-p0-03-production-composition.yml
+          rm .github/tmp-p0-03-runtime-repair.py
+          git config user.name 'errol1swaby2-bit'
+          git config user.email 'errol1swaby2@gmail.com'
+          git add -A
+          git diff --cached --check
+          test ! -e .github/workflows/tmp-p0-03-production-composition.yml
+          test ! -e .github/tmp-p0-03-runtime-repair.py
+          git commit -m 'fix(p0-03): complete certified-chain follower and transition repair'
+          git push origin HEAD:p0-03-production-closure-staging-20261001
