@@ -6,7 +6,7 @@ on:
       - p0-03-production-closure-staging-20261001
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   p0-03-production-composition:
@@ -30,47 +30,23 @@ jobs:
         run: |
           set -Eeuo pipefail
           python .github/tmp-p0-03-runtime-repair.py
-      - name: Normalize candidate source and closure test
+      - name: Instrument exact QC1 boundary in disposable checkout
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff check --fix src/weall/runtime/bft_hotstuff.py src/weall/runtime/bft_runtime_adapter.py tests/test_p0_03_production_composition.py
-          ruff format src/weall/runtime/bft_hotstuff.py src/weall/runtime/bft_runtime_adapter.py tests/test_p0_03_production_composition.py
-          ruff check src/weall/runtime/bft_hotstuff.py src/weall/runtime/bft_runtime_adapter.py tests/test_p0_03_production_composition.py
-          git diff --check
-      - name: Instrument pending-frontier lifetime in disposable checkout
-        working-directory: Weall-Protocol
-        run: |
           python - <<'PY'
           from pathlib import Path
-
-          path = Path("tests/test_p0_03_production_composition.py")
-          text = path.read_text(encoding="utf-8")
-
-          old_assert = '''        assert isinstance(vote, dict) and vote, f"follower {vid} rejected proposal"\n'''
-          new_assert = '''        if not (isinstance(vote, dict) and vote):\n            from weall.runtime import bft_runtime_adapter as _bft_adapter\n\n            admit_ok, admit_rej = _bft_adapter._call_admit_bft_block(\n                block=copy.deepcopy(proposal),\n                state=node.state,\n                bft_enabled=True,\n            )\n            bft = node._bft\n            high_qc = bft.high_qc.to_json() if bft.high_qc is not None else None\n            locked_qc = bft.locked_qc.to_json() if bft.locked_qc is not None else None\n            raise AssertionError(\n                f"follower {vid} rejected proposal; "\n                f"admit_ok={admit_ok!r} admit_rej={admit_rej!r} "\n                f"view={bft.view!r} last_voted_view={bft.last_voted_view!r} "\n                f"last_voted_block_id={bft.last_voted_block_id!r} "\n                f"high_qc={high_qc!r} locked_qc={locked_qc!r} "\n                f"pending_remote={list(node._pending_remote_blocks)!r} "\n                f"pending_candidates={list(node._pending_candidates)!r} "\n                f"quarantined={list(node._quarantined_remote_blocks)!r} "\n                f"diag={node.bft_diagnostics()!r}"\n            )\n'''
-          if text.count(old_assert) != 1:
-              raise SystemExit(f"diagnostic assertion target count={text.count(old_assert)}")
-          text = text.replace(old_assert, new_assert, 1)
-
-          def snap(label: str) -> str:
-              return f'''\n    print(\n        "P003-SNAPSHOT {label}",\n        {{\n            vid: {{\n                "tip": str(node.state.get("tip") or ""),\n                "finalized": str(node._bft.finalized_block_id or ""),\n                "high_qc": str(node._bft.high_qc.block_id if node._bft.high_qc is not None else ""),\n                "pending_remote": list(node._pending_remote_blocks),\n                "pending_candidates": list(node._pending_candidates),\n                "quarantined": list(node._quarantined_remote_blocks),\n            }}\n            for vid, node in nodes.items()\n        }},\n        flush=True,\n    )\n'''
-
-          marker1 = '''    _broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)\n    assert all(str(node.state.get("tip") or "") == boundary_id for node in nodes.values())\n'''
-          repl1 = '''    _broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)\n''' + snap("after_qc1") + '''    assert all(str(node.state.get("tip") or "") == boundary_id for node in nodes.values())\n'''
-          if text.count(marker1) != 1:
-              raise SystemExit(f"qc1 marker count={text.count(marker1)}")
-          text = text.replace(marker1, repl1, 1)
-
-          marker2 = '''    with _env(_prod_env(victim, pub=pubs[victim], priv=privs[victim])):\n        assert nodes[victim].bft_on_proposal(copy.deepcopy(wrong)) is None\n\n    votes2 = _follower_votes(nodes, b2, leader=leader2, pubs=pubs, privs=privs)\n'''
-          repl2 = '''    with _env(_prod_env(victim, pub=pubs[victim], priv=privs[victim])):\n        assert nodes[victim].bft_on_proposal(copy.deepcopy(wrong)) is None\n''' + snap("after_wrong_parent") + '''\n    votes2 = _follower_votes(nodes, b2, leader=leader2, pubs=pubs, privs=privs)\n'''
-          if text.count(marker2) != 1:
-              raise SystemExit(f"wrong marker count={text.count(marker2)}")
-          text = text.replace(marker2, repl2, 1)
-          path.write_text(text, encoding="utf-8")
+          p = Path('tests/test_p0_03_production_composition.py')
+          s = p.read_text(encoding='utf-8')
+          old = '''    votes1 = _follower_votes(nodes, b1, leader=leader1, pubs=pubs, privs=privs)\n    qc1 = _form_qc(nodes[leader1], leader1, votes1, pubs=pubs, privs=privs)\n    _broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)\n'''
+          new = '''    votes1 = _follower_votes(nodes, b1, leader=leader1, pubs=pubs, privs=privs)\n    print("P003 BEFORE_QC1", {vid: {"pending": list(n._pending_remote_blocks), "has_b1": n._has_local_block(str(b1["block_id"])), "epoch_ok": n._bft_pending_artifact_matches_current_epoch(b1), "desc": n._bft_block_is_applyable_finalized_descendant(b1, str(n._bft.finalized_block_id or ""))} for vid, n in nodes.items()}, flush=True)\n    qc1 = _form_qc(nodes[leader1], leader1, votes1, pubs=pubs, privs=privs)\n    _broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)\n    print("P003 AFTER_QC1", {vid: {"pending": list(n._pending_remote_blocks), "has_b1": n._has_local_block(str(b1["block_id"])), "epoch_ok": n._bft_pending_artifact_matches_current_epoch(b1), "desc": n._bft_block_is_applyable_finalized_descendant(b1, str(n._bft.finalized_block_id or "")), "tip": str(n.state.get("tip") or ""), "finalized": str(n._bft.finalized_block_id or "")} for vid, n in nodes.items()}, flush=True)\n'''
+          if s.count(old) != 1:
+              raise SystemExit(f'marker count={s.count(old)}')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
           PY
-      - name: Execute failing production composition with diagnostics
+          ruff format tests/test_p0_03_production_composition.py
+      - name: Execute production composition diagnostic
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          pytest -s -q -vv tests/test_p0_03_production_composition.py
+          pytest -s -q -vv tests/test_p0_03_production_composition.py::test_four_validator_prod_three_chain_restart_delayed_qc_and_wrong_parent_rejection
