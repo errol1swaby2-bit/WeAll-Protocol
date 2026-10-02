@@ -205,6 +205,15 @@ jobs:
           rm .github/workflows/tmp-p0-03-production-composition.yml
           rm .github/tmp-p0-03-runtime-repair.py
           rm -f .github/workflows/p0-03-exact-head-repair.yml
+
+          # The V2 source manifest scans selected .github and root-script inputs.
+          # Regenerate only after staging-only files are removed so the generated
+          # evidence fingerprints the exact canonical tree that will be pushed.
+          (
+            cd Weall-Protocol
+            python scripts/compile_v2_spec.py
+          )
+
           git config user.name 'errol1swaby2-bit'
           git config user.email 'errol1swaby2@gmail.com'
           git add -A
@@ -213,4 +222,12 @@ jobs:
           test ! -e .github/tmp-p0-03-runtime-repair.py
           test ! -e .github/workflows/p0-03-exact-head-repair.yml
           git commit -m 'fix(p0-03): complete certified-chain follower and transition repair'
+
+          # Validate the newly committed canonical source, not the staging HEAD.
+          (
+            cd Weall-Protocol
+            python scripts/compile_v2_spec.py --check
+            python scripts/check_v2_spec_clean_checkout.py
+          )
+
           git push origin HEAD:p0-03-production-closure-staging-20261001
