@@ -99,6 +99,21 @@ jobs:
           ''',
               "BFT replay admission current-block ancestry map",
           )
+
+          replace_exact(
+              "Weall-Protocol/src/weall/runtime/bft_runtime_adapter.py",
+              '''    blocks_map = self.state.get("blocks")
+              if not isinstance(blocks_map, dict):
+                  blocks_map = {}
+              else:
+                  blocks_map = dict(blocks_map)
+              blocks_map[bid] = {
+          ''',
+              '''    blocks_map = dict(self._bft_speculative_blocks_map())
+              blocks_map[bid] = {
+          ''',
+              "BFT follower vote safety speculative ancestry map",
+          )
           PY
 
       - name: Normalize repaired runtime files
