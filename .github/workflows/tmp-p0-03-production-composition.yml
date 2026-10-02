@@ -71,7 +71,6 @@ jobs:
 
           import copy
           import importlib.util
-          import inspect
           import tempfile
           from pathlib import Path
 
@@ -113,13 +112,6 @@ jobs:
                   'spec_has_wrong': bool(wrong_id and wrong_id in speculative),
               }
               print('P0DIAG_SNAPSHOT', snap, flush=True)
-
-          print('P0DIAG_BFT_ON_PROPOSAL_SOURCE_START')
-          print(inspect.getsource(t.WeAllExecutor.bft_on_proposal))
-          print('P0DIAG_BFT_ON_PROPOSAL_SOURCE_END')
-          print('P0DIAG_CAN_VOTE_SOURCE_START')
-          print(inspect.getsource(t.HotStuffState.can_vote_for))
-          print('P0DIAG_CAN_VOTE_SOURCE_END')
 
           pubs, privs = t._key_material()
           with tempfile.TemporaryDirectory(prefix='weall-p0diag-') as td:
