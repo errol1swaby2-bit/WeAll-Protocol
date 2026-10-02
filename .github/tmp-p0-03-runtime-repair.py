@@ -183,6 +183,26 @@ new_vote_map = '''    # Vote safety must reason over the certified speculative b
     blocks_map[bid] = {
 '''
 text = replace_once(text, old_vote_map, new_vote_map, "adapter follower speculative vote ancestry")
+
+old_admission_call = '''        ok, _rej = _call_admit_bft_block(
+            block=proposal2,
+            state=self.state,
+            bft_enabled=effective_bft_enabled(executor=self, default=False),
+        )
+'''
+new_admission_call = '''        ok, _rej = _call_admit_bft_block(
+            block=proposal2,
+            state=self.state,
+            blocks_map=self._bft_speculative_blocks_map(),
+            bft_enabled=effective_bft_enabled(executor=self, default=False),
+        )
+'''
+text = replace_once(
+    text,
+    old_admission_call,
+    new_admission_call,
+    "adapter proposal admission speculative ancestry",
+)
 adapter.write_text(text, encoding="utf-8")
 
 votecheck = root / "src/weall/runtime/bft_votecheck.py"
@@ -209,6 +229,105 @@ text = replace_once(
     "votecheck nonexistent pending fetch state",
 )
 votecheck.write_text(text, encoding="utf-8")
+
+block_admission = root / "src/weall/runtime/block_admission.py"
+text = block_admission.read_text(encoding="utf-8")
+text = replace_once(
+    text,
+    '''def admit_bft_block(
+    *,
+    block: Json,
+    state: Json,
+    bft_enabled: bool | None = None,
+) -> tuple[bool, BlockReject | None]:
+''',
+    '''def admit_bft_block(
+    *,
+    block: Json,
+    state: Json,
+    blocks_map: dict[str, Any] | None = None,
+    bft_enabled: bool | None = None,
+) -> tuple[bool, BlockReject | None]:
+''',
+    "block admission speculative ancestry parameter",
+)
+text = replace_once(
+    text,
+    '''    blocks = state.get("blocks")
+    blocks_map = blocks if isinstance(blocks, dict) else {}
+''',
+    '''    committed_blocks = state.get("blocks")
+    effective_blocks = dict(committed_blocks) if isinstance(committed_blocks, dict) else {}
+    if isinstance(blocks_map, dict):
+        for block_id, meta in blocks_map.items():
+            if isinstance(meta, dict):
+                effective_blocks[str(block_id)] = dict(meta)
+    blocks_map = effective_blocks
+''',
+    "block admission merge speculative ancestry",
+)
+text = replace_once(
+    text,
+    '''    ok, rej = admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
+''',
+    '''    ok, rej = admit_bft_block(
+        block=block,
+        state=state,
+        blocks_map=blocks_map,
+        bft_enabled=bft_enabled,
+    )
+''',
+    "commit admission forwards speculative ancestry",
+)
+block_admission.write_text(text, encoding="utf-8")
+
+executor = root / "src/weall/runtime/executor.py"
+text = executor.read_text(encoding="utf-8")
+text = replace_once(
+    text,
+    '''def _call_admit_bft_block(
+    *,
+    block: Json,
+    state: Json,
+    bft_enabled: bool,
+) -> tuple[bool, Any]:
+    try:
+        return admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
+    except TypeError as exc:
+        if "unexpected keyword argument 'bft_enabled'" not in str(exc):
+            raise
+        return admit_bft_block(block, state)
+''',
+    '''def _call_admit_bft_block(
+    *,
+    block: Json,
+    state: Json,
+    blocks_map: Mapping[str, Json] | None = None,
+    bft_enabled: bool,
+) -> tuple[bool, Any]:
+    try:
+        return admit_bft_block(
+            block=block,
+            state=state,
+            blocks_map=dict(blocks_map or {}),
+            bft_enabled=bft_enabled,
+        )
+    except TypeError as exc:
+        message = str(exc)
+        if "unexpected keyword argument 'blocks_map'" in message:
+            try:
+                return admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
+            except TypeError as legacy_exc:
+                if "unexpected keyword argument 'bft_enabled'" not in str(legacy_exc):
+                    raise
+                return admit_bft_block(block, state)
+        if "unexpected keyword argument 'bft_enabled'" not in message:
+            raise
+        return admit_bft_block(block, state)
+''',
+    "executor proposal admission wrapper speculative ancestry",
+)
+executor.write_text(text, encoding="utf-8")
 
 priority2 = root / "tests/test_priority2_votecheck_dos_hardening.py"
 text = priority2.read_text(encoding="utf-8")
