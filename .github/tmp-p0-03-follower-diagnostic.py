@@ -26,7 +26,7 @@ def qc_summary(qc):
     }
 
 
-def snapshot(node, label, *, b1_id="", b2_id="", wrong_id=""):
+def snapshot(node, label, *, b1_id="", b2_id="", b3_id="", wrong_id=""):
     speculative = node._bft_speculative_blocks_map()
     snap = {
         "label": label,
@@ -46,10 +46,30 @@ def snapshot(node, label, *, b1_id="", b2_id="", wrong_id=""):
         "conflicted_hashes": list(node._conflicted_block_hashes.keys()),
         "spec_has_b1": bool(b1_id and b1_id in speculative),
         "spec_has_b2": bool(b2_id and b2_id in speculative),
+        "spec_has_b3": bool(b3_id and b3_id in speculative),
         "spec_has_wrong": bool(wrong_id and wrong_id in speculative),
         "pending_b1": bool(b1_id and isinstance(node._bft_pending_block_json(b1_id), dict)),
+        "pending_b2": bool(b2_id and isinstance(node._bft_pending_block_json(b2_id), dict)),
     }
     print("P0DIAG_SNAPSHOT", snap, flush=True)
+
+
+def direct_checks(node, block, label):
+    bid = str(block["block_id"])
+    with t._env(t._prod_env(node.node_id, pub=pubs[node.node_id], priv=privs[node.node_id])):
+        validation_ok = node._validate_remote_proposal_for_vote(copy.deepcopy(block))
+    print(f"P0DIAG_{label}_VOTECHECK", validation_ok, flush=True)
+    vote_map = dict(node._bft_speculative_blocks_map())
+    vote_map[bid] = {
+        "height": int(block.get("height") or 0),
+        "prev_block_id": str(block.get("prev_block_id") or ""),
+        "block_ts_ms": int(block.get("block_ts_ms") or 0),
+        "block_hash": str(block.get("block_hash") or ""),
+    }
+    justify = qc_from_json(block.get("justify_qc")) if isinstance(block.get("justify_qc"), dict) else None
+    can_vote = node._bft.can_vote_for(blocks=vote_map, block_id=bid, justify_qc=justify)
+    print(f"P0DIAG_{label}_CAN_VOTE", can_vote, flush=True)
+    print(f"P0DIAG_{label}_SIGNING_PERMITTED", node._validator_signing_permitted(), flush=True)
 
 
 pubs, privs = t._key_material()
@@ -106,24 +126,57 @@ with tempfile.TemporaryDirectory(prefix="weall-p0diag-") as td:
     print("P0DIAG_WRONG_RESULT", wrong_vote, flush=True)
     snapshot(node, "after_wrong", b1_id=b1_id, b2_id=b2_id, wrong_id=wrong_id)
 
-    with t._env(t._prod_env(victim, pub=pubs[victim], priv=privs[victim])):
-        validation_ok = node._validate_remote_proposal_for_vote(copy.deepcopy(b2))
-    print("P0DIAG_B2_VOTECHECK", validation_ok, flush=True)
-
-    vote_map = dict(node._bft_speculative_blocks_map())
-    vote_map[b2_id] = {
-        "height": int(b2.get("height") or 0),
-        "prev_block_id": str(b2.get("prev_block_id") or ""),
-        "block_ts_ms": int(b2.get("block_ts_ms") or 0),
-        "block_hash": str(b2.get("block_hash") or ""),
-    }
-    justify = qc_from_json(b2.get("justify_qc")) if isinstance(b2.get("justify_qc"), dict) else None
-    can_vote = node._bft.can_vote_for(blocks=vote_map, block_id=b2_id, justify_qc=justify)
-    print("P0DIAG_B2_CAN_VOTE", can_vote, flush=True)
-    print("P0DIAG_SIGNING_PERMITTED", node._validator_signing_permitted(), flush=True)
-    snapshot(node, "after_direct_b2_checks", b1_id=b1_id, b2_id=b2_id, wrong_id=wrong_id)
-
+    direct_checks(node, b2, "B2")
     with t._env(t._prod_env(victim, pub=pubs[victim], priv=privs[victim])):
         b2_vote = node.bft_on_proposal(copy.deepcopy(b2))
     print("P0DIAG_B2_RESULT", b2_vote, flush=True)
+    assert isinstance(b2_vote, dict) and b2_vote
     snapshot(node, "after_b2", b1_id=b1_id, b2_id=b2_id, wrong_id=wrong_id)
+
+    votes2 = [b2_vote]
+    for vid, other in nodes.items():
+        if vid in {leader2, victim}:
+            continue
+        with t._env(t._prod_env(vid, pub=pubs[vid], priv=privs[vid])):
+            vote = other.bft_on_proposal(copy.deepcopy(b2))
+        assert isinstance(vote, dict) and vote, f"diagnostic follower {vid} rejected B2"
+        votes2.append(vote)
+    qc2 = t._form_qc(nodes[leader2], leader2, votes2, pubs=pubs, privs=privs)
+
+    snapshot(node, "before_qc2", b1_id=b1_id, b2_id=b2_id, wrong_id=wrong_id)
+    t._broadcast_qc(nodes, qc2, pubs=pubs, privs=privs)
+    snapshot(node, "after_qc2", b1_id=b1_id, b2_id=b2_id, wrong_id=wrong_id)
+
+    leader3, b3 = t._propose(nodes, view=3, pubs=pubs, privs=privs)
+    b3_id = str(b3["block_id"])
+    print(
+        "P0DIAG_B3_IDS",
+        {
+            "leader3": leader3,
+            "b3": b3_id,
+            "b3_parent": str(b3.get("prev_block_id") or ""),
+            "qc2_block": str(qc2.get("block_id") or ""),
+            "b3_system_txs": [str(tx.get("type") or "") for tx in (b3.get("system_txs") or []) if isinstance(tx, dict)],
+        },
+        flush=True,
+    )
+    assert victim != leader3
+    snapshot(node, "before_b3", b1_id=b1_id, b2_id=b2_id, b3_id=b3_id, wrong_id=wrong_id)
+    chain = node._speculative_chain_to_parent(b2_id)
+    print("P0DIAG_B3_PARENT_CHAIN", None if chain is None else [str(x.get("block_id") or "") for x in chain], flush=True)
+    parent_state = node._speculative_parent_state(b2_id)
+    print(
+        "P0DIAG_B3_PARENT_STATE",
+        None if not isinstance(parent_state, dict) else {
+            "height": int(parent_state.get("height") or 0),
+            "tip": str(parent_state.get("tip") or ""),
+            "finalized": str(((parent_state.get("consensus") or {}).get("finality") or {}).get("last_finalized_block_id") or ""),
+            "epoch": int((((parent_state.get("consensus") or {}).get("epochs") or {}).get("current")) or 0),
+        },
+        flush=True,
+    )
+    direct_checks(node, b3, "B3")
+    with t._env(t._prod_env(victim, pub=pubs[victim], priv=privs[victim])):
+        b3_vote = node.bft_on_proposal(copy.deepcopy(b3))
+    print("P0DIAG_B3_RESULT", b3_vote, flush=True)
+    snapshot(node, "after_b3", b1_id=b1_id, b2_id=b2_id, b3_id=b3_id, wrong_id=wrong_id)
