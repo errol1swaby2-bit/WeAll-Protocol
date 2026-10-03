@@ -78,11 +78,11 @@ jobs:
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_fresh_ai_error_closure.py
           git diff --check
-      - name: Trace wrong-parent rejection and valid follower continuity
+      - name: Trace leader and follower speculative finality state
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          python ../.github/tmp-p0-03-votecheck-trace.py
+          python ../.github/tmp-p0-03-finality-state-trace.py
       - name: Execute P0-03 production and adjacent regressions
         working-directory: Weall-Protocol
         run: |
@@ -126,6 +126,7 @@ jobs:
           rm .github/tmp-p0-03-system-block-context.py
           rm .github/tmp-p0-03-follower-diagnostic.py
           rm .github/tmp-p0-03-votecheck-trace.py
+          rm .github/tmp-p0-03-finality-state-trace.py
           (
             cd Weall-Protocol
             python scripts/compile_v2_spec.py
@@ -143,6 +144,7 @@ jobs:
           test ! -e .github/tmp-p0-03-system-block-context.py
           test ! -e .github/tmp-p0-03-follower-diagnostic.py
           test ! -e .github/tmp-p0-03-votecheck-trace.py
+          test ! -e .github/tmp-p0-03-finality-state-trace.py
           git commit -m 'fix(p0-03): complete certified-chain follower and transition repair'
           (
             cd Weall-Protocol
