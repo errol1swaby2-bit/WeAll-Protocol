@@ -1,0 +1,79 @@
+name: P0-06A v1.5 API map refresh
+
+on:
+  push:
+    branches:
+      - p0-03-production-closure-staging-20261001
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: p0-03-production-closure-staging-20261001
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Regenerate only v1.5 API contract map
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_api_contract_map.py
+          python scripts/gen_api_contract_map.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+
+      - name: Enforce bounded diff and remove temporary workflow
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mapfile -t changed < <(git status --porcelain | sed 's/^...//')
+          printf 'changed before cleanup: %s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'Weall-Protocol/generated/api_contract_map_v1_5.json'
+          git rm .github/workflows/p0-06a-v15-api-refresh.yml
+
+      - name: Commit exact refreshed tree locally
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -A
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'P0-06A: refresh v1.5 API contract map'
+
+      - name: Revalidate committed tree
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_api_contract_map.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          test -z "$(git status --porcelain)"
+
+      - name: Push exact validated commit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git push origin HEAD:p0-03-production-closure-staging-20261001
