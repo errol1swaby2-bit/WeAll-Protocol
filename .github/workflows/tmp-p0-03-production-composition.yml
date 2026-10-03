@@ -34,6 +34,7 @@ jobs:
           python .github/tmp-p0-03-certified-identity-conflict.py
           python .github/tmp-p0-03-delayed-genesis-epoch-finality.py
           python .github/tmp-p0-03-system-block-context.py
+          python .github/tmp-p0-03-spec-bft-authority.py
       - name: Normalize candidate source and tests
         working-directory: Weall-Protocol
         run: |
@@ -124,6 +125,7 @@ jobs:
           rm .github/tmp-p0-03-certified-identity-conflict.py
           rm .github/tmp-p0-03-delayed-genesis-epoch-finality.py
           rm .github/tmp-p0-03-system-block-context.py
+          rm .github/tmp-p0-03-spec-bft-authority.py
           rm .github/tmp-p0-03-follower-diagnostic.py
           rm .github/tmp-p0-03-votecheck-trace.py
           rm .github/tmp-p0-03-finality-state-trace.py
@@ -142,6 +144,7 @@ jobs:
           test ! -e .github/tmp-p0-03-certified-identity-conflict.py
           test ! -e .github/tmp-p0-03-delayed-genesis-epoch-finality.py
           test ! -e .github/tmp-p0-03-system-block-context.py
+          test ! -e .github/tmp-p0-03-spec-bft-authority.py
           test ! -e .github/tmp-p0-03-follower-diagnostic.py
           test ! -e .github/tmp-p0-03-votecheck-trace.py
           test ! -e .github/tmp-p0-03-finality-state-trace.py
