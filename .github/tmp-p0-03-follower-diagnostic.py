@@ -73,6 +73,53 @@ def direct_checks(node, block, label):
     print(f"P0DIAG_{label}_SIGNING_PERMITTED", node._validator_signing_permitted(), flush=True)
 
 
+def trace_parent_replay(node, chain):
+    slot = None
+    try:
+        slot = bft_votecheck._acquire_spec_exec_slot(node)
+        clone = bft_votecheck._reset_spec_exec_slot(node, slot)
+        clone.state = copy.deepcopy(node.state)
+        clone._ledger_store.write(clone.state)
+        clone._bft.load_from_state(clone.state)
+        print(
+            "P0DIAG_REPLAY_CLONE_START",
+            {
+                "height": int(clone.state.get("height") or 0),
+                "tip": str(clone.state.get("tip") or ""),
+                "view": int(getattr(clone._bft, "view", -1)),
+                "finalized": str(getattr(clone._bft, "finalized_block_id", "") or ""),
+                "high_qc": qc_summary(getattr(clone._bft, "high_qc", None)),
+                "locked_qc": qc_summary(getattr(clone._bft, "locked_qc", None)),
+            },
+            flush=True,
+        )
+        for index, pending in enumerate(chain, start=1):
+            with t._env(t._prod_env(node.node_id, pub=pubs[node.node_id], priv=privs[node.node_id])):
+                meta = clone.apply_block(copy.deepcopy(pending))
+            print(
+                "P0DIAG_REPLAY_APPLY",
+                {
+                    "index": index,
+                    "block_id": str(pending.get("block_id") or ""),
+                    "height": int(pending.get("height") or 0),
+                    "ok": bool(getattr(meta, "ok", False)) if meta is not None else False,
+                    "error": str(getattr(meta, "error", "") or "") if meta is not None else "<none>",
+                    "clone_height": int(clone.state.get("height") or 0),
+                    "clone_tip": str(clone.state.get("tip") or ""),
+                    "clone_view": int(getattr(clone._bft, "view", -1)),
+                    "clone_finalized": str(getattr(clone._bft, "finalized_block_id", "") or ""),
+                    "clone_high_qc": qc_summary(getattr(clone._bft, "high_qc", None)),
+                    "clone_locked_qc": qc_summary(getattr(clone._bft, "locked_qc", None)),
+                },
+                flush=True,
+            )
+            if meta is None or not bool(getattr(meta, "ok", False)):
+                break
+    finally:
+        if slot is not None:
+            bft_votecheck._release_spec_exec_slot(node, slot)
+
+
 pubs, privs = t._key_material()
 with tempfile.TemporaryDirectory(prefix="weall-p0diag-") as td:
     tmp_path = Path(td)
@@ -165,6 +212,8 @@ with tempfile.TemporaryDirectory(prefix="weall-p0diag-") as td:
     snapshot(node, "before_b3", b1_id=b1_id, b2_id=b2_id, b3_id=b3_id, wrong_id=wrong_id)
     chain = bft_votecheck._speculative_chain_to_parent(node, b2_id)
     print("P0DIAG_B3_PARENT_CHAIN", None if chain is None else [str(x.get("block_id") or "") for x in chain], flush=True)
+    if chain is not None:
+        trace_parent_replay(node, chain)
     parent_state = bft_votecheck._speculative_parent_state(node, b2_id)
     print(
         "P0DIAG_B3_PARENT_STATE",
