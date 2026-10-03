@@ -33,6 +33,7 @@ jobs:
           python .github/tmp-p0-03-block-replay-current-candidate.py
           python .github/tmp-p0-03-certified-identity-conflict.py
           python .github/tmp-p0-03-delayed-genesis-epoch-finality.py
+          python .github/tmp-p0-03-system-block-context.py
       - name: Normalize candidate source and tests
         working-directory: Weall-Protocol
         run: |
@@ -47,6 +48,7 @@ jobs:
             src/weall/runtime/apply/consensus.py \
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
+            tests/test_priority0_system_signer_canon.py \
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_fresh_ai_error_closure.py
           ruff format \
@@ -59,6 +61,7 @@ jobs:
             src/weall/runtime/apply/consensus.py \
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
+            tests/test_priority0_system_signer_canon.py \
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_fresh_ai_error_closure.py
           ruff check \
@@ -71,6 +74,7 @@ jobs:
             src/weall/runtime/apply/consensus.py \
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
+            tests/test_priority0_system_signer_canon.py \
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_fresh_ai_error_closure.py
           git diff --check
@@ -107,7 +111,8 @@ jobs:
             tests/test_bft_canonical_finality_bridge.py \
             tests/test_epoch_blocks_per_epoch.py \
             tests/test_system_queue_lifecycle_integrity.py \
-            tests/test_system_tx_apply_fail_closed.py
+            tests/test_system_tx_apply_fail_closed.py \
+            tests/test_priority0_system_signer_canon.py
       - name: Commit tested helper-free canonical tree
         if: success()
         run: |
@@ -118,6 +123,7 @@ jobs:
           rm .github/tmp-p0-03-block-replay-current-candidate.py
           rm .github/tmp-p0-03-certified-identity-conflict.py
           rm .github/tmp-p0-03-delayed-genesis-epoch-finality.py
+          rm .github/tmp-p0-03-system-block-context.py
           rm .github/tmp-p0-03-follower-diagnostic.py
           rm .github/tmp-p0-03-votecheck-trace.py
           (
@@ -134,6 +140,7 @@ jobs:
           test ! -e .github/tmp-p0-03-block-replay-current-candidate.py
           test ! -e .github/tmp-p0-03-certified-identity-conflict.py
           test ! -e .github/tmp-p0-03-delayed-genesis-epoch-finality.py
+          test ! -e .github/tmp-p0-03-system-block-context.py
           test ! -e .github/tmp-p0-03-follower-diagnostic.py
           test ! -e .github/tmp-p0-03-votecheck-trace.py
           git commit -m 'fix(p0-03): complete certified-chain follower and transition repair'
