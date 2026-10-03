@@ -5,6 +5,7 @@ from pathlib import Path
 
 from weall.runtime import bft_votecheck, block_builder, block_replay
 from weall.runtime.bft_finality_bridge import finalized_target_from_justify_qc
+from weall.runtime.executor import WeAllExecutor
 
 
 _orig_seed = bft_votecheck._seed_spec_exec_to_parent
@@ -116,9 +117,16 @@ def _builder_schedule(state, *args, **kwargs):
     return _trace_schedule("builder", _orig_builder_schedule, state, *args, **kwargs)
 
 
+def _borrow_spec_exec_slot(self):
+    slot = self._acquire_spec_exec_slot()
+    return self._reset_spec_exec_slot(slot), slot
+
+
 bft_votecheck._seed_spec_exec_to_parent = _traced_seed
 block_replay.schedule_bft_finality_receipt = _replay_schedule
 block_builder.schedule_bft_finality_receipt = _builder_schedule
+if not hasattr(WeAllExecutor, "_borrow_spec_exec_slot"):
+    WeAllExecutor._borrow_spec_exec_slot = _borrow_spec_exec_slot
 
 runpy.run_path(
     str(Path(__file__).with_name("tmp-p0-03-follower-diagnostic.py")),
