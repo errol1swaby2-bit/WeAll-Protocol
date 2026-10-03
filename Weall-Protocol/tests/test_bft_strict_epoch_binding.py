@@ -46,6 +46,16 @@ def _mk_executor(
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "v1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs["v1"])
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", privs["v1"])
+
+    # This fixture intentionally seeds canonical validator state after executor
+    # construction so it can exercise strict production epoch binding in
+    # isolation. Re-enable only the synthetic in-memory signer posture that
+    # startup could not derive before that validator set existed; production
+    # lifecycle/authority code remains unchanged.
+    ex._validator_signing_enabled = True
+    ex._observer_mode_forced = False
+    ex._signing_block_reason = ""
+    assert ex._validator_signing_permitted() is True
     return ex, pubs, privs
 
 
