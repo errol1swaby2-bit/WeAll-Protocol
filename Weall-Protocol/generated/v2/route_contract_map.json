@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "670cc4312b49d4d4d59a83f3bf0d4d8784385a2970823d8e9d9abad4ddd9412d"
+    "source_tree_digest": "0708a869753e60dc789608d664b3d2e34f0ee02781a6eee3aeb09ec6eadf410d"
   },
   "required_fields": [
     "stable_id",
@@ -4490,7 +4490,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_juror_accept",
-        "line": 3127,
+        "line": 3135,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4540,7 +4540,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_juror_decline",
-        "line": 3149,
+        "line": 3157,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4590,7 +4590,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_review",
-        "line": 3169,
+        "line": 3177,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4638,7 +4638,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_challenge_tx_open",
-        "line": 3089,
+        "line": 3090,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5263,7 +5263,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_attendance",
-        "line": 3341,
+        "line": 3349,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5315,7 +5315,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_juror_accept",
-        "line": 3296,
+        "line": 3304,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5365,7 +5365,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_juror_decline",
-        "line": 3320,
+        "line": 3328,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5415,7 +5415,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_request",
-        "line": 3248,
+        "line": 3256,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5465,7 +5465,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_verdict",
-        "line": 3381,
+        "line": 3389,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5947,7 +5947,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_tier2_tx_request",
-        "line": 3205,
+        "line": 3213,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7537,6 +7537,7 @@
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_03_certified_branch_transition.py",
         "tests/test_p0_03_production_composition.py",
+        "tests/test_p0_06a_duplicate_account_adjudication.py",
         "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_p0_a10_a12_generated_contract_closure.py",
         "tests/test_p0_a10_treasury_restart_replay.py",
@@ -8429,6 +8430,7 @@
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_03_production_composition.py",
+        "tests/test_p0_06a_duplicate_account_adjudication.py",
         "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_p0_a10_a12_generated_contract_closure.py",
         "tests/test_p0_a10_treasury_restart_replay.py",

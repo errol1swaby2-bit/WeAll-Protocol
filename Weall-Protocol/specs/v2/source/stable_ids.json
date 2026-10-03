@@ -3638,6 +3638,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_state:duplicate_identity_conflict",
+      "kind": "failure",
+      "stable_id": "FAIL-10522F41BBEBE705",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "forbidden:node_operator_status_required",
       "kind": "failure",
       "stable_id": "FAIL-114458273DD5F3DF",
@@ -4292,6 +4299,13 @@
       "canonical_key": "invalid_payload:insufficient_probe_offsets",
       "kind": "failure",
       "stable_id": "FAIL-4193A57B654B1974",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:reference_account_not_registered",
+      "kind": "failure",
+      "stable_id": "FAIL-419677072A7D540B",
       "status": "active"
     },
     {
@@ -5013,6 +5027,13 @@
       "canonical_key": "invalid_tx:recovery_evidence_bind_required",
       "kind": "failure",
       "stable_id": "FAIL-6884767FE88D20F4",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:duplicate_reference_matches_target",
+      "kind": "failure",
+      "stable_id": "FAIL-68E5C56DB5A8DF8F",
       "status": "active"
     },
     {
@@ -6872,6 +6893,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_tx:reference_account_is_confirmed_duplicate",
+      "kind": "failure",
+      "stable_id": "FAIL-E955810FCF2DB266",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "api_failure_contract:standard_api_error_envelope; 403 direct_session_mutation_disabled; 404 account_not_found",
       "kind": "failure",
       "stable_id": "FAIL-E9710B2895E279DD",
@@ -7043,6 +7071,13 @@
       "canonical_key": "forbidden:role_eligibility_revoked",
       "kind": "failure",
       "stable_id": "FAIL-F3137043B6823278",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:duplicate_identity_authority_blocked",
+      "kind": "failure",
+      "stable_id": "FAIL-F39E976E58D9EFE8",
       "status": "active"
     },
     {
@@ -30879,6 +30914,41 @@
       "introduced_version": "2.0.0-first-draft-full-scope-w1",
       "kind": "requirement",
       "stable_id": "VOTE-014",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:challenge_kind",
+      "kind": "state",
+      "stable_id": "STATE-ABDA37DFB1CC095B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:duplicate_identity",
+      "kind": "state",
+      "stable_id": "STATE-F59EDDFE0DE5497F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:reference_account_id",
+      "kind": "state",
+      "stable_id": "STATE-50B8494A3AB596FD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:resolution_history",
+      "kind": "state",
+      "stable_id": "STATE-B92C36C7EF1E6EAB",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:reverification_blocked_by_duplicate_identity",
+      "kind": "state",
+      "stable_id": "STATE-96A9CBBCC5F84CE9",
       "status": "active"
     }
   ],

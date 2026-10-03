@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1976,
+  "file_count": 1977,
   "files": [
     {
       "affected_registers": [
@@ -6719,7 +6719,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "22660c23647bf49a93c1a8a18706379442b41dae9a4d3f1935655633edc3659a",
+      "sha256": "c18fb677cb832856dc02f8c9646879b0e9106157a53065aa511a99363b3ed9bc",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6745,7 +6745,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "657d3fe3eeae6c7932a0422e4a95636b4fbe2c143fd4c2eb5e9492bef0c420ef",
+      "sha256": "a595003b6be3c6dccaa6e2193ea7bca93f85feec5c1d54e39f28d572e83cf27e",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -7431,7 +7431,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/poh.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "f0458a23221d3bd12c1f44bd90e0ef7200c591784c4117d67a055a6c70aec091",
+      "sha256": "1f7d0818b440dbe5f5ba58d53bf997a2807b404613f7f0533be041dfac0597c1",
       "source_id": "SRC-F65A78E0416B9DB6"
     },
     {
@@ -9201,6 +9201,7 @@
         "STATE-4A59376B29107AC7",
         "STATE-4A9914FDC1886AF7",
         "STATE-50070E27D3037E7C",
+        "STATE-50B8494A3AB596FD",
         "STATE-50C9E38B0C22DD5D",
         "STATE-53BC9170C219E578",
         "STATE-54B663B99EA59358",
@@ -9238,6 +9239,7 @@
         "STATE-920CB0BA03749F1E",
         "STATE-956B337F3C2CD829",
         "STATE-957F2AA56AAAE69A",
+        "STATE-96A9CBBCC5F84CE9",
         "STATE-97D0587301D10EFE",
         "STATE-9965C9C50C48568D",
         "STATE-9F451CE1FE0DD9A6",
@@ -9248,6 +9250,7 @@
         "STATE-A842F3FBCA638FF3",
         "STATE-A89EA54BEA309262",
         "STATE-A8C26A3775DD041B",
+        "STATE-ABDA37DFB1CC095B",
         "STATE-AC180A8D332B2A44",
         "STATE-AEC241C6321D7F15",
         "STATE-B050A08676C82CBD",
@@ -9257,6 +9260,7 @@
         "STATE-B6B9C9A6097693F1",
         "STATE-B7779181F7D39EBE",
         "STATE-B88FA08DBE9C541B",
+        "STATE-B92C36C7EF1E6EAB",
         "STATE-B9FF05224332E3BD",
         "STATE-BA5B6B81C4AF612F",
         "STATE-BB209197D9A4DA61",
@@ -9299,6 +9303,7 @@
         "STATE-ECE3CB17C77AC6AE",
         "STATE-EDEB32A786CFE538",
         "STATE-EE6E24A51B101C7A",
+        "STATE-F59EDDFE0DE5497F",
         "STATE-F831717B88FF7293",
         "STATE-F84F9423C4320A5E",
         "STATE-FB79CE7CC6DF1006",
@@ -9343,7 +9348,7 @@
       ],
       "path": "src/weall/runtime/apply/poh.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "5ada44d05d0e7d2dbe3c2af6d0ffbb20a0676600096e3c60310d2941f81af8e2",
+      "sha256": "5083a277bcacc293362704eabb2095047b167508557f532712528487e042e176",
       "source_id": "SRC-F7B1EBB6A51D8E0E"
     },
     {
@@ -12050,7 +12055,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "b3bcf959b6ea44c3bf59fdccb39c4f0c317865e5e527ae7448ebb21b6ef6172b",
+      "sha256": "9efd62a70b7bd2f0dc1df6d874e8253e2690c26f9c3735c4c9d71c7d4a10032b",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -21893,6 +21898,23 @@
       "primary_mechanism_id": "M-076",
       "sha256": "a7b2b6b1813e3183ff944441d83d5077e7b354c9ca692bb43cf5116d76d12856",
       "source_id": "SRC-DF1D27D330664F95"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0103",
+        "TX-0104"
+      ],
+      "path": "tests/test_p0_06a_duplicate_account_adjudication.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "86e482ba55c1b76348aa36933f32870ffe32695766aba6a18629c08b32883208",
+      "source_id": "SRC-3FC1C6DD4F5A6F22"
     },
     {
       "affected_registers": [

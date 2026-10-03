@@ -224,10 +224,17 @@ class PohEvidenceBindPayload(_StrictModel):
 class PohChallengeOpenPayload(_StrictModel):
     challenge_id: str | None = None
     account_id: str = Field(..., min_length=1)
+    reference_account_id: str | None = Field(default=None, min_length=1)
     reason: str | None = None
     evidence_id: str | None = None
     case_id: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _check_duplicate_reference(self) -> PohChallengeOpenPayload:
+        if self.reference_account_id and self.reference_account_id == self.account_id:
+            raise ValueError("reference_account_id must differ from account_id")
+        return self
 
 
 class PohChallengeResolvePayload(_StrictModel):
