@@ -43,13 +43,14 @@ jobs:
           rm .github/workflows/tmp-final-full-suite-closure.yml
           rm .github/tmp-final-full-suite-repair.py
           cd Weall-Protocol
-          PYTHONPATH=src python scripts/compile_v2_spec.py
           python scripts/gen_b528_b532_completion_proof_v1_5.py
           python scripts/gen_b534_b538_completion_proof_v1_5.py
           python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
           python scripts/gen_b528_b532_completion_proof_v1_5.py --check
           python scripts/gen_b534_b538_completion_proof_v1_5.py --check
           python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
       - name: Execute focused closure regressions
         working-directory: Weall-Protocol
         run: |
@@ -58,9 +59,11 @@ jobs:
             tests/test_bft_strict_epoch_binding.py \
             tests/test_priority0_consensus_and_payload_fixes.py \
             tests/test_priority2_consensus_resilience_matrix.py \
+            tests/test_priority2_adversarial_soak_runner.py \
             tests/test_p0_03_production_composition.py \
             tests/test_p0_03_certified_branch_transition.py \
-            tests/test_priority1_pending_frontier_apply_order.py
+            tests/test_priority1_pending_frontier_apply_order.py \
+            tests/test_v2_spec_compiler.py::test_v2_spec_derivatives_are_current
       - name: Execute complete backend suite
         working-directory: Weall-Protocol
         run: |
