@@ -586,6 +586,7 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
         ok, _rej = _call_admit_bft_block(
             block=proposal2,
             state=self.state,
+            blocks_map=self._bft_speculative_blocks_map(),
             bft_enabled=effective_bft_enabled(executor=self, default=False),
         )
         if not ok:
@@ -640,7 +641,10 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
     if not parent_id:
         parent_id = str(self.state.get("tip") or "").strip()
 
-    blocks_map = self.state.get("blocks")
+    # Vote safety must reason over the certified speculative branch, not only
+    # the committed canonical prefix. Otherwise an honest follower cannot vote
+    # for B2 while its certified parent B1 is still pending/uncommitted.
+    blocks_map = self._bft_speculative_blocks_map()
     if not isinstance(blocks_map, dict):
         blocks_map = {}
     else:
@@ -1556,6 +1560,16 @@ def bft_handle_qc(self, qcj: Json) -> bool:
     qc = self.bft_verify_qc_json(qcj)
     if qc is None:
         return False
+    transition = _bft_transition_bridge_descriptor(self)
+    if (
+        isinstance(transition, dict)
+        and str(qc.block_id) == str(transition.get("block_id") or "")
+        and str(qc.block_hash) == str(transition.get("block_hash") or "")
+        and int(qc.view) == int(transition.get("view") or 0)
+        and int(qc.validator_epoch) == int(self._current_validator_epoch())
+        and str(qc.validator_set_hash) == str(self._current_validator_set_hash() or "")
+    ):
+        self._bft.validator_transition_qc = qc
     blocks_map = self._bft_speculative_blocks_map()
     prev_finalized = str(self._bft.finalized_block_id or "").strip()
     self._bft.observe_qc(blocks=blocks_map, qc=qc)
@@ -1636,21 +1650,28 @@ def _bft_transition_bridge_has_qc(self, descriptor: Json | None = None) -> bool:
     desc = descriptor if isinstance(descriptor, dict) else _bft_transition_bridge_descriptor(self)
     if not isinstance(desc, dict):
         return False
-    qc = getattr(self._bft, "high_qc", None)
-    if qc is None:
-        return False
-    if str(getattr(qc, "block_id", "") or "").strip() != str(desc.get("block_id") or ""):
-        return False
-    if str(getattr(qc, "block_hash", "") or "").strip() != str(desc.get("block_hash") or ""):
-        return False
-    if int(getattr(qc, "validator_epoch", 0) or 0) != int(self._current_validator_epoch()):
-        return False
-    if (
-        str(getattr(qc, "validator_set_hash", "") or "").strip()
-        != str(self._current_validator_set_hash() or "").strip()
-    ):
-        return False
-    return self.bft_verify_qc_json(qc.to_json()) is not None
+    current_epoch = int(self._current_validator_epoch())
+    current_set_hash = str(self._current_validator_set_hash() or "").strip()
+    candidates = (
+        getattr(self._bft, "validator_transition_qc", None),
+        getattr(self._bft, "high_qc", None),
+    )
+    for qc in candidates:
+        if qc is None:
+            continue
+        if str(getattr(qc, "block_id", "") or "").strip() != str(desc.get("block_id") or ""):
+            continue
+        if str(getattr(qc, "block_hash", "") or "").strip() != str(desc.get("block_hash") or ""):
+            continue
+        if int(getattr(qc, "view", -1)) != int(desc.get("view") or 0):
+            continue
+        if int(getattr(qc, "validator_epoch", 0) or 0) != current_epoch:
+            continue
+        if str(getattr(qc, "validator_set_hash", "") or "").strip() != current_set_hash:
+            continue
+        if self.bft_verify_qc_json(qc.to_json()) is not None:
+            return True
+    return False
 
 
 def _bft_prepare_transition_vote(self) -> Json | None:
@@ -1774,10 +1795,10 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         phase_reader = getattr(self, "_current_consensus_phase", None)
         current_phase = phase_reader() if callable(phase_reader) else ""
         if isinstance(state, dict) and current_phase == CONSENSUS_PHASE_BFT_ACTIVE:
-            height = _safe_int(state.get("height"), 0)
-            tip = str(state.get("tip") or "").strip()
-            if height > 0 or tip:
-                return None
+            # The production profile requires every BFT-active proposal to carry
+            # a verified justify QC. Bootstrap must cross an authenticated
+            # transition boundary first; height zero is not a QC-less exception.
+            return None
 
     blk, st2, applied_ids, invalid_ids, err = self.build_block_candidate(
         max_txs=max_txs,
@@ -1946,6 +1967,16 @@ def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
         self._persist_bft_state()
         return None
 
+    transition = _bft_transition_bridge_descriptor(self)
+    if (
+        isinstance(transition, dict)
+        and str(qc.block_id) == str(transition.get("block_id") or "")
+        and str(qc.block_hash) == str(transition.get("block_hash") or "")
+        and int(qc.view) == int(transition.get("view") or 0)
+        and int(qc.validator_epoch) == int(self._current_validator_epoch())
+        and str(qc.validator_set_hash) == str(self._current_validator_set_hash() or "")
+    ):
+        self._bft.validator_transition_qc = qc
     blocks_map = self._bft_speculative_blocks_map()
     prev_finalized = str(self._bft.finalized_block_id or "").strip()
     self._bft.observe_qc(blocks=blocks_map, qc=qc)

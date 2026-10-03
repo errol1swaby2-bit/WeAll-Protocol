@@ -670,6 +670,10 @@ class HotStuffBFT:
         self.view: int = 0
         self.high_qc: QuorumCert | None = None
         self.locked_qc: QuorumCert | None = None
+        # Generation-local certificate proving that the current validator set
+        # threshold-certified the canonical transition boundary. Unlike high_qc,
+        # this must remain available after later QCs advance the HotStuff head.
+        self.validator_transition_qc: QuorumCert | None = None
 
         self.finalized_block_id: str = ""
         self.finalized_view: int = 0
@@ -725,6 +729,7 @@ class HotStuffBFT:
         self.view = 0
         self.high_qc = None
         self.locked_qc = None
+        self.validator_transition_qc = None
         self.finalized_block_id = str(finalized_block_id or "").strip()
         self.finalized_view = 0
         self.last_voted_view = -1
@@ -762,6 +767,12 @@ class HotStuffBFT:
             q = qc_from_json(lqc)
             if q is not None:
                 self.locked_qc = q
+
+        transition_qc = b.get("validator_transition_qc")
+        if isinstance(transition_qc, dict):
+            q = qc_from_json(transition_qc)
+            if q is not None:
+                self.validator_transition_qc = q
 
         self.finalized_block_id = _as_str(b.get("finalized_block_id") or self.finalized_block_id)
         self.finalized_view = _as_int(b.get("finalized_view"), self.finalized_view)
@@ -896,6 +907,8 @@ class HotStuffBFT:
             out["high_qc"] = self.high_qc.to_json()
         if self.locked_qc is not None:
             out["locked_qc"] = self.locked_qc.to_json()
+        if self.validator_transition_qc is not None:
+            out["validator_transition_qc"] = self.validator_transition_qc.to_json()
         if self.last_timeout_certificate is not None and self._last_timeout_certificate_verified:
             out["last_timeout_certificate"] = self.last_timeout_certificate.to_json()
         pending_votes: list[Json] = []

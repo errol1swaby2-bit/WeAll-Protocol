@@ -111,13 +111,21 @@ def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
                 Path(f"{path}{suffix}").unlink(missing_ok=True)
             except Exception:
                 pass
-    return WeAllExecutor(
+    clone = WeAllExecutor(
         db_path=str(db_path),
         aux_db_path=str(aux_path),
         node_id=str(self.node_id),
         chain_id=str(self.chain_id),
         tx_index_path=str(self.tx_index_path),
     )
+    # This executor is an ephemeral replay surface for the live node, not an
+    # independently bootstrapped node. Its startup state is intentionally empty,
+    # so lifecycle evaluation at construction time can differ from the source
+    # node until the speculative parent state is loaded. Preserve the source
+    # node's already-resolved BFT authority posture so replay cannot silently
+    # downgrade consensus semantics while validating a production proposal.
+    clone._bft_enabled_effective = bool(getattr(self, "_bft_enabled_effective", False))
+    return clone
 
 
 def _proposal_votecheck_static_ok(self, block: Json) -> bool:
@@ -237,10 +245,24 @@ def _seed_spec_exec_to_parent(self, clone: WeAllExecutor, parent_id: str) -> boo
     clone.state = copy.deepcopy(self.state)
     clone._ledger_store.write(clone.state)
     clone._bft.load_from_state(clone.state)
-    for pending in chain:
-        meta = clone.apply_block(copy.deepcopy(pending))
-        if meta is None or not bool(getattr(meta, "ok", False)):
-            return False
+    # These blocks came only from the authenticated pending frontier selected by
+    # ``_speculative_chain_to_parent``. They were already admitted when received
+    # and may now sit behind a newer HotStuff lock. Reconstruct their deterministic
+    # state effects (including BFT finality scheduling) without re-running the
+    # *current* lock/finalized-path commit gate against historical ancestors.
+    # The marker is private to this ephemeral clone and is cleared before the new
+    # candidate is replayed, so candidate admission remains fully fail-closed.
+    prior_ancestor_replay = bool(
+        getattr(clone, "_speculative_authenticated_ancestor_replay", False)
+    )
+    clone._speculative_authenticated_ancestor_replay = True
+    try:
+        for pending in chain:
+            meta = clone.apply_block(copy.deepcopy(pending))
+            if meta is None or not bool(getattr(meta, "ok", False)):
+                return False
+    finally:
+        clone._speculative_authenticated_ancestor_replay = prior_ancestor_replay
     return str(clone.state.get("tip") or "").strip() == target
 
 
@@ -306,8 +328,11 @@ def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
         return True
     parent_id = str(block2.get("prev_block_id") or "").strip()
     if parent_id and not self._has_local_block(parent_id):
-        if parent_id in self._pending_missing_fetches:
-            # Missing-parent work is retryable local state, not intrinsic block invalidity.
+        # A speculative parent is valid local ancestry even though it is not yet
+        # in the canonical block table. If neither canonical nor pending ancestry
+        # exists, fail retryably and let the fetch-descriptor machinery request it.
+        pending_parent = self._bft_pending_block_json(parent_id)
+        if not isinstance(pending_parent, dict):
             return False
     proposer = str(block2.get("proposer") or "").strip()
     if not self._proposal_votecheck_budget_ok(proposer):

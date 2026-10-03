@@ -585,6 +585,9 @@ def test_four_validator_prod_three_chain_restart_delayed_qc_and_wrong_parent_rej
     victim = next(v for v in VALIDATORS if v != leader2)
     with _env(_prod_env(victim, pub=pubs[victim], priv=privs[victim])):
         assert nodes[victim].bft_on_proposal(copy.deepcopy(wrong)) is None
+    b1_id = str(b1["block_id"])
+    assert nodes[victim]._is_conflicted_block_id(b1_id) is False
+    assert b1_id in nodes[victim]._bft_speculative_blocks_map()
 
     votes2 = _follower_votes(nodes, b2, leader=leader2, pubs=pubs, privs=privs)
     qc2 = _form_qc(nodes[leader2], leader2, votes2, pubs=pubs, privs=privs)

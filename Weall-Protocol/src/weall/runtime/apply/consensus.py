@@ -1712,13 +1712,20 @@ def _apply_block_finalize(state: Json, env: TxEnvelope) -> Json:
     # - After every blocks_per_epoch finalizations, close/open epoch at due height (height+1)
     bpe = _blocks_per_epoch(state)
     if int(height) == 1:
-        enqueue_system_tx(
-            state,
-            tx_type="EPOCH_OPEN",
-            payload={"epoch": 1},
-            due_height=max(2, _as_int(state.get("height"), 0) + 1),
-            phase="post",
-        )
+        # HotStuff finality may arrive after the validator/consensus lifecycle
+        # has already established epoch 1.  In that case replaying the delayed
+        # height-one finality receipt must not enqueue a stale EPOCH_OPEN(1),
+        # which would violate the sequential epoch transition contract.
+        consensus = _ensure_consensus(state)
+        epochs = consensus.get("epochs") if isinstance(consensus.get("epochs"), dict) else {}
+        if _as_int(epochs.get("current"), 0) <= 0:
+            enqueue_system_tx(
+                state,
+                tx_type="EPOCH_OPEN",
+                payload={"epoch": 1},
+                due_height=max(2, _as_int(state.get("height"), 0) + 1),
+                phase="post",
+            )
 
     if bpe > 0 and int(height) > 0 and int(height) % int(bpe) == 0:
         c = _ensure_consensus(state)
