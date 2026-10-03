@@ -1,4 +1,4 @@
-name: P0-06A v1.5 and V2 evidence refresh
+name: P0-06A v1.5 claims and V2 evidence refresh
 
 on:
   push:
@@ -71,6 +71,15 @@ jobs:
 
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
 
+      - name: Regenerate current verified claims before V2
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_current_verified_claims.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_public_claim_freshness.py
+
       - name: Regenerate V2 derivatives from final source tree
         working-directory: Weall-Protocol
         shell: bash
@@ -88,6 +97,7 @@ jobs:
             printf '%s\n' \
               '.github/workflows/p0-06a-v15-api-refresh.yml' \
               'Weall-Protocol/generated/api_contract_map_v1_5.json' \
+              'Weall-Protocol/generated/current_verified_claims.json' \
               'Weall-Protocol/generated/failure_code_registry_v1_5.json' \
               'Weall-Protocol/generated/public_beta_blocker_report_v1_5.json' \
               'Weall-Protocol/generated/release_evidence_manifest_v1_5.json' \
@@ -121,8 +131,8 @@ jobs:
           )
           printf 'changed final tree:\n'
           printf '  %s\n' "${changed[@]}"
-          test "${#changed[@]}" -eq 31
-          test "${#expected[@]}" -eq 31
+          test "${#changed[@]}" -eq 32
+          test "${#expected[@]}" -eq 32
           for i in "${!expected[@]}"; do
             test "${changed[$i]}" = "${expected[$i]}"
           done
@@ -135,7 +145,7 @@ jobs:
           git status --short
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'P0-06A: settle v1.5 and V2 evidence provenance'
+          git commit -m 'P0-06A: settle v1.5 claims and V2 evidence provenance'
 
       - name: Revalidate exact committed tree
         working-directory: Weall-Protocol
@@ -147,10 +157,10 @@ jobs:
           python scripts/gen_release_evidence_manifest_v1_5.py --check
           python scripts/gen_public_beta_blocker_report_v1_5.py --check
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
           python scripts/gen_current_verified_claims.py --check
           python scripts/check_public_claim_freshness.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
           test -z "$(git status --porcelain)"
 
       - name: Push exact validated commit
