@@ -1,4 +1,4 @@
-name: P0-06A v1.5 API map refresh
+name: P0-06A v1.5 evidence refresh
 
 on:
   push:
@@ -33,23 +33,55 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Regenerate only v1.5 API contract map
+      - name: Regenerate bounded P0-06A v1.5 evidence chain
         working-directory: Weall-Protocol
         shell: bash
         run: |
           set -Eeuo pipefail
+
           python scripts/gen_api_contract_map.py
           python scripts/gen_api_contract_map.py --check
+
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_failure_code_registry_v1_5.py --check
+
+          # These two generators intentionally return 1 when the generated
+          # artifact truthfully records NO-GO readiness. Generation status is
+          # therefore bounded to the documented {0,1}; deterministic freshness
+          # is still required independently via --check below.
+          set +e
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          release_rc=$?
+          set -e
+          test "$release_rc" -le 1
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+
+          set +e
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          blocker_rc=$?
+          set -e
+          test "$blocker_rc" -le 1
+          python scripts/gen_public_beta_blocker_report_v1_5.py --check
+
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
 
       - name: Enforce bounded diff and remove temporary workflow
         shell: bash
         run: |
           set -Eeuo pipefail
-          mapfile -t changed < <(git status --porcelain | sed 's/^...//')
-          printf 'changed before cleanup: %s\n' "${changed[@]}"
-          test "${#changed[@]}" -eq 1
-          test "${changed[0]}" = 'Weall-Protocol/generated/api_contract_map_v1_5.json'
+          mapfile -t changed < <(git status --porcelain | sed 's/^...//' | sort)
+          printf 'changed before cleanup:\n'
+          printf '  %s\n' "${changed[@]}"
+          expected=(
+            'Weall-Protocol/generated/api_contract_map_v1_5.json'
+            'Weall-Protocol/generated/failure_code_registry_v1_5.json'
+            'Weall-Protocol/generated/public_beta_blocker_report_v1_5.json'
+            'Weall-Protocol/generated/release_evidence_manifest_v1_5.json'
+          )
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
           git rm .github/workflows/p0-06a-v15-api-refresh.yml
 
       - name: Commit exact refreshed tree locally
@@ -57,9 +89,10 @@ jobs:
         run: |
           set -Eeuo pipefail
           git add -A
+          git status --short
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'P0-06A: refresh v1.5 API contract map'
+          git commit -m 'P0-06A: refresh v1.5 evidence chain'
 
       - name: Revalidate committed tree
         working-directory: Weall-Protocol
@@ -67,6 +100,9 @@ jobs:
         run: |
           set -Eeuo pipefail
           python scripts/gen_api_contract_map.py --check
+          python scripts/gen_failure_code_registry_v1_5.py --check
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/gen_public_beta_blocker_report_v1_5.py --check
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
