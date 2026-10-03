@@ -1,0 +1,66 @@
+name: P0-06A one-shot apply
+
+on:
+  push:
+    branches:
+      - p0-03-production-closure-staging-20261001
+
+permissions:
+  contents: write
+
+jobs:
+  apply-p0-06a:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: p0-03-production-closure-staging-20261001
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Decode and verify patch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s' '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' | base64 -d | gzip -d > /tmp/p0-06a.patch
+          echo '835f4b6b32f11e473c3ec4b3a7cf8539cb295224e2b8e620c15801393c4f781d  /tmp/p0-06a.patch' | sha256sum -c -
+          git apply --check /tmp/p0-06a.patch
+          git apply /tmp/p0-06a.patch
+
+      - name: Install locked backend and format focused changes
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+          ruff format src/weall/runtime/tx_schema.py src/weall/api/routes_public_parts/poh.py src/weall/runtime/apply/poh.py tests/test_p0_06a_duplicate_account_adjudication.py
+          ruff check src/weall/runtime/tx_schema.py src/weall/api/routes_public_parts/poh.py src/weall/runtime/apply/poh.py tests/test_p0_06a_duplicate_account_adjudication.py
+
+      - name: Focused P0-06A regression proof
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          pytest -q tests/test_p0_06a_duplicate_account_adjudication.py tests/test_behavior_m1_m10.py
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Commit source changes and remove one-shot workflow
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm .github/workflows/p0-06a-one-shot-apply.yml
+          git add Weall-Protocol/src/weall/runtime/tx_schema.py Weall-Protocol/src/weall/api/routes_public_parts/poh.py Weall-Protocol/src/weall/runtime/apply/poh.py Weall-Protocol/tests/test_p0_06a_duplicate_account_adjudication.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'P0-06A: bind duplicate-account adjudication'
+          git push origin HEAD:p0-03-production-closure-staging-20261001
