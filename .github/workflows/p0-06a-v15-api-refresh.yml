@@ -19,6 +19,12 @@ jobs:
           ref: p0-03-production-closure-staging-20261001
           fetch-depth: 0
 
+      - name: Remove temporary workflow before provenance generation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm .github/workflows/p0-06a-v15-api-refresh.yml
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -65,7 +71,7 @@ jobs:
 
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
 
-      - name: Regenerate V2 derivatives from settled v1.5 evidence
+      - name: Regenerate V2 derivatives from final source tree
         working-directory: Weall-Protocol
         shell: bash
         run: |
@@ -73,13 +79,14 @@ jobs:
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
 
-      - name: Enforce exact bounded derivative diff and remove temporary workflow
+      - name: Enforce exact bounded final diff
         shell: bash
         run: |
           set -Eeuo pipefail
           mapfile -t changed < <(git status --porcelain | sed 's/^...//' | sort)
           mapfile -t expected < <(
             printf '%s\n' \
+              '.github/workflows/p0-06a-v15-api-refresh.yml' \
               'Weall-Protocol/generated/api_contract_map_v1_5.json' \
               'Weall-Protocol/generated/failure_code_registry_v1_5.json' \
               'Weall-Protocol/generated/public_beta_blocker_report_v1_5.json' \
@@ -112,14 +119,13 @@ jobs:
               'web/src/generated/protocolStatus.ts' \
             | sort
           )
-          printf 'changed before cleanup:\n'
+          printf 'changed final tree:\n'
           printf '  %s\n' "${changed[@]}"
-          test "${#changed[@]}" -eq 30
-          test "${#expected[@]}" -eq 30
+          test "${#changed[@]}" -eq 31
+          test "${#expected[@]}" -eq 31
           for i in "${!expected[@]}"; do
             test "${changed[$i]}" = "${expected[$i]}"
           done
-          git rm .github/workflows/p0-06a-v15-api-refresh.yml
 
       - name: Commit exact refreshed tree locally
         shell: bash
