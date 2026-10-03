@@ -17,20 +17,6 @@ def index_before(lines: list[str], start: int, stop: int, exact: str) -> int:
     raise SystemExit(f"missing reverse anchor before line {start + 1}: {exact!r}")
 
 
-def replace_function_body(
-    path: Path,
-    *,
-    function_line: str,
-    next_function_line: str,
-    body: list[str],
-) -> None:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    start = index_after(lines, 0, function_line)
-    end = index_after(lines, start + 1, next_function_line)
-    lines[start + 1 : end] = body + [""]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
 root = Path(__file__).resolve().parents[1] / "Weall-Protocol"
 
 # Preserve the existing commit-admission contract for a block that is a strict
@@ -218,8 +204,9 @@ lines[proposal_start:votes_start] = [
     '    parent_id = "strict-epoch-parent"',
     "",
 ]
-for i in range(votes_start, len(lines)):
-    if 'block_hash=str(proposal.get("block_hash") or ""),' in lines[i]:
+qc_fn = index_after(lines, 0, "def test_prod_rejects_qc_missing_epoch_binding(")
+for i in range(qc_fn, len(lines)):
+    if lines[i].strip() == 'block_hash=str(proposal.get("block_hash") or ""),':
         lines[i] = "            block_hash=block_hash,"
         break
 else:
