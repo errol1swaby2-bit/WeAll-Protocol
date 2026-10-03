@@ -78,7 +78,7 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          python ../.github/tmp-p0-03-follower-diagnostic.py
+          python ../.github/tmp-p0-03-votecheck-trace.py
       - name: Execute P0-03 production and adjacent regressions
         working-directory: Weall-Protocol
         run: |
@@ -119,6 +119,7 @@ jobs:
           rm .github/tmp-p0-03-certified-identity-conflict.py
           rm .github/tmp-p0-03-delayed-genesis-epoch-finality.py
           rm .github/tmp-p0-03-follower-diagnostic.py
+          rm .github/tmp-p0-03-votecheck-trace.py
           (
             cd Weall-Protocol
             python scripts/compile_v2_spec.py
@@ -134,6 +135,7 @@ jobs:
           test ! -e .github/tmp-p0-03-certified-identity-conflict.py
           test ! -e .github/tmp-p0-03-delayed-genesis-epoch-finality.py
           test ! -e .github/tmp-p0-03-follower-diagnostic.py
+          test ! -e .github/tmp-p0-03-votecheck-trace.py
           git commit -m 'fix(p0-03): complete certified-chain follower and transition repair'
           (
             cd Weall-Protocol
