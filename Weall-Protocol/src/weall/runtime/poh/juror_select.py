@@ -307,6 +307,34 @@ def pick_tier2_jurors(
     return [a for _h, a in scored[:need]]
 
 
+def async_request_selection_seed(
+    *,
+    state: Json,
+    target_account: str,
+    opened_height: int,
+) -> str:
+    """Return the stable async-review seed for one committed request context.
+
+    This phase-1 A20 hardening deliberately removes applicant-chosen ``case_id``
+    and replacement counters from the reviewer-ranking domain.  The seed is
+    derived only from chain identity, subject identity, and the request's
+    committed opening height, so all semantically equivalent labels for the same
+    committed request context map to the same reviewer ordering and replacements
+    remain stable across restart/state-sync and later beacon changes.
+
+    This construction is deterministic and *not* an unpredictability claim.  A20
+    remains open until reviewer selection is additionally bound to entropy that
+    becomes unavailable to the applicant until after request commitment and is
+    proven resistant to proposer/applicant skip-retry bias.
+    """
+
+    chain_id = _as_str(state.get("chain_id")).strip()
+    subject = _as_str(target_account).strip()
+    height = max(0, _as_int(opened_height, 0))
+    material = f"weall|pohasync|request-seed-v2|{chain_id}|{subject}|{height}"
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
 def pick_async_jurors(
     *,
     state: Json,
@@ -318,15 +346,23 @@ def pick_async_jurors(
     allow_partial: bool = False,
     allow_roleless_bootstrap: bool = False,
     excluded_accounts: set[str] | None = None,
+    selection_seed: str | None = None,
 ) -> list[str]:
     """Deterministically pick jurors for native async Tier-1 review.
 
-    Native async Tier 1 is reviewed by Live Verified Human accounts.  The
-    deterministic ranking uses a dedicated domain separator so async review
-    assignments cannot silently drift with legacy Tier-2 or live assignment.
+    Native async Tier 1 is reviewed by Live Verified Human accounts.  ``case_id``
+    is retained as a compatibility label only and is intentionally excluded from
+    the ranking.  Canonical scheduling supplies a request-context seed so an
+    applicant cannot grind panels by searching arbitrary case identifiers and a
+    decline/replacement cannot introduce a second counter-based salt.
+
+    Callers that do not provide ``selection_seed`` retain the historical current
+    state-entropy source, but even that compatibility lane no longer hashes the
+    applicant-controlled case identifier into the ranking.
     """
 
-    entropy = _entropy_hex(state=state)
+    _ = case_id  # compatibility label; never reviewer-selection entropy
+    entropy = _as_str(selection_seed).strip() or _entropy_hex(state=state)
     pool = eligible_live_jurors(
         state=state,
         min_rep_units=min_rep_units,
@@ -344,7 +380,7 @@ def pick_async_jurors(
     if need <= 0:
         raise ValueError("insufficient_eligible_jurors: need at least 1, have 0")
 
-    scored = [(_score(entropy, "pohasync", str(case_id), a), a) for a in pool]
+    scored = [(_score(entropy, "pohasync-v2", a), a) for a in pool]
     scored.sort(key=lambda t: t[0])
     return [a for _h, a in scored[:need]]
 
