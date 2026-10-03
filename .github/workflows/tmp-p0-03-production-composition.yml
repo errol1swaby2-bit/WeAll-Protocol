@@ -36,6 +36,7 @@ jobs:
           python .github/tmp-p0-03-system-block-context.py
           python .github/tmp-p0-03-spec-bft-authority.py
           python .github/tmp-p0-03-finalized-replay-scope.py
+          python .github/tmp-p0-03-diagnostic-sanitize.py
       - name: Normalize candidate source and tests
         working-directory: Weall-Protocol
         run: |
@@ -132,6 +133,7 @@ jobs:
           rm .github/tmp-p0-03-system-block-context.py
           rm .github/tmp-p0-03-spec-bft-authority.py
           rm .github/tmp-p0-03-finalized-replay-scope.py
+          rm .github/tmp-p0-03-diagnostic-sanitize.py
           rm .github/tmp-p0-03-follower-diagnostic.py
           rm .github/tmp-p0-03-votecheck-trace.py
           rm .github/tmp-p0-03-finality-state-trace.py
@@ -152,6 +154,7 @@ jobs:
           test ! -e .github/tmp-p0-03-system-block-context.py
           test ! -e .github/tmp-p0-03-spec-bft-authority.py
           test ! -e .github/tmp-p0-03-finalized-replay-scope.py
+          test ! -e .github/tmp-p0-03-diagnostic-sanitize.py
           test ! -e .github/tmp-p0-03-follower-diagnostic.py
           test ! -e .github/tmp-p0-03-votecheck-trace.py
           test ! -e .github/tmp-p0-03-finality-state-trace.py
