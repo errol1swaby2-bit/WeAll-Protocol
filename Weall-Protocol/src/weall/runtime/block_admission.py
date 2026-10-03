@@ -770,6 +770,34 @@ def admit_bft_commit_block(
     The caller may supply a speculative ``blocks_map`` containing pending proposals so
     ancestry checks remain deterministic before all blocks are durably committed.
     """
+    effective_bft_enabled = (
+        _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    )
+    effective_blocks = blocks_map if isinstance(blocks_map, dict) else {}
+    if not effective_blocks:
+        raw_blocks = state.get("blocks")
+        effective_blocks = raw_blocks if isinstance(raw_blocks, dict) else {}
+
+    if effective_bft_enabled:
+        bft_state = state.get("bft")
+        finalized = (
+            _as_str(bft_state.get("finalized_block_id") or "")
+            if isinstance(bft_state, dict)
+            else ""
+        )
+        bid = _as_str(block.get("block_id") or "")
+        if (
+            bid
+            and finalized
+            and bid != finalized
+            and _is_descendant(effective_blocks, candidate=finalized, ancestor=bid)
+        ):
+            return False, BlockReject(
+                "bft_not_finalized",
+                "block_not_on_finalized_path",
+                {"block_id": bid, "finalized_block_id": finalized},
+            )
+
     ok, rej = admit_bft_block(
         block=block,
         state=state,
@@ -779,9 +807,6 @@ def admit_bft_commit_block(
     if not ok:
         return ok, rej
 
-    effective_bft_enabled = (
-        _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
-    )
     if not effective_bft_enabled:
         has_sig_material = bool(
             block.get("sig_profile")

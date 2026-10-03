@@ -1318,6 +1318,7 @@ def run_consensus_resilience_matrix(
         return _EnvPatch(
             {
                 "WEALL_MODE": "prod",
+                "WEALL_REQUIRE_VRF": "1",
                 "WEALL_BFT_ENABLED": "1",
                 "WEALL_VALIDATOR_ACCOUNT": str(node_id),
                 "WEALL_NODE_PUBKEY": str(vpub[node_id]),
@@ -1332,7 +1333,15 @@ def run_consensus_resilience_matrix(
                 db_path=str(db_path), node_id=node_id, chain_id=chain_id, tx_index_path=tx_index
             )
         _seed_validator_set_full(ex, validators=validators, pub=vpub, epoch=7)
-        ex.bft_set_view(1)
+        with _validator_env(node_id):
+            if not bool(getattr(ex, "_bft_restart_safety_ok", True)):
+                raise RuntimeError("synthetic validator failed restart safety revalidation")
+            ex._validator_signing_enabled = True
+            ex._observer_mode_forced = False
+            ex._signing_block_reason = ""
+            if not ex._validator_signing_permitted():
+                raise RuntimeError("synthetic validator signing posture unavailable")
+            ex.bft_set_view(1)
         return ex
 
     # Scenario 1: locally persisted proposal/vote state survives restart and can be replayed.
@@ -1393,24 +1402,17 @@ def run_consensus_resilience_matrix(
     conflict_dir.mkdir(parents=True, exist_ok=True)
     canonical_leader = str(leader_for_view(validators, 1))
     follower_id = "v3" if canonical_leader != "v3" else "v4"
-    leader = WeAllExecutor(
-        db_path=str(conflict_dir / f"{canonical_leader}.db"),
-        node_id=canonical_leader,
-        chain_id=conflict_chain_id,
-        tx_index_path=tx_index,
+    leader = _mk_executor(
+        conflict_dir / f"{canonical_leader}.db", canonical_leader, conflict_chain_id
     )
-    follower = WeAllExecutor(
-        db_path=str(conflict_dir / f"{follower_id}.db"),
-        node_id=follower_id,
-        chain_id=conflict_chain_id,
-        tx_index_path=tx_index,
-    )
-    _seed_validator_set_full(leader, validators=validators, pub=vpub, epoch=7)
-    _seed_validator_set_full(follower, validators=validators, pub=vpub, epoch=7)
-    leader.bft_set_view(1)
+    follower = _mk_executor(conflict_dir / f"{follower_id}.db", follower_id, conflict_chain_id)
     follower._validate_remote_proposal_for_vote = lambda block: False
     with _EnvPatch(
         {
+            "WEALL_MODE": "testnet",
+            "WEALL_BFT_ENABLED": "1",
+            "WEALL_BFT_ALLOW_QC_LESS_BLOCKS": "1",
+            "WEALL_AUTOVOTE": "1",
             "WEALL_SIGVERIFY": "1",
             "WEALL_VALIDATOR_ACCOUNT": canonical_leader,
             "WEALL_NODE_PUBKEY": str(vpub[canonical_leader]),
@@ -1420,7 +1422,18 @@ def run_consensus_resilience_matrix(
         valid_proposal = leader.bft_leader_propose(max_txs=0)
     if not isinstance(valid_proposal, dict):
         raise RuntimeError("conflict scenario failed to produce canonical leader proposal")
-    accepted_vote = follower.bft_on_proposal(dict(valid_proposal))
+    with _EnvPatch(
+        {
+            "WEALL_MODE": "testnet",
+            "WEALL_BFT_ENABLED": "1",
+            "WEALL_BFT_ALLOW_QC_LESS_BLOCKS": "1",
+            "WEALL_AUTOVOTE": "1",
+            "WEALL_VALIDATOR_ACCOUNT": follower_id,
+            "WEALL_NODE_PUBKEY": str(vpub[follower_id]),
+            "WEALL_NODE_PRIVKEY": str(vpriv[follower_id]),
+        }
+    ):
+        accepted_vote = follower.bft_on_proposal(dict(valid_proposal))
     accepted_diag = follower.bft_diagnostics()
     forged = dict(valid_proposal)
     forged["proposer"] = "v2"
@@ -1448,7 +1461,18 @@ def run_consensus_resilience_matrix(
         encoding="hex",
     )
     before = follower.bft_diagnostics()
-    rejected_vote = follower.bft_on_proposal(dict(forged))
+    with _EnvPatch(
+        {
+            "WEALL_MODE": "testnet",
+            "WEALL_BFT_ENABLED": "1",
+            "WEALL_BFT_ALLOW_QC_LESS_BLOCKS": "1",
+            "WEALL_AUTOVOTE": "1",
+            "WEALL_VALIDATOR_ACCOUNT": follower_id,
+            "WEALL_NODE_PUBKEY": str(vpub[follower_id]),
+            "WEALL_NODE_PRIVKEY": str(vpriv[follower_id]),
+        }
+    ):
+        rejected_vote = follower.bft_on_proposal(dict(forged))
     after = follower.bft_diagnostics()
     valid_promoted = int(accepted_diag.get("pending_remote_blocks_count") or 0) >= 1
     scenarios["conflicting_nonleader_proposal_rejected"] = {
