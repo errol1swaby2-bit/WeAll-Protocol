@@ -30,6 +30,45 @@ jobs:
         run: |
           set -Eeuo pipefail
           python .github/tmp-p0-03-runtime-repair.py
+      - name: Add current replay candidate to ephemeral commit ancestry
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('Weall-Protocol/src/weall/runtime/block_replay.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''        if strict_bft_apply:
+            ok_bft, rej_bft = _call_admit_bft_commit_block(
+                block=block2,
+                state=self.state,
+                blocks_map=self._bft_speculative_blocks_map(),
+                bft_enabled=effective_bft_enabled(executor=self, default=False),
+            )
+'''
+          new = '''        if strict_bft_apply:
+            admission_blocks_map = self._bft_speculative_blocks_map()
+            current_bid = str(block2.get("block_id") or "").strip()
+            if current_bid:
+                admission_blocks_map = dict(admission_blocks_map)
+                admission_blocks_map[current_bid] = {
+                    "height": int(height),
+                    "prev_block_id": advertised_prev_block_id,
+                    "block_ts_ms": int(ts_ms),
+                    "block_hash": str(block2.get("block_hash") or "").strip(),
+                }
+            ok_bft, rej_bft = _call_admit_bft_commit_block(
+                block=block2,
+                state=self.state,
+                blocks_map=admission_blocks_map,
+                bft_enabled=effective_bft_enabled(executor=self, default=False),
+            )
+'''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'block replay current-candidate ancestry: expected one match, found {count}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
       - name: Normalize candidate source and tests
         working-directory: Weall-Protocol
         run: |
@@ -39,6 +78,7 @@ jobs:
             src/weall/runtime/bft_runtime_adapter.py \
             src/weall/runtime/bft_votecheck.py \
             src/weall/runtime/block_admission.py \
+            src/weall/runtime/block_replay.py \
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
             tests/test_priority2_votecheck_dos_hardening.py \
@@ -48,6 +88,7 @@ jobs:
             src/weall/runtime/bft_runtime_adapter.py \
             src/weall/runtime/bft_votecheck.py \
             src/weall/runtime/block_admission.py \
+            src/weall/runtime/block_replay.py \
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
             tests/test_priority2_votecheck_dos_hardening.py \
@@ -57,12 +98,13 @@ jobs:
             src/weall/runtime/bft_runtime_adapter.py \
             src/weall/runtime/bft_votecheck.py \
             src/weall/runtime/block_admission.py \
+            src/weall/runtime/block_replay.py \
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_fresh_ai_error_closure.py
           git diff --check
-      - name: Trace wrong-parent rejection state without committing diagnostics
+      - name: Trace wrong-parent rejection and valid follower continuity
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -73,6 +115,8 @@ jobs:
           import importlib.util
           import tempfile
           from pathlib import Path
+
+          from weall.runtime.bft_hotstuff import qc_from_json
 
           test_path = Path('tests/test_p0_03_production_composition.py').resolve()
           spec = importlib.util.spec_from_file_location('p0diag', test_path)
@@ -104,12 +148,13 @@ jobs:
                   'pending_remote': list(node._pending_remote_blocks.keys()),
                   'pending_candidates': list(node._pending_candidates.keys()),
                   'pending_missing_qcs': list(node._pending_missing_qcs.keys()),
-                  'pending_fetches': list(node._pending_missing_fetches.keys()),
+                  'pending_fetches': list(getattr(node, '_pending_missing_fetches', {}).keys()),
                   'conflicted_ids': list(node._conflicted_block_ids.keys()),
                   'conflicted_hashes': list(node._conflicted_block_hashes.keys()),
                   'spec_has_b1': bool(b1_id and b1_id in speculative),
                   'spec_has_b2': bool(b2_id and b2_id in speculative),
                   'spec_has_wrong': bool(wrong_id and wrong_id in speculative),
+                  'pending_b1': bool(b1_id and isinstance(node._bft_pending_block_json(b1_id), dict)),
               }
               print('P0DIAG_SNAPSHOT', snap, flush=True)
 
@@ -170,7 +215,19 @@ jobs:
               with t._env(t._prod_env(victim, pub=pubs[victim], priv=privs[victim])):
                   validation_ok = node._validate_remote_proposal_for_vote(copy.deepcopy(b2))
               print('P0DIAG_B2_VOTECHECK', validation_ok, flush=True)
-              snapshot(node, 'after_direct_b2_votecheck', b1_id=b1_id, b2_id=b2_id, wrong_id=wrong_id)
+
+              vote_map = dict(node._bft_speculative_blocks_map())
+              vote_map[b2_id] = {
+                  'height': int(b2.get('height') or 0),
+                  'prev_block_id': str(b2.get('prev_block_id') or ''),
+                  'block_ts_ms': int(b2.get('block_ts_ms') or 0),
+                  'block_hash': str(b2.get('block_hash') or ''),
+              }
+              justify = qc_from_json(b2.get('justify_qc')) if isinstance(b2.get('justify_qc'), dict) else None
+              can_vote = node._bft.can_vote_for(blocks=vote_map, block_id=b2_id, justify_qc=justify)
+              print('P0DIAG_B2_CAN_VOTE', can_vote, flush=True)
+              print('P0DIAG_SIGNING_PERMITTED', node._validator_signing_permitted(), flush=True)
+              snapshot(node, 'after_direct_b2_checks', b1_id=b1_id, b2_id=b2_id, wrong_id=wrong_id)
 
               with t._env(t._prod_env(victim, pub=pubs[victim], priv=privs[victim])):
                   b2_vote = node.bft_on_proposal(copy.deepcopy(b2))
@@ -206,9 +263,6 @@ jobs:
           rm .github/tmp-p0-03-runtime-repair.py
           rm -f .github/workflows/p0-03-exact-head-repair.yml
 
-          # The V2 source manifest scans selected .github and root-script inputs.
-          # Regenerate only after staging-only files are removed so the generated
-          # evidence fingerprints the exact canonical tree that will be pushed.
           (
             cd Weall-Protocol
             python scripts/compile_v2_spec.py
@@ -223,7 +277,6 @@ jobs:
           test ! -e .github/workflows/p0-03-exact-head-repair.yml
           git commit -m 'fix(p0-03): complete certified-chain follower and transition repair'
 
-          # Validate the newly committed canonical source, not the staging HEAD.
           (
             cd Weall-Protocol
             python scripts/compile_v2_spec.py --check
