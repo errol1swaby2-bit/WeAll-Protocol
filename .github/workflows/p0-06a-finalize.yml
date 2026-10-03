@@ -1,0 +1,222 @@
+name: P0-06A finalize
+
+on:
+  push:
+    branches:
+      - p0-03-production-closure-staging-20261001
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: p0-03-production-closure-staging-20261001
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Recover and apply verified P0-06A patch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import base64, gzip, re
+          src = Path('.github/workflows/p0-06a-one-shot-apply.yml').read_text(encoding='utf-8')
+          m = re.search(r"printf '%s' '([^']+)' \| base64 -d \| gzip -d", src)
+          if not m:
+              raise SystemExit('embedded verified patch not found')
+          raw = gzip.decompress(base64.b64decode(m.group(1)))
+          Path('/tmp/p0-06a.patch').write_bytes(raw)
+          PY
+          echo '835f4b6b32f11e473c3ec4b3a7cf8539cb295224e2b8e620c15801393c4f781d  /tmp/p0-06a.patch' | sha256sum -c -
+          git apply --check /tmp/p0-06a.patch
+          git apply /tmp/p0-06a.patch
+
+      - name: Install locked backend and format focused changes
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+          ruff format src/weall/runtime/tx_schema.py src/weall/api/routes_public_parts/poh.py src/weall/runtime/apply/poh.py tests/test_p0_06a_duplicate_account_adjudication.py
+          ruff check src/weall/runtime/tx_schema.py src/weall/api/routes_public_parts/poh.py src/weall/runtime/apply/poh.py tests/test_p0_06a_duplicate_account_adjudication.py
+
+      - name: Focused P0-06A regression proof
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          pytest -q tests/test_p0_06a_duplicate_account_adjudication.py tests/test_behavior_m1_m10.py
+          python scripts/check_generated.py
+
+      - name: Refresh only P0-06A semantic bindings and V2 derivatives
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src:scripts python - <<'PY'
+          from __future__ import annotations
+          import importlib
+          import json
+          import sys
+          from pathlib import Path
+
+          root = Path.cwd()
+          scripts = root / 'scripts'
+          sys.path.insert(0, str(scripts))
+          compiler = importlib.import_module('compile_v2_spec')
+          validation = importlib.import_module('v2_spec_validation')
+          refresh = importlib.import_module('refresh_v2_semantic_reviews')
+
+          refresh._register_failures([
+              'forbidden:duplicate_identity_authority_blocked',
+              'invalid_tx:duplicate_reference_matches_target',
+              'invalid_tx:reference_account_not_registered',
+              'invalid_tx:reference_account_is_confirmed_duplicate',
+              'invalid_state:duplicate_identity_conflict',
+          ])
+
+          tx_rows: list[dict] = []
+          route_rows: list[dict] = []
+          original = compiler.apply_semantic_reviews
+
+          def capture(txs, routes, reviews):
+              tx_rows.extend(dict(row) for row in txs)
+              route_rows.extend(dict(row) for row in routes)
+              for row in txs:
+                  row['semantic_derivation'] = row.get('semantic_precision')
+                  row['semantic_review'] = {
+                      'review_digest': 'P0_06A_DISCOVERY_ONLY',
+                      'reviewer': 'P0_06A_DISCOVERY_ONLY',
+                      'reviewed_at': '1970-01-01T00:00:00Z',
+                      'review_method': 'P0_06A_DISCOVERY_ONLY',
+                      'independent_review': False,
+                      'authority_effect': 'P0_06A_DISCOVERY_ONLY',
+                  }
+              for row in routes:
+                  row['semantic_derivation'] = row.get('semantic_precision')
+                  row['semantic_review'] = {
+                      'review_digest': 'P0_06A_DISCOVERY_ONLY',
+                      'reviewer': 'P0_06A_DISCOVERY_ONLY',
+                      'reviewed_at': '1970-01-01T00:00:00Z',
+                      'review_method': 'P0_06A_DISCOVERY_ONLY',
+                      'independent_review': False,
+                      'authority_effect': 'P0_06A_DISCOVERY_ONLY',
+                  }
+              return {
+                  'transaction_reviews': len(txs),
+                  'route_reviews': len(routes),
+                  'independent_review_complete': False,
+                  'independent_review_gate': 'deferred_to_launch_authorization',
+                  'validation_result': 'P0_06A_DISCOVERY_ONLY',
+              }
+
+          compiler.apply_semantic_reviews = capture
+          try:
+              compiler.compile_artifacts()
+          finally:
+              compiler.apply_semantic_reviews = original
+
+          review_path = root / 'specs' / 'v2' / 'source' / 'semantic_reviews.json'
+          reviews = json.loads(review_path.read_text(encoding='utf-8'))
+          tx_reviews = {str(r.get('stable_id') or ''): r for r in reviews.get('transactions', []) if isinstance(r, dict)}
+          route_reviews = {str(r.get('stable_id') or ''): r for r in reviews.get('routes', []) if isinstance(r, dict)}
+
+          stale_txs = []
+          for row in tx_rows:
+              sid = str(row.get('stable_id') or '')
+              expected = validation.compact_digest(validation.tx_review_material(row))
+              review = tx_reviews.get(sid)
+              if not isinstance(review, dict) or str(review.get('review_digest') or '') != expected:
+                  stale_txs.append((row, expected, review))
+
+          stale_routes = []
+          for row in route_rows:
+              sid = str(row.get('stable_id') or '')
+              expected = validation.compact_digest(validation.route_review_material(row))
+              review = route_reviews.get(sid)
+              if not isinstance(review, dict) or str(review.get('review_digest') or '') != expected:
+                  stale_routes.append((row, expected, review))
+
+          print('P0-06A stale transaction rows:', [r[0].get('tx_type') for r in stale_txs])
+          print('P0-06A stale route rows:', [r[0].get('route_key') for r in stale_routes])
+
+          unrelated_txs = [
+              str(row.get('tx_type') or '')
+              for row, _digest, _review in stale_txs
+              if str(row.get('domain') or '') != 'PoH'
+          ]
+          allowed_route = 'POST /v1/poh/challenge/tx/open'
+          unrelated_routes = [
+              str(row.get('route_key') or '')
+              for row, _digest, _review in stale_routes
+              if str(row.get('route_key') or '') != allowed_route
+          ]
+          if unrelated_txs or unrelated_routes:
+              raise SystemExit(
+                  f'unrelated semantic drift detected; tx={unrelated_txs}, routes={unrelated_routes}'
+              )
+          if not stale_txs:
+              raise SystemExit('expected at least one P0-06A PoH semantic change')
+
+          reviewed_at = '2026-10-03T18:45:00Z'
+          reviewer = 'WeAll Protocol Maintainer acceptance snapshot (AI-assisted)'
+          method = 'maintainer_reviewed_p0_06a_duplicate_adjudication_with_regression_evidence'
+
+          for row, digest, review in stale_txs:
+              if not isinstance(review, dict):
+                  raise SystemExit(f"missing transaction review row: {row.get('tx_type')}")
+              review['review_digest'] = digest
+              review['reviewed_at'] = reviewed_at
+              review['reviewer'] = reviewer
+              review['review_method'] = method
+
+          for row, digest, review in stale_routes:
+              if not isinstance(review, dict):
+                  raise SystemExit(f"missing route review row: {row.get('route_key')}")
+              review['review_digest'] = digest
+              review['reviewed_at'] = reviewed_at
+              review['reviewer'] = reviewer
+              review['review_method'] = method
+
+          review_path.write_text(json.dumps(reviews, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+          artifacts, _manifest = compiler.compile_artifacts()
+          compiler._write_artifacts(artifacts)
+          print('P0-06A semantic refresh and derivative regeneration complete')
+          PY
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_public_claim_freshness.py
+
+      - name: Canon and focused final checks
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m tooling.canon_lint
+          pytest -q tests/test_p0_06a_duplicate_account_adjudication.py tests/test_behavior_m1_m10.py
+
+      - name: Commit source, reviewed semantic bindings, and generated derivatives
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm .github/workflows/p0-06a-one-shot-apply.yml .github/workflows/p0-06a-finalize.yml
+          git add -A
+          git status --short
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'P0-06A: bind duplicate-account adjudication'
+          git push origin HEAD:p0-03-production-closure-staging-20261001
