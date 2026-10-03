@@ -1534,7 +1534,7 @@
       "http_status": 400,
       "sample_reason": "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3274
+      "source_lineno": 3282
     },
     {
       "code": "missing_sig",
@@ -1624,7 +1624,7 @@
       "http_status": null,
       "sample_reason": "reviewer_collusion_suspicion_not_found",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 1403
+      "source_lineno": 1585
     },
     {
       "code": "not_found",
@@ -1903,7 +1903,7 @@
       "http_status": 400,
       "sample_reason": "Live session not initialized yet (missing session_commitment)",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3355
+      "source_lineno": 3363
     },
     {
       "code": "session_required",
