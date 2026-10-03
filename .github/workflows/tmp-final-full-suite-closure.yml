@@ -1,0 +1,206 @@
+name: Temporary final full-suite closure
+
+on:
+  push:
+    branches:
+      - p0-03-production-closure-staging-20261001
+
+permissions:
+  contents: write
+
+jobs:
+  final-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Apply residual semantic and harness repairs
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str, label: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          root = Path("Weall-Protocol")
+
+          # Commit admission: classify a block that is strictly behind the
+          # finalized head before proposal-level branch-conflict classification.
+          # Competing siblings still flow through the existing bft_conflict path.
+          admission = root / "src/weall/runtime/block_admission.py"
+          old = '''    ok, rej = admit_bft_block(
+              block=block,
+              state=state,
+              blocks_map=blocks_map,
+              bft_enabled=bft_enabled,
+          )
+          if not ok:
+              return ok, rej
+
+          effective_bft_enabled = (
+              _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+          )
+          if not effective_bft_enabled:
+          '''
+          new = '''    effective_bft_enabled = (
+              _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+          )
+          effective_blocks = blocks_map if isinstance(blocks_map, dict) else {}
+          if not effective_blocks:
+              raw_blocks = state.get("blocks")
+              effective_blocks = raw_blocks if isinstance(raw_blocks, dict) else {}
+
+          if effective_bft_enabled:
+              bft_state = state.get("bft")
+              finalized = (
+                  _as_str(bft_state.get("finalized_block_id") or "")
+                  if isinstance(bft_state, dict)
+                  else ""
+              )
+              bid = _as_str(block.get("block_id") or "")
+              if (
+                  bid
+                  and finalized
+                  and bid != finalized
+                  and _is_descendant(effective_blocks, candidate=finalized, ancestor=bid)
+              ):
+                  return False, BlockReject(
+                      "bft_not_finalized",
+                      "block_precedes_finalized_head",
+                      {"block_id": bid, "finalized_block_id": finalized},
+                  )
+
+          ok, rej = admit_bft_block(
+              block=block,
+              state=state,
+              blocks_map=blocks_map,
+              bft_enabled=bft_enabled,
+          )
+          if not ok:
+              return ok, rej
+
+          if not effective_bft_enabled:
+          '''
+          replace_once(admission, old, new, "commit ancestor classification")
+
+          # The resilience matrix deliberately seeds a synthetic production
+          # validator set after construction. Give only that harness an explicit
+          # in-memory signing posture; do not weaken production runtime authority.
+          fault = root / "src/weall/runtime/fault_injection.py"
+          old = '''        _seed_validator_set_full(ex, validators=validators, pub=vpub, epoch=7)
+              ex.bft_set_view(1)
+              return ex
+          '''
+          new = '''        _seed_validator_set_full(ex, validators=validators, pub=vpub, epoch=7)
+              with _validator_env(node_id):
+                  if not bool(getattr(ex, "_bft_restart_safety_ok", True)):
+                      raise RuntimeError("synthetic validator failed restart safety revalidation")
+                  ex._validator_signing_enabled = True
+                  ex._observer_mode_forced = False
+                  ex._signing_block_reason = ""
+                  if not ex._validator_signing_permitted():
+                      raise RuntimeError("synthetic validator signing posture unavailable")
+                  ex.bft_set_view(1)
+              return ex
+          '''
+          replace_once(fault, old, new, "resilience synthetic signing posture")
+
+          old = '''    leader = WeAllExecutor(
+              db_path=str(conflict_dir / f"{canonical_leader}.db"),
+              node_id=canonical_leader,
+              chain_id=conflict_chain_id,
+              tx_index_path=tx_index,
+          )
+              follower = WeAllExecutor(
+              db_path=str(conflict_dir / f"{follower_id}.db"),
+              node_id=follower_id,
+              chain_id=conflict_chain_id,
+              tx_index_path=tx_index,
+          )
+              _seed_validator_set_full(leader, validators=validators, pub=vpub, epoch=7)
+              _seed_validator_set_full(follower, validators=validators, pub=vpub, epoch=7)
+              leader.bft_set_view(1)
+          '''
+          new = '''    leader = _mk_executor(
+              conflict_dir / f"{canonical_leader}.db", canonical_leader, conflict_chain_id
+          )
+              follower = _mk_executor(
+              conflict_dir / f"{follower_id}.db", follower_id, conflict_chain_id
+          )
+          '''
+          replace_once(fault, old, new, "resilience conflict executors")
+          PY
+      - name: Normalize repaired Python
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format src/weall/runtime/block_admission.py src/weall/runtime/fault_injection.py tests/test_bft_strict_epoch_binding.py
+          ruff check src/weall/runtime/block_admission.py src/weall/runtime/fault_injection.py tests/test_bft_strict_epoch_binding.py
+          git diff --check
+      - name: Remove temporary workflow and refresh generated evidence
+        run: |
+          set -Eeuo pipefail
+          rm .github/workflows/tmp-final-full-suite-closure.yml
+          cd Weall-Protocol
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+      - name: Execute focused closure regressions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          pytest -q -vv \
+            tests/test_bft_strict_epoch_binding.py \
+            tests/test_priority0_consensus_and_payload_fixes.py \
+            tests/test_priority2_consensus_resilience_matrix.py \
+            tests/test_p0_03_production_composition.py \
+            tests/test_p0_03_certified_branch_transition.py \
+            tests/test_priority1_pending_frontier_apply_order.py
+      - name: Execute complete backend suite
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          pytest -q
+      - name: Commit exact tested helper-free tree
+        if: success()
+        run: |
+          set -Eeuo pipefail
+          test ! -e .github/workflows/tmp-final-full-suite-closure.yml
+          git config user.name 'errol1swaby2-bit'
+          git config user.email 'errol1swaby2@gmail.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix(ci): close residual full-suite regressions'
+          cd Weall-Protocol
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          cd ..
+          git push origin HEAD:p0-03-production-closure-staging-20261001
