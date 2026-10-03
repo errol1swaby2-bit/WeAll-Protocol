@@ -32,7 +32,12 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Regenerate V2 derivatives
+      - name: Stage temporary workflow removal before regeneration
+        run: |
+          set -Eeuo pipefail
+          git rm .github/workflows/p0-06b-v2-refresh.yml
+
+      - name: Regenerate V2 derivatives from final source tree
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -40,10 +45,9 @@ jobs:
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
 
-      - name: Remove temporary workflow and guard changed paths
+      - name: Guard changed paths
         run: |
           set -Eeuo pipefail
-          git rm .github/workflows/p0-06b-v2-refresh.yml
           python - <<'PY'
           from __future__ import annotations
 
@@ -109,5 +113,3 @@ jobs:
         run: |
           set -Eeuo pipefail
           git push origin HEAD:p0-03-production-closure-staging-20261001
-
-# retry-trigger: 2026-10-03-p0-06b-phase1-derivative-refresh
