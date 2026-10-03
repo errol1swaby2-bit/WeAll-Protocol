@@ -109,3 +109,5 @@ jobs:
         run: |
           set -Eeuo pipefail
           git push origin HEAD:p0-03-production-closure-staging-20261001
+
+# retry-trigger: 2026-10-03-p0-06b-phase1-derivative-refresh
