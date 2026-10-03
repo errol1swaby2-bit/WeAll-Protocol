@@ -255,8 +255,16 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
             )
             n_jurors = int(policy["assigned_jurors"])
             try:
-                from weall.runtime.poh.juror_select import pick_async_jurors  # type: ignore
+                from weall.runtime.poh.juror_select import (  # type: ignore
+                    async_request_selection_seed,
+                    pick_async_jurors,
+                )
 
+                selection_seed = async_request_selection_seed(
+                    state=state,
+                    target_account=account_id,
+                    opened_height=_as_int(case.get("opened_height") or 0, 0),
+                )
                 retained = _active_assigned(case)
                 excluded = {
                     _as_str(value).strip()
@@ -269,13 +277,14 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
                 if missing:
                     replacements = pick_async_jurors(
                         state=state,
-                        case_id=f"{case_id}:replacement:{len(excluded)}",
+                        case_id=case_id,
                         target_account=account_id,
                         n_jurors=int(missing),
                         min_rep_units=int(min_rep_units),
                         allow_partial=bool(bootstrap_quorum_allowed),
                         allow_roleless_bootstrap=bool(bootstrap_quorum_allowed),
                         excluded_accounts=excluded,
+                        selection_seed=selection_seed,
                     )
                 jurors = retained + replacements
             except Exception:
