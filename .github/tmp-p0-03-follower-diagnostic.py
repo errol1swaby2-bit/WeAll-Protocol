@@ -38,93 +38,93 @@ def snapshot(node, label, *, b1_id="", b2_id="", b3_id="", wrong_id=""):
         "finalized_block_id": str(getattr(node._bft, "finalized_block_id", "") or ""),
         "high_qc": qc_summary(getattr(node._bft, "high_qc", None)),
         "locked_qc": qc_summary(getattr(node._bft, "locked_qc", None)),
-        "transition_qc": qc_summary(getattr(node._bft, "validator_transition_qc", None)),
+        "transition_qc": qc_summary(getattr(node._bft, "transition_qc", None)),
         "pending_remote": list(node._pending_remote_blocks.keys()),
         "pending_candidates": list(node._pending_candidates.keys()),
         "pending_missing_qcs": list(node._pending_missing_qcs.keys()),
-        "pending_fetches": list(getattr(node, "_pending_missing_fetches", {}).keys()),
+        "pending_fetches": list(node._pending_missing_fetches.keys()),
         "conflicted_ids": list(node._conflicted_block_ids.keys()),
         "conflicted_hashes": list(node._conflicted_block_hashes.keys()),
         "spec_has_b1": bool(b1_id and b1_id in speculative),
         "spec_has_b2": bool(b2_id and b2_id in speculative),
         "spec_has_b3": bool(b3_id and b3_id in speculative),
         "spec_has_wrong": bool(wrong_id and wrong_id in speculative),
-        "pending_b1": bool(b1_id and isinstance(node._bft_pending_block_json(b1_id), dict)),
-        "pending_b2": bool(b2_id and isinstance(node._bft_pending_block_json(b2_id), dict)),
+        "pending_b1": bool(b1_id and node._bft_pending_block_json(b1_id)),
+        "pending_b2": bool(b2_id and node._bft_pending_block_json(b2_id)),
     }
     print("P0DIAG_SNAPSHOT", snap, flush=True)
 
 
-def direct_checks(node, block, label):
-    bid = str(block["block_id"])
-    with t._env(t._prod_env(node.node_id, pub=pubs[node.node_id], priv=privs[node.node_id])):
-        validation_ok = node._validate_remote_proposal_for_vote(copy.deepcopy(block))
-    print(f"P0DIAG_{label}_VOTECHECK", validation_ok, flush=True)
-    vote_map = dict(node._bft_speculative_blocks_map())
-    vote_map[bid] = {
-        "height": int(block.get("height") or 0),
-        "prev_block_id": str(block.get("prev_block_id") or ""),
-        "block_ts_ms": int(block.get("block_ts_ms") or 0),
-        "block_hash": str(block.get("block_hash") or ""),
-    }
-    justify = qc_from_json(block.get("justify_qc")) if isinstance(block.get("justify_qc"), dict) else None
-    can_vote = node._bft.can_vote_for(blocks=vote_map, block_id=bid, justify_qc=justify)
-    print(f"P0DIAG_{label}_CAN_VOTE", can_vote, flush=True)
+def direct_checks(node, proposal, label):
+    print(f"P0DIAG_{label}_VOTECHECK", node._validate_remote_proposal_for_vote(copy.deepcopy(proposal)), flush=True)
+    bid = str(proposal.get("block_id") or "")
+    blocks_map = node._bft_speculative_blocks_map()
+    justify_qc = qc_from_json(proposal.get("justify_qc")) if isinstance(proposal.get("justify_qc"), dict) else None
+    print(
+        f"P0DIAG_{label}_CAN_VOTE",
+        node._bft.can_vote_for(blocks=blocks_map, block_id=bid, justify_qc=justify_qc),
+        flush=True,
+    )
     print(f"P0DIAG_{label}_SIGNING_PERMITTED", node._validator_signing_permitted(), flush=True)
 
 
 def trace_parent_replay(node, chain):
-    slot = None
+    clone, slot = node._borrow_spec_exec_slot()
     try:
-        slot = bft_votecheck._acquire_spec_exec_slot(node)
-        clone = bft_votecheck._reset_spec_exec_slot(node, slot)
         clone.state = copy.deepcopy(node.state)
-        clone._ledger_store.write(clone.state)
-        clone._bft.load_from_state(clone.state)
+        clone._bft.import_state(node._bft.export_state())
         print(
             "P0DIAG_REPLAY_CLONE_START",
             {
                 "height": int(clone.state.get("height") or 0),
                 "tip": str(clone.state.get("tip") or ""),
-                "view": int(getattr(clone._bft, "view", -1)),
-                "finalized": str(getattr(clone._bft, "finalized_block_id", "") or ""),
-                "high_qc": qc_summary(getattr(clone._bft, "high_qc", None)),
-                "locked_qc": qc_summary(getattr(clone._bft, "locked_qc", None)),
+                "view": int(clone._bft.view),
+                "finalized": str(clone._bft.finalized_block_id or ""),
+                "high_qc": qc_summary(clone._bft.high_qc),
+                "locked_qc": qc_summary(clone._bft.locked_qc),
             },
             flush=True,
         )
-        for index, pending in enumerate(chain, start=1):
-            with t._env(t._prod_env(node.node_id, pub=pubs[node.node_id], priv=privs[node.node_id])):
-                meta = clone.apply_block(copy.deepcopy(pending))
+        for idx, block in enumerate(chain, start=1):
+            meta = clone.apply_block(copy.deepcopy(block))
             print(
                 "P0DIAG_REPLAY_APPLY",
                 {
-                    "index": index,
-                    "block_id": str(pending.get("block_id") or ""),
-                    "height": int(pending.get("height") or 0),
-                    "ok": bool(getattr(meta, "ok", False)) if meta is not None else False,
-                    "error": str(getattr(meta, "error", "") or "") if meta is not None else "<none>",
+                    "index": idx,
+                    "block_id": str(block.get("block_id") or ""),
+                    "height": int(block.get("height") or 0),
+                    "ok": bool(meta.ok),
+                    "error": str(meta.error or ""),
                     "clone_height": int(clone.state.get("height") or 0),
                     "clone_tip": str(clone.state.get("tip") or ""),
-                    "clone_view": int(getattr(clone._bft, "view", -1)),
-                    "clone_finalized": str(getattr(clone._bft, "finalized_block_id", "") or ""),
-                    "clone_high_qc": qc_summary(getattr(clone._bft, "high_qc", None)),
-                    "clone_locked_qc": qc_summary(getattr(clone._bft, "locked_qc", None)),
+                    "clone_view": int(clone._bft.view),
+                    "clone_finalized": str(clone._bft.finalized_block_id or ""),
+                    "clone_high_qc": qc_summary(clone._bft.high_qc),
+                    "clone_locked_qc": qc_summary(clone._bft.locked_qc),
                 },
                 flush=True,
             )
-            if meta is None or not bool(getattr(meta, "ok", False)):
+            if not meta.ok:
                 break
     finally:
-        if slot is not None:
-            bft_votecheck._release_spec_exec_slot(node, slot)
+        node._release_spec_exec_slot(slot)
 
 
-pubs, privs = t._key_material()
-with tempfile.TemporaryDirectory(prefix="weall-p0diag-") as td:
+with tempfile.TemporaryDirectory(prefix="p0diag-") as td:
     tmp_path = Path(td)
-    nodes, boundary_id, _boundary_hash = t._install_prod_boundary(tmp_path, pubs=pubs, privs=privs)
-    qc0 = t._prepare_transition_qc(nodes, boundary_id=boundary_id, pubs=pubs, privs=privs)
+    pubs, privs = t._key_material()
+    nodes, boundary_id, _boundary_hash = t._install_prod_boundary(
+        tmp_path,
+        pubs=pubs,
+        privs=privs,
+    )
+
+    qc0 = t._prepare_transition_qc(
+        nodes,
+        boundary_id=boundary_id,
+        pubs=pubs,
+        privs=privs,
+    )
     assert str(qc0["block_id"]) == boundary_id
 
     leader1, b1 = t._propose(nodes, view=1, pubs=pubs, privs=privs)
@@ -147,6 +147,7 @@ with tempfile.TemporaryDirectory(prefix="weall-p0diag-") as td:
         pubs=pubs,
         privs=privs,
     )
+
     victim = next(v for v in t.VALIDATORS if v != leader2)
     node = nodes[victim]
     b1_id = str(b1["block_id"])
@@ -229,4 +230,50 @@ with tempfile.TemporaryDirectory(prefix="weall-p0diag-") as td:
     with t._env(t._prod_env(victim, pub=pubs[victim], priv=privs[victim])):
         b3_vote = node.bft_on_proposal(copy.deepcopy(b3))
     print("P0DIAG_B3_RESULT", b3_vote, flush=True)
+    assert isinstance(b3_vote, dict) and b3_vote
     snapshot(node, "after_b3", b1_id=b1_id, b2_id=b2_id, b3_id=b3_id, wrong_id=wrong_id)
+
+    votes3 = [b3_vote]
+    for vid, other in nodes.items():
+        if vid in {leader3, victim}:
+            continue
+        with t._env(t._prod_env(vid, pub=pubs[vid], priv=privs[vid])):
+            vote = other.bft_on_proposal(copy.deepcopy(b3))
+        assert isinstance(vote, dict) and vote, f"diagnostic follower {vid} rejected B3"
+        votes3.append(vote)
+    qc3 = t._form_qc(nodes[leader3], leader3, votes3, pubs=pubs, privs=privs)
+
+    for vid, other in nodes.items():
+        original_apply = other.apply_block
+
+        def traced_apply(block, *, _vid=vid, _node=other, _orig=original_apply):
+            marked = bool(getattr(_node, "_bft_authenticated_finalized_replay", False))
+            meta = _orig(block)
+            if marked:
+                print(
+                    "P0DIAG_FINALIZED_APPLY",
+                    {
+                        "node": _vid,
+                        "block_id": str(block.get("block_id") or "") if isinstance(block, dict) else "",
+                        "height": int(block.get("height") or 0) if isinstance(block, dict) else 0,
+                        "ok": bool(getattr(meta, "ok", False)),
+                        "error": str(getattr(meta, "error", "") or ""),
+                        "tip_after": str(_node.state.get("tip") or ""),
+                        "height_after": int(_node.state.get("height") or 0),
+                    },
+                    flush=True,
+                )
+            return meta
+
+        other.apply_block = traced_apply
+
+    t._broadcast_qc(nodes, qc3, pubs=pubs, privs=privs)
+    for vid, other in nodes.items():
+        snapshot(
+            other,
+            f"after_qc3:{vid}",
+            b1_id=b1_id,
+            b2_id=b2_id,
+            b3_id=b3_id,
+            wrong_id=wrong_id,
+        )
