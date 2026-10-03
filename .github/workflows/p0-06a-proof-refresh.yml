@@ -1,0 +1,162 @@
+name: P0 proof artifact and V2 refresh
+
+on:
+  push:
+    branches:
+      - p0-03-production-closure-staging-20261001
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: p0-03-production-closure-staging-20261001
+          fetch-depth: 0
+
+      - name: Remove temporary workflow before provenance generation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm .github/workflows/p0-06a-proof-refresh.yml
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Regenerate four stale deterministic proof artifacts
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PYTHONPATH="${PYTHONPATH:-}:src:scripts"
+
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+
+          python scripts/gen_b539_b543_production_path_proof_v1_5.py
+          python scripts/gen_b539_b543_production_path_proof_v1_5.py --check
+
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+
+      - name: Verify non-V2 readiness and claim surfaces remain current
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_public_claim_freshness.py
+
+      - name: Regenerate V2 derivatives from settled proof evidence
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Enforce exact bounded final diff
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mapfile -t changed < <(git status --porcelain | sed 's/^...//' | sort)
+          mapfile -t expected < <(
+            printf '%s\n' \
+              '.github/workflows/p0-06a-proof-refresh.yml' \
+              'Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json' \
+              'Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json' \
+              'Weall-Protocol/generated/b539_b543_production_path_proof_v1_5.json' \
+              'Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json' \
+              'Weall-Protocol/generated/v2/current_tx_canon.json' \
+              'Weall-Protocol/generated/v2/divergence_registry.json' \
+              'Weall-Protocol/generated/v2/evidence_index.json' \
+              'Weall-Protocol/generated/v2/failure_contract_index.json' \
+              'Weall-Protocol/generated/v2/mechanism_registry.json' \
+              'Weall-Protocol/generated/v2/message_contract_index.json' \
+              'Weall-Protocol/generated/v2/parameter_registry.json' \
+              'Weall-Protocol/generated/v2/pdf_identity_manifest.json' \
+              'Weall-Protocol/generated/v2/receipt_contract_index.json' \
+              'Weall-Protocol/generated/v2/register_fingerprint_manifest.json' \
+              'Weall-Protocol/generated/v2/requirement_traceability.json' \
+              'Weall-Protocol/generated/v2/route_contract_map.json' \
+              'Weall-Protocol/generated/v2/runtime_state_inventory.json' \
+              'Weall-Protocol/generated/v2/scheduler_contract_index.json' \
+              'Weall-Protocol/generated/v2/source_coverage_map.json' \
+              'Weall-Protocol/generated/v2/spec_compilation_manifest.json' \
+              'Weall-Protocol/generated/v2/spec_derivative.md' \
+              'Weall-Protocol/generated/v2/state_contract_index.json' \
+              'Weall-Protocol/generated/v2/target_contract_canon.json' \
+              'Weall-Protocol/generated/v2/target_contract_schema_index.json' \
+              'Weall-Protocol/generated/v2/target_failure_contract_index.json' \
+              'Weall-Protocol/generated/v2/target_tx_canon.json' \
+              'Weall-Protocol/generated/v2/tx_contract_matrix.json' \
+              'Weall-Protocol/generated/v2/vector_registry.json' \
+              'Weall-Protocol/generated/v2/w1_closure_validation_manifest.json' \
+              'web/src/generated/protocolStatus.ts' \
+            | sort
+          )
+          printf 'changed final tree:\n'
+          printf '  %s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq 31
+          test "${#expected[@]}" -eq 31
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Commit exact refreshed tree locally
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -A
+          git status --short
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'P0-06A: refresh deterministic proof evidence'
+
+      - name: Revalidate exact committed tree
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PYTHONPATH="${PYTHONPATH:-}:src:scripts"
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b539_b543_production_path_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_public_claim_freshness.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          pytest -q \
+            tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py::test_claim_boundaries_and_artifact_freshness \
+            tests/test_full_node_db_api_dispute_storage_coverage.py::test_b534_freshness_check_is_deterministic_and_live_verification_is_explicit \
+            tests/test_production_bft_block_replay_api_storage_claim_boundaries.py::test_generated_artifact_is_fresh \
+            tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py::test_b528_freshness_check_is_deterministic_and_live_verification_is_explicit
+          test -z "$(git status --porcelain)"
+
+      - name: Push exact validated commit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git push origin HEAD:p0-03-production-closure-staging-20261001
