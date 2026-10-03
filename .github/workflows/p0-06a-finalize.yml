@@ -31,7 +31,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import base64, gzip, re
-          src = Path('.github/workflows/p0-06a-one-shot-apply.yml').read_text(encoding='utf-8')
+          src = Path('.github/p0-06a-one-shot-apply.source').read_text(encoding='utf-8')
           m = re.search(r"printf '%s' '([^']+)' \| base64 -d \| gzip -d", src)
           if not m:
               raise SystemExit('embedded verified patch not found')
@@ -41,6 +41,12 @@ jobs:
           echo '835f4b6b32f11e473c3ec4b3a7cf8539cb295224e2b8e620c15801393c4f781d  /tmp/p0-06a.patch' | sha256sum -c -
           git apply --check /tmp/p0-06a.patch
           git apply /tmp/p0-06a.patch
+
+      - name: Remove temporary workflow surfaces before regeneration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm .github/p0-06a-one-shot-apply.source .github/workflows/p0-06a-finalize.yml
 
       - name: Install locked backend and format focused changes
         working-directory: Weall-Protocol
@@ -213,7 +219,6 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          git rm .github/workflows/p0-06a-one-shot-apply.yml .github/workflows/p0-06a-finalize.yml
           git add -A
           git status --short
           git config user.name 'github-actions[bot]'
