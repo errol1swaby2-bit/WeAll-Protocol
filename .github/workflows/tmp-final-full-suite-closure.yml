@@ -40,9 +40,9 @@ jobs:
 
           root = Path("Weall-Protocol")
 
-          # Commit admission: classify a strict ancestor of the finalized head
-          # before proposal-level branch-conflict classification. Siblings and
-          # off-branch blocks still use the existing bft_conflict path.
+          # Preserve the existing commit-admission error contract for a block
+          # strictly behind the finalized head, without changing sibling/off-branch
+          # conflict classification.
           admission = root / "src/weall/runtime/block_admission.py"
           lines = admission.read_text(encoding="utf-8").splitlines()
           fn = index_after(lines, 0, "def admit_bft_commit_block(")
@@ -73,7 +73,7 @@ jobs:
               "        ):",
               "            return False, BlockReject(",
               '                "bft_not_finalized",',
-              '                "block_precedes_finalized_head",',
+              '                "block_not_on_finalized_path",',
               '                {"block_id": bid, "finalized_block_id": finalized},',
               "            )",
               "",
@@ -90,17 +90,14 @@ jobs:
           lines[old_start:old_end] = replacement
           admission.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-          # The resilience matrix seeds a synthetic production validator set
-          # after executor construction. Restore only that harness's in-memory
-          # signer posture; production lifecycle authority remains unchanged.
+          # The resilience matrix seeds validator state after construction. Restore
+          # only its synthetic signer posture. The conflict scenario itself is
+          # explicitly testnet/QC-less because it tests forged-leader rejection,
+          # not the production transition-QC bootstrap rule.
           fault = root / "src/weall/runtime/fault_injection.py"
           lines = fault.read_text(encoding="utf-8").splitlines()
           helper = index_after(lines, 0, "    def _mk_executor(db_path: Path, node_id: str, chain_id: str) -> WeAllExecutor:")
-          seed = index_after(
-              lines,
-              helper,
-              "        _seed_validator_set_full(ex, validators=validators, pub=vpub, epoch=7)",
-          )
+          seed = index_after(lines, helper, "        _seed_validator_set_full(ex, validators=validators, pub=vpub, epoch=7)")
           view = index_after(lines, seed, "        ex.bft_set_view(1)")
           ret = index_after(lines, view, "        return ex")
           lines[view : ret + 1] = [
@@ -116,11 +113,7 @@ jobs:
               "        return ex",
           ]
 
-          conflict = index_after(
-              lines,
-              helper,
-              '    conflict_chain_id = f"{chain_id_prefix}-conflict-reject"',
-          )
+          conflict = index_after(lines, helper, '    conflict_chain_id = f"{chain_id_prefix}-conflict-reject"')
           leader_start = index_after(lines, conflict, "    leader = WeAllExecutor(")
           leader_view = index_after(lines, leader_start, "    leader.bft_set_view(1)")
           lines[leader_start : leader_view + 1] = [
@@ -131,7 +124,132 @@ jobs:
               '        conflict_dir / f"{follower_id}.db", follower_id, conflict_chain_id',
               "    )",
           ]
+
+          valid_line = index_after(lines, conflict, "        valid_proposal = leader.bft_leader_propose(max_txs=0)")
+          with_start = valid_line - 9
+          if lines[with_start] != "    with _EnvPatch(":
+              raise SystemExit("conflict leader environment anchor changed")
+          lines[with_start : valid_line + 1] = [
+              "    with _EnvPatch(",
+              "        {",
+              '            "WEALL_MODE": "testnet",',
+              '            "WEALL_BFT_ENABLED": "1",',
+              '            "WEALL_BFT_ALLOW_QC_LESS_BLOCKS": "1",',
+              '            "WEALL_AUTOVOTE": "1",',
+              '            "WEALL_SIGVERIFY": "1",',
+              '            "WEALL_VALIDATOR_ACCOUNT": canonical_leader,',
+              '            "WEALL_NODE_PUBKEY": str(vpub[canonical_leader]),',
+              '            "WEALL_NODE_PRIVKEY": str(vpriv[canonical_leader]),',
+              "        }",
+              "    ):",
+              "        valid_proposal = leader.bft_leader_propose(max_txs=0)",
+          ]
+
+          accepted = index_after(lines, conflict, "    accepted_vote = follower.bft_on_proposal(dict(valid_proposal))")
+          lines[accepted : accepted + 1] = [
+              "    with _EnvPatch(",
+              "        {",
+              '            "WEALL_MODE": "testnet",',
+              '            "WEALL_BFT_ENABLED": "1",',
+              '            "WEALL_BFT_ALLOW_QC_LESS_BLOCKS": "1",',
+              '            "WEALL_AUTOVOTE": "1",',
+              '            "WEALL_VALIDATOR_ACCOUNT": follower_id,',
+              '            "WEALL_NODE_PUBKEY": str(vpub[follower_id]),',
+              '            "WEALL_NODE_PRIVKEY": str(vpriv[follower_id]),',
+              "        }",
+              "    ):",
+              "        accepted_vote = follower.bft_on_proposal(dict(valid_proposal))",
+          ]
+          rejected = index_after(lines, conflict, "    rejected_vote = follower.bft_on_proposal(dict(forged))")
+          lines[rejected : rejected + 1] = [
+              "    with _EnvPatch(",
+              "        {",
+              '            "WEALL_MODE": "testnet",',
+              '            "WEALL_BFT_ENABLED": "1",',
+              '            "WEALL_BFT_ALLOW_QC_LESS_BLOCKS": "1",',
+              '            "WEALL_AUTOVOTE": "1",',
+              '            "WEALL_VALIDATOR_ACCOUNT": follower_id,',
+              '            "WEALL_NODE_PUBKEY": str(vpub[follower_id]),',
+              '            "WEALL_NODE_PRIVKEY": str(vpriv[follower_id]),',
+              "        }",
+              "    ):",
+              "        rejected_vote = follower.bft_on_proposal(dict(forged))",
+          ]
           fault.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          # Strict production epoch-binding tests must not depend on the now-
+          # forbidden production QC-less first-proposal path. Test the proposal
+          # binding predicate directly, and build the QC from signed votes.
+          strict = root / "tests/test_bft_strict_epoch_binding.py"
+          text = strict.read_text(encoding="utf-8")
+          old = '''def test_prod_rejects_proposal_missing_epoch_binding(
+              tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+          ) -> None:
+              ex, _pubs, _privs = _mk_executor(tmp_path, monkeypatch)
+              ex.bft_set_view(0)
+              proposal = ex.bft_leader_propose(max_txs=0)
+              assert isinstance(proposal, dict)
+
+              missing_epoch = dict(proposal)
+              missing_epoch.pop("validator_epoch", None)
+              assert ex.bft_on_proposal(missing_epoch) is None
+
+              missing_set_hash = dict(proposal)
+              missing_set_hash.pop("validator_set_hash", None)
+              assert ex.bft_on_proposal(missing_set_hash) is None
+          '''.replace("          ", "")
+          new = '''def test_prod_rejects_proposal_missing_epoch_binding(
+              tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+          ) -> None:
+              ex, _pubs, _privs = _mk_executor(tmp_path, monkeypatch)
+              proposal_binding = {
+                  "validator_epoch": ex._current_validator_epoch(),
+                  "validator_set_hash": ex._current_validator_set_hash(),
+              }
+              assert ex._bft_epoch_binding_matches(proposal_binding) is True
+
+              missing_epoch = dict(proposal_binding)
+              missing_epoch.pop("validator_epoch", None)
+              assert ex._bft_epoch_binding_matches(missing_epoch) is False
+
+              missing_set_hash = dict(proposal_binding)
+              missing_set_hash.pop("validator_set_hash", None)
+              assert ex._bft_epoch_binding_matches(missing_set_hash) is False
+          '''.replace("          ", "")
+          if text.count(old) != 1:
+              raise SystemExit("strict proposal binding test anchor changed")
+          text = text.replace(old, new, 1)
+
+          old = '''    proposal = {
+              "chain_id": ex.chain_id,
+              "height": 1,
+              "prev_block_id": "",
+              "prev_block_hash": "",
+              "block_ts_ms": 1,
+              "txs": [],
+              "validator_epoch": ex._current_validator_epoch(),
+              "validator_set_hash": ex._current_validator_set_hash(),
+              "view": 0,
+              "proposer": "v1",
+          }
+              proposal, _ = ex.bft_leader_propose(max_txs=0), None
+              assert isinstance(proposal, dict)
+              bid = str(proposal["block_id"])
+              parent_id = str(proposal.get("prev_block_id") or "")
+          '''.replace("          ", "")
+          new = '''    bid = "strict-epoch-qc-block"
+              block_hash = "strict-epoch-qc-hash"
+              parent_id = "strict-epoch-parent"
+          '''.replace("          ", "")
+          if text.count(old) != 1:
+              raise SystemExit("strict QC setup anchor changed")
+          text = text.replace(old, new, 1)
+          text = text.replace(
+              '            block_hash=str(proposal.get("block_hash") or ""),',
+              "            block_hash=block_hash,",
+              1,
+          )
+          strict.write_text(text, encoding="utf-8")
           PY
       - name: Normalize repaired Python
         working-directory: Weall-Protocol
