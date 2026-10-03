@@ -5,6 +5,7 @@ import importlib.util
 import tempfile
 from pathlib import Path
 
+from weall.runtime import bft_votecheck
 from weall.runtime.bft_hotstuff import qc_from_json
 
 
@@ -162,9 +163,9 @@ with tempfile.TemporaryDirectory(prefix="weall-p0diag-") as td:
     )
     assert victim != leader3
     snapshot(node, "before_b3", b1_id=b1_id, b2_id=b2_id, b3_id=b3_id, wrong_id=wrong_id)
-    chain = node._speculative_chain_to_parent(b2_id)
+    chain = bft_votecheck._speculative_chain_to_parent(node, b2_id)
     print("P0DIAG_B3_PARENT_CHAIN", None if chain is None else [str(x.get("block_id") or "") for x in chain], flush=True)
-    parent_state = node._speculative_parent_state(b2_id)
+    parent_state = bft_votecheck._speculative_parent_state(node, b2_id)
     print(
         "P0DIAG_B3_PARENT_STATE",
         None if not isinstance(parent_state, dict) else {
