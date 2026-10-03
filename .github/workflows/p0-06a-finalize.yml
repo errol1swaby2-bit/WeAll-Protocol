@@ -279,19 +279,8 @@ jobs:
           print('P0-06A semantic refresh and derivative regeneration complete')
           PY
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
-          python scripts/gen_current_verified_claims.py --check
-          python scripts/check_public_claim_freshness.py
 
-      - name: Canon and focused final checks
-        working-directory: Weall-Protocol
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          python -m tooling.canon_lint
-          pytest -q tests/test_p0_06a_duplicate_account_adjudication.py tests/test_behavior_m1_m10.py
-
-      - name: Commit source, reviewed semantic bindings, and generated derivatives
+      - name: Commit final P0-06A tree locally
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -300,4 +289,22 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'P0-06A: bind duplicate-account adjudication'
+
+      - name: Validate exact committed final tree
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_public_claim_freshness.py
+          python -m tooling.canon_lint
+          pytest -q tests/test_p0_06a_duplicate_account_adjudication.py tests/test_behavior_m1_m10.py
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+
+      - name: Push exact validated commit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
           git push origin HEAD:p0-03-production-closure-staging-20261001
