@@ -1,4 +1,4 @@
-name: P0-06A v1.5 evidence refresh
+name: P0-06A v1.5 and V2 evidence refresh
 
 on:
   push:
@@ -65,20 +65,57 @@ jobs:
 
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
 
-      - name: Enforce bounded diff and remove temporary workflow
+      - name: Regenerate V2 derivatives from settled v1.5 evidence
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Enforce exact bounded derivative diff and remove temporary workflow
         shell: bash
         run: |
           set -Eeuo pipefail
           mapfile -t changed < <(git status --porcelain | sed 's/^...//' | sort)
+          mapfile -t expected < <(
+            printf '%s\n' \
+              'Weall-Protocol/generated/api_contract_map_v1_5.json' \
+              'Weall-Protocol/generated/failure_code_registry_v1_5.json' \
+              'Weall-Protocol/generated/public_beta_blocker_report_v1_5.json' \
+              'Weall-Protocol/generated/release_evidence_manifest_v1_5.json' \
+              'Weall-Protocol/generated/v2/current_tx_canon.json' \
+              'Weall-Protocol/generated/v2/divergence_registry.json' \
+              'Weall-Protocol/generated/v2/evidence_index.json' \
+              'Weall-Protocol/generated/v2/failure_contract_index.json' \
+              'Weall-Protocol/generated/v2/mechanism_registry.json' \
+              'Weall-Protocol/generated/v2/message_contract_index.json' \
+              'Weall-Protocol/generated/v2/parameter_registry.json' \
+              'Weall-Protocol/generated/v2/pdf_identity_manifest.json' \
+              'Weall-Protocol/generated/v2/receipt_contract_index.json' \
+              'Weall-Protocol/generated/v2/register_fingerprint_manifest.json' \
+              'Weall-Protocol/generated/v2/requirement_traceability.json' \
+              'Weall-Protocol/generated/v2/route_contract_map.json' \
+              'Weall-Protocol/generated/v2/runtime_state_inventory.json' \
+              'Weall-Protocol/generated/v2/scheduler_contract_index.json' \
+              'Weall-Protocol/generated/v2/source_coverage_map.json' \
+              'Weall-Protocol/generated/v2/spec_compilation_manifest.json' \
+              'Weall-Protocol/generated/v2/spec_derivative.md' \
+              'Weall-Protocol/generated/v2/state_contract_index.json' \
+              'Weall-Protocol/generated/v2/target_contract_canon.json' \
+              'Weall-Protocol/generated/v2/target_contract_schema_index.json' \
+              'Weall-Protocol/generated/v2/target_failure_contract_index.json' \
+              'Weall-Protocol/generated/v2/target_tx_canon.json' \
+              'Weall-Protocol/generated/v2/tx_contract_matrix.json' \
+              'Weall-Protocol/generated/v2/vector_registry.json' \
+              'Weall-Protocol/generated/v2/w1_closure_validation_manifest.json' \
+              'web/src/generated/protocolStatus.ts' \
+            | sort
+          )
           printf 'changed before cleanup:\n'
           printf '  %s\n' "${changed[@]}"
-          expected=(
-            'Weall-Protocol/generated/api_contract_map_v1_5.json'
-            'Weall-Protocol/generated/failure_code_registry_v1_5.json'
-            'Weall-Protocol/generated/public_beta_blocker_report_v1_5.json'
-            'Weall-Protocol/generated/release_evidence_manifest_v1_5.json'
-          )
-          test "${#changed[@]}" -eq "${#expected[@]}"
+          test "${#changed[@]}" -eq 30
+          test "${#expected[@]}" -eq 30
           for i in "${!expected[@]}"; do
             test "${changed[$i]}" = "${expected[$i]}"
           done
@@ -92,9 +129,9 @@ jobs:
           git status --short
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'P0-06A: refresh v1.5 evidence chain'
+          git commit -m 'P0-06A: settle v1.5 and V2 evidence provenance'
 
-      - name: Revalidate committed tree
+      - name: Revalidate exact committed tree
         working-directory: Weall-Protocol
         shell: bash
         run: |
@@ -106,6 +143,8 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_public_claim_freshness.py
           test -z "$(git status --porcelain)"
 
       - name: Push exact validated commit
