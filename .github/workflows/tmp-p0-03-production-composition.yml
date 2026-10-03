@@ -31,6 +31,7 @@ jobs:
           set -Eeuo pipefail
           python .github/tmp-p0-03-runtime-repair.py
           python .github/tmp-p0-03-block-replay-current-candidate.py
+          python .github/tmp-p0-03-certified-identity-conflict.py
       - name: Normalize candidate source and tests
         working-directory: Weall-Protocol
         run: |
@@ -39,6 +40,7 @@ jobs:
             src/weall/runtime/bft_hotstuff.py \
             src/weall/runtime/bft_runtime_adapter.py \
             src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/bft_pending_frontier_impl.py \
             src/weall/runtime/block_admission.py \
             src/weall/runtime/block_replay.py \
             src/weall/runtime/executor.py \
@@ -49,6 +51,7 @@ jobs:
             src/weall/runtime/bft_hotstuff.py \
             src/weall/runtime/bft_runtime_adapter.py \
             src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/bft_pending_frontier_impl.py \
             src/weall/runtime/block_admission.py \
             src/weall/runtime/block_replay.py \
             src/weall/runtime/executor.py \
@@ -59,6 +62,7 @@ jobs:
             src/weall/runtime/bft_hotstuff.py \
             src/weall/runtime/bft_runtime_adapter.py \
             src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/bft_pending_frontier_impl.py \
             src/weall/runtime/block_admission.py \
             src/weall/runtime/block_replay.py \
             src/weall/runtime/executor.py \
@@ -91,7 +95,11 @@ jobs:
             tests/test_production_consensus_profile.py \
             tests/test_node_lifecycle_block_admission_authority.py \
             tests/test_helper_block_plan_admission.py \
-            tests/test_block_signature_profiles.py
+            tests/test_block_signature_profiles.py \
+            tests/test_block_identity_quarantine.py \
+            tests/test_pb001bn_bft_identity_quarantine_restart.py \
+            tests/test_pb001bq_quarantine_trust_boundary.py \
+            tests/test_priority1_pending_qc_cache_safety.py
       - name: Commit tested helper-free canonical tree
         if: success()
         run: |
@@ -100,6 +108,7 @@ jobs:
           rm .github/workflows/p0-03-exact-head-repair.yml
           rm .github/tmp-p0-03-runtime-repair.py
           rm .github/tmp-p0-03-block-replay-current-candidate.py
+          rm .github/tmp-p0-03-certified-identity-conflict.py
           rm .github/tmp-p0-03-follower-diagnostic.py
           (
             cd Weall-Protocol
@@ -113,6 +122,7 @@ jobs:
           test ! -e .github/workflows/p0-03-exact-head-repair.yml
           test ! -e .github/tmp-p0-03-runtime-repair.py
           test ! -e .github/tmp-p0-03-block-replay-current-candidate.py
+          test ! -e .github/tmp-p0-03-certified-identity-conflict.py
           test ! -e .github/tmp-p0-03-follower-diagnostic.py
           git commit -m 'fix(p0-03): complete certified-chain follower and transition repair'
           (
