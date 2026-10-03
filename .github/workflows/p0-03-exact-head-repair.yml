@@ -125,7 +125,7 @@ jobs:
         run: |
           set +e
           pytest -vv -s --tb=long \
-            tests/test_p0_03_production_composition.py::test_restart_preserves_certified_pending_frontier_for_bft_continuity \
+            tests/test_p0_03_production_composition.py::test_four_validator_prod_three_chain_restart_delayed_qc_and_wrong_parent_rejection \
             > ../p0-03-regression-trace.txt 2>&1
           rc=$?
           cat ../p0-03-regression-trace.txt
