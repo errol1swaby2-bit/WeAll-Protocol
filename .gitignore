@@ -18,6 +18,7 @@ __pycache__/
 # Pytest / Coverage
 # =========================
 .pytest_cache/
+.hypothesis/
 .coverage
 coverage.json
 htmlcov/
