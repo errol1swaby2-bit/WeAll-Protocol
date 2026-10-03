@@ -145,7 +145,7 @@
     "committed_state_unchanged_by_direct_apply": true,
     "direct_apply_persisted": false,
     "direct_apply_simulation_source": "copy_of_committed_executor_state",
-    "direct_apply_state_root": "a48092c3e1ad935eda865d15c25af30483021c9578a21947a86297ef95e6e8ee",
+    "direct_apply_state_root": "e6af055af2789c4563acb32e7a51b54176a006b38da3fff03a54e6ef964b4cd0",
     "direct_apply_write_domains_remaining": [
       "poh_challenge",
       "dispute_final_receipt",
