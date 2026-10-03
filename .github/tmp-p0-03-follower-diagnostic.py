@@ -29,6 +29,7 @@ def qc_summary(qc):
 
 def snapshot(node, label, *, b1_id="", b2_id="", b3_id="", wrong_id=""):
     speculative = node._bft_speculative_blocks_map()
+    pending_fetches = getattr(node, "_pending_missing_fetches", {})
     snap = {
         "label": label,
         "tip": str(node.state.get("tip") or ""),
@@ -42,7 +43,7 @@ def snapshot(node, label, *, b1_id="", b2_id="", b3_id="", wrong_id=""):
         "pending_remote": list(node._pending_remote_blocks.keys()),
         "pending_candidates": list(node._pending_candidates.keys()),
         "pending_missing_qcs": list(node._pending_missing_qcs.keys()),
-        "pending_fetches": list(node._pending_missing_fetches.keys()),
+        "pending_fetches": list(pending_fetches.keys()) if isinstance(pending_fetches, dict) else [],
         "conflicted_ids": list(node._conflicted_block_ids.keys()),
         "conflicted_hashes": list(node._conflicted_block_hashes.keys()),
         "spec_has_b1": bool(b1_id and b1_id in speculative),
