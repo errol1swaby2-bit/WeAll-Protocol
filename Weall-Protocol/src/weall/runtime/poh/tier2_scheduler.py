@@ -188,7 +188,9 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
 
     cases = _tier2_cases(state)
 
-    for case_id, case_any in list(cases.items()):
+    # JSON object member order is not committed by the state root. Canonicalize
+    # before producing the ordered, consensus-visible SYSTEM queue.
+    for case_id, case_any in sorted(cases.items(), key=lambda item: str(item[0])):
         case = _as_dict(case_any)
         cid = _as_str(case.get("case_id") or case_id).strip() or _as_str(case_id).strip()
         if not cid:

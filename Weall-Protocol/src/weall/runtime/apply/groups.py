@@ -12,6 +12,7 @@ from weall.runtime.ballot_policy import ballot_profile_status, strict_civic_gove
 from weall.runtime.bounded_rollback import journal_set_dict_key
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.group_treasury_scheduler import (
+    group_spend_plan_hash,
     maybe_enqueue_group_spend_execute,
     maybe_enqueue_group_spend_expire,
 )
@@ -1242,6 +1243,41 @@ def _apply_group_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
     s = spends.get(spend_id)
     if not isinstance(s, dict):
         raise GroupsApplyError("not_found", "spend_not_found", {"spend_id": spend_id})
+
+    if strict_civic_governance_enabled(state):
+        approval = s.get("governance_approval")
+        if not isinstance(approval, dict):
+            raise GroupsApplyError(
+                "forbidden",
+                "group_spend_governance_approval_required",
+                {"spend_id": spend_id},
+            )
+        proposal_id = _as_str(approval.get("proposal_id")).strip()
+        approved_hash = _as_str(approval.get("spend_plan_hash")).strip()
+        current_hash = group_spend_plan_hash(s)
+        queued_proposal_id = _as_str(payload.get("_governance_proposal_id")).strip()
+        queued_hash = _as_str(payload.get("_approved_spend_plan_hash")).strip()
+        if not proposal_id or not approved_hash or approved_hash != current_hash:
+            raise GroupsApplyError(
+                "forbidden",
+                "group_spend_governance_plan_mismatch",
+                {
+                    "spend_id": spend_id,
+                    "proposal_id": proposal_id,
+                    "approved_hash": approved_hash,
+                    "current_hash": current_hash,
+                },
+            )
+        if queued_proposal_id != proposal_id or queued_hash != approved_hash:
+            raise GroupsApplyError(
+                "forbidden",
+                "group_spend_governance_queue_binding_mismatch",
+                {
+                    "spend_id": spend_id,
+                    "proposal_id": proposal_id,
+                    "queued_proposal_id": queued_proposal_id,
+                },
+            )
 
     status = _as_str(s.get("status")).strip().lower()
     if status == "executed":

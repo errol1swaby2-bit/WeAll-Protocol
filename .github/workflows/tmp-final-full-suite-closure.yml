@@ -1,0 +1,91 @@
+name: Temporary final full-suite closure
+
+on:
+  push:
+    branches:
+      - p0-03-production-closure-staging-20261001
+
+permissions:
+  contents: write
+
+jobs:
+  final-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Apply residual semantic and harness repairs
+        run: |
+          set -Eeuo pipefail
+          python .github/tmp-final-full-suite-repair.py
+      - name: Normalize repaired Python
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format src/weall/runtime/block_admission.py src/weall/runtime/fault_injection.py tests/test_bft_strict_epoch_binding.py
+          ruff check src/weall/runtime/block_admission.py src/weall/runtime/fault_injection.py tests/test_bft_strict_epoch_binding.py
+          git diff --check
+      - name: Remove temporary closure surfaces and refresh generated evidence
+        run: |
+          set -Eeuo pipefail
+          rm .github/workflows/tmp-final-full-suite-closure.yml
+          rm .github/tmp-final-full-suite-repair.py
+          cd Weall-Protocol
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+      - name: Execute focused closure regressions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          pytest -q -vv \
+            tests/test_bft_strict_epoch_binding.py \
+            tests/test_priority0_consensus_and_payload_fixes.py \
+            tests/test_priority2_consensus_resilience_matrix.py \
+            tests/test_p0_03_production_composition.py \
+            tests/test_p0_03_certified_branch_transition.py \
+            tests/test_priority1_pending_frontier_apply_order.py
+      - name: Execute complete backend suite
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          pytest -q
+      - name: Commit exact tested helper-free tree
+        if: success()
+        run: |
+          set -Eeuo pipefail
+          test ! -e .github/workflows/tmp-final-full-suite-closure.yml
+          test ! -e .github/tmp-final-full-suite-repair.py
+          git config user.name 'errol1swaby2-bit'
+          git config user.email 'errol1swaby2@gmail.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix(ci): close residual full-suite regressions'
+          cd Weall-Protocol
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          cd ..
+          git push origin HEAD:p0-03-production-closure-staging-20261001

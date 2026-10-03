@@ -73,13 +73,10 @@ def test_votecheck_parent_pending_is_retryable_for_exact_same_block(
     block3 = _block(leader, "@u3")
     assert follower.apply_block(block1).ok is True
 
-    parent_id = str(block2.get("block_id") or "")
-    if not hasattr(follower, "_pending_missing_fetches"):
-        follower._pending_missing_fetches = {}  # type: ignore[attr-defined]
-    follower._pending_missing_fetches[parent_id] = {"requested_ms": 1}
+    # Missing-parent work is retryable and derived from the real canonical/
+    # pending frontier; no synthetic runtime attribute is required.
     assert follower._validate_remote_proposal_for_vote(block3) is False
 
-    follower._pending_missing_fetches.pop(parent_id, None)
     assert follower.apply_block(block2).ok is True
     assert follower._validate_remote_proposal_for_vote(block3) is True
 

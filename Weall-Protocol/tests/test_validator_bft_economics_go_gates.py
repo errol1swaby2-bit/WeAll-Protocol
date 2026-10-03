@@ -210,7 +210,47 @@ def _econ_state() -> dict:
             "economic_unlock_time": unlock_time,
             "economics_enabled": False,
         },
-        "economics": {"fee_policy": {"transfer_fee_int": 0}},
+        "tokenomics_simulation": {
+            "cap": 21_000_000,
+            "epoch_count": 8,
+            "checksum": "sim-v1",
+        },
+        "treasury_wallets": {"public_goods": {"account_id": "treasury:public_goods", "balance": 0}},
+        "economics": {
+            "fee_policy": {
+                "transfer_fee_int": 0,
+                "post_fee_int": 0,
+                "comment_fee_int": 0,
+                "governance_vote_fee_int": 0,
+            },
+            "wallet_policy": {
+                "initialization": "explicit_account_register_or_genesis",
+                "recovery": "manual_governance_or_user_key_rotation",
+                "pending_failed_read_model": True,
+            },
+            "reward_policy": {
+                "eligible_roles": ["juror", "reviewer", "operator", "validator", "creator"],
+                "recipient_eligibility": {
+                    "requires_active_poh": True,
+                    "no_locked_or_banned_accounts": True,
+                },
+            },
+            "anti_farming_policy": {
+                "duplicate_reward_window_blocks": 1000,
+                "max_reward_claims_per_epoch": 1,
+                "requires_unique_work_id": True,
+            },
+            "transfer_receipt_policy": {
+                "pending_receipts": True,
+                "failed_receipts": True,
+                "dedupe_by_transfer_id": True,
+            },
+            "treasury_accountability_policy": {
+                "public_report_required": True,
+                "spend_receipt_required": True,
+                "governance_parent_required": True,
+            },
+        },
         "accounts": {
             "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "balance": 100},
             "bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "balance": 0},

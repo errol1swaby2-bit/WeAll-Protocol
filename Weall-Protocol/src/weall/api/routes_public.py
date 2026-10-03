@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from weall.api.poh_route_auth import enforce_poh_read_authorization
 from weall.api.routes_public_parts.accounts import router as accounts_router
 from weall.api.routes_public_parts.activity import router as activity_router
 from weall.api.routes_public_parts.consensus import router as consensus_router
@@ -49,7 +50,12 @@ public_router.include_router(session_router, prefix="/v1", tags=["session"])
 public_router.include_router(mempool_router, prefix="/v1", tags=["mempool"])
 public_router.include_router(tx_router, prefix="/v1", tags=["tx"])
 public_router.include_router(consensus_router, prefix="/v1", tags=["consensus"])
-public_router.include_router(poh_router, prefix="/v1", tags=["poh"])
+public_router.include_router(
+    poh_router,
+    prefix="/v1",
+    tags=["poh"],
+    dependencies=[Depends(enforce_poh_read_authorization)],
+)
 public_router.include_router(reputation_router, prefix="/v1", tags=["reputation"])
 public_router.include_router(content_router, prefix="/v1", tags=["content"])
 public_router.include_router(disputes_router, prefix="/v1", tags=["disputes"])

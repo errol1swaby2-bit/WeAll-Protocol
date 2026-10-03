@@ -189,6 +189,10 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
 
     The scheduler only progresses system-owned lifecycle steps. Applicant
     evidence and juror reviews still arrive as signed user transactions.
+
+    ``async_cases`` is a JSON mapping and therefore unordered under canonical
+    state-root semantics. Consensus-visible queue insertion must not consume its
+    Python insertion order, so cases are processed by canonical case key.
     """
 
     enq = 0
@@ -211,7 +215,7 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
         default_units=DEFAULT_ASYNC_MIN_REP_UNITS,
     )
 
-    for case_id_raw, case_any in list(cases.items()):
+    for case_id_raw, case_any in sorted(cases.items(), key=lambda item: str(item[0])):
         case = _as_dict(case_any)
         case_id = (
             _as_str(case.get("case_id") or case_id_raw).strip() or _as_str(case_id_raw).strip()

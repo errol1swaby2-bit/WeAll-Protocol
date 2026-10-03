@@ -54,7 +54,6 @@ class _LeaderBackedStateSyncPeer:
         for blk in list(resp.blocks or ()):
             blk2 = dict(blk)
             blk2["parent_block_id"] = str(blk2.get("prev_block_id") or "")
-            blk2["prev_block_hash"] = ""
             blocks.append(blk2)
         return StateSyncResponseMsg(
             header=resp.header,

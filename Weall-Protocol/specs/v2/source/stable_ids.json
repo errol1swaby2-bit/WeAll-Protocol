@@ -3358,6 +3358,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:group_spend_governance_approval_required",
+      "kind": "failure",
+      "stable_id": "FAIL-02A9019B0E52AC96",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "duplicate:treasury_id_exists",
       "kind": "failure",
       "stable_id": "FAIL-0360564AC249F717",
@@ -5290,6 +5297,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:group_spend_governance_queue_binding_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-7A7C0462ED3B372E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "forbidden:account_not_registered",
       "kind": "failure",
       "stable_id": "FAIL-7AF1EFB97C8D074E",
@@ -5356,6 +5370,13 @@
       "canonical_key": "not_found:wallet_not_found",
       "kind": "failure",
       "stable_id": "FAIL-7D970DDF749D466C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:group_spend_governance_plan_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-7DD872F0D3FC9AB9",
       "status": "active"
     },
     {
@@ -10638,6 +10659,13 @@
       "canonical_key": "src/weall/net/codec.py:_normalize_tuple_fields_for_message:message_builder_or_handler",
       "kind": "message",
       "stable_id": "MSG-AD5FC109E1D67776",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_runtime_adapter.py:_bft_prepare_transition_vote:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-AD7439A7CF9B54D7",
       "status": "active"
     },
     {
@@ -17332,9 +17360,37 @@
     },
     {
       "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_runtime_adapter.py:_bft_prepare_transition_vote",
+      "kind": "scheduler",
+      "stable_id": "SCHED-4BE4EA54F6651572",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_runtime_adapter.py:_bft_transition_bridge_descriptor",
+      "kind": "scheduler",
+      "stable_id": "SCHED-4C631AD6E7165325",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_pending_frontier_impl.py:_finalized_replay_path_ids",
+      "kind": "scheduler",
+      "stable_id": "SCHED-4EF22601E3CD8CDD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "src/weall/runtime/account_recovery_scheduler.py:schedule_account_recovery_system_txs",
       "kind": "scheduler",
       "stable_id": "SCHED-C298622F5EDA55A7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_runtime_adapter.py:_bft_transition_bridge_has_qc",
+      "kind": "scheduler",
+      "stable_id": "SCHED-ED875704F7B8767A",
       "status": "active"
     },
     {
@@ -18245,6 +18301,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:proposal_id",
+      "kind": "state",
+      "stable_id": "STATE-0D9C4F570C55E4C1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "PoH:assigned_juror_count",
       "kind": "state",
       "stable_id": "STATE-0DAC1073A33BB740",
@@ -19074,6 +19137,13 @@
       "canonical_key": "Content:labels",
       "kind": "state",
       "stable_id": "STATE-25D6ABF26D40BBFF",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:spend_plan_hash",
+      "kind": "state",
+      "stable_id": "STATE-25E5261F17FC6847",
       "status": "active"
     },
     {
@@ -21584,6 +21654,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:_governance_proposal_id",
+      "kind": "state",
+      "stable_id": "STATE-77AEC9D4075070E1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Storage:capacity_challenges",
       "kind": "state",
       "stable_id": "STATE-77BD8D778EA2C887",
@@ -21804,6 +21881,13 @@
       "canonical_key": "Identity:revoked",
       "kind": "state",
       "stable_id": "STATE-808B8B82F068A20D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:governance_approval",
+      "kind": "state",
+      "stable_id": "STATE-808FC2C8D6D73D88",
       "status": "active"
     },
     {
@@ -23281,6 +23365,13 @@
       "canonical_key": "PoH:challenge_id",
       "kind": "state",
       "stable_id": "STATE-B0B6016845174BEE",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:_approved_spend_plan_hash",
+      "kind": "state",
+      "stable_id": "STATE-B0BAA8A40027CF32",
       "status": "active"
     },
     {

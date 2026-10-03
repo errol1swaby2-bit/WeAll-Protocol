@@ -68,7 +68,7 @@ def test_pending_frontier_replay_attaches_cached_qc_as_justify_qc(
     assert "qc" not in seen[0]
 
 
-def test_pending_frontier_drops_conflicting_cached_qc_when_block_already_has_justify_qc(
+def test_pending_frontier_preserves_parent_justify_when_cached_qc_is_self_commit(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
@@ -80,6 +80,8 @@ def test_pending_frontier_drops_conflicting_cached_qc_when_block_already_has_jus
         "block_hash": "B-h",
         "prev_block_id": "A",
         "height": 2,
+        "validator_epoch": 1,
+        "validator_set_hash": "set-h",
         "justify_qc": {
             "chain_id": "batch98-b",
             "view": 5,
@@ -91,7 +93,7 @@ def test_pending_frontier_drops_conflicting_cached_qc_when_block_already_has_jus
         "header": {"chain_id": "batch98-b", "height": 2, "block_ts_ms": 2},
         "txs": [],
     }
-    conflicting_qcj = {
+    self_commit_qcj = {
         "chain_id": "batch98-b",
         "view": 7,
         "block_id": bid,
@@ -104,19 +106,66 @@ def test_pending_frontier_drops_conflicting_cached_qc_when_block_already_has_jus
     ex.state["height"] = 1
     ex._pending_remote_blocks[bid] = dict(block)
     ex._index_pending_remote_block(block)
-    ex._put_pending_missing_qc(conflicting_qcj)
+    ex._put_pending_missing_qc(self_commit_qcj)
 
-    called = {"apply": 0}
+    seen: list[dict[str, object]] = []
 
     def _fake_apply_block(self: WeAllExecutor, blk: dict[str, object]) -> ExecutorMeta:
-        called["apply"] += 1
+        seen.append(dict(blk))
         return ExecutorMeta(ok=True, height=2, block_id=bid)
 
     ex.apply_block = MethodType(_fake_apply_block, ex)
 
     metas = ex.bft_try_apply_pending_remote_blocks()
 
-    assert metas == []
-    assert called["apply"] == 0
-    assert bid not in ex._pending_remote_blocks
-    assert ex._pending_missing_qc_json(block_id=bid) is None
+    assert len(metas) == 1
+    assert len(seen) == 1
+    assert isinstance(seen[0].get("justify_qc"), dict)
+    assert seen[0]["justify_qc"]["block_id"] == "A"
+    assert isinstance(seen[0].get("qc"), dict)
+    assert seen[0]["qc"]["block_id"] == bid
+
+
+def test_production_finalized_path_replay_is_scoped_and_cleared(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    ex = _executor(tmp_path, "node-finalized", chain_id="batch98-finalized")
+
+    ex.state["tip"] = "A"
+    ex.state["height"] = 1
+    ex._bft.finalized_block_id = "B"
+    ex._bft_phase_allows_artifact_processing = MethodType(lambda self: True, ex)
+    ex._bft_parent_ready_for_apply = MethodType(lambda self, block: True, ex)
+
+    block = {
+        "block_id": "B",
+        "block_hash": "B-h",
+        "prev_block_id": "A",
+        "height": 2,
+        "header": {
+            "chain_id": "batch98-finalized",
+            "height": 2,
+            "block_ts_ms": 2,
+        },
+        "txs": [],
+    }
+    ex._pending_remote_blocks["B"] = dict(block)
+    ex._index_pending_remote_block(block)
+
+    seen: list[bool] = []
+
+    def _fake_apply_block(self: WeAllExecutor, blk: dict[str, object]) -> ExecutorMeta:
+        seen.append(bool(getattr(self, "_bft_authenticated_finalized_replay", False)))
+        self.state["tip"] = str(blk["block_id"])
+        self.state["height"] = int(blk["height"])
+        return ExecutorMeta(ok=True, height=2, block_id="B")
+
+    ex.apply_block = MethodType(_fake_apply_block, ex)
+
+    metas = ex.bft_try_apply_pending_remote_blocks()
+
+    assert len(metas) == 1
+    assert seen == [True]
+    assert str(ex.state.get("tip") or "") == "B"
+    assert getattr(ex, "_bft_authenticated_finalized_replay", False) is False

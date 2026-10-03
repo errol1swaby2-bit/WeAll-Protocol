@@ -72,6 +72,32 @@ from weall.runtime.system_tx_engine import (
 from weall.runtime.tx_admission import admit_tx
 
 
+def _chain_time_floor_from_state(state: Json, *, limit: int = 11) -> int:
+    """Return the deterministic chain-time floor for an explicit branch state."""
+    if not isinstance(state, dict):
+        return 0
+    blocks = state.get("blocks")
+    blocks_map = blocks if isinstance(blocks, dict) else {}
+    cur = str(state.get("tip") or "").strip()
+    out: list[int] = []
+    seen: set[str] = set()
+    while cur and cur not in seen and len(out) < max(1, int(limit)):
+        seen.add(cur)
+        meta = blocks_map.get(cur)
+        if not isinstance(meta, dict):
+            break
+        ts = _safe_int(meta.get("block_ts_ms"), 0)
+        if ts > 0:
+            out.append(int(ts))
+        cur = str(meta.get("prev_block_id") or "").strip()
+    mtp = 0
+    if out:
+        vals = sorted(out)
+        mtp = int(vals[len(vals) // 2])
+    tip_ts = _safe_int(state.get("tip_ts_ms") or state.get("last_block_ts_ms"), 0)
+    return max(int(tip_ts), int(mtp))
+
+
 def produce_block(
     self,
     *,
@@ -158,30 +184,35 @@ def build_block_candidate(
     helper_receipts_by_lane: dict[str, list[Json]] | None = None,
     bft_justify_qc: Json | None = None,
     proposer: str = "",
+    base_state: Json | None = None,
 ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
     post_commit_error = str(getattr(self, "_post_commit_housekeeping_error", "") or "")
     if post_commit_error:
         return None, None, [], [], f"executor_unhealthy:{post_commit_error}"
 
+    source_state = self.state if base_state is None else base_state
+    if not isinstance(source_state, dict):
+        return None, None, [], [], "invalid_candidate_base_state"
+
     runtime_ctx = RuntimeContext.from_executor(self)
     scheduler_set = runtime_ctx.scheduler_set
     apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta
-    height = _safe_int(self.state.get("height"), 0)
-    tip = str(self.state.get("tip") or "")
-    tip_hash = str(self.state.get("tip_hash") or "")
+    height = _safe_int(source_state.get("height"), 0)
+    tip = str(source_state.get("tip") or "")
+    tip_hash = str(source_state.get("tip_hash") or "")
 
-    chain_floor_ms = self.chain_time_floor_ms()
+    chain_floor_ms = _chain_time_floor_from_state(source_state)
     successor_ts_ms = max(1, int(chain_floor_ms) + 1)
 
     clock_policy = runtime_block_clock_policy(
-        state=self.state, mode=str(os.environ.get("WEALL_MODE", "") or "")
+        state=source_state, mode=str(os.environ.get("WEALL_MODE", "") or "")
     )
     next_height_for_clock = int(height) + 1
     if bool(clock_policy.enabled):
         ts_ms = int(expected_block_time_ms(clock_policy, height=next_height_for_clock))
         candidate_ts_ms = int(force_ts_ms) if force_ts_ms is not None else int(ts_ms)
         time_verdict = validate_block_timestamp(
-            state=self.state,
+            state=source_state,
             height=next_height_for_clock,
             block_ts_ms=candidate_ts_ms,
             chain_floor_ms=int(chain_floor_ms),
@@ -198,7 +229,7 @@ def build_block_candidate(
 
     if not bool(clock_policy.enabled):
         time_verdict = validate_block_timestamp(
-            state=self.state,
+            state=source_state,
             height=next_height_for_clock,
             block_ts_ms=int(ts_ms),
             chain_floor_ms=int(chain_floor_ms),
@@ -216,7 +247,7 @@ def build_block_candidate(
         str(getattr(self._mempool, "selection_policy", lambda: "canonical")())
     )
     pinned_selection_policy = _pinned_mempool_selection_policy(
-        self.state,
+        source_state,
         runtime_selection_policy,
     )
     fetch_for_block = getattr(self._mempool, "fetch_for_block", None)
@@ -232,7 +263,7 @@ def build_block_candidate(
         txs = self._mempool.peek(limit=min(int(max_txs), int(DEFAULT_MAX_BLOCK_TXS)))
     runtime_helper_execution_profile = self._requested_helper_execution_profile()
     pinned_helper_execution_profile = _pinned_helper_execution_profile(
-        self.state,
+        source_state,
         runtime_helper_execution_profile,
     )
     self._last_mempool_selection_diag = {
@@ -247,7 +278,7 @@ def build_block_candidate(
     if not txs and not bool(allow_empty):
         return None, None, [], [], "empty"
 
-    working: Json = copy.deepcopy(self.state)
+    working: Json = copy.deepcopy(source_state)
     if bool(clock_policy.enabled):
         commit_clock_policy_to_state(working, clock_policy)
 
@@ -377,7 +408,7 @@ def build_block_candidate(
     # Validate the replicated queue before scheduler/emitter work so malformed
     # queue state fails closed with stable error precedence.
     try:
-        build_system_queue_lookup(self.state)
+        build_system_queue_lookup(source_state)
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], [], f"system_emitter_pre_failed:{type(exc).__name__}"
@@ -469,7 +500,7 @@ def build_block_candidate(
     # non-prod behavior permissive so existing unsigned dev/test fixtures
     # can still exercise candidate construction flows.
     ledger_for_block = LedgerView.from_ledger(working)
-    verify_candidate_signatures = block_tx_signatures_required(self.state, chain_id=self.chain_id)
+    verify_candidate_signatures = block_tx_signatures_required(source_state, chain_id=self.chain_id)
     ok, block_reject, per_tx = admit_block_txs(
         env_objs,
         ledger_for_block,
@@ -484,9 +515,10 @@ def build_block_candidate(
         return None, None, [], [], f"block_reject:{block_reject.code}:{block_reject.reason}"
 
     # Apply txs (fail-atomic) and always emit deterministic receipts.
-    # Nonces are only consumed on success, so any later non-system tx from a
-    # signer whose earlier tx rejected during apply must also be rejected
-    # deterministically within this block.
+    # RuntimeContext binds canonical inclusion to one-shot nonce semantics:
+    # a non-system tx consumes its signer nonce even when domain application
+    # fails and the block records a failed receipt. Later same-signer work
+    # must therefore advance from that canonical included nonce.
     blocked_signers_after_apply_reject: set[str] = set()
     mempool_applied_count = 0
 
@@ -703,6 +735,7 @@ def build_block_candidate(
             helper_receipts_by_lane=helper_receipts_by_lane,
             bft_justify_qc=bft_justify_qc,
             proposer=proposer,
+            base_state=source_state,
         )
         retry_block = retry[0]
         if (
@@ -870,8 +903,8 @@ def build_block_candidate(
     state_root = compute_state_root(working)
 
     recent_block_anchor = (
-        compute_recent_block_anchor(block_ids=recent_block_ids_from_state(state=self.state))
-        if recent_block_anchor_required_for_height(state=self.state, height=int(new_height))
+        compute_recent_block_anchor(block_ids=recent_block_ids_from_state(state=source_state))
+        if recent_block_anchor_required_for_height(state=source_state, height=int(new_height))
         else ""
     )
 

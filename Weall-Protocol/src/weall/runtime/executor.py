@@ -87,12 +87,26 @@ def _call_admit_bft_block(
     *,
     block: Json,
     state: Json,
+    blocks_map: Mapping[str, Json] | None = None,
     bft_enabled: bool,
 ) -> tuple[bool, Any]:
     try:
-        return admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
+        return admit_bft_block(
+            block=block,
+            state=state,
+            blocks_map=dict(blocks_map or {}),
+            bft_enabled=bft_enabled,
+        )
     except TypeError as exc:
-        if "unexpected keyword argument 'bft_enabled'" not in str(exc):
+        message = str(exc)
+        if "unexpected keyword argument 'blocks_map'" in message:
+            try:
+                return admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
+            except TypeError as legacy_exc:
+                if "unexpected keyword argument 'bft_enabled'" not in str(legacy_exc):
+                    raise
+                return admit_bft_block(block, state)
+        if "unexpected keyword argument 'bft_enabled'" not in message:
             raise
         return admit_bft_block(block, state)
 
@@ -1922,6 +1936,7 @@ class WeAllExecutor:
         helper_receipts_by_lane: dict[str, list[Json]] | None = None,
         bft_justify_qc: Json | None = None,
         proposer: str = "",
+        base_state: Json | None = None,
     ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
         from weall.runtime import block_builder as _impl
 
@@ -1935,6 +1950,7 @@ class WeAllExecutor:
                 helper_receipts_by_lane=helper_receipts_by_lane,
                 bft_justify_qc=bft_justify_qc,
                 proposer=proposer,
+                base_state=base_state,
             )
 
     # ----------------------------

@@ -1,8 +1,12 @@
 # src/weall/runtime/group_treasury_scheduler.py
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
+from weall.runtime.ballot_policy import strict_civic_governance_enabled
+from weall.runtime.econ_phase import econ_allowed_from_state
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = dict[str, Any]
@@ -61,26 +65,105 @@ def _is_terminal(spend: Json) -> bool:
     return st in {"executed", "canceled", "cancelled", "expired"}
 
 
+def _economic_policy_declared(state: Json) -> bool:
+    """True when state explicitly opts into the Genesis economics posture.
+
+    Old isolated scheduler fixtures predate the economics state contract and do
+    not carry params at all. Production/strict chains are always gated; legacy
+    fixtures remain compatible unless they explicitly declare economic policy.
+    """
+
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return False
+    return any(
+        key in params
+        for key in (
+            "economics_enabled",
+            "economic_unlock_time",
+            "genesis_time",
+        )
+    )
+
+
+def group_spend_plan_view(spend: Json) -> Json:
+    """Return the immutable political spend terms approved by governance.
+
+    Signer snapshots and collected signatures are execution-authority data, not
+    policy terms. The commitment therefore binds the spend identity, political
+    scope, treasury, recipient, value, and timing that governance authorizes.
+    """
+
+    return {
+        "spend_id": _as_str(spend.get("spend_id")),
+        "group_id": _as_str(spend.get("group_id")),
+        "treasury_id": _as_str(spend.get("treasury_id")),
+        "to": _as_str(spend.get("to")),
+        "amount": _as_int(spend.get("amount"), 0),
+        "created_at_height": _as_int(spend.get("created_at_height"), 0),
+        "earliest_execute_height": _as_int(spend.get("earliest_execute_height"), 0),
+    }
+
+
+def group_spend_plan_hash(spend: Json) -> str:
+    payload = json.dumps(
+        group_spend_plan_view(spend),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _strict_governance_approval(spend: Json) -> Json | None:
+    approval = spend.get("governance_approval")
+    if not isinstance(approval, dict):
+        return None
+    proposal_id = _as_str(approval.get("proposal_id"))
+    approved_hash = _as_str(approval.get("spend_plan_hash"))
+    if not proposal_id or not approved_hash:
+        return None
+    if approved_hash != group_spend_plan_hash(spend):
+        return None
+    return approval
+
+
 def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> str | None:
-    """If a spend has reached threshold, enqueue GROUP_TREASURY_SPEND_EXECUTE.
+    """Enqueue a threshold-signed group spend when all authority layers exist.
 
     Canon (tx_canon.yaml):
       - origin SYSTEM, receipt_only
       - parent required: GROUP_TREASURY_SPEND_SIGN
-      - via_gov_execute: true (but may be emitted via system queue)
+      - via_gov_execute: true
 
-    Determinism:
-      - enqueue_system_tx de-dupes by deterministic queue_id
-      - repeated calls are safe.
+    In strict civic governance, multisig proves execution authority only. A
+    matching governance approval commitment must already bind the immutable
+    spend plan before threshold signatures can cause value execution. Either
+    ordering is supported safely: governance may approve before or after the
+    threshold is reached; repeated scheduler calls are deterministic and deduped.
     """
     if not isinstance(spend, dict):
         return None
     if _is_terminal(spend):
         return None
 
+    strict = strict_civic_governance_enabled(state)
+
+    # Production/strict chains and any state that explicitly declares Genesis
+    # economics fail closed while value movement is locked or disabled. Legacy
+    # unit fixtures with no economic policy declaration retain compatibility.
+    if (strict or _economic_policy_declared(state)) and not econ_allowed_from_state(state):
+        return None
+
     spend_id = _as_str(spend.get("spend_id"))
     if not spend_id:
         return None
+
+    approval: Json | None = None
+    if strict:
+        approval = _strict_governance_approval(spend)
+        if approval is None:
+            return None
 
     threshold = _as_int(spend.get("threshold"), 0)
     if threshold <= 0:
@@ -101,7 +184,17 @@ def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> str | None
         # already satisfied.
         due_h = max(int(due_h), int(current_apply_height))
 
-    payload = {"spend_id": spend_id, "_parent_ref": "GROUP_TREASURY_SPEND_SIGN"}
+    payload: Json = {
+        "spend_id": spend_id,
+        "_parent_ref": "GROUP_TREASURY_SPEND_SIGN",
+    }
+    if approval is not None:
+        # Internal queue metadata binds the emitted value movement to the exact
+        # governance-approved plan. These underscore-prefixed fields are not
+        # user-controlled canon payload fields.
+        payload["_governance_proposal_id"] = _as_str(approval.get("proposal_id"))
+        payload["_approved_spend_plan_hash"] = _as_str(approval.get("spend_plan_hash"))
+
     return enqueue_system_tx(
         state,
         tx_type="GROUP_TREASURY_SPEND_EXECUTE",
@@ -162,4 +255,9 @@ def maybe_enqueue_group_spend_expire(state: Json, *, spend: Json) -> str | None:
     )
 
 
-__all__ = ["maybe_enqueue_group_spend_execute", "maybe_enqueue_group_spend_expire"]
+__all__ = [
+    "group_spend_plan_hash",
+    "group_spend_plan_view",
+    "maybe_enqueue_group_spend_execute",
+    "maybe_enqueue_group_spend_expire",
+]

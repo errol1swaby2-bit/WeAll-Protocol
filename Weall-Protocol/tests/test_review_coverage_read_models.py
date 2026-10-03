@@ -205,28 +205,34 @@ def _poh_state() -> dict[str, Any]:
 def test_completed_poh_cases_leave_active_reviewer_queues_by_default() -> None:
     client = _client(_poh_state())
 
-    async_default = client.get("/v1/poh/async/juror-cases?juror=%40genesis").json()["cases"]
-    async_all = client.get("/v1/poh/async/juror-cases?juror=%40genesis&include_completed=1").json()[
-        "cases"
-    ]
+    async_default = client.get(
+        "/v1/poh/async/juror-cases?juror=%40genesis", headers=_auth("@genesis")
+    ).json()["cases"]
+    async_all = client.get(
+        "/v1/poh/async/juror-cases?juror=%40genesis&include_completed=1", headers=_auth("@genesis")
+    ).json()["cases"]
     assert [case["case_id"] for case in async_default] == ["async:open"]
     assert [case["case_id"] for case in async_all] == ["async:done", "async:open"]
 
-    tier2_default = client.get("/v1/poh/tier2/juror-cases?juror=%40genesis").json()["cases"]
-    tier2_all = client.get("/v1/poh/tier2/juror-cases?juror=%40genesis&include_completed=1").json()[
-        "cases"
-    ]
+    tier2_default = client.get(
+        "/v1/poh/tier2/juror-cases?juror=%40genesis", headers=_auth("@genesis")
+    ).json()["cases"]
+    tier2_all = client.get(
+        "/v1/poh/tier2/juror-cases?juror=%40genesis&include_completed=1", headers=_auth("@genesis")
+    ).json()["cases"]
     assert [case["case_id"] for case in tier2_default] == ["tier2:open"]
     assert [case["case_id"] for case in tier2_all] == ["tier2:done", "tier2:open"]
 
-    live_default = client.get("/v1/poh/live/assigned?juror=%40genesis").json()["cases"]
-    live_all = client.get("/v1/poh/live/assigned?juror=%40genesis&include_completed=1").json()[
-        "cases"
-    ]
+    live_default = client.get(
+        "/v1/poh/live/assigned?juror=%40genesis", headers=_auth("@genesis")
+    ).json()["cases"]
+    live_all = client.get(
+        "/v1/poh/live/assigned?juror=%40genesis&include_completed=1", headers=_auth("@genesis")
+    ).json()["cases"]
     assert [case["case_id"] for case in live_default] == ["live:open"]
     assert [case["case_id"] for case in live_all] == ["live:done", "live:open"]
 
-    removed = client.get("/v1/poh/live/juror-cases?juror=%40genesis")
+    removed = client.get("/v1/poh/live/juror-cases?juror=%40genesis", headers=_auth("@genesis"))
     assert removed.status_code == 410
     assert removed.json()["error"]["code"] == "legacy_endpoint_removed"
 
