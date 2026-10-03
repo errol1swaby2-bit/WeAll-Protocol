@@ -74,6 +74,10 @@ admission.write_text("\n".join(lines) + "\n", encoding="utf-8")
 # runtime onboarding/authority code remains unchanged.
 fault = root / "src/weall/runtime/fault_injection.py"
 lines = fault.read_text(encoding="utf-8").splitlines()
+validator_env = index_after(lines, 0, "    def _validator_env(node_id: str) -> _EnvPatch:")
+prod_mode = index_after(lines, validator_env, '                "WEALL_MODE": "prod",')
+if prod_mode + 1 >= len(lines) or lines[prod_mode + 1] != '                "WEALL_REQUIRE_VRF": "1",':
+    lines.insert(prod_mode + 1, '                "WEALL_REQUIRE_VRF": "1",')
 helper = index_after(
     lines,
     0,
