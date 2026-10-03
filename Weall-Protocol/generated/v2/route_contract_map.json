@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "b8b7f10ee88ba03d763e4417ad6246ab0845a5190b9e30e5f7994befb064febb"
+    "source_tree_digest": "eda4506c9572aaac3f37e203f0fee5c3cccb52c33d926a4e6c4a7a52aa931a21"
   },
   "required_fields": [
     "stable_id",
@@ -7597,6 +7597,7 @@
         "tests/test_pending_missing_qc_hash_surface.py",
         "tests/test_pending_tx_survives_failed_commit.py",
         "tests/test_poh_async_native_tier1.py",
+        "tests/test_poh_async_panel_grinding_regression.py",
         "tests/test_poh_async_recorded_video_frontend.py",
         "tests/test_poh_async_reviewable_evidence.py",
         "tests/test_poh_async_safety.py",
@@ -8449,6 +8450,7 @@
         "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
         "tests/test_pb001bm_validator_authority_fail_closed.py",
         "tests/test_pb001bn_bft_identity_quarantine_restart.py",
+        "tests/test_poh_async_panel_grinding_regression.py",
         "tests/test_poh_async_threshold_safety.py",
         "tests/test_poh_case_scoped_juror_gate.py",
         "tests/test_poh_eligibility_rules.py",

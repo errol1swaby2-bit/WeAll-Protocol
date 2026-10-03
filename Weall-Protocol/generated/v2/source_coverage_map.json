@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1977,
+  "file_count": 1978,
   "files": [
     {
       "affected_registers": [
@@ -11409,7 +11409,7 @@
       ],
       "path": "src/weall/runtime/poh/async_scheduler.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "9f370745a4bf6b4ceb87294af3e2c770abb3c254694a61c220571105994a1f48",
+      "sha256": "bfb279b8c7ad1714451a7f317a6e754a6f1526b560672e524335f8fffadf1866",
       "source_id": "SRC-953DCA1E1BD4F396"
     },
     {
@@ -11461,7 +11461,7 @@
       ],
       "path": "src/weall/runtime/poh/juror_select.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "58b6b0c2b68c9ab746b53f8ff48a76f07674b0a86134387e53c43f9f0e92aa0b",
+      "sha256": "ee0583321595671ca2f77ea60fec7b70ba52a086d7be656b66badf8b96f375e9",
       "source_id": "SRC-BBDC152DDA3A2FB0"
     },
     {
@@ -22873,6 +22873,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "815bc8150630bbacceee9ad981801752c173badab9a380265bc45388e6d8cc1d",
       "source_id": "SRC-6078E3398D802AA8"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-2611"
+      ],
+      "path": "tests/test_poh_async_panel_grinding_regression.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "6b5cbb73c4b2bb920284212dffd638edcc6d89106f0b8a89d58cd8eb09185e6b",
+      "source_id": "SRC-BFE9658414B44D62"
     },
     {
       "affected_registers": [
