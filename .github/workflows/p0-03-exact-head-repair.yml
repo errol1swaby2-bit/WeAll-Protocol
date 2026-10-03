@@ -1,4 +1,4 @@
-name: P0-03 Exact-Head Diagnostic
+name: P0-03 Consolidated Repair Validation
 
 on:
   push:
@@ -10,13 +10,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: p0-03-exact-head-diagnostic
+  group: p0-03-consolidated-repair-validation
   cancel-in-progress: false
 
 jobs:
-  diagnose-follower-continuity:
+  validate-consolidated-repair:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Checkout canonical P0 branch
         uses: actions/checkout@v4
@@ -37,108 +37,71 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Apply currently rehearsed P0-03 repairs
+      - name: Apply consolidated P0-03 candidate repair
         run: |
           set -Eeuo pipefail
-          python - <<'PY'
-          from pathlib import Path
+          python .github/tmp-p0-03-runtime-repair.py
 
-          def replace_exact(path: str, old: str, new: str, label: str) -> None:
-              target = Path(path)
-              text = target.read_text(encoding="utf-8")
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
-              target.write_text(text.replace(old, new, 1), encoding="utf-8")
+      - name: Normalize and lint repaired sources
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check --fix \
+            src/weall/runtime/bft_hotstuff.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/block_admission.py \
+            src/weall/runtime/executor.py \
+            tests/test_p0_03_production_composition.py \
+            tests/test_priority2_votecheck_dos_hardening.py \
+            tests/test_fresh_ai_error_closure.py
+          ruff format \
+            src/weall/runtime/bft_hotstuff.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/block_admission.py \
+            src/weall/runtime/executor.py \
+            tests/test_p0_03_production_composition.py \
+            tests/test_priority2_votecheck_dos_hardening.py \
+            tests/test_fresh_ai_error_closure.py
+          ruff check \
+            src/weall/runtime/bft_hotstuff.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            src/weall/runtime/bft_votecheck.py \
+            src/weall/runtime/block_admission.py \
+            src/weall/runtime/executor.py \
+            tests/test_p0_03_production_composition.py \
+            tests/test_priority2_votecheck_dos_hardening.py \
+            tests/test_fresh_ai_error_closure.py
+          git diff --check
 
-          replace_exact(
-              "Weall-Protocol/src/weall/runtime/bft_runtime_adapter.py",
-              '''    elif _mode() == "prod":
-                  state = getattr(self, "state", None)
-                  phase_reader = getattr(self, "_current_consensus_phase", None)
-                  current_phase = phase_reader() if callable(phase_reader) else ""
-                  if isinstance(state, dict) and current_phase == CONSENSUS_PHASE_BFT_ACTIVE:
-                      height = _safe_int(state.get("height"), 0)
-                      tip = str(state.get("tip") or "").strip()
-                      if height > 0 or tip:
-                          return None
-          ''',
-              '''    elif _mode() == "prod":
-                  phase_reader = getattr(self, "_current_consensus_phase", None)
-                  current_phase = phase_reader() if callable(phase_reader) else ""
-                  if current_phase == CONSENSUS_PHASE_BFT_ACTIVE:
-                      return None
-          ''',
-              "production BFT-active QC-less proposal fence",
-          )
-
-          replace_exact(
-              "Weall-Protocol/src/weall/runtime/block_replay.py",
-              '''            ok_bft, rej_bft = _call_admit_bft_commit_block(
-                          block=block2,
-                          state=self.state,
-                          blocks_map=self._bft_speculative_blocks_map(),
-                          bft_enabled=effective_bft_enabled(executor=self, default=False),
-                      )
-          ''',
-              '''            admission_blocks_map = self._bft_speculative_blocks_map()
-                      current_bid = str(block2.get("block_id") or "").strip()
-                      if current_bid:
-                          admission_blocks_map = dict(admission_blocks_map)
-                          admission_blocks_map[current_bid] = {
-                              "height": int(height),
-                              "prev_block_id": advertised_prev_block_id,
-                              "block_ts_ms": int(ts_ms),
-                              "block_hash": str(block2.get("block_hash") or "").strip(),
-                          }
-                      ok_bft, rej_bft = _call_admit_bft_commit_block(
-                          block=block2,
-                          state=self.state,
-                          blocks_map=admission_blocks_map,
-                          bft_enabled=effective_bft_enabled(executor=self, default=False),
-                      )
-          ''',
-              "BFT replay admission current-block ancestry map",
-          )
-
-          replace_exact(
-              "Weall-Protocol/src/weall/runtime/bft_runtime_adapter.py",
-              '''    blocks_map = self.state.get("blocks")
-              if not isinstance(blocks_map, dict):
-                  blocks_map = {}
-              else:
-                  blocks_map = dict(blocks_map)
-              blocks_map[bid] = {
-          ''',
-              '''    blocks_map = dict(self._bft_speculative_blocks_map())
-              blocks_map[bid] = {
-          ''',
-              "BFT follower vote safety speculative ancestry map",
-          )
-          PY
-
-      - name: Run exact failing regression and capture trace
-        id: regression
+      - name: Run exact production composition regression
         working-directory: Weall-Protocol
         env:
           WEALL_MODE: prod
         run: |
-          set +e
+          set -Eeuo pipefail
           pytest -vv -s --tb=long \
-            tests/test_p0_03_production_composition.py::test_four_validator_prod_three_chain_restart_delayed_qc_and_wrong_parent_rejection \
-            > ../p0-03-regression-trace.txt 2>&1
-          rc=$?
-          cat ../p0-03-regression-trace.txt
-          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
-          exit 0
+            tests/test_p0_03_production_composition.py::test_four_validator_prod_three_chain_restart_delayed_qc_and_wrong_parent_rejection
 
-      - name: Upload exact regression trace
-        uses: actions/upload-artifact@v4
-        with:
-          name: p0-03-regression-trace
-          path: p0-03-regression-trace.txt
-          if-no-files-found: error
-
-      - name: Fail after preserving trace
+      - name: Run P0-03 and adjacent focused regression suite
+        working-directory: Weall-Protocol
         run: |
-          test "${{ steps.regression.outputs.exit_code }}" = "0"
+          set -Eeuo pipefail
+          pytest -q -vv \
+            tests/test_p0_03_production_composition.py \
+            tests/test_p0_03_certified_branch_transition.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_bft_production_safety.py \
+            tests/test_bft_pending_frontier_restart_persistence.py \
+            tests/test_executor_epoch_transition_pending_prune.py \
+            tests/test_priority1_bft_sender_rate_budget.py \
+            tests/test_pb001br_proposal_duplicate_cache_trust_boundary.py \
+            tests/test_priority2_votecheck_dos_hardening.py \
+            tests/test_bft_votecheck_safety.py \
+            tests/test_fresh_ai_error_closure.py \
+            tests/test_protocol_blocker_safety.py \
+            tests/test_production_consensus_profile.py \
+            tests/test_node_lifecycle_block_admission_authority.py \
+            tests/test_helper_block_plan_admission.py \
+            tests/test_block_signature_profiles.py
