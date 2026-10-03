@@ -1,21 +1,22 @@
-name: P0-03 Exact-Head Cleanup
+name: P0-03 Exact-Head Diagnostic
 
 on:
   push:
     branches:
       - p0-03-production-closure-staging-20261001
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: p0-03-exact-head-cleanup
+  group: p0-03-exact-head-diagnostic
   cancel-in-progress: false
 
 jobs:
-  clean-validate-and-publish:
+  diagnose-follower-continuity:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - name: Checkout canonical P0 branch
         uses: actions/checkout@v4
@@ -36,7 +37,7 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Apply focused P0-03 runtime repairs
+      - name: Apply currently rehearsed P0-03 repairs
         run: |
           set -Eeuo pipefail
           python - <<'PY'
@@ -116,174 +117,28 @@ jobs:
           )
           PY
 
-      - name: Normalize repaired runtime files
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          ruff check --fix src/weall/runtime/bft_runtime_adapter.py src/weall/runtime/block_replay.py
-          ruff format src/weall/runtime/bft_runtime_adapter.py src/weall/runtime/block_replay.py
-          ruff check src/weall/runtime/bft_runtime_adapter.py src/weall/runtime/block_replay.py
-          git diff --check
-
-      - name: Diagnose restart speculative parent reconstruction
+      - name: Run exact failing regression and capture trace
+        id: regression
         working-directory: Weall-Protocol
         env:
           WEALL_MODE: prod
         run: |
-          set -Eeuo pipefail
-          python - <<'PY'
-          from __future__ import annotations
+          set +e
+          pytest -vv -s --tb=long \
+            tests/test_p0_03_production_composition.py::test_restart_preserves_certified_pending_frontier_for_bft_continuity \
+            > ../p0-03-regression-trace.txt 2>&1
+          rc=$?
+          cat ../p0-03-regression-trace.txt
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit 0
 
-          import copy
-          import importlib.util
-          import tempfile
-          from pathlib import Path
+      - name: Upload exact regression trace
+        uses: actions/upload-artifact@v4
+        with:
+          name: p0-03-regression-trace
+          path: p0-03-regression-trace.txt
+          if-no-files-found: error
 
-          from weall.runtime import bft_votecheck
-
-          test_path = Path('tests/test_p0_03_production_composition.py').resolve()
-          spec = importlib.util.spec_from_file_location('p0diag', test_path)
-          assert spec is not None and spec.loader is not None
-          t = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(t)
-
-          pubs, privs = t._key_material()
-          with tempfile.TemporaryDirectory(prefix='weall-p0diag-') as td:
-              tmp_path = Path(td)
-              nodes, boundary_id, _ = t._install_prod_boundary(tmp_path, pubs=pubs, privs=privs)
-              qc0 = t._prepare_transition_qc(nodes, boundary_id=boundary_id, pubs=pubs, privs=privs)
-              leader1, b1 = t._propose(nodes, view=1, pubs=pubs, privs=privs)
-              votes1 = t._follower_votes(nodes, b1, leader=leader1, pubs=pubs, privs=privs)
-              qc1 = t._form_qc(nodes[leader1], leader1, votes1, pubs=pubs, privs=privs)
-              t._broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)
-
-              leader2 = t.leader_for_view(t.VALIDATORS, 2)
-              with t._env(t._prod_env(leader2, pub=pubs[leader2], priv=privs[leader2])):
-                  nodes[leader2].mark_clean_shutdown()
-                  nodes[leader2] = t._make_executor(tmp_path, leader2, node_id=leader2)
-
-              node = nodes[leader2]
-              b1_id = str(b1['block_id'])
-              print('P0DIAG', {
-                  'leader1': leader1,
-                  'leader2': leader2,
-                  'boundary_id': boundary_id,
-                  'b1_id': b1_id,
-                  'state_tip': str(node.state.get('tip') or ''),
-                  'state_height': int(node.state.get('height') or 0),
-                  'high_qc': node._bft.high_qc.to_json() if node._bft.high_qc is not None else None,
-                  'locked_qc': node._bft.locked_qc.to_json() if node._bft.locked_qc is not None else None,
-                  'finalized_block_id': str(node._bft.finalized_block_id or ''),
-                  'pending_remote_ids': list(node._pending_remote_blocks.keys()),
-                  'pending_candidate_ids': list(node._pending_candidates.keys()),
-                  'speculative_map_ids': list(node._bft_speculative_blocks_map().keys()),
-                  'pending_b1': node._bft_pending_block_json(b1_id),
-              }, flush=True)
-
-              chain = bft_votecheck._speculative_chain_to_parent(node, b1_id)
-              print('P0DIAG_CHAIN', chain, flush=True)
-              parent_state = bft_votecheck._speculative_parent_state(node, b1_id)
-              print('P0DIAG_PARENT_STATE', {
-                  'present': isinstance(parent_state, dict),
-                  'tip': str((parent_state or {}).get('tip') or ''),
-                  'height': int((parent_state or {}).get('height') or 0),
-              }, flush=True)
-
-              pending = node._bft_pending_block_json(b1_id)
-              if isinstance(pending, dict):
-                  slot = node._acquire_spec_exec_slot()
-                  try:
-                      clone = node._reset_spec_exec_slot(slot)
-                      clone.state = copy.deepcopy(node.state)
-                      clone._ledger_store.write(clone.state)
-                      clone._bft.load_from_state(clone.state)
-                      try:
-                          meta = clone.apply_block(copy.deepcopy(pending))
-                          print('P0DIAG_DIRECT_REPLAY', {
-                              'meta': repr(meta),
-                              'ok': bool(getattr(meta, 'ok', False)) if meta is not None else False,
-                              'clone_tip': str(clone.state.get('tip') or ''),
-                              'clone_height': int(clone.state.get('height') or 0),
-                          }, flush=True)
-                      except Exception as exc:
-                          print('P0DIAG_DIRECT_REPLAY_EXCEPTION', type(exc).__name__, repr(exc), flush=True)
-                  finally:
-                      node._release_spec_exec_slot(slot)
-          PY
-
-      - name: Remove superseded P0-03 repair surfaces
+      - name: Fail after preserving trace
         run: |
-          set -Eeuo pipefail
-          rm -f .github/tmp-p0-03-runtime-repair.py
-          rm -f .github/workflows/tmp-p0-03-production-composition.yml
-          rm -f .github/workflows/p0-03-exact-head-repair.yml
-
-      - name: Regenerate final-tree V2 derivatives and verified claims
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          python scripts/compile_v2_spec.py
-          python scripts/gen_current_verified_claims.py
-
-      - name: Verify generated and public-readiness artifacts on candidate tree
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          python scripts/check_generated.py
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
-          python scripts/check_public_claim_freshness.py
-          python scripts/gen_current_verified_claims.py --check
-
-      - name: Run focused P0-03 production and transition regressions
-        working-directory: Weall-Protocol
-        env:
-          WEALL_MODE: prod
-        run: |
-          set -Eeuo pipefail
-          pytest -q \
-            tests/test_p0_03_production_composition.py \
-            tests/test_p0_03_certified_branch_transition.py \
-            tests/test_bft_timeout_certificate.py \
-            tests/test_bft_production_safety.py \
-            tests/test_bft_pending_frontier_restart_persistence.py \
-            tests/test_executor_epoch_transition_pending_prune.py \
-            tests/test_priority2_votecheck_dos_hardening.py \
-            tests/test_bft_votecheck_safety.py \
-            tests/test_fresh_ai_error_closure.py \
-            tests/test_protocol_blocker_safety.py \
-            tests/test_production_consensus_profile.py \
-            tests/test_node_lifecycle_block_admission_authority.py \
-            tests/test_helper_block_plan_admission.py \
-            tests/test_block_signature_profiles.py
-
-      - name: Run full backend suite on final candidate tree
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          pytest -q
-
-      - name: Commit final helper-free exact tree
-        run: |
-          set -Eeuo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git diff --cached --check
-          test ! -e .github/tmp-p0-03-runtime-repair.py
-          test ! -e .github/workflows/tmp-p0-03-production-composition.yml
-          test ! -e .github/workflows/p0-03-exact-head-repair.yml
-          git commit -m 'fix(p0-03): close production transition and replay gaps'
-
-      - name: Verify clean-checkout reproducibility of committed tree
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
-          python scripts/gen_current_verified_claims.py --check
-
-      - name: Push validated exact tree
-        run: |
-          set -Eeuo pipefail
-          git push origin HEAD:p0-03-production-closure-staging-20261001
+          test "${{ steps.regression.outputs.exit_code }}" = "0"
