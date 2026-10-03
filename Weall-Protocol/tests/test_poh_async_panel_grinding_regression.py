@@ -132,19 +132,19 @@ def test_async_case_id_grind_search_cannot_change_panel() -> None:
     assert len(panels) == 1
 
 
-def test_canonical_scheduler_ignores_case_label_and_current_beacon_for_same_request_context() -> None:
+def test_async_scheduler_case_label_and_beacon_do_not_change_panel() -> None:
     state_a = _state(case_id="candidate-A", beacon_output="22" * 32)
     state_b = _state(case_id="candidate-B", beacon_output="ee" * 32)
 
     assert schedule_poh_async_system_txs(state_a, next_height=21) == 1
     assert schedule_poh_async_system_txs(state_b, next_height=21) == 1
 
-    assert _queued_assignment(state_a)["payload"]["jurors"] == _queued_assignment(state_b)[
-        "payload"
-    ]["jurors"]
+    panel_a = _queued_assignment(state_a)["payload"]["jurors"]
+    panel_b = _queued_assignment(state_b)["payload"]["jurors"]
+    assert panel_a == panel_b
 
 
-def test_decline_replacement_uses_original_request_seed_not_new_beacon_or_counter() -> None:
+def test_async_decline_replacement_uses_request_seed() -> None:
     state = _state(case_id="stable-request", beacon_output="33" * 32)
     selection_seed = async_request_selection_seed(
         state=state,
