@@ -35,6 +35,7 @@ jobs:
           python .github/tmp-p0-03-delayed-genesis-epoch-finality.py
           python .github/tmp-p0-03-system-block-context.py
           python .github/tmp-p0-03-spec-bft-authority.py
+          python .github/tmp-p0-03-finalized-replay-scope.py
       - name: Normalize candidate source and tests
         working-directory: Weall-Protocol
         run: |
@@ -50,6 +51,7 @@ jobs:
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
             tests/test_priority0_system_signer_canon.py \
+            tests/test_priority1_pending_frontier_apply_order.py \
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_fresh_ai_error_closure.py
           ruff format \
@@ -63,6 +65,7 @@ jobs:
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
             tests/test_priority0_system_signer_canon.py \
+            tests/test_priority1_pending_frontier_apply_order.py \
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_fresh_ai_error_closure.py
           ruff check \
@@ -76,6 +79,7 @@ jobs:
             src/weall/runtime/executor.py \
             tests/test_p0_03_production_composition.py \
             tests/test_priority0_system_signer_canon.py \
+            tests/test_priority1_pending_frontier_apply_order.py \
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_fresh_ai_error_closure.py
           git diff --check
@@ -96,6 +100,7 @@ jobs:
             tests/test_bft_pending_frontier_restart_persistence.py \
             tests/test_executor_epoch_transition_pending_prune.py \
             tests/test_priority1_bft_sender_rate_budget.py \
+            tests/test_priority1_pending_frontier_apply_order.py \
             tests/test_pb001br_proposal_duplicate_cache_trust_boundary.py \
             tests/test_priority2_votecheck_dos_hardening.py \
             tests/test_bft_votecheck_safety.py \
@@ -126,6 +131,7 @@ jobs:
           rm .github/tmp-p0-03-delayed-genesis-epoch-finality.py
           rm .github/tmp-p0-03-system-block-context.py
           rm .github/tmp-p0-03-spec-bft-authority.py
+          rm .github/tmp-p0-03-finalized-replay-scope.py
           rm .github/tmp-p0-03-follower-diagnostic.py
           rm .github/tmp-p0-03-votecheck-trace.py
           rm .github/tmp-p0-03-finality-state-trace.py
@@ -145,6 +151,7 @@ jobs:
           test ! -e .github/tmp-p0-03-delayed-genesis-epoch-finality.py
           test ! -e .github/tmp-p0-03-system-block-context.py
           test ! -e .github/tmp-p0-03-spec-bft-authority.py
+          test ! -e .github/tmp-p0-03-finalized-replay-scope.py
           test ! -e .github/tmp-p0-03-follower-diagnostic.py
           test ! -e .github/tmp-p0-03-votecheck-trace.py
           test ! -e .github/tmp-p0-03-finality-state-trace.py
