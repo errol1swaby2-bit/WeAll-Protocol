@@ -74,8 +74,10 @@ jobs:
           set -Eeuo pipefail
           PYTHONPATH=src:scripts python - <<'PY'
           from __future__ import annotations
+          import hashlib
           import importlib
           import json
+          import re
           import sys
           from pathlib import Path
 
@@ -93,6 +95,52 @@ jobs:
               'invalid_tx:reference_account_is_confirmed_duplicate',
               'invalid_state:duplicate_identity_conflict',
           ])
+
+          stable_path = root / 'specs' / 'v2' / 'source' / 'stable_ids.json'
+
+          def register_p0_06a_state_id(canonical_key: str) -> None:
+              payload = json.loads(stable_path.read_text(encoding='utf-8'))
+              entries = payload.get('entries')
+              if not isinstance(entries, list):
+                  raise SystemExit('stable_ids.json entries must be a list')
+
+              existing = [
+                  row
+                  for row in entries
+                  if isinstance(row, dict)
+                  and str(row.get('kind') or '') == 'state'
+                  and str(row.get('canonical_key') or '') == canonical_key
+              ]
+              if existing:
+                  if len(existing) != 1:
+                      raise SystemExit(f'duplicate state stable-ID rows for {canonical_key}')
+                  return
+
+              stable_id = 'STATE-' + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
+              for row in entries:
+                  if not isinstance(row, dict):
+                      continue
+                  if str(row.get('stable_id') or '') == stable_id:
+                      raise SystemExit(
+                          f'stable-ID collision: {stable_id} already bound to '
+                          f"{row.get('kind')}:{row.get('canonical_key')}"
+                      )
+              for row in payload.get('tombstones') or []:
+                  if isinstance(row, dict) and str(row.get('stable_id') or '') == stable_id:
+                      raise SystemExit(f'stable-ID collision with tombstone: {stable_id}')
+
+              entries.append({
+                  'aliases': [],
+                  'canonical_key': canonical_key,
+                  'kind': 'state',
+                  'stable_id': stable_id,
+                  'status': 'active',
+              })
+              stable_path.write_text(
+                  json.dumps(payload, indent=2, ensure_ascii=False) + '\n',
+                  encoding='utf-8',
+              )
+              print(f'P0-06A registered state stable ID: {canonical_key} -> {stable_id}')
 
           tx_rows: list[dict] = []
           route_rows: list[dict] = []
@@ -130,10 +178,38 @@ jobs:
               }
 
           compiler.apply_semantic_reviews = capture
+          registered_state_ids: list[str] = []
           try:
-              compiler.compile_artifacts()
+              for _attempt in range(33):
+                  tx_rows.clear()
+                  route_rows.clear()
+                  try:
+                      compiler.compile_artifacts()
+                      break
+                  except compiler.CompileError as exc:
+                      match = re.fullmatch(
+                          r'unregistered stable ID: kind=([^ ]+) canonical_key=(.+)',
+                          str(exc),
+                      )
+                      if match is None:
+                          raise
+                      kind, canonical_key = match.groups()
+                      if kind != 'state' or not canonical_key.startswith('PoH:'):
+                          raise
+                      if canonical_key in registered_state_ids:
+                          raise SystemExit(
+                              f'compiler still reports already-registered P0-06A state key: {canonical_key}'
+                          )
+                      if len(registered_state_ids) >= 32:
+                          raise SystemExit('P0-06A stable-ID registration exceeded bounded limit of 32')
+                      register_p0_06a_state_id(canonical_key)
+                      registered_state_ids.append(canonical_key)
+              else:
+                  raise SystemExit('P0-06A compiler discovery did not converge')
           finally:
               compiler.apply_semantic_reviews = original
+
+          print('P0-06A state stable IDs added:', registered_state_ids)
 
           review_path = root / 'specs' / 'v2' / 'source' / 'semantic_reviews.json'
           reviews = json.loads(review_path.read_text(encoding='utf-8'))
