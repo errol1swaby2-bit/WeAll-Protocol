@@ -34,6 +34,45 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      - name: Patch closure dependency order
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("Weall-Protocol/scripts/a15_f003_pr38_closure_v5.sh")
+          text = path.read_text(encoding="utf-8")
+
+          old = '''python scripts/gen_api_contract_map.py
+          python scripts/gen_failure_code_registry_v1_5.py
+
+          # V2 must be the final generator after all source/config/v1.5 evidence normalization.
+          python scripts/compile_v2_spec.py
+'''.replace("          ", "")
+          new = '''python scripts/gen_api_contract_map.py
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+
+          # V2 must be the final generator after all source/config/v1.5 evidence normalization.
+          python scripts/compile_v2_spec.py
+'''.replace("          ", "")
+          if text.count(old) != 1:
+              raise SystemExit("v15_generator_sequence_not_found_once")
+          text = text.replace(old, new, 1)
+
+          marker = '    "Weall-Protocol/generated/failure_code_registry_v1_5.json",\n'
+          replacement = marker + (
+              '    "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",\n'
+              '    "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",\n'
+          )
+          count = text.count(marker)
+          if count != 2:
+              raise SystemExit(f"expected_two_v15_diff_markers:found={count}")
+          text = text.replace(marker, replacement)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
       - name: Execute bounded self-cleaning closure
         run: |
           cp Weall-Protocol/scripts/a15_f003_pr38_closure_v5.sh /tmp/a15_f003_pr38_closure_v5.sh
