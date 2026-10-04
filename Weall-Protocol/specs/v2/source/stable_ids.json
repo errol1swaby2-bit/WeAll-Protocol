@@ -6214,6 +6214,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:constitutional_amendment_process_not_enabled",
+      "kind": "failure",
+      "stable_id": "FAIL-B6E9B828E8FB2033",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_state:state_invariant_violation",
       "kind": "failure",
       "stable_id": "FAIL-B940AB36E4D5C16B",
@@ -6938,6 +6945,13 @@
       "canonical_key": "forbidden:node_key_not_registered",
       "kind": "failure",
       "stable_id": "FAIL-EBEA5DAE12D37427",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:constitutional_activation_scope_disabled_pending_normative_process",
+      "kind": "failure",
+      "stable_id": "FAIL-EC4DDC3B1FAD4B57",
       "status": "active"
     },
     {

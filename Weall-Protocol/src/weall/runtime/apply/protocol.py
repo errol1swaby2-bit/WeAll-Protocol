@@ -52,6 +52,7 @@ Notes:
 from dataclasses import dataclass
 from typing import Any
 
+from weall.runtime.ballot_policy import strict_civic_governance_enabled
 from weall.runtime.tx_admission import TxEnvelope
 
 Json = dict[str, Any]
@@ -564,6 +565,40 @@ def _ensure_constitution(state: Json) -> Json:
     return c
 
 
+def _require_constitution_upgrade_scope_enabled(
+    state: Json, *, tx_type: str, constitution_id: str
+) -> None:
+    """Fail closed on strict civic chains until amendment authority is complete.
+
+    A09-F004 established that a record representing the Active Constitution could
+    otherwise become effective through generic governance without mechanically
+    proving the Article XIII amendment procedure.  The Genesis Constitution does
+    not yet supply an exact stricter protected-right threshold/process or an exact
+    challenge-window duration.  Strict civic profiles therefore have no
+    constitutional mutation authority.  Non-strict/dev replay compatibility keeps
+    the existing record-only path, but that path is outside the production civic
+    authority contract.
+    """
+
+    if not strict_civic_governance_enabled(state):
+        return
+    raise ProtocolApplyError(
+        "forbidden",
+        "constitutional_activation_scope_disabled_pending_normative_process",
+        {
+            "tx_type": str(tx_type),
+            "constitution_id": str(constitution_id),
+            "scope": "strict_civic_governance",
+            "missing_normative_prerequisites": [
+                "independent_constitutional_review_semantics",
+                "challenge_window_duration",
+                "protected_right_amendment_process",
+                "unamendable_floor_semantic_validation",
+            ],
+        },
+    )
+
+
 def _constitution_id(payload: Json, env: TxEnvelope) -> str:
     cid = _as_str(
         payload.get("constitution_id") or payload.get("upgrade_id") or payload.get("id")
@@ -684,6 +719,7 @@ def _apply_constitution_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
     parent_ref = _require_parent_ref(env)
     payload = _as_dict(env.payload)
     cid = _constitution_id(payload, env)
+    _require_constitution_upgrade_scope_enabled(state, tx_type=env.tx_type, constitution_id=cid)
     version = _target_constitution_version(payload)
     if not version:
         raise ProtocolApplyError(
@@ -755,6 +791,7 @@ def _apply_constitution_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
     parent_ref = _require_parent_ref(env)
     payload = _as_dict(env.payload)
     cid = _constitution_id(payload, env)
+    _require_constitution_upgrade_scope_enabled(state, tx_type=env.tx_type, constitution_id=cid)
     _validate_constitution_payload_public(payload, constitution_id=cid)
     constitution = _ensure_constitution(state)
     upgrades = constitution["upgrades"]

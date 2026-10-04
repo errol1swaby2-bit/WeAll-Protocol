@@ -73,27 +73,22 @@
         "closed_track_ids": [
           "P0-01",
           "P0-02",
+          "P0-03",
           "P0-04",
+          "P0-05",
           "P0-08",
           "P0-09",
           "P0-12"
         ],
         "open_high_finding_ids": [
-          "A05-F001",
-          "A05-F002",
-          "A07-F001",
-          "A07-F002",
           "A08-F001",
           "A09-F001..F004",
           "A15-F001..F003",
           "A16-F001",
-          "A16-F004",
           "A16-F005",
           "A20-F001"
         ],
         "open_track_ids": [
-          "P0-03",
-          "P0-05",
           "P0-06",
           "P0-07",
           "P0-10",
@@ -399,10 +394,10 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
-    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "484de0aea43d56f9abfce4e6871aa15c43669fb7b11c46e33e44aba5f1e518e3",
+    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "3527e856ae4b3a968a826a48cb854f1ec67cd3eb30fca8125316d4d5dbe159f0",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
-    "generated/public_beta_blocker_report_v1_5.json": "f6829d17ace35aa250f3af859219d2b08804b7098ca9db4ed1ef69e953e70af5",
-    "generated/release_evidence_manifest_v1_5.json": "8efaf821a090c46e77045d951dd02bf94366b598c492d1c8af422ca8177d6572",
+    "generated/public_beta_blocker_report_v1_5.json": "db800f5d554b9cf2ca6924b1cd21f367e5feff612ec4413b0f2f561c6e412a60",
+    "generated/release_evidence_manifest_v1_5.json": "fedf46c494bc053c72ef990fa0a49542e8d50c75fe0fa12f1d1258ab4e8040dc",
     "generated/tx_index.json": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
   },
   "schema": "weall.current_verified_claims.v1",

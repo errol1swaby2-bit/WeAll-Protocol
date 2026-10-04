@@ -1516,6 +1516,25 @@ def _assert_governance_actions_allowed(state: Json, actions: list[dict[str, Any]
         tx_type = _s(action.get("tx_type")).strip().upper()
         if not tx_type:
             continue
+        if strict_civic_governance_enabled(state) and tx_type in {
+            "CONSTITUTION_UPGRADE_DECLARE",
+            "CONSTITUTION_UPGRADE_ACTIVATE",
+        }:
+            raise ApplyError(
+                "forbidden",
+                "constitutional_amendment_process_not_enabled",
+                {
+                    "tx_type": tx_type,
+                    "scope": "strict_civic_governance",
+                    "reason": (
+                        "The Genesis Constitution requires an exact amendment diff, independent "
+                        "constitutional review, a challenge window, protected-right handling, and "
+                        "an unamendable-floor check. The exact stricter protected-right process and "
+                        "challenge duration are not yet normatively specified, so production civic "
+                        "governance fails closed instead of inventing amendment authority."
+                    ),
+                },
+            )
         if tx_type not in allowed:
             raise ApplyError("forbidden", "governance_action_not_allowed", {"tx_type": tx_type})
         _validate_governance_action_payload(tx_type, _d(action.get("payload")))
