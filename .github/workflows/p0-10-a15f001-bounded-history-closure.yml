@@ -58,27 +58,25 @@ jobs:
                   1,
               )
 
-          old_projection = '''    if not isinstance(state, dict):
-              return _canonical(state)
-
-          out: dict[str, Any] = {}
-          for key in sorted(state.keys(), key=lambda x: str(x)):
-          '''
-          new_projection = '''    if not isinstance(state, dict):
-              return _canonical(state)
-
-          bounded_state = project_bounded_block_history_state(state)
-          out: dict[str, Any] = {}
-          for key in sorted(bounded_state.keys(), key=lambda x: str(x)):
-          '''
           if "bounded_state = project_bounded_block_history_state(state)" not in state:
-              assert old_projection in state
-              state = state.replace(old_projection, new_projection, 1)
+              loop_anchor = (
+                  "    out: dict[str, Any] = {}\n"
+                  "    for key in sorted(state.keys(), key=lambda x: str(x)):\n"
+              )
+              loop_replacement = (
+                  "    bounded_state = project_bounded_block_history_state(state)\n"
+                  "    out: dict[str, Any] = {}\n"
+                  "    for key in sorted(bounded_state.keys(), key=lambda x: str(x)):\n"
+              )
+              assert loop_anchor in state
+              state = state.replace(loop_anchor, loop_replacement, 1)
+              assert "projected = _canonical_meta(state[key])" in state
               state = state.replace(
                   "projected = _canonical_meta(state[key])",
                   "projected = _canonical_meta(bounded_state[key])",
                   1,
               )
+              assert "out[ks] = _canonical(state[key])" in state
               state = state.replace(
                   "out[ks] = _canonical(state[key])",
                   "out[ks] = _canonical(bounded_state[key])",
@@ -107,19 +105,19 @@ jobs:
           commit_anchor = (
               "        # Durable history is a stronger trust boundary than cheap received-block\n"
           )
-          compact_call = '''        # Persist exactly the finite ancestry projection committed by state_root.
-          # Local BFT metadata is never consulted when selecting compactable history.
-          try:
-              compact_bounded_block_history_in_place(new_state)
-          except Exception as exc:
-              return ExecutorMeta(
-                  ok=False,
-                  error=f"block_history_compaction_failed:{type(exc).__name__}:{str(exc)}",
-                  height=0,
-                  block_id="",
-              )
-
-          '''
+          compact_call = (
+              "        # Persist exactly the finite ancestry projection committed by state_root.\n"
+              "        # Local BFT metadata is never consulted when selecting compactable history.\n"
+              "        try:\n"
+              "            compact_bounded_block_history_in_place(new_state)\n"
+              "        except Exception as exc:\n"
+              "            return ExecutorMeta(\n"
+              "                ok=False,\n"
+              "                error=f\"block_history_compaction_failed:{type(exc).__name__}:{str(exc)}\",\n"
+              "                height=0,\n"
+              "                block_id=\"\",\n"
+              "            )\n\n"
+          )
           if "compact_bounded_block_history_in_place(new_state)" not in commit:
               assert commit_anchor in commit
               commit = commit.replace(commit_anchor, compact_call + commit_anchor, 1)
