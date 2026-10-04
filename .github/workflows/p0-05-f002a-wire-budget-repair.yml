@@ -62,15 +62,19 @@ jobs:
           import json
           from pathlib import Path
 
-          path = Path("specs/v2/source/stable_ids.json")
-          data = json.loads(path.read_text(encoding="utf-8"))
-          entries = data.get("entries")
+          stable_path = Path("specs/v2/source/stable_ids.json")
+          stable_data = json.loads(stable_path.read_text(encoding="utf-8"))
+          entries = stable_data.get("entries")
           if not isinstance(entries, list):
               raise SystemExit("stable_ids.json entries must be a list")
 
           canonical_key = "src/weall/net/node.py:assert_message_fits:message_builder_or_handler"
           stable_id = "MSG-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
-          matches = [row for row in entries if row.get("kind") == "message" and row.get("canonical_key") == canonical_key]
+          matches = [
+              row
+              for row in entries
+              if row.get("kind") == "message" and row.get("canonical_key") == canonical_key
+          ]
           if len(matches) > 1:
               raise SystemExit(f"duplicate stable-ID entries for {canonical_key}")
           if matches:
@@ -87,8 +91,38 @@ jobs:
                   }
               )
           entries.sort(key=lambda row: str(row.get("stable_id", "")))
-          path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          stable_path.write_text(
+              json.dumps(stable_data, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
           print(f"registered {stable_id} for {canonical_key}")
+
+          mappings_path = Path("specs/v2/source/source_mappings.json")
+          mappings_data = json.loads(mappings_path.read_text(encoding="utf-8"))
+          mappings = mappings_data.get("mappings")
+          if not isinstance(mappings, list):
+              raise SystemExit("source_mappings.json mappings must be a list")
+
+          wire_path = "src/weall/net/wire_limits.py"
+          expected_mapping = {
+              "affected_registers": ["messages", "mechanisms"],
+              "classification": "authoritative_or_launch_critical",
+              "path": wire_path,
+              "primary_mechanism_id": "M-024",
+              "review_status": "mapped_current_snapshot",
+          }
+          wire_matches = [row for row in mappings if row.get("path") == wire_path]
+          if len(wire_matches) > 1:
+              raise SystemExit(f"duplicate source mappings for {wire_path}")
+          if wire_matches:
+              if wire_matches[0] != expected_mapping:
+                  raise SystemExit(f"source mapping mismatch for {wire_path}")
+          else:
+              mappings.append(expected_mapping)
+          mappings.sort(key=lambda row: str(row.get("path", "")))
+          mappings_path.write_text(
+              json.dumps(mappings_data, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          print(f"mapped {wire_path} to M-024")
           PY
           ruff check --fix \
             src/weall/net/wire_limits.py \
