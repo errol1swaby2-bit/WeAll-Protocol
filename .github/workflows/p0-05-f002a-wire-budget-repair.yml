@@ -168,7 +168,7 @@ jobs:
           rm -f Weall-Protocol/scripts/repair_p0_05_f002a_wire_budget.py
           rm -f .github/workflows/p0-05-f002a-wire-budget-repair.yml
 
-      - name: Regenerate deterministic proof and V2 artifacts
+      - name: Regenerate deterministic proof and exact-tree artifacts
         run: |
           set -euo pipefail
           python scripts/gen_b528_b532_completion_proof_v1_5.py
@@ -180,6 +180,10 @@ jobs:
           PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
           PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
           python scripts/gen_current_verified_claims.py
+          # The v1.5 generators above update tracked inputs included in the V2
+          # source-tree digest. Recompile V2 last so the committed derivatives
+          # describe the exact final helper-free candidate tree.
+          python scripts/compile_v2_spec.py
 
       - name: Validate working-tree generated/evidence contract
         run: |
