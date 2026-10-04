@@ -1,0 +1,49 @@
+name: A15 F003 PR38 Closure V5
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: write
+
+jobs:
+  closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Execute bounded self-cleaning closure
+        run: |
+          cp Weall-Protocol/scripts/a15_f003_pr38_closure_v5.sh /tmp/a15_f003_pr38_closure_v5.sh
+          chmod 700 /tmp/a15_f003_pr38_closure_v5.sh
+          bash /tmp/a15_f003_pr38_closure_v5.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a15-f003-account-cardinality-${{ github.run_id }}
+          path: |
+            /tmp/a15-f003-100k.json
+            /tmp/a15-f003-1m.json
+          if-no-files-found: error
