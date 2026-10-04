@@ -157,31 +157,24 @@ jobs:
           rm -f Weall-Protocol/scripts/a15_f003_account_scarcity_patch.py
           rm -f .github/workflows/a15-f003-account-scarcity-closure.yml
 
-      - name: Format changed Python
+      - name: Format and lint changed Python
         working-directory: Weall-Protocol
         run: |
-          ruff format \
-            src/weall/runtime/account_registration_work.py \
-            src/weall/runtime/tx_schema.py \
-            src/weall/runtime/tx_admission.py \
-            src/weall/runtime/apply/identity.py \
-            src/weall/runtime/genesis_bootstrap.py \
-            src/weall/api/routes_public_parts/accounts.py \
-            scripts/build_production_genesis_manifest.py \
-            scripts/gen_public_testnet_v1_chain_identity.py \
-            scripts/bench_a15_f003_account_cardinality.py \
+          PY_FILES=(
+            src/weall/runtime/account_registration_work.py
+            src/weall/runtime/tx_schema.py
+            src/weall/runtime/tx_admission.py
+            src/weall/runtime/apply/identity.py
+            src/weall/runtime/genesis_bootstrap.py
+            src/weall/api/routes_public_parts/accounts.py
+            scripts/build_production_genesis_manifest.py
+            scripts/gen_public_testnet_v1_chain_identity.py
+            scripts/bench_a15_f003_account_cardinality.py
             tests/test_a15_f003_account_registration_scarcity.py
-          ruff check \
-            src/weall/runtime/account_registration_work.py \
-            src/weall/runtime/tx_schema.py \
-            src/weall/runtime/tx_admission.py \
-            src/weall/runtime/apply/identity.py \
-            src/weall/runtime/genesis_bootstrap.py \
-            src/weall/api/routes_public_parts/accounts.py \
-            scripts/build_production_genesis_manifest.py \
-            scripts/gen_public_testnet_v1_chain_identity.py \
-            scripts/bench_a15_f003_account_cardinality.py \
-            tests/test_a15_f003_account_registration_scarcity.py
+          )
+          ruff check --fix "${PY_FILES[@]}"
+          ruff format "${PY_FILES[@]}"
+          ruff check "${PY_FILES[@]}"
 
       - name: Regenerate pinned production and public-testnet chain identities
         working-directory: Weall-Protocol
