@@ -54,6 +54,8 @@ jobs:
       - name: Apply bounded F002a repair
         run: |
           set -euo pipefail
+          ruff format scripts/repair_p0_05_f002a_wire_budget.py
+          ruff check scripts/repair_p0_05_f002a_wire_budget.py
           python scripts/repair_p0_05_f002a_wire_budget.py
           ruff check --fix \
             src/weall/net/wire_limits.py \
