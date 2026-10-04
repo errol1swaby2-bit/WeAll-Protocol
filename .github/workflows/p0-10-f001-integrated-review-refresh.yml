@@ -92,7 +92,13 @@ jobs:
       - name: Verify committed clean checkout contract
         run: |
           python scripts/check_v2_spec_clean_checkout.py
-          bash scripts/verify_release_tree.sh
+          TMP_ROOT="$(mktemp -d)"
+          trap 'rm -rf "$TMP_ROOT"' EXIT
+          git -C .. archive HEAD | tar -x -C "$TMP_ROOT"
+          (
+            cd "$TMP_ROOT/Weall-Protocol"
+            bash scripts/verify_release_tree.sh
+          )
 
       - name: Push verified integrated state
         working-directory: .
