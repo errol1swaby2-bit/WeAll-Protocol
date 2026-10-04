@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1985,
+  "file_count": 1984,
   "files": [
     {
       "affected_registers": [
@@ -58,19 +58,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/p0-10-a15f001-bounded-history-closure.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "3e8afa4da13f5b654c537253a61d8447cbfd1673b72f85313afbc585f8ff6986",
-      "source_id": "SRC-F0BA932101436499"
     },
     {
       "affected_registers": [
