@@ -32,12 +32,98 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Patch bounded consensus block history
+      - name: Wire bounded history into state root and commit
         working-directory: .
         run: |
           python - <<'PY'
-          import base64
-          exec(compile(base64.b64decode("ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpyb290ID0gUGF0aCgiV2VhbGwtUHJvdG9jb2wiKQpzdGF0ZV9oYXNoX3BhdGggPSByb290IC8gInNyYy93ZWFsbC9ydW50aW1lL3N0YXRlX2hhc2gucHkiCmNvbW1pdF9wYXRoID0gcm9vdCAvICJzcmMvd2VhbGwvcnVudGltZS9ibG9ja19jb21taXQucHkiCnRlc3RfcGF0aCA9IHJvb3QgLyAidGVzdHMvdGVzdF9wMF8xMF9hMTVfZjAwMV9ib3VuZGVkX2Jsb2NrX2hpc3RvcnkucHkiCgpzdGF0ZV9oYXNoID0gc3RhdGVfaGFzaF9wYXRoLnJlYWRfdGV4dCgpCgptZXRhX2FuY2hvciA9ICcgICAgICAgICJyZWNlbnRfYmxvY2tfYW5jaG9yX2FjdGl2YXRpb25faGVpZ2h0IixcXG4nCmlmICciY29uc2Vuc3VzX2Jsb2NrX2hpc3RvcnlfbWF4X3JlY29yZHMiJyBub3QgaW4gc3RhdGVfaGFzaDoKICAgIGFzc2VydCBtZXRhX2FuY2hvciBpbiBzdGF0ZV9oYXNoCiAgICBzdGF0ZV9oYXNoID0gc3RhdGVfaGFzaC5yZXBsYWNlKAogICAgICAgIG1ldGFfYW5jaG9yLAogICAgICAgIG1ldGFfYW5jaG9yICsgJyAgICAgICAgImNvbnNlbnN1c19ibG9ja19oaXN0b3J5X21heF9yZWNvcmRzIixcXG4nLAogICAgICAgIDEsCiAgICApCgppbnNlcnRpb25fYW5jaG9yID0gIlxcblxcbmRlZiBfY2Fub25pY2FsKG9iajogQW55KSAtPiBBbnk6XFxuIgpyZXRlbnRpb25fY29kZSA9ICdcblxuQkxPQ0tfSElTVE9SWV9DSEVDS1BPSU5UX1ZFUlNJT046IEZpbmFsW2ludF0gPSAxCkJMT0NLX0hJU1RPUllfQ0hFQ0tQT0lOVF9ET01BSU46IEZpbmFsW3N0cl0gPSAid2VhbGwuY29uc2Vuc3VzLWJsb2NrLWhpc3RvcnkudjEiCkJMT0NLX0hJU1RPUllfQ0hFQ0tQT0lOVF9LRVk6IEZpbmFsW3N0cl0gPSAiYmxvY2tfaGlzdG9yeV9jaGVja3BvaW50IgpDT05TRU5TVVNfQkxPQ0tfSElTVE9SWV9NRVRBX0tFWTogRmluYWxbc3RyXSA9ICJjb25zZW5zdXNfYmxvY2tfaGlzdG9yeV9tYXhfcmVjb3JkcyIKREVGQVVMVF9DT05TRU5TVVNfQkxPQ0tfSElTVE9SWV9NQVhfUkVDT1JEUzogRmluYWxbaW50XSA9IDEwXzAwMApNSU5fQ09OU0VOU1VTX0JMT0NLX0hJU1RPUllfTUFYX1JFQ09SRFM6IEZpbmFsW2ludF0gPSAzCgoKY2xhc3MgQmxvY2tIaXN0b3J5UmV0ZW50aW9uRXJyb3IoUnVudGltZUVycm9yKToKICAgICIiIkNhbm9uaWNhbCBhbmNlc3RyeSBjYW5ub3QgYmUgY29tcGFjdGVkIHdpdGhvdXQgYSBzYWZlIGZpbmFsaXplZCBib3VuZGFyeS4iIiIKCgpwcm9qZWN0X2JvdW5kZWRfYmxvY2tfaGlzdG9yeV9zdGF0ZSA9IE5vbmUKJyAgIyBzaG9ydGVuZWQgYnkgc3VtbWFyaXphdGlvbiBndWFyZA=="), "<p0-10-a15f001-patch>", "exec"))
+          from pathlib import Path
+
+          state_path = Path("Weall-Protocol/src/weall/runtime/state_hash.py")
+          state = state_path.read_text()
+          import_anchor = "from typing import Any, Final\n"
+          import_line = (
+              "from weall.runtime.block_history import "
+              "project_bounded_block_history_state\n"
+          )
+          if import_line not in state:
+              assert import_anchor in state
+              state = state.replace(import_anchor, import_anchor + "\n" + import_line, 1)
+
+          meta_anchor = '        "recent_block_anchor_activation_height",\n'
+          if '"consensus_block_history_max_records"' not in state:
+              assert meta_anchor in state
+              state = state.replace(
+                  meta_anchor,
+                  meta_anchor + '        "consensus_block_history_max_records",\n',
+                  1,
+              )
+
+          old_projection = '''    if not isinstance(state, dict):
+              return _canonical(state)
+
+          out: dict[str, Any] = {}
+          for key in sorted(state.keys(), key=lambda x: str(x)):
+          '''
+          new_projection = '''    if not isinstance(state, dict):
+              return _canonical(state)
+
+          bounded_state = project_bounded_block_history_state(state)
+          out: dict[str, Any] = {}
+          for key in sorted(bounded_state.keys(), key=lambda x: str(x)):
+          '''
+          if "bounded_state = project_bounded_block_history_state(state)" not in state:
+              assert old_projection in state
+              state = state.replace(old_projection, new_projection, 1)
+              state = state.replace(
+                  "projected = _canonical_meta(state[key])",
+                  "projected = _canonical_meta(bounded_state[key])",
+                  1,
+              )
+              state = state.replace(
+                  "out[ks] = _canonical(state[key])",
+                  "out[ks] = _canonical(bounded_state[key])",
+                  1,
+              )
+          state_path.write_text(state)
+
+          commit_path = Path("Weall-Protocol/src/weall/runtime/block_commit.py")
+          commit = commit_path.read_text()
+          commit_import_anchor = (
+              "from weall.runtime.block_commitment_validation import "
+              "ensure_complete_block_commitments\n"
+          )
+          commit_import = (
+              "from weall.runtime.block_history import "
+              "compact_bounded_block_history_in_place\n"
+          )
+          if commit_import not in commit:
+              assert commit_import_anchor in commit
+              commit = commit.replace(
+                  commit_import_anchor,
+                  commit_import_anchor + commit_import,
+                  1,
+              )
+
+          commit_anchor = (
+              "        # Durable history is a stronger trust boundary than cheap received-block\n"
+          )
+          compact_call = '''        # Persist exactly the finite ancestry projection committed by state_root.
+          # Local BFT metadata is never consulted when selecting compactable history.
+          try:
+              compact_bounded_block_history_in_place(new_state)
+          except Exception as exc:
+              return ExecutorMeta(
+                  ok=False,
+                  error=f"block_history_compaction_failed:{type(exc).__name__}:{str(exc)}",
+                  height=0,
+                  block_id="",
+              )
+
+          '''
+          if "compact_bounded_block_history_in_place(new_state)" not in commit:
+              assert commit_anchor in commit
+              commit = commit.replace(commit_anchor, compact_call + commit_anchor, 1)
+          commit_path.write_text(commit)
           PY
 
       - name: Install backend
@@ -46,10 +132,18 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Format and lint changed Python
+      - name: Format and lint A15-F001 surfaces
         run: |
-          ruff format src/weall/runtime/state_hash.py src/weall/runtime/block_commit.py tests/test_p0_10_a15_f001_bounded_block_history.py
-          ruff check src/weall/runtime/state_hash.py src/weall/runtime/block_commit.py tests/test_p0_10_a15_f001_bounded_block_history.py
+          ruff format \
+            src/weall/runtime/block_history.py \
+            src/weall/runtime/state_hash.py \
+            src/weall/runtime/block_commit.py \
+            tests/test_p0_10_a15_f001_bounded_block_history.py
+          ruff check \
+            src/weall/runtime/block_history.py \
+            src/weall/runtime/state_hash.py \
+            src/weall/runtime/block_commit.py \
+            tests/test_p0_10_a15_f001_bounded_block_history.py
 
       - name: Focused A15-F001 regressions
         run: |
@@ -57,6 +151,7 @@ jobs:
             tests/test_p0_10_a15_f001_bounded_block_history.py \
             tests/test_block_commitments_required.py \
             tests/test_restart_and_sync_safety.py \
+            tests/test_bft_canonical_finality_bridge.py \
             tests/test_priority1_lock_vs_highqc_branch_safety.py \
             tests/test_priority1_locked_qc_safety.py
 
@@ -74,6 +169,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
+            Weall-Protocol/src/weall/runtime/block_history.py \
             Weall-Protocol/src/weall/runtime/state_hash.py \
             Weall-Protocol/src/weall/runtime/block_commit.py \
             Weall-Protocol/tests/test_p0_10_a15_f001_bounded_block_history.py
