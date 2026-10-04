@@ -99,8 +99,7 @@ class Router:
 
         if mtype == MsgType.PEER_HELLO_ACK:
             try:
-                process_inbound_ack(self.handshake, msg)  # type: ignore[arg-type]
-                return None
+                return process_inbound_ack(self.handshake, msg)  # type: ignore[arg-type]
             except HandshakeRejected as e:
                 self.last_error = e.reason
                 raise

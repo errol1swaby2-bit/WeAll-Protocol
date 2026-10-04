@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1978,
+  "file_count": 1979,
   "files": [
     {
       "affected_registers": [
@@ -3015,7 +3015,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "87087bb3f2b8570795b57c9ee1a5a745c5b98da4112ea354c78cd3347e4bea28",
+      "sha256": "0c08ffc8ceed44ded8f22ca63df40f73ca8a7d2caba4cd17d173669918c62939",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3029,7 +3029,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "94f7db6d962d04f06d9fa6ea581b37aa2e4a27a214706387aed9119e79ddf6cb",
+      "sha256": "b2701b901a876a4aac2eb564fc04fbf97a65a7a06a80617430ecae28a104dc01",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3113,7 +3113,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "b5f9315838bea9b553eca38381e79d7e88d23a628a0354e899ce2860395beec7",
+      "sha256": "39e170ca6bbb495506168cad28bf301986a9df460ac03dab81a3ecb3411a5f06",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -7884,7 +7884,7 @@
       ],
       "path": "src/weall/net/handshake.py",
       "primary_mechanism_id": "M-024",
-      "sha256": "1ee3b03eccbea79310b07e09309dda1cfa528849bef769e3da4a55fa5b5f9f84",
+      "sha256": "84e7decdb2be9287acd76e01017f1f2a7d59db4838120b17c908348da1bb8f1f",
       "source_id": "SRC-A2B19D1864C0EA5D"
     },
     {
@@ -7899,7 +7899,7 @@
       ],
       "path": "src/weall/net/messages.py",
       "primary_mechanism_id": "M-024",
-      "sha256": "f3aab77cc562bf8b28836b18e0bd75ba7bc5305f61f5488e0f78c78094d80d57",
+      "sha256": "1ffc99ecec73404e4d464bea389ce235262aba5997fac11dd736e791ffa3168f",
       "source_id": "SRC-02D7C5BF2EBEA7E5"
     },
     {
@@ -7979,7 +7979,7 @@
       ],
       "path": "src/weall/net/node.py",
       "primary_mechanism_id": "M-024",
-      "sha256": "44558634b4d0867fe8702f26918b20b8cdfd755dc2c846599b4debdff296ab00",
+      "sha256": "ecf2a540fc011038fb1bb99f9b378b5f8c0263e5291b28139e5e9ceaf90aeadd",
       "source_id": "SRC-8160D682CFE59A47"
     },
     {
@@ -7993,7 +7993,7 @@
       ],
       "path": "src/weall/net/peer_identity.py",
       "primary_mechanism_id": "M-024",
-      "sha256": "8cd6c5fcbffa63b6be229989a008062bb395467d668236190be29e430823d645",
+      "sha256": "cf9ef88cd76612614d62da365f0db6622facea1909b3c64acf426218e5667c1f",
       "source_id": "SRC-0EC3F8758C6201FC"
     },
     {
@@ -8060,7 +8060,7 @@
       ],
       "path": "src/weall/net/router.py",
       "primary_mechanism_id": "M-024",
-      "sha256": "b461b42eb7eef1f5f3b2ef535f332a5499ad3770db273a6955f83917dc55fa41",
+      "sha256": "02f493fb1d467d819e67f364228652e6a0440ad5b112633dee41f6d718c630b9",
       "source_id": "SRC-A5474BCD5FEE2AE0"
     },
     {
@@ -20766,7 +20766,7 @@
       ],
       "path": "tests/test_net_bft_identity_gate.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "9a9cc7f1cdae6e77c0834e536cee021c8b5952f09f1b3b545d5421e445c2835d",
+      "sha256": "965ab35729e4a53929a94c07354dd0a988daf14c5f9811844412693d885b2d98",
       "source_id": "SRC-22212FCC307F3B93"
     },
     {
@@ -21898,6 +21898,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "a7b2b6b1813e3183ff944441d83d5077e7b354c9ca692bb43cf5116d76d12856",
       "source_id": "SRC-DF1D27D330664F95"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p0_05_f001_mutual_peer_auth.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "5e6534a800a7c493053870ac5d76479a393b6088abe0bc0209bb3667bb94ed60",
+      "source_id": "SRC-2AB85EC9D73D6F01"
     },
     {
       "affected_registers": [

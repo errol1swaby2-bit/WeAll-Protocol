@@ -1,6 +1,8 @@
 # File: src/weall/net/peer_identity.py
 from __future__ import annotations
 
+import time
+
 """
 WeAll Protocol — Peer Identity Verification
 
@@ -34,7 +36,7 @@ from typing import Any
 from weall.crypto.account_keys import account_key_pubkey
 from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode
-from weall.net.messages import PeerHello, WireHeader
+from weall.net.messages import PeerHello, PeerHelloAck, WireHeader
 
 Json = dict[str, Any]
 
@@ -241,6 +243,157 @@ def _canonical_hello_sign_bytes_v3(
     return ("|".join(parts)).encode("utf-8")
 
 
+def _canonical_hello_ack_sign_bytes(
+    *,
+    header: WireHeader,
+    peer_id: str,
+    pubkey: str,
+    sig_profile: str,
+    recipient_peer_id: str,
+    phase: str,
+    challenge: str,
+    ok: bool,
+) -> bytes:
+    parts = [
+        "WEALL_PEER_HELLO_ACK_V1",
+        str(header.chain_id),
+        str(header.schema_version),
+        str(header.tx_index_hash),
+        str(int(header.sent_ts_ms or 0)),
+        str(header.corr_id or ""),
+        str(peer_id).strip(),
+        str(pubkey).strip(),
+        str(sig_profile or "").strip(),
+        str(recipient_peer_id or "").strip(),
+        str(phase or "").strip(),
+        str(challenge or "").strip(),
+        "1" if bool(ok) else "0",
+    ]
+    return ("|".join(parts)).encode("utf-8")
+
+
+def sign_peer_hello_ack_identity(
+    *,
+    header: WireHeader,
+    peer_id: str,
+    pubkey: str,
+    privkey: str,
+    recipient_peer_id: str,
+    phase: str,
+    challenge: str,
+    ok: bool,
+    sig_profile: str | None = None,
+) -> Json:
+    pid = str(peer_id or "").strip()
+    pk = str(pubkey or "").strip()
+    sk = str(privkey or "").strip()
+    recipient = str(recipient_peer_id or "").strip()
+    phase2 = str(phase or "").strip().lower()
+    if (
+        not pid
+        or not pk
+        or not sk
+        or not recipient
+        or phase2 not in {"challenge", "final", "reject"}
+    ):
+        return {}
+    profile = str(sig_profile or default_signature_profile_for_mode()).strip() or PQ_MLDSA_V1
+    msg_bytes = _canonical_hello_ack_sign_bytes(
+        header=header,
+        peer_id=pid,
+        pubkey=pk,
+        sig_profile=profile,
+        recipient_peer_id=recipient,
+        phase=phase2,
+        challenge=str(challenge or "").strip(),
+        ok=bool(ok),
+    )
+    sig = sign_signature_for_profile(
+        sig_profile=profile, message=msg_bytes, privkey=sk, encoding="hex"
+    )
+    return {"pubkey": pk, "sig_profile": profile, "sig_alg": "ML-DSA", "sig": sig}
+
+
+def _verify_peer_account_binding(*, account_id: str, pubkey: str, ledger: Json) -> tuple[bool, str]:
+    accounts = ledger.get("accounts")
+    if not isinstance(accounts, dict):
+        return False, "ledger_missing_accounts"
+    acct = accounts.get(account_id)
+    if not isinstance(acct, dict):
+        return False, "account_not_found"
+    node_count = _count_active_node_devices(acct)
+    if node_count <= 0:
+        return False, "node_device_required"
+    if node_count > 1:
+        return False, "multiple_node_devices"
+    if pubkey not in _get_active_keys(acct):
+        return False, "pubkey_not_active_for_account"
+    return True, "ok"
+
+
+def verify_peer_hello_ack_identity(
+    *,
+    ack: PeerHelloAck,
+    ledger: Json,
+    expected_recipient_peer_id: str,
+    expected_corr_id: str,
+    now_ms: int | None = None,
+    max_clock_skew_ms: int = 30_000,
+) -> tuple[bool, str, str, str]:
+    peer_id = _as_str(getattr(ack, "peer_id", "")).strip()
+    identity = _as_dict(getattr(ack, "identity", None))
+    pubkey = _as_str(identity.get("pubkey")).strip()
+    sig = _as_str(identity.get("sig")).strip()
+    sig_profile = _as_str(identity.get("sig_profile")).strip()
+    recipient = _as_str(getattr(ack, "recipient_peer_id", "")).strip()
+    phase = _as_str(getattr(ack, "phase", "")).strip().lower()
+    challenge = _as_str(getattr(ack, "challenge", "")).strip()
+    corr_id = _as_str(getattr(ack.header, "corr_id", "")).strip()
+    sent_ts_ms = getattr(ack.header, "sent_ts_ms", None)
+    if not peer_id:
+        return False, "missing_peer_id", "", ""
+    if not pubkey:
+        return False, "missing_pubkey", peer_id, ""
+    if not sig:
+        return False, "missing_sig", peer_id, pubkey
+    if sig_profile != PQ_MLDSA_V1:
+        return False, "unsupported_signature_profile", peer_id, pubkey
+    if recipient != str(expected_recipient_peer_id or "").strip():
+        return False, "recipient_peer_id_mismatch", peer_id, pubkey
+    if not corr_id or corr_id != str(expected_corr_id or "").strip():
+        return False, "corr_id_mismatch", peer_id, pubkey
+    if phase not in {"challenge", "final", "reject"}:
+        return False, "invalid_ack_phase", peer_id, pubkey
+    if phase in {"challenge", "final"} and not challenge:
+        return False, "challenge_missing", peer_id, pubkey
+    if not isinstance(sent_ts_ms, int) or isinstance(sent_ts_ms, bool) or sent_ts_ms <= 0:
+        return False, "sent_ts_ms_missing", peer_id, pubkey
+    now = int(now_ms if now_ms is not None else time.time() * 1000)
+    if abs(now - int(sent_ts_ms)) > max(1, int(max_clock_skew_ms)):
+        return False, "stale_identity_proof", peer_id, pubkey
+    ok_binding, why_binding = _verify_peer_account_binding(
+        account_id=peer_id, pubkey=pubkey, ledger=ledger
+    )
+    if not ok_binding:
+        return False, why_binding, peer_id, pubkey
+    msg_bytes = _canonical_hello_ack_sign_bytes(
+        header=ack.header,
+        peer_id=peer_id,
+        pubkey=pubkey,
+        sig_profile=sig_profile,
+        recipient_peer_id=recipient,
+        phase=phase,
+        challenge=challenge,
+        ok=bool(getattr(ack, "ok", False)),
+    )
+    try:
+        if not bool(verify_mldsa_sig(pubkey, msg_bytes, sig)):
+            return False, "bad_signature", peer_id, pubkey
+    except Exception:
+        return False, "sig_verify_exception", peer_id, pubkey
+    return True, "ok", peer_id, pubkey
+
+
 def sign_peer_hello_identity(
     *,
     header: WireHeader,
@@ -281,7 +434,14 @@ def sign_peer_hello_identity(
     }
 
 
-def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool, str, str, str]:
+def verify_peer_hello_identity(
+    *,
+    hello: PeerHello,
+    ledger: Json,
+    strict: bool = False,
+    now_ms: int | None = None,
+    max_clock_skew_ms: int = 30_000,
+) -> tuple[bool, str, str, str]:
     """Verify peer identity proof for inbound PEER_HELLO.
 
     Returns:
@@ -303,6 +463,22 @@ def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool,
         return (False, "missing_pubkey", peer_id, "")
     if not sig:
         return (False, "missing_sig", peer_id, pubkey)
+
+    if strict:
+        sent_ts_ms = getattr(hello.header, "sent_ts_ms", None)
+        corr_id = _as_str(getattr(hello.header, "corr_id", "")).strip()
+        nonce = _as_str(getattr(hello, "nonce", "")).strip()
+        if sig_profile != PQ_MLDSA_V1:
+            return (False, "unsupported_signature_profile", peer_id, pubkey)
+        if not isinstance(sent_ts_ms, int) or isinstance(sent_ts_ms, bool) or sent_ts_ms <= 0:
+            return (False, "sent_ts_ms_missing", peer_id, pubkey)
+        if not corr_id:
+            return (False, "corr_id_missing", peer_id, pubkey)
+        if not nonce:
+            return (False, "nonce_missing", peer_id, pubkey)
+        now = int(now_ms if now_ms is not None else time.time() * 1000)
+        if abs(now - int(sent_ts_ms)) > max(1, int(max_clock_skew_ms)):
+            return (False, "stale_identity_proof", peer_id, pubkey)
 
     # peer_id MUST equal account_id in this build
     account_id = peer_id
@@ -357,9 +533,9 @@ def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool,
 
     try:
         ok = bool(verify_mldsa_sig(pubkey, v3, sig))
-        if not ok and sig_profile == PQ_MLDSA_V1:
+        if not strict and not ok and sig_profile == PQ_MLDSA_V1:
             ok = bool(verify_mldsa_sig(pubkey, v2, sig))
-        if not ok and sig_profile == PQ_MLDSA_V1:
+        if not strict and not ok and sig_profile == PQ_MLDSA_V1:
             ok = bool(verify_mldsa_sig(pubkey, v1, sig))
     except Exception:
         return (False, "sig_verify_exception", account_id, pubkey)

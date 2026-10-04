@@ -76,6 +76,12 @@ class PeerHelloAck(WireMessage):
     reason: str | None = None
     caps: tuple[str, ...] = field(default_factory=tuple)
     server_ts_ms: int | None = None
+    # Strict identity sessions use a responder-signed challenge ACK followed by
+    # a responder-signed final ACK. Legacy/non-identity sessions leave these None.
+    phase: str | None = None
+    challenge: str | None = None
+    recipient_peer_id: str | None = None
+    identity: JsonObject | None = None
     protocol_version: str | None = None
     protocol_profile_hash: str | None = None
     validator_epoch: int | None = None

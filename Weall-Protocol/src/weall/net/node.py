@@ -40,7 +40,7 @@ from weall.net.messages import (
     WireHeader,
     WireMessage,
 )
-from weall.net.peer_identity import verify_peer_hello_identity
+from weall.net.peer_identity import verify_peer_hello_ack_identity, verify_peer_hello_identity
 from weall.net.peer_store import PeerSecurityStore
 from weall.net.router import Router
 from weall.net.state_sync import StateSyncService
@@ -217,6 +217,9 @@ class _PeerRec:
     identity_ok: bool = False
     identity_account: str = ""
     identity_pubkey: str = ""
+    pending_identity_account: str = ""
+    pending_identity_pubkey: str = ""
+    pending_session_identity_verified: bool = False
 
     # Exact duplicate raw-payload suppression (node-local abuse hardening only).
     recent_payload_digests: OrderedDict[str, int] = field(default_factory=OrderedDict)
@@ -728,22 +731,70 @@ class NetNode:
     def _verify_inbound_hello_identity(self, rec: _PeerRec, hello: PeerHello) -> None:
         if not self._identity_required():
             return
-
         ledger = self._get_ledger()
         if ledger is None:
-            # Tests expect this path to strike/ban as a handshake rejection
             raise HandshakeRejected("identity_required_but_no_ledger")
-
-        ok, reason, account_id, pubkey = verify_peer_hello_identity(hello=hello, ledger=ledger)
+        ok, reason, account_id, pubkey = verify_peer_hello_identity(
+            hello=hello, ledger=ledger, strict=True, now_ms=_now_ms()
+        )
         if not ok:
             raise HandshakeRejected(f"identity_invalid:{reason}")
+        hs = rec.router.handshake
+        if hs.status == "AWAITING_CHALLENGE_RESPONSE":
+            if (
+                str(getattr(hello.header, "corr_id", "") or "").strip()
+                != str(hs.inbound_corr_id or "").strip()
+            ):
+                raise HandshakeRejected("identity_invalid:challenge_corr_id_mismatch")
+            if (
+                str(getattr(hello, "nonce", "") or "").strip()
+                != str(hs.inbound_challenge or "").strip()
+            ):
+                raise HandshakeRejected("identity_invalid:challenge_response_mismatch")
+            if rec.pending_identity_account and rec.pending_identity_account != account_id:
+                raise HandshakeRejected("identity_invalid:account_changed_during_handshake")
+            if rec.pending_identity_pubkey and rec.pending_identity_pubkey != pubkey:
+                raise HandshakeRejected("identity_invalid:pubkey_changed_during_handshake")
+            rec.pending_session_identity_verified = True
+        rec.pending_identity_account = account_id
+        rec.pending_identity_pubkey = pubkey
 
+    def _verify_inbound_ack_identity(self, rec: _PeerRec, ack: Any) -> None:
+        if not self._identity_required():
+            return
+        ledger = self._get_ledger()
+        if ledger is None:
+            raise HandshakeRejected("identity_required_but_no_ledger")
+        hs = rec.router.handshake
+        ok, reason, account_id, pubkey = verify_peer_hello_ack_identity(
+            ack=ack,
+            ledger=ledger,
+            expected_recipient_peer_id=str(self.cfg.peer_id or "").strip(),
+            expected_corr_id=str(hs.outbound_corr_id or "").strip(),
+            now_ms=_now_ms(),
+        )
+        if not ok:
+            raise HandshakeRejected(f"identity_ack_invalid:{reason}")
+        if rec.pending_identity_account and rec.pending_identity_account != account_id:
+            raise HandshakeRejected("identity_ack_invalid:account_changed_during_handshake")
+        if rec.pending_identity_pubkey and rec.pending_identity_pubkey != pubkey:
+            raise HandshakeRejected("identity_ack_invalid:pubkey_changed_during_handshake")
+        rec.pending_identity_account = account_id
+        rec.pending_identity_pubkey = pubkey
+        if str(getattr(ack, "phase", "") or "").strip().lower() == "final":
+            rec.pending_session_identity_verified = True
+
+    def _finalize_authenticated_session_identity(self, rec: _PeerRec) -> None:
+        if not self._identity_required():
+            return
+        if not rec.pending_session_identity_verified:
+            raise HandshakeRejected("identity_session_challenge_not_verified")
+        if not rec.pending_identity_account or not rec.pending_identity_pubkey:
+            raise HandshakeRejected("identity_session_binding_missing")
         rec.identity_ok = True
-        rec.identity_account = account_id
-        rec.identity_pubkey = pubkey
-        # The current hello proof is not receiver/session-bound, so durable
-        # peer-security attribution must remain on the transport identity.
-        self._bind_authenticated_peer_security(rec, session_bound=False)
+        rec.identity_account = rec.pending_identity_account
+        rec.identity_pubkey = rec.pending_identity_pubkey
+        self._bind_authenticated_peer_security(rec, session_bound=True)
 
     def _enforce_bft_identity_gate(self, rec: _PeerRec, msg: BftVoteMsg) -> None:
         if not (
@@ -1270,6 +1321,15 @@ class NetNode:
                     self._ban(rec, cooldown_ms=int(self.peer_policy.fast_ban_mismatch_ms))
                 return
 
+        if getattr(msg.header, "type", None) == MsgType.PEER_HELLO_ACK:
+            try:
+                self._verify_inbound_ack_identity(rec, msg)
+            except HandshakeRejected:
+                self._strike(rec, int(self.peer_policy.strike_handshake_rejected))
+                if int(self.peer_policy.fast_ban_mismatch_ms) > 0:
+                    self._ban(rec, cooldown_ms=int(self.peer_policy.fast_ban_mismatch_ms))
+                return
+
         # BFT identity gate for votes
         if getattr(msg.header, "type", None) == MsgType.BFT_VOTE:
             try:
@@ -1300,8 +1360,17 @@ class NetNode:
             return
 
         established_after_route = self._peer_is_established(rec)
-        if established_after_route and int(rec.established_at_ms) <= 0:
-            rec.established_at_ms = int(now)
+        if established_after_route:
+            if self._identity_required() and not rec.identity_ok:
+                try:
+                    self._finalize_authenticated_session_identity(rec)
+                except HandshakeRejected:
+                    rec.router.handshake.status = "REJECTED"
+                    rec.router.handshake.session_id = None
+                    self._strike(rec, int(self.peer_policy.strike_handshake_rejected))
+                    return
+            if int(rec.established_at_ms) <= 0:
+                rec.established_at_ms = int(now)
 
         # Send response if any
         if resp is not None:

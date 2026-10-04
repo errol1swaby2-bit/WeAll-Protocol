@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "9dad4ae6c8f72b6428dee686afe67fa66e98f13cc9943b4dba8d9d7d5b2304c9"
+    "source_tree_digest": "0b7b034476dd4a5a681131fcd95383a61c948706b223509eb0d3c3b8872f448f"
   },
   "rows": [
     {
@@ -445,7 +445,7 @@
       "fields": [],
       "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
       "kind": "message_builder_or_handler",
-      "line": 1114,
+      "line": 1165,
       "name": "_on_bft_proposal",
       "primary_mechanism_id": "M-024",
       "replay_rules": "domain_context_sender_and_logical_position_binding_required",
@@ -463,7 +463,7 @@
       "fields": [],
       "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
       "kind": "message_builder_or_handler",
-      "line": 1110,
+      "line": 1161,
       "name": "_on_bft_vote",
       "primary_mechanism_id": "M-024",
       "replay_rules": "domain_context_sender_and_logical_position_binding_required",
@@ -481,7 +481,7 @@
       "fields": [],
       "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
       "kind": "message_builder_or_handler",
-      "line": 1393,
+      "line": 1462,
       "name": "broadcast_message",
       "primary_mechanism_id": "M-024",
       "replay_rules": "domain_context_sender_and_logical_position_binding_required",
@@ -499,7 +499,7 @@
       "fields": [],
       "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
       "kind": "message_builder_or_handler",
-      "line": 1056,
+      "line": 1107,
       "name": "broadcast_peer_addr",
       "primary_mechanism_id": "M-024",
       "replay_rules": "domain_context_sender_and_logical_position_binding_required",
@@ -517,7 +517,7 @@
       "fields": [],
       "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
       "kind": "message_builder_or_handler",
-      "line": 1390,
+      "line": 1459,
       "name": "send_message",
       "primary_mechanism_id": "M-024",
       "replay_rules": "domain_context_sender_and_logical_position_binding_required",
