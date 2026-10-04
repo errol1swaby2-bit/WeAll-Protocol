@@ -55,6 +55,15 @@ jobs:
         run: |
           set -euo pipefail
           python scripts/repair_p0_05_f002a_wire_budget.py
+          ruff check --fix \
+            src/weall/net/wire_limits.py \
+            src/weall/net/node.py \
+            src/weall/net/transport_tcp.py \
+            src/weall/net/transport_tls.py \
+            src/weall/net/net_loop.py \
+            src/weall/runtime/executor.py \
+            src/weall/runtime/block_builder.py \
+            tests/test_p0_05_f002a_wire_budget.py
           ruff format \
             src/weall/net/wire_limits.py \
             src/weall/net/node.py \
