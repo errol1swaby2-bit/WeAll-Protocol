@@ -37,6 +37,30 @@ jobs:
         run: |
           cd Weall-Protocol
           python ../.github/tools/p0_10_f002_apply.py
+          python - <<'PY'
+          from pathlib import Path
+
+          net_loop = Path("src/weall/net/net_loop.py")
+          text = net_loop.read_text(encoding="utf-8")
+          old = "            require_trusted_anchor=bool(active_consensus_profile().trusted_anchor_required),\n"
+          new = "            require_trusted_anchor=bool(\n                _is_prod() and active_consensus_profile().trusted_anchor_required\n            ),\n"
+          if text.count(old) != 1:
+              raise SystemExit("expected one NetMeshLoop trusted-anchor insertion")
+          net_loop.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          test_path = Path("tests/test_p0_10_a15_f002_state_sync_resource_bounds.py")
+          test = test_path.read_text(encoding="utf-8")
+          old_sig = "def test_net_loop_builds_state_sync_with_profile_trusted_anchor() -> None:\n"
+          new_sig = (
+              "def test_net_loop_builds_state_sync_with_profile_trusted_anchor(\n"
+              "    monkeypatch: pytest.MonkeyPatch,\n"
+              ") -> None:\n"
+              "    monkeypatch.setattr(\"weall.net.net_loop._is_prod\", lambda: True)\n"
+          )
+          if test.count(old_sig) != 1:
+              raise SystemExit("expected one F002 net-loop production posture test")
+          test_path.write_text(test.replace(old_sig, new_sig, 1), encoding="utf-8")
+          PY
           cd ..
           git rm .github/tools/p0_10_f002_apply.py
           git rm .github/workflows/p0-10-f002-state-sync-resource-closure.yml
