@@ -35,7 +35,9 @@ jobs:
       - name: Apply F002 patch and stage workflow-free tree
         working-directory: .
         run: |
-          python .github/tools/p0_10_f002_apply.py
+          cd Weall-Protocol
+          python ../.github/tools/p0_10_f002_apply.py
+          cd ..
           git rm .github/tools/p0_10_f002_apply.py
           git rm .github/workflows/p0-10-f002-state-sync-resource-closure.yml
 
