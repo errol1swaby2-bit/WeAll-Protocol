@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+import queue
+import threading
 import time
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
@@ -358,6 +360,20 @@ class NetNode:
         self._sync_responses: OrderedDict[str, StateSyncResponseMsg] = OrderedDict()
         self._sync_requests: OrderedDict[str, tuple[str, int]] = OrderedDict()
         self._sync_completed: OrderedDict[tuple[str, str], int] = OrderedDict()
+        self._sync_work_cap = max(1, _env_int("WEALL_NET_SYNC_WORK_MAX", 4))
+        self._sync_work_per_peer_cap = max(1, _env_int("WEALL_NET_SYNC_WORK_PER_PEER_MAX", 2))
+        self._sync_results_per_tick = max(1, _env_int("WEALL_NET_SYNC_RESULTS_PER_TICK", 1))
+        self._sync_work_queue: queue.Queue[tuple[str, StateSyncRequestMsg] | None] = queue.Queue(
+            maxsize=int(self._sync_work_cap)
+        )
+        self._sync_result_queue: queue.Queue[tuple[str, StateSyncResponseMsg]] = queue.Queue(
+            maxsize=int(self._sync_work_cap)
+        )
+        self._sync_work_slots = threading.BoundedSemaphore(int(self._sync_work_cap))
+        self._sync_work_lock = threading.Lock()
+        self._sync_work_per_peer: dict[str, int] = {}
+        self._sync_worker_stop = threading.Event()
+        self._sync_worker: threading.Thread | None = None
         self._peer_security_retention_ms: int = max(
             0, _env_int("WEALL_PEER_SECURITY_RETENTION_MS", 7 * 24 * 60 * 60 * 1000)
         )
@@ -982,6 +998,132 @@ class NetNode:
         self._complete_sync_request(cid, peer_id=peer_id)
         return msg
 
+    def _acquire_sync_work_slot(self, peer_id: str) -> bool:
+        pid = str(peer_id or "").strip()
+        if not pid:
+            return False
+        with self._sync_work_lock:
+            peer_count = int(self._sync_work_per_peer.get(pid, 0) or 0)
+            if peer_count >= int(self._sync_work_per_peer_cap):
+                return False
+            if not self._sync_work_slots.acquire(blocking=False):
+                return False
+            self._sync_work_per_peer[pid] = peer_count + 1
+        return True
+
+    def _release_sync_work_slot(self, peer_id: str) -> None:
+        pid = str(peer_id or "").strip()
+        with self._sync_work_lock:
+            count = int(self._sync_work_per_peer.get(pid, 0) or 0)
+            if count <= 1:
+                self._sync_work_per_peer.pop(pid, None)
+            else:
+                self._sync_work_per_peer[pid] = count - 1
+            try:
+                self._sync_work_slots.release()
+            except ValueError:
+                pass
+
+    def _ensure_sync_worker(self) -> None:
+        if self.sync_service is None:
+            return
+        with self._sync_work_lock:
+            worker = self._sync_worker
+            if worker is not None and worker.is_alive():
+                return
+            self._sync_worker_stop.clear()
+            worker = threading.Thread(
+                target=self._sync_worker_main,
+                name=f"weall-state-sync-{self.cfg.peer_id}",
+                daemon=True,
+            )
+            self._sync_worker = worker
+            worker.start()
+
+    def _sync_worker_main(self) -> None:
+        while not self._sync_worker_stop.is_set():
+            try:
+                item = self._sync_work_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            if item is None:
+                self._sync_work_queue.task_done()
+                break
+            peer_id, req = item
+            response: StateSyncResponseMsg | None = None
+            try:
+                service = self.sync_service
+                if service is not None:
+                    response = service.handle_request(req)
+            except Exception:
+                service = self.sync_service
+                if service is not None:
+                    response = service.reject_request(req, "sync_internal_error")
+            finally:
+                self._sync_work_queue.task_done()
+
+            if response is None:
+                self._release_sync_work_slot(peer_id)
+                continue
+            try:
+                self._sync_result_queue.put_nowait((peer_id, response))
+            except queue.Full:
+                self._release_sync_work_slot(peer_id)
+
+    def _enqueue_sync_request(
+        self, peer_id: str, req: StateSyncRequestMsg
+    ) -> StateSyncResponseMsg | None:
+        service = self.sync_service
+        if service is None:
+            return None
+        early = service.preflight_request(req)
+        if early is not None:
+            return early
+
+        pid = str(peer_id or "").strip()
+        if not self._acquire_sync_work_slot(pid):
+            return service.reject_request(req, "sync_busy")
+        try:
+            self._ensure_sync_worker()
+            self._sync_work_queue.put_nowait((pid, req))
+        except Exception:
+            self._release_sync_work_slot(pid)
+            return service.reject_request(req, "sync_busy")
+        return None
+
+    def _drain_sync_work(self, *, max_results: int | None = None) -> None:
+        limit = max(
+            1,
+            int(self._sync_results_per_tick if max_results is None else max_results),
+        )
+        for _ in range(limit):
+            try:
+                peer_id, response = self._sync_result_queue.get_nowait()
+            except queue.Empty:
+                break
+            try:
+                self.send_message(peer_id, response)
+            except Exception:
+                pass
+            finally:
+                self._sync_result_queue.task_done()
+                self._release_sync_work_slot(peer_id)
+
+    def sync_work_debug(self) -> Json:
+        with self._sync_work_lock:
+            per_peer = dict(self._sync_work_per_peer)
+        worker = self._sync_worker
+        return {
+            "capacity": int(self._sync_work_cap),
+            "per_peer_capacity": int(self._sync_work_per_peer_cap),
+            "results_per_tick": int(self._sync_results_per_tick),
+            "outstanding": int(sum(max(0, int(v)) for v in per_peer.values())),
+            "queued": int(self._sync_work_queue.qsize()),
+            "completed_waiting": int(self._sync_result_queue.qsize()),
+            "worker_alive": bool(worker is not None and worker.is_alive()),
+            "per_peer": per_peer,
+        }
+
     # ----------------------------
     # Peer address gossip helpers
     # ----------------------------
@@ -1189,9 +1331,9 @@ class NetNode:
                 self.on_bft_timeout(peer_id, msg)
 
         def _on_sync_request(msg: WireMessage) -> WireMessage | None:
-            if not self.sync_service:
+            if not self.sync_service or not isinstance(msg, StateSyncRequestMsg):
                 return None
-            return self.sync_service.handle_request(msg)  # type: ignore[arg-type]
+            return self._enqueue_sync_request(peer_id, msg)
 
         def _on_sync_response(msg: StateSyncResponseMsg) -> None:
             self._cache_sync_response(peer_id, msg)
@@ -1416,6 +1558,14 @@ class NetNode:
         return conn
 
     def close(self) -> None:
+        self._sync_worker_stop.set()
+        try:
+            self._sync_work_queue.put_nowait(None)
+        except queue.Full:
+            pass
+        worker = self._sync_worker
+        if worker is not None and worker.is_alive():
+            worker.join(timeout=0.25)
         try:
             self.transport.close()
         except Exception:
@@ -1445,7 +1595,9 @@ class NetNode:
                 except Exception:
                     continue
         except Exception:
+            self._drain_sync_work()
             return
+        self._drain_sync_work()
 
     # ----------------------------
     # Send helpers

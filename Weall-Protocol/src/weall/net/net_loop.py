@@ -69,7 +69,10 @@ from weall.net.state_sync import StateSyncService
 from weall.net.transport import PeerAddr
 from weall.runtime.mempool import compute_tx_id
 from weall.runtime.metrics import inc_counter, set_gauge
-from weall.runtime.protocol_profile import validate_runtime_consensus_profile
+from weall.runtime.protocol_profile import (
+    active_consensus_profile,
+    validate_runtime_consensus_profile,
+)
 from weall.runtime.runtime_authority import effective_bft_enabled
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_admission import admit_tx
@@ -675,6 +678,9 @@ class NetMeshLoop:
             tx_index_hash=tx_index_hash,
             state_provider=self._state_snapshot,
             block_provider=block_provider,
+            require_trusted_anchor=bool(
+                _is_prod() and active_consensus_profile().trusted_anchor_required
+            ),
             bft_enabled=bool(self._bft_enabled),
         )
 

@@ -320,7 +320,7 @@
     "wrong_chain_rejected": true
   },
   "freshness": {
-    "input_digest_sha256": "fa70d694ba0b377f41fea2c64464c413f35d0b317cc5bf0b11a4e3231fe5f338",
+    "input_digest_sha256": "c8ff1138bd2128a543ea0a5a6043a96ab527c349dccc8ee29e9040aac484d29c",
     "mode": "deterministic_input_digest_v1"
   },
   "multiprocess_ipfs_operator_durability": {

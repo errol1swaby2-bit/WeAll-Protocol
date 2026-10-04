@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
+from weall.net.wire_limits import (
+    MAX_WIRE_MESSAGE_BYTES,
+    STATE_SYNC_CHUNK_WRAPPER_RESERVE_BYTES,
+)
 from weall.runtime.block_commitment_validation import (
     validate_complete_block_commitments,
 )
@@ -24,6 +28,18 @@ from weall.runtime.system_tx_engine import (
 )
 
 Json = dict[str, Any]
+
+DEFAULT_STATE_SYNC_MAX_RESPONSE_BYTES = max(
+    1, int(MAX_WIRE_MESSAGE_BYTES) - int(STATE_SYNC_CHUNK_WRAPPER_RESERVE_BYTES)
+)
+_TRUSTED_ANCHOR_PIN_KEYS = (
+    "height",
+    "tip_hash",
+    "state_root",
+    "finalized_height",
+    "finalized_block_id",
+    "snapshot_hash",
+)
 
 
 def _mode() -> str:
@@ -61,7 +77,7 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _trusted_anchor_env(default: bool) -> bool:
-    """Read either trusted-anchor env alias and fail closed on conflict."""
+    """Read either trusted-anchor env alias and fail closed on invalid/conflicting input."""
 
     names = ("WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR", "WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR")
     seen: dict[str, bool] = {}
@@ -69,7 +85,17 @@ def _trusted_anchor_env(default: bool) -> bool:
         raw = os.environ.get(name)
         if raw is None:
             continue
-        seen[name] = str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}
+        parsed = str(raw).strip().lower()
+        if parsed in {"1", "true", "yes", "y", "on"}:
+            seen[name] = True
+        elif parsed in {"0", "false", "no", "n", "off"}:
+            seen[name] = False
+        elif not parsed:
+            seen[name] = bool(default)
+        elif _mode() == "prod":
+            raise StateSyncVerifyError(f"invalid_boolean_env:{name}")
+        else:
+            seen[name] = bool(default)
     if not seen:
         return bool(default)
     vals = set(seen.values())
@@ -333,8 +359,8 @@ class StateSyncService:
 
     # Hardening caps (tunable by env).
     max_delta_blocks: int = 250
-    max_snapshot_bytes: int = 0  # 0 = unlimited
-    max_delta_bytes: int = 0  # 0 = unlimited
+    max_snapshot_bytes: int = DEFAULT_STATE_SYNC_MAX_RESPONSE_BYTES
+    max_delta_bytes: int = DEFAULT_STATE_SYNC_MAX_RESPONSE_BYTES
     require_header_match: bool = True
     fallback_to_snapshot: bool = True
     require_trusted_anchor: bool = False
@@ -346,18 +372,31 @@ class StateSyncService:
             1, _env_int("WEALL_SYNC_MAX_DELTA_BLOCKS", int(self.max_delta_blocks or 250))
         )
         self.max_snapshot_bytes = max(
-            0, _env_int("WEALL_SYNC_MAX_SNAPSHOT_BYTES", int(self.max_snapshot_bytes or 0))
+            0, _env_int("WEALL_SYNC_MAX_SNAPSHOT_BYTES", int(self.max_snapshot_bytes))
         )
         self.max_delta_bytes = max(
-            0, _env_int("WEALL_SYNC_MAX_DELTA_BYTES", int(self.max_delta_bytes or 0))
+            0, _env_int("WEALL_SYNC_MAX_DELTA_BYTES", int(self.max_delta_bytes))
         )
+        mode = _mode()
+        if mode == "prod":
+            if self.max_snapshot_bytes <= 0:
+                raise StateSyncVerifyError("unsafe_sync_snapshot_cap_unbounded")
+            if self.max_delta_bytes <= 0:
+                raise StateSyncVerifyError("unsafe_sync_delta_cap_unbounded")
+            if self.max_snapshot_bytes > int(DEFAULT_STATE_SYNC_MAX_RESPONSE_BYTES):
+                raise StateSyncVerifyError("unsafe_sync_snapshot_cap_exceeds_wire_budget")
+            if self.max_delta_bytes > int(DEFAULT_STATE_SYNC_MAX_RESPONSE_BYTES):
+                raise StateSyncVerifyError("unsafe_sync_delta_cap_exceeds_wire_budget")
         self.require_header_match = _env_bool(
             "WEALL_SYNC_REQUIRE_HEADER_MATCH", bool(self.require_header_match)
         )
         self.fallback_to_snapshot = _env_bool(
             "WEALL_SYNC_FALLBACK_TO_SNAPSHOT", bool(self.fallback_to_snapshot)
         )
-        self.require_trusted_anchor = _trusted_anchor_env(bool(self.require_trusted_anchor))
+        trusted_anchor_default = bool(self.require_trusted_anchor)
+        self.require_trusted_anchor = _trusted_anchor_env(trusted_anchor_default)
+        if mode == "prod" and trusted_anchor_default and not self.require_trusted_anchor:
+            raise StateSyncVerifyError("unsafe_sync_trusted_anchor_disabled")
         default_finalized = bool(self.enforce_finalized_anchor)
         if not default_finalized:
             mode = str(os.environ.get("WEALL_MODE") or "").strip().lower()
@@ -431,7 +470,106 @@ class StateSyncService:
             return 0
         return _as_int(local_anchor.get("finalized_height"), 0)
 
+    def _response_header(self, req: StateSyncRequestMsg) -> WireHeader:
+        try:
+            corr_id = str(getattr(req.header, "corr_id", "") or "").strip() or None
+        except Exception:
+            corr_id = None
+        return WireHeader(
+            type=MsgType.STATE_SYNC_RESPONSE,
+            chain_id=self.chain_id,
+            schema_version=self.schema_version,
+            tx_index_hash=self.tx_index_hash,
+            sent_ts_ms=_now_ms(),
+            corr_id=corr_id,
+        )
+
+    def reject_request(
+        self, req: StateSyncRequestMsg, reason: str, *, height: int = 0
+    ) -> StateSyncResponseMsg:
+        return StateSyncResponseMsg(
+            header=self._response_header(req),
+            ok=False,
+            reason=str(reason or "state_sync_rejected"),
+            height=max(0, int(height or 0)),
+        )
+
+    def _preflight_trusted_anchor(self, selector: Any) -> str | None:
+        if selector is None:
+            return "trusted_anchor_required" if self.require_trusted_anchor else None
+        if not isinstance(selector, dict):
+            return "trusted_anchor_invalid"
+        if "trusted_anchor" not in selector:
+            return "trusted_anchor_required" if self.require_trusted_anchor else None
+        anchor = selector.get("trusted_anchor")
+        if not isinstance(anchor, dict):
+            return "trusted_anchor_invalid"
+        if not any(anchor.get(key) not in (None, "") for key in _TRUSTED_ANCHOR_PIN_KEYS):
+            return "trusted_anchor_invalid"
+        for key in ("height", "finalized_height"):
+            if key not in anchor or anchor.get(key) in (None, ""):
+                continue
+            value = anchor.get(key)
+            if isinstance(value, bool):
+                return "trusted_anchor_invalid"
+            try:
+                parsed = int(value)
+            except Exception:
+                return "trusted_anchor_invalid"
+            if parsed < 0:
+                return "trusted_anchor_invalid"
+        for key in ("tip_hash", "state_root", "finalized_block_id", "snapshot_hash"):
+            if key in anchor and anchor.get(key) not in (None, ""):
+                if not isinstance(anchor.get(key), str):
+                    return "trusted_anchor_invalid"
+        return None
+
+    def preflight_request(self, req: StateSyncRequestMsg) -> StateSyncResponseMsg | None:
+        reason = self._header_ok(req)
+        if reason:
+            return self.reject_request(req, reason)
+
+        mode = str(getattr(req, "mode", "") or "").strip().lower()
+        if mode not in {"snapshot", "delta"}:
+            return self.reject_request(req, "bad_mode")
+
+        anchor_reason = self._preflight_trusted_anchor(req.selector)
+        if anchor_reason:
+            return self.reject_request(req, anchor_reason)
+
+        if mode == "delta":
+            if not self.enable_delta:
+                return self.reject_request(req, "delta_disabled")
+            if self.block_provider is None:
+                return self.reject_request(req, "delta_unavailable")
+            raw_start = getattr(req, "from_height", 0)
+            if isinstance(raw_start, bool):
+                return self.reject_request(req, "bad_from_height")
+            try:
+                start = int(raw_start or 0)
+            except Exception:
+                return self.reject_request(req, "bad_from_height")
+            if start < 0:
+                return self.reject_request(req, "bad_from_height")
+            raw_end = getattr(req, "to_height", None)
+            if raw_end is not None:
+                if isinstance(raw_end, bool):
+                    return self.reject_request(req, "bad_to_height")
+                try:
+                    end = int(raw_end)
+                except Exception:
+                    return self.reject_request(req, "bad_to_height")
+                if end < 0:
+                    return self.reject_request(req, "bad_to_height")
+                if end < start:
+                    return self.reject_request(req, "bad_height_range")
+        return None
+
     def handle_request(self, req: StateSyncRequestMsg) -> StateSyncResponseMsg:
+        early = self.preflight_request(req)
+        if early is not None:
+            return early
+
         corr_id = req.header.corr_id
         hdr = WireHeader(
             type=MsgType.STATE_SYNC_RESPONSE,
@@ -490,6 +628,15 @@ class StateSyncService:
                     ok=False,
                     reason="snapshot_checkpoint_unavailable",
                     height=tip_h,
+                )
+            bounded_payload = {
+                "snapshot": snap,
+                "snapshot_anchor": local_anchor,
+                "blocks": list(checkpoint_blocks),
+            }
+            if not self._size_ok(bounded_payload, self.max_snapshot_bytes):
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="snapshot_too_large", height=tip_h
                 )
             snap_hash = sha256_hex_of(snap)
             return StateSyncResponseMsg(
@@ -563,7 +710,8 @@ class StateSyncService:
                     )
                 blocks.append(blk)
 
-            if self.max_delta_bytes > 0 and not self._size_ok(blocks, self.max_delta_bytes):
+            bounded_delta = {"blocks": blocks, "snapshot_anchor": local_anchor}
+            if self.max_delta_bytes > 0 and not self._size_ok(bounded_delta, self.max_delta_bytes):
                 return StateSyncResponseMsg(
                     header=hdr, ok=False, reason="delta_too_large", height=tip_h
                 )
