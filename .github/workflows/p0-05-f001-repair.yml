@@ -55,12 +55,100 @@ jobs:
         run: |
           set -euo pipefail
           python scripts/repair_p0_05_f001.py
-          # The repository test helper derives deterministic ML-DSA keys from
-          # "weall-test-pq-mldsa:". The historical fixture prefix omitted "pq-",
-          # creating a public/private mismatch that strict V3 correctly rejects.
+          # Match the repository's deterministic ML-DSA helper exactly.
           sed -i 's/weall-test-mldsa:/weall-test-pq-mldsa:/g' \
             tests/test_net_bft_identity_gate.py \
             tests/test_p0_05_f001_mutual_peer_auth.py
+          # Upgrade the historical BFT fixture from "not banned" to an actually
+          # compatible, established production-style handshake. It must carry the
+          # same profile + validator-generation metadata the receiving node pins.
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("tests/test_net_bft_identity_gate.py")
+          s = p.read_text(encoding="utf-8")
+
+          old = '''    return {
+              "roles": {"validators": {"active_set": [account_id]}},
+              "accounts": {
+          '''
+          new = '''    return {
+              "consensus": {"validator_set": {"epoch": 1, "active_set": [account_id]}},
+              "roles": {"validators": {"active_set": [account_id]}},
+              "accounts": {
+          '''
+          if old not in s:
+              raise SystemExit("BFT ledger fixture anchor missing")
+          s = s.replace(old, new, 1)
+
+          old = '''    corr_id = f"corr-{label}"
+              hdr = WireHeader(
+          '''
+          new = '''    corr_id = f"corr-{label}"
+              rec = node._ensure_peer(transport_peer)
+              hs_cfg = rec.router.handshake.config
+              hdr = WireHeader(
+          '''
+          if old not in s:
+              raise SystemExit("BFT handshake helper anchor missing")
+          s = s.replace(old, new, 1)
+
+          old = '''                PeerHello(header=hdr, peer_id=account_id, agent="weall-node", nonce=corr_id, caps=(), identity=ident)
+          '''
+          new = '''                PeerHello(
+                      header=hdr,
+                      peer_id=account_id,
+                      agent="weall-node",
+                      nonce=corr_id,
+                      caps=(),
+                      identity=ident,
+                      protocol_version=hs_cfg.protocol_version or None,
+                      protocol_profile_hash=hs_cfg.protocol_profile_hash or None,
+                      validator_epoch=hs_cfg.validator_epoch or None,
+                      validator_set_hash=hs_cfg.validator_set_hash or None,
+                      bft_enabled=hs_cfg.bft_enabled,
+                      genesis_bootstrap_profile_hash=hs_cfg.genesis_bootstrap_profile_hash or None,
+                      genesis_bootstrap_enabled=hs_cfg.genesis_bootstrap_enabled,
+                      genesis_bootstrap_mode=hs_cfg.genesis_bootstrap_mode or None,
+                  )
+          '''
+          if old not in s:
+              raise SystemExit("first BFT PeerHello anchor missing")
+          s = s.replace(old, new, 1)
+
+          old = '''    rec = node._peers[transport_peer]
+              challenge = str(rec.router.handshake.inbound_challenge or "")
+          '''
+          new = '''    rec = node._peers[transport_peer]
+              challenge = str(rec.router.handshake.inbound_challenge or "")
+          '''
+          if old not in s:
+              raise SystemExit("BFT rec/challenge anchor missing")
+
+          old = '''                PeerHello(header=hdr2, peer_id=account_id, agent="weall-node", nonce=challenge, caps=(), identity=ident2)
+          '''
+          new = '''                PeerHello(
+                      header=hdr2,
+                      peer_id=account_id,
+                      agent="weall-node",
+                      nonce=challenge,
+                      caps=(),
+                      identity=ident2,
+                      protocol_version=hs_cfg.protocol_version or None,
+                      protocol_profile_hash=hs_cfg.protocol_profile_hash or None,
+                      validator_epoch=hs_cfg.validator_epoch or None,
+                      validator_set_hash=hs_cfg.validator_set_hash or None,
+                      bft_enabled=hs_cfg.bft_enabled,
+                      genesis_bootstrap_profile_hash=hs_cfg.genesis_bootstrap_profile_hash or None,
+                      genesis_bootstrap_enabled=hs_cfg.genesis_bootstrap_enabled,
+                      genesis_bootstrap_mode=hs_cfg.genesis_bootstrap_mode or None,
+                  )
+          '''
+          if old not in s:
+              raise SystemExit("second BFT PeerHello anchor missing")
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding="utf-8")
+          PY
           ruff format \
             src/weall/net/messages.py \
             src/weall/net/peer_identity.py \
