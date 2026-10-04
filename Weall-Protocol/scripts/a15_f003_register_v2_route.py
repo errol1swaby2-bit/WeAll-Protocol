@@ -13,6 +13,7 @@ SCRIPTS = ROOT / "scripts"
 SOURCE = ROOT / "specs" / "v2" / "source"
 REGISTRY = SOURCE / "stable_ids.json"
 SEMANTIC_REVIEWS = SOURCE / "semantic_reviews.json"
+MANIFEST = SOURCE / "manifest.json"
 
 Json = dict[str, Any]
 
@@ -85,6 +86,26 @@ def _register_route_id() -> None:
     entries.sort(key=lambda row: str(row.get("stable_id") or ""))
     _write(REGISTRY, payload)
     print(f"registered: {EXPECTED_ID}")
+
+
+def _bind_route_inventory() -> None:
+    payload = _load(MANIFEST)
+    counts = payload.get("expected_counts")
+    if not isinstance(counts, dict):
+        raise SystemExit("v2_manifest_expected_counts_not_object")
+
+    current = counts.get("routes")
+    if isinstance(current, bool) or not isinstance(current, int):
+        raise SystemExit(f"v2_manifest_routes_not_integer:{current!r}")
+    if current not in {162, 163}:
+        raise SystemExit(f"unexpected_v2_route_inventory:{current}")
+    if current == 163:
+        print("V2 route inventory already bound: 163")
+        return
+
+    counts["routes"] = 163
+    _write(MANIFEST, payload)
+    print("V2 route inventory updated: 162 -> 163")
 
 
 def _derive_route_row() -> tuple[object, object, Json]:
@@ -180,6 +201,7 @@ def _upsert_semantic_review(validation: object, route_row: Json) -> str:
 
 def main() -> int:
     _register_route_id()
+    _bind_route_inventory()
     compiler, validation, route_row = _derive_route_row()
     _upsert_semantic_review(validation, route_row)
 
