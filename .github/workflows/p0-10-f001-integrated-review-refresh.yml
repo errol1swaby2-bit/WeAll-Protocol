@@ -45,14 +45,13 @@ jobs:
           python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
           python scripts/compile_v2_spec.py
 
-      - name: Verify generated artifact closure
+      - name: Verify regenerated working tree
         run: |
           python scripts/check_generated.py
           python scripts/gen_b528_b532_completion_proof_v1_5.py --check
           python scripts/gen_b534_b538_completion_proof_v1_5.py --check
           python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
@@ -73,10 +72,8 @@ jobs:
       - name: Full backend regression
         run: pytest -q
 
-      - name: Commit integrated generated state
+      - name: Prepare workflow-free integrated commit
         working-directory: .
-        env:
-          BRANCH: p0-03-production-closure-staging-20261001
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -87,9 +84,15 @@ jobs:
             Weall-Protocol/generated/v2 \
             web/src/generated/protocolStatus.ts
           git rm .github/workflows/p0-10-f001-integrated-review-refresh.yml
-          if git diff --cached --quiet; then
-            echo "No integrated derivative changes required."
-            exit 0
-          fi
           git commit -m "chore(p0-10): refresh integrated review derivatives"
-          git push origin "HEAD:${BRANCH}"
+
+      - name: Verify committed clean checkout contract
+        run: |
+          python scripts/check_v2_spec_clean_checkout.py
+          bash scripts/verify_release_tree.sh
+
+      - name: Push verified integrated state
+        working-directory: .
+        env:
+          BRANCH: p0-03-production-closure-staging-20261001
+        run: git push origin "HEAD:${BRANCH}"
