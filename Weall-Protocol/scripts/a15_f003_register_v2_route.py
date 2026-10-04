@@ -23,6 +23,8 @@ CANONICAL_KEY = (
     "v1_account_registration_work_policy"
 )
 ROUTE_KEY = "GET /v1/accounts/registration-work-policy"
+REGISTER_ROUTE_KEY = "POST /v1/accounts/tx/register"
+ACCOUNT_REGISTER_TYPE = "ACCOUNT_REGISTER"
 EXPECTED_ID = "ROUTE-" + hashlib.sha256(CANONICAL_KEY.encode("utf-8")).hexdigest()[:16].upper()
 
 
@@ -108,16 +110,18 @@ def _bind_route_inventory() -> None:
     print("V2 route inventory updated: 162 -> 163")
 
 
-def _derive_route_row() -> tuple[object, object, Json]:
+def _derive_contract_rows() -> tuple[object, object, Json, Json, Json | None]:
     sys.path.insert(0, str(SCRIPTS))
     compiler = importlib.import_module("compile_v2_spec")
     validation = importlib.import_module("v2_spec_validation")
 
+    captured_txs: list[Json] = []
     captured_routes: list[Json] = []
     original = compiler.apply_semantic_reviews
 
     def capture(tx_rows: list[Json], route_rows: list[Json], reviews: Json) -> Json:
         del reviews
+        captured_txs.extend(dict(row) for row in tx_rows)
         captured_routes.extend(dict(row) for row in route_rows)
         for row in tx_rows:
             row["semantic_derivation"] = row.get("semantic_precision")
@@ -153,63 +157,129 @@ def _derive_route_row() -> tuple[object, object, Json]:
     finally:
         compiler.apply_semantic_reviews = original
 
-    matches = [row for row in captured_routes if str(row.get("stable_id") or "") == EXPECTED_ID]
-    if len(matches) != 1:
-        raise SystemExit(f"expected_one_derived_route_row:found={len(matches)}")
-    row = matches[0]
-    if str(row.get("route_key") or "") != ROUTE_KEY:
+    route_matches = [
+        row for row in captured_routes if str(row.get("stable_id") or "") == EXPECTED_ID
+    ]
+    if len(route_matches) != 1:
+        raise SystemExit(f"expected_one_derived_route_row:found={len(route_matches)}")
+    policy_route = route_matches[0]
+    if str(policy_route.get("route_key") or "") != ROUTE_KEY:
         raise SystemExit("derived_route_key_mismatch")
-    return compiler, validation, row
+
+    tx_matches = [
+        row for row in captured_txs if str(row.get("tx_type") or "") == ACCOUNT_REGISTER_TYPE
+    ]
+    if len(tx_matches) != 1:
+        raise SystemExit(f"expected_one_account_register_row:found={len(tx_matches)}")
+    account_register = tx_matches[0]
+
+    register_route_matches = [
+        row for row in captured_routes if str(row.get("route_key") or "") == REGISTER_ROUTE_KEY
+    ]
+    if len(register_route_matches) > 1:
+        raise SystemExit("duplicate_register_route_rows")
+    register_route = register_route_matches[0] if register_route_matches else None
+
+    return compiler, validation, policy_route, account_register, register_route
 
 
-def _upsert_semantic_review(validation: object, route_row: Json) -> str:
-    payload = _load(SEMANTIC_REVIEWS)
-    rows = payload.get("routes")
-    if not isinstance(rows, list):
-        raise SystemExit("semantic_reviews_routes_not_list")
-
-    digest = validation.compact_digest(validation.route_review_material(route_row))
-    reviewed_at = dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    review = {
+def _base_review() -> Json:
+    return {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "disposition": "accepted_current_semantic_contract",
         "independent_review": False,
-        "review_digest": digest,
         "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": reviewed_at,
+        "reviewed_at": dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "reviewer": (
             "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); "
             "independent launch review deferred"
         ),
-        "route_key": ROUTE_KEY,
-        "stable_id": EXPECTED_ID,
     }
 
-    existing = [row for row in rows if str(row.get("stable_id") or "") == EXPECTED_ID]
-    if len(existing) > 1:
-        raise SystemExit("duplicate_semantic_review_for_new_route")
-    if existing:
-        existing[0].clear()
-        existing[0].update(review)
+
+def _upsert_semantic_reviews(
+    validation: object,
+    policy_route: Json,
+    account_register: Json,
+    register_route: Json | None,
+) -> None:
+    payload = _load(SEMANTIC_REVIEWS)
+    route_rows = payload.get("routes")
+    tx_rows = payload.get("transactions")
+    if not isinstance(route_rows, list):
+        raise SystemExit("semantic_reviews_routes_not_list")
+    if not isinstance(tx_rows, list):
+        raise SystemExit("semantic_reviews_transactions_not_list")
+
+    now = _base_review()
+
+    allowed_routes = [policy_route]
+    if register_route is not None:
+        allowed_routes.append(register_route)
+
+    for derived in allowed_routes:
+        stable_id = str(derived.get("stable_id") or "")
+        route_key = str(derived.get("route_key") or "")
+        digest = validation.compact_digest(validation.route_review_material(derived))
+        existing = [row for row in route_rows if str(row.get("stable_id") or "") == stable_id]
+        if len(existing) > 1:
+            raise SystemExit(f"duplicate_route_semantic_review:{stable_id}")
+        if existing and str(existing[0].get("review_digest") or "") == digest:
+            print(f"route semantic review already current: {route_key}")
+            continue
+        review = dict(existing[0]) if existing else {}
+        review.update(now)
+        review.update(
+            {
+                "review_digest": digest,
+                "route_key": route_key,
+                "stable_id": stable_id,
+            }
+        )
+        if existing:
+            existing[0].clear()
+            existing[0].update(review)
+        else:
+            route_rows.append(review)
+        print(f"route semantic review bound: {route_key} digest={digest}")
+
+    tx_stable_id = str(account_register.get("stable_id") or "")
+    tx_digest = validation.compact_digest(validation.tx_review_material(account_register))
+    tx_existing = [
+        row for row in tx_rows if str(row.get("stable_id") or "") == tx_stable_id
+    ]
+    if len(tx_existing) != 1:
+        raise SystemExit(f"expected_one_account_register_semantic_review:found={len(tx_existing)}")
+    if str(tx_existing[0].get("review_digest") or "") != tx_digest:
+        review = dict(tx_existing[0])
+        review.update(now)
+        review.update(
+            {
+                "review_digest": tx_digest,
+                "stable_id": tx_stable_id,
+                "tx_type": ACCOUNT_REGISTER_TYPE,
+            }
+        )
+        tx_existing[0].clear()
+        tx_existing[0].update(review)
+        print(f"transaction semantic review rebound: {ACCOUNT_REGISTER_TYPE} digest={tx_digest}")
     else:
-        rows.append(review)
-    rows.sort(key=lambda row: str(row.get("stable_id") or ""))
+        print(f"transaction semantic review already current: {ACCOUNT_REGISTER_TYPE}")
+
+    route_rows.sort(key=lambda row: str(row.get("stable_id") or ""))
+    tx_rows.sort(key=lambda row: str(row.get("stable_id") or ""))
     _write(SEMANTIC_REVIEWS, payload)
-    print(f"semantic review bound: {EXPECTED_ID} digest={digest}")
-    return digest
 
 
 def main() -> int:
     _register_route_id()
     _bind_route_inventory()
-    compiler, validation, route_row = _derive_route_row()
-    _upsert_semantic_review(validation, route_row)
+    compiler, validation, policy_route, account_register, register_route = _derive_contract_rows()
+    _upsert_semantic_reviews(validation, policy_route, account_register, register_route)
 
-    # A full compile must now pass every existing semantic binding plus the new
-    # route binding before any V2 derivative is written.
     artifacts, _manifest = compiler.compile_artifacts()
     compiler._write_artifacts(artifacts)
-    print("V2 derivatives regenerated after exact route semantic binding")
+    print("V2 derivatives regenerated after bounded A15-F003 semantic binding")
     return 0
 
 
