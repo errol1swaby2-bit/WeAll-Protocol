@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1982,
+  "file_count": 1985,
   "files": [
     {
       "affected_registers": [
@@ -58,6 +58,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/p0-10-a15f001-bounded-history-closure.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "3e8afa4da13f5b654c537253a61d8447cbfd1673b72f85313afbc585f8ff6986",
+      "source_id": "SRC-F0BA932101436499"
     },
     {
       "affected_registers": [
@@ -3015,7 +3028,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0e7103fa6727bb145f4c414697b4a43fe8363fb1494b392ab30f4308a1211119",
+      "sha256": "4bb85a8e46f52b5a5ddc18f6f1cfe9c2e791baf382adb78539b279dcfae7a10f",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3029,7 +3042,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "869594c3b6a92c91ff73f7777eac86a3dbfe212c416c836009db6eedff75abe4",
+      "sha256": "c44384a0d70d285329710a0d11ce38d06f40a2238a121b11cda52cfcd5a70a3c",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3113,7 +3126,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "47f2031b61e6950adf6c3192e2dbfcf8168d51b08f2fa0f14dada81c48e2e893",
+      "sha256": "103852f123b138d85148a45ba1df2dee744a9af2caea8cc728db2dfb1448951d",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -6732,7 +6745,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c4e349d81d15242184fd8baadd00cad00902d54cdda75cb62eabc7414a006eb7",
+      "sha256": "9aed8078635272252a8bf69e99067c324980be43a74c208534c4b6977c2c6b40",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -10170,7 +10183,7 @@
       ],
       "path": "src/weall/runtime/block_commit.py",
       "primary_mechanism_id": "M-018",
-      "sha256": "d8e9e2bebef7c89b42c5448ffab6126eb81460e217d7b7c9bab079c1ef681342",
+      "sha256": "b145305bd3048029b6fb0d70ab8e34dbfbaeccc3519cb183b620e3d4e78082f7",
       "source_id": "SRC-7112495A6F7F423B"
     },
     {
@@ -10199,6 +10212,19 @@
       "primary_mechanism_id": "M-018",
       "sha256": "ca95caa5e21b4b31ea80d71a56614fe625be8f6bff2a7ce8d34ec39cb8799f16",
       "source_id": "SRC-5CE4B5F6F91DDE6A"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-012"
+      ],
+      "path": "src/weall/runtime/block_history.py",
+      "primary_mechanism_id": "M-012",
+      "sha256": "506c493823f48a0488e1a3b797d70454b95821bedf0b3ed1fc8d2a551a5fa189",
+      "source_id": "SRC-839B6461B2639401"
     },
     {
       "affected_registers": [
@@ -11865,7 +11891,7 @@
       ],
       "path": "src/weall/runtime/state_hash.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "31a2544e5ab0637661f56bc117d702a367898e0414ea8c0c9ad4e6376e51e29a",
+      "sha256": "9b7a8e52748c4e084f0321e0626df411ed4e010991a0106fdd3d9020216a1fdc",
       "source_id": "SRC-3BAF47208E70D718"
     },
     {
@@ -21976,6 +22002,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "eaf0ccd121d325df02e8801a55b60c79ed497d5ed93bb2297501746e14d3b871",
       "source_id": "SRC-F515759A66D6DF63"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p0_10_a15_f001_bounded_block_history.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "6e7cfbf37efd9a329e06a9e30d68a1d7c6f3db6905026641aee74b0532560719",
+      "source_id": "SRC-D294F2C408F10F7B"
     },
     {
       "affected_registers": [

@@ -140,8 +140,9 @@ def test_local_bft_metadata_cannot_change_application_compaction_root() -> None:
         "locked_qc": {"block_id": "pending-Y"},
     }
 
-    assert project_bounded_block_history_state(left)["blocks"] == (
-        project_bounded_block_history_state(right)["blocks"]
+    assert (
+        project_bounded_block_history_state(left)["blocks"]
+        == (project_bounded_block_history_state(right)["blocks"])
     )
     assert compute_state_root(left) == compute_state_root(right)
 

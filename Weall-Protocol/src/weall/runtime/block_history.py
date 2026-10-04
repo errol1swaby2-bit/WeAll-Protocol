@@ -261,9 +261,7 @@ def project_bounded_block_history_state(state: Json) -> Json:
     prune_count = int(len(ordered) - int(limit))
     pruned = ordered[:prune_count]
     if any(int(height) >= int(finalized_height) for _block_id, _record, height in pruned):
-        raise BlockHistoryRetentionError(
-            "block_history_window_exhausted_by_live_safety_ancestry"
-        )
+        raise BlockHistoryRetentionError("block_history_window_exhausted_by_live_safety_ancestry")
 
     pruned_ids = {block_id for block_id, _record, _height in pruned}
     next_blocks = {key: value for key, value in blocks_raw.items() if str(key) not in pruned_ids}

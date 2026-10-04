@@ -12,6 +12,7 @@ import time
 from typing import Any
 
 from weall.runtime.block_commitment_validation import ensure_complete_block_commitments
+from weall.runtime.block_history import compact_bounded_block_history_in_place
 from weall.runtime.executor import (
     ExecutorMeta,
     Path,
@@ -61,6 +62,18 @@ def commit_block_candidate(
                     height=0,
                     block_id="",
                 )
+
+        # Persist exactly the finite ancestry projection committed by state_root.
+        # Local BFT metadata is never consulted when selecting compactable history.
+        try:
+            compact_bounded_block_history_in_place(new_state)
+        except Exception as exc:
+            return ExecutorMeta(
+                ok=False,
+                error=f"block_history_compaction_failed:{type(exc).__name__}:{str(exc)}",
+                height=0,
+                block_id="",
+            )
 
         # Durable history is a stronger trust boundary than cheap received-block
         # identity binding.  Revalidate the *complete* object here so follower
