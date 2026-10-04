@@ -1,0 +1,118 @@
+name: P0-05 F001 mutual peer auth repair
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+    paths:
+      - ".github/workflows/p0-05-f001-repair.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - name: Guard exact green baseline ancestry
+        working-directory: .
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD~2)" = "9b8f8f969e641c88c4cefa8f4b9c5e987e00850e"
+          test "$(git rev-parse HEAD^)" = "0c17b69045c83a193f781fc1367b5236ff85064a"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Apply bounded F001 repair
+        run: |
+          set -euo pipefail
+          python scripts/repair_p0_05_f001.py
+          ruff format \
+            src/weall/net/messages.py \
+            src/weall/net/peer_identity.py \
+            src/weall/net/handshake.py \
+            src/weall/net/router.py \
+            src/weall/net/node.py \
+            tests/test_net_bft_identity_gate.py \
+            tests/test_p0_05_f001_mutual_peer_auth.py
+          ruff check \
+            src/weall/net/messages.py \
+            src/weall/net/peer_identity.py \
+            src/weall/net/handshake.py \
+            src/weall/net/router.py \
+            src/weall/net/node.py \
+            tests/test_net_bft_identity_gate.py \
+            tests/test_p0_05_f001_mutual_peer_auth.py
+
+      - name: Focused mutual-auth regressions
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_p0_05_f001_mutual_peer_auth.py \
+            tests/test_net_bft_identity_gate.py \
+            tests/test_net_multi_node.py
+
+      - name: Remove temporary repair surfaces before evidence generation
+        working-directory: .
+        run: |
+          set -euo pipefail
+          rm -f Weall-Protocol/scripts/repair_p0_05_f001.py
+          rm -f .github/workflows/p0-05-f001-repair.yml
+          test ! -e Weall-Protocol/scripts/repair_p0_05_f001.py
+          test ! -e .github/workflows/p0-05-f001-repair.yml
+
+      - name: Regenerate deterministic proof and V2 artifacts
+        run: |
+          set -euo pipefail
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/compile_v2_spec.py
+          python scripts/gen_current_verified_claims.py
+
+      - name: Validate generated/evidence contract
+        run: |
+          set -euo pipefail
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Full backend regression
+        run: |
+          set -euo pipefail
+          pytest -q
+
+      - name: Commit final workflow-free tree
+        working-directory: .
+        run: |
+          set -euo pipefail
+          git status --short
+          git add -A
+          test -n "$(git diff --cached --name-only)"
+          test -z "$(git diff --cached --name-only | grep -E '^\.github/workflows/p0-05-f001-repair\.yml$' || true)"
+          test -z "$(git diff --cached --name-only | grep -E '^Weall-Protocol/scripts/repair_p0_05_f001\.py$' || true)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Close P0-05 F001 mutual peer session authentication"
+          git push origin HEAD:p0-03-production-closure-staging-20261001
