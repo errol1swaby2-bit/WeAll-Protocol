@@ -7,20 +7,22 @@ venv/
 env/
 
 # =========================
+# Pytest / Coverage / Property & Mutation Testing
+# =========================
+.pytest_cache/
+.hypothesis/
+.mutmut-cache/
+.coverage
+coverage.json
+htmlcov/
+
+# =========================
 # Python Cache / Bytecode
 # =========================
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-
-# =========================
-# Pytest / Coverage
-# =========================
-.pytest_cache/
-.coverage
-coverage.json
-htmlcov/
 
 # =========================
 # Local Test Artifacts

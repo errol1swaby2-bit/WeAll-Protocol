@@ -212,24 +212,40 @@ def test_leader_proposal_can_use_cached_qc_from_timeout_certificate(
     )
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=3)
 
+    parent, parent_state, parent_ids, parent_bad, parent_err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True
+    )
+    assert parent_err == ""
+    assert isinstance(parent, dict)
+    assert isinstance(parent_state, dict)
+    assert parent_bad == []
+    parent_id = str(parent["block_id"])
+    parent_hash = str(parent["block_hash"])
+    ex._pending_candidates[parent_id] = (
+        dict(parent),
+        parent_state,
+        list(parent_ids),
+        list(parent_bad),
+    )
+
     set_hash = ex._current_validator_set_hash()
     qc = _make_qc(
         chain_id="bft-live",
         validators=validators,
         vpub=vpub,
         vpriv=vpriv,
-        block_id="known-qc-block",
-        block_hash="11" * 32,
-        parent_id="genesis",
+        block_id=parent_id,
+        block_hash=parent_hash,
+        parent_id=str(parent.get("prev_block_id") or ""),
         view=0,
         validator_epoch=3,
         validator_set_hash=set_hash,
     )
-    ex._pending_missing_qcs["known-qc-block"] = qc
+    ex._pending_missing_qcs[parent_id] = qc
     ex._bft.last_timeout_certificate = TimeoutCertificate(
         chain_id="bft-live",
         view=0,
-        high_qc_id="known-qc-block",
+        high_qc_id=parent_id,
         signer_count=3,
         signers=("v1", "v3", "v4"),
         validator_epoch=3,
@@ -246,4 +262,6 @@ def test_leader_proposal_can_use_cached_qc_from_timeout_certificate(
     proposal = ex.bft_leader_propose(max_txs=0)
     assert isinstance(proposal, dict)
     assert isinstance(proposal.get("justify_qc"), dict)
-    assert proposal["justify_qc"]["block_id"] == "known-qc-block"
+    assert proposal["justify_qc"]["block_id"] == parent_id
+    assert proposal["prev_block_id"] == parent_id
+    assert proposal["prev_block_hash"] == parent_hash

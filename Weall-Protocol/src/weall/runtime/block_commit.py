@@ -11,6 +11,8 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 import time
 from typing import Any
 
+from weall.runtime.block_commitment_validation import ensure_complete_block_commitments
+from weall.runtime.block_history import compact_bounded_block_history_in_place
 from weall.runtime.executor import (
     ExecutorMeta,
     Path,
@@ -18,7 +20,6 @@ from weall.runtime.executor import (
     _consensus_fail_closed,
     _format_commit_failure,
     _now_ms,
-    ensure_block_hash,
     maybe_trigger_failpoint,
     os,
     prune_emitted_system_queue,
@@ -38,8 +39,12 @@ def commit_block_candidate(
 ) -> ExecutorMeta:
     """Atomically persist a block + mempool cleanup + ledger snapshot.
 
-    Production invariant: a node crash or SIGKILL during commit must not leave
-    a partially-committed DB (e.g., block row without ledger_state update).
+    Production invariants:
+      - a node crash or SIGKILL during commit must not leave a partially
+        committed DB (e.g. block row without ledger_state update);
+      - the exact block crossing the durable boundary must be a complete,
+        self-bound canonical block, including its receipt body;
+      - a canonical transaction identity may be durably included only once.
     """
     try:
         height = int(block.get("height") or 0)
@@ -58,7 +63,28 @@ def commit_block_candidate(
                     block_id="",
                 )
 
-        block2, _bh = ensure_block_hash(block)
+        # Persist exactly the finite ancestry projection committed by state_root.
+        # Local BFT metadata is never consulted when selecting compactable history.
+        try:
+            compact_bounded_block_history_in_place(new_state)
+        except Exception as exc:
+            return ExecutorMeta(
+                ok=False,
+                error=f"block_history_compaction_failed:{type(exc).__name__}:{str(exc)}",
+                height=0,
+                block_id="",
+            )
+
+        # Durable history is a stronger trust boundary than cheap received-block
+        # identity binding.  Revalidate the *complete* object here so follower
+        # replay can never prove one receipt list and persist a different network-
+        # supplied duplicate body.  Locally built blocks pass the same predicate,
+        # keeping one canonical storage contract for both paths.
+        block2, _binding = ensure_complete_block_commitments(
+            block=block,
+            chain_id=str(self.chain_id),
+        )
+        block_id = str(block2.get("block_id") or "")
         now = _now_ms()
         block_json = _canon_json(block2)
 
@@ -141,6 +167,24 @@ def commit_block_candidate(
             if durable_tip_hash and candidate_prev_hash != durable_tip_hash:
                 raise RuntimeError("block_commit_stale_parent_hash")
 
+            # Canonical tx identity is immutable history.  A second block may not
+            # reuse an already committed tx_id, regardless of whether the first
+            # receipt was successful or failed.  Check under the same writer lock
+            # used for block commit so there is no race between admission and the
+            # durable uniqueness decision.
+            for tx_index_row in tx_index_rows:
+                tx_id = str(tx_index_row[0])
+                existing = con.execute(
+                    "SELECT height, block_id FROM tx_index WHERE tx_id=? LIMIT 1;",
+                    (tx_id,),
+                ).fetchone()
+                if existing is not None:
+                    raise RuntimeError(
+                        "block_commit_duplicate_tx_id:"
+                        f"{tx_id}:existing_height={int(existing['height'])}:"
+                        f"existing_block={str(existing['block_id'])}"
+                    )
+
             con.execute(
                 "INSERT INTO blocks(height, block_id, block_json, created_ts_ms) VALUES(?,?,?,?);",
                 (int(height), str(block_id), block_json, int(now)),
@@ -200,15 +244,7 @@ def commit_block_candidate(
                       ok,
                       included_ts_ms
                     )
-                    VALUES(?,?,?,?,?,?,?,?)
-                    ON CONFLICT(tx_id) DO UPDATE SET
-                      height=excluded.height,
-                      block_id=excluded.block_id,
-                      tx_type=excluded.tx_type,
-                      signer=excluded.signer,
-                      nonce=excluded.nonce,
-                      ok=excluded.ok,
-                      included_ts_ms=excluded.included_ts_ms;
+                    VALUES(?,?,?,?,?,?,?,?);
                     """,
                     tx_index_rows,
                 )

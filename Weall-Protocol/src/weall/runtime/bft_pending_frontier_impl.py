@@ -227,7 +227,13 @@ def _prune_pending_bft_artifacts_on_local_validator_transition(
         and str(previous_set_hash or "").strip() == str(current_set_hash or "").strip()
     ):
         return False
-    return self._prune_pending_bft_artifacts()
+    changed = self._prune_pending_bft_artifacts()
+    reset = getattr(self._bft, "reset_for_validator_generation", None)
+    if not callable(reset):
+        raise ExecutorError("bft_validator_generation_reset_missing")
+    reset(finalized_block_id=str(self.state.get("tip") or "").strip())
+    self._persist_bft_state()
+    return bool(changed or True)
 
 
 def _cache_known_block_hash(self, block_id: str, block_hash: str) -> None:
@@ -628,6 +634,38 @@ def _canonical_conflict_identity(block: Json) -> tuple[bool, str, str] | None:
     return (True, canonical_id, canonical_hash)
 
 
+def _verified_qc_pins_block_identity(self, *, block_id: str, block_hash: str) -> bool:
+    bid = str(block_id or "").strip()
+    bh = str(block_hash or "").strip()
+    if not bid or not bh:
+        return False
+
+    bft = getattr(self, "_bft", None)
+    for attr in ("high_qc", "locked_qc", "validator_transition_qc"):
+        qc = getattr(bft, attr, None) if bft is not None else None
+        if qc is None:
+            continue
+        if (
+            str(getattr(qc, "block_id", "") or "").strip() == bid
+            and str(getattr(qc, "block_hash", "") or "").strip() == bh
+        ):
+            return True
+
+    qcj = self._pending_missing_qc_json(block_id=bid)
+    verifier = getattr(self, "bft_verify_qc_json", None)
+    if not isinstance(qcj, dict) or not callable(verifier):
+        return False
+    try:
+        verified = verifier(dict(qcj))
+    except Exception:
+        return False
+    return bool(
+        verified is not None
+        and str(getattr(verified, "block_id", "") or "").strip() == bid
+        and str(getattr(verified, "block_hash", "") or "").strip() == bh
+    )
+
+
 def _block_identity_conflicts(self, block: Json, *, record_conflicts: bool = True) -> bool:
     if not isinstance(block, dict):
         return False
@@ -654,6 +692,19 @@ def _block_identity_conflicts(self, block: Json, *, record_conflicts: bool = Tru
             known = self._known_block_hash_for_id(bid)
             if not known or known == block_hash:
                 return False
+        # A verified QC pins the already-known (block_id, block_hash) identity.
+        # A later signed alternate may be rejected as equivocation, but it must
+        # not revoke the certified identity or delete the certified pending parent.
+        if _verified_qc_pins_block_identity(self, block_id=bid, block_hash=known):
+            if record_conflicts:
+                self._bft_record_event(
+                    "bft_certified_block_identity_conflict_rejected",
+                    block_id=bid,
+                    certified_block_hash=known,
+                    rejected_block_hash=block_hash,
+                    parent_id=str(block.get("prev_block_id") or "").strip(),
+                )
+            return True
         if record_conflicts:
             self._mark_block_id_conflict(
                 block_id=bid,
@@ -1170,6 +1221,30 @@ def _bft_parent_ready_for_apply(self, block: Json) -> bool:
     return self._has_local_block(parent_id)
 
 
+def _finalized_replay_path_ids(self, finalized_block_id: str) -> set[str] | None:
+    finalized = str(finalized_block_id or "").strip()
+    local_tip = str(self.state.get("tip") or "").strip()
+    if not finalized or finalized == local_tip:
+        return set()
+    blocks = self._bft_speculative_blocks_map()
+    path: set[str] = set()
+    cur = finalized
+    seen: set[str] = set()
+    limit = max(1, int(getattr(self, "_max_pending_remote_blocks", 1024) or 1024)) + 1
+    while cur and cur != local_tip:
+        if cur in seen or len(path) >= limit:
+            return None
+        seen.add(cur)
+        rec = blocks.get(cur)
+        if not isinstance(rec, dict):
+            return None
+        path.add(cur)
+        cur = str(rec.get("prev_block_id") or "").strip()
+    if cur != local_tip:
+        return None
+    return path
+
+
 def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
     """Attempt deterministic catch-up replay for pending BFT blocks.
 
@@ -1186,6 +1261,11 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
     allow_qc_replay = _mode() != "prod"
     if not finalized_block_id and not allow_qc_replay:
         return results
+    finalized_replay_path: set[str] | None = None
+    if finalized_block_id and not allow_qc_replay:
+        finalized_replay_path = _finalized_replay_path_ids(self, finalized_block_id)
+        if finalized_replay_path is None:
+            return results
 
     scan_budget = max(1, int(getattr(self, "_max_pending_replay_scans_per_call", 64) or 64))
     apply_budget = max(1, int(getattr(self, "_max_pending_replay_applies_per_call", 8) or 8))
@@ -1224,7 +1304,17 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
             self._pending_replay_cursor = bid
             continue
         if finalized_block_id:
-            if not self._bft_block_is_applyable_finalized_descendant(blk, finalized_block_id):
+            if (
+                not allow_qc_replay
+                and finalized_replay_path is not None
+                and bid not in finalized_replay_path
+            ):
+                self._pending_replay_cursor = bid
+                scanned += 1
+                continue
+            if allow_qc_replay and not self._bft_block_is_applyable_finalized_descendant(
+                blk, finalized_block_id
+            ):
                 self._pending_replay_cursor = bid
                 scanned += 1
                 continue
@@ -1272,7 +1362,7 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
                     blk2["justify_qc"] = dict(qcj)
                 elif qc_is_self_commit and synthetic_replay:
                     blk2["justify_qc"] = dict(qcj)
-            else:
+            elif qc_is_parent_justify:
                 existing_bid = str(existing_justify.get("block_id") or "").strip()
                 existing_bh = str(existing_justify.get("block_hash") or "").strip()
                 if (existing_bid and qc_bid and existing_bid != qc_bid) or (
@@ -1281,7 +1371,16 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
                     self._drop_pending_candidate_artifacts(bid)
                     made_progress = True
                     continue
+            elif not qc_is_self_commit:
+                # A cached certificate that is neither this block's commit QC nor
+                # its parent justification has no valid replay role. Fail closed
+                # rather than rewriting the block's certified ancestry.
+                self._drop_pending_candidate_artifacts(bid)
+                made_progress = True
+                continue
             if qc_is_self_commit and not synthetic_replay:
+                # The block's self-commit QC is distinct from the parent QC already
+                # carried in justify_qc. Preserve both domains independently.
                 blk2["qc"] = dict(qcj)
         try:
             replay_view = int(
@@ -1308,7 +1407,16 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
                 blk2["proposer_pubkey"] = proposer_pubkey
         if applied >= apply_budget:
             break
-        meta = self.apply_block(blk2)
+        authorized_finalized_replay = bool(
+            _mode() == "prod" and finalized_replay_path is not None and bid in finalized_replay_path
+        )
+        prior_finalized_replay = bool(getattr(self, "_bft_authenticated_finalized_replay", False))
+        if authorized_finalized_replay:
+            self._bft_authenticated_finalized_replay = True
+        try:
+            meta = self.apply_block(blk2)
+        finally:
+            self._bft_authenticated_finalized_replay = prior_finalized_replay
         applied += 1
         if meta is None or not bool(getattr(meta, "ok", False)):
             self._drop_pending_candidate_artifacts(bid)

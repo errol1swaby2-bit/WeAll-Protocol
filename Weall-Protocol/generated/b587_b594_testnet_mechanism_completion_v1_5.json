@@ -18,7 +18,7 @@
       "public_validator_enabled": false,
       "source_of_truth": "runtime route tests and apply/admission code remain authoritative"
     },
-    "vector_count": 42,
+    "vector_count": 47,
     "vectors": [
       {
         "auth_case": "anonymous_public_read",
@@ -118,12 +118,12 @@
         "contract_auth": "account_session_required",
         "contract_truth_boundary": "Async PoH my-cases is viewer-scoped and requires a valid account session.",
         "error_codes": [
-          "session_required",
-          "session_mismatch"
+          "poh_session_required",
+          "poh_session_identity_mismatch"
         ],
         "expected_error_envelope": {
           "error": {
-            "code": "session_required"
+            "code": "poh_session_required"
           },
           "ok": false
         },
@@ -630,12 +630,12 @@
         "contract_auth": "account_session_required",
         "contract_truth_boundary": "Tier-2 my-cases is viewer-scoped and requires a valid account session.",
         "error_codes": [
-          "session_required",
-          "session_mismatch"
+          "poh_session_required",
+          "poh_session_identity_mismatch"
         ],
         "expected_error_envelope": {
           "error": {
-            "code": "session_required"
+            "code": "poh_session_required"
           },
           "ok": false
         },
@@ -655,12 +655,12 @@
         "contract_auth": "account_session_required_live_account_queue",
         "contract_truth_boundary": "Live my-cases is account-scoped and requires authenticated viewer alignment.",
         "error_codes": [
-          "session_required",
-          "session_mismatch"
+          "poh_session_required",
+          "poh_session_identity_mismatch"
         ],
         "expected_error_envelope": {
           "error": {
-            "code": "session_required"
+            "code": "poh_session_required"
           },
           "ok": false
         },
@@ -673,6 +673,137 @@
         "path": "/v1/poh/live/my-cases",
         "privacy_boundary": "live PoH queues are viewer-scoped and grant no room authority without participation",
         "route_key": "GET /v1/poh/live/my-cases",
+        "route_present": true
+      },
+      {
+        "auth_case": "juror_session_required",
+        "contract_auth": "account_session_required",
+        "contract_truth_boundary": "Async PoH juror-cases is reviewer-scoped and requires a valid account session.",
+        "error_codes": [
+          "poh_session_required",
+          "poh_session_identity_mismatch"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "poh_session_required"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          403
+        ],
+        "id": "poh-async-juror-cases-session",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "GET",
+        "path": "/v1/poh/async/juror-cases",
+        "privacy_boundary": "async reviewer queue is visible only to the authenticated juror principal",
+        "route_key": "GET /v1/poh/async/juror-cases",
+        "route_present": true
+      },
+      {
+        "auth_case": "juror_session_required",
+        "contract_auth": "account_session_required",
+        "contract_truth_boundary": "Tier-2 juror-cases is reviewer-scoped and requires a valid account session.",
+        "error_codes": [
+          "poh_session_required",
+          "poh_session_identity_mismatch"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "poh_session_required"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          403
+        ],
+        "id": "poh-tier2-juror-cases-session",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "GET",
+        "path": "/v1/poh/tier2/juror-cases",
+        "privacy_boundary": "Tier-2 reviewer queue is visible only to the authenticated juror principal",
+        "route_key": "GET /v1/poh/tier2/juror-cases",
+        "route_present": true
+      },
+      {
+        "auth_case": "juror_session_required",
+        "contract_auth": "account_session_required_live_reviewer_queue",
+        "contract_truth_boundary": "Live assigned cases are reviewer-scoped queue reads, not generic public snapshots.",
+        "error_codes": [
+          "poh_session_required",
+          "poh_session_identity_mismatch"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "poh_session_required"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          403
+        ],
+        "id": "poh-live-assigned-session",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "GET",
+        "path": "/v1/poh/live/assigned",
+        "privacy_boundary": "live reviewer assignments are visible only to the authenticated juror principal",
+        "route_key": "GET /v1/poh/live/assigned",
+        "route_present": true
+      },
+      {
+        "auth_case": "case_participant_session_required",
+        "contract_auth": "session_aware_poh_tier2_case_read",
+        "contract_truth_boundary": "Tier-2 PoH case reads may include sensitive evidence/status fields and must be treated as session-aware redacted case reads, not generic public snapshots.",
+        "error_codes": [
+          "poh_session_required",
+          "poh_case_viewer_forbidden",
+          "not_found"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "poh_session_required"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          200,
+          403,
+          404
+        ],
+        "id": "poh-tier2-case-participant-session",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "GET",
+        "path": "/v1/poh/tier2/case/{case_id}",
+        "privacy_boundary": "Tier-2 full-case evidence is visible only to the applicant or assigned jurors",
+        "route_key": "GET /v1/poh/tier2/case/{case_id}",
+        "route_present": true
+      },
+      {
+        "auth_case": "case_participant_session_required",
+        "contract_auth": "session_aware_live_case_read_commitments_only",
+        "contract_truth_boundary": "Live PoH case reads expose commitment/status metadata only and must not expose raw room URLs, raw media, or restricted identity evidence.",
+        "error_codes": [
+          "poh_session_required",
+          "poh_case_viewer_forbidden",
+          "not_found"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "poh_session_required"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          200,
+          403,
+          404
+        ],
+        "id": "poh-live-case-participant-session",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "GET",
+        "path": "/v1/poh/live/case/{case_id}",
+        "privacy_boundary": "Live full-case evidence is visible only to the applicant or assigned jurors",
+        "route_key": "GET /v1/poh/live/case/{case_id}",
         "route_present": true
       },
       {

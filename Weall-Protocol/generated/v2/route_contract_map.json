@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "cad75e220a31e0cb78523ea14a4f70b7a0956c2491826acf3e8af22710595159"
+    "source_tree_digest": "7308b8f9310c1714af601d12a98f708755e30413a3c0b3b486c0532f459abee6"
   },
   "required_fields": [
     "stable_id",
@@ -673,6 +673,7 @@
         "tests/test_m2_chain_manifest_closure_gates.py",
         "tests/test_observer_reconciliation_and_bounded_details.py",
         "tests/test_observer_tx_queue_safety.py",
+        "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_promoted_validator_reboot_gate.py",
         "tests/test_reviewer_rehearsal_wrappers.py",
         "tests/test_runtime_config_env_precedence.py",
@@ -3796,6 +3797,7 @@
         "tests/test_local_rehearsal_account_register_state_fallback.py",
         "tests/test_m3_closure_integrity.py",
         "tests/test_operator_helpers_fail_closed.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_pb001bm_validator_authority_fail_closed.py",
         "tests/test_priority1_cross_node_merge_consistency.py",
         "tests/test_priority1_deterministic_execution.py",
@@ -4414,6 +4416,8 @@
       "stable_id": "ROUTE-72B078F0A5B7B780",
       "tests": [
         "tests/test_async_verification_submission_reviewer_feed.py",
+        "tests/test_p0_a10_a12_generated_contract_closure.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_review_coverage_read_models.py"
       ],
       "vector_ids": [
@@ -4462,6 +4466,8 @@
       },
       "stable_id": "ROUTE-DA85A2E56923B444",
       "tests": [
+        "tests/test_p0_a10_a12_generated_contract_closure.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_restricted_poh_session_and_webrtc_transport.py"
       ],
       "vector_ids": [
@@ -4484,7 +4490,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_juror_accept",
-        "line": 3127,
+        "line": 3135,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4534,7 +4540,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_juror_decline",
-        "line": 3149,
+        "line": 3157,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4584,7 +4590,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_review",
-        "line": 3169,
+        "line": 3177,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4632,7 +4638,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_challenge_tx_open",
-        "line": 3089,
+        "line": 3090,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4710,6 +4716,8 @@
       "stable_id": "ROUTE-36FC58B3F61A2F45",
       "tests": [
         "tests/test_async_bind_scheduler_and_live_route.py",
+        "tests/test_p0_a10_a12_generated_contract_closure.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_review_coverage_read_models.py"
       ],
       "vector_ids": [
@@ -4850,7 +4858,9 @@
       },
       "stable_id": "ROUTE-E99CD408C0DE7F1A",
       "tests": [
-        "tests/test_frontend_poh_media_and_live_room.py"
+        "tests/test_frontend_poh_media_and_live_room.py",
+        "tests/test_p0_a10_a12_generated_contract_closure.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -5253,7 +5263,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_attendance",
-        "line": 3341,
+        "line": 3349,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5305,7 +5315,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_juror_accept",
-        "line": 3296,
+        "line": 3304,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5355,7 +5365,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_juror_decline",
-        "line": 3320,
+        "line": 3328,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5405,7 +5415,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_request",
-        "line": 3248,
+        "line": 3256,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5455,7 +5465,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_verdict",
-        "line": 3381,
+        "line": 3389,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5867,6 +5877,8 @@
       },
       "stable_id": "ROUTE-0D67770619CA0647",
       "tests": [
+        "tests/test_p0_a10_a12_generated_contract_closure.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_review_coverage_read_models.py"
       ],
       "vector_ids": [
@@ -5915,7 +5927,9 @@
       },
       "stable_id": "ROUTE-1C48982950B7E289",
       "tests": [
-        "tests/test_v2_spec_compiler.py"
+        "tests/test_p0_a01_a20_closure_regressions.py",
+        "tests/test_p0_a10_a12_generated_contract_closure.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -5933,7 +5947,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_tier2_tx_request",
-        "line": 3205,
+        "line": 3213,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7521,8 +7535,24 @@
         "tests/test_operator_observability_truthfulness.py",
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p0_03_certified_branch_transition.py",
+        "tests/test_p0_03_production_composition.py",
+        "tests/test_p0_05_f001_mutual_peer_auth.py",
+        "tests/test_p0_05_f002a_wire_budget.py",
+        "tests/test_p0_06a_duplicate_account_adjudication.py",
+        "tests/test_p0_07_constitutional_scope_closure.py",
+        "tests/test_p0_10_a15_f001_bounded_block_history.py",
+        "tests/test_p0_a01_a20_closure_regressions.py",
+        "tests/test_p0_a10_a12_generated_contract_closure.py",
+        "tests/test_p0_a10_treasury_restart_replay.py",
+        "tests/test_p0_a12_generated_vector_runtime_truth.py",
+        "tests/test_p0_claim_audit_binding.py",
+        "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
+        "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_dispute_appeal_actor.py",
@@ -7571,6 +7601,7 @@
         "tests/test_pending_missing_qc_hash_surface.py",
         "tests/test_pending_tx_survives_failed_commit.py",
         "tests/test_poh_async_native_tier1.py",
+        "tests/test_poh_async_panel_grinding_regression.py",
         "tests/test_poh_async_recorded_video_frontend.py",
         "tests/test_poh_async_reviewable_evidence.py",
         "tests/test_poh_async_safety.py",
@@ -8387,6 +8418,7 @@
         "tests/test_node_operator_gate.py",
         "tests/test_node_operator_onboarding_ux.py",
         "tests/test_node_operator_responsibility_readiness.py",
+        "tests/test_nonce_failure_block_progression.py",
         "tests/test_nonce_pipelining_throughput.py",
         "tests/test_observer_boot_onboarding_safety.py",
         "tests/test_observer_bypass_and_sync_auth.py",
@@ -8402,7 +8434,17 @@
         "tests/test_operator_observability_truthfulness.py",
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p0_03_production_composition.py",
+        "tests/test_p0_06a_duplicate_account_adjudication.py",
+        "tests/test_p0_a01_a20_closure_regressions.py",
+        "tests/test_p0_a10_a12_generated_contract_closure.py",
+        "tests/test_p0_a10_treasury_restart_replay.py",
+        "tests/test_p0_a12_generated_vector_runtime_truth.py",
+        "tests/test_p0_claim_audit_binding.py",
+        "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_p0_restart_and_poh_privacy_closure.py",
+        "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_scoped_authority_repairs.py",
@@ -8412,6 +8454,7 @@
         "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
         "tests/test_pb001bm_validator_authority_fail_closed.py",
         "tests/test_pb001bn_bft_identity_quarantine_restart.py",
+        "tests/test_poh_async_panel_grinding_regression.py",
         "tests/test_poh_async_threshold_safety.py",
         "tests/test_poh_case_scoped_juror_gate.py",
         "tests/test_poh_eligibility_rules.py",
@@ -9333,6 +9376,7 @@
         "tests/test_external_observer_live_gate_docs.py",
         "tests/test_genesis_multi_user_rehearsal_safety.py",
         "tests/test_group_governance_contract.py",
+        "tests/test_nonce_failure_block_progression.py",
         "tests/test_observer_live_upstream_sync_truth.py",
         "tests/test_observer_tx_queue_and_scoped_reads.py",
         "tests/test_public_profile_contract.py",

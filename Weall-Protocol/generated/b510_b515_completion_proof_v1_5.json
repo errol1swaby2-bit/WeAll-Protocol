@@ -31,6 +31,7 @@
               "validator-e"
             ],
             "consensus_phase": "multi_validator_bootstrap",
+            "transition_bridge": null,
             "validator_epoch": 1,
             "validator_set_hash": "bebcf126b307d9909d4c6b8d40d27e3714b3caa271cd40d625dabc0e7495f73a"
           }
@@ -71,6 +72,7 @@
               "validator-e"
             ],
             "consensus_phase": "multi_validator_bootstrap",
+            "transition_bridge": null,
             "validator_epoch": 2,
             "validator_set_hash": "122dbb871f25edf9a181776d6854f43905387dbe52000a4d1b0819ac8c03907b"
           }

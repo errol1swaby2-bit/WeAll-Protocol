@@ -20,6 +20,7 @@ _STRICT_MODES = frozenset(
     }
 )
 _PUBLIC_MODES = frozenset({"public-testnet", "public_testnet", "mainnet", "production", "prod"})
+_PRODUCTION_CHAIN_IDS = frozenset({"weall-prod"})
 
 
 def _as_dict(value: Any) -> Json:
@@ -37,7 +38,19 @@ def _as_bool(value: Any) -> bool:
 
 
 def chain_mode(state: Json) -> str:
+    """Return the canonical governance/ballot posture for this chain state.
+
+    Production identity must fail closed even when legacy mode/profile fields are
+    absent.  The checked production genesis identifies itself by ``chain_id``;
+    treating that state as a legacy/local profile allowed the ballot launch gate
+    to be bypassed.  Recognize the production chain identity before consulting
+    compatibility posture fields.
+    """
+
     params = _as_dict(state.get("params"))
+    chain_id = _as_str(params.get("chain_id") or state.get("chain_id")).lower()
+    if chain_id in _PRODUCTION_CHAIN_IDS:
+        return "production"
     return _as_str(
         params.get("mode")
         or params.get("chain_mode")

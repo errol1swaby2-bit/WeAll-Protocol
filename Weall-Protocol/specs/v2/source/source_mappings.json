@@ -3338,6 +3338,16 @@
         "failures"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/poh_route_auth.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "src/weall/api/public_redaction.py",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
@@ -4031,6 +4041,16 @@
     },
     {
       "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/wire_limits.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
         "mechanisms"
       ],
       "classification": "authoritative_or_launch_critical",
@@ -4486,6 +4506,15 @@
       "classification": "authoritative_or_launch_critical",
       "path": "src/weall/runtime/block_hash.py",
       "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_history.py",
+      "primary_mechanism_id": "M-012",
       "review_status": "mapped_current_snapshot"
     },
     {

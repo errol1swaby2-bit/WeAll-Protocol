@@ -4,6 +4,8 @@ import hashlib
 import json
 from typing import Any, Final
 
+from weall.runtime.block_history import project_bounded_block_history_state
+
 Json = dict[str, Any]
 
 # Consensus-critical state-root projection.
@@ -44,6 +46,7 @@ _CONSENSUS_META_KEYS: Final[frozenset[str]] = frozenset(
         "genesis_bootstrap_profile",
         "genesis_bootstrap_profile_hash",
         "recent_block_anchor_activation_height",
+        "consensus_block_history_max_records",
         "constitutional_clock",
         "supported_upgrade_targets",
         "supported_protocol_versions",
@@ -88,17 +91,18 @@ def _canonical_state_root_view(state: Any) -> Any:
     if not isinstance(state, dict):
         return _canonical(state)
 
+    bounded_state = project_bounded_block_history_state(state)
     out: dict[str, Any] = {}
-    for key in sorted(state.keys(), key=lambda x: str(x)):
+    for key in sorted(bounded_state.keys(), key=lambda x: str(x)):
         ks = str(key)
         if ks in _TOP_LEVEL_EPHEMERAL_KEYS:
             continue
         if ks == "meta":
-            projected = _canonical_meta(state[key])
+            projected = _canonical_meta(bounded_state[key])
             if projected:
                 out[ks] = projected
             continue
-        out[ks] = _canonical(state[key])
+        out[ks] = _canonical(bounded_state[key])
     return out
 
 

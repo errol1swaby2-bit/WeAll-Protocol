@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "5e2d1db6b8dfbafe80ec131f15237e8682ca65c5108cca7906e69f8c5af912d1",
+  "artifact_digest": "022a1513846c03f2ffeadf8b7d34057cee8eccc2a0df8a1821865394fd4c8a41",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -148,7 +148,7 @@
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "c4c6c1bed7533c3049720942cf8a558c31cb2437fef3bb134c5f1efced3fa9e9",
+      "file_sha256": "cf9b8ef71e8dc8fa00936fa61d4d2602150c5392cff9c969eb7825ea71e84be2",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -157,7 +157,7 @@
     },
     "generated/api_response_vectors_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "288d7f3264a6cdcb2dc2aefda522672b420d7e3e1396ad5c578226081b3591ff",
+      "file_sha256": "93b58a4aceb7b7b405ff2f55b0b6f90f934386ea816f15ccacbedac8b482f268",
       "ok": true,
       "path": "generated/api_response_vectors_v1_5.json",
       "present": true,
@@ -175,7 +175,7 @@
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "8bd0e7c2c2886ee21f73f6336fb920b0cb7e5bece2d805494333fa70797615b2",
+      "file_sha256": "f7028fab7bf3cb7192c80d2cfbe0707f4d2c9d53ba79c230f5b776d552453e63",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -202,7 +202,7 @@
     },
     "generated/failure_code_registry_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "ea940c3bae9b61e362e9ba73b443cacb62ca65900b4b2df4beb78109f4ebec6e",
+      "file_sha256": "2a1b7b9ccc886c30ac1237e031d223a4e210c60defc47bb7453b5de6e02479a3",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,

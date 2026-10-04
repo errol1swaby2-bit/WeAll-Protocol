@@ -19,8 +19,6 @@ def _make_executor(tmp_path: Path, name: str, chain_id: str = "votecheck-dos") -
         chain_id=chain_id,
         tx_index_path=tx_index_path,
     )
-    if not hasattr(ex, "_pending_missing_fetches"):
-        ex._pending_missing_fetches = {}  # type: ignore[attr-defined]
     return ex
 
 
@@ -137,3 +135,23 @@ def test_votecheck_reuses_spec_exec_pool_slots(
     diag2 = follower.bft_diagnostics()
     assert diag2["votecheck_spec_exec_pool_size"] == 1
     assert diag2["votecheck_concurrency_limit"] == 2
+
+
+def test_speculative_executor_preserves_live_bft_authority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_SIGVERIFY", "0")
+
+    follower = _make_executor(tmp_path, "authority-source", chain_id="votecheck-authority")
+    follower._bft_enabled_effective = True
+    slot = follower._make_spec_exec_slot()
+    clone = follower._reset_spec_exec_slot(slot)
+
+    assert clone is not follower
+    assert clone._bft_enabled_effective is True
+    assert getattr(clone, "_speculative_authenticated_ancestor_replay", False) is False
+
+    follower._bft_enabled_effective = False
+    clone2 = follower._reset_spec_exec_slot(slot)
+    assert clone2._bft_enabled_effective is False

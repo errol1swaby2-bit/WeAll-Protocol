@@ -117,6 +117,19 @@ def run_harness() -> dict[str, Any]:
         "chain_id": "weall-prod",
         "height": 42,
         "time": 1_780_000_000,
+        "ballot_profile": {
+            "profile_id": "production-reviewed-v15-fully-api-lifecycle-v1",
+            "active": True,
+        },
+        "ballot_profile_activation_receipts": [
+            {
+                "profile_id": "production-reviewed-v15-fully-api-lifecycle-v1",
+                "status": "active",
+                "profile_hash": "c" * 64,
+                "allowed_modes": ["prod", "production"],
+                "independent_review_complete": True,
+            }
+        ],
         "accounts": {
             "@alice": {"nonce": 0, "poh_tier": 2, "reputation": 12, "keys": {"by_id": {}}},
             "@bob": {"nonce": 0, "poh_tier": 2, "reputation": 4},
@@ -421,6 +434,27 @@ def run_harness() -> dict[str, Any]:
             },
         ),
     )
+    # Strict production appeals require a completely fresh constitutional panel.
+    # Add nine Tier-2 dispute-review volunteers after the original decision so
+    # they cannot alter the first-round panel, but can satisfy 7 jurors + 2 substitutes.
+    for idx in range(1, 10):
+        account_id = f"@appeal-{idx}"
+        state["accounts"][account_id] = {
+            "nonce": 0,
+            "poh_tier": 2,
+            "reputation": 5,
+        }
+        state["roles"]["jurors"]["active_set"].append(account_id)
+        state["roles"]["jurors"]["by_id"][account_id] = {
+            "account_id": account_id,
+            "active": True,
+            "status": "active",
+            "enrolled": True,
+            "responsibilities": {
+                "reviewer": {"dispute_review": {"opted_in": True, "active": True}}
+            },
+        }
+
     apply_dispute(
         state, _env("DISPUTE_APPEAL", "@alice", 63, {"dispute_id": "d1", "reason": "remedy"})
     )

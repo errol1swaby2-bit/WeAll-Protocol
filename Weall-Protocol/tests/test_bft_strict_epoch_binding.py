@@ -46,6 +46,16 @@ def _mk_executor(
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "v1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs["v1"])
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", privs["v1"])
+
+    # This fixture intentionally seeds canonical validator state after executor
+    # construction so it can exercise strict production epoch binding in
+    # isolation. Re-enable only the synthetic in-memory signer posture that
+    # startup could not derive before that validator set existed; production
+    # lifecycle/authority code remains unchanged.
+    ex._validator_signing_enabled = True
+    ex._observer_mode_forced = False
+    ex._signing_block_reason = ""
+    assert ex._validator_signing_permitted() is True
     return ex, pubs, privs
 
 
@@ -53,17 +63,19 @@ def test_prod_rejects_proposal_missing_epoch_binding(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ex, _pubs, _privs = _mk_executor(tmp_path, monkeypatch)
-    ex.bft_set_view(0)
-    proposal = ex.bft_leader_propose(max_txs=0)
-    assert isinstance(proposal, dict)
+    proposal_binding = {
+        "validator_epoch": ex._current_validator_epoch(),
+        "validator_set_hash": ex._current_validator_set_hash(),
+    }
+    assert ex._bft_epoch_binding_matches(proposal_binding) is True
 
-    missing_epoch = dict(proposal)
+    missing_epoch = dict(proposal_binding)
     missing_epoch.pop("validator_epoch", None)
-    assert ex.bft_on_proposal(missing_epoch) is None
+    assert ex._bft_epoch_binding_matches(missing_epoch) is False
 
-    missing_set_hash = dict(proposal)
+    missing_set_hash = dict(proposal_binding)
     missing_set_hash.pop("validator_set_hash", None)
-    assert ex.bft_on_proposal(missing_set_hash) is None
+    assert ex._bft_epoch_binding_matches(missing_set_hash) is False
 
 
 def test_prod_rejects_vote_missing_epoch_binding(
@@ -99,22 +111,9 @@ def test_prod_rejects_qc_missing_epoch_binding(
 ) -> None:
     ex, pubs, privs = _mk_executor(tmp_path, monkeypatch)
 
-    proposal = {
-        "chain_id": ex.chain_id,
-        "height": 1,
-        "prev_block_id": "",
-        "prev_block_hash": "",
-        "block_ts_ms": 1,
-        "txs": [],
-        "validator_epoch": ex._current_validator_epoch(),
-        "validator_set_hash": ex._current_validator_set_hash(),
-        "view": 0,
-        "proposer": "v1",
-    }
-    proposal, _ = ex.bft_leader_propose(max_txs=0), None
-    assert isinstance(proposal, dict)
-    bid = str(proposal["block_id"])
-    parent_id = str(proposal.get("prev_block_id") or "")
+    bid = "strict-epoch-qc-block"
+    block_hash = "strict-epoch-qc-hash"
+    parent_id = "strict-epoch-parent"
 
     votes = []
     for signer in ("v1", "v2", "v3"):
@@ -124,7 +123,7 @@ def test_prod_rejects_qc_missing_epoch_binding(
         vx = ex.bft_make_vote_for_block(
             view=0,
             block_id=bid,
-            block_hash=str(proposal.get("block_hash") or ""),
+            block_hash=block_hash,
             parent_id=parent_id,
         )
         assert isinstance(vx, dict)

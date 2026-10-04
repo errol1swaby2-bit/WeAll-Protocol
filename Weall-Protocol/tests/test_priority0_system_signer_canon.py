@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from weall.ledger.state import LedgerView
+from weall.runtime.block_admission import admit_block_txs
 from weall.runtime.domain_dispatch import ApplyError, apply_tx
 from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.tx.canon import TxIndex
 
 
 def _ledger(*, system_signer: str = "SYSTEM", open_mode: bool = False) -> dict:
@@ -89,3 +92,37 @@ def test_open_mode_still_allows_self_bootstrap_without_system_flag() -> None:
     acct = state["accounts"]["alice"]
     assert acct["poh_tier"] == 2
     assert acct["poh_bootstrap_mode"] == "open"
+
+
+def test_block_admission_keeps_system_origin_block_context_when_user_signatures_optional() -> None:
+    ledger_raw = _ledger(system_signer="SYSTEM")
+    ledger = LedgerView.from_ledger(ledger_raw)
+    canon = TxIndex.from_raw(
+        {
+            "tx": {
+                "POH_BOOTSTRAP_TIER2_GRANT": {
+                    "origin": "SYSTEM",
+                    "context": "block",
+                    "system_only": True,
+                }
+            }
+        }
+    )
+    env = TxEnvelope(
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
+        signer="SYSTEM",
+        nonce=0,
+        system=True,
+        payload={"account_id": "alice"},
+    )
+
+    ok, block_reject, rejects = admit_block_txs(
+        [env],
+        ledger,
+        canon,
+        verify_signatures=False,
+    )
+
+    assert ok is True
+    assert block_reject is None
+    assert rejects == [None]

@@ -15,6 +15,7 @@ from typing import Any
 from weall.ledger.state import LedgerView
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
 from weall.net.state_sync import StateSyncService, StateSyncVerifyError, build_snapshot_anchor
+from weall.net.wire_limits import bft_block_limit_from_env
 from weall.runtime.attestation_pool import PersistentAttestationPool
 from weall.runtime.bft_hotstuff import (
     HotStuffBFT,
@@ -87,12 +88,26 @@ def _call_admit_bft_block(
     *,
     block: Json,
     state: Json,
+    blocks_map: Mapping[str, Json] | None = None,
     bft_enabled: bool,
 ) -> tuple[bool, Any]:
     try:
-        return admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
+        return admit_bft_block(
+            block=block,
+            state=state,
+            blocks_map=dict(blocks_map or {}),
+            bft_enabled=bft_enabled,
+        )
     except TypeError as exc:
-        if "unexpected keyword argument 'bft_enabled'" not in str(exc):
+        message = str(exc)
+        if "unexpected keyword argument 'blocks_map'" in message:
+            try:
+                return admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
+            except TypeError as legacy_exc:
+                if "unexpected keyword argument 'bft_enabled'" not in str(legacy_exc):
+                    raise
+                return admit_bft_block(block, state)
+        if "unexpected keyword argument 'bft_enabled'" not in message:
             raise
         return admit_bft_block(block, state)
 
@@ -918,9 +933,7 @@ class WeAllExecutor:
         self._max_votecheck_txs: int = max(
             0, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_MAX_TXS"), 2048)
         )
-        self._max_votecheck_block_bytes: int = max(
-            0, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_MAX_BLOCK_BYTES"), 1_000_000)
-        )
+        self._max_votecheck_block_bytes: int = bft_block_limit_from_env()
         self._proposal_validation_limit: int = max(
             1, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_MAX_CONCURRENT"), 4)
         )
@@ -1922,6 +1935,7 @@ class WeAllExecutor:
         helper_receipts_by_lane: dict[str, list[Json]] | None = None,
         bft_justify_qc: Json | None = None,
         proposer: str = "",
+        base_state: Json | None = None,
     ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
         from weall.runtime import block_builder as _impl
 
@@ -1935,6 +1949,7 @@ class WeAllExecutor:
                 helper_receipts_by_lane=helper_receipts_by_lane,
                 bft_justify_qc=bft_justify_qc,
                 proposer=proposer,
+                base_state=base_state,
             )
 
     # ----------------------------

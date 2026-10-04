@@ -42,7 +42,7 @@
   },
   "full_lifecycle": {
     "batch": "525",
-    "final_state_root": "21721e34938028043ae013af1a54e967a50c955e861e803e0a1f3e24e0b26bd2",
+    "final_state_root": "31bfe653f8fc3db143f4cd1575c04c76259d97329b8586ea0831cdcec67995f4",
     "fresh_node_replay_sync": {
       "batch": "524",
       "corrupt_block_rejected": true,

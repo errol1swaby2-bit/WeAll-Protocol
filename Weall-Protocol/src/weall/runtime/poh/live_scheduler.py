@@ -280,7 +280,9 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
         default_units=DEFAULT_LIVE_MIN_REP_UNITS,
     )
 
-    for case_id, case in list(cases.items()):
+    # JSON object member order is not committed by the state root. Canonicalize
+    # before producing the ordered, consensus-visible SYSTEM queue.
+    for case_id, case in sorted(cases.items(), key=lambda item: str(item[0])):
         if not isinstance(case, dict):
             continue
 

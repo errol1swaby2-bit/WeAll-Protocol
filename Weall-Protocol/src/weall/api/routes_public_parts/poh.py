@@ -3077,6 +3077,7 @@ class PohAsyncReviewSkeletonRequest(BaseModel):
 
 class PohChallengeOpenSkeletonRequest(BaseModel):
     account_id: str = Field(..., min_length=1)
+    reference_account_id: str | None = Field(default=None, min_length=1, max_length=128)
     reason: str | None = Field(default=None, max_length=512)
     case_id: str | None = Field(default=None, max_length=128)
 
@@ -3102,6 +3103,13 @@ def poh_challenge_tx_open(
     if not acct:
         raise ApiError.bad_request("bad_request", "missing account_id", {})
     payload: Json = {"account_id": acct}
+    reference_account_id = str(req.reference_account_id or "").strip()
+    if reference_account_id:
+        if reference_account_id == acct:
+            raise ApiError.bad_request(
+                "bad_request", "reference_account_id must differ from account_id", {}
+            )
+        payload["reference_account_id"] = reference_account_id
     reason = str(req.reason or "").strip()
     if reason:
         payload["reason"] = reason
