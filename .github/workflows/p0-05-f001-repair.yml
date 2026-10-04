@@ -166,8 +166,8 @@ jobs:
           git status --short
           git add -A
           test -n "$(git diff --cached --name-only)"
-          test -z "$(git diff --cached --name-only | grep -E '^\.github/workflows/p0-05-f001-repair\.yml$' || true)"
-          test -z "$(git diff --cached --name-only | grep -E '^Weall-Protocol/scripts/repair_p0_05_f001\.py$' || true)"
+          test "$(git diff --cached --name-status -- .github/workflows/p0-05-f001-repair.yml)" = $'D\t.github/workflows/p0-05-f001-repair.yml'
+          test "$(git diff --cached --name-status -- Weall-Protocol/scripts/repair_p0_05_f001.py)" = $'D\tWeall-Protocol/scripts/repair_p0_05_f001.py'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Close P0-05 F001 mutual peer session authentication"
