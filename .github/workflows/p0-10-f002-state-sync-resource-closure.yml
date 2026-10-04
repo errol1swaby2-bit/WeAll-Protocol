@@ -48,6 +48,14 @@ jobs:
               raise SystemExit("expected one NetMeshLoop trusted-anchor insertion")
           net_loop.write_text(text.replace(old, new, 1), encoding="utf-8")
 
+          node_path = Path("src/weall/net/node.py")
+          node = node_path.read_text(encoding="utf-8")
+          old_peer_cap = "            1, _env_int(\"WEALL_NET_SYNC_WORK_PER_PEER_MAX\", 1)\n"
+          new_peer_cap = "            1, _env_int(\"WEALL_NET_SYNC_WORK_PER_PEER_MAX\", 2)\n"
+          if node.count(old_peer_cap) != 1:
+              raise SystemExit("expected one state-sync per-peer default cap")
+          node_path.write_text(node.replace(old_peer_cap, new_peer_cap, 1), encoding="utf-8")
+
           test_path = Path("tests/test_p0_10_a15_f002_state_sync_resource_bounds.py")
           test = test_path.read_text(encoding="utf-8")
           old_sig = "def test_net_loop_builds_state_sync_with_profile_trusted_anchor() -> None:\n"
@@ -111,6 +119,7 @@ jobs:
             tests/test_priority2_state_sync_transport_safety.py \
             tests/test_net_multi_node.py \
             tests/test_net_loop_state_sync_build.py \
+            tests/test_net_state_sync_request_roundtrip.py \
             tests/test_restart_and_sync_safety.py \
             tests/test_transport_config_fail_closed.py
 
