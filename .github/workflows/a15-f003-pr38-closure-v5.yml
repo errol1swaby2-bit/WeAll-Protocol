@@ -51,6 +51,7 @@ jobs:
           text = path.read_text(encoding="utf-8")
           replacements = {
               'assert payload["route_count"] == 162': 'assert payload["route_count"] == 163',
+              'assert payload["unique_method_path_count"] == 158': 'assert payload["unique_method_path_count"] == 159',
               'assert coverage["routes"] == 162': 'assert coverage["routes"] == 163',
               'assert closure["semantic_reviews"]["route_reviews"] == 162': 'assert closure["semantic_reviews"]["route_reviews"] == 163',
           }
