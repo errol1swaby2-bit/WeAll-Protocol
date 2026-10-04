@@ -1,0 +1,606 @@
+name: P0-10 A15-F001 bounded history closure
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+    paths:
+      - ".github/workflows/p0-10-a15f001-bounded-history-closure.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p0-10-a15f001-bounded-history-closure
+  cancel-in-progress: false
+
+jobs:
+  closure:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          ref: p0-03-production-closure-staging-20261001
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Patch bounded consensus block history
+        working-directory: .
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path("Weall-Protocol")
+          state_hash_path = root / "src/weall/runtime/state_hash.py"
+          commit_path = root / "src/weall/runtime/block_commit.py"
+          test_path = root / "tests/test_p0_10_a15_f001_bounded_block_history.py"
+
+          state_hash = state_hash_path.read_text()
+
+          meta_anchor = '        "recent_block_anchor_activation_height",\n'
+          if '"consensus_block_history_max_records"' not in state_hash:
+              assert meta_anchor in state_hash
+              state_hash = state_hash.replace(
+                  meta_anchor,
+                  meta_anchor + '        "consensus_block_history_max_records",\n',
+                  1,
+              )
+
+          insertion_anchor = '\n\ndef _canonical(obj: Any) -> Any:\n'
+          retention_code = r'''
+
+BLOCK_HISTORY_CHECKPOINT_VERSION: Final[int] = 1
+BLOCK_HISTORY_CHECKPOINT_DOMAIN: Final[str] = "weall.consensus-block-history.v1"
+BLOCK_HISTORY_CHECKPOINT_KEY: Final[str] = "block_history_checkpoint"
+CONSENSUS_BLOCK_HISTORY_META_KEY: Final[str] = "consensus_block_history_max_records"
+DEFAULT_CONSENSUS_BLOCK_HISTORY_MAX_RECORDS: Final[int] = 10_000
+MIN_CONSENSUS_BLOCK_HISTORY_MAX_RECORDS: Final[int] = 3
+
+
+class BlockHistoryRetentionError(RuntimeError):
+    """Consensus-visible ancestry cannot be compacted without losing live safety context."""
+
+
+def consensus_block_history_max_records(state: Json) -> int:
+    """Return the root-bound live ancestry cap.
+
+    Production has a hard protocol ceiling of 10,000 live ancestry records, aligned
+    with the existing durable block-history retention horizon. A committed ``meta``
+    value may tighten that bound for a future profile or deterministic test fixture,
+    but it cannot enlarge the production ceiling.
+    """
+
+    meta = state.get("meta") if isinstance(state, dict) else None
+    raw = meta.get(CONSENSUS_BLOCK_HISTORY_META_KEY) if isinstance(meta, dict) else None
+    if raw is None:
+        return int(DEFAULT_CONSENSUS_BLOCK_HISTORY_MAX_RECORDS)
+    try:
+        value = int(raw)
+    except Exception as exc:
+        raise BlockHistoryRetentionError("block_history_limit_not_integer") from exc
+    if value < int(MIN_CONSENSUS_BLOCK_HISTORY_MAX_RECORDS):
+        raise BlockHistoryRetentionError("block_history_limit_below_safety_minimum")
+    if value > int(DEFAULT_CONSENSUS_BLOCK_HISTORY_MAX_RECORDS):
+        raise BlockHistoryRetentionError("block_history_limit_exceeds_protocol_ceiling")
+    return int(value)
+
+
+def _block_record_height(block_id: str, record: Any) -> int:
+    if not isinstance(record, dict):
+        raise BlockHistoryRetentionError(f"block_history_record_not_object:{block_id}")
+    try:
+        height = int(record.get("height") or 0)
+    except Exception as exc:
+        raise BlockHistoryRetentionError(f"block_history_height_invalid:{block_id}") from exc
+    if height <= 0:
+        raise BlockHistoryRetentionError(f"block_history_height_nonpositive:{block_id}")
+    return int(height)
+
+
+def _block_parent(record: Any) -> str:
+    if not isinstance(record, dict):
+        return ""
+    return str(record.get("prev_block_id") or record.get("prev") or "").strip()
+
+
+def _qc_block_id(value: Any) -> str:
+    if not isinstance(value, dict):
+        return ""
+    return str(value.get("block_id") or "").strip()
+
+
+def _finalized_block_ids(state: Json) -> set[str]:
+    out: set[str] = set()
+    bft = state.get("bft") if isinstance(state.get("bft"), dict) else {}
+    bid = str(bft.get("finalized_block_id") or "").strip()
+    if bid:
+        out.add(bid)
+    finalized = state.get("finalized")
+    if isinstance(finalized, dict):
+        bid2 = str(finalized.get("block_id") or "").strip()
+        if bid2:
+            out.add(bid2)
+    return out
+
+
+def _material_bft_state(state: Json) -> bool:
+    bft = state.get("bft")
+    if not isinstance(bft, dict):
+        return False
+    if int(bft.get("view") or 0) > 0:
+        return True
+    if str(bft.get("finalized_block_id") or "").strip():
+        return True
+    return bool(_qc_block_id(bft.get("high_qc")) or _qc_block_id(bft.get("locked_qc")))
+
+
+def _protected_live_ancestry_ids(state: Json, blocks: dict[str, Any]) -> set[str]:
+    """Return records that cannot be compacted without breaking live safety ancestry."""
+
+    finalized_ids = _finalized_block_ids(state)
+    bft = state.get("bft") if isinstance(state.get("bft"), dict) else {}
+    tip = str(state.get("tip") or "").strip()
+    roots = [
+        tip,
+        _qc_block_id(bft.get("high_qc")),
+        _qc_block_id(bft.get("locked_qc")),
+    ]
+    protected: set[str] = set(finalized_ids)
+    material_bft = _material_bft_state(state)
+
+    for root in roots:
+        cur = str(root or "").strip()
+        if not cur:
+            continue
+        if cur not in blocks:
+            # A high/locked QC may legitimately point into the authenticated
+            # pending frontier, which is outside root-visible canonical history.
+            # Such an ID cannot protect a record that is not present here.
+            continue
+        seen: set[str] = set()
+        reached_finalized = False
+        recent_budget = int(MIN_CONSENSUS_BLOCK_HISTORY_MAX_RECORDS)
+        while cur and cur not in seen:
+            seen.add(cur)
+            protected.add(cur)
+            if cur in finalized_ids:
+                reached_finalized = True
+                break
+            rec = blocks.get(cur)
+            if not isinstance(rec, dict):
+                break
+            parent = _block_parent(rec)
+            if not parent:
+                break
+            cur = parent
+            if not material_bft and not finalized_ids:
+                recent_budget -= 1
+                if recent_budget <= 0:
+                    break
+
+        if material_bft and finalized_ids and root in blocks and not reached_finalized:
+            # If a material BFT branch cannot be linked to one of the canonical
+            # finalized anchors, discarding any historical prefix would turn a
+            # corrupt/incomplete ancestry map into apparently valid compact state.
+            raise BlockHistoryRetentionError("live_bft_path_missing_finalized_anchor")
+
+    if material_bft and not finalized_ids and tip in blocks:
+        # Before BFT has a finalized checkpoint, the complete live canonical path
+        # is still safety-relevant. If it reaches the finite ceiling, block
+        # production must fail closed rather than silently forget ancestry.
+        cur = tip
+        seen: set[str] = set()
+        while cur and cur not in seen:
+            seen.add(cur)
+            protected.add(cur)
+            rec = blocks.get(cur)
+            if not isinstance(rec, dict):
+                break
+            cur = _block_parent(rec)
+
+    return protected
+
+
+def _validated_checkpoint(state: Json) -> dict[str, Any] | None:
+    raw = state.get(BLOCK_HISTORY_CHECKPOINT_KEY)
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise BlockHistoryRetentionError("block_history_checkpoint_not_object")
+    try:
+        version = int(raw.get("version") or 0)
+        records_committed = int(raw.get("records_committed") or 0)
+        through_height = int(raw.get("through_height") or 0)
+    except Exception as exc:
+        raise BlockHistoryRetentionError("block_history_checkpoint_integer_invalid") from exc
+    root = str(raw.get("root") or "").strip().lower()
+    through_block_id = str(raw.get("through_block_id") or "").strip()
+    if version != int(BLOCK_HISTORY_CHECKPOINT_VERSION):
+        raise BlockHistoryRetentionError("block_history_checkpoint_version_invalid")
+    if records_committed <= 0 or through_height <= 0 or not through_block_id:
+        raise BlockHistoryRetentionError("block_history_checkpoint_position_invalid")
+    if len(root) != 64:
+        raise BlockHistoryRetentionError("block_history_checkpoint_root_invalid")
+    try:
+        int(root, 16)
+    except Exception as exc:
+        raise BlockHistoryRetentionError("block_history_checkpoint_root_invalid") from exc
+    return {
+        "version": int(version),
+        "records_committed": int(records_committed),
+        "through_height": int(through_height),
+        "through_block_id": through_block_id,
+        "root": root,
+    }
+
+
+def _extend_checkpoint(
+    checkpoint: dict[str, Any] | None,
+    pruned: list[tuple[str, dict[str, Any], int]],
+) -> dict[str, Any]:
+    prior_root = str((checkpoint or {}).get("root") or ("0" * 64)).strip().lower()
+    prior_count = int((checkpoint or {}).get("records_committed") or 0)
+    prior_height = int((checkpoint or {}).get("through_height") or 0)
+    root = prior_root
+    last_height = prior_height
+    last_bid = str((checkpoint or {}).get("through_block_id") or "").strip()
+
+    for bid, rec, height in pruned:
+        if int(height) < int(last_height):
+            raise BlockHistoryRetentionError("block_history_checkpoint_nonmonotonic_height")
+        payload = {
+            "domain": BLOCK_HISTORY_CHECKPOINT_DOMAIN,
+            "prior_root": root,
+            "block_id": str(bid),
+            "record": _canonical(rec),
+        }
+        encoded = json.dumps(
+            _canonical(payload),
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+        root = hashlib.sha256(encoded).hexdigest()
+        last_height = int(height)
+        last_bid = str(bid)
+
+    return {
+        "version": int(BLOCK_HISTORY_CHECKPOINT_VERSION),
+        "records_committed": int(prior_count + len(pruned)),
+        "through_height": int(last_height),
+        "through_block_id": str(last_bid),
+        "root": str(root),
+    }
+
+
+def project_bounded_block_history_state(state: Json) -> Json:
+    """Return a shallow state projection with finite live ``blocks`` history.
+
+    The removed historical prefix is represented by a constant-size rolling hash
+    checkpoint. The function is pure: it never mutates ``state``. This lets state
+    root calculation commit to the exact compacted form before the durable commit
+    path installs that same form in-place.
+    """
+
+    if not isinstance(state, dict):
+        raise BlockHistoryRetentionError("block_history_state_not_object")
+    checkpoint = _validated_checkpoint(state)
+    blocks_raw = state.get("blocks")
+    if blocks_raw is None:
+        return dict(state)
+    if not isinstance(blocks_raw, dict):
+        raise BlockHistoryRetentionError("block_history_blocks_not_object")
+
+    limit = consensus_block_history_max_records(state)
+    if len(blocks_raw) <= int(limit):
+        return dict(state)
+
+    ordered: list[tuple[str, dict[str, Any], int]] = []
+    for raw_bid, raw_rec in blocks_raw.items():
+        bid = str(raw_bid or "").strip()
+        if not bid:
+            raise BlockHistoryRetentionError("block_history_empty_block_id")
+        if not isinstance(raw_rec, dict):
+            raise BlockHistoryRetentionError(f"block_history_record_not_object:{bid}")
+        ordered.append((bid, raw_rec, _block_record_height(bid, raw_rec)))
+    ordered.sort(key=lambda item: (int(item[2]), str(item[0])))
+
+    prune_count = int(len(ordered) - int(limit))
+    pruned = ordered[:prune_count]
+    protected = _protected_live_ancestry_ids(state, blocks_raw)
+    for bid, _rec, _height in pruned:
+        if bid in protected:
+            raise BlockHistoryRetentionError("block_history_window_exhausted_by_live_safety_ancestry")
+
+    pruned_ids = {bid for bid, _rec, _height in pruned}
+    next_blocks = {k: v for k, v in blocks_raw.items() if str(k) not in pruned_ids}
+    if len(next_blocks) > int(limit):
+        raise BlockHistoryRetentionError("block_history_compaction_failed_to_bound_live_records")
+
+    out = dict(state)
+    out["blocks"] = next_blocks
+    out[BLOCK_HISTORY_CHECKPOINT_KEY] = _extend_checkpoint(checkpoint, pruned)
+    return out
+
+
+def compact_bounded_block_history_in_place(state: Json) -> int:
+    """Install the exact bounded-history projection into canonical live state."""
+
+    before_raw = state.get("blocks") if isinstance(state, dict) else None
+    before = len(before_raw) if isinstance(before_raw, dict) else 0
+    projected = project_bounded_block_history_state(state)
+    state["blocks"] = projected.get("blocks", {})
+    if BLOCK_HISTORY_CHECKPOINT_KEY in projected:
+        state[BLOCK_HISTORY_CHECKPOINT_KEY] = projected[BLOCK_HISTORY_CHECKPOINT_KEY]
+    after_raw = state.get("blocks")
+    after = len(after_raw) if isinstance(after_raw, dict) else 0
+    return max(0, int(before - after))
+'''
+          if 'class BlockHistoryRetentionError' not in state_hash:
+              assert insertion_anchor in state_hash
+              state_hash = state_hash.replace(
+                  insertion_anchor,
+                  retention_code + insertion_anchor,
+                  1,
+              )
+
+          projection_anchor = '''    if not isinstance(state, dict):\n        return _canonical(state)\n\n    out: dict[str, Any] = {}\n    for key in sorted(state.keys(), key=lambda x: str(x)):\n'''
+          projection_replacement = '''    if not isinstance(state, dict):\n        return _canonical(state)\n\n    bounded_state = project_bounded_block_history_state(state)\n    out: dict[str, Any] = {}\n    for key in sorted(bounded_state.keys(), key=lambda x: str(x)):\n'''
+          if 'bounded_state = project_bounded_block_history_state(state)' not in state_hash:
+              assert projection_anchor in state_hash
+              state_hash = state_hash.replace(projection_anchor, projection_replacement, 1)
+              state_hash = state_hash.replace(
+                  'projected = _canonical_meta(state[key])',
+                  'projected = _canonical_meta(bounded_state[key])',
+                  1,
+              )
+              state_hash = state_hash.replace(
+                  'out[ks] = _canonical(state[key])',
+                  'out[ks] = _canonical(bounded_state[key])',
+                  1,
+              )
+
+          state_hash_path.write_text(state_hash)
+
+          block_commit = commit_path.read_text()
+          import_anchor = 'from weall.runtime.block_commitment_validation import ensure_complete_block_commitments\n'
+          import_line = 'from weall.runtime.state_hash import compact_bounded_block_history_in_place\n'
+          if import_line not in block_commit:
+              assert import_anchor in block_commit
+              block_commit = block_commit.replace(import_anchor, import_anchor + import_line, 1)
+
+          compaction_anchor = '''        # Durable history is a stronger trust boundary than cheap received-block\n'''
+          compaction_code = '''        # Canonical state must persist the same bounded ancestry projection that\n        # state-root calculation committed to. This turns chain-age history into\n        # a fixed live window plus a rolling prefix commitment before serialization.\n        try:\n            compact_bounded_block_history_in_place(new_state)\n        except Exception as exc:\n            return ExecutorMeta(\n                ok=False,\n                error=f"block_history_compaction_failed:{type(exc).__name__}:{str(exc)}",\n                height=0,\n                block_id="",\n            )\n\n'''
+          if 'compact_bounded_block_history_in_place(new_state)' not in block_commit:
+              assert compaction_anchor in block_commit
+              block_commit = block_commit.replace(compaction_anchor, compaction_code + compaction_anchor, 1)
+          commit_path.write_text(block_commit)
+
+          test_path.write_text(r'''from __future__ import annotations
+
+import copy
+from pathlib import Path
+
+import pytest
+
+from weall.runtime.executor import WeAllExecutor
+from weall.runtime.state_hash import (
+    BLOCK_HISTORY_CHECKPOINT_KEY,
+    BlockHistoryRetentionError,
+    compact_bounded_block_history_in_place,
+    compute_state_root,
+    consensus_state_root_view,
+    project_bounded_block_history_state,
+)
+
+
+def _chain_state(
+    height: int,
+    *,
+    max_records: int = 4,
+    finalized_height: int | None = None,
+    bft: bool = False,
+) -> dict:
+    blocks: dict[str, dict] = {}
+    for h in range(1, int(height) + 1):
+        blocks[f"b{h}"] = {
+            "height": h,
+            "prev_block_id": f"b{h - 1}" if h > 1 else "",
+            "block_ts_ms": h * 1_000,
+        }
+    state: dict = {
+        "height": int(height),
+        "tip": f"b{height}" if height else "",
+        "blocks": blocks,
+        "accounts": {},
+        "meta": {"consensus_block_history_max_records": int(max_records)},
+    }
+    if finalized_height is not None:
+        state["finalized"] = {
+            "height": int(finalized_height),
+            "block_id": f"b{finalized_height}",
+        }
+    if bft:
+        finalized_id = f"b{finalized_height}" if finalized_height is not None else ""
+        state["bft"] = {
+            "view": int(height),
+            "finalized_block_id": finalized_id,
+            "high_qc": {"block_id": f"b{height}"},
+            "locked_qc": {"block_id": f"b{max(1, height - 1)}"},
+        }
+    return state
+
+
+def _tx_index_path() -> str:
+    return str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+
+
+def _executor(tmp_path: Path, name: str) -> WeAllExecutor:
+    return WeAllExecutor(
+        db_path=str(tmp_path / f"{name}.sqlite"),
+        node_id=name,
+        chain_id="p0-10-history-test",
+        tx_index_path=_tx_index_path(),
+    )
+
+
+def test_root_projection_is_bounded_without_mutating_source() -> None:
+    state = _chain_state(6, max_records=4)
+    before = copy.deepcopy(state)
+
+    view = consensus_state_root_view(state)
+
+    assert state == before
+    assert list(view["blocks"].keys()) == ["b3", "b4", "b5", "b6"]
+    checkpoint = view[BLOCK_HISTORY_CHECKPOINT_KEY]
+    assert checkpoint["records_committed"] == 2
+    assert checkpoint["through_height"] == 2
+    assert checkpoint["through_block_id"] == "b2"
+    assert len(checkpoint["root"]) == 64
+
+
+def test_compacted_state_has_exact_same_state_root_as_uncompacted_projection() -> None:
+    state = _chain_state(8, max_records=4)
+    projected_root = compute_state_root(state)
+    compacted = copy.deepcopy(state)
+
+    removed = compact_bounded_block_history_in_place(compacted)
+
+    assert removed == 4
+    assert len(compacted["blocks"]) == 4
+    assert compute_state_root(compacted) == projected_root
+
+
+def test_checkpoint_is_schedule_independent_across_incremental_compaction() -> None:
+    one_shot = _chain_state(6, max_records=4)
+    compact_bounded_block_history_in_place(one_shot)
+
+    incremental = _chain_state(5, max_records=4)
+    compact_bounded_block_history_in_place(incremental)
+    incremental["blocks"]["b6"] = {
+        "height": 6,
+        "prev_block_id": "b5",
+        "block_ts_ms": 6_000,
+    }
+    incremental["height"] = 6
+    incremental["tip"] = "b6"
+    compact_bounded_block_history_in_place(incremental)
+
+    assert incremental["blocks"] == one_shot["blocks"]
+    assert incremental[BLOCK_HISTORY_CHECKPOINT_KEY] == one_shot[BLOCK_HISTORY_CHECKPOINT_KEY]
+    assert compute_state_root(incremental) == compute_state_root(one_shot)
+
+
+def test_bft_finalized_window_compacts_only_history_before_live_safety_path() -> None:
+    state = _chain_state(6, max_records=4, finalized_height=3, bft=True)
+
+    compact_bounded_block_history_in_place(state)
+
+    assert list(state["blocks"].keys()) == ["b3", "b4", "b5", "b6"]
+    assert state[BLOCK_HISTORY_CHECKPOINT_KEY]["through_block_id"] == "b2"
+
+
+def test_bft_finality_lag_fails_closed_instead_of_pruning_live_safety_ancestry() -> None:
+    state = _chain_state(6, max_records=4, finalized_height=2, bft=True)
+
+    with pytest.raises(
+        BlockHistoryRetentionError,
+        match="block_history_window_exhausted_by_live_safety_ancestry",
+    ):
+        project_bounded_block_history_state(state)
+
+
+def test_malformed_checkpoint_fails_closed() -> None:
+    state = _chain_state(6, max_records=4)
+    state[BLOCK_HISTORY_CHECKPOINT_KEY] = {
+        "version": 1,
+        "records_committed": 2,
+        "through_height": 2,
+        "through_block_id": "b2",
+        "root": "not-a-hash",
+    }
+
+    with pytest.raises(BlockHistoryRetentionError, match="checkpoint_root_invalid"):
+        project_bounded_block_history_state(state)
+
+
+def test_leader_follower_and_restart_share_bounded_history_root(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "test")
+    monkeypatch.setenv("WEALL_BFT_ENABLED", "0")
+    monkeypatch.setenv("WEALL_REQUIRE_VRF", "0")
+
+    leader = _executor(tmp_path, "leader")
+    follower = _executor(tmp_path, "follower")
+    for ex in (leader, follower):
+        meta = ex.state.setdefault("meta", {})
+        meta["consensus_block_history_max_records"] = 3
+
+    for _ in range(6):
+        produced = leader.produce_block(max_txs=1, allow_empty=True)
+        assert produced.ok is True, produced.error
+        block = leader.get_latest_block()
+        assert isinstance(block, dict)
+        applied = follower.apply_block(copy.deepcopy(block))
+        assert applied.ok is True, applied.error
+        assert len(leader.state.get("blocks") or {}) <= 3
+        assert len(follower.state.get("blocks") or {}) <= 3
+        assert compute_state_root(leader.state) == compute_state_root(follower.state)
+
+    expected_root = compute_state_root(follower.state)
+    expected_checkpoint = copy.deepcopy(follower.state.get(BLOCK_HISTORY_CHECKPOINT_KEY))
+    restarted = _executor(tmp_path, "follower")
+
+    assert len(restarted.state.get("blocks") or {}) <= 3
+    assert restarted.state.get(BLOCK_HISTORY_CHECKPOINT_KEY) == expected_checkpoint
+    assert compute_state_root(restarted.state) == expected_root
+''')
+          PY
+
+      - name: Install backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and lint changed Python
+        run: |
+          ruff format src/weall/runtime/state_hash.py src/weall/runtime/block_commit.py tests/test_p0_10_a15_f001_bounded_block_history.py
+          ruff check src/weall/runtime/state_hash.py src/weall/runtime/block_commit.py tests/test_p0_10_a15_f001_bounded_block_history.py
+
+      - name: Focused A15-F001 regressions
+        run: |
+          pytest -q \
+            tests/test_p0_10_a15_f001_bounded_block_history.py \
+            tests/test_block_commitments_required.py \
+            tests/test_restart_and_sync_safety.py \
+            tests/test_priority1_lock_vs_highqc_branch_safety.py \
+            tests/test_priority1_locked_qc_safety.py
+
+      - name: Canon lint
+        run: python -m tooling.canon_lint
+
+      - name: Full backend regression
+        run: pytest -q
+
+      - name: Commit workflow-free implementation
+        working-directory: .
+        env:
+          BRANCH: p0-03-production-closure-staging-20261001
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            Weall-Protocol/src/weall/runtime/state_hash.py \
+            Weall-Protocol/src/weall/runtime/block_commit.py \
+            Weall-Protocol/tests/test_p0_10_a15_f001_bounded_block_history.py
+          git rm .github/workflows/p0-10-a15f001-bounded-history-closure.yml
+          git commit -m "fix(p0-10): bound root-visible block ancestry"
+          git push origin "HEAD:${BRANCH}"
