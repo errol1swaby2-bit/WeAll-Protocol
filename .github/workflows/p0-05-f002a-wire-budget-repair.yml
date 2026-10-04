@@ -57,6 +57,39 @@ jobs:
           ruff format scripts/repair_p0_05_f002a_wire_budget.py
           ruff check scripts/repair_p0_05_f002a_wire_budget.py
           python scripts/repair_p0_05_f002a_wire_budget.py
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          path = Path("specs/v2/source/stable_ids.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          entries = data.get("entries")
+          if not isinstance(entries, list):
+              raise SystemExit("stable_ids.json entries must be a list")
+
+          canonical_key = "src/weall/net/node.py:assert_message_fits:message_builder_or_handler"
+          stable_id = "MSG-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+          matches = [row for row in entries if row.get("kind") == "message" and row.get("canonical_key") == canonical_key]
+          if len(matches) > 1:
+              raise SystemExit(f"duplicate stable-ID entries for {canonical_key}")
+          if matches:
+              if matches[0].get("stable_id") != stable_id:
+                  raise SystemExit(f"stable-ID mismatch for {canonical_key}")
+          else:
+              entries.append(
+                  {
+                      "aliases": [],
+                      "canonical_key": canonical_key,
+                      "kind": "message",
+                      "stable_id": stable_id,
+                      "status": "active",
+                  }
+              )
+          entries.sort(key=lambda row: str(row.get("stable_id", "")))
+          path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(f"registered {stable_id} for {canonical_key}")
+          PY
           ruff check --fix \
             src/weall/net/wire_limits.py \
             src/weall/net/node.py \
