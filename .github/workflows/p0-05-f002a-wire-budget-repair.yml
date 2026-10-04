@@ -1,0 +1,129 @@
+name: P0-05 F002a canonical wire budget repair
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+    paths:
+      - ".github/workflows/p0-05-f002a-wire-budget-repair.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - name: Guard exact F001 baseline plus temporary repair surfaces only
+        working-directory: .
+        run: |
+          set -euo pipefail
+          BASE="c101c7ef9ae2b7f7515a77d7ba58bd73978c020f"
+          git merge-base --is-ancestor "${BASE}" HEAD
+          mapfile -t CHANGED < <(git diff --name-only "${BASE}"...HEAD | sort)
+          printf '%s\n' "${CHANGED[@]}"
+          EXPECTED=(
+            ".github/workflows/p0-05-f002a-wire-budget-repair.yml"
+            "Weall-Protocol/scripts/repair_p0_05_f002a_wire_budget.py"
+          )
+          test "${#CHANGED[@]}" -eq "${#EXPECTED[@]}"
+          for i in "${!EXPECTED[@]}"; do
+            test "${CHANGED[$i]}" = "${EXPECTED[$i]}"
+          done
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Apply bounded F002a repair
+        run: |
+          set -euo pipefail
+          python scripts/repair_p0_05_f002a_wire_budget.py
+          ruff format \
+            src/weall/net/wire_limits.py \
+            src/weall/net/node.py \
+            src/weall/net/transport_tcp.py \
+            src/weall/net/transport_tls.py \
+            src/weall/net/net_loop.py \
+            src/weall/runtime/executor.py \
+            src/weall/runtime/block_builder.py \
+            tests/test_p0_05_f002a_wire_budget.py
+          ruff check \
+            src/weall/net/wire_limits.py \
+            src/weall/net/node.py \
+            src/weall/net/transport_tcp.py \
+            src/weall/net/transport_tls.py \
+            src/weall/net/net_loop.py \
+            src/weall/runtime/executor.py \
+            src/weall/runtime/block_builder.py \
+            tests/test_p0_05_f002a_wire_budget.py
+
+      - name: Focused wire-budget regressions
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_p0_05_f002a_wire_budget.py \
+            tests/test_net_hardening_limits.py \
+            tests/test_bft_votecheck_safety.py \
+            tests/test_transport_config_fail_closed.py
+
+      - name: Remove temporary repair surfaces before evidence generation
+        working-directory: .
+        run: |
+          set -euo pipefail
+          rm -f Weall-Protocol/scripts/repair_p0_05_f002a_wire_budget.py
+          rm -f .github/workflows/p0-05-f002a-wire-budget-repair.yml
+
+      - name: Regenerate deterministic proof and V2 artifacts
+        run: |
+          set -euo pipefail
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/compile_v2_spec.py
+          python scripts/gen_current_verified_claims.py
+
+      - name: Validate working-tree generated/evidence contract
+        run: |
+          set -euo pipefail
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Full backend regression
+        run: |
+          set -euo pipefail
+          pytest -q
+
+      - name: Commit final workflow-free tree
+        working-directory: .
+        run: |
+          set -euo pipefail
+          git status --short
+          git add -A
+          test -n "$(git diff --cached --name-only)"
+          test -z "$(git diff --cached --diff-filter=ACMRTUXB --name-only -- \
+            .github/workflows/p0-05-f002a-wire-budget-repair.yml \
+            Weall-Protocol/scripts/repair_p0_05_f002a_wire_budget.py)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Close P0-05 F002a canonical wire budget"
+          git push origin HEAD:p0-03-production-closure-staging-20261001
