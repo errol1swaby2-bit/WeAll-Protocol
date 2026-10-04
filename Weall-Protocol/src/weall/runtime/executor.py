@@ -15,6 +15,7 @@ from typing import Any
 from weall.ledger.state import LedgerView
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
 from weall.net.state_sync import StateSyncService, StateSyncVerifyError, build_snapshot_anchor
+from weall.net.wire_limits import bft_block_limit_from_env
 from weall.runtime.attestation_pool import PersistentAttestationPool
 from weall.runtime.bft_hotstuff import (
     HotStuffBFT,
@@ -932,9 +933,7 @@ class WeAllExecutor:
         self._max_votecheck_txs: int = max(
             0, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_MAX_TXS"), 2048)
         )
-        self._max_votecheck_block_bytes: int = max(
-            0, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_MAX_BLOCK_BYTES"), 1_000_000)
-        )
+        self._max_votecheck_block_bytes: int = bft_block_limit_from_env()
         self._proposal_validation_limit: int = max(
             1, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_MAX_CONCURRENT"), 4)
         )

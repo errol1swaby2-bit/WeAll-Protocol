@@ -4041,6 +4041,16 @@
     },
     {
       "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/wire_limits.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
         "mechanisms"
       ],
       "classification": "authoritative_or_launch_critical",

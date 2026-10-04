@@ -54,6 +54,7 @@ from dataclasses import dataclass, field
 
 from weall.net.net_logging import log_event
 from weall.net.transport import Connection, PeerAddr, WirePacket
+from weall.net.wire_limits import MAX_TRANSPORT_FRAME_BYTES, MAX_WIRE_MESSAGE_BYTES
 from weall.runtime.metrics import inc_counter
 
 _LOG = logging.getLogger("weall.net.transport.tls")
@@ -145,7 +146,8 @@ class _TlsConn(Connection):
     rbuf: bytearray = field(default_factory=bytearray)
     wbuf: bytearray = field(default_factory=bytearray)
 
-    # outbound backpressure
+    # canonical frame bound + outbound backpressure
+    max_frame_bytes: int = MAX_TRANSPORT_FRAME_BYTES
     max_wbuf_bytes: int = 0
     close_on_overflow: bool = True
 
@@ -170,6 +172,11 @@ class _TlsConn(Connection):
             return
         if not isinstance(payload, (bytes, bytearray)):
             raise TypeError("payload must be bytes")
+        if len(payload) > int(self.max_frame_bytes):
+            _safe_count("net_tls_outbound_frame_oversize_total", 1)
+            if self.close_on_overflow:
+                self.close()
+            raise ValueError("wire_frame_too_large")
         frame = struct.pack(">I", len(payload)) + payload
 
         # Backpressure: bound outbound queue growth to avoid memory DoS.
@@ -206,7 +213,7 @@ class TlsTransport:
         server_key: str,
         ca_file: str = "",
         server_name: str = "",
-        max_frame_bytes: int = 2_000_000,
+        max_frame_bytes: int = MAX_TRANSPORT_FRAME_BYTES,
         max_buffer_bytes: int = 8_000_000,
     ) -> None:
         self.server_cert = str(server_cert).strip()
@@ -218,6 +225,10 @@ class TlsTransport:
         self.max_buffer_bytes = int(max_buffer_bytes)
 
         md = _mode()
+        if md == "prod" and self.max_frame_bytes != int(MAX_WIRE_MESSAGE_BYTES):
+            raise ValueError(
+                f"production_tls_frame_limit_mismatch:{self.max_frame_bytes}!={MAX_WIRE_MESSAGE_BYTES}"
+            )
         default_total = 0 if md == "test" else 200
         default_inbound = 0 if md == "test" else 128
         default_per_ip = 0 if md == "test" else 16
@@ -314,6 +325,7 @@ class TlsTransport:
             inbound=False,
             remote_ip=str(host),
             remote_port=int(port),
+            max_frame_bytes=int(self.max_frame_bytes),
             max_wbuf_bytes=int(self.max_outbound_buffer_bytes),
             close_on_overflow=bool(self.close_on_outbound_overflow),
         )
@@ -504,6 +516,7 @@ class TlsTransport:
                 inbound=True,
                 remote_ip=ip,
                 remote_port=int(port),
+                max_frame_bytes=int(self.max_frame_bytes),
                 max_wbuf_bytes=int(self.max_outbound_buffer_bytes),
                 close_on_overflow=bool(self.close_on_outbound_overflow),
             )

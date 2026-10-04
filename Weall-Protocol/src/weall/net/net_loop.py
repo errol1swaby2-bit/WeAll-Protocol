@@ -1093,6 +1093,7 @@ class NetMeshLoop:
     ) -> None:
         if not self._relay_client_enabled or self.node is None or not self._relay_urls:
             return
+        self.node.assert_message_fits(msg)
         cfg = self._relay_cfg()
         if cfg is None:
             return

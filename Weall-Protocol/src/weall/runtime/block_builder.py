@@ -10,6 +10,7 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.net.wire_limits import MAX_BFT_BLOCK_BYTES
 from weall.runtime.bft_finality_bridge import schedule_bft_finality_receipt
 from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
 from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
@@ -20,6 +21,7 @@ from weall.runtime.executor import (
     Json,
     LedgerView,
     TxEnvelope,
+    _canon_json,
     _consensus_fail_closed,
     _helper_execution_profile_hash,
     _normalize_mempool_selection_policy,
@@ -980,5 +982,42 @@ def build_block_candidate(
         working["tip_ts_ms"] = int(ts_ms)
     except Exception as exc:
         return None, None, [], invalid_ids, f"block_hash_commitment_failed:{type(exc).__name__}"
+
+    try:
+        encoded_block_bytes = len(_canon_json(block).encode("utf-8"))
+    except Exception as exc:
+        return None, None, [], invalid_ids, f"block_wire_size_failed:{type(exc).__name__}"
+    if encoded_block_bytes > int(MAX_BFT_BLOCK_BYTES):
+        if mempool_applied_count <= 0:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                "block_reject:wire_too_large:mandatory_protocol_data_exceed_wire_budget",
+            )
+        scaled = (int(mempool_applied_count) * int(MAX_BFT_BLOCK_BYTES)) // max(
+            1, encoded_block_bytes
+        )
+        reduced_mempool_limit = max(0, min(int(mempool_applied_count) - 1, int(scaled) - 1))
+        retry = build_block_candidate(
+            self,
+            max_txs=int(reduced_mempool_limit),
+            allow_empty=True,
+            force_ts_ms=force_ts_ms,
+            helper_certificates=helper_certificates,
+            helper_receipts_by_lane=helper_receipts_by_lane,
+            bft_justify_qc=bft_justify_qc,
+            proposer=proposer,
+            base_state=source_state,
+        )
+        retry_block = retry[0]
+        if (
+            not bool(allow_empty)
+            and isinstance(retry_block, dict)
+            and not list(retry_block.get("txs") or [])
+        ):
+            return None, None, [], list(retry[3]), "no_applicable"
+        return retry
 
     return block, working, applied_ids, invalid_ids, ""

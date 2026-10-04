@@ -1282,7 +1282,7 @@
       "http_status": null,
       "sample_reason": "single_tx_lineage_invalid",
       "source": "src/weall/runtime/block_builder.py",
-      "source_lineno": 336
+      "source_lineno": 338
     },
     {
       "code": "invalid_tx",

@@ -48,6 +48,11 @@ from weall.net.transport import Connection, PeerAddr, Transport, WirePacket
 from weall.net.transport_memory import InMemoryTransport
 from weall.net.transport_tcp import TcpTransport
 from weall.net.transport_tls import TlsTransport
+from weall.net.wire_limits import (
+    MAX_TRANSPORT_FRAME_BYTES,
+    MAX_WIRE_MESSAGE_BYTES,
+    ensure_wire_payload_size,
+)
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
 from weall.runtime.protocol_profile import (
@@ -166,7 +171,7 @@ class PeerPolicy:
     ban_cooldown_ms: int = 60_000
 
     # Hardening limits
-    max_packet_bytes: int = 256 * 1024
+    max_packet_bytes: int = MAX_WIRE_MESSAGE_BYTES
 
     # Token-bucket-ish rate limiter (per peer, best-effort)
     rate_msgs_per_sec: int = 50
@@ -247,7 +252,7 @@ def _make_transport(cfg: NetConfig) -> Transport:
     if kind in {"mem", "memory", "inmem"}:
         return InMemoryTransport()
     if kind in {"tcp", "plain"}:
-        return TcpTransport()
+        return TcpTransport(max_frame_bytes=MAX_TRANSPORT_FRAME_BYTES)
     if kind in {"tls", "ssl"}:
         cert = cfg.server_cert or _env_str("WEALL_NET_TLS_CERT", "").strip()
         key = cfg.server_key or _env_str("WEALL_NET_TLS_KEY", "").strip()
@@ -259,7 +264,11 @@ def _make_transport(cfg: NetConfig) -> Transport:
                 "(cfg.server_cert/server_key or WEALL_NET_TLS_CERT/WEALL_NET_TLS_KEY)."
             )
         return TlsTransport(
-            server_cert=cert, server_key=key, ca_file=ca_file, server_name=server_name
+            server_cert=cert,
+            server_key=key,
+            ca_file=ca_file,
+            server_name=server_name,
+            max_frame_bytes=MAX_TRANSPORT_FRAME_BYTES,
         )
 
     mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
@@ -300,6 +309,11 @@ class NetNode:
     ) -> None:
         self.cfg = cfg
         self.peer_policy = peer_policy or PeerPolicy()
+        mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+        if mode == "prod" and int(self.peer_policy.max_packet_bytes) != int(MAX_WIRE_MESSAGE_BYTES):
+            raise ValueError(
+                f"production_peer_wire_limit_mismatch:{self.peer_policy.max_packet_bytes}!={MAX_WIRE_MESSAGE_BYTES}"
+            )
 
         self.on_tx = on_tx
         self.on_bft_proposal = on_bft_proposal
@@ -1438,6 +1452,8 @@ class NetNode:
     # ----------------------------
 
     def send_bytes(self, peer_id: str, payload: bytes) -> None:
+        raw = bytes(payload)
+        ensure_wire_payload_size(raw)
         pid = str(peer_id or "").strip()
         if not pid:
             return
@@ -1454,14 +1470,19 @@ class NetNode:
                 c = None
         if c is None:
             return
-        c.send(bytes(payload))
+        c.send(raw)
+
+    def assert_message_fits(self, msg: WireMessage) -> bytes:
+        payload = encode_message(msg)
+        ensure_wire_payload_size(payload)
+        return payload
 
     def send_message(self, peer_id: str, msg: WireMessage) -> None:
-        self.send_bytes(peer_id, encode_message(msg))
+        self.send_bytes(peer_id, self.assert_message_fits(msg))
 
     def broadcast_message(self, msg: WireMessage, *, exclude_peer_id: str = "") -> None:
         ex = str(exclude_peer_id or "").strip()
-        payload = encode_message(msg)
+        payload = self.assert_message_fits(msg)
         self._refresh_conns()
         for pid, c in list(self._conns.items()):
             if ex and pid == ex:
