@@ -141,6 +141,38 @@ jobs:
               raise SystemExit(f"expected_two_v15_diff_markers:found={count}")
           text = text.replace(marker, replacement)
 
+          late_anchor = 'cd "$PROTO"\npytest -q\n'
+          late_insert = r'''cd "$PROTO"
+          python - <<'PYLATE'
+          from pathlib import Path
+
+          path = Path("tests/test_v2_spec_compiler.py")
+          text = path.read_text(encoding="utf-8")
+          replacements = {
+              'assert payload["route_count"] == 162': 'assert payload["route_count"] == 163',
+              'assert payload["unique_method_path_count"] == 158': 'assert payload["unique_method_path_count"] == 159',
+              'assert coverage["routes"] == 162': 'assert coverage["routes"] == 163',
+              'assert closure["semantic_reviews"]["route_reviews"] == 162': 'assert closure["semantic_reviews"]["route_reviews"] == 163',
+          }
+          for old, new in replacements.items():
+              old_count = text.count(old)
+              new_count = text.count(new)
+              if old_count == 1 and new_count == 0:
+                  text = text.replace(old, new, 1)
+              elif old_count == 0 and new_count == 1:
+                  pass
+              else:
+                  raise SystemExit(
+                      f"late_route_cardinality_state_invalid:old={old_count}:new={new_count}:needle={old}"
+                  )
+          path.write_text(text, encoding="utf-8")
+          PYLATE
+          pytest -q
+          '''.replace("          ", "")
+          if text.count(late_anchor) != 1:
+              raise SystemExit("full_pytest_anchor_not_found_once")
+          text = text.replace(late_anchor, late_insert, 1)
+
           path.write_text(text, encoding="utf-8")
           PY
 
