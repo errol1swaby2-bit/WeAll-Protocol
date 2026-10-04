@@ -67,7 +67,7 @@ def _block_parent(record: Any) -> str:
     return str(record.get("prev_block_id") or record.get("prev") or "").strip()
 
 
-def _canonical_finalized_anchor(state: Json) -> tuple[str, int] | None:
+def _canonical_safety_anchor(state: Json) -> tuple[str, int] | None:
     """Return the root-visible finalized anchor, never node-local BFT metadata."""
 
     finalized = state.get("finalized")
@@ -241,7 +241,7 @@ def project_bounded_block_history_state(state: Json) -> Json:
     if len(blocks_raw) <= int(limit):
         return dict(state)
 
-    finalized = _canonical_finalized_anchor(state)
+    finalized = _canonical_safety_anchor(state)
     if finalized is None:
         raise BlockHistoryRetentionError("block_history_compaction_requires_finalized_anchor")
     finalized_block_id, finalized_height = finalized
