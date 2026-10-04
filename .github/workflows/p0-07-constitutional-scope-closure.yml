@@ -57,6 +57,23 @@ jobs:
           ruff format scripts/repair_p0_07_constitutional_scope_closure.py
           ruff check scripts/repair_p0_07_constitutional_scope_closure.py
           python scripts/repair_p0_07_constitutional_scope_closure.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md")
+          text = path.read_text(encoding="utf-8")
+          old = (
+              "| P0-07 Governance electorate / proposal binding / constitutional authority | "
+              "A09-F001..F004, A16-F005 | PARTIAL — RUNTIME ROOTS CLOSED / ASSURANCE PENDING |"
+          )
+          new = (
+              "| P0-07 Governance electorate / proposal binding / constitutional authority | "
+              "A09-F001..F004, A16-F005 | PARTIAL |"
+          )
+          if text.count(old) != 1:
+              raise SystemExit("expected exactly one P0-07 extended status cell")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
           ruff check --fix \
             src/weall/runtime/apply/governance.py \
             src/weall/runtime/apply/protocol.py \
