@@ -1,0 +1,83 @@
+name: PR38 Duplicate Challenge Hardening
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Apply hardening to workflow-free tree
+        run: |
+          set -Eeuo pipefail
+          ROOT="$GITHUB_WORKSPACE"
+          PROTO="$ROOT/Weall-Protocol"
+          cp "$PROTO/scripts/pr38_harden_duplicate_challenges.py" /tmp/pr38_harden_duplicate_challenges.py
+          rm -f "$PROTO/scripts/pr38_harden_duplicate_challenges.py"
+          rm -f "$ROOT/.github/workflows/pr38-duplicate-challenge-hardening.yml"
+          WEALL_REPO_ROOT="$ROOT" python /tmp/pr38_harden_duplicate_challenges.py
+
+      - name: Ruff bounded surface
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          FILES=(
+            src/weall/runtime/apply/poh.py
+            tests/test_p0_06a_duplicate_account_adjudication.py
+          )
+          ruff check --fix "${FILES[@]}"
+          ruff format "${FILES[@]}"
+          ruff check "${FILES[@]}"
+          ruff format --check "${FILES[@]}"
+
+      - name: Duplicate identity adjudication regressions
+        working-directory: Weall-Protocol
+        run: pytest -q tests/test_p0_06a_duplicate_account_adjudication.py
+
+      - name: P0-06 production scope regressions
+        working-directory: Weall-Protocol
+        run: pytest -q tests/test_p0_06_production_scope_closure.py
+
+      - name: Reviewer grinding regressions
+        working-directory: Weall-Protocol
+        run: pytest -q tests/test_poh_async_panel_grinding_regression.py
+
+      - name: Final guard
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          test ! -e Weall-Protocol/scripts/pr38_harden_duplicate_challenges.py
+          test ! -e .github/workflows/pr38-duplicate-challenge-hardening.yml
+          git diff --name-only
+
+      - name: Commit bounded hardening
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: harden adjudicable duplicate identity challenges"
+          git push origin "HEAD:p0-03-production-closure-staging-20261001"
