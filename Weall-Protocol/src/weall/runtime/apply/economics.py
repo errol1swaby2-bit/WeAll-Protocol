@@ -899,6 +899,13 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
         or ""
     ).strip()
 
+    if amount > 0 and not to_account:
+        raise EconomicsApplyError(
+            "invalid_payload",
+            "fee_destination_required",
+            {"amount": int(amount)},
+        )
+
     if amount > 0:
         payer = _require_existing_account(state, from_account, field="from")
         balance = _as_int(payer.get("balance"), 0)
