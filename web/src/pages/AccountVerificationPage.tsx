@@ -10,6 +10,7 @@ import {
   setSession,
   submitSignedTx,
   submitSignedTxInSequence,
+  submitSignedTxWithNonce,
 } from "../auth/session";
 import { ensureRecoveryAuthorityKeypair, normalizeAccount } from "../auth/keys";
 import {
@@ -21,6 +22,10 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
+import {
+  fetchAccountRegistrationWorkPolicy,
+  solveAccountRegistrationWork,
+} from "../lib/accountRegistrationWork";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import {
@@ -571,19 +576,36 @@ export default function AccountVerificationPage(): JSX.Element {
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.tx_id || res?.result?.tx_id,
         finality: { timeoutMs: 16_000, reconcile: async () => reconcileRegisteredState(acct, base) },
-        task: async () => submitSignedTx({
-          account: acct,
-          tx_type: "ACCOUNT_REGISTER",
-          payload: {
-            pubkey: kp.pubkeyB64,
-            recovery_pubkey: ensureRecoveryAuthorityKeypair(acct).pubkeyB64,
-            recovery_sig_profile: "pq-mldsa-v1",
-            evidence_kem_pubkey: ensureEvidenceKemKeypair(acct).publicKeyB64,
-            evidence_kem_algorithm: "ml-kem-768",
-          },
-          parent: null,
-          base,
-        }),
+        task: async () => {
+          const recoveryPubkey = ensureRecoveryAuthorityKeypair(acct).pubkeyB64;
+          const evidenceKemPubkey = ensureEvidenceKemKeypair(acct).publicKeyB64;
+          const policyResponse = await fetchAccountRegistrationWorkPolicy(base);
+          const submitted = await submitSignedTxWithNonce({
+            account: acct,
+            tx_type: "ACCOUNT_REGISTER",
+            payloadFactory: async (nonce) => {
+              const payload = {
+                pubkey: kp.pubkeyB64,
+                recovery_pubkey: recoveryPubkey,
+                recovery_sig_profile: "pq-mldsa-v1",
+                evidence_kem_pubkey: evidenceKemPubkey,
+                evidence_kem_algorithm: "ml-kem-768",
+              };
+              const work = await solveAccountRegistrationWork({
+                policyResponse,
+                signer: acct,
+                txNonce: nonce,
+                sigProfile: "pq-mldsa-v1",
+                parent: null,
+                payload,
+              });
+              return { ...payload, ...work };
+            },
+            parent: null,
+            base,
+          });
+          return submitted.result;
+        },
       });
       setResult(r);
       await refresh();

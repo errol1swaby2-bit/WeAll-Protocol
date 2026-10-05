@@ -1,0 +1,347 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from weall.crypto.sig import sign_tx_envelope_dict
+from weall.runtime.account_registration_work import (
+    ACCOUNT_REGISTRATION_PRODUCTION_MAX_ACCOUNTS,
+    ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS,
+    ACCOUNT_REGISTRATION_WORK_VERSION,
+    account_registration_work_digest,
+    account_registration_work_policy,
+    leading_zero_bits,
+    verify_account_registration_work,
+)
+from weall.runtime.executor import WeAllExecutor
+from weall.runtime.tx_admission import admit_tx
+from weall.runtime.tx_admission_types import TxEnvelope
+from weall.testing.sigtools import deterministic_mldsa_keypair
+from weall.tx.canon import TxIndex
+
+ROOT = Path(__file__).resolve().parents[1]
+REVIEWED_PRODUCTION_WORK_FLOOR_BITS = 16
+REVIEWED_PRODUCTION_MAX_ACCOUNTS = 10_000
+
+
+def _env(*, signer: str = "@alice", nonce: int = 1, pubkey: str = "pk-a") -> TxEnvelope:
+    return TxEnvelope.from_json(
+        {
+            "chain_id": "weall-prod",
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": signer,
+            "nonce": nonce,
+            "sig_profile": "pq-mldsa-v1",
+            "payload": {
+                "pubkey": pubkey,
+                "recovery_pubkey": "recovery-a",
+                "recovery_sig_profile": "pq-mldsa-v1",
+                "evidence_kem_pubkey": "kem-a",
+                "evidence_kem_algorithm": "ml-kem-768",
+            },
+            "parent": None,
+        }
+    )
+
+
+def _state(bits: int = 8) -> dict:
+    # Low difficulty is intentionally limited to the non-production test chain.
+    # Production-like chain IDs enforce the reviewed work/cardinality policy.
+    return {
+        "chain_id": "weall-test",
+        "accounts": {},
+        "params": {
+            "account_registration_work_required": True,
+            "account_registration_work_difficulty_bits": bits,
+        },
+    }
+
+
+def _solve(env: TxEnvelope, bits: int) -> int:
+    for nonce in range(1_000_000):
+        if leading_zero_bits(account_registration_work_digest(env, nonce)) >= bits:
+            return nonce
+    raise AssertionError("test work solution not found")
+
+
+def _with_work(env: TxEnvelope, bits: int = 8) -> TxEnvelope:
+    nonce = _solve(env, bits)
+    raw = env.to_json()
+    raw["payload"] = dict(raw["payload"])
+    raw["payload"]["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
+    raw["payload"]["registration_work_nonce"] = nonce
+    return TxEnvelope.from_json(raw)
+
+
+def _mk_executor(tmp_path: Path, name: str) -> WeAllExecutor:
+    return WeAllExecutor(
+        db_path=str(tmp_path / f"{name}.db"),
+        node_id=name,
+        chain_id="weall-test",
+        tx_index_path=str(ROOT / "generated" / "tx_index.json"),
+    )
+
+
+def test_historical_policy_absent_remains_replay_compatible() -> None:
+    state = {"accounts": {}, "params": {}}
+    policy = account_registration_work_policy(state)
+    assert policy.valid is True
+    assert policy.required is False
+    assert policy.max_accounts == 0
+    ok, reason, _ = verify_account_registration_work(state, _env())
+    assert ok is True
+    assert reason == ""
+
+
+@pytest.mark.parametrize(
+    "params,reason",
+    [
+        ({"account_registration_work_required": True}, "registration_work_difficulty_invalid"),
+        (
+            {
+                "account_registration_work_required": True,
+                "account_registration_work_difficulty_bits": 0,
+            },
+            "registration_work_difficulty_out_of_range",
+        ),
+        (
+            {
+                "account_registration_work_required": "maybe",
+                "account_registration_work_difficulty_bits": 8,
+            },
+            "registration_work_required_policy_invalid",
+        ),
+    ],
+)
+def test_required_policy_fails_closed_when_invalid(params: dict, reason: str) -> None:
+    policy = account_registration_work_policy({"params": params})
+    assert policy.valid is False
+    ok, got, _ = verify_account_registration_work({"params": params}, _env())
+    assert ok is False
+    assert got == reason
+
+
+def test_production_policy_rejects_weak_nonzero_work() -> None:
+    assert ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS == REVIEWED_PRODUCTION_WORK_FLOOR_BITS
+    weak_bits = REVIEWED_PRODUCTION_WORK_FLOOR_BITS - 1
+    state = {
+        "chain_id": "weall-prod",
+        "params": {
+            "account_registration_work_required": True,
+            "account_registration_work_difficulty_bits": weak_bits,
+        },
+    }
+    policy = account_registration_work_policy(state)
+    assert policy.required is True
+    assert policy.valid is False
+    assert policy.reason == "registration_work_difficulty_below_production_minimum"
+
+    ok, reason, meta = verify_account_registration_work(state, _env())
+    assert ok is False
+    assert reason == "registration_work_difficulty_below_production_minimum"
+    assert meta["difficulty_bits"] == weak_bits
+
+
+def test_production_policy_cannot_disable_registration_work() -> None:
+    state = {
+        "chain_id": "weall-prod",
+        "params": {
+            "account_registration_work_required": False,
+            "account_registration_work_difficulty_bits": REVIEWED_PRODUCTION_WORK_FLOOR_BITS,
+        },
+    }
+    policy = account_registration_work_policy(state)
+    assert policy.valid is False
+    assert policy.required is True
+    assert policy.reason == "registration_work_required_in_production"
+
+
+def test_production_policy_cannot_raise_reviewed_account_ceiling() -> None:
+    assert ACCOUNT_REGISTRATION_PRODUCTION_MAX_ACCOUNTS == REVIEWED_PRODUCTION_MAX_ACCOUNTS
+    state = {
+        "chain_id": "weall-prod",
+        "params": {
+            "account_registration_work_required": True,
+            "account_registration_work_difficulty_bits": REVIEWED_PRODUCTION_WORK_FLOOR_BITS,
+            "account_registration_max_accounts": REVIEWED_PRODUCTION_MAX_ACCOUNTS + 1,
+        },
+    }
+    policy = account_registration_work_policy(state)
+    assert policy.valid is False
+    assert policy.reason == "account_registration_max_accounts_above_reviewed_ceiling"
+
+
+def test_production_account_capacity_rejects_fresh_registration_before_work() -> None:
+    state = {
+        "chain_id": "weall-prod",
+        "accounts": {
+            "SYSTEM": {"nonce": 0},
+            "@founder": {"nonce": 0},
+        },
+        "params": {
+            "account_registration_work_required": True,
+            "account_registration_work_difficulty_bits": REVIEWED_PRODUCTION_WORK_FLOOR_BITS,
+            "account_registration_max_accounts": 2,
+        },
+    }
+    policy = account_registration_work_policy(state)
+    assert policy.valid is True
+    assert policy.max_accounts == 2
+
+    ok, reason, meta = verify_account_registration_work(state, _env(signer="@fresh"))
+    assert ok is False
+    assert reason == "account_registration_capacity_exhausted"
+    assert meta == {"current_accounts": 2, "max_accounts": 2}
+
+    canon = TxIndex.load_from_file(ROOT / "generated" / "tx_index.json")
+    verdict = admit_tx(_env(signer="@fresh"), state, canon, context="mempool")
+    assert verdict.ok is False
+    assert verdict.code == "registration_work_invalid"
+    assert verdict.reason == "account_registration_capacity_exhausted"
+
+
+def test_canonical_admission_rejects_missing_registration_work() -> None:
+    state = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
+    canon = TxIndex.load_from_file(ROOT / "generated" / "tx_index.json")
+    verdict = admit_tx(_env(), state, canon, context="mempool")
+    assert verdict.ok is False
+    assert verdict.code == "registration_work_invalid"
+    assert verdict.reason == "registration_work_version_required"
+
+
+def test_valid_work_is_bound_to_full_registration_identity() -> None:
+    env = _with_work(_env(), 8)
+    ok, reason, meta = verify_account_registration_work(_state(8), env)
+    assert ok is True
+    assert reason == ""
+    assert meta["difficulty_bits"] == 8
+
+    variants = [
+        _env(signer="@mallory"),
+        _env(nonce=2),
+        _env(pubkey="pk-b"),
+    ]
+    work_nonce = env.payload["registration_work_nonce"]
+    for variant in variants:
+        raw = variant.to_json()
+        raw["payload"] = dict(raw["payload"])
+        raw["payload"]["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
+        raw["payload"]["registration_work_nonce"] = work_nonce
+        ok2, reason2, _ = verify_account_registration_work(_state(8), TxEnvelope.from_json(raw))
+        assert ok2 is False
+        assert reason2 == "registration_work_insufficient"
+
+
+def test_many_signers_cannot_reuse_one_accounts_work() -> None:
+    original = _with_work(_env(signer="@acct000"), 8)
+    work_nonce = original.payload["registration_work_nonce"]
+    accepted = 0
+    for index in range(64):
+        env = _env(signer=f"@acct{index:03d}")
+        raw = env.to_json()
+        raw["payload"] = dict(raw["payload"])
+        raw["payload"]["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
+        raw["payload"]["registration_work_nonce"] = work_nonce
+        ok, _, _ = verify_account_registration_work(_state(8), TxEnvelope.from_json(raw))
+        accepted += int(ok)
+    assert accepted == 1
+
+
+def test_distributed_fresh_signers_each_pay_work_and_persist_across_restart(
+    tmp_path: Path,
+) -> None:
+    """A15-F003: independent fresh identities cannot create permanent state for free."""
+
+    difficulty_bits = 8
+    account_count = 8
+    executor = _mk_executor(tmp_path, "registration-attack")
+    params = executor.state.setdefault("params", {})
+    params["account_registration_work_required"] = True
+    params["account_registration_work_difficulty_bits"] = difficulty_bits
+
+    signers: list[str] = []
+    solved_nonces: list[int] = []
+    for index in range(account_count):
+        signer = f"@a15acct{index:02d}"
+        signers.append(signer)
+        pubkey, privkey = deterministic_mldsa_keypair(label=signer)
+        unsigned = TxEnvelope.from_json(
+            {
+                "chain_id": executor.chain_id,
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": signer,
+                "nonce": 1,
+                "sig_profile": "pq-mldsa-v1",
+                "payload": {"pubkey": pubkey},
+                "parent": None,
+            }
+        )
+        work_nonce = _solve(unsigned, difficulty_bits)
+        solved_nonces.append(work_nonce)
+        tx = unsigned.to_json()
+        tx["payload"] = dict(tx["payload"])
+        tx["payload"]["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
+        tx["payload"]["registration_work_nonce"] = work_nonce
+        signed = sign_tx_envelope_dict(tx=tx, privkey=privkey.private_bytes_raw().hex())
+        submitted = executor.submit_tx(signed)
+        assert submitted["ok"] is True, submitted
+
+    # The attack model is distributed signers, not one signer reusing a solved
+    # nonce. Every registration above solved its identity-bound preimage.
+    assert len(solved_nonces) == account_count
+
+    block, state, applied, invalid, error = executor.build_block_candidate(
+        max_txs=account_count + 4,
+        allow_empty=False,
+    )
+    assert error == ""
+    assert isinstance(block, dict)
+    assert isinstance(state, dict)
+    assert len(invalid) == 0
+    receipts = block.get("receipts") or []
+    assert len(receipts) == account_count
+    assert all(bool(receipt.get("ok")) for receipt in receipts)
+
+    committed = executor.commit_block_candidate(
+        block=block,
+        new_state=state,
+        applied_ids=applied,
+        invalid_ids=invalid,
+    )
+    assert committed.ok is True
+    for signer in signers:
+        assert signer in executor.state["accounts"]
+        assert executor.state["accounts"][signer]["nonce"] == 1
+
+    restarted = _mk_executor(tmp_path, "registration-attack")
+    for signer in signers:
+        assert signer in restarted.state["accounts"]
+        assert restarted.state["accounts"][signer]["nonce"] == 1
+
+
+def test_checked_in_production_and_testnet_genesis_require_reviewed_scarcity_policy() -> None:
+    assert ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS == REVIEWED_PRODUCTION_WORK_FLOOR_BITS
+    assert ACCOUNT_REGISTRATION_PRODUCTION_MAX_ACCOUNTS == REVIEWED_PRODUCTION_MAX_ACCOUNTS
+    for relative in ("configs/genesis.ledger.prod.json", "configs/genesis.ledger.testnet-v1.json"):
+        state = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+        params = state["params"]
+        assert params["account_registration_work_required"] is True
+        assert (
+            int(params["account_registration_work_difficulty_bits"])
+            >= REVIEWED_PRODUCTION_WORK_FLOOR_BITS
+        )
+        policy = account_registration_work_policy(state)
+        assert policy.valid is True
+        assert policy.required is True
+        assert policy.max_accounts == REVIEWED_PRODUCTION_MAX_ACCOUNTS
+
+
+def test_registration_work_schema_is_signed_payload_surface() -> None:
+    from weall.runtime.tx_schema import validate_tx_envelope
+
+    env = _with_work(_env(), 8)
+    # Replace cryptographic strings with schema-valid opaque values; this test is
+    # about strict payload acceptance, while key decoding is apply-time policy.
+    validate_tx_envelope(env.to_json())

@@ -771,7 +771,7 @@ export async function beginNonceSequence(account: string, base?: string): Promis
 export async function submitSignedTxInSequence(args: {
   sequence: NonceSequence;
   tx_type: string;
-  payloadFactory: (nonce: number) => any;
+  payloadFactory: (nonce: number) => any | Promise<any>;
   parent?: string | null;
   base?: string;
   headers?: HeadersInit;
@@ -787,7 +787,7 @@ export async function submitSignedTxInSequence(args: {
 
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const nonce = Math.max(1, Math.floor(args.sequence.nextNonce));
-      const payload = args.payloadFactory(nonce);
+      const payload = await args.payloadFactory(nonce);
       const unsigned = buildUnsignedEnvelope({
         chain_id,
         tx_type: args.tx_type,
@@ -971,7 +971,7 @@ export async function submitSignedTx(args: {
 export async function submitSignedTxWithNonce(args: {
   account: string;
   tx_type: string;
-  payloadFactory: (nonce: number) => any;
+  payloadFactory: (nonce: number) => any | Promise<any>;
   parent?: string | null;
   base?: string;
   headers?: HeadersInit;
@@ -987,7 +987,7 @@ export async function submitSignedTxWithNonce(args: {
 
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const claim = await claimNextNonce(signer, args.base);
-      const payload = args.payloadFactory(claim.nonce);
+      const payload = await args.payloadFactory(claim.nonce);
 
       const unsigned = buildUnsignedEnvelope({
         chain_id,

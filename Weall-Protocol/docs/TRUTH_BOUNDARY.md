@@ -10,7 +10,7 @@ This document defines what the current repository may claim, what it must not cl
 
 WeAll should currently be described as:
 
-> A free/open-source Layer 1 coordination protocol implementation that has reached private/local and external-observer rehearsal readiness, with release hygiene gates, tx canon coverage, account custody flows, Proof-of-Humanity verification flows, content/group/review/governance surfaces, local block-production proof, observer authority locking, and locked tokenomics/wallet/reward/tipping invariants.
+> A free/open-source Layer 1 coordination protocol implementation that has reached private/local reviewer rehearsal readiness and external-observer preparation; completion of a trusted external-observer run is not claimed, with release hygiene gates, tx canon coverage, account custody flows, Proof-of-Humanity verification flows, content/group/review/governance surfaces, local block-production proof, observer authority locking, and locked tokenomics/wallet/reward/tipping invariants.
 
 WeAll should **not** currently be described as:
 
@@ -36,7 +36,7 @@ The following claims are acceptable when backed by fresh command output from the
 | Reviewer gate | The targeted production-readiness reviewer gate exercises the bounded reviewer suite. | `bash scripts/reviewer_production_readiness_gate.sh` |
 | Frontend type safety | The web frontend typechecks after clean dependency installation. | `cd ../web && npm ci && npm run typecheck` |
 | Account custody | The frontend has local key generation, recovery-file creation, recovery verification, restore handling, and signed transaction session wiring. | `web/src/auth/*`, `web/src/pages/LoginPage.tsx`, `web/scripts/test_account_custody_source.mjs` |
-| Proof of Humanity | Async/live PoH txs, APIs, frontend surfaces, review/finalization flows, and tier-gated follow-up flows exist and are test-covered in bounded suites. | PoH tests, reviewer tests, API/frontend source checks |
+| Proof of Humanity | Async/live PoH txs, APIs, frontend surfaces, and bounded review/finalization flows exist in compatibility/rehearsal code, while production positive human-authority creation remains scope-closed pending separately reviewed uniqueness and reviewer-entropy protocols. | PoH tests, reviewer tests, API/frontend source checks |
 | Content and groups | Posting, media surfaces, feed visibility, group creation, and group membership are implemented for rehearsal/testnet flows. | content/group tests, frontend source checks, local rehearsal evidence |
 | Dispute/review/governance | Dispute, review, appeal/procedure, proposal, comment, vote, finalization, and constitutional-clock surfaces exist for testnet review. | dispute/governance/procedure tests and docs |
 | Local block production | A local block-production proof can commit root-bearing local block evidence. | `PYTHONPATH=src python3 scripts/production_block_production_rehearsal_gate.py` |
@@ -140,7 +140,7 @@ Avoid these phrases unless they are directly negated or marked future work:
 
 The current repository posture is:
 
-> WeAll has crossed from specification into a serious, reviewable implementation with reproducible local/reviewer gates and private/external-observer rehearsal evidence. Funding will move it into a documented public testnet with external observers, Proof-of-Humanity verification, content/groups, dispute/review, governance, locked testnet tokenomics, deterministic block progression, validator promotion, and eventually adversarial multi-validator BFT readiness.
+> WeAll has crossed from specification into a serious, reviewable implementation with reproducible local/reviewer gates and private/local rehearsal evidence and external-observer preparation evidence. Funding will move it into a documented public testnet with external observers, Proof-of-Humanity verification, content/groups, dispute/review, governance, locked testnet tokenomics, deterministic block progression, validator promotion, and eventually adversarial multi-validator BFT readiness.
 
 ## Work-after-submission boundary
 

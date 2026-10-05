@@ -34,6 +34,32 @@ PohStatus = Literal[
 
 MAX_USER_FACING_POH_TIER = 2
 
+POH_HUMAN_AUTHORITY_MODE_COMPATIBILITY = "compatibility"
+POH_HUMAN_AUTHORITY_MODE_SCOPE_CLOSED = "scope_closed_pending_uniqueness_entropy"
+
+
+def poh_human_authority_mode(state: Json) -> str:
+    """Return the chain-committed new-human-authority mode.
+
+    Historical/dev chains default to compatibility.  The canonical production
+    genesis explicitly commits the scope-closed mode until a separately reviewed
+    global uniqueness authority and post-commit unpredictable reviewer entropy
+    protocol are implemented.
+    """
+
+    params = state.get("params") if isinstance(state, dict) else None
+    params = params if isinstance(params, dict) else {}
+    poh = params.get("poh") if isinstance(params.get("poh"), dict) else {}
+    mode = _as_str(poh.get("human_authority_mode") or "").lower()
+    if mode == POH_HUMAN_AUTHORITY_MODE_SCOPE_CLOSED:
+        return POH_HUMAN_AUTHORITY_MODE_SCOPE_CLOSED
+    return POH_HUMAN_AUTHORITY_MODE_COMPATIBILITY
+
+
+def poh_human_authority_scope_closed(state: Json) -> bool:
+    return poh_human_authority_mode(state) == POH_HUMAN_AUTHORITY_MODE_SCOPE_CLOSED
+
+
 # v2 Tier-2 lifecycle constants. These are protocol-height windows, never wall
 # clock durations. A Tier-2 award remains active through ``expires_at_height``
 # and falls back to Tier 1 before user transactions at the first later height.

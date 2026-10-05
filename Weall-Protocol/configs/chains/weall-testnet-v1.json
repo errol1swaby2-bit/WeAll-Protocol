@@ -21,8 +21,8 @@
     "procedure_time_source": "finalized_block_height",
     "target_block_interval_ms": 20000
   },
-  "genesis_hash": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
-  "genesis_state_root": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
+  "genesis_hash": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
+  "genesis_state_root": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
   "genesis_time_ms": 0,
   "mode": "prod",
   "name": "WeAll Public Observer Testnet v1",

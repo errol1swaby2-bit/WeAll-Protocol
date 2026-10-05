@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 
 from weall.net.net_logging import log_event
 from weall.net.transport import Connection, PeerAddr, WirePacket
+from weall.net.wire_limits import MAX_TRANSPORT_FRAME_BYTES, MAX_WIRE_MESSAGE_BYTES
 from weall.runtime.metrics import inc_counter
 
 _LOG = logging.getLogger("weall.net.transport.tcp")
@@ -133,7 +134,8 @@ class _TcpConn(Connection):
     # outbound buffer
     wbuf: bytearray = field(default_factory=bytearray)
 
-    # outbound backpressure
+    # canonical frame bound + outbound backpressure
+    max_frame_bytes: int = MAX_TRANSPORT_FRAME_BYTES
     max_wbuf_bytes: int = 0
     close_on_overflow: bool = True
 
@@ -153,6 +155,11 @@ class _TcpConn(Connection):
         if not isinstance(payload, (bytes, bytearray)):
             raise TypeError("payload must be bytes")
 
+        if len(payload) > int(self.max_frame_bytes):
+            _safe_count("net_tcp_outbound_frame_oversize_total", 1)
+            if self.close_on_overflow:
+                self.close()
+            raise ValueError("wire_frame_too_large")
         frame = struct.pack(">I", len(payload)) + payload
 
         # Backpressure: bound outbound queue growth to avoid memory DoS.
@@ -187,11 +194,15 @@ class TcpTransport:
     def __init__(
         self,
         *,
-        max_frame_bytes: int = 2_000_000,
+        max_frame_bytes: int = MAX_TRANSPORT_FRAME_BYTES,
         max_buffer_bytes: int = 8_000_000,
     ) -> None:
         self.max_frame_bytes = int(max_frame_bytes)
         self.max_buffer_bytes = int(max_buffer_bytes)
+        if _mode() == "prod" and self.max_frame_bytes != int(MAX_WIRE_MESSAGE_BYTES):
+            raise ValueError(
+                f"production_tcp_frame_limit_mismatch:{self.max_frame_bytes}!={MAX_WIRE_MESSAGE_BYTES}"
+            )
 
         # Connection caps (abuse hardening). Defaults are conservative in prod,
         # and effectively unlimited in test mode so unit tests don't break.
@@ -263,6 +274,7 @@ class TcpTransport:
             inbound=False,
             remote_ip=str(host),
             remote_port=int(port),
+            max_frame_bytes=int(self.max_frame_bytes),
             max_wbuf_bytes=int(self.max_outbound_buffer_bytes),
             close_on_overflow=bool(self.close_on_outbound_overflow),
         )
@@ -417,6 +429,7 @@ class TcpTransport:
                 inbound=True,
                 remote_ip=str(ip),
                 remote_port=int(port),
+                max_frame_bytes=int(self.max_frame_bytes),
                 max_wbuf_bytes=int(self.max_outbound_buffer_bytes),
                 close_on_overflow=bool(self.close_on_outbound_overflow),
             )

@@ -27,6 +27,7 @@ from pydantic import ValidationError
 from weall.crypto.sig import strict_tx_sig_domain_enabled
 from weall.ledger.state import LedgerView
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
+from weall.runtime.account_registration_work import verify_account_registration_work
 from weall.runtime.gate_expr import eval_gate
 from weall.runtime.protocol_profile import (
     runtime_tx_payload_limits,
@@ -893,6 +894,13 @@ def admit_tx(
     bad = _mvp_payload_checks(env)
     if bad is not None:
         return bad
+
+    # A15-F003: permanent account creation must carry consensus-visible scarcity
+    # before we spend ML-DSA verification work on an unknown fresh key.
+    if tx_type_norm == "ACCOUNT_REGISTER":
+        work_ok, work_reason, work_meta = verify_account_registration_work(lv.to_ledger(), env)
+        if not work_ok:
+            return _rej("registration_work_invalid", work_reason, **work_meta)
 
     bad = _sig_ok(env, context=ctx)
     if bad is not None:

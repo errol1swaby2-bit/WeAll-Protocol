@@ -56,6 +56,8 @@ class AccountRegisterPayload(_StrictModel):
     recovery_key_commitment: str | None = Field(default=None, min_length=1)
     evidence_kem_pubkey: str | None = Field(default=None, min_length=1)
     evidence_kem_algorithm: str | None = Field(default=None, min_length=1)
+    registration_work_version: str | None = Field(default=None, min_length=1, max_length=64)
+    registration_work_nonce: int | None = Field(default=None, ge=0, le=9007199254740991)
 
 
 class AccountKeyAddPayload(_StrictModel):
@@ -224,10 +226,17 @@ class PohEvidenceBindPayload(_StrictModel):
 class PohChallengeOpenPayload(_StrictModel):
     challenge_id: str | None = None
     account_id: str = Field(..., min_length=1)
+    reference_account_id: str | None = Field(default=None, min_length=1)
     reason: str | None = None
     evidence_id: str | None = None
     case_id: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _check_duplicate_reference(self) -> PohChallengeOpenPayload:
+        if self.reference_account_id and self.reference_account_id == self.account_id:
+            raise ValueError("reference_account_id must differ from account_id")
+        return self
 
 
 class PohChallengeResolvePayload(_StrictModel):

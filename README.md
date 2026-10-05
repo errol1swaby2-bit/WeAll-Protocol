@@ -48,9 +48,9 @@ Private, direct, encrypted, inbox/outbox, chat, or protocol-native messaging is 
 
 Current tx-canon count/version is authoritative only in `Weall-Protocol/generated/tx_index.json`; this README intentionally does not duplicate mutable values.
 
-Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
+Proof-of-Humanity checkpoint: **Tier 0 = account only**. **Tier 1 = native async review (compatibility/rehearsal state)** and **Tier 2 = native live review (compatibility/rehearsal state)** remain implemented, but the production profile sets `params.poh.human_authority_mode = scope_closed_pending_uniqueness_entropy`, so new positive human-authority creation/advancement is fail-closed. These tiers are not proof of global one-human uniqueness. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
 
-The checked-in public testnet seed registry is `configs/public_testnet_seed_registry.json`, the checked-in public testnet trust roots are `configs/public_testnet_trust_roots.json`, and the pinned testnet chain identity config is `configs/chains/weall-testnet-v1.json`. It is a repository-pinned discovery input for observer bootstrapping; it is not provider authority, validator authority, or proof of public beta readiness.
+The checked-in public testnet seed registry is `configs/public_testnet_seed_registry.json`, the checked-in public testnet trust roots are `configs/public_testnet_trust_roots.json`, and the pinned testnet chain identity config is `configs/chains/weall-testnet-v1.json`. It is a repository-pinned discovery input for observer bootstrapping; it is not provider authority, validator authority, or proof of public beta readiness. The current checked-in registry is intentionally fail-closed after the latest chain-identity change: `seed_registry_rotation_required=true`, `pq_resign_required_before_public_testnet=true`, and `seed_registry_signature` is empty until the operator-held ML-DSA re-signing ceremony.
 
 ## Verification path
 
@@ -137,8 +137,8 @@ Frontend state is not protocol authority. Local scripts are not public-readiness
 | Governance | Public proposal, voting, block-height lifecycle progression, tally/finalization records, and record-only protocol-upgrade metadata. |
 | Disputes/reviews | Public report/review surfaces, block-height lifecycle progression, reviewer assignments, votes, receipts, outcomes, and restricted private identity evidence boundaries. |
 | Transaction lifecycle | Canonical tx index, admission/status surfaces, mempool/block evidence, receipts, and current canon metadata from `Weall-Protocol/generated/tx_index.json`. |
-| Node/operator surfaces | Readiness/status endpoints, signed seed/validator discovery evidence, validator authority gating, observer/operator status, secret guard, and release hygiene checks. |
-| Observer boot | `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` with signed/pinned registry and chain commitment checks. |
+| Node/operator surfaces | Readiness/status endpoints, pinned/signature-gated seed discovery evidence and signed validator-discovery evidence, validator authority gating, observer/operator status, secret guard, and release hygiene checks. |
+| Observer boot | `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` with pinned/signature-gated registry and chain commitment checks. |
 | External evidence packages | Clean-clone/open-download observer transcript, cross-machine replay transcript, independent validator/operator transcript, real storage/IPFS transcript, legal attestation, upgrade hardening proof, helper-topology proof, and post-transition cryptographic review evidence. |
 
 ## What is intentionally disabled
@@ -158,7 +158,7 @@ These are deliberately not claimed by the current repository state:
 
 Protocol-native social, civic, governance, moderation, dispute, group, reputation, validator/operator, and protocol-state activity is publicly inspectable. Group membership may gate participation or administration, but it must not gate read visibility for protocol-native group content.
 
-Public-testnet discovery uses signed/pinned seed-registry and endpoint evidence, not hosting-provider trust. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator status.
+Public-testnet discovery uses pinned/signature-gated seed-registry and endpoint evidence, not hosting-provider trust. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator status.
 
 ## Verification starting points
 

@@ -50,7 +50,7 @@ Expected boundary: `public_beta_ready=false`; `controlled_testnet_candidate=fals
 WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh
 ```
 
-Observer boot should use signed/pinned chain commitments, seed registry, trust roots, and endpoint evidence. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator status.
+Observer boot requires pinned chain commitments and trust roots plus signature-gated seed-registry/endpoint evidence. The checked-in seed registry is intentionally fail-closed pending operator-held ML-DSA re-signing after the current chain-identity change; boot must not treat an absent signature as readiness. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator status.
 
 ## 5. Inspect backend status
 

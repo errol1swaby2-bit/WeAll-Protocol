@@ -406,11 +406,14 @@ def admit_block_txs(
                     details={"index": i, "signer": env.signer, "have": int(env.nonce)},
                 )
                 continue
+            # SYSTEM envelopes are intrinsically block-context protocol work.
+            # ``verify_signatures`` controls ordinary unsigned local fixtures; it
+            # must not downgrade SYSTEM-origin authority checks to local context.
             verdict: TxVerdict = admit_tx(
                 ledger=ledger,
                 tx=env,
                 canon=tx_index,
-                context="block" if bool(verify_signatures) else "local",
+                context="block",
             )
             if not verdict.ok:
                 rejects[i] = TxReject(
@@ -475,6 +478,7 @@ def admit_bft_block(
     *,
     block: Json,
     state: Json,
+    blocks_map: dict[str, Any] | None = None,
     bft_enabled: bool | None = None,
 ) -> tuple[bool, BlockReject | None]:
     """BFT gating for incoming blocks.
@@ -547,8 +551,13 @@ def admit_bft_block(
                 dict(time_verdict.details or {}),
             )
 
-    blocks = state.get("blocks")
-    blocks_map = blocks if isinstance(blocks, dict) else {}
+    committed_blocks = state.get("blocks")
+    effective_blocks = dict(committed_blocks) if isinstance(committed_blocks, dict) else {}
+    if isinstance(blocks_map, dict):
+        for block_id, meta in blocks_map.items():
+            if isinstance(meta, dict):
+                effective_blocks[str(block_id)] = dict(meta)
+    blocks_map = effective_blocks
 
     bid = _as_str(block.get("block_id") or "")
     prev = _as_str(block.get("prev_block_id") or block.get("prev") or "")
@@ -761,13 +770,43 @@ def admit_bft_commit_block(
     The caller may supply a speculative ``blocks_map`` containing pending proposals so
     ancestry checks remain deterministic before all blocks are durably committed.
     """
-    ok, rej = admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
-    if not ok:
-        return ok, rej
-
     effective_bft_enabled = (
         _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
     )
+    effective_blocks = blocks_map if isinstance(blocks_map, dict) else {}
+    if not effective_blocks:
+        raw_blocks = state.get("blocks")
+        effective_blocks = raw_blocks if isinstance(raw_blocks, dict) else {}
+
+    if effective_bft_enabled:
+        bft_state = state.get("bft")
+        finalized = (
+            _as_str(bft_state.get("finalized_block_id") or "")
+            if isinstance(bft_state, dict)
+            else ""
+        )
+        bid = _as_str(block.get("block_id") or "")
+        if (
+            bid
+            and finalized
+            and bid != finalized
+            and _is_descendant(effective_blocks, candidate=finalized, ancestor=bid)
+        ):
+            return False, BlockReject(
+                "bft_not_finalized",
+                "block_not_on_finalized_path",
+                {"block_id": bid, "finalized_block_id": finalized},
+            )
+
+    ok, rej = admit_bft_block(
+        block=block,
+        state=state,
+        blocks_map=blocks_map,
+        bft_enabled=bft_enabled,
+    )
+    if not ok:
+        return ok, rej
+
     if not effective_bft_enabled:
         has_sig_material = bool(
             block.get("sig_profile")

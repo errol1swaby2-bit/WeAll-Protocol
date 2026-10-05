@@ -14,12 +14,13 @@ TX_INDEX = ROOT / "generated" / "tx_index.json"
 BLOCKERS = ROOT / "generated" / "public_beta_blocker_report_v1_5.json"
 RELEASE = ROOT / "generated" / "release_evidence_manifest_v1_5.json"
 PERFORMANCE = ROOT / "evidence" / "performance" / "current_performance_evidence.json"
+AUDIT_STATUS = ROOT.parent / "docs" / "audit" / "WeAll-A01-A20-P0-Closure-Status-20260930.md"
 
 JSON_OUT = ROOT / "generated" / "current_verified_claims.json"
 MD_OUT = ROOT / "docs" / "CURRENT_VERIFIED_CLAIMS.md"
 
 SCHEMA = "weall.current_verified_claims.v1"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 PERFORMANCE_SCHEMA = "weall.current_performance_evidence.v1"
 PERFORMANCE_REQUIRED_BENCHMARK_FIELDS = (
@@ -60,6 +61,98 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(obj, dict):
         raise SystemExit(f"expected JSON object: {path}")
     return obj
+
+
+AUDIT_CLOSED_STATUS = "CLOSED — PATCHED AND PROVEN"
+AUDIT_CLOSED_STATUSES = {
+    AUDIT_CLOSED_STATUS,
+    "CLOSED — SCOPE-CLOSED AND PROVEN",
+}
+AUDIT_TRACK_IDS = tuple(f"P0-{index:02d}" for index in range(1, 13))
+AUDIT_ALLOWED_STATUSES = {
+    *AUDIT_CLOSED_STATUSES,
+    "PATCHED / EVIDENCE PENDING",
+    "PARTIAL",
+    "DESIGN BLOCKER",
+    "IMPLEMENTATION BLOCKER",
+    "DESIGN + IMPLEMENTATION BLOCKER",
+    "EVIDENCE GATE",
+}
+
+
+def _read_p0_audit_status(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        raise SystemExit(f"missing required P0 audit status: {path}")
+    text = path.read_text(encoding="utf-8")
+    start_marker = "## Track status"
+    end_marker = "## Additional CI blockers discovered during closure"
+    if start_marker not in text or end_marker not in text:
+        raise SystemExit("P0 audit status is missing the canonical track-status section")
+    section = text.split(start_marker, 1)[1].split(end_marker, 1)[0]
+
+    tracks: dict[str, dict[str, Any]] = {}
+    for raw_line in section.splitlines():
+        if not raw_line.startswith("| P0-"):
+            continue
+        cells = [cell.strip() for cell in raw_line.strip().strip("|").split("|")]
+        if len(cells) != 4:
+            raise SystemExit(f"malformed P0 audit status row: {raw_line}")
+        label, finding_cell, status, detail = cells
+        track_id = label.split(" ", 1)[0]
+        if track_id in tracks:
+            raise SystemExit(f"duplicate P0 audit track: {track_id}")
+        if status not in AUDIT_ALLOWED_STATUSES:
+            raise SystemExit(f"unrecognized P0 audit status for {track_id}: {status}")
+        findings = [item.strip() for item in finding_cell.split(",") if item.strip()]
+        if not findings:
+            raise SystemExit(f"P0 audit track {track_id} has no finding IDs")
+        open_findings = list(findings)
+        marker = "Open findings:"
+        if status in AUDIT_CLOSED_STATUSES:
+            open_findings = []
+        elif marker in detail:
+            explicit = detail.split(marker, 1)[1].split(".", 1)[0]
+            open_findings = [item.strip() for item in explicit.split(",") if item.strip()]
+            if not open_findings:
+                raise SystemExit(
+                    f"P0 audit status {track_id} declares an empty Open findings override"
+                )
+            if len(set(open_findings)) != len(open_findings):
+                raise SystemExit(f"P0 audit status {track_id} has duplicate Open findings IDs")
+            if not all(item.startswith("A") and "-F" in item for item in open_findings):
+                raise SystemExit(
+                    f"P0 audit status {track_id} has malformed Open findings IDs: {open_findings}"
+                )
+        tracks[track_id] = {
+            "status": status,
+            "findings": findings,
+            "open_findings": open_findings,
+            "detail": detail,
+        }
+
+    expected = set(AUDIT_TRACK_IDS)
+    actual = set(tracks)
+    if actual != expected:
+        missing = sorted(expected - actual)
+        extra = sorted(actual - expected)
+        raise SystemExit(f"P0 audit status track set mismatch: missing={missing}, extra={extra}")
+
+    open_track_ids = [
+        track_id
+        for track_id in AUDIT_TRACK_IDS
+        if tracks[track_id]["status"] not in AUDIT_CLOSED_STATUSES
+    ]
+    open_finding_ids = sorted(
+        {finding for track_id in open_track_ids for finding in tracks[track_id]["open_findings"]}
+    )
+    return {
+        "tracks": tracks,
+        "open_track_ids": open_track_ids,
+        "open_finding_ids": open_finding_ids,
+        "closed_track_ids": [
+            track_id for track_id in AUDIT_TRACK_IDS if track_id not in open_track_ids
+        ],
+    }
 
 
 def _require_bool(obj: dict[str, Any], key: str, *, source: str) -> bool:
@@ -272,6 +365,7 @@ def build() -> dict[str, Any]:
     blockers = _read_json(BLOCKERS)
     release = _read_json(RELEASE)
     performance = _read_json(PERFORMANCE)
+    audit_status = _read_p0_audit_status(AUDIT_STATUS)
     performance_summary = _validate_performance_registry(performance)
 
     tx_types = tx.get("tx_types")
@@ -299,6 +393,16 @@ def build() -> dict[str, Any]:
         )
     if boundaries.get("mainnet_ready") is not mainnet_ready:
         raise SystemExit("release evidence manifest mainnet_ready disagrees with claim_boundaries")
+
+    open_p0_track_ids = audit_status["open_track_ids"]
+    if open_p0_track_ids:
+        enabled_boundaries = sorted(key for key, value in boundaries.items() if value)
+        if public_beta_ready or mainnet_ready or enabled_boundaries:
+            raise SystemExit(
+                "open P0 audit tracks block stronger release claims: "
+                f"open={open_p0_track_ids}, enabled_boundaries={enabled_boundaries}, "
+                f"public_beta_ready={public_beta_ready}, mainnet_ready={mainnet_ready}"
+            )
 
     claims: list[dict[str, Any]] = []
 
@@ -343,6 +447,36 @@ def build() -> dict[str, Any]:
                 "generated/public_beta_blocker_report_v1_5.json",
             ],
             notes="This is a bounded repository-status statement, not an external validation claim.",
+        )
+    )
+
+    claims.append(
+        _claim(
+            "AUDIT-P0-001",
+            "audit_gate",
+            (
+                "Open same-tree A01–A20 P0/HIGH findings block stronger release claims."
+                if open_p0_track_ids
+                else "The same-tree A01–A20 P0/HIGH closure ledger has no open tracks."
+            ),
+            (
+                "OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS"
+                if open_p0_track_ids
+                else "PROVEN_GENERATED_CURRENT"
+            ),
+            ["../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md"],
+            value={
+                "total_tracks": len(AUDIT_TRACK_IDS),
+                "open_track_ids": list(open_p0_track_ids),
+                "open_high_finding_ids": list(audit_status["open_finding_ids"]),
+                "closed_track_ids": list(audit_status["closed_track_ids"]),
+                "stronger_release_claims_blocked": bool(open_p0_track_ids),
+            },
+            notes=(
+                "P0 is the audit program's mapping of every A01–A20 HIGH finding. "
+                "The tracked closure ledger is now a required claim-generation input; "
+                "an unresolved P0 track therefore cannot coexist with an enabled release boundary."
+            ),
         )
     )
 
@@ -460,15 +594,20 @@ def build() -> dict[str, Any]:
         )
     )
 
+    generation_inputs = {
+        str(path.relative_to(ROOT)): _sha256(path)
+        for path in (TX_INDEX, BLOCKERS, RELEASE, PERFORMANCE)
+    }
+    generation_inputs["../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md"] = _sha256(
+        AUDIT_STATUS
+    )
+
     return {
         "schema": SCHEMA,
         "version": VERSION,
         "tracked_manifest_is_commit_agnostic": True,
         "exact_commit_binding_required_for_final_audit": True,
-        "generation_inputs": {
-            str(path.relative_to(ROOT)): _sha256(path)
-            for path in (TX_INDEX, BLOCKERS, RELEASE, PERFORMANCE)
-        },
+        "generation_inputs": generation_inputs,
         "claims": claims,
     }
 
@@ -509,6 +648,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
     by_id = {row["claim_id"]: row for row in claims}
     tx = by_id["TX-CANON-001"]["value"]
     external = by_id["EXTERNAL-VALIDATION-001"]["value"]
+    audit_gate = by_id["AUDIT-P0-001"]["value"]
 
     lines += [
         "",
@@ -518,6 +658,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "- Public beta readiness: **not claimed**.",
         "- Mainnet readiness: **not claimed**.",
         f"- Remaining external-evidence blocker IDs: `{', '.join(external['remaining_external_evidence_required_ids'])}`.",
+        f"- Open A01–A20 P0 audit tracks: `{', '.join(audit_gate['open_track_ids']) if audit_gate['open_track_ids'] else 'none'}`.",
         "",
         "V2 structural counts are intentionally not copied here. Their canonical source is",
         "`generated/v2/spec_compilation_manifest.json`, verified independently by",

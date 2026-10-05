@@ -34,6 +34,8 @@ from weall.runtime.poh.live_quorum import (
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
     TIER2_VALIDITY_BLOCKS,
+    poh_human_authority_mode,
+    poh_human_authority_scope_closed,
     require_valid_poh_tier,
     revoke_account_poh_status,
     set_account_poh_status,
@@ -47,6 +49,40 @@ from weall.runtime.reviewer_responsibilities import (
 )
 
 Json = dict[str, Any]
+
+_P0_06_SCOPE_CLOSED_AUTHORITY_TX_TYPES: frozenset[str] = frozenset(
+    {
+        "POH_APPLICATION_SUBMIT",
+        "POH_ASYNC_REQUEST_OPEN",
+        "POH_ASYNC_EVIDENCE_DECLARE",
+        "POH_ASYNC_EVIDENCE_BIND",
+        "POH_ASYNC_JUROR_ASSIGN",
+        "POH_ASYNC_JUROR_ACCEPT",
+        "POH_ASYNC_JUROR_DECLINE",
+        "POH_ASYNC_REVIEW_SUBMIT",
+        "POH_ASYNC_FINALIZE",
+        "POH_ASYNC_RECEIPT",
+        "POH_TIER_SET",
+        "POH_BOOTSTRAP_TIER2_GRANT",
+        "POH_TIER2_REQUEST_OPEN",
+        "POH_TIER2_JUROR_ASSIGN",
+        "POH_TIER2_JUROR_ACCEPT",
+        "POH_TIER2_JUROR_DECLINE",
+        "POH_TIER2_REVIEW_SUBMIT",
+        "POH_TIER2_FINALIZE",
+        "POH_TIER2_RECEIPT",
+        "POH_LIVE_REQUEST_OPEN",
+        "POH_LIVE_SESSION_INIT",
+        "POH_LIVE_JUROR_ASSIGN",
+        "POH_LIVE_JUROR_ACCEPT",
+        "POH_LIVE_JUROR_DECLINE",
+        "POH_LIVE_JUROR_REPLACE",
+        "POH_LIVE_ATTENDANCE_MARK",
+        "POH_LIVE_VERDICT_SUBMIT",
+        "POH_LIVE_FINALIZE",
+        "POH_LIVE_RECEIPT",
+    }
+)
 
 _COMMITMENT_RE = re.compile(
     r"^(?:[0-9a-f]{64}|sha256:[0-9a-f]{64}|[a-z][a-z0-9_-]{1,32}:[a-z0-9][a-z0-9:._/-]{0,191}|[a-z][a-z0-9_-]{1,63})$"
@@ -307,7 +343,24 @@ def _grant_active_poh_tier(
     opt-ins.
     """
 
+    if poh_human_authority_scope_closed(state):
+        raise ApplyError(
+            "forbidden",
+            "poh_human_authority_scope_closed",
+            {"account_id": account_id, "mode": poh_human_authority_mode(state)},
+        )
     acct = _require_registered_account(state, account_id)
+    duplicate_identity = _active_duplicate_identity_record(state, account_id)
+    if duplicate_identity is not None:
+        raise ApplyError(
+            "forbidden",
+            "duplicate_identity_authority_blocked",
+            {
+                "account_id": account_id,
+                "reference_account_id": duplicate_identity.get("reference_account_id"),
+                "challenge_id": duplicate_identity.get("challenge_id"),
+            },
+        )
     awarded_tier = require_valid_poh_tier(max(v2_poh_tier(acct.get("poh_tier")), int(tier)))
     height = (
         int(state.get("height") or 0) if verified_at_height is None else int(verified_at_height)
@@ -457,6 +510,286 @@ def _challenges(state: Json) -> Json:
         challenges = {}
         poh["challenges"] = challenges
     return challenges
+
+
+def _duplicate_identity_pair_key(account_id: str, reference_account_id: str) -> str:
+    pair = sorted({_as_str(account_id).strip(), _as_str(reference_account_id).strip()})
+    if len(pair) != 2 or not all(pair):
+        raise ApplyError(
+            "invalid_tx",
+            "invalid_duplicate_identity_pair",
+            {"account_id": account_id, "reference_account_id": reference_account_id},
+        )
+    material = json.dumps(
+        {"domain": "weall.poh.duplicate_identity_pair.v1", "accounts": pair},
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return "poh-duplicate-pair:" + _sha256_hex(material)
+
+
+def _duplicate_identity_challenge_pairs_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("duplicate_identity_challenge_pairs")
+    if not isinstance(root, dict):
+        root = {"active": {}, "events": []}
+        poh["duplicate_identity_challenge_pairs"] = root
+    active = root.get("active")
+    if not isinstance(active, dict):
+        active = {}
+        root["active"] = active
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+def _reserve_duplicate_identity_pair_challenge(
+    state: Json,
+    *,
+    challenge_id: str,
+    account_id: str,
+    reference_account_id: str,
+    opened_by: str,
+) -> str:
+    pair_key = _duplicate_identity_pair_key(account_id, reference_account_id)
+    root = _duplicate_identity_challenge_pairs_root(state)
+    active = _require_dict_invariant(
+        root.get("active"), field="duplicate_identity_challenge_pairs.active"
+    )
+    events = _require_list_invariant(
+        root.get("events"), field="duplicate_identity_challenge_pairs.events"
+    )
+    existing = active.get(pair_key)
+    if isinstance(existing, dict):
+        raise ApplyError(
+            "conflict",
+            "duplicate_identity_challenge_already_open",
+            {
+                "pair_key": pair_key,
+                "challenge_id": existing.get("challenge_id"),
+                "account_id": account_id,
+                "reference_account_id": reference_account_id,
+            },
+        )
+    pair_accounts = sorted([account_id, reference_account_id])
+    rec: Json = {
+        "pair_key": pair_key,
+        "pair_accounts": pair_accounts,
+        "challenge_id": challenge_id,
+        "opened_by": opened_by,
+        "status": "pending_adjudication",
+        "opened_height": int(state.get("height") or 0),
+    }
+    active[pair_key] = rec
+    events.append({"event": "duplicate_identity_pair_challenge_reserved", **rec})
+    return pair_key
+
+
+def _release_duplicate_identity_pair_challenge(
+    state: Json,
+    *,
+    challenge: Json,
+    outcome: str,
+) -> None:
+    pair_key = _as_str(challenge.get("identity_pair_key") or "").strip()
+    if not pair_key:
+        return
+    root = _duplicate_identity_challenge_pairs_root(state)
+    active = _require_dict_invariant(
+        root.get("active"), field="duplicate_identity_challenge_pairs.active"
+    )
+    events = _require_list_invariant(
+        root.get("events"), field="duplicate_identity_challenge_pairs.events"
+    )
+    challenge_id = _as_str(challenge.get("challenge_id") or "").strip()
+    current = active.get(pair_key)
+    if (
+        isinstance(current, dict)
+        and _as_str(current.get("challenge_id") or "").strip() == challenge_id
+    ):
+        active.pop(pair_key, None)
+    events.append(
+        {
+            "event": "duplicate_identity_pair_challenge_released",
+            "pair_key": pair_key,
+            "challenge_id": challenge_id,
+            "outcome": _as_str(outcome).strip().lower(),
+            "height": int(state.get("height") or 0),
+        }
+    )
+
+
+def _duplicate_identity_adjudications_root(state: Json) -> Json:
+    """Canonical duplicate-human adjudication state.
+
+    Detection is intentionally not automatic.  This state begins only after a
+    user/reviewer has opened a challenge that explicitly names the other account
+    alleged to represent the same human.  A confirmed relation blocks the
+    challenged account from independently reacquiring PoH authority until the
+    same challenge is overturned through the SYSTEM resolution path.
+    """
+
+    poh = _poh_root(state)
+    root = poh.get("duplicate_identity_adjudications")
+    if not isinstance(root, dict):
+        root = {}
+        poh["duplicate_identity_adjudications"] = root
+
+    by_duplicate_account = root.get("by_duplicate_account")
+    if not isinstance(by_duplicate_account, dict):
+        by_duplicate_account = {}
+        root["by_duplicate_account"] = by_duplicate_account
+
+    by_challenge = root.get("by_challenge")
+    if not isinstance(by_challenge, dict):
+        by_challenge = {}
+        root["by_challenge"] = by_challenge
+
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+
+    return root
+
+
+def _active_duplicate_identity_record(state: Json, account_id: str) -> Json | None:
+    # Read-only lookup: merely checking eligibility must never materialize a new
+    # consensus-state subtree or perturb the state root.
+    poh = state.get("poh")
+    if not isinstance(poh, dict):
+        return None
+    root = poh.get("duplicate_identity_adjudications")
+    if not isinstance(root, dict):
+        return None
+    by_duplicate_account = root.get("by_duplicate_account")
+    if not isinstance(by_duplicate_account, dict):
+        return None
+    rec = by_duplicate_account.get(account_id)
+    if not isinstance(rec, dict):
+        return None
+    if _as_str(rec.get("status") or "").strip().lower() != "confirmed_duplicate":
+        return None
+    return dict(rec)
+
+
+def _record_duplicate_identity_confirmation(
+    state: Json,
+    *,
+    challenge_id: str,
+    duplicate_account_id: str,
+    reference_account_id: str,
+) -> Json:
+    if duplicate_account_id == reference_account_id:
+        raise ApplyError(
+            "invalid_tx",
+            "duplicate_reference_matches_target",
+            {"account_id": duplicate_account_id},
+        )
+
+    _require_registered_account(state, duplicate_account_id)
+    _require_registered_account(
+        state,
+        reference_account_id,
+        reason="reference_account_not_registered",
+    )
+
+    reference_duplicate = _active_duplicate_identity_record(state, reference_account_id)
+    if reference_duplicate is not None:
+        raise ApplyError(
+            "invalid_tx",
+            "reference_account_is_confirmed_duplicate",
+            {
+                "reference_account_id": reference_account_id,
+                "reference_of": reference_duplicate.get("reference_account_id"),
+                "challenge_id": reference_duplicate.get("challenge_id"),
+            },
+        )
+
+    root = _duplicate_identity_adjudications_root(state)
+    by_duplicate_account = _require_dict_invariant(
+        root.get("by_duplicate_account"),
+        field="duplicate_identity_adjudications.by_duplicate_account",
+    )
+    by_challenge = _require_dict_invariant(
+        root.get("by_challenge"), field="duplicate_identity_adjudications.by_challenge"
+    )
+    events = _require_list_invariant(
+        root.get("events"), field="duplicate_identity_adjudications.events"
+    )
+
+    existing = by_duplicate_account.get(duplicate_account_id)
+    if (
+        isinstance(existing, dict)
+        and _as_str(existing.get("status") or "").strip().lower() == "confirmed_duplicate"
+    ):
+        existing_reference = _as_str(existing.get("reference_account_id") or "").strip()
+        if existing_reference and existing_reference != reference_account_id:
+            raise ApplyError(
+                "invalid_state",
+                "duplicate_identity_conflict",
+                {
+                    "account_id": duplicate_account_id,
+                    "existing_reference_account_id": existing_reference,
+                    "reference_account_id": reference_account_id,
+                },
+            )
+
+    height = int(state.get("height") or 0)
+    rec: Json = {
+        "challenge_id": challenge_id,
+        "duplicate_account_id": duplicate_account_id,
+        "reference_account_id": reference_account_id,
+        "status": "confirmed_duplicate",
+        "confirmed_height": height,
+        "authority_effect": "duplicate_account_poh_revoked_and_reaward_blocked",
+    }
+    by_duplicate_account[duplicate_account_id] = dict(rec)
+    by_challenge[challenge_id] = dict(rec)
+    events.append({"event": "duplicate_identity_confirmed", **rec})
+    return dict(rec)
+
+
+def _overturn_duplicate_identity_confirmation(
+    state: Json,
+    *,
+    challenge_id: str,
+    note: str = "",
+) -> Json:
+    root = _duplicate_identity_adjudications_root(state)
+    by_duplicate_account = _require_dict_invariant(
+        root.get("by_duplicate_account"),
+        field="duplicate_identity_adjudications.by_duplicate_account",
+    )
+    by_challenge = _require_dict_invariant(
+        root.get("by_challenge"), field="duplicate_identity_adjudications.by_challenge"
+    )
+    events = _require_list_invariant(
+        root.get("events"), field="duplicate_identity_adjudications.events"
+    )
+    rec = by_challenge.get(challenge_id)
+    if not isinstance(rec, dict):
+        return {"applied": False, "reason": "duplicate_identity_confirmation_not_found"}
+
+    updated = dict(rec)
+    updated["status"] = "overturned"
+    updated["overturned_height"] = int(state.get("height") or 0)
+    updated["authority_effect"] = "duplicate_reaward_block_removed_reverification_still_required"
+    if note:
+        updated["overturn_note"] = note
+    duplicate_account_id = _as_str(updated.get("duplicate_account_id") or "").strip()
+    by_challenge[challenge_id] = dict(updated)
+    if duplicate_account_id:
+        current = by_duplicate_account.get(duplicate_account_id)
+        if (
+            isinstance(current, dict)
+            and _as_str(current.get("challenge_id") or "").strip() == challenge_id
+        ):
+            by_duplicate_account[duplicate_account_id] = dict(updated)
+    events.append({"event": "duplicate_identity_overturned", **updated})
+    return {"applied": True, **updated}
 
 
 def _reverification_root(state: Json) -> Json:
@@ -1960,18 +2293,67 @@ def _challenge_id(*, account_id: str, nonce: int) -> str:
 def apply_poh_challenge_open(state: Json, env: Any) -> Json:
     p = _payload(env)
     account_id = _as_str(p.get("account_id") or "").strip()
+    reference_account_id = _as_str(p.get("reference_account_id") or "").strip()
     reason = _as_str(p.get("reason") or "").strip()
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account_id", {})
 
     cid = _challenge_id(account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0)))
+    challenger = _signer(env)
+    pair_key = ""
+    if reference_account_id:
+        _require_account_min_tier(
+            state,
+            challenger,
+            min_tier=1,
+            reason="duplicate_challenge_requires_verified_human",
+        )
+        if reference_account_id == account_id:
+            raise ApplyError(
+                "invalid_tx",
+                "duplicate_reference_matches_target",
+                {"account_id": account_id},
+            )
+        _require_registered_account(state, account_id)
+        _require_registered_account(
+            state,
+            reference_account_id,
+            reason="reference_account_not_registered",
+        )
+        if _active_duplicate_identity_record(state, account_id) is not None:
+            raise ApplyError(
+                "conflict",
+                "challenged_account_is_confirmed_duplicate",
+                {"account_id": account_id},
+            )
+        if _active_duplicate_identity_record(state, reference_account_id) is not None:
+            raise ApplyError(
+                "invalid_tx",
+                "reference_account_is_confirmed_duplicate",
+                {"reference_account_id": reference_account_id},
+            )
+        pair_key = _reserve_duplicate_identity_pair_challenge(
+            state,
+            challenge_id=cid,
+            account_id=account_id,
+            reference_account_id=reference_account_id,
+            opened_by=challenger,
+        )
+
     ch = {
         "challenge_id": cid,
         "account_id": account_id,
-        "opened_by": _signer(env),
+        "opened_by": challenger,
         "reason": reason,
         "status": "open",
     }
+    if reference_account_id:
+        ch["reference_account_id"] = reference_account_id
+        ch["challenge_kind"] = "duplicate_identity"
+        ch["identity_pair_key"] = pair_key
+        ch["adjudication_status"] = "pending_unpredictable_entropy"
+        ch["reviewer_selection_status"] = "deferred_pending_a20_entropy"
+        ch["authority_effect"] = "none_pending_adjudication"
     case_id = _as_str(p.get("case_id") or p.get("target_case_id") or "").strip()
     if case_id:
         ch["case_id"] = case_id
@@ -1983,6 +2365,7 @@ def apply_poh_challenge_open(state: Json, env: Any) -> Json:
 
 
 def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
+    _require_system_tx(env, "POH_CHALLENGE_RESOLVE")
     p = _payload(env)
     cid = _as_str(p.get("challenge_id") or "").strip()
     resolution = _as_str(p.get("resolution") or "").strip().lower()
@@ -1998,6 +2381,50 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
     if not isinstance(ch, dict):
         raise ApplyError("not_found", "challenge_not_found", {"challenge_id": cid})
 
+    prior_resolution = _as_str(ch.get("resolution") or "").strip().lower()
+    reference_account_id = _as_str(ch.get("reference_account_id") or "").strip()
+    history = ch.get("resolution_history")
+    if not isinstance(history, list):
+        history = []
+    history.append(
+        {
+            "resolution": resolution,
+            "height": int(state.get("height") or 0),
+            "resolved_by": _signer(env),
+            **({"note": note} if note else {}),
+        }
+    )
+    ch["resolution_history"] = history
+
+    # A later SYSTEM dismissal of an already-upheld duplicate-identity challenge
+    # is the canonical false-positive/appeal remedy.  It removes the durable
+    # duplicate-authority block but deliberately does not restore PoH tier; the
+    # account must complete ordinary verification again.
+    if resolution == "dismissed" and prior_resolution == "upheld" and reference_account_id:
+        overturned = _overturn_duplicate_identity_confirmation(state, challenge_id=cid, note=note)
+        ch["status"] = "resolved_overturned"
+        ch["resolution"] = "dismissed"
+        ch["adjudication_status"] = "adjudicated_overturned"
+        _release_duplicate_identity_pair_challenge(
+            state,
+            challenge=ch,
+            outcome="overturned",
+        )
+        ch["consequence"] = {
+            "type": "duplicate_identity_overturned",
+            "applied": bool(overturned.get("applied")),
+            "account_id": _as_str(ch.get("account_id") or "").strip(),
+            "reference_account_id": reference_account_id,
+            "reverification_required": True,
+            "duplicate_identity": overturned,
+        }
+        return {
+            "applied": "POH_CHALLENGE_RESOLVE",
+            "challenge_id": cid,
+            "resolution": resolution,
+            "consequence": dict(ch["consequence"]),
+        }
+
     ch["status"] = "resolved"
     ch["resolution"] = resolution
     if note:
@@ -2008,6 +2435,14 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
         account_id = _as_str(ch.get("account_id") or "").strip()
         if not account_id:
             raise ApplyError("invalid_tx", "challenge_missing_account_id", {"challenge_id": cid})
+        duplicate_identity: Json | None = None
+        if reference_account_id:
+            duplicate_identity = _record_duplicate_identity_confirmation(
+                state,
+                challenge_id=cid,
+                duplicate_account_id=account_id,
+                reference_account_id=reference_account_id,
+            )
         rec = revoke_account_poh_status(
             state,
             account_id=account_id,
@@ -2044,6 +2479,9 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
             "evidence_retention": retention,
             "reviewer_accountability": accountability,
         }
+        if duplicate_identity is not None:
+            ch["consequence"]["duplicate_identity"] = duplicate_identity
+            ch["consequence"]["reverification_blocked_by_duplicate_identity"] = True
         consequence = dict(ch["consequence"])
         consequence["applied"] = True
     else:
@@ -2063,6 +2501,14 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
         ch["evidence_retention"] = retention
         ch["consequence"] = {"type": "none", "applied": False}
         consequence = dict(ch["consequence"])
+
+    if reference_account_id:
+        ch["adjudication_status"] = f"adjudicated_{resolution}"
+        _release_duplicate_identity_pair_challenge(
+            state,
+            challenge=ch,
+            outcome=resolution,
+        )
 
     return {
         "applied": "POH_CHALLENGE_RESOLVE",
@@ -4252,6 +4698,13 @@ def apply_poh_live_receipt(state: Json, env: Any) -> Json:
 
 def apply_poh(state: Json, env: Any) -> Json | None:
     t = _tx_type(env)
+
+    if poh_human_authority_scope_closed(state) and t in _P0_06_SCOPE_CLOSED_AUTHORITY_TX_TYPES:
+        raise ApplyError(
+            "forbidden",
+            "poh_human_authority_scope_closed",
+            {"tx_type": t, "mode": poh_human_authority_mode(state)},
+        )
 
     if t in {"POH_APPLICATION_SUBMIT", "POH_EVIDENCE_DECLARE", "POH_EVIDENCE_BIND"}:
         poh = _poh_root(state)

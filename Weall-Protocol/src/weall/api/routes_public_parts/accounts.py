@@ -20,6 +20,7 @@ from weall.api.routes_public_parts.content import (
 )
 from weall.api.security import require_account_session
 from weall.ledger.state import LedgerView
+from weall.runtime.account_registration_work import account_registration_work_policy_json
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 from weall.runtime.poh.state import effective_poh_tier, poh_tier_label
 from weall.runtime.reviewer_responsibilities import (
@@ -101,6 +102,8 @@ class AccountRegisterTxRequest(BaseModel):
     recovery_sig_profile: str | None = Field(default="pq-mldsa-v1", max_length=64)
     evidence_kem_pubkey: str | None = Field(default=None, max_length=8192)
     evidence_kem_algorithm: str | None = Field(default="ml-kem-768", max_length=64)
+    registration_work_version: str | None = Field(default=None, max_length=64)
+    registration_work_nonce: int | None = Field(default=None, ge=0, le=9007199254740991)
     parent: str | None = Field(default=None, max_length=256)
 
 
@@ -299,8 +302,31 @@ def v1_account_tx_register(req: AccountRegisterTxRequest) -> dict[str, Any]:
                     if req.evidence_kem_pubkey
                     else {}
                 ),
+                **(
+                    {
+                        "registration_work_version": str(req.registration_work_version).strip(),
+                        "registration_work_nonce": int(req.registration_work_nonce),
+                    }
+                    if req.registration_work_version is not None
+                    and req.registration_work_nonce is not None
+                    else {}
+                ),
             },
         },
+    }
+
+
+@router.get("/accounts/registration-work-policy")
+def v1_account_registration_work_policy(request: Request) -> dict[str, Any]:
+    """Expose the consensus registration-work policy without solving work for clients."""
+    st = _snapshot(request)
+    policy = account_registration_work_policy_json(st)
+    return {
+        "ok": True,
+        "chain_id": str(st.get("chain_id") or ""),
+        "policy": policy,
+        "truth_boundary": "consensus_state_params",
+        "solver": "client_side_only",
     }
 
 

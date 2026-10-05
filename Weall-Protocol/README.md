@@ -28,7 +28,7 @@ Private/direct/encrypted messaging is not part of the project/public-testnet cla
 
 Current tx-canon counts and version are authoritative only in `generated/tx_index.json`; verification-facing prose intentionally does not duplicate those mutable values.
 
-Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
+Proof-of-Humanity checkpoint: **Tier 0 = account only**. **Tier 1 = native async review (compatibility/rehearsal state)** and **Tier 2 = native live review (compatibility/rehearsal state)** remain implemented, but the production profile sets `params.poh.human_authority_mode = scope_closed_pending_uniqueness_entropy`, so new positive human-authority creation/advancement is fail-closed. These tiers are not proof of global one-human uniqueness. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
 
 ## Backend purpose in the verification flow
 
@@ -37,7 +37,7 @@ The backend is responsible for:
 - canonical transaction type indexing and tx-contract evidence;
 - deterministic admission, lifecycle, receipt, and status surfaces;
 - public-only account/profile, social, group, governance, dispute/review, reputation, node/operator, and observer APIs;
-- signed/pinned public-testnet discovery inputs;
+- pinned/signature-gated public-testnet discovery inputs;
 - generated public-readiness and release-evidence artifacts;
 - fail-closed release hygiene and secret/export safety checks.
 
@@ -127,7 +127,7 @@ pip install -e .
 WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh
 ```
 
-The checked-in public-testnet chain commitments, signed seed registry, trust roots, and validator endpoint evidence must match before boot proceeds. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator authority.
+The checked-in public-testnet chain commitments and trust roots must match, and the seed-registry signature gate must pass before public-testnet boot proceeds. The current checked-in seed registry is intentionally fail-closed pending operator-held ML-DSA re-signing after the chain-identity change; an absent signature is not readiness evidence. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator authority.
 
 ## Evidence package map
 
@@ -155,7 +155,7 @@ The blocker catalog remains explicit; read current total/open/closed counts dire
 - **Disputes/reviews:** public reports, review assignment, votes, receipts, outcomes, and restricted private-identity-evidence boundaries.
 - **Transaction lifecycle:** tx admission, mempool/status, receipts, block inclusion evidence, and current canon metadata from `generated/tx_index.json`.
 - **Node/operator:** readiness/status, discovery, validator authority gates, observer status, release hygiene, and secret guard.
-- **Observer boot:** signed/pinned chain/seed/endpoint checks before public-observer startup.
+- **Observer boot:** pinned/signature-gated chain/seed/endpoint checks before public-observer startup.
 - **External evidence packages:** observer, replay, validator/operator, storage/IPFS, legal, upgrade, helper-topology, and post-transition cryptographic review evidence.
 
 ## What is intentionally disabled

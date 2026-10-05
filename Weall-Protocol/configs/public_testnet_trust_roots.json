@@ -5,8 +5,8 @@
   ],
   "chain_id": "weall-testnet-v1",
   "crypto_posture_note": "Controlled/public testnet cryptographic gate uses pq-mldsa-v1 only; classical protocol signing profiles have been removed.",
-  "genesis_hash": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
-  "genesis_state_root": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
+  "genesis_hash": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
+  "genesis_state_root": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
   "network_id": "weall-public-observer-testnet-v1",
   "notes": [
     "The checked-in seed registry is intentionally fail-closed until the current chain-identity rotation is re-signed by the operator-held ML-DSA key.",
@@ -18,7 +18,8 @@
     "The v2 Milestone 2 chain reset requires the checked-in seed registry to be re-signed before public observer bootstrap is re-enabled.",
     "The state-root commitment v2 reset changes genesis/profile commitments and therefore requires a fresh ML-DSA seed-registry signature before public observer bootstrap is re-enabled.",
     "The state-root v2 full genesis metadata pin changes the testnet genesis commitment and requires a fresh ML-DSA seed-registry signature before public observer bootstrap is re-enabled.",
-    "R04B changes the canonical transaction-index commitment and requires a fresh ML-DSA seed-registry signature before public observer bootstrap is re-enabled."
+    "R04B changes the canonical transaction-index commitment and requires a fresh ML-DSA seed-registry signature before public observer bootstrap is re-enabled.",
+    "A15-F003 account-registration scarcity changes the deterministic testnet genesis commitment; the checked-in registry remains fail-closed until the operator-held ML-DSA key re-signs it."
   ],
   "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
   "seed_registry_mirrors": [],

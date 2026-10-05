@@ -9,6 +9,7 @@ from weall.runtime.block_hash import compute_block_hash
 from weall.runtime.executor import (
     Path,
     WeAllExecutor,
+    _block_hash_from_any,
     _bounded_put,
     _canon_json,
     _now_ms,
@@ -110,13 +111,21 @@ def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
                 Path(f"{path}{suffix}").unlink(missing_ok=True)
             except Exception:
                 pass
-    return WeAllExecutor(
+    clone = WeAllExecutor(
         db_path=str(db_path),
         aux_db_path=str(aux_path),
         node_id=str(self.node_id),
         chain_id=str(self.chain_id),
         tx_index_path=str(self.tx_index_path),
     )
+    # This executor is an ephemeral replay surface for the live node, not an
+    # independently bootstrapped node. Its startup state is intentionally empty,
+    # so lifecycle evaluation at construction time can differ from the source
+    # node until the speculative parent state is loaded. Preserve the source
+    # node's already-resolved BFT authority posture so replay cannot silently
+    # downgrade consensus semantics while validating a production proposal.
+    clone._bft_enabled_effective = bool(getattr(self, "_bft_enabled_effective", False))
+    return clone
 
 
 def _proposal_votecheck_static_ok(self, block: Json) -> bool:
@@ -174,6 +183,125 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
     return True
 
 
+def _speculative_chain_to_parent(
+    self, parent_id: str, *, max_depth: int = 256
+) -> list[Json] | None:
+    target = str(parent_id or "").strip()
+    canonical_tip = str(self.state.get("tip") or "").strip()
+    if target == canonical_tip:
+        return []
+    if not target:
+        return None
+    chain: list[Json] = []
+    cur = target
+    seen: set[str] = set()
+    while cur and cur != canonical_tip:
+        if cur in seen or len(chain) >= max(1, int(max_depth)):
+            return None
+        seen.add(cur)
+        blk = self._bft_pending_block_json(cur)
+        if not isinstance(blk, dict):
+            return None
+        if str(blk.get("block_id") or "").strip() != cur:
+            return None
+        chain.append(dict(blk))
+        cur = str(blk.get("prev_block_id") or "").strip()
+    if cur != canonical_tip:
+        return None
+    chain.reverse()
+    return chain
+
+
+def _seed_spec_exec_to_parent(self, clone: WeAllExecutor, parent_id: str) -> bool:
+    canonical_tip = str(self.state.get("tip") or "").strip()
+    target = str(parent_id or "").strip()
+    if target == canonical_tip:
+        clone.state = copy.deepcopy(self.state)
+        clone._ledger_store.write(clone.state)
+        clone._bft.load_from_state(clone.state)
+        return True
+
+    candidate = self._pending_candidates.get(target)
+    if isinstance(candidate, tuple) and len(candidate) >= 2:
+        block = candidate[0]
+        candidate_state = candidate[1]
+        if (
+            isinstance(block, dict)
+            and isinstance(candidate_state, dict)
+            and candidate_state
+            and str(candidate_state.get("tip") or "").strip() == target
+        ):
+            expected_hash = _block_hash_from_any(block)
+            have_hash = str(candidate_state.get("tip_hash") or "").strip()
+            if expected_hash and have_hash and expected_hash == have_hash:
+                clone.state = copy.deepcopy(candidate_state)
+                clone._ledger_store.write(clone.state)
+                clone._bft.load_from_state(clone.state)
+                return True
+
+    chain = _speculative_chain_to_parent(self, target)
+    if chain is None:
+        return False
+    clone.state = copy.deepcopy(self.state)
+    clone._ledger_store.write(clone.state)
+    clone._bft.load_from_state(clone.state)
+    # These blocks came only from the authenticated pending frontier selected by
+    # ``_speculative_chain_to_parent``. They were already admitted when received
+    # and may now sit behind a newer HotStuff lock. Reconstruct their deterministic
+    # state effects (including BFT finality scheduling) without re-running the
+    # *current* lock/finalized-path commit gate against historical ancestors.
+    # The marker is private to this ephemeral clone and is cleared before the new
+    # candidate is replayed, so candidate admission remains fully fail-closed.
+    prior_ancestor_replay = bool(
+        getattr(clone, "_speculative_authenticated_ancestor_replay", False)
+    )
+    clone._speculative_authenticated_ancestor_replay = True
+    try:
+        for pending in chain:
+            meta = clone.apply_block(copy.deepcopy(pending))
+            if meta is None or not bool(getattr(meta, "ok", False)):
+                return False
+    finally:
+        clone._speculative_authenticated_ancestor_replay = prior_ancestor_replay
+    return str(clone.state.get("tip") or "").strip() == target
+
+
+def _speculative_parent_state(self, parent_id: str) -> Json | None:
+    target = str(parent_id or "").strip()
+    if target == str(self.state.get("tip") or "").strip():
+        return copy.deepcopy(self.state)
+
+    candidate = self._pending_candidates.get(target)
+    if isinstance(candidate, tuple) and len(candidate) >= 2:
+        block = candidate[0]
+        candidate_state = candidate[1]
+        if (
+            isinstance(block, dict)
+            and isinstance(candidate_state, dict)
+            and candidate_state
+            and str(candidate_state.get("tip") or "").strip() == target
+        ):
+            expected_hash = _block_hash_from_any(block)
+            if (
+                expected_hash
+                and str(candidate_state.get("tip_hash") or "").strip() == expected_hash
+            ):
+                return copy.deepcopy(candidate_state)
+
+    slot: tuple[str, str] | None = None
+    try:
+        slot = self._acquire_spec_exec_slot()
+        clone = self._reset_spec_exec_slot(slot)
+        if not _seed_spec_exec_to_parent(self, clone, target):
+            return None
+        return copy.deepcopy(clone.state)
+    except Exception:
+        return None
+    finally:
+        if slot is not None:
+            self._release_spec_exec_slot(slot)
+
+
 def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
     if not isinstance(block, dict):
         return False
@@ -200,8 +328,11 @@ def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
         return True
     parent_id = str(block2.get("prev_block_id") or "").strip()
     if parent_id and not self._has_local_block(parent_id):
-        if parent_id in self._pending_missing_fetches:
-            # Missing-parent work is retryable local state, not intrinsic block invalidity.
+        # A speculative parent is valid local ancestry even though it is not yet
+        # in the canonical block table. If neither canonical nor pending ancestry
+        # exists, fail retryably and let the fetch-descriptor machinery request it.
+        pending_parent = self._bft_pending_block_json(parent_id)
+        if not isinstance(pending_parent, dict):
             return False
     proposer = str(block2.get("proposer") or "").strip()
     if not self._proposal_votecheck_budget_ok(proposer):
@@ -215,9 +346,8 @@ def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
     try:
         slot = self._acquire_spec_exec_slot()
         clone = self._reset_spec_exec_slot(slot)
-        clone.state = copy.deepcopy(self.state)
-        clone._ledger_store.write(clone.state)
-        clone._bft.load_from_state(clone.state)
+        if not _seed_spec_exec_to_parent(self, clone, parent_id):
+            return False
         meta = clone.apply_block(copy.deepcopy(block2))
         ok = bool(meta.ok)
         # Only successful speculative validation is safe to memoize here. A failed

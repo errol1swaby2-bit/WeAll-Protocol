@@ -87,6 +87,10 @@ class HandshakeState:
     session_id: str | None = None
     last_error: str | None = None
     outbound_corr_id: str | None = None
+    outbound_challenge: str | None = None
+    inbound_corr_id: str | None = None
+    inbound_challenge: str | None = None
+    remote_peer_id: str | None = None
     started_ms: int = 0
 
     def start(self) -> None:
@@ -95,6 +99,10 @@ class HandshakeState:
         self.session_id = None
         self.last_error = None
         self.outbound_corr_id = None
+        self.outbound_challenge = None
+        self.inbound_corr_id = None
+        self.inbound_challenge = None
+        self.remote_peer_id = None
 
     def is_established(self) -> bool:
         return self.status == "ESTABLISHED" and bool(self.session_id)
@@ -175,6 +183,9 @@ def build_hello_ack(
     ok: bool,
     reason: str | None = None,
     caps: tuple[str, ...] | None = None,
+    recipient_peer_id: str | None = None,
+    phase: str | None = None,
+    challenge: str | None = None,
 ) -> PeerHelloAck:
     chain_id = _validate_non_empty(cfg.chain_id, "chain_id")
     schema_version = _validate_non_empty(cfg.schema_version, "schema_version")
@@ -190,6 +201,37 @@ def build_hello_ack(
         corr_id=corr_id,
     )
 
+    recipient = str(recipient_peer_id or "").strip()
+    phase2 = str(phase or ("reject" if not ok else "")).strip().lower() or None
+    challenge2 = str(challenge or "").strip() or None
+    identity: dict[str, Any] | None = None
+    if cfg.require_identity:
+        pubkey = str(cfg.identity_pubkey or "").strip()
+        privkey = str(cfg.identity_privkey or "").strip()
+        if not pubkey or not privkey:
+            raise HandshakeRejected("identity_required_but_missing_keys")
+        if not recipient or phase2 not in {"challenge", "final", "reject"}:
+            raise HandshakeRejected("identity_ack_context_missing")
+        try:
+            from weall.net.peer_identity import sign_peer_hello_ack_identity
+
+            identity = sign_peer_hello_ack_identity(
+                header=hdr,
+                peer_id=peer_id,
+                pubkey=pubkey,
+                privkey=privkey,
+                recipient_peer_id=recipient,
+                phase=phase2,
+                challenge=challenge2 or "",
+                ok=bool(ok),
+            )
+        except HandshakeRejected:
+            raise
+        except Exception as exc:
+            raise HandshakeRejected("identity_ack_sign_failed") from exc
+        if not identity:
+            raise HandshakeRejected("identity_ack_sign_failed")
+
     return PeerHelloAck(
         header=hdr,
         peer_id=peer_id,
@@ -197,6 +239,59 @@ def build_hello_ack(
         reason=reason,
         caps=tuple(caps or ()),
         server_ts_ms=_now_ms(),
+        phase=phase2,
+        challenge=challenge2,
+        recipient_peer_id=recipient or None,
+        identity=identity,
+        protocol_version=str(cfg.protocol_version or "").strip() or None,
+        protocol_profile_hash=str(cfg.protocol_profile_hash or "").strip() or None,
+        validator_epoch=int(cfg.validator_epoch) if int(cfg.validator_epoch) > 0 else None,
+        validator_set_hash=str(cfg.validator_set_hash or "").strip() or None,
+        bft_enabled=bool(cfg.bft_enabled),
+        genesis_bootstrap_profile_hash=str(cfg.genesis_bootstrap_profile_hash or "").strip()
+        or None,
+        genesis_bootstrap_enabled=bool(cfg.genesis_bootstrap_enabled),
+        genesis_bootstrap_mode=str(cfg.genesis_bootstrap_mode or "").strip() or None,
+    )
+
+
+def _build_challenge_response(state: HandshakeState) -> PeerHello:
+    cfg = state.config
+    corr_id = str(state.outbound_corr_id or "").strip()
+    challenge = str(state.outbound_challenge or "").strip()
+    if not corr_id or not challenge:
+        raise HandshakeRejected("challenge_context_missing")
+    hdr = WireHeader(
+        type=MsgType.PEER_HELLO,
+        chain_id=_validate_non_empty(cfg.chain_id, "chain_id"),
+        schema_version=_validate_non_empty(cfg.schema_version, "schema_version"),
+        tx_index_hash=_validate_non_empty(cfg.tx_index_hash, "tx_index_hash"),
+        sent_ts_ms=_now_ms(),
+        corr_id=corr_id,
+    )
+    pubkey = str(cfg.identity_pubkey or "").strip()
+    privkey = str(cfg.identity_privkey or "").strip()
+    if not pubkey or not privkey:
+        raise HandshakeRejected("identity_required_but_missing_keys")
+    from weall.net.peer_identity import sign_peer_hello_identity
+
+    identity = sign_peer_hello_identity(
+        header=hdr,
+        peer_id=_validate_non_empty(cfg.peer_id, "peer_id"),
+        pubkey=pubkey,
+        privkey=privkey,
+        agent=cfg.agent or _default_agent(),
+        nonce=challenge,
+    )
+    if not identity:
+        raise HandshakeRejected("identity_sign_failed")
+    return PeerHello(
+        header=hdr,
+        peer_id=cfg.peer_id,
+        agent=cfg.agent or _default_agent(),
+        nonce=challenge,
+        caps=tuple(cfg.caps or ()),
+        identity=identity,
         protocol_version=str(cfg.protocol_version or "").strip() or None,
         protocol_profile_hash=str(cfg.protocol_profile_hash or "").strip() or None,
         validator_epoch=int(cfg.validator_epoch) if int(cfg.validator_epoch) > 0 else None,
@@ -341,6 +436,7 @@ def _check_validator_metadata(
 
 def process_inbound_hello(state: HandshakeState, msg: PeerHello) -> PeerHelloAck:
     cfg = state.config
+    remote_peer_id = str(getattr(msg, "peer_id", "") or "").strip()
     try:
         if msg.header.chain_id != cfg.chain_id:
             raise HandshakeRejected("chain_id_mismatch")
@@ -366,15 +462,55 @@ def process_inbound_hello(state: HandshakeState, msg: PeerHello) -> PeerHelloAck
             genesis_bootstrap_enabled=getattr(msg, "genesis_bootstrap_enabled", None),
             genesis_bootstrap_mode=getattr(msg, "genesis_bootstrap_mode", None),
         )
+        if cfg.require_identity:
+            if state.started_ms <= 0:
+                state.started_ms = _now_ms()
+            corr_id = str(getattr(msg.header, "corr_id", "") or "").strip()
+            nonce = str(getattr(msg, "nonce", "") or "").strip()
+            if not corr_id:
+                raise HandshakeRejected("corr_id_missing")
+            if state.status == "AWAITING_CHALLENGE_RESPONSE":
+                if remote_peer_id != str(state.remote_peer_id or "").strip():
+                    raise HandshakeRejected("challenge_peer_id_mismatch")
+                if corr_id != str(state.inbound_corr_id or "").strip():
+                    raise HandshakeRejected("challenge_corr_id_mismatch")
+                if not nonce or nonce != str(state.inbound_challenge or "").strip():
+                    raise HandshakeRejected("challenge_response_mismatch")
+                state.status = "ESTABLISHED"
+                state.session_id = _new_session_id()
+                state.last_error = None
+                return build_hello_ack(
+                    cfg,
+                    corr_id=corr_id,
+                    ok=True,
+                    caps=tuple(cfg.caps or ()),
+                    recipient_peer_id=remote_peer_id,
+                    phase="final",
+                    challenge=state.inbound_challenge,
+                )
+            if state.status != "NEW":
+                raise HandshakeRejected("unexpected_peer_hello")
+            challenge = secrets.token_hex(32)
+            state.inbound_corr_id = corr_id
+            state.inbound_challenge = challenge
+            state.remote_peer_id = remote_peer_id
+            state.status = "AWAITING_CHALLENGE_RESPONSE"
+            state.session_id = None
+            state.last_error = None
+            return build_hello_ack(
+                cfg,
+                corr_id=corr_id,
+                ok=True,
+                caps=tuple(cfg.caps or ()),
+                recipient_peer_id=remote_peer_id,
+                phase="challenge",
+                challenge=challenge,
+            )
         state.status = "ESTABLISHED"
         state.session_id = _new_session_id()
         state.last_error = None
         return build_hello_ack(
-            cfg,
-            corr_id=getattr(msg.header, "corr_id", None),
-            ok=True,
-            reason=None,
-            caps=tuple(cfg.caps or ()),
+            cfg, corr_id=getattr(msg.header, "corr_id", None), ok=True, caps=tuple(cfg.caps or ())
         )
     except HandshakeRejected as he:
         state.status = "REJECTED"
@@ -386,10 +522,62 @@ def process_inbound_hello(state: HandshakeState, msg: PeerHello) -> PeerHelloAck
             ok=False,
             reason=he.reason,
             caps=tuple(cfg.caps or ()),
+            recipient_peer_id=remote_peer_id or None,
+            phase="reject" if cfg.require_identity and remote_peer_id else None,
         )
 
 
-def process_inbound_ack(state: HandshakeState, msg: PeerHelloAck) -> None:
+def process_inbound_ack(state: HandshakeState, msg: PeerHelloAck) -> PeerHello | None:
+    cfg = state.config
+    if cfg.require_identity:
+        corr_id = str(getattr(msg.header, "corr_id", "") or "").strip()
+        expected_corr = str(state.outbound_corr_id or "").strip()
+        if not expected_corr or corr_id != expected_corr:
+            raise HandshakeRejected("hello_ack_corr_id_mismatch")
+        if not msg.ok:
+            state.status = "REJECTED"
+            state.session_id = None
+            state.last_error = str(msg.reason or "handshake_rejected")
+            raise HandshakeRejected(state.last_error)
+        _check_protocol_profile(
+            cfg,
+            protocol_version=getattr(msg, "protocol_version", None),
+            protocol_profile_hash=getattr(msg, "protocol_profile_hash", None),
+        )
+        _check_validator_metadata(
+            cfg,
+            validator_epoch=getattr(msg, "validator_epoch", None),
+            validator_set_hash=getattr(msg, "validator_set_hash", None),
+            bft_enabled=getattr(msg, "bft_enabled", None),
+        )
+        _check_genesis_bootstrap_metadata(
+            cfg,
+            genesis_bootstrap_profile_hash=getattr(msg, "genesis_bootstrap_profile_hash", None),
+            genesis_bootstrap_enabled=getattr(msg, "genesis_bootstrap_enabled", None),
+            genesis_bootstrap_mode=getattr(msg, "genesis_bootstrap_mode", None),
+        )
+        if str(getattr(msg, "recipient_peer_id", "") or "").strip() != str(cfg.peer_id).strip():
+            raise HandshakeRejected("hello_ack_recipient_mismatch")
+        phase = str(getattr(msg, "phase", "") or "").strip().lower()
+        challenge = str(getattr(msg, "challenge", "") or "").strip()
+        if state.status == "SENT_HELLO":
+            if phase != "challenge" or not challenge:
+                raise HandshakeRejected("hello_ack_challenge_missing")
+            state.outbound_challenge = challenge
+            response = _build_challenge_response(state)
+            state.status = "SENT_CHALLENGE_RESPONSE"
+            state.last_error = None
+            return response
+        if state.status == "SENT_CHALLENGE_RESPONSE":
+            if phase != "final":
+                raise HandshakeRejected("hello_ack_final_missing")
+            if not challenge or challenge != str(state.outbound_challenge or "").strip():
+                raise HandshakeRejected("hello_ack_final_challenge_mismatch")
+            state.status = "ESTABLISHED"
+            state.session_id = _new_session_id()
+            state.last_error = None
+            return None
+        raise HandshakeError("unexpected_hello_ack")
     if state.status not in {"SENT_HELLO"}:
         raise HandshakeError("unexpected_hello_ack")
     if not msg.ok:
@@ -417,6 +605,7 @@ def process_inbound_ack(state: HandshakeState, msg: PeerHelloAck) -> None:
     state.status = "ESTABLISHED"
     state.session_id = _new_session_id()
     state.last_error = None
+    return None
 
 
 def initiate(state: HandshakeState) -> PeerHello:

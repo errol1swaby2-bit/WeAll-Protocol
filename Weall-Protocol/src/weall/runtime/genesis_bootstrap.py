@@ -109,6 +109,10 @@ def _initial_state(self) -> Json:
         "guardian_recovery_new_admission": False,
         "require_recovery_key_at_account_register": bool(strict_identity_registration),
         "require_evidence_kem_at_account_register": bool(strict_identity_registration),
+        # A15-F003: new production/public-testnet identities require a signed,
+        # chain-bound registration work proof before materializing Tier-0 state.
+        "account_registration_work_required": bool(strict_identity_registration),
+        "account_registration_work_difficulty_bits": 16 if strict_identity_registration else 0,
         "block_tx_signature_policy": (
             "required"
             if self.chain_id in {"weall-prod", "weall-testnet-v1", "weall-controlled-devnet"}

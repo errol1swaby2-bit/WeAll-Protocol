@@ -1,9 +1,9 @@
 {
   "by_domain": {
-    "api": 105,
+    "api": 108,
     "launch_readiness": 32,
     "runtime": 8,
-    "runtime_apply": 74
+    "runtime_apply": 75
   },
   "codes": [
     {
@@ -202,7 +202,7 @@
       "http_status": 400,
       "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 543
+      "source_lineno": 569
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -364,7 +364,7 @@
       "http_status": null,
       "sample_reason": "group_exists",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 528
+      "source_lineno": 529
     },
     {
       "code": "bad_payload",
@@ -373,7 +373,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 892
+      "source_lineno": 893
     },
     {
       "code": "bad_payload",
@@ -391,7 +391,7 @@
       "http_status": 400,
       "sample_reason": "missing account_id",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 271
+      "source_lineno": 274
     },
     {
       "code": "bad_request",
@@ -544,7 +544,16 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1527
+      "source_lineno": 1550
+    },
+    {
+      "code": "conflict",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "duplicate_identity_challenge_already_open",
+      "source": "src/weall/runtime/apply/poh.py",
+      "source_lineno": 566
     },
     {
       "code": "conflict",
@@ -562,7 +571,7 @@
       "http_status": null,
       "sample_reason": "group_treasury_wallet_exists",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 989
+      "source_lineno": 990
     },
     {
       "code": "conflict",
@@ -571,7 +580,7 @@
       "http_status": null,
       "sample_reason": "upgrade_already_scheduled",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 337
+      "source_lineno": 338
     },
     {
       "code": "conflict",
@@ -706,7 +715,7 @@
       "http_status": null,
       "sample_reason": "BALLOT_PROFILE_INACTIVE",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 63
+      "source_lineno": 67
     },
     {
       "code": "forbidden",
@@ -715,7 +724,7 @@
       "http_status": null,
       "sample_reason": "account_banned",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 127
+      "source_lineno": 128
     },
     {
       "code": "forbidden",
@@ -724,7 +733,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 80
+      "source_lineno": 116
     },
     {
       "code": "forbidden",
@@ -778,7 +787,7 @@
       "http_status": null,
       "sample_reason": "system_tx_required",
       "source": "src/weall/runtime/apply/economics.py",
-      "source_lineno": 77
+      "source_lineno": 78
     },
     {
       "code": "forbidden",
@@ -787,7 +796,7 @@
       "http_status": null,
       "sample_reason": "membership_decision_not_required",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 808
+      "source_lineno": 809
     },
     {
       "code": "forbidden",
@@ -823,7 +832,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 107
+      "source_lineno": 108
     },
     {
       "code": "forbidden",
@@ -922,7 +931,7 @@
       "http_status": null,
       "sample_reason": "treasury_signer_sync_failed",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 937
+      "source_lineno": 938
     },
     {
       "code": "invalid_block",
@@ -931,7 +940,7 @@
       "http_status": null,
       "sample_reason": "bad_proposer",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 1378
+      "source_lineno": 1406
     },
     {
       "code": "invalid_payload",
@@ -976,7 +985,7 @@
       "http_status": null,
       "sample_reason": "proposal_options_require_at_least_two",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 277
+      "source_lineno": 281
     },
     {
       "code": "invalid_payload",
@@ -1012,7 +1021,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/economics.py",
-      "source_lineno": 621
+      "source_lineno": 622
     },
     {
       "code": "invalid_payload",
@@ -1021,7 +1030,7 @@
       "http_status": null,
       "sample_reason": "missing_group_id",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 524
+      "source_lineno": 525
     },
     {
       "code": "invalid_payload",
@@ -1057,7 +1066,7 @@
       "http_status": null,
       "sample_reason": "missing_upgrade_target_version",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 320
+      "source_lineno": 321
     },
     {
       "code": "invalid_payload",
@@ -1147,7 +1156,7 @@
       "http_status": null,
       "sample_reason": "accounts_not_dict",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 122
+      "source_lineno": 123
     },
     {
       "code": "invalid_state",
@@ -1156,7 +1165,7 @@
       "http_status": null,
       "sample_reason": "state_invariant_violation",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 58
+      "source_lineno": 94
     },
     {
       "code": "invalid_state",
@@ -1183,7 +1192,7 @@
       "http_status": null,
       "sample_reason": "missing_accounts",
       "source": "src/weall/runtime/apply/economics.py",
-      "source_lineno": 55
+      "source_lineno": 56
     },
     {
       "code": "invalid_state",
@@ -1192,7 +1201,7 @@
       "http_status": null,
       "sample_reason": "unsupported_group_membership_mode",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 54
+      "source_lineno": 55
     },
     {
       "code": "invalid_state",
@@ -1201,7 +1210,7 @@
       "http_status": null,
       "sample_reason": "state_invariant_violation",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 72
+      "source_lineno": 73
     },
     {
       "code": "invalid_state",
@@ -1264,7 +1273,7 @@
       "http_status": null,
       "sample_reason": "bad_nonce",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 115
+      "source_lineno": 116
     },
     {
       "code": "invalid_tx",
@@ -1273,7 +1282,7 @@
       "http_status": null,
       "sample_reason": "bad_commitment_format",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 103
+      "source_lineno": 139
     },
     {
       "code": "invalid_tx",
@@ -1282,7 +1291,7 @@
       "http_status": null,
       "sample_reason": "single_tx_lineage_invalid",
       "source": "src/weall/runtime/block_builder.py",
-      "source_lineno": 305
+      "source_lineno": 338
     },
     {
       "code": "invalid_tx",
@@ -1534,7 +1543,7 @@
       "http_status": 400,
       "sample_reason": "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3274
+      "source_lineno": 3282
     },
     {
       "code": "missing_sig",
@@ -1615,7 +1624,7 @@
       "http_status": null,
       "sample_reason": "proposal_not_found",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1255
+      "source_lineno": 1259
     },
     {
       "code": "not_found",
@@ -1624,7 +1633,7 @@
       "http_status": null,
       "sample_reason": "reviewer_collusion_suspicion_not_found",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 1403
+      "source_lineno": 1736
     },
     {
       "code": "not_found",
@@ -1651,7 +1660,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/economics.py",
-      "source_lineno": 62
+      "source_lineno": 63
     },
     {
       "code": "not_found",
@@ -1660,7 +1669,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 155
+      "source_lineno": 156
     },
     {
       "code": "not_found",
@@ -1687,7 +1696,7 @@
       "http_status": null,
       "sample_reason": "upgrade_not_declared",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 407
+      "source_lineno": 408
     },
     {
       "code": "not_found",
@@ -1807,6 +1816,33 @@
       "source_lineno": 722
     },
     {
+      "code": "poh_case_viewer_forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "The authenticated account is not a participant in this PoH case.",
+      "source": "src/weall/api/poh_route_auth.py",
+      "source_lineno": 117
+    },
+    {
+      "code": "poh_session_identity_mismatch",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "The requested PoH queue must match the authenticated account session.",
+      "source": "src/weall/api/poh_route_auth.py",
+      "source_lineno": 98
+    },
+    {
+      "code": "poh_session_required",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "A valid account session is required for this Proof-of-Humanity read.",
+      "source": "src/weall/api/poh_route_auth.py",
+      "source_lineno": 46
+    },
+    {
       "code": "post_required",
       "domain": "api",
       "family": "ApiError.bad_request",
@@ -1876,7 +1912,7 @@
       "http_status": 400,
       "sample_reason": "Live session not initialized yet (missing session_commitment)",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3355
+      "source_lineno": 3363
     },
     {
       "code": "session_required",
@@ -1978,7 +2014,7 @@
       "source_lineno": 128
     }
   ],
-  "entry_count": 219,
+  "entry_count": 223,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
@@ -2016,6 +2052,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 103,
+  "unique_code_count": 106,
   "version": "2026-06-batch10a"
 }

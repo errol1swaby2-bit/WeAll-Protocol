@@ -6,6 +6,7 @@ from weall.runtime.poh.bootstrap_quorum import (
     adaptive_bootstrap_review_policy,
     poh_bootstrap_quorum_allowed,
 )
+from weall.runtime.poh.state import poh_human_authority_scope_closed
 from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
@@ -189,7 +190,14 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
 
     The scheduler only progresses system-owned lifecycle steps. Applicant
     evidence and juror reviews still arrive as signed user transactions.
+
+    ``async_cases`` is a JSON mapping and therefore unordered under canonical
+    state-root semantics. Consensus-visible queue insertion must not consume its
+    Python insertion order, so cases are processed by canonical case key.
     """
+
+    if poh_human_authority_scope_closed(state):
+        return 0
 
     enq = 0
     cases = _async_cases(state)
@@ -211,7 +219,7 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
         default_units=DEFAULT_ASYNC_MIN_REP_UNITS,
     )
 
-    for case_id_raw, case_any in list(cases.items()):
+    for case_id_raw, case_any in sorted(cases.items(), key=lambda item: str(item[0])):
         case = _as_dict(case_any)
         case_id = (
             _as_str(case.get("case_id") or case_id_raw).strip() or _as_str(case_id_raw).strip()
@@ -251,8 +259,16 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
             )
             n_jurors = int(policy["assigned_jurors"])
             try:
-                from weall.runtime.poh.juror_select import pick_async_jurors  # type: ignore
+                from weall.runtime.poh.juror_select import (  # type: ignore
+                    async_request_selection_seed,
+                    pick_async_jurors,
+                )
 
+                selection_seed = async_request_selection_seed(
+                    state=state,
+                    target_account=account_id,
+                    opened_height=_as_int(case.get("opened_height") or 0, 0),
+                )
                 retained = _active_assigned(case)
                 excluded = {
                     _as_str(value).strip()
@@ -265,13 +281,14 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
                 if missing:
                     replacements = pick_async_jurors(
                         state=state,
-                        case_id=f"{case_id}:replacement:{len(excluded)}",
+                        case_id=case_id,
                         target_account=account_id,
                         n_jurors=int(missing),
                         min_rep_units=int(min_rep_units),
                         allow_partial=bool(bootstrap_quorum_allowed),
                         allow_roleless_bootstrap=bool(bootstrap_quorum_allowed),
                         excluded_accounts=excluded,
+                        selection_seed=selection_seed,
                     )
                 jurors = retained + replacements
             except Exception:

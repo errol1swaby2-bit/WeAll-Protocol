@@ -78,7 +78,7 @@ hash compatibility before signing.
 ## Release truth checkpoint
 
 - Current transaction canon checkpoint: read `generated/tx_index.json`; do not duplicate mutable totals or version values here.
-- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- Proof-of-Humanity model: **Tier 0 = account only**; Tier 1/2 are implemented native review states, but production positive human authority is currently scope-closed by `params.poh.human_authority_mode = scope_closed_pending_uniqueness_entropy`; the tiers do not establish global one-human uniqueness.
 - There is no required user-facing Tier 3.
 - No required email, no required SMTP, no required DNS, and no required named hosting provider are part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.

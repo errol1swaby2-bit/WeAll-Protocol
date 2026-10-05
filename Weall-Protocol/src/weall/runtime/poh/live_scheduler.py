@@ -10,6 +10,7 @@ from weall.runtime.poh.live_quorum import (
     MAX_LIVE_JURORS,
     live_quorum_summary,
 )
+from weall.runtime.poh.state import poh_human_authority_scope_closed
 from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
@@ -270,6 +271,9 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
     Returns number of enqueued system txs.
     """
 
+    if poh_human_authority_scope_closed(state):
+        return 0
+
     enq = 0
     cases = _live_cases(state)
 
@@ -280,7 +284,9 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
         default_units=DEFAULT_LIVE_MIN_REP_UNITS,
     )
 
-    for case_id, case in list(cases.items()):
+    # JSON object member order is not committed by the state root. Canonicalize
+    # before producing the ordered, consensus-visible SYSTEM queue.
+    for case_id, case in sorted(cases.items(), key=lambda item: str(item[0])):
         if not isinstance(case, dict):
             continue
 

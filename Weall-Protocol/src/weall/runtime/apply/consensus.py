@@ -1106,19 +1106,44 @@ def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Json |
     act_epoch = _as_int(pending.get("activate_at_epoch"), 0)
     if act_epoch <= 0 or int(epoch) != act_epoch:
         return None
+
+    previous_active = canonicalize_account_set(vs.get("active_set"))
+    previous_generation = _as_int(vs.get("epoch"), 0)
+    previous_set_hash = _as_str(vs.get("set_hash") or "")
+    if not previous_set_hash and previous_active:
+        previous_set_hash = _validator_set_hash(previous_active)
+    previous_phase = normalize_consensus_phase(
+        _phase_root(state).get("current"), validator_count=len(previous_active)
+    )
+
     out = canonicalize_account_set(pending.get("active_set"))
     _validate_validator_set_member_authority(state, out)
     _set_active_set(state, out)
     _bump_validator_epoch(state, out)
     c = _ensure_consensus(state)
-    vs = c.get("validator_set")
-    vs = _require_dict_invariant(vs, field="vs")
-    pending_phase = (
-        normalize_consensus_phase(pending.get("phase"), validator_count=len(out))
-        if _as_str(pending.get("phase"))
-        else _phase_for_active_set(out)
-    )
+    vs = _require_dict_invariant(c.get("validator_set"), field="vs")
+
+    if _as_str(pending.get("phase")):
+        pending_phase = normalize_consensus_phase(pending.get("phase"), validator_count=len(out))
+    elif previous_phase == CONSENSUS_PHASE_BFT_ACTIVE:
+        pending_phase = _phase_for_active_set(out, bft_requested=True)
+    else:
+        pending_phase = _phase_for_active_set(out)
+
     vs.pop("pending", None)
+    if pending_phase == CONSENSUS_PHASE_BFT_ACTIVE:
+        vs["transition_bridge"] = {
+            "schema": "weall.validator-set-transition.v1",
+            "rule": "new_set_qc_over_canonical_boundary",
+            "boundary_height": int(_as_int(state.get("height"), 0) + 1),
+            "transition_view": 0,
+            "from_validator_epoch": int(previous_generation),
+            "from_validator_set_hash": str(previous_set_hash or ""),
+            "to_validator_epoch": int(vs.get("epoch") or 0),
+            "to_validator_set_hash": _as_str(vs.get("set_hash") or ""),
+        }
+    else:
+        vs.pop("transition_bridge", None)
     c["validator_set"] = vs
     _record_phase_transition(
         state,
@@ -1133,6 +1158,9 @@ def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Json |
         "validator_set_hash": _as_str(vs.get("set_hash") or ""),
         "activate_at_epoch": int(act_epoch),
         "consensus_phase": pending_phase,
+        "transition_bridge": dict(vs.get("transition_bridge"))
+        if isinstance(vs.get("transition_bridge"), dict)
+        else None,
     }
 
 
@@ -1684,13 +1712,20 @@ def _apply_block_finalize(state: Json, env: TxEnvelope) -> Json:
     # - After every blocks_per_epoch finalizations, close/open epoch at due height (height+1)
     bpe = _blocks_per_epoch(state)
     if int(height) == 1:
-        enqueue_system_tx(
-            state,
-            tx_type="EPOCH_OPEN",
-            payload={"epoch": 1},
-            due_height=max(2, _as_int(state.get("height"), 0) + 1),
-            phase="post",
-        )
+        # HotStuff finality may arrive after the validator/consensus lifecycle
+        # has already established epoch 1.  In that case replaying the delayed
+        # height-one finality receipt must not enqueue a stale EPOCH_OPEN(1),
+        # which would violate the sequential epoch transition contract.
+        consensus = _ensure_consensus(state)
+        epochs = consensus.get("epochs") if isinstance(consensus.get("epochs"), dict) else {}
+        if _as_int(epochs.get("current"), 0) <= 0:
+            enqueue_system_tx(
+                state,
+                tx_type="EPOCH_OPEN",
+                payload={"epoch": 1},
+                due_height=max(2, _as_int(state.get("height"), 0) + 1),
+                phase="post",
+            )
 
     if bpe > 0 and int(height) > 0 and int(height) % int(bpe) == 0:
         c = _ensure_consensus(state)

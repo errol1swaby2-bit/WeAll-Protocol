@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+import queue
+import threading
 import time
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
@@ -40,7 +42,7 @@ from weall.net.messages import (
     WireHeader,
     WireMessage,
 )
-from weall.net.peer_identity import verify_peer_hello_identity
+from weall.net.peer_identity import verify_peer_hello_ack_identity, verify_peer_hello_identity
 from weall.net.peer_store import PeerSecurityStore
 from weall.net.router import Router
 from weall.net.state_sync import StateSyncService
@@ -48,6 +50,11 @@ from weall.net.transport import Connection, PeerAddr, Transport, WirePacket
 from weall.net.transport_memory import InMemoryTransport
 from weall.net.transport_tcp import TcpTransport
 from weall.net.transport_tls import TlsTransport
+from weall.net.wire_limits import (
+    MAX_TRANSPORT_FRAME_BYTES,
+    MAX_WIRE_MESSAGE_BYTES,
+    ensure_wire_payload_size,
+)
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
 from weall.runtime.protocol_profile import (
@@ -166,7 +173,7 @@ class PeerPolicy:
     ban_cooldown_ms: int = 60_000
 
     # Hardening limits
-    max_packet_bytes: int = 256 * 1024
+    max_packet_bytes: int = MAX_WIRE_MESSAGE_BYTES
 
     # Token-bucket-ish rate limiter (per peer, best-effort)
     rate_msgs_per_sec: int = 50
@@ -217,6 +224,9 @@ class _PeerRec:
     identity_ok: bool = False
     identity_account: str = ""
     identity_pubkey: str = ""
+    pending_identity_account: str = ""
+    pending_identity_pubkey: str = ""
+    pending_session_identity_verified: bool = False
 
     # Exact duplicate raw-payload suppression (node-local abuse hardening only).
     recent_payload_digests: OrderedDict[str, int] = field(default_factory=OrderedDict)
@@ -244,7 +254,7 @@ def _make_transport(cfg: NetConfig) -> Transport:
     if kind in {"mem", "memory", "inmem"}:
         return InMemoryTransport()
     if kind in {"tcp", "plain"}:
-        return TcpTransport()
+        return TcpTransport(max_frame_bytes=MAX_TRANSPORT_FRAME_BYTES)
     if kind in {"tls", "ssl"}:
         cert = cfg.server_cert or _env_str("WEALL_NET_TLS_CERT", "").strip()
         key = cfg.server_key or _env_str("WEALL_NET_TLS_KEY", "").strip()
@@ -256,7 +266,11 @@ def _make_transport(cfg: NetConfig) -> Transport:
                 "(cfg.server_cert/server_key or WEALL_NET_TLS_CERT/WEALL_NET_TLS_KEY)."
             )
         return TlsTransport(
-            server_cert=cert, server_key=key, ca_file=ca_file, server_name=server_name
+            server_cert=cert,
+            server_key=key,
+            ca_file=ca_file,
+            server_name=server_name,
+            max_frame_bytes=MAX_TRANSPORT_FRAME_BYTES,
         )
 
     mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
@@ -297,6 +311,11 @@ class NetNode:
     ) -> None:
         self.cfg = cfg
         self.peer_policy = peer_policy or PeerPolicy()
+        mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+        if mode == "prod" and int(self.peer_policy.max_packet_bytes) != int(MAX_WIRE_MESSAGE_BYTES):
+            raise ValueError(
+                f"production_peer_wire_limit_mismatch:{self.peer_policy.max_packet_bytes}!={MAX_WIRE_MESSAGE_BYTES}"
+            )
 
         self.on_tx = on_tx
         self.on_bft_proposal = on_bft_proposal
@@ -341,6 +360,20 @@ class NetNode:
         self._sync_responses: OrderedDict[str, StateSyncResponseMsg] = OrderedDict()
         self._sync_requests: OrderedDict[str, tuple[str, int]] = OrderedDict()
         self._sync_completed: OrderedDict[tuple[str, str], int] = OrderedDict()
+        self._sync_work_cap = max(1, _env_int("WEALL_NET_SYNC_WORK_MAX", 4))
+        self._sync_work_per_peer_cap = max(1, _env_int("WEALL_NET_SYNC_WORK_PER_PEER_MAX", 2))
+        self._sync_results_per_tick = max(1, _env_int("WEALL_NET_SYNC_RESULTS_PER_TICK", 1))
+        self._sync_work_queue: queue.Queue[tuple[str, StateSyncRequestMsg] | None] = queue.Queue(
+            maxsize=int(self._sync_work_cap)
+        )
+        self._sync_result_queue: queue.Queue[tuple[str, StateSyncResponseMsg]] = queue.Queue(
+            maxsize=int(self._sync_work_cap)
+        )
+        self._sync_work_slots = threading.BoundedSemaphore(int(self._sync_work_cap))
+        self._sync_work_lock = threading.Lock()
+        self._sync_work_per_peer: dict[str, int] = {}
+        self._sync_worker_stop = threading.Event()
+        self._sync_worker: threading.Thread | None = None
         self._peer_security_retention_ms: int = max(
             0, _env_int("WEALL_PEER_SECURITY_RETENTION_MS", 7 * 24 * 60 * 60 * 1000)
         )
@@ -728,22 +761,70 @@ class NetNode:
     def _verify_inbound_hello_identity(self, rec: _PeerRec, hello: PeerHello) -> None:
         if not self._identity_required():
             return
-
         ledger = self._get_ledger()
         if ledger is None:
-            # Tests expect this path to strike/ban as a handshake rejection
             raise HandshakeRejected("identity_required_but_no_ledger")
-
-        ok, reason, account_id, pubkey = verify_peer_hello_identity(hello=hello, ledger=ledger)
+        ok, reason, account_id, pubkey = verify_peer_hello_identity(
+            hello=hello, ledger=ledger, strict=True, now_ms=_now_ms()
+        )
         if not ok:
             raise HandshakeRejected(f"identity_invalid:{reason}")
+        hs = rec.router.handshake
+        if hs.status == "AWAITING_CHALLENGE_RESPONSE":
+            if (
+                str(getattr(hello.header, "corr_id", "") or "").strip()
+                != str(hs.inbound_corr_id or "").strip()
+            ):
+                raise HandshakeRejected("identity_invalid:challenge_corr_id_mismatch")
+            if (
+                str(getattr(hello, "nonce", "") or "").strip()
+                != str(hs.inbound_challenge or "").strip()
+            ):
+                raise HandshakeRejected("identity_invalid:challenge_response_mismatch")
+            if rec.pending_identity_account and rec.pending_identity_account != account_id:
+                raise HandshakeRejected("identity_invalid:account_changed_during_handshake")
+            if rec.pending_identity_pubkey and rec.pending_identity_pubkey != pubkey:
+                raise HandshakeRejected("identity_invalid:pubkey_changed_during_handshake")
+            rec.pending_session_identity_verified = True
+        rec.pending_identity_account = account_id
+        rec.pending_identity_pubkey = pubkey
 
+    def _verify_inbound_ack_identity(self, rec: _PeerRec, ack: Any) -> None:
+        if not self._identity_required():
+            return
+        ledger = self._get_ledger()
+        if ledger is None:
+            raise HandshakeRejected("identity_required_but_no_ledger")
+        hs = rec.router.handshake
+        ok, reason, account_id, pubkey = verify_peer_hello_ack_identity(
+            ack=ack,
+            ledger=ledger,
+            expected_recipient_peer_id=str(self.cfg.peer_id or "").strip(),
+            expected_corr_id=str(hs.outbound_corr_id or "").strip(),
+            now_ms=_now_ms(),
+        )
+        if not ok:
+            raise HandshakeRejected(f"identity_ack_invalid:{reason}")
+        if rec.pending_identity_account and rec.pending_identity_account != account_id:
+            raise HandshakeRejected("identity_ack_invalid:account_changed_during_handshake")
+        if rec.pending_identity_pubkey and rec.pending_identity_pubkey != pubkey:
+            raise HandshakeRejected("identity_ack_invalid:pubkey_changed_during_handshake")
+        rec.pending_identity_account = account_id
+        rec.pending_identity_pubkey = pubkey
+        if str(getattr(ack, "phase", "") or "").strip().lower() == "final":
+            rec.pending_session_identity_verified = True
+
+    def _finalize_authenticated_session_identity(self, rec: _PeerRec) -> None:
+        if not self._identity_required():
+            return
+        if not rec.pending_session_identity_verified:
+            raise HandshakeRejected("identity_session_challenge_not_verified")
+        if not rec.pending_identity_account or not rec.pending_identity_pubkey:
+            raise HandshakeRejected("identity_session_binding_missing")
         rec.identity_ok = True
-        rec.identity_account = account_id
-        rec.identity_pubkey = pubkey
-        # The current hello proof is not receiver/session-bound, so durable
-        # peer-security attribution must remain on the transport identity.
-        self._bind_authenticated_peer_security(rec, session_bound=False)
+        rec.identity_account = rec.pending_identity_account
+        rec.identity_pubkey = rec.pending_identity_pubkey
+        self._bind_authenticated_peer_security(rec, session_bound=True)
 
     def _enforce_bft_identity_gate(self, rec: _PeerRec, msg: BftVoteMsg) -> None:
         if not (
@@ -916,6 +997,132 @@ class NetNode:
             peer_id = ""
         self._complete_sync_request(cid, peer_id=peer_id)
         return msg
+
+    def _acquire_sync_work_slot(self, peer_id: str) -> bool:
+        pid = str(peer_id or "").strip()
+        if not pid:
+            return False
+        with self._sync_work_lock:
+            peer_count = int(self._sync_work_per_peer.get(pid, 0) or 0)
+            if peer_count >= int(self._sync_work_per_peer_cap):
+                return False
+            if not self._sync_work_slots.acquire(blocking=False):
+                return False
+            self._sync_work_per_peer[pid] = peer_count + 1
+        return True
+
+    def _release_sync_work_slot(self, peer_id: str) -> None:
+        pid = str(peer_id or "").strip()
+        with self._sync_work_lock:
+            count = int(self._sync_work_per_peer.get(pid, 0) or 0)
+            if count <= 1:
+                self._sync_work_per_peer.pop(pid, None)
+            else:
+                self._sync_work_per_peer[pid] = count - 1
+            try:
+                self._sync_work_slots.release()
+            except ValueError:
+                pass
+
+    def _ensure_sync_worker(self) -> None:
+        if self.sync_service is None:
+            return
+        with self._sync_work_lock:
+            worker = self._sync_worker
+            if worker is not None and worker.is_alive():
+                return
+            self._sync_worker_stop.clear()
+            worker = threading.Thread(
+                target=self._sync_worker_main,
+                name=f"weall-state-sync-{self.cfg.peer_id}",
+                daemon=True,
+            )
+            self._sync_worker = worker
+            worker.start()
+
+    def _sync_worker_main(self) -> None:
+        while not self._sync_worker_stop.is_set():
+            try:
+                item = self._sync_work_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            if item is None:
+                self._sync_work_queue.task_done()
+                break
+            peer_id, req = item
+            response: StateSyncResponseMsg | None = None
+            try:
+                service = self.sync_service
+                if service is not None:
+                    response = service.handle_request(req)
+            except Exception:
+                service = self.sync_service
+                if service is not None:
+                    response = service.reject_request(req, "sync_internal_error")
+            finally:
+                self._sync_work_queue.task_done()
+
+            if response is None:
+                self._release_sync_work_slot(peer_id)
+                continue
+            try:
+                self._sync_result_queue.put_nowait((peer_id, response))
+            except queue.Full:
+                self._release_sync_work_slot(peer_id)
+
+    def _enqueue_sync_request(
+        self, peer_id: str, req: StateSyncRequestMsg
+    ) -> StateSyncResponseMsg | None:
+        service = self.sync_service
+        if service is None:
+            return None
+        early = service.preflight_request(req)
+        if early is not None:
+            return early
+
+        pid = str(peer_id or "").strip()
+        if not self._acquire_sync_work_slot(pid):
+            return service.reject_request(req, "sync_busy")
+        try:
+            self._ensure_sync_worker()
+            self._sync_work_queue.put_nowait((pid, req))
+        except Exception:
+            self._release_sync_work_slot(pid)
+            return service.reject_request(req, "sync_busy")
+        return None
+
+    def _drain_sync_work(self, *, max_results: int | None = None) -> None:
+        limit = max(
+            1,
+            int(self._sync_results_per_tick if max_results is None else max_results),
+        )
+        for _ in range(limit):
+            try:
+                peer_id, response = self._sync_result_queue.get_nowait()
+            except queue.Empty:
+                break
+            try:
+                self.send_message(peer_id, response)
+            except Exception:
+                pass
+            finally:
+                self._sync_result_queue.task_done()
+                self._release_sync_work_slot(peer_id)
+
+    def sync_work_debug(self) -> Json:
+        with self._sync_work_lock:
+            per_peer = dict(self._sync_work_per_peer)
+        worker = self._sync_worker
+        return {
+            "capacity": int(self._sync_work_cap),
+            "per_peer_capacity": int(self._sync_work_per_peer_cap),
+            "results_per_tick": int(self._sync_results_per_tick),
+            "outstanding": int(sum(max(0, int(v)) for v in per_peer.values())),
+            "queued": int(self._sync_work_queue.qsize()),
+            "completed_waiting": int(self._sync_result_queue.qsize()),
+            "worker_alive": bool(worker is not None and worker.is_alive()),
+            "per_peer": per_peer,
+        }
 
     # ----------------------------
     # Peer address gossip helpers
@@ -1124,9 +1331,9 @@ class NetNode:
                 self.on_bft_timeout(peer_id, msg)
 
         def _on_sync_request(msg: WireMessage) -> WireMessage | None:
-            if not self.sync_service:
+            if not self.sync_service or not isinstance(msg, StateSyncRequestMsg):
                 return None
-            return self.sync_service.handle_request(msg)  # type: ignore[arg-type]
+            return self._enqueue_sync_request(peer_id, msg)
 
         def _on_sync_response(msg: StateSyncResponseMsg) -> None:
             self._cache_sync_response(peer_id, msg)
@@ -1270,6 +1477,15 @@ class NetNode:
                     self._ban(rec, cooldown_ms=int(self.peer_policy.fast_ban_mismatch_ms))
                 return
 
+        if getattr(msg.header, "type", None) == MsgType.PEER_HELLO_ACK:
+            try:
+                self._verify_inbound_ack_identity(rec, msg)
+            except HandshakeRejected:
+                self._strike(rec, int(self.peer_policy.strike_handshake_rejected))
+                if int(self.peer_policy.fast_ban_mismatch_ms) > 0:
+                    self._ban(rec, cooldown_ms=int(self.peer_policy.fast_ban_mismatch_ms))
+                return
+
         # BFT identity gate for votes
         if getattr(msg.header, "type", None) == MsgType.BFT_VOTE:
             try:
@@ -1300,8 +1516,17 @@ class NetNode:
             return
 
         established_after_route = self._peer_is_established(rec)
-        if established_after_route and int(rec.established_at_ms) <= 0:
-            rec.established_at_ms = int(now)
+        if established_after_route:
+            if self._identity_required() and not rec.identity_ok:
+                try:
+                    self._finalize_authenticated_session_identity(rec)
+                except HandshakeRejected:
+                    rec.router.handshake.status = "REJECTED"
+                    rec.router.handshake.session_id = None
+                    self._strike(rec, int(self.peer_policy.strike_handshake_rejected))
+                    return
+            if int(rec.established_at_ms) <= 0:
+                rec.established_at_ms = int(now)
 
         # Send response if any
         if resp is not None:
@@ -1333,6 +1558,14 @@ class NetNode:
         return conn
 
     def close(self) -> None:
+        self._sync_worker_stop.set()
+        try:
+            self._sync_work_queue.put_nowait(None)
+        except queue.Full:
+            pass
+        worker = self._sync_worker
+        if worker is not None and worker.is_alive():
+            worker.join(timeout=0.25)
         try:
             self.transport.close()
         except Exception:
@@ -1362,13 +1595,17 @@ class NetNode:
                 except Exception:
                     continue
         except Exception:
+            self._drain_sync_work()
             return
+        self._drain_sync_work()
 
     # ----------------------------
     # Send helpers
     # ----------------------------
 
     def send_bytes(self, peer_id: str, payload: bytes) -> None:
+        raw = bytes(payload)
+        ensure_wire_payload_size(raw)
         pid = str(peer_id or "").strip()
         if not pid:
             return
@@ -1385,14 +1622,19 @@ class NetNode:
                 c = None
         if c is None:
             return
-        c.send(bytes(payload))
+        c.send(raw)
+
+    def assert_message_fits(self, msg: WireMessage) -> bytes:
+        payload = encode_message(msg)
+        ensure_wire_payload_size(payload)
+        return payload
 
     def send_message(self, peer_id: str, msg: WireMessage) -> None:
-        self.send_bytes(peer_id, encode_message(msg))
+        self.send_bytes(peer_id, self.assert_message_fits(msg))
 
     def broadcast_message(self, msg: WireMessage, *, exclude_peer_id: str = "") -> None:
         ex = str(exclude_peer_id or "").strip()
-        payload = encode_message(msg)
+        payload = self.assert_message_fits(msg)
         self._refresh_conns()
         for pid, c in list(self._conns.items()):
             if ex and pid == ex:

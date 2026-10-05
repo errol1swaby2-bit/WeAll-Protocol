@@ -20,7 +20,7 @@
     "errors": [
       "public_testnet_seed_registry_rotation_required"
     ],
-    "genesis_hash": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
+    "genesis_hash": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
     "network_id": "weall-public-observer-testnet-v1",
     "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
     "seed_api_urls": [

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.poh.state import poh_human_authority_scope_closed
 from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
@@ -170,6 +171,9 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
     Returns number of system txs enqueued (best-effort, dedupe-safe).
     """
 
+    if poh_human_authority_scope_closed(state):
+        return 0
+
     enq = 0
 
     n_jurors = max(1, _param_int(state, "tier2_n_jurors", DEFAULT_TIER2_N_JURORS))
@@ -188,7 +192,9 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
 
     cases = _tier2_cases(state)
 
-    for case_id, case_any in list(cases.items()):
+    # JSON object member order is not committed by the state root. Canonicalize
+    # before producing the ordered, consensus-visible SYSTEM queue.
+    for case_id, case_any in sorted(cases.items(), key=lambda item: str(item[0])):
         case = _as_dict(case_any)
         cid = _as_str(case.get("case_id") or case_id).strip() or _as_str(case_id).strip()
         if not cid:

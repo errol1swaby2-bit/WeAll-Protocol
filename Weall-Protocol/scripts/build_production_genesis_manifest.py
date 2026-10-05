@@ -274,6 +274,7 @@ def _build_genesis(
             "poh_live_partial_panels_enabled": True,
             "poh_live_partial_until_height": int(bootstrap_expires_height),
             "poh": {
+                "human_authority_mode": "scope_closed_pending_uniqueness_entropy",
                 "live_partial_panels_enabled": True,
                 "live_partial_until_height": int(bootstrap_expires_height),
                 "live_min_panel_after_bootstrap": 10,
@@ -295,6 +296,8 @@ def _build_genesis(
             "guardian_recovery_new_admission": False,
             "require_recovery_key_at_account_register": True,
             "require_evidence_kem_at_account_register": True,
+            "account_registration_work_required": True,
+            "account_registration_work_difficulty_bits": 16,
             "bft_signing_public_beta_gate_enabled": True,
             "public_mainnet_enabled": False,
         },

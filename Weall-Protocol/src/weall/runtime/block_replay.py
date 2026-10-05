@@ -221,17 +221,31 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             ok=False, error="bad_block:prev_block_id_mismatch", height=0, block_id=""
         )
 
-    if effective_bft_enabled(executor=self, default=False):
+    if (
+        effective_bft_enabled(executor=self, default=False)
+        and not bool(getattr(self, "_speculative_authenticated_ancestor_replay", False))
+        and not bool(getattr(self, "_bft_authenticated_finalized_replay", False))
+    ):
         strict_bft_apply = (
             _mode() == "prod"
             or isinstance(block2.get("justify_qc"), dict)
             or not isinstance(block2.get("qc"), dict)
         )
         if strict_bft_apply:
+            admission_blocks_map = self._bft_speculative_blocks_map()
+            current_bid = str(block2.get("block_id") or "").strip()
+            if current_bid:
+                admission_blocks_map = dict(admission_blocks_map)
+                admission_blocks_map[current_bid] = {
+                    "height": int(height),
+                    "prev_block_id": advertised_prev_block_id,
+                    "block_ts_ms": int(ts_ms),
+                    "block_hash": str(block2.get("block_hash") or "").strip(),
+                }
             ok_bft, rej_bft = _call_admit_bft_commit_block(
                 block=block2,
                 state=self.state,
-                blocks_map=self._bft_speculative_blocks_map(),
+                blocks_map=admission_blocks_map,
                 bft_enabled=effective_bft_enabled(executor=self, default=False),
             )
             if not ok_bft:
