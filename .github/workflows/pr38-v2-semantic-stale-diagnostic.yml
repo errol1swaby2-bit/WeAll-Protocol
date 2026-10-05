@@ -89,6 +89,76 @@ jobs:
           path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
           PY
 
+      - name: Teach claims generator scope-closed audit status
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/gen_current_verified_claims.py")
+          text = path.read_text(encoding="utf-8")
+
+          replacements = [
+              (
+                  'AUDIT_CLOSED_STATUS = "CLOSED — PATCHED AND PROVEN"\n'
+                  'AUDIT_TRACK_IDS = tuple(f"P0-{index:02d}" for index in range(1, 13))\n'
+                  'AUDIT_ALLOWED_STATUSES = {\n'
+                  '    AUDIT_CLOSED_STATUS,',
+                  'AUDIT_CLOSED_STATUSES = {\n'
+                  '    "CLOSED — PATCHED AND PROVEN",\n'
+                  '    "CLOSED — SCOPE-CLOSED AND PROVEN",\n'
+                  '}\n'
+                  'AUDIT_TRACK_IDS = tuple(f"P0-{index:02d}" for index in range(1, 13))\n'
+                  'AUDIT_ALLOWED_STATUSES = {\n'
+                  '    *AUDIT_CLOSED_STATUSES,',
+              ),
+              (
+                  '        if status == AUDIT_CLOSED_STATUS:\n',
+                  '        if status in AUDIT_CLOSED_STATUSES:\n',
+              ),
+              (
+                  '        if tracks[track_id]["status"] != AUDIT_CLOSED_STATUS\n',
+                  '        if tracks[track_id]["status"] not in AUDIT_CLOSED_STATUSES\n',
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one claims-generator replacement, found {count}: {old!r}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          cat > tests/test_current_verified_claims_p0_scope_closed_status.py <<'PY'
+          from __future__ import annotations
+
+          import sys
+          from pathlib import Path
+
+          SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+          sys.path.insert(0, str(SCRIPTS))
+
+          import gen_current_verified_claims as claims
+
+
+          def test_scope_closed_p0_status_is_treated_as_closed() -> None:
+              audit = claims._read_p0_audit_status(claims.AUDIT_STATUS)
+
+              assert "CLOSED — SCOPE-CLOSED AND PROVEN" in claims.AUDIT_CLOSED_STATUSES
+              assert audit["tracks"]["P0-06"]["status"] == "CLOSED — SCOPE-CLOSED AND PROVEN"
+              assert audit["tracks"]["P0-06"]["open_findings"] == []
+              assert "P0-06" in audit["closed_track_ids"]
+              assert "P0-06" not in audit["open_track_ids"]
+              assert "A08-F001" not in audit["open_finding_ids"]
+              assert "A20-F001" not in audit["open_finding_ids"]
+          PY
+
+          python -m py_compile scripts/gen_current_verified_claims.py
+          pytest -q tests/test_current_verified_claims_p0_scope_closed_status.py
+
       - name: Refresh only audited stale transaction semantic bindings
         working-directory: Weall-Protocol
         run: |
@@ -106,7 +176,7 @@ jobs:
             --review-method "p0_scope_closure_semantic_refresh_with_focused_regression_evidence" \
             --authority-effect "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols."
 
-      - name: Refresh source-derived v1.5 readiness chain
+      - name: Refresh source-derived v1.5 readiness and claims chain
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -116,6 +186,8 @@ jobs:
           PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
           PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
           PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          python scripts/gen_current_verified_claims.py
+          python scripts/gen_current_verified_claims.py --check
 
       - name: Compile V2 last after all source-derived registries
         working-directory: Weall-Protocol
@@ -130,6 +202,8 @@ jobs:
           set -Eeuo pipefail
           python scripts/check_generated.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
           git -C .. diff --check
 
       - name: Focused P0-06 and V2 regressions
@@ -137,6 +211,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           pytest -q \
+            tests/test_current_verified_claims_p0_scope_closed_status.py \
             tests/test_p0_06_production_scope_closure.py \
             tests/test_p0_06a_duplicate_account_adjudication.py \
             tests/test_poh_async_panel_grinding_regression.py \
