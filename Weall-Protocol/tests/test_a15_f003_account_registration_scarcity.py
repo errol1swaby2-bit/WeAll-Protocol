@@ -21,6 +21,7 @@ from weall.testing.sigtools import deterministic_mldsa_keypair
 from weall.tx.canon import TxIndex
 
 ROOT = Path(__file__).resolve().parents[1]
+REVIEWED_PRODUCTION_WORK_FLOOR_BITS = 16
 
 
 def _env(*, signer: str = "@alice", nonce: int = 1, pubkey: str = "pk-a") -> TxEnvelope:
@@ -119,7 +120,8 @@ def test_required_policy_fails_closed_when_invalid(params: dict, reason: str) ->
 
 
 def test_production_policy_rejects_weak_nonzero_work() -> None:
-    weak_bits = ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS - 1
+    assert ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS == REVIEWED_PRODUCTION_WORK_FLOOR_BITS
+    weak_bits = REVIEWED_PRODUCTION_WORK_FLOOR_BITS - 1
     state = {
         "chain_id": "weall-prod",
         "params": {
@@ -258,13 +260,14 @@ def test_distributed_fresh_signers_each_pay_work_and_persist_across_restart(
 
 
 def test_checked_in_production_and_testnet_genesis_require_reviewed_work_floor() -> None:
+    assert ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS == REVIEWED_PRODUCTION_WORK_FLOOR_BITS
     for relative in ("configs/genesis.ledger.prod.json", "configs/genesis.ledger.testnet-v1.json"):
         state = json.loads((ROOT / relative).read_text(encoding="utf-8"))
         params = state["params"]
         assert params["account_registration_work_required"] is True
         assert (
             int(params["account_registration_work_difficulty_bits"])
-            >= ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS
+            >= REVIEWED_PRODUCTION_WORK_FLOOR_BITS
         )
         policy = account_registration_work_policy(state)
         assert policy.valid is True
