@@ -1,0 +1,73 @@
+name: P1 Revalidation
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-p1:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Record tested identity
+        run: |
+          echo "commit=$(git rev-parse HEAD)"
+          echo "tree=$(git rev-parse HEAD^{tree})"
+
+      - name: Canon and generated truth
+        working-directory: Weall-Protocol
+        run: |
+          python -m tooling.canon_lint
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Historical P1 targeted regression matrix
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q \
+            tests/test_p1_remaining_complete_remediation.py \
+            tests/p0/test_p1_cons003_future_validator_epochs.py \
+            tests/test_balance_transfer_self_transfer_regression.py \
+            tests/test_p1_group001_scoped_reference_authority.py \
+            tests/test_consensus_equivocation_slash_execute.py
+
+      - name: Canonical account-key compatibility
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q tests/test_priority0_account_key_normalization.py
+
+      - name: Restart replay and convergence
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q \
+            tests/test_feed_persists_order_after_restart_api.py \
+            tests/test_priority1_replay_schedule_consistency.py \
+            tests/test_priority2_state_replay_determinism.py \
+            tests/test_e2e_two_node_convergence.py
