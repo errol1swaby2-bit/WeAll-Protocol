@@ -15,6 +15,13 @@ ACCOUNT_REGISTRATION_WORK_MIN_BITS = 1
 ACCOUNT_REGISTRATION_WORK_MAX_BITS = 30
 ACCOUNT_REGISTRATION_WORK_MAX_NONCE = (1 << 53) - 1
 
+# A15-F003 production scarcity floor.  "Nonzero" is not a meaningful security
+# invariant by itself: one-bit work would make permanent root-visible account
+# creation effectively free.  Production and the pinned public testnet therefore
+# fail closed below the currently reviewed 16-bit admission floor.
+ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS = 16
+ACCOUNT_REGISTRATION_WORK_PRODUCTION_CHAIN_IDS = frozenset({"weall-prod", "weall-testnet-v1"})
+
 
 @dataclass(frozen=True)
 class AccountRegistrationWorkPolicy:
@@ -79,6 +86,19 @@ def account_registration_work_policy(state: Json) -> AccountRegistrationWorkPoli
             valid=False,
             reason="registration_work_difficulty_out_of_range",
         )
+
+    chain_id = str(state.get("chain_id") or "").strip() if isinstance(state, dict) else ""
+    if (
+        chain_id in ACCOUNT_REGISTRATION_WORK_PRODUCTION_CHAIN_IDS
+        and bits < ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS
+    ):
+        return AccountRegistrationWorkPolicy(
+            required=True,
+            difficulty_bits=bits,
+            valid=False,
+            reason="registration_work_difficulty_below_production_minimum",
+        )
+
     return AccountRegistrationWorkPolicy(required=True, difficulty_bits=bits)
 
 
@@ -202,6 +222,7 @@ def account_registration_work_policy_json(state: Json) -> Json:
         "reason": str(policy.reason or ""),
         "version": ACCOUNT_REGISTRATION_WORK_VERSION,
         "max_nonce": ACCOUNT_REGISTRATION_WORK_MAX_NONCE,
+        "production_min_bits": ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS,
     }
 
 
@@ -210,6 +231,8 @@ __all__ = [
     "ACCOUNT_REGISTRATION_WORK_MAX_BITS",
     "ACCOUNT_REGISTRATION_WORK_MAX_NONCE",
     "ACCOUNT_REGISTRATION_WORK_MIN_BITS",
+    "ACCOUNT_REGISTRATION_WORK_PRODUCTION_CHAIN_IDS",
+    "ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS",
     "ACCOUNT_REGISTRATION_WORK_VERSION",
     "AccountRegistrationWorkPolicy",
     "account_registration_work_digest",
