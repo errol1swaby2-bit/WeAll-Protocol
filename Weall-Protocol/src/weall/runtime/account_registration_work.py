@@ -224,11 +224,16 @@ def verify_account_registration_work(state: Json, env: TxEnvelope) -> tuple[bool
             },
         )
 
-    accounts = state.get("accounts") if isinstance(state, dict) else None
-    if not isinstance(accounts, dict):
+    accounts_any = state.get("accounts") if isinstance(state, dict) else None
+    if policy.max_accounts > 0 and not isinstance(accounts_any, dict):
         return False, "account_registry_invalid", {}
+    accounts = accounts_any if isinstance(accounts_any, dict) else {}
     signer = str(env.signer or "").strip()
-    if policy.max_accounts > 0 and signer not in accounts and len(accounts) >= policy.max_accounts:
+    if (
+        policy.max_accounts > 0
+        and signer not in accounts
+        and len(accounts) >= policy.max_accounts
+    ):
         return (
             False,
             "account_registration_capacity_exhausted",
