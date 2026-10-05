@@ -137,7 +137,7 @@ Frontend state is not protocol authority. Local scripts are not public-readiness
 | Governance | Public proposal, voting, block-height lifecycle progression, tally/finalization records, and record-only protocol-upgrade metadata. |
 | Disputes/reviews | Public report/review surfaces, block-height lifecycle progression, reviewer assignments, votes, receipts, outcomes, and restricted private identity evidence boundaries. |
 | Transaction lifecycle | Canonical tx index, admission/status surfaces, mempool/block evidence, receipts, and current canon metadata from `Weall-Protocol/generated/tx_index.json`. |
-| Node/operator surfaces | Readiness/status endpoints, signed seed/validator discovery evidence, validator authority gating, observer/operator status, secret guard, and release hygiene checks. |
+| Node/operator surfaces | Readiness/status endpoints, pinned/signature-gated seed discovery evidence and signed validator-discovery evidence, validator authority gating, observer/operator status, secret guard, and release hygiene checks. |
 | Observer boot | `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` with pinned/signature-gated registry and chain commitment checks. |
 | External evidence packages | Clean-clone/open-download observer transcript, cross-machine replay transcript, independent validator/operator transcript, real storage/IPFS transcript, legal attestation, upgrade hardening proof, helper-topology proof, and post-transition cryptographic review evidence. |
 
