@@ -10,9 +10,9 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSURANCE_VERSION = "weall.p0.assurance.v1"
