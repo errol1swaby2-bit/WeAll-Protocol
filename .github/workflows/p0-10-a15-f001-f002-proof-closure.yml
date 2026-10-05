@@ -1,0 +1,49 @@
+name: P0-10 A15 F001 F002 Proof Closure
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: write
+
+jobs:
+  closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Execute bounded self-cleaning P0-10 closure
+        run: |
+          cp Weall-Protocol/scripts/p0_10_a15_f001_f002_proof_closure.py /tmp/p0_10_f001_f002_proof_closure.py
+          chmod 700 /tmp/p0_10_f001_f002_proof_closure.py
+          GITHUB_WORKSPACE="$GITHUB_WORKSPACE" python /tmp/p0_10_f001_f002_proof_closure.py
+
+      - name: Upload P0-10 scale evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p0-10-resource-closure-${{ github.run_id }}
+          path: /tmp/p0-10-evidence/
+          if-no-files-found: warn
