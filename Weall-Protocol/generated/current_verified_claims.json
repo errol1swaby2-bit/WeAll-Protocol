@@ -56,7 +56,7 @@
     },
     {
       "claim_id": "AUDIT-P0-001",
-      "claim_text": "Open same-tree A01\u2013A20 P0/HIGH findings block stronger release claims.",
+      "claim_text": "The same-tree A01\u2013A20 P0/HIGH closure ledger has no open tracks.",
       "claim_type": "audit_gate",
       "current_or_historical": "current",
       "evidence_found": true,
@@ -68,7 +68,7 @@
       "notes": "P0 is the audit program's mapping of every A01\u2013A20 HIGH finding. The tracked closure ledger is now a required claim-generation input; an unresolved P0 track therefore cannot coexist with an enabled release boundary.",
       "replacement_text": null,
       "scope": "repository-current",
-      "status": "OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS",
+      "status": "PROVEN_GENERATED_CURRENT",
       "value": {
         "closed_track_ids": [
           "P0-01",
@@ -76,6 +76,7 @@
           "P0-03",
           "P0-04",
           "P0-05",
+          "P0-06",
           "P0-07",
           "P0-08",
           "P0-09",
@@ -83,14 +84,9 @@
           "P0-11",
           "P0-12"
         ],
-        "open_high_finding_ids": [
-          "A08-F001",
-          "A20-F001"
-        ],
-        "open_track_ids": [
-          "P0-06"
-        ],
-        "stronger_release_claims_blocked": true,
+        "open_high_finding_ids": [],
+        "open_track_ids": [],
+        "stronger_release_claims_blocked": false,
         "total_tracks": 12
       }
     },
@@ -390,10 +386,10 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
-    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "b2ef6bbff370c9e5f2e6136f3720103da65a571fe12983103e2a2d4cc3b647a4",
+    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "c9faf002e938069c439052720f7a9e4b9f15a7d4c9be353cfd9f95b1021d4b65",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
-    "generated/public_beta_blocker_report_v1_5.json": "14294a0a986ec33418312b7512408403422c2ba6be79116ce7fa9cdf665018a7",
-    "generated/release_evidence_manifest_v1_5.json": "cfc9cdf91891d766e1974961119e83d6b396d2d608966bd20bbcc0b03648c8bb",
+    "generated/public_beta_blocker_report_v1_5.json": "1970a1bbbddc6297a773141b9f9ab98791a133dad834b8802b89907506fd8b03",
+    "generated/release_evidence_manifest_v1_5.json": "5b3039c9d8483f5864427982d4fcd7ceab7a29e24438532de93c3349d0bdb896",
     "generated/tx_index.json": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
   },
   "schema": "weall.current_verified_claims.v1",

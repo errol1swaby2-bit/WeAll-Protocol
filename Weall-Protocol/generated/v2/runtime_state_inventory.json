@@ -1,5 +1,5 @@
 {
-  "count": 1137,
+  "count": 1141,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "bcff638a88d7436ce45e09600154fbc6c8cb74ec7ed331f537f97a0113d85890"
+    "source_tree_digest": "8a4092bd7f1dd38563d3793b7f5c58f3439e69cfe78000b14b1febd207bc3c67"
   },
   "rows": [
     {
@@ -26742,6 +26742,54 @@
       ]
     },
     {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103",
+        "TX-0104"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_challenge_open",
+        "src/weall/runtime/apply/poh.py#apply_poh_challenge_resolve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-7475C1DFCBE5A483",
+      "state_key_or_namespace": "adjudication_status",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103",
+        "TX-0104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103",
+        "TX-0104"
+      ]
+    },
+    {
       "creation_contracts": [],
       "domain": "PoH",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -27132,6 +27180,50 @@
       "writes_by": []
     },
     {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_challenge_open"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-DB5191A9F523932F",
+      "state_key_or_namespace": "authority_effect",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103"
+      ]
+    },
+    {
       "creation_contracts": [],
       "domain": "PoH",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -27147,6 +27239,7 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
+        "TX-0103",
         "TX-0110",
         "TX-0111",
         "TX-0112",
@@ -28916,6 +29009,50 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
+        "TX-0103"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_challenge_open"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-946B3CCB58F08146",
+      "state_key_or_namespace": "identity_pair_key",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
         "TX-0120"
       ],
       "domain": "PoH",
@@ -29307,6 +29444,7 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
+        "TX-0103",
         "TX-0110",
         "TX-0111",
         "TX-0112",
@@ -30361,6 +30499,7 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
+        "TX-0103",
         "TX-0110",
         "TX-0111",
         "TX-0112",
@@ -31354,6 +31493,50 @@
         "TX-0102",
         "TX-2609",
         "TX-2616"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_challenge_open"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-A522B94816ED223B",
+      "state_key_or_namespace": "reviewer_selection_status",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103"
       ]
     },
     {

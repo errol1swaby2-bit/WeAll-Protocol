@@ -180,8 +180,10 @@ def run_poh_challenge_completion() -> Json:
         state,
         _env(
             "POH_CHALLENGE_RESOLVE",
-            signer="reviewer",
+            signer="SYSTEM",
             nonce=2,
+            system=True,
+            parent="poh:challenge-adjudication",
             payload={"challenge_id": "pohc:alice:1", "resolution": "upheld"},
         ),
     )

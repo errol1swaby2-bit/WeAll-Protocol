@@ -64,9 +64,13 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 AUDIT_CLOSED_STATUS = "CLOSED — PATCHED AND PROVEN"
+AUDIT_CLOSED_STATUSES = {
+    AUDIT_CLOSED_STATUS,
+    "CLOSED — SCOPE-CLOSED AND PROVEN",
+}
 AUDIT_TRACK_IDS = tuple(f"P0-{index:02d}" for index in range(1, 13))
 AUDIT_ALLOWED_STATUSES = {
-    AUDIT_CLOSED_STATUS,
+    *AUDIT_CLOSED_STATUSES,
     "PATCHED / EVIDENCE PENDING",
     "PARTIAL",
     "DESIGN BLOCKER",
@@ -104,7 +108,7 @@ def _read_p0_audit_status(path: Path) -> dict[str, Any]:
             raise SystemExit(f"P0 audit track {track_id} has no finding IDs")
         open_findings = list(findings)
         marker = "Open findings:"
-        if status == AUDIT_CLOSED_STATUS:
+        if status in AUDIT_CLOSED_STATUSES:
             open_findings = []
         elif marker in detail:
             explicit = detail.split(marker, 1)[1].split(".", 1)[0]
@@ -136,7 +140,7 @@ def _read_p0_audit_status(path: Path) -> dict[str, Any]:
     open_track_ids = [
         track_id
         for track_id in AUDIT_TRACK_IDS
-        if tracks[track_id]["status"] != AUDIT_CLOSED_STATUS
+        if tracks[track_id]["status"] not in AUDIT_CLOSED_STATUSES
     ]
     open_finding_ids = sorted(
         {finding for track_id in open_track_ids for finding in tracks[track_id]["open_findings"]}

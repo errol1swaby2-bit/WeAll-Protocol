@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "bcff638a88d7436ce45e09600154fbc6c8cb74ec7ed331f537f97a0113d85890"
+    "source_tree_digest": "8a4092bd7f1dd38563d3793b7f5c58f3439e69cfe78000b14b1febd207bc3c67"
   },
   "required_fields": [
     "stable_id",
@@ -7589,6 +7589,7 @@
         "tests/test_p0_03_production_composition.py",
         "tests/test_p0_05_f001_mutual_peer_auth.py",
         "tests/test_p0_05_f002a_wire_budget.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_p0_06a_duplicate_account_adjudication.py",
         "tests/test_p0_07_constitutional_scope_closure.py",
         "tests/test_p0_10_a15_f001_bounded_block_history.py",
@@ -8363,6 +8364,7 @@
         "tests/test_cross_node_webrtc_bridge_and_accept_join.py",
         "tests/test_crypto_signature_profiles.py",
         "tests/test_current_verified_claims_fail_closed.py",
+        "tests/test_current_verified_claims_p0_scope_closed_status.py",
         "tests/test_deep_ai_engineering_integrity_closure.py",
         "tests/test_demo_review_role_persistence.py",
         "tests/test_demo_seed_route.py",
@@ -8489,6 +8491,7 @@
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_03_production_composition.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_p0_06a_duplicate_account_adjudication.py",
         "tests/test_p0_10_a15_f002_state_sync_resource_bounds.py",
         "tests/test_p0_a01_a20_closure_regressions.py",

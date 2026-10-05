@@ -3456,6 +3456,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:poh_human_authority_scope_closed",
+      "kind": "failure",
+      "stable_id": "FAIL-05FE7B4B36DEFF86",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "forbidden:only_operator_account_can_withdraw",
       "kind": "failure",
       "stable_id": "FAIL-06B6B54AA12C81BA",
@@ -5461,6 +5468,13 @@
       "canonical_key": "forbidden:juror_already_declined",
       "kind": "failure",
       "stable_id": "FAIL-849AA8ABAEE0B637",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "conflict:challenged_account_is_confirmed_duplicate",
+      "kind": "failure",
+      "stable_id": "FAIL-86BFB6EE40B7B2CF",
       "status": "active"
     },
     {
@@ -21633,6 +21647,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "PoH:adjudication_status",
+      "kind": "state",
+      "stable_id": "STATE-7475C1DFCBE5A483",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Networking:owner_id",
       "kind": "state",
       "stable_id": "STATE-74E7224F262227EE",
@@ -22543,6 +22564,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "PoH:identity_pair_key",
+      "kind": "state",
+      "stable_id": "STATE-946B3CCB58F08146",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Networking:<append:dynamic>",
       "kind": "state",
       "stable_id": "STATE-94A89AC85D2B3C27",
@@ -23036,6 +23064,13 @@
       "canonical_key": "Networking:revoked",
       "kind": "state",
       "stable_id": "STATE-A50B95BF0302BF58",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:reviewer_selection_status",
+      "kind": "state",
+      "stable_id": "STATE-A522B94816ED223B",
       "status": "active"
     },
     {
@@ -24856,6 +24891,13 @@
       "canonical_key": "Economics:params",
       "kind": "state",
       "stable_id": "STATE-DB22998588772A1F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:authority_effect",
+      "kind": "state",
+      "stable_id": "STATE-DB5191A9F523932F",
       "status": "active"
     },
     {

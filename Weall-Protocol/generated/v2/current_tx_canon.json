@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "bcff638a88d7436ce45e09600154fbc6c8cb74ec7ed331f537f97a0113d85890"
+    "source_tree_digest": "8a4092bd7f1dd38563d3793b7f5c58f3439e69cfe78000b14b1febd207bc3c67"
   },
   "rows": [
     {
@@ -1301,6 +1301,10 @@
       "domain": "PoH",
       "failure_codes": [
         {
+          "code": "conflict",
+          "reason": "challenged_account_is_confirmed_duplicate"
+        },
+        {
           "code": "forbidden",
           "reason": "account_banned"
         },
@@ -1367,6 +1371,10 @@
         {
           "code": "forbidden",
           "reason": "not_bootstrap_account"
+        },
+        {
+          "code": "forbidden",
+          "reason": "poh_human_authority_scope_closed"
         },
         {
           "code": "forbidden",
@@ -1625,7 +1633,7 @@
       "implementation_source": {
         "function": "apply_poh",
         "handler": "poh",
-        "line": 4508,
+        "line": 4699,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -1668,12 +1676,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols.",
         "independent_review": false,
-        "review_digest": "c62154505cabce929ad8044353e7ad5c8939d98ded35fa8853c5eda008ccb7f8",
-        "review_method": "maintainer_reviewed_p0_06a_duplicate_adjudication_with_regression_evidence",
-        "reviewed_at": "2026-10-03T18:45:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted)"
+        "review_digest": "eb6b6345c03eb2bfe6ed3f06ab7394cca125fef81873961fae2c8ebce4003731",
+        "review_method": "p0_scope_closure_semantic_refresh_with_focused_regression_evidence",
+        "reviewed_at": "2026-10-05T15:45:00Z",
+        "reviewer": "WeAll Protocol Maintainer PR #38 P0 scope-closure review (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0100",
@@ -1785,11 +1793,13 @@
         "key:accepted",
         "key:accepted_jurors",
         "key:accepted_ts_ms",
+        "key:adjudication_status",
         "key:applications",
         "key:applied",
         "key:approval_threshold",
         "key:assigned_juror_count",
         "key:assigned_jurors",
+        "key:authority_effect",
         "key:bootstrap_adaptive_quorum",
         "key:case_id",
         "key:challenge_kind",
@@ -1808,6 +1818,7 @@
         "key:finalized_ts_ms",
         "key:followup_requested_height",
         "key:followup_round",
+        "key:identity_pair_key",
         "key:init_ts_ms",
         "key:jurors",
         "key:migration_receipts",
@@ -1836,6 +1847,7 @@
         "key:reverification_completed",
         "key:reviewable_evidence",
         "key:reviewer_restricted_evidence",
+        "key:reviewer_selection_status",
         "key:reviews",
         "key:session_commitment",
         "key:started_ts_ms",
@@ -1865,6 +1877,7 @@
         "POH_TIER_SET"
       ],
       "tests": [
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_tx_index_current_lookup_integrity.py"
       ],
       "tx_type": "POH_APPLICATION_SUBMIT",
@@ -1894,6 +1907,10 @@
       "context": "mempool",
       "domain": "PoH",
       "failure_codes": [
+        {
+          "code": "conflict",
+          "reason": "challenged_account_is_confirmed_duplicate"
+        },
         {
           "code": "forbidden",
           "reason": "account_banned"
@@ -1961,6 +1978,10 @@
         {
           "code": "forbidden",
           "reason": "not_bootstrap_account"
+        },
+        {
+          "code": "forbidden",
+          "reason": "poh_human_authority_scope_closed"
         },
         {
           "code": "forbidden",
@@ -2219,7 +2240,7 @@
       "implementation_source": {
         "function": "apply_poh",
         "handler": "poh",
-        "line": 4508,
+        "line": 4699,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -2262,12 +2283,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols.",
         "independent_review": false,
-        "review_digest": "04cd4f1bc0eb7f12830e79ca6bb2074e9f4d8d3a8d57986ced71e40707c98a32",
-        "review_method": "maintainer_reviewed_p0_06a_duplicate_adjudication_with_regression_evidence",
-        "reviewed_at": "2026-10-03T18:45:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted)"
+        "review_digest": "f17e6c8820951293b5e635c7cdeacb7537ba71e4167f809fed597936c397a19a",
+        "review_method": "p0_scope_closure_semantic_refresh_with_focused_regression_evidence",
+        "reviewed_at": "2026-10-05T15:45:00Z",
+        "reviewer": "WeAll Protocol Maintainer PR #38 P0 scope-closure review (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0101",
@@ -2379,11 +2400,13 @@
         "key:accepted",
         "key:accepted_jurors",
         "key:accepted_ts_ms",
+        "key:adjudication_status",
         "key:applications",
         "key:applied",
         "key:approval_threshold",
         "key:assigned_juror_count",
         "key:assigned_jurors",
+        "key:authority_effect",
         "key:bootstrap_adaptive_quorum",
         "key:case_id",
         "key:challenge_kind",
@@ -2402,6 +2425,7 @@
         "key:finalized_ts_ms",
         "key:followup_requested_height",
         "key:followup_round",
+        "key:identity_pair_key",
         "key:init_ts_ms",
         "key:jurors",
         "key:migration_receipts",
@@ -2430,6 +2454,7 @@
         "key:reverification_completed",
         "key:reviewable_evidence",
         "key:reviewer_restricted_evidence",
+        "key:reviewer_selection_status",
         "key:reviews",
         "key:session_commitment",
         "key:started_ts_ms",
@@ -2488,6 +2513,10 @@
       "context": "mempool",
       "domain": "PoH",
       "failure_codes": [
+        {
+          "code": "conflict",
+          "reason": "challenged_account_is_confirmed_duplicate"
+        },
         {
           "code": "forbidden",
           "reason": "account_banned"
@@ -2555,6 +2584,10 @@
         {
           "code": "forbidden",
           "reason": "not_bootstrap_account"
+        },
+        {
+          "code": "forbidden",
+          "reason": "poh_human_authority_scope_closed"
         },
         {
           "code": "forbidden",
@@ -2813,7 +2846,7 @@
       "implementation_source": {
         "function": "apply_poh",
         "handler": "poh",
-        "line": 4508,
+        "line": 4699,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -2856,12 +2889,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols.",
         "independent_review": false,
-        "review_digest": "847eae3b74c2af2199ae8354942224e022f0a1fcc31a2bbc8d355d60f5cc4827",
-        "review_method": "maintainer_reviewed_p0_06a_duplicate_adjudication_with_regression_evidence",
-        "reviewed_at": "2026-10-03T18:45:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted)"
+        "review_digest": "b71cb4026fed3134b99bf48ba146f90fa6c404c59782904bcd36d7311ff03d9e",
+        "review_method": "p0_scope_closure_semantic_refresh_with_focused_regression_evidence",
+        "reviewed_at": "2026-10-05T15:45:00Z",
+        "reviewer": "WeAll Protocol Maintainer PR #38 P0 scope-closure review (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0102",
@@ -2973,11 +3006,13 @@
         "key:accepted",
         "key:accepted_jurors",
         "key:accepted_ts_ms",
+        "key:adjudication_status",
         "key:applications",
         "key:applied",
         "key:approval_threshold",
         "key:assigned_juror_count",
         "key:assigned_jurors",
+        "key:authority_effect",
         "key:bootstrap_adaptive_quorum",
         "key:case_id",
         "key:challenge_kind",
@@ -2996,6 +3031,7 @@
         "key:finalized_ts_ms",
         "key:followup_requested_height",
         "key:followup_round",
+        "key:identity_pair_key",
         "key:init_ts_ms",
         "key:jurors",
         "key:migration_receipts",
@@ -3024,6 +3060,7 @@
         "key:reverification_completed",
         "key:reviewable_evidence",
         "key:reviewer_restricted_evidence",
+        "key:reviewer_selection_status",
         "key:reviews",
         "key:session_commitment",
         "key:started_ts_ms",
@@ -3089,6 +3126,22 @@
           "reason": "runtime_apply_failure"
         },
         {
+          "code": "conflict",
+          "reason": "challenged_account_is_confirmed_duplicate"
+        },
+        {
+          "code": "forbidden",
+          "reason": "account_banned"
+        },
+        {
+          "code": "forbidden",
+          "reason": "account_locked"
+        },
+        {
+          "code": "forbidden",
+          "reason": "runtime_apply_failure"
+        },
+        {
           "code": "invalid_tx",
           "reason": "accounts_missing"
         },
@@ -3109,7 +3162,7 @@
       "implementation_source": {
         "function": "apply_poh_challenge_open",
         "handler": "poh",
-        "line": 2142,
+        "line": 2293,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -3132,27 +3185,34 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols.",
         "independent_review": false,
-        "review_digest": "11560d6d727602d9c6753315a7199f2902244e48f000e9a2d1585169b4944ede",
-        "review_method": "maintainer_reviewed_p0_06a_duplicate_adjudication_with_regression_evidence",
-        "reviewed_at": "2026-10-03T18:45:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted)"
+        "review_digest": "4f53accfb418ccb1c3de198ee542814a13b643070cc0a5235c42bba97b54b68c",
+        "review_method": "p0_scope_closure_semantic_refresh_with_focused_regression_evidence",
+        "reviewed_at": "2026-10-05T15:45:00Z",
+        "reviewer": "WeAll Protocol Maintainer PR #38 P0 scope-closure review (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0103",
       "state_reads": [
         "key:account_id",
         "key:accounts",
+        "key:banned",
         "key:case_id",
+        "key:locked",
+        "key:poh_tier",
         "key:reason",
         "key:reference_account_id",
         "key:target_case_id"
       ],
       "state_writes": [
+        "key:adjudication_status",
+        "key:authority_effect",
         "key:case_id",
         "key:challenge_kind",
-        "key:reference_account_id"
+        "key:identity_pair_key",
+        "key:reference_account_id",
+        "key:reviewer_selection_status"
       ],
       "system_followups": [],
       "tests": [
@@ -3161,6 +3221,7 @@
         "tests/test_behavior.py",
         "tests/test_behavior_m1_m10.py",
         "tests/test_coverage_behavior.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_p0_06a_duplicate_account_adjudication.py",
         "tests/test_public_write_validator_storage_anti_sybil_testnet_boundaries.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -3194,6 +3255,10 @@
       "domain": "PoH",
       "failure_codes": [
         {
+          "code": "forbidden",
+          "reason": "system_only"
+        },
+        {
           "code": "invalid_tx",
           "reason": "bad_resolution"
         },
@@ -3214,7 +3279,7 @@
       "implementation_source": {
         "function": "apply_poh_challenge_resolve",
         "handler": "poh",
-        "line": 2191,
+        "line": 2367,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -3239,12 +3304,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols.",
         "independent_review": false,
-        "review_digest": "202b8ca38f78b009a8507018dcfeeb234c666a698ee991cc1619e707fa47b222",
-        "review_method": "maintainer_reviewed_p0_06a_duplicate_adjudication_with_regression_evidence",
-        "reviewed_at": "2026-10-03T18:45:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted)"
+        "review_digest": "635adce450239b95feb0455b94efdfd7f43768ca779c9970331c139a2dd59367",
+        "review_method": "p0_scope_closure_semantic_refresh_with_focused_regression_evidence",
+        "reviewed_at": "2026-10-05T15:45:00Z",
+        "reviewer": "WeAll Protocol Maintainer PR #38 P0 scope-closure review (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0104",
@@ -3263,6 +3328,7 @@
       ],
       "state_writes": [
         "key:<append:dynamic>",
+        "key:adjudication_status",
         "key:applied",
         "key:consequence",
         "key:duplicate_identity",
@@ -3332,7 +3398,7 @@
       "implementation_source": {
         "function": "apply_poh_tier_set",
         "handler": "poh",
-        "line": 1276,
+        "line": 1427,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -3375,6 +3441,7 @@
         "POH_LIVE_SESSION_INIT"
       ],
       "tests": [
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_poh_finalize.py",
         "tests/test_priority0_poh_determinism_account_existence.py",
         "tests/test_tx_conflicts.py"
@@ -3459,7 +3526,7 @@
       "implementation_source": {
         "function": "apply_poh_tier2_request_open",
         "handler": "poh",
-        "line": 3344,
+        "line": 3535,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -3515,6 +3582,7 @@
       ],
       "tests": [
         "tests/test_apply_poh_tier2_flows_mvp.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
         "tests/test_poh_live_strict_session.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
@@ -3610,7 +3678,7 @@
       "implementation_source": {
         "function": "apply_poh_tier2_juror_assign",
         "handler": "poh",
-        "line": 3549,
+        "line": 3740,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -3668,6 +3736,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_apply_poh_tier2_flows_mvp.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_tier2_protocol_native_safety.py",
@@ -3749,7 +3818,7 @@
       "implementation_source": {
         "function": "apply_poh_tier2_juror_accept",
         "handler": "poh",
-        "line": 3604,
+        "line": 3795,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -3878,7 +3947,7 @@
       "implementation_source": {
         "function": "apply_poh_tier2_juror_decline",
         "handler": "poh",
-        "line": 3634,
+        "line": 3825,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -4019,7 +4088,7 @@
       "implementation_source": {
         "function": "apply_poh_tier2_review_submit",
         "handler": "poh",
-        "line": 3664,
+        "line": 3855,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -4160,7 +4229,7 @@
       "implementation_source": {
         "function": "apply_poh_tier2_finalize",
         "handler": "poh",
-        "line": 3708,
+        "line": 3899,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -4228,6 +4297,7 @@
       "tests": [
         "tests/test_admission_roles_mvp_gates.py",
         "tests/test_apply_poh_tier2_flows_mvp.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_priority0_poh_determinism_account_existence.py"
@@ -4276,7 +4346,7 @@
       "implementation_source": {
         "function": "apply_poh_tier2_receipt",
         "handler": "poh",
-        "line": 3801,
+        "line": 3992,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -4392,7 +4462,7 @@
       "implementation_source": {
         "function": "apply_poh_live_request_open",
         "handler": "poh",
-        "line": 3435,
+        "line": 3626,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -4455,6 +4525,7 @@
         "tests/test_external_testnet_p0_p2_safety.py",
         "tests/test_live_poh_production_quorum_lock.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_poh_live_adaptive_quorum.py",
         "tests/test_poh_live_protocol_native_request.py",
         "tests/test_poh_live_strict_session.py",
@@ -4532,7 +4603,7 @@
       "implementation_source": {
         "function": "apply_poh_live_session_init",
         "handler": "poh",
-        "line": 3825,
+        "line": 4016,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -4704,7 +4775,7 @@
       "implementation_source": {
         "function": "apply_poh_live_juror_assign",
         "handler": "poh",
-        "line": 3936,
+        "line": 4127,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -4770,6 +4841,7 @@
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_live_poh_production_quorum_lock.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_poh_live_adaptive_quorum.py",
         "tests/test_poh_live_strict_session.py",
         "tests/test_poh_scheduler_determinism.py",
@@ -4861,7 +4933,7 @@
       "implementation_source": {
         "function": "apply_poh_live_juror_accept",
         "handler": "poh",
-        "line": 4025,
+        "line": 4216,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -5009,7 +5081,7 @@
       "implementation_source": {
         "function": "apply_poh_live_juror_decline",
         "handler": "poh",
-        "line": 4074,
+        "line": 4265,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -5160,7 +5232,7 @@
       "implementation_source": {
         "function": "apply_poh_live_attendance_mark",
         "handler": "poh",
-        "line": 4205,
+        "line": 4396,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -5336,7 +5408,7 @@
       "implementation_source": {
         "function": "apply_poh_live_verdict_submit",
         "handler": "poh",
-        "line": 4274,
+        "line": 4465,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -5492,7 +5564,7 @@
       "implementation_source": {
         "function": "apply_poh_live_finalize",
         "handler": "poh",
-        "line": 4326,
+        "line": 4517,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -5576,6 +5648,7 @@
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_live_poh_production_quorum_lock.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_poh_live_adaptive_quorum.py",
         "tests/test_poh_privacy_system_only_and_live_transport.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
@@ -5627,7 +5700,7 @@
       "implementation_source": {
         "function": "apply_poh_live_receipt",
         "handler": "poh",
-        "line": 4492,
+        "line": 4683,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -5747,7 +5820,7 @@
       "implementation_source": {
         "function": "apply_poh_bootstrap_tier2_grant",
         "handler": "poh",
-        "line": 1311,
+        "line": 1462,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -5805,6 +5878,7 @@
         "tests/test_devnet_prepare_live_jurors.py",
         "tests/test_external_testnet_p0_p2_safety.py",
         "tests/test_genesis_reviewer_rehearsal.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_poh_bootstrap_genesis_allowlist_metadata.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
@@ -5911,7 +5985,7 @@
       "implementation_source": {
         "function": "apply_poh_live_juror_replace",
         "handler": "poh",
-        "line": 4123,
+        "line": 4314,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28035,7 +28109,7 @@
       "implementation_source": {
         "function": "apply_poh_tier_revoke",
         "handler": "poh",
-        "line": 1261,
+        "line": 1412,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28152,7 +28226,7 @@
       "implementation_source": {
         "function": "apply_poh_async_request_open",
         "handler": "poh",
-        "line": 2517,
+        "line": 2708,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28230,6 +28304,7 @@
         "tests/test_native_async_demo_scripts.py",
         "tests/test_native_poh_solo_bootstrap_quorum.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
         "tests/test_poh_async_native_tier1.py",
         "tests/test_poh_async_recorded_video_frontend.py",
@@ -28311,7 +28386,7 @@
       "implementation_source": {
         "function": "apply_poh_async_evidence_declare",
         "handler": "poh",
-        "line": 2637,
+        "line": 2828,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28462,7 +28537,7 @@
       "implementation_source": {
         "function": "apply_poh_async_evidence_bind",
         "handler": "poh",
-        "line": 2780,
+        "line": 2971,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28625,7 +28700,7 @@
       "implementation_source": {
         "function": "apply_poh_async_juror_assign",
         "handler": "poh",
-        "line": 2869,
+        "line": 3060,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28708,6 +28783,7 @@
         "tests/test_m2_complete_security_and_lifecycle.py",
         "tests/test_native_poh_solo_bootstrap_quorum.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_poh_async_native_tier1.py",
         "tests/test_poh_async_panel_grinding_regression.py",
         "tests/test_poh_async_safety.py",
@@ -28795,7 +28871,7 @@
       "implementation_source": {
         "function": "apply_poh_async_juror_accept",
         "handler": "poh",
-        "line": 3018,
+        "line": 3209,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28935,7 +29011,7 @@
       "implementation_source": {
         "function": "apply_poh_async_juror_decline",
         "handler": "poh",
-        "line": 3071,
+        "line": 3262,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29074,7 +29150,7 @@
       "implementation_source": {
         "function": "apply_poh_async_review_submit",
         "handler": "poh",
-        "line": 3092,
+        "line": 3283,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29206,7 +29282,7 @@
       "implementation_source": {
         "function": "apply_poh_async_finalize",
         "handler": "poh",
-        "line": 3152,
+        "line": 3343,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29280,6 +29356,7 @@
         "tests/test_coverage_behavior.py",
         "tests/test_native_poh_solo_bootstrap_quorum.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p0_06_production_scope_closure.py",
         "tests/test_poh_async_native_tier1.py",
         "tests/test_poh_async_safety.py",
         "tests/test_poh_async_threshold_safety.py",
@@ -29337,7 +29414,7 @@
       "implementation_source": {
         "function": "apply_poh_async_receipt",
         "handler": "poh",
-        "line": 3266,
+        "line": 3457,
         "path": "src/weall/runtime/apply/poh.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

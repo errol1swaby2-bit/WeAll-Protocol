@@ -95,8 +95,10 @@ def test_reverification_completion_requires_fresh_successful_poh_finalize() -> N
         state,
         _env(
             "POH_CHALLENGE_RESOLVE",
-            signer="reviewer",
+            signer="SYSTEM",
             nonce=2,
+            system=True,
+            parent="poh:challenge-adjudication",
             payload={"challenge_id": "pohc:alice:1", "resolution": "upheld"},
         ),
     )
