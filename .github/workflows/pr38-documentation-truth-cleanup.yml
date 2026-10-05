@@ -34,6 +34,24 @@ jobs:
         run: |
           set -Eeuo pipefail
           python .github/scripts/pr38_documentation_truth_cleanup.py
+          python - <<'PY'
+          from pathlib import Path
+          old = (
+              "Proof-of-Humanity checkpoint: **Tier 0 = account only**. Tier 1 (native async review) and Tier 2 (native live review) "
+              "remain implemented compatibility/rehearsal states, but the production profile sets "
+          )
+          new = (
+              "Proof-of-Humanity checkpoint: **Tier 0 = account only**. **Tier 1 = native async review (compatibility/rehearsal state)** "
+              "and **Tier 2 = native live review (compatibility/rehearsal state)** remain implemented, but the production profile sets "
+          )
+          for name in ["README.md", "Weall-Protocol/README.md", "Weall-Protocol/docs/PRODUCTION_POSTURE.md"]:
+              path = Path(name)
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{name}: expected one bounded tier checkpoint, found {count}")
+              path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
           rm -f .github/workflows/pr38-documentation-truth-cleanup.yml
           rm -f .github/scripts/pr38_documentation_truth_cleanup.py
           git diff --check
