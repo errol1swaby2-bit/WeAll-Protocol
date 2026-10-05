@@ -846,21 +846,6 @@ def _apply_fee_policy_set(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(fp, dict):
         fp = {}
 
-    # A11-F002: transfer-fee settlement is not yet atomically enforced by
-    # BALANCE_TRANSFER. Until that contract exists, nonzero policy must fail
-    # closed rather than advertise a fee users can bypass. A zero setting is
-    # still allowed so any historical/noncanonical positive state can be
-    # explicitly neutralized.
-    requested_transfer_fee = _as_int(
-        payload.get("transfer_fee_int", fp.get("transfer_fee_int", 0)), 0
-    )
-    if requested_transfer_fee > 0:
-        raise EconomicsApplyError(
-            "forbidden",
-            "transfer_fee_policy_not_enforced",
-            {"transfer_fee_int": int(requested_transfer_fee)},
-        )
-
     for k, v in payload.items():
         ks = str(k)
         if ks.endswith("_fee_int"):
@@ -1012,22 +997,63 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
             "from": existing.get("from", frm),
             "to": existing.get("to", to),
             "amount": _as_int(existing.get("amount"), 0),
+            "fee_amount": _as_int(existing.get("fee_amount"), 0),
+            "fee_to": _as_str(existing.get("fee_to")),
             "transfer_id": transfer_id,
             "purpose": _as_str(existing.get("purpose")),
             "content_id": _as_str(existing.get("content_id")),
             "deduped": True,
         }
 
+    fee_policy = econ.get("fee_policy")
+    if not isinstance(fee_policy, dict):
+        fee_policy = {}
+    transfer_fee = max(0, _as_int(fee_policy.get("transfer_fee_int"), 0))
+    fee_to = ""
+    if transfer_fee > 0:
+        fee_to = _as_str(_as_dict(state.get("params")).get("fee_sink_account")).strip()
+        if not fee_to or fee_to == frm:
+            raise EconomicsApplyError(
+                "invalid_payload",
+                "fee_destination_required",
+                {"amount": int(transfer_fee), "tx_type": env.tx_type},
+            )
+
     fa = _require_existing_account(state, frm, field="from")
     ta = _require_existing_account(state, to, field="to")
+    fee_account = (
+        _require_existing_account(state, fee_to, field="fee_to") if transfer_fee > 0 else None
+    )
 
     fb = _as_int(fa.get("balance"), 0)
     tb = _as_int(ta.get("balance"), 0)
-    if fb < amt:
-        raise EconomicsApplyError("forbidden", "insufficient_funds", {"balance": fb, "amount": amt})
+    total_debit = int(amt) + int(transfer_fee)
+    if fb < total_debit:
+        raise EconomicsApplyError(
+            "forbidden",
+            "insufficient_funds",
+            {"balance": fb, "amount": int(amt), "fee_amount": int(transfer_fee)},
+        )
 
-    fa["balance"] = fb - amt
+    fa["balance"] = fb - total_debit
     ta["balance"] = tb + amt
+    if fee_account is not None:
+        fee_account["balance"] = _as_int(fee_account.get("balance"), 0) + transfer_fee
+        econ["fee_payments"].append(
+            {
+                "at_nonce": int(env.nonce),
+                "from": frm,
+                "to": fee_to,
+                "amount": int(transfer_fee),
+                "tx_id": transfer_id,
+                "tx_type": "BALANCE_TRANSFER",
+                "payload": {
+                    "settlement": "atomic_balance_transfer",
+                    "transfer_id": transfer_id,
+                },
+                "parent": env.parent,
+            }
+        )
 
     purpose = _as_str(payload.get("purpose")).strip()
     content_id = _as_str(
@@ -1041,6 +1067,8 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         "from": frm,
         "to": to,
         "amount": int(amt),
+        "fee_amount": int(transfer_fee),
+        "fee_to": fee_to,
         "purpose": purpose,
         "content_id": content_id,
         "memo": memo,
@@ -1086,6 +1114,8 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         "from": frm,
         "to": to,
         "amount": amt,
+        "fee_amount": int(transfer_fee),
+        "fee_to": fee_to,
     }
 
     extended_payload = any(
