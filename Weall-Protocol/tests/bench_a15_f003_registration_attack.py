@@ -14,6 +14,7 @@ from weall.runtime.account_registration_work import (
     leading_zero_bits,
     verify_account_registration_work,
 )
+from weall.runtime.apply.identity import apply_identity
 from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.testing.sigtools import deterministic_mldsa_keypair
@@ -82,6 +83,7 @@ def main() -> int:
             f"{difficulty_bits}<{ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS}"
         )
 
+    accounts_before = len(state.get("accounts") or {})
     canon = TxIndex.load_from_file(ROOT / "generated" / "tx_index.json")
     total_attempts = 0
     solved: list[dict] = []
@@ -128,6 +130,12 @@ def main() -> int:
                 f"{verdict.code}:{verdict.reason}"
             )
 
+        applied_env = TxEnvelope.from_json(signed)
+        apply_identity(state, applied_env)
+        account = (state.get("accounts") or {}).get(signer)
+        if not isinstance(account, dict) or int(account.get("nonce") or 0) != 1:
+            raise SystemExit(f"registration_apply_missing_permanent_account:{signer}")
+
         solved.append(
             {
                 "signer": signer,
@@ -135,6 +143,13 @@ def main() -> int:
                 "attempts": int(attempts),
                 "actual_bits": int(work_meta.get("actual_bits") or 0),
             }
+        )
+
+    accounts_after = len(state.get("accounts") or {})
+    if accounts_after - accounts_before != account_count:
+        raise SystemExit(
+            f"registration_account_growth_mismatch:before={accounts_before}:"
+            f"after={accounts_after}:expected_delta={account_count}"
         )
 
     elapsed = time.perf_counter() - started
@@ -145,6 +160,9 @@ def main() -> int:
                 "schema": "weall.a15_f003.registration_attack_benchmark.v1",
                 "chain_id": str(state.get("chain_id") or ""),
                 "accounts": account_count,
+                "accounts_before": accounts_before,
+                "accounts_after": accounts_after,
+                "permanent_account_delta": accounts_after - accounts_before,
                 "difficulty_bits": difficulty_bits,
                 "reviewed_minimum_bits": ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS,
                 "total_attempts": total_attempts,
@@ -155,12 +173,14 @@ def main() -> int:
                 "all_solved_work_passed_canonical_admission": True,
                 "all_admissions_used_valid_mldsa_signatures": True,
                 "all_payloads_include_production_required_recovery_and_kem_material": True,
+                "all_registrations_applied_to_production_genesis_state": True,
                 "distributed_signers": account_count,
                 "solutions": solved,
                 "note": (
                     "Deterministic CPU rehearsal of independent production-difficulty "
-                    "registration-work solutions and fully signed canonical public admission. "
-                    "Timing is CI-host evidence, not a validator throughput or Sybil-resistance claim."
+                    "registration-work solutions, fully signed canonical public admission, and "
+                    "permanent account-state application. Timing is CI-host evidence, not a "
+                    "validator throughput or Sybil-resistance claim."
                 ),
             },
             sort_keys=True,
