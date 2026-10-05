@@ -68,3 +68,36 @@ def test_a11_f001_destination_fee_still_conserves_balances() -> None:
     assert state["accounts"]["alice"]["balance"] == 7
     assert state["accounts"]["@fees"]["balance"] == 3
     assert state["accounts"]["alice"]["balance"] + state["accounts"]["@fees"]["balance"] == 10
+
+
+def test_a11_f002_nonzero_transfer_fee_policy_fails_closed_until_enforced() -> None:
+    state = _econ_state()
+    env = TxEnvelope(
+        tx_type="FEE_POLICY_SET",
+        signer="SYSTEM",
+        nonce=1,
+        system=True,
+        payload={"transfer_fee_int": 100},
+    )
+
+    with pytest.raises(EconomicsApplyError, match="transfer_fee_policy_not_enforced") as caught:
+        apply_economics(state, env)
+
+    assert caught.value.reason == "transfer_fee_policy_not_enforced"
+    assert state.get("economics", {}).get("fee_policy", {}).get("transfer_fee_int", 0) == 0
+
+
+def test_a11_f002_zero_transfer_fee_policy_remains_allowed() -> None:
+    state = _econ_state()
+    env = TxEnvelope(
+        tx_type="FEE_POLICY_SET",
+        signer="SYSTEM",
+        nonce=1,
+        system=True,
+        payload={"transfer_fee_int": 0},
+    )
+
+    result = apply_economics(state, env)
+
+    assert result["applied"] == "FEE_POLICY_SET"
+    assert result["fee_policy"]["transfer_fee_int"] == 0
