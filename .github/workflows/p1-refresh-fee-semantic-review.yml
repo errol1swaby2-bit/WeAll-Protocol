@@ -37,7 +37,9 @@ jobs:
         run: |
           python scripts/refresh_v2_semantic_reviews.py \
             --register-failure forbidden:transfer_fee_policy_not_enforced \
+            --register-failure invalid_payload:fee_destination_required \
             --tx-type FEE_POLICY_SET \
+            --tx-type FEE_PAY \
             --reviewer "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
 
       - name: Verify generated state and fee-policy regression
@@ -62,3 +64,5 @@ jobs:
 # retry after registering Economics:transfer_fee_int stable ID
 
 # retry after registering transfer-fee enforcement failure ID
+
+# retry with complete bounded A11 failure and transaction set
