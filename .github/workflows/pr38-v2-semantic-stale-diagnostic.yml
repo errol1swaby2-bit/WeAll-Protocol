@@ -1,0 +1,80 @@
+name: PR38 V2 Semantic Stale Diagnostic
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Discover stale transaction semantic reviews
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          import refresh_v2_semantic_reviews as refresh
+
+          _compiler, validation, tx_rows = refresh._derive_transaction_rows()
+          reviews = json.loads(Path("specs/v2/source/semantic_reviews.json").read_text(encoding="utf-8"))
+          review_by_type = {
+              str(row.get("tx_type") or ""): row
+              for row in reviews.get("transactions") or []
+              if isinstance(row, dict)
+          }
+
+          stale = []
+          missing = []
+          for row in tx_rows:
+              tx_type = str(row.get("tx_type") or "")
+              review = review_by_type.get(tx_type)
+              if review is None:
+                  missing.append(tx_type)
+                  continue
+              current = validation.compact_digest(validation.tx_review_material(row))
+              recorded = str(review.get("review_digest") or "")
+              if current != recorded:
+                  stale.append(
+                      {
+                          "tx_type": tx_type,
+                          "recorded": recorded,
+                          "current": current,
+                          "implementation_source": row.get("implementation_source"),
+                      }
+                  )
+
+          print("PR38_STALE_TRANSACTION_SEMANTIC_REVIEWS_BEGIN")
+          print(json.dumps(stale, indent=2, sort_keys=True))
+          print("PR38_STALE_TRANSACTION_SEMANTIC_REVIEWS_END")
+          print("PR38_MISSING_TRANSACTION_SEMANTIC_REVIEWS_BEGIN")
+          print(json.dumps(sorted(missing), indent=2))
+          print("PR38_MISSING_TRANSACTION_SEMANTIC_REVIEWS_END")
+          print(f"stale_count={len(stale)} missing_count={len(missing)}")
+          PY
