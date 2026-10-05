@@ -1,0 +1,63 @@
+name: PR38 Ruff Autofix
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: write
+
+jobs:
+  autofix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend tooling
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+
+      - name: Format and lint every Python file changed by PR 38
+        working-directory: Weall-Protocol
+        env:
+          BASE_SHA: cd7f10a8b62e9f5a3711f4263d04e3fd62f0d351
+        run: |
+          set -Eeuo pipefail
+          mapfile -t PY_FILES < <(
+            git -C .. diff --name-only --diff-filter=ACMR "${BASE_SHA}...HEAD" \
+              | awk '/^Weall-Protocol\/.*\.py$/ {sub(/^Weall-Protocol\//, ""); print}'
+          )
+          if (( ${#PY_FILES[@]} > 0 )); then
+            printf 'Autofixing %s\n' "${PY_FILES[@]}"
+            ruff check --fix "${PY_FILES[@]}"
+            ruff format "${PY_FILES[@]}"
+            ruff check "${PY_FILES[@]}"
+            ruff format --check "${PY_FILES[@]}"
+          fi
+
+      - name: Remove temporary workflow and commit only formatting repairs
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/pr38-ruff-autofix.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git commit -m "style: normalize PR 38 Python surface"
+          git push origin "HEAD:p0-03-production-closure-staging-20261001"
