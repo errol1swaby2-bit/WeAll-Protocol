@@ -247,6 +247,15 @@ class TlsTransport:
         )
         self.close_on_outbound_overflow = _env_bool("WEALL_NET_CLOSE_ON_OUTBOUND_OVERFLOW", True)
 
+        # A07-F003: every production construction path must make certificate
+        # verification an explicit decision. NetNode constructs TlsTransport
+        # directly, so guarding only from_env() leaves a silent CERT_NONE path.
+        if md == "prod" and not self.ca_file and not _env_bool("WEALL_NET_TLS_INSECURE_OK", False):
+            raise RuntimeError(
+                "WEALL_MODE=prod with TLS transport requires WEALL_NET_TLS_CA for certificate verification. "
+                "Set WEALL_NET_TLS_INSECURE_OK=1 only for an explicitly accepted encryption-only private testbed."
+            )
+
         self._sel = selectors.DefaultSelector()
         self._listener: socket.socket | None = None
         self._conns: dict[str, _TlsConn] = {}
