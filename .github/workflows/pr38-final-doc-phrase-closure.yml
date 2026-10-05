@@ -1,0 +1,132 @@
+name: PR38 Final Documentation Phrase Closure
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify expected documentation-truth parent
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD^)" = "3bab35098ce2d995faf2e61b8e31b3625f6cbdab"
+
+      - name: Correct final discovery wording and remove one-shot workflow
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('README.md')
+          text = p.read_text(encoding='utf-8')
+          old = '| Node/operator surfaces | Readiness/status endpoints, signed seed/validator discovery evidence, validator authority gating, observer/operator status, secret guard, and release hygiene checks. |'
+          new = '| Node/operator surfaces | Readiness/status endpoints, pinned/signature-gated seed discovery evidence and signed validator-discovery evidence, validator authority gating, observer/operator status, secret guard, and release hygiene checks. |'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one residual discovery phrase, found {text.count(old)}')
+          p.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          rm -f .github/workflows/pr38-final-doc-phrase-closure.yml
+          git diff --check
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Regenerate current claims and V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_current_verified_claims.py
+          python scripts/compile_v2_spec.py
+          python scripts/gen_current_verified_claims.py --check
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Validate reviewer-facing claim truth
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_generated.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_reviewer_truth_boundaries.py
+          pytest -q \
+            tests/test_current_document_registry.py \
+            tests/test_release_docs_truth_sync.py \
+            tests/test_reviewer_language_cleanup.py \
+            tests/test_current_verified_claims_fail_closed.py \
+            tests/test_current_verified_claims_p0_scope_closed_status.py \
+            tests/test_p0_claim_audit_binding.py \
+            tests/prod/test_public_beta_evidence_gates.py \
+            tests/prod/test_public_observer_testnet_readiness_docs.py \
+            tests/test_public_readiness_artifacts_v15.py
+
+      - name: Re-run P0 assurance
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python tests/p0_assurance.py gate --report /tmp/p0_assurance_report.json --timeout-seconds 120
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = json.loads(Path('/tmp/p0_assurance_report.json').read_text())
+          s = p['mutation_summary']
+          assert s['non_equivalent_total'] == 15, s
+          assert s['killed'] == 15, s
+          assert s['survived'] == [], s
+          assert s['invalid'] == [], s
+          assert p['gate']['passed'] is True, p['gate']
+          assert p['property_suite']['returncode'] == 0, p['property_suite']
+          print(s)
+          PY
+
+      - name: Full backend regression suite
+        working-directory: Weall-Protocol
+        run: pytest -q
+
+      - name: Commit workflow-free final documentation candidate
+        run: |
+          set -Eeuo pipefail
+          test ! -e .github/workflows/pr38-final-doc-phrase-closure.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "docs: disambiguate seed discovery signature state"
+
+      - name: Exact-commit validation
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_generated.py
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/check_release_hygiene_v1_5.py
+          git -C .. diff --exit-code
+          git -C .. diff --cached --exit-code
+          test -z "$(git -C .. status --porcelain)"
+
+      - name: Push final documentation truth candidate
+        run: git push origin HEAD:p0-03-production-closure-staging-20261001
