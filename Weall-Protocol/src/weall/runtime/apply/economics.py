@@ -846,6 +846,21 @@ def _apply_fee_policy_set(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(fp, dict):
         fp = {}
 
+    # A11-F002: transfer-fee settlement is not yet atomically enforced by
+    # BALANCE_TRANSFER. Until that contract exists, nonzero policy must fail
+    # closed rather than advertise a fee users can bypass. A zero setting is
+    # still allowed so any historical/noncanonical positive state can be
+    # explicitly neutralized.
+    requested_transfer_fee = _as_int(
+        payload.get("transfer_fee_int", fp.get("transfer_fee_int", 0)), 0
+    )
+    if requested_transfer_fee > 0:
+        raise EconomicsApplyError(
+            "forbidden",
+            "transfer_fee_policy_not_enforced",
+            {"transfer_fee_int": int(requested_transfer_fee)},
+        )
+
     for k, v in payload.items():
         ks = str(k)
         if ks.endswith("_fee_int"):
