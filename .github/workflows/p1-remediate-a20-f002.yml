@@ -55,3 +55,5 @@ jobs:
           git diff --cached --quiet && { echo 'No implementation change produced'; exit 1; }
           git commit -m 'fix: keep browser session bearer out of persistent storage'
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# trigger: formatting-robust custody proof
