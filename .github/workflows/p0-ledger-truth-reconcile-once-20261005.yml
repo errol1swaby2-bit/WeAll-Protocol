@@ -1,0 +1,191 @@
+name: P0 ledger truth reconcile once
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p0-ledger-truth-reconcile-once-20261005
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p0-03-production-closure-staging-20261001
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Add partial-track open-finding truth binding
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          gen = Path('Weall-Protocol/scripts/gen_current_verified_claims.py')
+          text = gen.read_text(encoding='utf-8')
+          old = '''        tracks[track_id] = {\n            "status": status,\n            "findings": findings,\n            "detail": detail,\n        }\n'''
+          new = '''        open_findings = list(findings)\n        marker = "Open findings:"\n        if status == AUDIT_CLOSED_STATUS:\n            open_findings = []\n        elif marker in detail:\n            explicit = detail.split(marker, 1)[1].split(".", 1)[0]\n            open_findings = [item.strip() for item in explicit.split(",") if item.strip()]\n            if not open_findings:\n                raise SystemExit(\n                    f"P0 audit status {track_id} declares an empty Open findings override"\n                )\n            if len(set(open_findings)) != len(open_findings):\n                raise SystemExit(\n                    f"P0 audit status {track_id} has duplicate Open findings IDs"\n                )\n            if not all(item.startswith("A") and "-F" in item for item in open_findings):\n                raise SystemExit(\n                    f"P0 audit status {track_id} has malformed Open findings IDs: {open_findings}"\n                )\n        tracks[track_id] = {\n            "status": status,\n            "findings": findings,\n            "open_findings": open_findings,\n            "detail": detail,\n        }\n'''
+          if text.count(old) != 1:
+              raise SystemExit('claims_track_parser_anchor_not_found_once')
+          text = text.replace(old, new, 1)
+          old2 = '''    open_finding_ids = sorted(\n        {finding for track_id in open_track_ids for finding in tracks[track_id]["findings"]}\n    )\n'''
+          new2 = '''    open_finding_ids = sorted(\n        {\n            finding\n            for track_id in open_track_ids\n            for finding in tracks[track_id]["open_findings"]\n        }\n    )\n'''
+          if text.count(old2) != 1:
+              raise SystemExit('claims_open_findings_anchor_not_found_once')
+          gen.write_text(text.replace(old2, new2, 1), encoding='utf-8')
+
+          ledger = Path('docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md')
+          text = ledger.read_text(encoding='utf-8')
+          old = 'A15-F001 still requires bounded consensus-visible ancestry/history architecture, and A15-F002 still requires a finite authenticated state-sync work/response envelope with amplification bounds.'
+          new = 'Open findings: A15-F001, A15-F002. A15-F001 still requires bounded consensus-visible ancestry/history architecture, and A15-F002 still requires a finite authenticated state-sync work/response envelope with amplification bounds.'
+          if text.count(old) != 1:
+              raise SystemExit('ledger_p0_10_open_findings_anchor_not_found_once')
+          ledger.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          tests = Path('Weall-Protocol/tests/test_current_verified_claims_fail_closed.py')
+          text = tests.read_text(encoding='utf-8')
+          addition = r'''
+
+
+def test_partial_track_can_bind_explicit_open_finding_subset(tmp_path: Path) -> None:
+    module = load_module()
+    rows = []
+    for index in range(1, 13):
+        track = f"P0-{index:02d}"
+        if track == "P0-10":
+            status = "PARTIAL"
+            findings = "A15-F001..F003"
+            detail = "A15-F003 closed. Open findings: A15-F001, A15-F002. Remaining architecture work."
+        else:
+            status = module.AUDIT_CLOSED_STATUS
+            findings = f"A{index:02d}-F001"
+            detail = "closed"
+        rows.append(f"| {track} test | {findings} | {status} | {detail} |")
+    audit = tmp_path / "audit.md"
+    audit.write_text(
+        "## Track status\n\n"
+        "| Track | Findings | Current status | Branch work / remaining gate |\n"
+        "| --- | --- | --- | --- |\n"
+        + "\n".join(rows)
+        + "\n\n## Additional CI blockers discovered during closure\n",
+        encoding="utf-8",
+    )
+    parsed = module._read_p0_audit_status(audit)
+    assert parsed["open_track_ids"] == ["P0-10"]
+    assert parsed["open_finding_ids"] == ["A15-F001", "A15-F002"]
+
+
+def test_partial_track_empty_open_finding_override_fails_closed(tmp_path: Path) -> None:
+    module = load_module()
+    rows = []
+    for index in range(1, 13):
+        track = f"P0-{index:02d}"
+        status = "PARTIAL" if track == "P0-10" else module.AUDIT_CLOSED_STATUS
+        detail = "Open findings: ." if track == "P0-10" else "closed"
+        rows.append(f"| {track} test | A{index:02d}-F001 | {status} | {detail} |")
+    audit = tmp_path / "audit.md"
+    audit.write_text(
+        "## Track status\n\n"
+        "| Track | Findings | Current status | Branch work / remaining gate |\n"
+        "| --- | --- | --- | --- |\n"
+        + "\n".join(rows)
+        + "\n\n## Additional CI blockers discovered during closure\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit, match="empty Open findings override"):
+        module._read_p0_audit_status(audit)
+'''
+          if 'test_partial_track_can_bind_explicit_open_finding_subset' in text:
+              raise SystemExit('partial_track_claim_tests_already_present')
+          tests.write_text(text + addition, encoding='utf-8')
+          PY
+          cd Weall-Protocol
+          ruff format scripts/gen_current_verified_claims.py tests/test_current_verified_claims_fail_closed.py
+          ruff check scripts/gen_current_verified_claims.py tests/test_current_verified_claims_fail_closed.py
+          pytest -q tests/test_current_verified_claims_fail_closed.py
+
+      - name: Remove one-shot helper before generation
+        run: |
+          git rm .github/workflows/p0-ledger-truth-reconcile-once-20261005.yml
+
+      - name: Regenerate same-tree claims and V2 evidence
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_current_verified_claims.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+
+      - name: Assert remaining P0 truth
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path('generated/current_verified_claims.json').read_text())
+          row = next(row for row in payload['claims'] if row['claim_id'] == 'AUDIT-P0-001')
+          value = row['value']
+          assert value['open_track_ids'] == ['P0-06', 'P0-10'], value
+          assert value['open_high_finding_ids'] == ['A08-F001', 'A15-F001', 'A15-F002', 'A20-F001'], value
+          assert 'P0-07' in value['closed_track_ids'], value
+          assert 'P0-11' in value['closed_track_ids'], value
+          assert value['stronger_release_claims_blocked'] is True, value
+          print('OK: claims expose only P0-06 and P0-10 / A08-F001 A15-F001 A15-F002 A20-F001')
+          PY
+
+      - name: Validate helper-free candidate
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          python tests/p0_assurance.py gate --report artifacts/p0-assurance/p0_assurance_report.json --timeout-seconds 120
+
+      - name: Commit helper-free candidate
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'docs: reconcile remaining P0 truth and evidence'
+          echo "candidate_sha=$(git rev-parse HEAD)"
+          echo "candidate_tree=$(git rev-parse HEAD^{tree})"
+
+      - name: Verify exact committed clean checkout
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          test ! -e ../.github/workflows/p0-ledger-truth-reconcile-once-20261005.yml
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          git diff --exit-code
+
+      - name: Push exact verified candidate
+        run: git push origin HEAD:p0-03-production-closure-staging-20261001
