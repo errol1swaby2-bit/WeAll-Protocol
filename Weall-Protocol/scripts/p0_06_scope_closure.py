@@ -32,19 +32,19 @@ replace_once(
     state_rel,
     "MAX_USER_FACING_POH_TIER = 2\n",
     "MAX_USER_FACING_POH_TIER = 2\n\n"
-    "POH_HUMAN_AUTHORITY_MODE_COMPATIBILITY = \"compatibility\"\n"
-    "POH_HUMAN_AUTHORITY_MODE_SCOPE_CLOSED = \"scope_closed_pending_uniqueness_entropy\"\n\n\n"
+    'POH_HUMAN_AUTHORITY_MODE_COMPATIBILITY = "compatibility"\n'
+    'POH_HUMAN_AUTHORITY_MODE_SCOPE_CLOSED = "scope_closed_pending_uniqueness_entropy"\n\n\n'
     "def poh_human_authority_mode(state: Json) -> str:\n"
-    "    \"\"\"Return the chain-committed new-human-authority mode.\n\n"
+    '    """Return the chain-committed new-human-authority mode.\n\n'
     "    Historical/dev chains default to compatibility.  The canonical production\n"
     "    genesis explicitly commits the scope-closed mode until a separately reviewed\n"
     "    global uniqueness authority and post-commit unpredictable reviewer entropy\n"
     "    protocol are implemented.\n"
-    "    \"\"\"\n\n"
-    "    params = state.get(\"params\") if isinstance(state, dict) else None\n"
+    '    """\n\n'
+    '    params = state.get("params") if isinstance(state, dict) else None\n'
     "    params = params if isinstance(params, dict) else {}\n"
-    "    poh = params.get(\"poh\") if isinstance(params.get(\"poh\"), dict) else {}\n"
-    "    mode = _as_str(poh.get(\"human_authority_mode\") or \"\").lower()\n"
+    '    poh = params.get("poh") if isinstance(params.get("poh"), dict) else {}\n'
+    '    mode = _as_str(poh.get("human_authority_mode") or "").lower()\n'
     "    if mode == POH_HUMAN_AUTHORITY_MODE_SCOPE_CLOSED:\n"
     "        return POH_HUMAN_AUTHORITY_MODE_SCOPE_CLOSED\n"
     "    return POH_HUMAN_AUTHORITY_MODE_COMPATIBILITY\n\n\n"
@@ -67,35 +67,35 @@ replace_once(
     "Json = dict[str, Any]\n\n"
     "_P0_06_SCOPE_CLOSED_AUTHORITY_TX_TYPES: frozenset[str] = frozenset(\n"
     "    {\n"
-    "        \"POH_APPLICATION_SUBMIT\",\n"
-    "        \"POH_ASYNC_REQUEST_OPEN\",\n"
-    "        \"POH_ASYNC_EVIDENCE_DECLARE\",\n"
-    "        \"POH_ASYNC_EVIDENCE_BIND\",\n"
-    "        \"POH_ASYNC_JUROR_ASSIGN\",\n"
-    "        \"POH_ASYNC_JUROR_ACCEPT\",\n"
-    "        \"POH_ASYNC_JUROR_DECLINE\",\n"
-    "        \"POH_ASYNC_REVIEW_SUBMIT\",\n"
-    "        \"POH_ASYNC_FINALIZE\",\n"
-    "        \"POH_ASYNC_RECEIPT\",\n"
-    "        \"POH_TIER_SET\",\n"
-    "        \"POH_BOOTSTRAP_TIER2_GRANT\",\n"
-    "        \"POH_TIER2_REQUEST_OPEN\",\n"
-    "        \"POH_TIER2_JUROR_ASSIGN\",\n"
-    "        \"POH_TIER2_JUROR_ACCEPT\",\n"
-    "        \"POH_TIER2_JUROR_DECLINE\",\n"
-    "        \"POH_TIER2_REVIEW_SUBMIT\",\n"
-    "        \"POH_TIER2_FINALIZE\",\n"
-    "        \"POH_TIER2_RECEIPT\",\n"
-    "        \"POH_LIVE_REQUEST_OPEN\",\n"
-    "        \"POH_LIVE_SESSION_INIT\",\n"
-    "        \"POH_LIVE_JUROR_ASSIGN\",\n"
-    "        \"POH_LIVE_JUROR_ACCEPT\",\n"
-    "        \"POH_LIVE_JUROR_DECLINE\",\n"
-    "        \"POH_LIVE_JUROR_REPLACE\",\n"
-    "        \"POH_LIVE_ATTENDANCE_MARK\",\n"
-    "        \"POH_LIVE_VERDICT_SUBMIT\",\n"
-    "        \"POH_LIVE_FINALIZE\",\n"
-    "        \"POH_LIVE_RECEIPT\",\n"
+    '        "POH_APPLICATION_SUBMIT",\n'
+    '        "POH_ASYNC_REQUEST_OPEN",\n'
+    '        "POH_ASYNC_EVIDENCE_DECLARE",\n'
+    '        "POH_ASYNC_EVIDENCE_BIND",\n'
+    '        "POH_ASYNC_JUROR_ASSIGN",\n'
+    '        "POH_ASYNC_JUROR_ACCEPT",\n'
+    '        "POH_ASYNC_JUROR_DECLINE",\n'
+    '        "POH_ASYNC_REVIEW_SUBMIT",\n'
+    '        "POH_ASYNC_FINALIZE",\n'
+    '        "POH_ASYNC_RECEIPT",\n'
+    '        "POH_TIER_SET",\n'
+    '        "POH_BOOTSTRAP_TIER2_GRANT",\n'
+    '        "POH_TIER2_REQUEST_OPEN",\n'
+    '        "POH_TIER2_JUROR_ASSIGN",\n'
+    '        "POH_TIER2_JUROR_ACCEPT",\n'
+    '        "POH_TIER2_JUROR_DECLINE",\n'
+    '        "POH_TIER2_REVIEW_SUBMIT",\n'
+    '        "POH_TIER2_FINALIZE",\n'
+    '        "POH_TIER2_RECEIPT",\n'
+    '        "POH_LIVE_REQUEST_OPEN",\n'
+    '        "POH_LIVE_SESSION_INIT",\n'
+    '        "POH_LIVE_JUROR_ASSIGN",\n'
+    '        "POH_LIVE_JUROR_ACCEPT",\n'
+    '        "POH_LIVE_JUROR_DECLINE",\n'
+    '        "POH_LIVE_JUROR_REPLACE",\n'
+    '        "POH_LIVE_ATTENDANCE_MARK",\n'
+    '        "POH_LIVE_VERDICT_SUBMIT",\n'
+    '        "POH_LIVE_FINALIZE",\n'
+    '        "POH_LIVE_RECEIPT",\n'
     "    }\n"
     ")\n\n"
     "_COMMITMENT_RE = re.compile(\n",
@@ -105,9 +105,9 @@ replace_once(
     "    acct = _require_registered_account(state, account_id)\n    duplicate_identity = _active_duplicate_identity_record(state, account_id)\n",
     "    if poh_human_authority_scope_closed(state):\n"
     "        raise ApplyError(\n"
-    "            \"forbidden\",\n"
-    "            \"poh_human_authority_scope_closed\",\n"
-    "            {\"account_id\": account_id, \"mode\": poh_human_authority_mode(state)},\n"
+    '            "forbidden",\n'
+    '            "poh_human_authority_scope_closed",\n'
+    '            {"account_id": account_id, "mode": poh_human_authority_mode(state)},\n'
     "        )\n"
     "    acct = _require_registered_account(state, account_id)\n"
     "    duplicate_identity = _active_duplicate_identity_record(state, account_id)\n",
@@ -119,9 +119,9 @@ replace_once(
     "    t = _tx_type(env)\n\n"
     "    if poh_human_authority_scope_closed(state) and t in _P0_06_SCOPE_CLOSED_AUTHORITY_TX_TYPES:\n"
     "        raise ApplyError(\n"
-    "            \"forbidden\",\n"
-    "            \"poh_human_authority_scope_closed\",\n"
-    "            {\"tx_type\": t, \"mode\": poh_human_authority_mode(state)},\n"
+    '            "forbidden",\n'
+    '            "poh_human_authority_scope_closed",\n'
+    '            {"tx_type": t, "mode": poh_human_authority_mode(state)},\n'
     "        )\n\n",
 )
 
@@ -137,7 +137,7 @@ for rel, import_anchor, body_anchor in (
     (
         "Weall-Protocol/src/weall/runtime/poh/tier2_scheduler.py",
         "from weall.runtime.reputation_units import threshold_to_units\n",
-        "    enq = 0\n\n    n_jurors = max(1, _param_int(state, \"tier2_n_jurors\", DEFAULT_TIER2_N_JURORS))\n",
+        '    enq = 0\n\n    n_jurors = max(1, _param_int(state, "tier2_n_jurors", DEFAULT_TIER2_N_JURORS))\n',
     ),
     (
         "Weall-Protocol/src/weall/runtime/poh/live_scheduler.py",
@@ -155,7 +155,7 @@ for rel, import_anchor, body_anchor in (
             "    if poh_human_authority_scope_closed(state):\n"
             "        return 0\n\n"
             "    enq = 0\n\n"
-            "    n_jurors = max(1, _param_int(state, \"tier2_n_jurors\", DEFAULT_TIER2_N_JURORS))\n"
+            '    n_jurors = max(1, _param_int(state, "tier2_n_jurors", DEFAULT_TIER2_N_JURORS))\n'
         )
     elif "async_scheduler.py" in rel:
         replacement = (
@@ -179,17 +179,17 @@ for rel, import_anchor, body_anchor in (
 gen_rel = "Weall-Protocol/scripts/build_production_genesis_manifest.py"
 replace_once(
     gen_rel,
-    "            \"poh\": {\n                \"live_partial_panels_enabled\": True,\n",
-    "            \"poh\": {\n"
-    "                \"human_authority_mode\": \"scope_closed_pending_uniqueness_entropy\",\n"
-    "                \"live_partial_panels_enabled\": True,\n",
+    '            "poh": {\n                "live_partial_panels_enabled": True,\n',
+    '            "poh": {\n'
+    '                "human_authority_mode": "scope_closed_pending_uniqueness_entropy",\n'
+    '                "live_partial_panels_enabled": True,\n',
 )
 
 # 5) Focused regression matrix.
 test_rel = "Weall-Protocol/tests/test_p0_06_production_scope_closure.py"
 write(
     test_rel,
-    '''from __future__ import annotations
+    """from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -325,15 +325,15 @@ def test_checked_production_genesis_commits_scope_closed_mode_and_only_bootstrap
     grant = ledger["poh"]["bootstrap_grants"]["by_id"]
     assert len(grant) == 1
     assert next(iter(grant.values()))["transitional"] is True
-''',
+""",
 )
 
 # 6) Bind scope closure into the existing P0 mutation gate.
 assurance_rel = "Weall-Protocol/tests/p0_assurance.py"
-anchor = '''    MutationSpec(
+anchor = """    MutationSpec(
         mutation_id="P0-07-PRODUCTION-CHAIN-MODE",
-'''
-insert = '''    MutationSpec(
+"""
+insert = """    MutationSpec(
         mutation_id="P0-06-PRODUCTION-AUTHORITY-SCOPE",
         track="P0-06",
         description="Bypass the canonical production PoH human-authority scope lock.",
@@ -359,7 +359,7 @@ insert = '''    MutationSpec(
         ),
         tests=("tests/test_p0_06_production_scope_closure.py",),
     ),
-'''
+"""
 replace_once(assurance_rel, anchor, insert + anchor)
 
 # 7) Same-tree audit truth.  This explicitly records scope closure and does not
