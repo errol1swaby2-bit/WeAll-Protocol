@@ -88,9 +88,11 @@ jobs:
           python scripts/refresh_v2_semantic_reviews.py \
             --reviewer "WeAll maintainer (AI-assisted P0-06 scope review; independent launch review deferred)" \
             --review-method "bounded_p0_06_scope_closure_review_with_regression_and_mutation_evidence" \
-            --authority-effect "Canonical production positive PoH human-authority paths are disabled pending separately reviewed uniqueness/privacy/adjudication and post-commit unpredictable reviewer-entropy protocols; this review does not claim those primitives are implemented." \
+            --authority-effect "The shared PoH dispatcher now fail-closes canonical production positive human-authority creation/advancement pending separately reviewed uniqueness/privacy/adjudication and post-commit unpredictable reviewer entropy; challenge/revocation and deletion-attestation paths remain available. This review does not claim those missing primitives are implemented." \
             --register-failure forbidden:poh_human_authority_scope_closed \
             --tx-type POH_APPLICATION_SUBMIT \
+            --tx-type POH_EVIDENCE_DECLARE \
+            --tx-type POH_EVIDENCE_BIND \
             --tx-type POH_ASYNC_REQUEST_OPEN \
             --tx-type POH_ASYNC_EVIDENCE_DECLARE \
             --tx-type POH_ASYNC_EVIDENCE_BIND \
@@ -100,8 +102,11 @@ jobs:
             --tx-type POH_ASYNC_REVIEW_SUBMIT \
             --tx-type POH_ASYNC_FINALIZE \
             --tx-type POH_ASYNC_RECEIPT \
+            --tx-type POH_TIER_REVOKE \
             --tx-type POH_TIER_SET \
             --tx-type POH_BOOTSTRAP_TIER2_GRANT \
+            --tx-type POH_CHALLENGE_OPEN \
+            --tx-type POH_CHALLENGE_RESOLVE \
             --tx-type POH_TIER2_REQUEST_OPEN \
             --tx-type POH_TIER2_JUROR_ASSIGN \
             --tx-type POH_TIER2_JUROR_ACCEPT \
