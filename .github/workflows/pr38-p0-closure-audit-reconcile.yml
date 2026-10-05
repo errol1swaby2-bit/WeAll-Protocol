@@ -156,8 +156,7 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          p = json.loads(Path("/tmp/p0_assurance_report.json").read_text())
-          summary = p.get("summary", {})
+          summary = json.loads(Path("/tmp/p0_assurance_report.json").read_text())
           assert summary.get("non_equivalent_total") == 15, summary
           assert summary.get("killed") == 15, summary
           assert summary.get("survived") == [], summary
