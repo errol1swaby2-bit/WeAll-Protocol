@@ -101,6 +101,24 @@ MUTATIONS: tuple[MutationSpec, ...] = (
         ),
     ),
     MutationSpec(
+        mutation_id="P0-04-DURABLE-RECEIPT-BINDING",
+        track="P0-04",
+        description="Persist a received block without complete receipt/body commitment validation.",
+        edits=(
+            _edit(
+                "src/weall/runtime/block_commit.py",
+                "        block2, _binding = ensure_complete_block_commitments(\n"
+                "            block=block,\n"
+                "            chain_id=str(self.chain_id),\n"
+                "        )\n",
+                "        block2, _binding = dict(block), None\n",
+            ),
+        ),
+        tests=(
+            "tests/test_p0_a01_a20_closure_regressions.py::test_durable_commit_rejects_unbound_received_receipt_body",
+        ),
+    ),
+    MutationSpec(
         mutation_id="P0-05-MUTUAL-AUTH-ACK",
         track="P0-05",
         description="Stop signing identity-bound hello acknowledgements when identity is required.",
@@ -268,6 +286,32 @@ MUTATIONS: tuple[MutationSpec, ...] = (
                 "src/weall/runtime/account_registration_work.py",
                 '        str(env.signer or "").strip(),\n        int(env.nonce),\n',
                 '        "",\n        0,\n',
+            ),
+        ),
+        tests=("tests/test_a15_f003_account_registration_scarcity.py",),
+    ),
+    MutationSpec(
+        mutation_id="P0-10-ACCOUNT-WORK-REQUIRED",
+        track="P0-10",
+        description="Bypass account-registration proof-of-work verification entirely.",
+        edits=(
+            _edit(
+                "src/weall/runtime/account_registration_work.py",
+                "    policy = account_registration_work_policy(state)\n",
+                '    return True, "", {}\n\n    policy = account_registration_work_policy(state)\n',
+            ),
+        ),
+        tests=("tests/test_a15_f003_account_registration_scarcity.py",),
+    ),
+    MutationSpec(
+        mutation_id="P0-10-ACCOUNT-WORK-PRODUCTION-FLOOR",
+        track="P0-10",
+        description="Reduce the production account-registration work floor to one bit.",
+        edits=(
+            _edit(
+                "src/weall/runtime/account_registration_work.py",
+                "ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS = 16\n",
+                "ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS = 1\n",
             ),
         ),
         tests=("tests/test_a15_f003_account_registration_scarcity.py",),
