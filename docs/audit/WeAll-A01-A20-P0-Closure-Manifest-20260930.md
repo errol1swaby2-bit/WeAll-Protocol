@@ -50,7 +50,7 @@ Closure condition: Use session-bound mutual peer authentication with anti-replay
 
 Findings: `A08-F001`, `A20-F001`
 
-Closure condition: Define/enforce a protocol-level uniqueness authority and remove applicant-controlled entropy from reviewer selection (commit/reveal or protocol-assigned unpredictable selection input), with Sybil/collusion/grinding tests.
+Closure condition: Either (a) define/enforce a protocol-level uniqueness authority and post-commit unpredictable reviewer-selection input with Sybil/collusion/grinding evidence, or (b) make an explicit reviewed production-scope decision that renders positive human-authority creation/advancement and its reviewer schedulers unreachable until those primitives exist, with adversarial evidence that the scope lock is consensus-visible and non-bypassable.
 
 ### P0-07 — Governance electorate, proposal immutability, and constitutional authority
 

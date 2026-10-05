@@ -29,7 +29,7 @@ This document is deliberately stricter than a normal PR checklist. A runtime pat
 | P0-08 Economics activation / treasury governance binding | A10-F001, A10-F002, A10-F005 | CLOSED — PATCHED AND PROVEN | Locked economics cannot schedule value execution; production enablement runs readiness preconditions; group treasury requires governance approval bound to the immutable spend plan; approved queue-to-apply value movement is one-shot across restart/replay and mutation is rejected. |
 | P0-09 PoH API authorization/privacy | A12-F001, A18-F002 | CLOSED — PATCHED AND PROVEN | All six scoped account/juror queues and Tier-2/Live full-case reads are session/principal or participant bound. Anonymous, wrong-principal, and authorized runtime matrices pass, and all protected surfaces are represented by current generated auth/privacy vectors executed against runtime truth. |
 | P0-10 Bounded production state / state sync / permanent account state | A15-F001..F003 | CLOSED — PATCHED AND PROVEN | A15-F001 bounds root-visible live ancestry to a consensus-committed ceiling with a rolling checkpoint commitment; restart, proposer/follower equality, fork-choice/HotStuff finality and state-sync verification cross the compaction boundary. Synthetic steady-state evidence at 100k/1M/5M heights retains exactly 10,000 live ancestry records while measuring state size, deepcopy, state-root/replay-root, durable serialization/write, restart parse, RSS and per-block compaction. A15-F002 uses finite wire-derived response caps, cheap trusted-anchor/range preflight before state materialization, and a global/per-peer bounded off-loop worker with bounded result drain; 10/100/500 MiB synthetic state requests remain response-capped, concurrent accepted work is globally bounded, excess requests fail `sync_busy`, and BFT routing remains independently serviceable under saturated sync work. A15-F003 remains closed by finite nonzero identity-bound registration work without claiming human uniqueness or a lifetime account cap. |
-| P0-11 Property/mutation gate | A16-F001 | CLOSED — PATCHED AND PROVEN | A deterministic P0 assurance framework is locked into Backend CI with fixed reviewable property seeds, lifecycle-focused property tests, explicit P0 mutation operators, a survivor artifact, and a fail-closed gate. On the exact current tree all 13 non-equivalent P0 mutants are killed, with zero survivors and zero invalid mutations; the normal Backend CI independently passes this gate before the full pytest suite. |
+| P0-11 Property/mutation gate | A16-F001 | CLOSED — PATCHED AND PROVEN | A deterministic P0 assurance framework is locked into Backend CI with fixed reviewable property seeds, lifecycle-focused property tests, explicit P0 mutation operators, a survivor artifact, and a fail-closed gate. The exact-head P0 assurance gate kills all 15 non-equivalent P0 mutants, with zero survivors and zero invalid mutations; the normal Backend CI independently passes this gate before the full pytest suite. |
 | P0-12 Claim/evidence truth binding | A18-F001, A18-F002 | CLOSED — PATCHED AND PROVEN | Current claim generation consumes the canonical same-tree A01–A20 P0 closure ledger, enumerates open HIGH/P0 tracks and findings, hashes the ledger as a required generation input, and fails closed if any release claim boundary is enabled while a P0 track remains open. Dedicated malformed/missing-track and claim-promotion regressions pass. |
 
 
@@ -53,20 +53,24 @@ The A15-F003 closure changed permanent-account admission and public-testnet chai
 
 The initial P0-11 mutation run killed 12 of 13 non-equivalent mutants and correctly blocked closure on `P0-08-ECON-ACTIVATION-PRECONDITIONS`. The runtime already had a negative activation-precondition regression; the mutant's selected test set omitted it. The gate was strengthened to include that existing regression. The helper-free exact tree then killed 13/13 non-equivalent mutants, and normal Backend CI independently passed the same assurance gate before the full pytest suite.
 
-## Current exact-head evidence
+## Reference exact-head evidence and final-head binding
 
-The current exact validation tree is `cf1f2cb78498de2744d1f842b5bde938b63ba7bc`, exposed by user-authored same-tree trigger commit `2d99924884038f4cc11f3d1e41209378492b042a` after the helper-free P0 assurance candidate `38060e1d37defc2dfda14f92ee5973a597ce4aa0`.
+The last workflow-free runtime/evidence candidate before this audit-ledger reconciliation was commit `cf9d36cb101f8211dd1bcac1a0975dbcc724a01f`, Git tree `beb93ce2f78ad60e03ead35383dd17be3a839e5a`.
 
-On that exact tree:
+On that candidate:
 
-- Backend CI is green, including Ruff, dependency audit, canon lint, generated-artifact checks, historical-evidence restoration, the P0 property/mutation assurance gate, full pytest, and transaction-coverage report generation/upload;
-- Reviewer Readiness Gate is green;
-- Web CI is green;
-- Secrets Guard is green;
-- the P0 assurance gate kills 13/13 non-equivalent mutants with zero survivors and zero invalid mutations;
-- the helper workflows used to repair the final survivor are absent from the permanent tree.
+- Backend CI was green, including Ruff, dependency audit, canon lint, generated-artifact checks, historical-evidence restoration, the P0 property/mutation assurance gate, full pytest, and transaction-coverage report generation/upload;
+- Reviewer Readiness Gate was green;
+- Web CI was green;
+- Secrets Guard was green;
+- the normal Backend CI P0 assurance gate killed **15/15** non-equivalent mutants with zero survivors and zero invalid mutations;
+- the normal Backend CI full suite completed with **4,743 passed, 1 skipped**;
+- the workflow-free pre-push finalizer independently ran the exact candidate through generated/public-claim checks and a full backend suite with **4,744 passed** before push;
+- all temporary PR38 remediation workflows were absent from the candidate tree.
 
-These exact-head passes prove the pre-P0-06 source/evidence tree. P0-10 A15-F001/F002 are closed by the bounded-history/state-sync architecture plus the dedicated long-height/large-state proof run. P0-06 is scope-closed on the successor candidate only after its focused regressions, expanded P0 assurance gate, generated-artifact checks, full backend/web suites, and exact-head normal PR gates are green.
+This reference candidate proves the runtime and generated-evidence closure used by the final P0 audit reconciliation, including the P0-06 production human-authority scope lock. The reconciliation itself changes audit truth text and regenerated claim/spec derivatives, not the closed runtime invariants.
+
+A tracked Git object cannot stably embed the commit SHA or Git tree hash of the commit that contains that same object: changing the embedded identifier changes the object and therefore changes the identifier. For that reason, this ledger intentionally does **not** label an embedded SHA as its own final head. The final exact PR commit SHA and Git tree are recorded in PR #38 metadata after the workflow-free reconciled tree passes the normal Backend CI, Reviewer Readiness, Web CI, and Secrets Guard gates. This ledger remains a required hashed input to current claim generation, so final same-tree claim/spec validation still fails closed if the ledger and generated evidence diverge.
 
 ## Merge / closure prohibition
 
@@ -80,8 +84,8 @@ PR #38 remains the single canonical closure PR and MUST NOT be represented as fu
 6. Public claim/evidence artifacts still assert capabilities contradicted by an open same-tree finding.
 7. Final closure evidence does not record the exact final commit SHA and Git tree.
 
-## Next implementation order
+## Post-closure implementation boundary
 
-1. Prove the P0-06 production scope closure on an exact workflow-free tree without claiming the missing uniqueness/randomness primitives.
-2. Capture the final closure SHA/tree, regenerate final same-tree public evidence, and require all four normal exact-head gates plus the expanded P0 assurance gate to remain green.
-3. Treat any future re-enablement of production PoH human authority as a new protocol feature requiring a separately reviewed uniqueness/privacy/adjudication design and post-commit unpredictable reviewer-entropy design before activation.
+1. Keep production positive PoH human-authority creation/advancement scope-closed while the uniqueness/privacy/adjudication and post-commit unpredictable reviewer-entropy protocols remain undefined or unproven.
+2. Treat any future re-enablement of production PoH human authority as a new protocol feature requiring separate reviewed design, adversarial/restart/state-sync evidence, generated-artifact refresh, and exact-head normal CI before activation.
+3. Preserve the final exact reconciled commit SHA and Git tree in PR #38 metadata after all normal gates pass; do not weaken public-beta/mainnet/launch claim boundaries merely because the P0 repository closure is complete.
