@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "2ef6d33fb16346a40e65b4ec6bc664388516c72860b8753c8d87beffeeb02092"
+    "source_tree_digest": "06e3e48db16ec02233409465ed2074b55dd8f29deb2ad71bebd4c454b9ae0715"
   },
   "required_fields": [
     "stable_id",
@@ -7038,6 +7038,7 @@
         "tests/p0/test_p0_mempool_and_admission_invariants.py",
         "tests/p0/test_p0_system_receipts_and_invariants.py",
         "tests/p0/test_p1_cons003_future_validator_epochs.py",
+        "tests/p0_assurance.py",
         "tests/prod/public_seed_test_helpers.py",
         "tests/prod/test_clean_clone_go_gate_venv.py",
         "tests/prod/test_clean_observer_boot_from_checked_in_registry.py",
@@ -7601,6 +7602,7 @@
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
@@ -8290,6 +8292,7 @@
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
         "tests/p0/test_p1_cons003_future_validator_epochs.py",
+        "tests/p0_assurance.py",
         "tests/prod/test_clean_observer_boot_from_checked_in_registry.py",
         "tests/prod/test_external_cross_machine_replay_transcript_capture.py",
         "tests/prod/test_external_evidence_transcript_gates.py",
@@ -8494,6 +8497,7 @@
         "tests/test_p0_claim_audit_binding.py",
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
         "tests/test_p1_group001_scoped_reference_authority.py",

@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1990,
+  "file_count": 1992,
   "files": [
     {
       "affected_registers": [
@@ -56,7 +56,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
+      "sha256": "ab290894d8566a843c780b5a3f44be55b980581411a69fdd753b643c3d59012c",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -12595,6 +12595,21 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/p0_assurance.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "58d5846f7ea565b2299bf7d51d8feab6e320a039fd320707687a831383d5b061",
+      "source_id": "SRC-AA6DA9828EBC4008"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
         "ROUTE-150316944D629C32"
       ],
       "path": "tests/prod/public_seed_test_helpers.py",
@@ -22237,6 +22252,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d29605cafcecc81d0d5b6524fb5ac2dd4329e07ad0d8547fd98fe2a76de0a5e9",
       "source_id": "SRC-3D23102E1896FA0F"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0001"
+      ],
+      "path": "tests/test_p0_property_invariants.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "0676d9e2a816d0b49b1b44d8556d975a19c2f245771a5ac9357514cf2bf9246b",
+      "source_id": "SRC-F812BBD65EAE2E84"
     },
     {
       "affected_registers": [
