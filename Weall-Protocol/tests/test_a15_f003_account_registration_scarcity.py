@@ -5,14 +5,18 @@ from pathlib import Path
 
 import pytest
 
+from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.account_registration_work import (
+    ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS,
     ACCOUNT_REGISTRATION_WORK_VERSION,
     account_registration_work_digest,
     account_registration_work_policy,
     leading_zero_bits,
     verify_account_registration_work,
 )
+from weall.runtime.executor import WeAllExecutor
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -38,8 +42,10 @@ def _env(*, signer: str = "@alice", nonce: int = 1, pubkey: str = "pk-a") -> TxE
 
 
 def _state(bits: int = 8) -> dict:
+    # Low difficulty is intentionally limited to the non-production test chain.
+    # Production-like chain IDs enforce ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS.
     return {
-        "chain_id": "weall-prod",
+        "chain_id": "weall-test",
         "accounts": {},
         "params": {
             "account_registration_work_required": True,
@@ -62,6 +68,15 @@ def _with_work(env: TxEnvelope, bits: int = 8) -> TxEnvelope:
     raw["payload"]["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
     raw["payload"]["registration_work_nonce"] = nonce
     return TxEnvelope.from_json(raw)
+
+
+def _mk_executor(tmp_path: Path, name: str) -> WeAllExecutor:
+    return WeAllExecutor(
+        db_path=str(tmp_path / f"{name}.db"),
+        node_id=name,
+        chain_id="weall-test",
+        tx_index_path=str(ROOT / "generated" / "tx_index.json"),
+    )
 
 
 def test_historical_policy_absent_remains_replay_compatible() -> None:
@@ -99,6 +114,26 @@ def test_required_policy_fails_closed_when_invalid(params: dict, reason: str) ->
     ok, got, _ = verify_account_registration_work({"params": params}, _env())
     assert ok is False
     assert got == reason
+
+
+def test_production_policy_rejects_weak_nonzero_work() -> None:
+    weak_bits = ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS - 1
+    state = {
+        "chain_id": "weall-prod",
+        "params": {
+            "account_registration_work_required": True,
+            "account_registration_work_difficulty_bits": weak_bits,
+        },
+    }
+    policy = account_registration_work_policy(state)
+    assert policy.required is True
+    assert policy.valid is False
+    assert policy.reason == "registration_work_difficulty_below_production_minimum"
+
+    ok, reason, meta = verify_account_registration_work(state, _env())
+    assert ok is False
+    assert reason == "registration_work_difficulty_below_production_minimum"
+    assert meta["difficulty_bits"] == weak_bits
 
 
 def test_valid_work_is_bound_to_full_registration_identity() -> None:
@@ -139,12 +174,87 @@ def test_many_signers_cannot_reuse_one_accounts_work() -> None:
     assert accepted == 1
 
 
-def test_checked_in_production_and_testnet_genesis_require_nonzero_work() -> None:
+def test_distributed_fresh_signers_each_pay_work_and_persist_across_restart(
+    tmp_path: Path,
+) -> None:
+    """A15-F003: independent fresh identities cannot create permanent state for free."""
+
+    difficulty_bits = 8
+    account_count = 8
+    executor = _mk_executor(tmp_path, "registration-attack")
+    params = executor.state.setdefault("params", {})
+    params["account_registration_work_required"] = True
+    params["account_registration_work_difficulty_bits"] = difficulty_bits
+
+    signers: list[str] = []
+    solved_nonces: list[int] = []
+    for index in range(account_count):
+        signer = f"@a15acct{index:02d}"
+        signers.append(signer)
+        pubkey, privkey = deterministic_mldsa_keypair(label=signer)
+        unsigned = TxEnvelope.from_json(
+            {
+                "chain_id": executor.chain_id,
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": signer,
+                "nonce": 1,
+                "sig_profile": "pq-mldsa-v1",
+                "payload": {"pubkey": pubkey},
+                "parent": None,
+            }
+        )
+        work_nonce = _solve(unsigned, difficulty_bits)
+        solved_nonces.append(work_nonce)
+        tx = unsigned.to_json()
+        tx["payload"] = dict(tx["payload"])
+        tx["payload"]["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
+        tx["payload"]["registration_work_nonce"] = work_nonce
+        signed = sign_tx_envelope_dict(tx=tx, privkey=privkey.private_bytes_raw().hex())
+        submitted = executor.submit_tx(signed)
+        assert submitted["ok"] is True, submitted
+
+    # The attack model is distributed signers, not one signer reusing a solved
+    # nonce.  Every registration above solved its identity-bound preimage.
+    assert len(solved_nonces) == account_count
+
+    block, state, applied, invalid, error = executor.build_block_candidate(
+        max_txs=account_count + 4,
+        allow_empty=False,
+    )
+    assert error == ""
+    assert isinstance(block, dict)
+    assert isinstance(state, dict)
+    assert len(invalid) == 0
+    receipts = block.get("receipts") or []
+    assert len(receipts) == account_count
+    assert all(bool(receipt.get("ok")) for receipt in receipts)
+
+    committed = executor.commit_block_candidate(
+        block=block,
+        new_state=state,
+        applied_ids=applied,
+        invalid_ids=invalid,
+    )
+    assert committed.ok is True
+    for signer in signers:
+        assert signer in executor.state["accounts"]
+        assert executor.state["accounts"][signer]["nonce"] == 1
+
+    restarted = _mk_executor(tmp_path, "registration-attack")
+    for signer in signers:
+        assert signer in restarted.state["accounts"]
+        assert restarted.state["accounts"][signer]["nonce"] == 1
+
+
+def test_checked_in_production_and_testnet_genesis_require_reviewed_work_floor() -> None:
     for relative in ("configs/genesis.ledger.prod.json", "configs/genesis.ledger.testnet-v1.json"):
         state = json.loads((ROOT / relative).read_text(encoding="utf-8"))
         params = state["params"]
         assert params["account_registration_work_required"] is True
-        assert int(params["account_registration_work_difficulty_bits"]) >= 1
+        assert (
+            int(params["account_registration_work_difficulty_bits"])
+            >= ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS
+        )
         policy = account_registration_work_policy(state)
         assert policy.valid is True
         assert policy.required is True
