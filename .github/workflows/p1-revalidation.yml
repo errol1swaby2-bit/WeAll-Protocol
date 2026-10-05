@@ -72,4 +72,8 @@ jobs:
             tests/test_p1_a07_tls_verification.py \
             tests/test_p1_a12_mempool_redaction.py \
             tests/test_p1_a12_observer_operator_loopback_auth.py \
-            tests/test_crypto_signature_profiles.py
+            tests/test_crypto_signature_profiles.py \
+            tests/test_tx_signature_profile_admission.py \
+            tests/test_block_signature_profiles.py \
+            tests/test_validator_operator_signature_profiles.py \
+            tests/prod/test_public_testnet_crypto_profile_gate.py
