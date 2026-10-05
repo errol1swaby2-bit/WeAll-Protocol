@@ -89,24 +89,24 @@ jobs:
           path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
           PY
 
-      - name: Teach claims generator scope-closed audit status
+      - name: Repair demonstrated full-suite compatibility callers
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           python - <<'PY'
           from pathlib import Path
 
-          path = Path("scripts/gen_current_verified_claims.py")
-          text = path.read_text(encoding="utf-8")
-
+          claims_path = Path("scripts/gen_current_verified_claims.py")
+          claims = claims_path.read_text(encoding="utf-8")
           replacements = [
               (
                   'AUDIT_CLOSED_STATUS = "CLOSED — PATCHED AND PROVEN"\n'
                   'AUDIT_TRACK_IDS = tuple(f"P0-{index:02d}" for index in range(1, 13))\n'
                   'AUDIT_ALLOWED_STATUSES = {\n'
                   '    AUDIT_CLOSED_STATUS,',
+                  'AUDIT_CLOSED_STATUS = "CLOSED — PATCHED AND PROVEN"\n'
                   'AUDIT_CLOSED_STATUSES = {\n'
-                  '    "CLOSED — PATCHED AND PROVEN",\n'
+                  '    AUDIT_CLOSED_STATUS,\n'
                   '    "CLOSED — SCOPE-CLOSED AND PROVEN",\n'
                   '}\n'
                   'AUDIT_TRACK_IDS = tuple(f"P0-{index:02d}" for index in range(1, 13))\n'
@@ -122,42 +122,47 @@ jobs:
                   '        if tracks[track_id]["status"] not in AUDIT_CLOSED_STATUSES\n',
               ),
           ]
-
           for old, new in replacements:
+              count = claims.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one claims replacement, found {count}: {old!r}")
+              claims = claims.replace(old, new, 1)
+          claims_path.write_text(claims, encoding="utf-8")
+
+          resolve_paths = [
+              Path("tests/test_adversarial_bft_state_sync_poh_appeal_governance_vectors.py"),
+              Path("tests/test_behavior.py"),
+              Path("tests/test_coverage_behavior.py"),
+              Path("scripts/gen_b510_b515_completion_proof_v1_5.py"),
+          ]
+          old = (
+              '            "POH_CHALLENGE_RESOLVE",\n'
+              '            signer="reviewer",\n'
+              '            nonce=2,\n'
+          )
+          new = (
+              '            "POH_CHALLENGE_RESOLVE",\n'
+              '            signer="SYSTEM",\n'
+              '            nonce=2,\n'
+              '            system=True,\n'
+              '            parent="poh:challenge-adjudication",\n'
+          )
+          for path in resolve_paths:
+              text = path.read_text(encoding="utf-8")
               count = text.count(old)
               if count != 1:
-                  raise SystemExit(f"expected exactly one claims-generator replacement, found {count}: {old!r}")
-              text = text.replace(old, new, 1)
+                  raise SystemExit(f"expected one stale PoH resolve caller in {path}, found {count}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
-          path.write_text(text, encoding="utf-8")
+          test_path = Path("tests/test_current_verified_claims_p0_scope_closed_status.py")
+          test_path.write_text(
+              '''from __future__ import annotations\n\nimport sys\nfrom pathlib import Path\n\nSCRIPTS = Path(__file__).resolve().parents[1] / "scripts"\nsys.path.insert(0, str(SCRIPTS))\n\nimport gen_current_verified_claims as claims\n\n\ndef test_scope_closed_p0_status_is_treated_as_closed() -> None:\n    audit = claims._read_p0_audit_status(claims.AUDIT_STATUS)\n\n    assert claims.AUDIT_CLOSED_STATUS == "CLOSED — PATCHED AND PROVEN"\n    assert "CLOSED — SCOPE-CLOSED AND PROVEN" in claims.AUDIT_CLOSED_STATUSES\n    assert audit["tracks"]["P0-06"]["status"] == "CLOSED — SCOPE-CLOSED AND PROVEN"\n    assert audit["tracks"]["P0-06"]["open_findings"] == []\n    assert "P0-06" in audit["closed_track_ids"]\n    assert "P0-06" not in audit["open_track_ids"]\n    assert "A08-F001" not in audit["open_finding_ids"]\n    assert "A20-F001" not in audit["open_finding_ids"]\n''',
+              encoding="utf-8",
+          )
           PY
 
-          cat > tests/test_current_verified_claims_p0_scope_closed_status.py <<'PY'
-          from __future__ import annotations
-
-          import sys
-          from pathlib import Path
-
-          SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
-          sys.path.insert(0, str(SCRIPTS))
-
-          import gen_current_verified_claims as claims
-
-
-          def test_scope_closed_p0_status_is_treated_as_closed() -> None:
-              audit = claims._read_p0_audit_status(claims.AUDIT_STATUS)
-
-              assert "CLOSED — SCOPE-CLOSED AND PROVEN" in claims.AUDIT_CLOSED_STATUSES
-              assert audit["tracks"]["P0-06"]["status"] == "CLOSED — SCOPE-CLOSED AND PROVEN"
-              assert audit["tracks"]["P0-06"]["open_findings"] == []
-              assert "P0-06" in audit["closed_track_ids"]
-              assert "P0-06" not in audit["open_track_ids"]
-              assert "A08-F001" not in audit["open_finding_ids"]
-              assert "A20-F001" not in audit["open_finding_ids"]
-          PY
-
-          python -m py_compile scripts/gen_current_verified_claims.py
-          pytest -q tests/test_current_verified_claims_p0_scope_closed_status.py
+          python -m py_compile scripts/gen_current_verified_claims.py scripts/gen_b510_b515_completion_proof_v1_5.py
+          git -C .. diff --check
 
       - name: Refresh only audited stale transaction semantic bindings
         working-directory: Weall-Protocol
@@ -175,6 +180,19 @@ jobs:
             --reviewer "WeAll Protocol Maintainer PR #38 P0 scope-closure review (AI-assisted); independent launch review deferred" \
             --review-method "p0_scope_closure_semantic_refresh_with_focused_regression_evidence" \
             --authority-effect "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols."
+
+      - name: Refresh source-bound completion proof artifacts
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_b510_b515_completion_proof_v1_5.py --write
+          python scripts/gen_b510_b515_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
 
       - name: Refresh source-derived v1.5 readiness and claims chain
         working-directory: Weall-Protocol
@@ -206,12 +224,28 @@ jobs:
           python scripts/gen_current_verified_claims.py --check
           git -C .. diff --check
 
+      - name: Re-run every previously failing regression before full suite
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          pytest -q \
+            tests/test_adversarial_bft_state_sync_poh_appeal_governance_vectors.py::test_reverification_completion_requires_fresh_successful_poh_finalize \
+            tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py::test_claim_boundaries_and_artifact_freshness \
+            tests/test_behavior.py::test_upheld_poh_challenge_revokes_and_requires_reverification \
+            tests/test_coverage_behavior.py::test_poh_reverification_marks_challenge_reverified \
+            tests/test_coverage_behavior.py::test_completion_artifact_runs_and_preserves_locked_boundaries \
+            tests/test_current_verified_claims_fail_closed.py::test_partial_track_can_bind_explicit_open_finding_subset \
+            tests/test_current_verified_claims_fail_closed.py::test_partial_track_empty_open_finding_override_fails_closed \
+            tests/test_full_node_db_api_dispute_storage_coverage.py::test_b534_freshness_check_is_deterministic_and_live_verification_is_explicit \
+            tests/test_generated_checker_read_only.py::test_b510_check_mode_is_read_only_for_current_artifact \
+            tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py::test_b528_freshness_check_is_deterministic_and_live_verification_is_explicit \
+            tests/test_current_verified_claims_p0_scope_closed_status.py
+
       - name: Focused P0-06 and V2 regressions
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           pytest -q \
-            tests/test_current_verified_claims_p0_scope_closed_status.py \
             tests/test_p0_06_production_scope_closure.py \
             tests/test_p0_06a_duplicate_account_adjudication.py \
             tests/test_poh_async_panel_grinding_regression.py \
@@ -240,6 +274,10 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
+          python scripts/gen_b510_b515_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
 
       - name: Full backend regression suite
         working-directory: Weall-Protocol
