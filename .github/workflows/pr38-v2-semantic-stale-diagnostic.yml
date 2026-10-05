@@ -106,12 +106,16 @@ jobs:
             --review-method "p0_scope_closure_semantic_refresh_with_focused_regression_evidence" \
             --authority-effect "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols."
 
-      - name: Refresh source-derived v1.5 failure registry
+      - name: Refresh source-derived v1.5 readiness chain
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_failure_code_registry_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
 
       - name: Compile V2 last after all source-derived registries
         working-directory: Weall-Protocol
