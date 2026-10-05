@@ -46,6 +46,7 @@ export type SessionHealth = {
 };
 
 const LS_SESSION = "weall_session_v1";
+const SS_SESSION_BEARER = "weall_session_bearer_v1";
 const LS_NONCE_RESERVATION_PREFIX = "weall_nonce_resv_v1::";
 const LS_SIGNER_LOCK_PREFIX = "weall_signer_lock_v1::";
 const SIGNER_LOCK_TTL_MS = 15000;
@@ -136,9 +137,53 @@ function readStoredSessionUnsafe(): Partial<SessionV1> | null {
   try {
     const raw = localStorage.getItem(LS_SESSION);
     if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj || typeof obj !== "object") return null;
-    return obj as Partial<SessionV1>;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const persistent = { ...(parsed as Record<string, unknown>) };
+    const account = normalizeAccount(String(persistent.account || ""));
+    const expiresAtMs = Number(persistent.expiresAtMs || 0);
+    const legacySessionKey = String(persistent.sessionKey || "").trim();
+    delete persistent.sessionKey;
+
+    // A20-F002 migration: scrub any bearer written by older builds from
+    // persistent storage immediately. Preserve it only for the current tab.
+    if (legacySessionKey) {
+      try {
+        localStorage.setItem(LS_SESSION, JSON.stringify(persistent));
+      } catch {
+        // Best effort sanitization; callers still never consume the legacy key
+        // directly from localStorage after this point.
+      }
+      try {
+        sessionStorage.setItem(
+          SS_SESSION_BEARER,
+          JSON.stringify({ version: 1, account, expiresAtMs, sessionKey: legacySessionKey }),
+        );
+      } catch {
+        // Fail closed below: no usable bearer is returned if tab storage fails.
+      }
+    }
+
+    let sessionKey = "";
+    try {
+      const bearerRaw = sessionStorage.getItem(SS_SESSION_BEARER);
+      const bearer = bearerRaw ? JSON.parse(bearerRaw) : null;
+      if (bearer && typeof bearer === "object") {
+        const bearerAccount = normalizeAccount(String(bearer.account || ""));
+        const bearerExpiresAtMs = Number(bearer.expiresAtMs || 0);
+        if (bearerAccount === account && bearerExpiresAtMs === expiresAtMs) {
+          sessionKey = String(bearer.sessionKey || "").trim();
+        }
+      }
+    } catch {
+      sessionKey = "";
+    }
+
+    return {
+      ...(persistent as Partial<SessionV1>),
+      ...(sessionKey ? { sessionKey } : {}),
+    };
   } catch {
     return null;
   }
@@ -244,28 +289,22 @@ export function isWriteSessionReady(account?: string): boolean {
 }
 
 export function getSession(): SessionV1 | null {
-  try {
-    const raw = localStorage.getItem(LS_SESSION);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj || typeof obj !== "object") return null;
-    if (obj.version !== 1) return null;
-    const account = normalizeAccount(String(obj.account || ""));
-    if (!account) return null;
-    const expiresAtMs = Number(obj.expiresAtMs || 0);
-    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= 0) {
-      endSession();
-      return null;
-    }
-    if (Date.now() >= expiresAtMs) {
-      endSession();
-      return null;
-    }
-    const sessionKey = obj.sessionKey ? String(obj.sessionKey) : undefined;
-    return { version: 1, account, expiresAtMs, sessionKey };
-  } catch {
+  const obj = readStoredSessionUnsafe();
+  if (!obj || typeof obj !== "object") return null;
+  if (obj.version !== 1) return null;
+  const account = normalizeAccount(String(obj.account || ""));
+  if (!account) return null;
+  const expiresAtMs = Number(obj.expiresAtMs || 0);
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= 0) {
+    endSession();
     return null;
   }
+  if (Date.now() >= expiresAtMs) {
+    endSession();
+    return null;
+  }
+  const sessionKey = obj.sessionKey ? String(obj.sessionKey) : undefined;
+  return { version: 1, account, expiresAtMs, sessionKey };
 }
 
 export function setSession(s: SessionV1): void {
@@ -273,13 +312,32 @@ export function setSession(s: SessionV1): void {
   const expiresAtMs = Number(s.expiresAtMs || 0);
   if (!account) throw new Error("invalid_session_account");
   if (!Number.isFinite(expiresAtMs) || expiresAtMs <= 0) throw new Error("invalid_session_expiry");
-  const out: SessionV1 = {
+
+  const persistent: SessionV1 = {
     version: 1,
     account,
     expiresAtMs,
-    sessionKey: s.sessionKey ? String(s.sessionKey) : undefined,
   };
-  localStorage.setItem(LS_SESSION, JSON.stringify(out));
+  const sessionKey = s.sessionKey ? String(s.sessionKey).trim() : "";
+
+  if (sessionKey) {
+    try {
+      sessionStorage.setItem(
+        SS_SESSION_BEARER,
+        JSON.stringify({ version: 1, account, expiresAtMs, sessionKey }),
+      );
+    } catch {
+      throw new Error("session_bearer_storage_failed");
+    }
+  } else {
+    try {
+      sessionStorage.removeItem(SS_SESSION_BEARER);
+    } catch {
+      // ignore
+    }
+  }
+
+  localStorage.setItem(LS_SESSION, JSON.stringify(persistent));
 }
 
 function readSessionAccountForCleanup(): string {
@@ -297,6 +355,11 @@ export function endSession(): void {
   const acct = readSessionAccountForCleanup();
   try {
     localStorage.removeItem(LS_SESSION);
+  } catch {
+    // ignore
+  }
+  try {
+    sessionStorage.removeItem(SS_SESSION_BEARER);
   } catch {
     // ignore
   }
