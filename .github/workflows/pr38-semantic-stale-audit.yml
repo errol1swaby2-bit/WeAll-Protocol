@@ -1,0 +1,76 @@
+name: PR38 Semantic Stale Audit
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Enumerate stale transaction semantic bindings without mutation
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import importlib.util
+          import json
+          from pathlib import Path
+
+          root = Path.cwd()
+          script = root / "scripts" / "refresh_v2_semantic_reviews.py"
+          spec = importlib.util.spec_from_file_location("refresh_v2_semantic_reviews", script)
+          if spec is None or spec.loader is None:
+              raise SystemExit("unable to load refresh_v2_semantic_reviews.py")
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+
+          _compiler, validation, tx_rows = mod._derive_transaction_rows()
+          reviews = json.loads((root / "specs" / "v2" / "source" / "semantic_reviews.json").read_text(encoding="utf-8"))
+          review_by_type = {
+              str(row.get("tx_type") or ""): row
+              for row in reviews.get("transactions", [])
+              if isinstance(row, dict)
+          }
+
+          stale = []
+          for row in tx_rows:
+              tx_type = str(row.get("tx_type") or "")
+              if not tx_type or tx_type not in review_by_type:
+                  continue
+              current = validation.compact_digest(validation.tx_review_material(row))
+              persisted = str(review_by_type[tx_type].get("review_digest") or "")
+              if current != persisted:
+                  stale.append((tx_type, persisted, current))
+
+          print(f"STALE_TRANSACTION_COUNT={len(stale)}")
+          for tx_type, old, new in sorted(stale):
+              print(f"STALE_TX={tx_type}")
+              print(f"  OLD={old}")
+              print(f"  NEW={new}")
+
+          if not stale:
+              print("No stale transaction semantic bindings.")
+          PY
