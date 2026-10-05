@@ -7,6 +7,7 @@ import pytest
 
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.account_registration_work import (
+    ACCOUNT_REGISTRATION_PRODUCTION_MAX_ACCOUNTS,
     ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS,
     ACCOUNT_REGISTRATION_WORK_VERSION,
     account_registration_work_digest,
@@ -22,6 +23,7 @@ from weall.tx.canon import TxIndex
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEWED_PRODUCTION_WORK_FLOOR_BITS = 16
+REVIEWED_PRODUCTION_MAX_ACCOUNTS = 10_000
 
 
 def _env(*, signer: str = "@alice", nonce: int = 1, pubkey: str = "pk-a") -> TxEnvelope:
@@ -46,7 +48,7 @@ def _env(*, signer: str = "@alice", nonce: int = 1, pubkey: str = "pk-a") -> TxE
 
 def _state(bits: int = 8) -> dict:
     # Low difficulty is intentionally limited to the non-production test chain.
-    # Production-like chain IDs enforce ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS.
+    # Production-like chain IDs enforce the reviewed work/cardinality policy.
     return {
         "chain_id": "weall-test",
         "accounts": {},
@@ -83,10 +85,12 @@ def _mk_executor(tmp_path: Path, name: str) -> WeAllExecutor:
 
 
 def test_historical_policy_absent_remains_replay_compatible() -> None:
-    policy = account_registration_work_policy({"params": {}})
+    state = {"accounts": {}, "params": {}}
+    policy = account_registration_work_policy(state)
     assert policy.valid is True
     assert policy.required is False
-    ok, reason, _ = verify_account_registration_work({"params": {}}, _env())
+    assert policy.max_accounts == 0
+    ok, reason, _ = verify_account_registration_work(state, _env())
     assert ok is True
     assert reason == ""
 
@@ -138,6 +142,64 @@ def test_production_policy_rejects_weak_nonzero_work() -> None:
     assert ok is False
     assert reason == "registration_work_difficulty_below_production_minimum"
     assert meta["difficulty_bits"] == weak_bits
+
+
+def test_production_policy_cannot_disable_registration_work() -> None:
+    state = {
+        "chain_id": "weall-prod",
+        "params": {
+            "account_registration_work_required": False,
+            "account_registration_work_difficulty_bits": REVIEWED_PRODUCTION_WORK_FLOOR_BITS,
+        },
+    }
+    policy = account_registration_work_policy(state)
+    assert policy.valid is False
+    assert policy.required is True
+    assert policy.reason == "registration_work_required_in_production"
+
+
+def test_production_policy_cannot_raise_reviewed_account_ceiling() -> None:
+    assert ACCOUNT_REGISTRATION_PRODUCTION_MAX_ACCOUNTS == REVIEWED_PRODUCTION_MAX_ACCOUNTS
+    state = {
+        "chain_id": "weall-prod",
+        "params": {
+            "account_registration_work_required": True,
+            "account_registration_work_difficulty_bits": REVIEWED_PRODUCTION_WORK_FLOOR_BITS,
+            "account_registration_max_accounts": REVIEWED_PRODUCTION_MAX_ACCOUNTS + 1,
+        },
+    }
+    policy = account_registration_work_policy(state)
+    assert policy.valid is False
+    assert policy.reason == "account_registration_max_accounts_above_reviewed_ceiling"
+
+
+def test_production_account_capacity_rejects_fresh_registration_before_work() -> None:
+    state = {
+        "chain_id": "weall-prod",
+        "accounts": {
+            "SYSTEM": {"nonce": 0},
+            "@founder": {"nonce": 0},
+        },
+        "params": {
+            "account_registration_work_required": True,
+            "account_registration_work_difficulty_bits": REVIEWED_PRODUCTION_WORK_FLOOR_BITS,
+            "account_registration_max_accounts": 2,
+        },
+    }
+    policy = account_registration_work_policy(state)
+    assert policy.valid is True
+    assert policy.max_accounts == 2
+
+    ok, reason, meta = verify_account_registration_work(state, _env(signer="@fresh"))
+    assert ok is False
+    assert reason == "account_registration_capacity_exhausted"
+    assert meta == {"current_accounts": 2, "max_accounts": 2}
+
+    canon = TxIndex.load_from_file(ROOT / "generated" / "tx_index.json")
+    verdict = admit_tx(_env(signer="@fresh"), state, canon, context="mempool")
+    assert verdict.ok is False
+    assert verdict.code == "registration_work_invalid"
+    assert verdict.reason == "account_registration_capacity_exhausted"
 
 
 def test_canonical_admission_rejects_missing_registration_work() -> None:
@@ -259,8 +321,9 @@ def test_distributed_fresh_signers_each_pay_work_and_persist_across_restart(
         assert restarted.state["accounts"][signer]["nonce"] == 1
 
 
-def test_checked_in_production_and_testnet_genesis_require_reviewed_work_floor() -> None:
+def test_checked_in_production_and_testnet_genesis_require_reviewed_scarcity_policy() -> None:
     assert ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS == REVIEWED_PRODUCTION_WORK_FLOOR_BITS
+    assert ACCOUNT_REGISTRATION_PRODUCTION_MAX_ACCOUNTS == REVIEWED_PRODUCTION_MAX_ACCOUNTS
     for relative in ("configs/genesis.ledger.prod.json", "configs/genesis.ledger.testnet-v1.json"):
         state = json.loads((ROOT / relative).read_text(encoding="utf-8"))
         params = state["params"]
@@ -272,6 +335,7 @@ def test_checked_in_production_and_testnet_genesis_require_reviewed_work_floor()
         policy = account_registration_work_policy(state)
         assert policy.valid is True
         assert policy.required is True
+        assert policy.max_accounts == REVIEWED_PRODUCTION_MAX_ACCOUNTS
 
 
 def test_registration_work_schema_is_signed_payload_surface() -> None:
