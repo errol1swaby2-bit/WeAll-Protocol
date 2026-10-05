@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "17a641dee4a75da06baf33615b9ccd2dd579333fc2066b2d65675eb260dad2b6",
+      "sha256": "e0436802aa0a64377f2a63500a0716b7ee9d02954c3287a94ce47384291e3b4f",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -3067,7 +3067,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8d230e9e0c9a6820bc2675d8557c4d151ca9720e8035f39bf644aae71286dc88",
+      "sha256": "401fad8d42bafe11083dd6d0a99148b08b366636bc26840c390840a010dc398a",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3081,7 +3081,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "e7b8143cfed9101618869f7bdf0eb50d3c4e8ece0e42fb688be0488e79d25094",
+      "sha256": "a050b70ecf770758744c0cf1c52bd4b2b67eeb675abd1d7da6483e367c2ce261",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3165,7 +3165,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "cab784d0e3c541e9645dd674a784fda10bcb79960ce6ba35f906c5ff5e6259ba",
+      "sha256": "b1521698d8024adb8660aa885142aebf8cffca605fa2378e2dc5d1ca227b7273",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -6785,7 +6785,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "94f979825fb6e24069efc83341d860891bdeef6c45a963cea8a048869e123fc4",
+      "sha256": "d6bcb27d2519bcf7cfec8794206022757e8d3c24c939cf0c89dad48aa7eb7d74",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6811,7 +6811,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "f85858b8281986a98a6d0657722a0238652d2b2e8b5674aabadd2f6e1d941664",
+      "sha256": "99ea7df1b550d6275a5fac6341c34d5069b2ae680de4ec285f468e87141b88dd",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -8763,6 +8763,7 @@
         "STATE-8CBC35847B2FE96E",
         "STATE-90FF766B8F7B41C6",
         "STATE-9ECB4002CB1CEF67",
+        "STATE-A0706E47B17C829E",
         "STATE-A1EB721C0C5818D9",
         "STATE-A9AEB1FD3485FF21",
         "STATE-AABEFF9087C61C5F",
@@ -8775,6 +8776,7 @@
         "STATE-DA81B68278D03967",
         "STATE-DB22998588772A1F",
         "STATE-DEEFE1EDD5CB0EE3",
+        "STATE-E2C5F1CDA1605EED",
         "STATE-E5CE58853189060A",
         "STATE-EC2F7AA8A45ADE06",
         "STATE-F2B7B5A81FB0CCAC",
@@ -8788,7 +8790,7 @@
       ],
       "path": "src/weall/runtime/apply/economics.py",
       "primary_mechanism_id": "M-063",
-      "sha256": "df029e21baebd10140b630da4c24b412ba9cb9b3329c484917a449cc5b9d92d2",
+      "sha256": "2eebaadc48f982d631575333104c77de947597d635d85c6ee4af5e4b73795bd2",
       "source_id": "SRC-3A60F279F82C9786"
     },
     {
@@ -22485,12 +22487,13 @@
       "mappings": [
         "M-076",
         "ROUTE-150316944D629C32",
+        "TX-1300",
         "TX-1304",
         "TX-1305"
       ],
       "path": "tests/test_p1_latest_medium_closure.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "77670ad4839f0e6d23ef9eab9c17ae80b04c0bf1273626594e7c4b5cd067909e",
+      "sha256": "84616ea113afaf54e9c01d2b9b99d7c5ea079cf97884f372bb8c7993787dad49",
       "source_id": "SRC-F9D43302F3A3F003"
     },
     {

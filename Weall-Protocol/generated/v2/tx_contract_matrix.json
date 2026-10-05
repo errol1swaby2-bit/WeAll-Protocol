@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c3cfdad062496afb0fe379d35f497f1e463974f37185ea46f5a2b2ff0aff5472"
+    "source_tree_digest": "bbf0529b8020e9456121b87202e4f8f9e3812391bda4392e4f961283ff21ab8b"
   },
   "required_fields": [
     "stable_id",
@@ -20717,6 +20717,10 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "fee_destination_required"
+        },
+        {
+          "code": "invalid_payload",
           "reason": "missing_amount"
         },
         {
@@ -20739,7 +20743,7 @@
       "implementation_source": {
         "function": "_apply_balance_transfer",
         "handler": "economics",
-        "line": 952,
+        "line": 937,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20755,6 +20759,8 @@
           "applied",
           "content_id",
           "deduped",
+          "fee_amount",
+          "fee_to",
           "from",
           "purpose",
           "tip_indexed",
@@ -20771,10 +20777,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "9ba59de792a8a81eff9ad5c9d44c1e3350856c2712f75741c84c0484715755d9",
+        "review_digest": "58554f523719051db1b406958a6d7e3f1aa521d656a752604c8fb9b86b13d18c",
         "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T20:00:07Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-10-05T23:54:43Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1300",
@@ -20785,12 +20791,16 @@
         "key:content_id",
         "key:count",
         "key:economics",
+        "key:fee_amount",
         "key:fee_payments",
         "key:fee_policy",
+        "key:fee_sink_account",
+        "key:fee_to",
         "key:from",
         "key:from_account_id",
         "key:memo",
         "key:mempool_reject_receipts",
+        "key:params",
         "key:post_id",
         "key:purpose",
         "key:rate_limit_policy",
@@ -20803,6 +20813,7 @@
         "key:to",
         "key:to_account_id",
         "key:total_amount",
+        "key:transfer_fee_int",
         "key:transfer_id",
         "key:transfers",
         "key:transfers_by_id",
@@ -20838,6 +20849,7 @@
         "tests/test_helper_conflict_matrix.py",
         "tests/test_helper_execution_lane_alignment.py",
         "tests/test_launch_gate_proof_surfaces.py",
+        "tests/test_p1_latest_medium_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_transfer_tip_contract.py",
         "tests/test_tx_conflicts.py",
@@ -21010,10 +21022,6 @@
         {
           "code": "forbidden",
           "reason": "system_tx_required"
-        },
-        {
-          "code": "forbidden",
-          "reason": "transfer_fee_policy_not_enforced"
         }
       ],
       "frontend_surfaces": [],
@@ -21045,9 +21053,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "1523488f1bf010b012a6dc38deb8652f1b8798a91103ff9affafacf271c76627",
+        "review_digest": "9850abb58a59a329b06a76c90c543d83ad0b9fb8d8fe591cb59b02ac5c55b96b",
         "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-10-05T23:13:41Z",
+        "reviewed_at": "2026-10-05T23:54:43Z",
         "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
@@ -21058,8 +21066,7 @@
         "key:fee_policy",
         "key:mempool_reject_receipts",
         "key:rate_limit_policy",
-        "key:rate_limit_strikes",
-        "key:transfer_fee_int"
+        "key:rate_limit_strikes"
       ],
       "state_writes": [
         "key:economics",
@@ -21143,7 +21150,7 @@
       "implementation_source": {
         "function": "_apply_fee_pay",
         "handler": "economics",
-        "line": 875,
+        "line": 860,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24858,7 +24865,7 @@
       "implementation_source": {
         "function": "_apply_rate_limit_strike_apply",
         "handler": "economics",
-        "line": 1119,
+        "line": 1149,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24952,7 +24959,7 @@
       "implementation_source": {
         "function": "_apply_mempool_reject_receipt",
         "handler": "economics",
-        "line": 1141,
+        "line": 1171,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

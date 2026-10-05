@@ -1,5 +1,5 @@
 {
-  "count": 1142,
+  "count": 1144,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c3cfdad062496afb0fe379d35f497f1e463974f37185ea46f5a2b2ff0aff5472"
+    "source_tree_digest": "bbf0529b8020e9456121b87202e4f8f9e3812391bda4392e4f961283ff21ab8b"
   },
   "rows": [
     {
@@ -12651,6 +12651,34 @@
       "writes_by": []
     },
     {
+      "creation_contracts": [],
+      "domain": "Economics",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-063",
+      "reads_by": [
+        "TX-1300"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/economics.py",
+      "stable_id": "STATE-A0706E47B17C829E",
+      "state_key_or_namespace": "fee_amount",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [
         "TX-1300",
         "TX-1301",
@@ -12795,6 +12823,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-1300",
         "TX-1305"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -12802,6 +12831,34 @@
       "source": "src/weall/runtime/apply/economics.py",
       "stable_id": "STATE-1F44BCD21DADDF1C",
       "state_key_or_namespace": "fee_sink_account",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Economics",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-063",
+      "reads_by": [
+        "TX-1300"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/economics.py",
+      "stable_id": "STATE-E2C5F1CDA1605EED",
+      "state_key_or_namespace": "fee_to",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -13033,6 +13090,7 @@
       ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-1300",
         "TX-1301",
         "TX-1305"
       ],
@@ -13571,7 +13629,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-063",
       "reads_by": [
-        "TX-1304"
+        "TX-1300"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
