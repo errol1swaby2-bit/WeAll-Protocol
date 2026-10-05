@@ -104,6 +104,20 @@ jobs:
         run: |
           bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
 
+      - name: P0 property and mutation assurance
+        run: |
+          python -m tooling.p0_assurance gate \
+            --report artifacts/p0-assurance/p0_assurance_report.json \
+            --timeout-seconds 120
+
+      - name: Upload P0 assurance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p0-assurance-report
+          path: Weall-Protocol/artifacts/p0-assurance/p0_assurance_report.json
+          if-no-files-found: error
+
       - name: Pytest
         run: |
           pytest -q
