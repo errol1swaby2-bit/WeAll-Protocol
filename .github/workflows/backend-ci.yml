@@ -113,7 +113,7 @@ jobs:
             > artifacts/p0-assurance/a15-f003-cardinality-100k.json
           python scripts/bench_a15_f003_account_cardinality.py --accounts 1000000 \
             > artifacts/p0-assurance/a15-f003-cardinality-1m.json
-          python scripts/bench_a15_f003_registration_attack.py --accounts 32 \
+          python tests/bench_a15_f003_registration_attack.py --accounts 32 \
             > artifacts/p0-assurance/a15-f003-registration-attack.json
           cat artifacts/p0-assurance/a15-f003-registration-attack.json
 
