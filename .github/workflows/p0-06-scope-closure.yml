@@ -59,6 +59,19 @@ jobs:
           ruff check "${PY_FILES[@]}"
           ruff format --check "${PY_FILES[@]}"
 
+      - name: Rebuild production genesis from patched builder
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/build_production_genesis_manifest.py \
+            --chain-id weall-prod \
+            --founding-account '@errol-genesis' \
+            --founding-pubkey c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be \
+            --authority-pubkey c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be \
+            --genesis-time 1778368894 \
+            --econ-unlock-days 90 \
+            --bootstrap-expires-height 1008
+
       - name: Test production scope closure
         working-directory: Weall-Protocol
         run: pytest -q tests/test_p0_06_production_scope_closure.py
