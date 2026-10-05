@@ -31,6 +31,12 @@ replace_once(
 ledger = ROOT / "docs" / "audit" / "WeAll-A01-A20-P0-Closure-Status-20260930.md"
 replace_once(
     ledger,
+    "| PARTIAL — A15-F003 CLOSED; A15-F001/F002 OPEN |",
+    "| PARTIAL |",
+    "ledger_p0_10_status_enum",
+)
+replace_once(
+    ledger,
     "A15-F001 still requires bounded consensus-visible ancestry/history architecture, and A15-F002 still requires a finite authenticated state-sync work/response envelope with amplification bounds.",
     "Open findings: A15-F001, A15-F002. A15-F001 still requires bounded consensus-visible ancestry/history architecture, and A15-F002 still requires a finite authenticated state-sync work/response envelope with amplification bounds.",
     "ledger_p0_10_open_findings",
