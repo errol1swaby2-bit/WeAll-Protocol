@@ -205,3 +205,92 @@ def test_confirmed_duplicate_cannot_be_used_as_reference_for_another_duplicate()
             ),
         )
     assert excinfo.value.reason == "reference_account_is_confirmed_duplicate"
+
+
+def test_duplicate_challenge_requires_verified_human_challenger() -> None:
+    state = _state()
+    state["accounts"]["unverified"] = {"nonce": 0, "poh_tier": 0, "poh_status": "none"}  # type: ignore[index]
+
+    with pytest.raises(ApplyError) as excinfo:
+        apply_tx(
+            state,
+            _env(
+                "POH_CHALLENGE_OPEN",
+                {
+                    "account_id": "duplicate",
+                    "reference_account_id": "primary",
+                    "reason": "duplicate-human-suspected",
+                },
+                signer="unverified",
+                nonce=1,
+            ),
+        )
+    assert excinfo.value.reason == "duplicate_challenge_requires_verified_human"
+
+
+def test_duplicate_challenge_open_is_non_punitive_and_entropy_deferred() -> None:
+    state = _state()
+    challenge_id = _open_duplicate_challenge(state)
+
+    challenge = state["poh"]["challenges"][challenge_id]  # type: ignore[index]
+    assert challenge["adjudication_status"] == "pending_unpredictable_entropy"
+    assert challenge["reviewer_selection_status"] == "deferred_pending_a20_entropy"
+    assert challenge["authority_effect"] == "none_pending_adjudication"
+    assert state["accounts"]["duplicate"]["poh_tier"] == 2  # type: ignore[index]
+    assert state["accounts"]["duplicate"]["poh_status"] == "active"  # type: ignore[index]
+
+
+def test_duplicate_pair_allows_only_one_active_direction_and_reopens_after_dismissal() -> None:
+    state = _state()
+    challenge_id = _open_duplicate_challenge(state)
+
+    with pytest.raises(ApplyError) as excinfo:
+        apply_tx(
+            state,
+            _env(
+                "POH_CHALLENGE_OPEN",
+                {
+                    "account_id": "primary",
+                    "reference_account_id": "duplicate",
+                    "reason": "same-pair-reversed",
+                },
+                signer="challenger",
+                nonce=2,
+            ),
+        )
+    assert excinfo.value.reason == "duplicate_identity_challenge_already_open"
+
+    _resolve(state, challenge_id, "dismissed")
+    reopened = apply_tx(
+        state,
+        _env(
+            "POH_CHALLENGE_OPEN",
+            {
+                "account_id": "primary",
+                "reference_account_id": "duplicate",
+                "reason": "new-evidence-after-dismissal",
+            },
+            signer="challenger",
+            nonce=3,
+        ),
+    )
+    assert reopened["challenge_id"] != challenge_id
+
+
+def test_duplicate_challenge_resolution_is_apply_layer_system_only() -> None:
+    state = _state()
+    challenge_id = _open_duplicate_challenge(state)
+
+    with pytest.raises(ApplyError) as excinfo:
+        apply_tx(
+            state,
+            _env(
+                "POH_CHALLENGE_RESOLVE",
+                {"challenge_id": challenge_id, "resolution": "upheld"},
+                signer="challenger",
+                nonce=2,
+                system=False,
+                parent="poh:duplicate-identity-adjudication",
+            ),
+        )
+    assert excinfo.value.reason == "system_only"
