@@ -404,8 +404,10 @@ def _request_is_loopback(request: Request) -> bool:
 def _require_observer_edge_operator(request: Request) -> None:
     if not _observer_edge_operator_auth_enabled():
         return
-    if _request_is_loopback(request) and not _env_bool(
-        "WEALL_OBSERVER_EDGE_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL", False
+    if (
+        _request_is_loopback(request)
+        and _mode() != "prod"
+        and not _env_bool("WEALL_OBSERVER_EDGE_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL", False)
     ):
         return
     want = str(
