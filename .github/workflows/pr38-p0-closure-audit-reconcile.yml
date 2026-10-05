@@ -156,11 +156,16 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          summary = json.loads(Path("/tmp/p0_assurance_report.json").read_text())
+          payload = json.loads(Path("/tmp/p0_assurance_report.json").read_text())
+          summary = payload.get("mutation_summary", {})
+          gate = payload.get("gate", {})
+          property_suite = payload.get("property_suite", {})
           assert summary.get("non_equivalent_total") == 15, summary
           assert summary.get("killed") == 15, summary
           assert summary.get("survived") == [], summary
           assert summary.get("invalid") == [], summary
+          assert gate.get("passed") is True, gate
+          assert property_suite.get("returncode") == 0, property_suite
           print(summary)
           PY
 
