@@ -1,0 +1,158 @@
+name: PR38 Final V2 Refresh
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: p0-03-production-closure-staging-20261001
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Register exact missing state stable IDs
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          keys = [
+              "PoH:adjudication_status",
+              "PoH:authority_effect",
+              "PoH:identity_pair_key",
+              "PoH:reviewer_selection_status",
+          ]
+          path = Path("specs/v2/source/stable_ids.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          entries = payload.get("entries")
+          if not isinstance(entries, list):
+              raise SystemExit("stable_ids.json entries must be a list")
+          ids = {str(row.get("stable_id") or "") for row in entries if isinstance(row, dict)}
+          by_key = {
+              (str(row.get("kind") or ""), str(row.get("canonical_key") or "")): row
+              for row in entries
+              if isinstance(row, dict)
+          }
+          for key in keys:
+              expected = "STATE-" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:16].upper()
+              prior = by_key.get(("state", key))
+              if prior is not None:
+                  if str(prior.get("stable_id") or "") != expected:
+                      raise SystemExit(f"stable state ID mismatch for {key}: {prior!r}")
+                  continue
+              if expected in ids:
+                  raise SystemExit(f"stable ID collision for {key}: {expected}")
+              row = {
+                  "aliases": [],
+                  "canonical_key": key,
+                  "kind": "state",
+                  "stable_id": expected,
+                  "status": "active",
+              }
+              entries.append(row)
+              ids.add(expected)
+              by_key[("state", key)] = row
+              print(f"registered state: {key} -> {expected}")
+          entries.sort(key=lambda row: str(row.get("stable_id") or "") if isinstance(row, dict) else "")
+          path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          PY
+
+      - name: Refresh only audited stale transaction semantic bindings
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/refresh_v2_semantic_reviews.py \
+            --tx-type POH_APPLICATION_SUBMIT \
+            --tx-type POH_CHALLENGE_OPEN \
+            --tx-type POH_CHALLENGE_RESOLVE \
+            --tx-type POH_EVIDENCE_BIND \
+            --tx-type POH_EVIDENCE_DECLARE \
+            --register-failure conflict:challenged_account_is_confirmed_duplicate \
+            --register-failure forbidden:poh_human_authority_scope_closed \
+            --reviewed-at 2026-10-05T15:45:00Z \
+            --reviewer "WeAll Protocol Maintainer PR #38 P0 scope-closure review (AI-assisted); independent launch review deferred" \
+            --review-method "p0_scope_closure_semantic_refresh_with_focused_regression_evidence" \
+            --authority-effect "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols."
+
+      - name: Verify stable IDs and generated V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
+          python scripts/check_v2_spec_clean_checkout.py
+
+      - name: Focused P0-06 and V2 regression suite
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          pytest -q \
+            tests/test_p0_06_production_scope_closure.py \
+            tests/test_p0_06a_duplicate_account_adjudication.py \
+            tests/test_poh_async_panel_grinding_regression.py \
+            tests/test_production_genesis_manifest_builder.py \
+            tests/test_v2_spec_compiler.py
+
+      - name: Remove temporary PR38 diagnostic workflows
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/pr38-v2-semantic-stale-diagnostic.yml
+          rm -f .github/workflows/pr38-semantic-stale-audit.yml
+          rm -f .github/workflows/pr38-final-v2-refresh.yml
+          git diff --check
+
+      - name: Commit exact candidate before final validation
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "chore: refresh PR38 exact-tree V2 semantic bindings"
+
+      - name: Exact-commit public and claim validation
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_generated.py
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Full backend regression suite
+        working-directory: Weall-Protocol
+        run: pytest -q
+
+      - name: Verify exact candidate remains clean
+        run: |
+          set -Eeuo pipefail
+          git diff --exit-code
+          git diff --cached --exit-code
+          git status --short
+
+      - name: Push validated candidate
+        run: git push origin HEAD:p0-03-production-closure-staging-20261001
