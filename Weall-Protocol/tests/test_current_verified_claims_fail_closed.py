@@ -233,3 +233,54 @@ def test_performance_benchmark_rejects_overflow_to_infinity(tmp_path: Path) -> N
     bind(module, paths, tmp_path)
     with pytest.raises(SystemExit, match="non-finite"):
         module.build()
+
+
+def test_partial_track_can_bind_explicit_open_finding_subset(tmp_path: Path) -> None:
+    module = load_module()
+    rows = []
+    for index in range(1, 13):
+        track = f"P0-{index:02d}"
+        if track == "P0-10":
+            status = "PARTIAL"
+            findings = "A15-F001..F003"
+            detail = (
+                "A15-F003 closed. Open findings: A15-F001, A15-F002. Remaining architecture work."
+            )
+        else:
+            status = module.AUDIT_CLOSED_STATUS
+            findings = f"A{index:02d}-F001"
+            detail = "closed"
+        rows.append(f"| {track} test | {findings} | {status} | {detail} |")
+    audit = tmp_path / "audit.md"
+    audit.write_text(
+        "## Track status\n\n"
+        "| Track | Findings | Current status | Branch work / remaining gate |\n"
+        "| --- | --- | --- | --- |\n"
+        + "\n".join(rows)
+        + "\n\n## Additional CI blockers discovered during closure\n",
+        encoding="utf-8",
+    )
+    parsed = module._read_p0_audit_status(audit)
+    assert parsed["open_track_ids"] == ["P0-10"]
+    assert parsed["open_finding_ids"] == ["A15-F001", "A15-F002"]
+
+
+def test_partial_track_empty_open_finding_override_fails_closed(tmp_path: Path) -> None:
+    module = load_module()
+    rows = []
+    for index in range(1, 13):
+        track = f"P0-{index:02d}"
+        status = "PARTIAL" if track == "P0-10" else module.AUDIT_CLOSED_STATUS
+        detail = "Open findings: ." if track == "P0-10" else "closed"
+        rows.append(f"| {track} test | A{index:02d}-F001 | {status} | {detail} |")
+    audit = tmp_path / "audit.md"
+    audit.write_text(
+        "## Track status\n\n"
+        "| Track | Findings | Current status | Branch work / remaining gate |\n"
+        "| --- | --- | --- | --- |\n"
+        + "\n".join(rows)
+        + "\n\n## Additional CI blockers discovered during closure\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit, match="empty Open findings override"):
+        module._read_p0_audit_status(audit)

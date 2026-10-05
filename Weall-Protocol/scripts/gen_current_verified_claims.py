@@ -102,9 +102,27 @@ def _read_p0_audit_status(path: Path) -> dict[str, Any]:
         findings = [item.strip() for item in finding_cell.split(",") if item.strip()]
         if not findings:
             raise SystemExit(f"P0 audit track {track_id} has no finding IDs")
+        open_findings = list(findings)
+        marker = "Open findings:"
+        if status == AUDIT_CLOSED_STATUS:
+            open_findings = []
+        elif marker in detail:
+            explicit = detail.split(marker, 1)[1].split(".", 1)[0]
+            open_findings = [item.strip() for item in explicit.split(",") if item.strip()]
+            if not open_findings:
+                raise SystemExit(
+                    f"P0 audit status {track_id} declares an empty Open findings override"
+                )
+            if len(set(open_findings)) != len(open_findings):
+                raise SystemExit(f"P0 audit status {track_id} has duplicate Open findings IDs")
+            if not all(item.startswith("A") and "-F" in item for item in open_findings):
+                raise SystemExit(
+                    f"P0 audit status {track_id} has malformed Open findings IDs: {open_findings}"
+                )
         tracks[track_id] = {
             "status": status,
             "findings": findings,
+            "open_findings": open_findings,
             "detail": detail,
         }
 
@@ -121,7 +139,7 @@ def _read_p0_audit_status(path: Path) -> dict[str, Any]:
         if tracks[track_id]["status"] != AUDIT_CLOSED_STATUS
     ]
     open_finding_ids = sorted(
-        {finding for track_id in open_track_ids for finding in tracks[track_id]["findings"]}
+        {finding for track_id in open_track_ids for finding in tracks[track_id]["open_findings"]}
     )
     return {
         "tracks": tracks,

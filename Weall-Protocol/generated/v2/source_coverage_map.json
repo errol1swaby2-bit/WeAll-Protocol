@@ -539,7 +539,7 @@
       ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "5082d7925b532c71e4bf5d091e980c63a0f9c893d7b199e5d4ab6ddddb556d64",
+      "sha256": "80eda1f18df2f395cb21135ff77e64cfb178c6b8d8d97d7d2443b5d9dd0c589f",
       "source_id": "SRC-251A50F3DB56A30F"
     },
     {
@@ -3223,7 +3223,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "2c0c9b3a12bd9e7076acce4a23eefdddf5e5055731e4a45cee8995f2c8f25d77",
+      "sha256": "165cba61610c15ab1325a4ad87dfe395a8890e69e3e1ab6b2a6b27c9a21f63a7",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -4648,7 +4648,7 @@
       ],
       "path": "scripts/gen_current_verified_claims.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2cb7ea3e567c11a723a57443b8ff40b0a7239a03674d219ec692ee8e0d32d2f1",
+      "sha256": "eb0021163e1d3bea024b80cf9cd641134043fd5704eefd5eadad929f6462907c",
       "source_id": "SRC-93B86585553DBDA5"
     },
     {
@@ -15721,11 +15721,12 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32"
       ],
       "path": "tests/test_current_verified_claims_fail_closed.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "42c95533b335e946b76b549b4d8d7e4f78d048356dfbb6b4fca4af69dbb82df8",
+      "sha256": "cfe147c80cdd1ca209e4e0971b2b38456f1887d3fdd194927a5718d13d31797a",
       "source_id": "SRC-4F8D540C5E48D778"
     },
     {
