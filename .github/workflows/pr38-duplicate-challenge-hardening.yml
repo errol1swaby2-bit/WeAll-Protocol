@@ -36,10 +36,9 @@ jobs:
           set -Eeuo pipefail
           ROOT="$GITHUB_WORKSPACE"
           PROTO="$ROOT/Weall-Protocol"
-          cp "$PROTO/scripts/pr38_harden_duplicate_challenges.py" /tmp/pr38_harden_duplicate_challenges.py
+          python "$PROTO/scripts/pr38_harden_duplicate_challenges.py"
           rm -f "$PROTO/scripts/pr38_harden_duplicate_challenges.py"
           rm -f "$ROOT/.github/workflows/pr38-duplicate-challenge-hardening.yml"
-          WEALL_REPO_ROOT="$ROOT" python /tmp/pr38_harden_duplicate_challenges.py
 
       - name: Ruff bounded surface
         working-directory: Weall-Protocol
