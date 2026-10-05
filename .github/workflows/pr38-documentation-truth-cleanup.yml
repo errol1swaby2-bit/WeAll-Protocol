@@ -70,7 +70,6 @@ jobs:
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
           python scripts/check_reviewer_truth_boundaries.py
-          python scripts/check_release_hygiene_v1_5.py
           pytest -q \
             tests/test_current_document_registry.py \
             tests/test_release_docs_truth_sync.py \
@@ -128,6 +127,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
+          python scripts/check_release_hygiene_v1_5.py
           git -C .. diff --exit-code
           git -C .. diff --cached --exit-code
           test -z "$(git -C .. status --porcelain)"
