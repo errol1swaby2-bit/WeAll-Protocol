@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import time
 from pathlib import Path
@@ -28,7 +29,8 @@ def _load_json(path: Path) -> dict:
     return data
 
 
-def _unsigned_registration(*, signer: str, pubkey: str) -> TxEnvelope:
+def _unsigned_registration(*, signer: str, pubkey: str, recovery_pubkey: str, index: int) -> TxEnvelope:
+    evidence_kem_pubkey = base64.b64encode(bytes([index % 251 + 1]) * 1184).decode("ascii")
     return TxEnvelope.from_json(
         {
             "chain_id": "weall-prod",
@@ -36,7 +38,13 @@ def _unsigned_registration(*, signer: str, pubkey: str) -> TxEnvelope:
             "signer": signer,
             "nonce": 1,
             "sig_profile": "pq-mldsa-v1",
-            "payload": {"pubkey": pubkey},
+            "payload": {
+                "pubkey": pubkey,
+                "recovery_pubkey": recovery_pubkey,
+                "recovery_sig_profile": "pq-mldsa-v1",
+                "evidence_kem_pubkey": evidence_kem_pubkey,
+                "evidence_kem_algorithm": "ml-kem-768",
+            },
             "parent": None,
         }
     )
@@ -81,8 +89,14 @@ def main() -> int:
 
     for index in range(account_count):
         signer = f"@a15bench{index:04d}"
-        pubkey, privkey = deterministic_mldsa_keypair(label=signer)
-        unsigned = _unsigned_registration(signer=signer, pubkey=pubkey)
+        pubkey, privkey = deterministic_mldsa_keypair(label=f"{signer}:main")
+        recovery_pubkey, _recovery_privkey = deterministic_mldsa_keypair(label=f"{signer}:recovery")
+        unsigned = _unsigned_registration(
+            signer=signer,
+            pubkey=pubkey,
+            recovery_pubkey=recovery_pubkey,
+            index=index,
+        )
         work_nonce, attempts = _solve(
             unsigned,
             difficulty_bits=difficulty_bits,
@@ -140,6 +154,7 @@ def main() -> int:
                 "all_solved_work_verified": True,
                 "all_solved_work_passed_canonical_admission": True,
                 "all_admissions_used_valid_mldsa_signatures": True,
+                "all_payloads_include_production_required_recovery_and_kem_material": True,
                 "distributed_signers": account_count,
                 "solutions": solved,
                 "note": (
