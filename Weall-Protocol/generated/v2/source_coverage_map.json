@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "0d23f2a0c085a7ad4364767512317e686a535efa8ce2dc3b4e5c23255af048ea",
+      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3262,7 +3262,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "d5d8b1edd443cb2d9d2d07df225220a03e17e759efc63ca2d2100e17b8a159eb",
+      "sha256": "6f2c71e55a1f5a67c0b9b4fbfd54e3ad3c09cfae1489aed534f2697ab2ae94f2",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
