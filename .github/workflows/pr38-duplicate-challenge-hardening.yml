@@ -1,4 +1,5 @@
 name: PR38 Duplicate Challenge Hardening
+# One-shot remediation workflow; deletes itself from the committed candidate.
 
 on:
   push:
