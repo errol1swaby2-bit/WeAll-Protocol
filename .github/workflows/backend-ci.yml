@@ -106,7 +106,7 @@ jobs:
 
       - name: P0 property and mutation assurance
         run: |
-          python -m tooling.p0_assurance gate \
+          python tests/p0_assurance.py gate \
             --report artifacts/p0-assurance/p0_assurance_report.json \
             --timeout-seconds 120
 
