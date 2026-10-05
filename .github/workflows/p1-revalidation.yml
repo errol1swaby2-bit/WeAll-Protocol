@@ -71,4 +71,5 @@ jobs:
             tests/test_p1_latest_medium_closure.py \
             tests/test_p1_a07_tls_verification.py \
             tests/test_p1_a12_mempool_redaction.py \
-            tests/test_p1_a12_observer_operator_loopback_auth.py
+            tests/test_p1_a12_observer_operator_loopback_auth.py \
+            tests/test_crypto_signature_profiles.py
