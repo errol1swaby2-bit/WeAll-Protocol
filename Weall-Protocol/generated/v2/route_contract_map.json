@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f7d8a280de654dc8d3ab4110c07dc1b94ce11e4726738567c7a5dda480eb86c8"
+    "source_tree_digest": "2ef6d33fb16346a40e65b4ec6bc664388516c72860b8753c8d87beffeeb02092"
   },
   "required_fields": [
     "stable_id",
@@ -36,8 +36,56 @@
     "semantic_derivation",
     "semantic_review"
   ],
-  "route_count": 162,
+  "route_count": 163,
   "routes": [
+    {
+      "activation": {
+        "mainnet": "disabled_pending_activation_receipt",
+        "public_testnet": "disabled_pending_activation_receipt"
+      },
+      "authority_source": "public_or_session_scoped_read_projection",
+      "canonical_mappings": [],
+      "duplicate_route_key": false,
+      "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
+      "frontend_consumers": [
+        "../web/src/lib/accountRegistrationWork.ts"
+      ],
+      "implementation_source": {
+        "function": "v1_account_registration_work_policy",
+        "line": 320,
+        "path": "src/weall/api/routes_public_parts/accounts.py"
+      },
+      "local_or_service_status": "service_projection_or_local_control_surface",
+      "metadata_source": "compiler_static_inference",
+      "method": "GET",
+      "path": "/v1/accounts/registration-work-policy",
+      "primary_mechanism_id": "M-069",
+      "request_limits": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds",
+      "route_key": "GET /v1/accounts/registration-work-policy",
+      "security_policy": {
+        "auth": "public_or_session_scoped_read_projection",
+        "cache": "no_store_dynamic_protocol_surface",
+        "idempotency": "route_specific_no_general_claim",
+        "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
+      },
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "c2cd8d364c889b54dc66493edbf8afe44af6dbde2b1c9fcf567cf6162c373ed0",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
+        "reviewed_at": "2026-10-05T00:19:04Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
+      "stable_id": "ROUTE-DFFE9C9CDC3D8793",
+      "tests": [
+        "tests/test_v2_spec_compiler.py"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
     {
       "activation": {
         "mainnet": "disabled_pending_activation_receipt",
@@ -54,7 +102,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_tx_profile_update",
-        "line": 308,
+        "line": 334,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -102,7 +150,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_account_tx_register",
-        "line": 259,
+        "line": 262,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -152,7 +200,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_get",
-        "line": 371,
+        "line": 397,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -201,7 +249,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_feed",
-        "line": 509,
+        "line": 535,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -293,7 +341,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_account_operator_status",
-        "line": 493,
+        "line": 519,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -341,7 +389,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_account_profile",
-        "line": 333,
+        "line": 359,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -387,7 +435,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_account_registered",
-        "line": 401,
+        "line": 427,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -435,7 +483,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_reviewer_status",
-        "line": 429,
+        "line": 455,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7033,6 +7081,7 @@
         "tests/prod/test_release_blocker_closure.py",
         "tests/prod/test_release_cleanup_hygiene.py",
         "tests/prod/test_reviewer_lane_schema_and_frontend_coherence.py",
+        "tests/test_a15_f003_account_registration_scarcity.py",
         "tests/test_account_gate_and_tx_queue_status.py",
         "tests/test_admission.py",
         "tests/test_admission_peer_payload_mvp.py",
@@ -9529,6 +9578,6 @@
   "schema": "weall.v2.route_contract_map",
   "semantic_review_complete": true,
   "truth_boundary": "The exact uploaded v2.0 First Draft PDF is retained and hash-bound. Its extracted full-scope registers control W1 human-machine equality. Structural compiler coverage does not prove runtime correctness, independent review, interoperability, capacity, or production activation.",
-  "unique_method_path_count": 158,
+  "unique_method_path_count": 159,
   "version": "2.0.0-first-draft-full-scope-w1.1"
 }

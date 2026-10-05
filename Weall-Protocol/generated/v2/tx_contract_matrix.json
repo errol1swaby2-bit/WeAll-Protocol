@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f7d8a280de654dc8d3ab4110c07dc1b94ce11e4726738567c7a5dda480eb86c8"
+    "source_tree_digest": "2ef6d33fb16346a40e65b4ec6bc664388516c72860b8753c8d87beffeeb02092"
   },
   "required_fields": [
     "stable_id",
@@ -99,6 +99,10 @@
         },
         {
           "code": "invalid_tx",
+          "reason": "runtime_apply_failure"
+        },
+        {
+          "code": "invalid_tx",
           "reason": "unsupported_evidence_kem_algorithm"
         }
       ],
@@ -109,7 +113,7 @@
       "implementation_source": {
         "function": "_apply_account_register",
         "handler": "identity",
-        "line": 304,
+        "line": 305,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -131,10 +135,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "d1c1b176e93ff277958b00496fae5ac20b0b06bccfdfc21ea7d52d29b662ebde",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "cd78c431507e5e9d65bb766dfd352573a738e8323c1cb92aaa354a21e752ac3a",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
+        "reviewed_at": "2026-10-05T00:19:04Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0001",
@@ -160,6 +164,7 @@
       "tests": [
         "tests/prod/test_external_observer_signed_onboarding_tx_e2e.py",
         "tests/prod/test_multinode_mempool_propagation_convergence.py",
+        "tests/test_a15_f003_account_registration_scarcity.py",
         "tests/test_account_gate_and_tx_queue_status.py",
         "tests/test_adversarial_consensus.py",
         "tests/test_backup_restore_smoke.py",
@@ -377,7 +382,7 @@
       "implementation_source": {
         "function": "_apply_account_key_add",
         "handler": "identity",
-        "line": 401,
+        "line": 406,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -488,7 +493,7 @@
       "implementation_source": {
         "function": "_apply_account_key_revoke",
         "handler": "identity",
-        "line": 432,
+        "line": 437,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -605,7 +610,7 @@
       "implementation_source": {
         "function": "_apply_account_device_register",
         "handler": "identity",
-        "line": 471,
+        "line": 476,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -734,7 +739,7 @@
       "implementation_source": {
         "function": "_apply_account_device_revoke",
         "handler": "identity",
-        "line": 538,
+        "line": 543,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -839,7 +844,7 @@
       "implementation_source": {
         "function": "_apply_account_session_key_issue",
         "handler": "identity",
-        "line": 566,
+        "line": 571,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -960,7 +965,7 @@
       "implementation_source": {
         "function": "_apply_account_session_key_revoke",
         "handler": "identity",
-        "line": 627,
+        "line": 632,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -1073,7 +1078,7 @@
       "implementation_source": {
         "function": "_apply_account_security_policy_set",
         "handler": "identity",
-        "line": 796,
+        "line": 801,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -1168,7 +1173,7 @@
       "implementation_source": {
         "function": "_apply_account_lock",
         "handler": "identity",
-        "line": 652,
+        "line": 657,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -1253,7 +1258,7 @@
       "implementation_source": {
         "function": "_apply_account_unlock",
         "handler": "identity",
-        "line": 682,
+        "line": 687,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24986,7 +24991,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_config_set",
         "handler": "identity",
-        "line": 1241,
+        "line": 1246,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25121,7 +25126,7 @@
       "implementation_source": {
         "function": "_apply_account_guardian_add",
         "handler": "identity",
-        "line": 854,
+        "line": 859,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25231,7 +25236,7 @@
       "implementation_source": {
         "function": "_apply_account_guardian_remove",
         "handler": "identity",
-        "line": 876,
+        "line": 881,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25405,7 +25410,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_request",
         "handler": "identity",
-        "line": 1660,
+        "line": 1665,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25673,7 +25678,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_approve",
         "handler": "identity",
-        "line": 1495,
+        "line": 1500,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25834,7 +25839,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_cancel",
         "handler": "identity",
-        "line": 1865,
+        "line": 1870,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25943,7 +25948,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_finalize",
         "handler": "identity",
-        "line": 1896,
+        "line": 1901,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -26050,7 +26055,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_receipt",
         "handler": "identity",
-        "line": 1995,
+        "line": 2000,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

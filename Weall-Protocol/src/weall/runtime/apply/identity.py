@@ -17,6 +17,7 @@ from ..account_recovery_policy import (
     RECOVERY_REQUEST_COOLDOWN_BLOCKS,
     RECOVERY_RESTRICTION_BLOCKS,
 )
+from ..account_registration_work import verify_account_registration_work
 from ..errors import ApplyError
 from ..poh.evidence_lifecycle import (
     close_case_evidence,
@@ -314,6 +315,10 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("invalid_tx", "account_exists", {"account_id": signer})
 
     p = _payload(env)
+    work_ok, work_reason, work_meta = verify_account_registration_work(state, env)
+    if not work_ok:
+        raise ApplyError("invalid_tx", work_reason, work_meta)
+
     key_record = _key_record_from_payload_or_raise(state, p, key_type="main")
     pubkey = account_key_pubkey(key_record)
     if not pubkey:

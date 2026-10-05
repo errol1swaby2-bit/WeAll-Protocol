@@ -56,6 +56,8 @@ class AccountRegisterPayload(_StrictModel):
     recovery_key_commitment: str | None = Field(default=None, min_length=1)
     evidence_kem_pubkey: str | None = Field(default=None, min_length=1)
     evidence_kem_algorithm: str | None = Field(default=None, min_length=1)
+    registration_work_version: str | None = Field(default=None, min_length=1, max_length=64)
+    registration_work_nonce: int | None = Field(default=None, ge=0, le=9007199254740991)
 
 
 class AccountKeyAddPayload(_StrictModel):

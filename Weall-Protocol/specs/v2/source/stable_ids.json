@@ -17203,6 +17203,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "GET /v1/accounts/registration-work-policy|src/weall/api/routes_public_parts/accounts.py|v1_account_registration_work_policy",
+      "kind": "route",
+      "stable_id": "ROUTE-DFFE9C9CDC3D8793",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "GET /v1/gov/proposals|src/weall/api/routes_public_parts/gov.py|v1_gov_proposals",
       "kind": "route",
       "stable_id": "ROUTE-E1F670F58B35F6BF",

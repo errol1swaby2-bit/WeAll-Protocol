@@ -202,7 +202,7 @@
       "http_status": 400,
       "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 543
+      "source_lineno": 569
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -391,7 +391,7 @@
       "http_status": 400,
       "sample_reason": "missing account_id",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 271
+      "source_lineno": 274
     },
     {
       "code": "bad_request",
@@ -715,7 +715,7 @@
       "http_status": null,
       "sample_reason": "account_banned",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 127
+      "source_lineno": 128
     },
     {
       "code": "forbidden",
@@ -1147,7 +1147,7 @@
       "http_status": null,
       "sample_reason": "accounts_not_dict",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 122
+      "source_lineno": 123
     },
     {
       "code": "invalid_state",
@@ -1264,7 +1264,7 @@
       "http_status": null,
       "sample_reason": "bad_nonce",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 115
+      "source_lineno": 116
     },
     {
       "code": "invalid_tx",

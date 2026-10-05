@@ -3,8 +3,8 @@
   "active_validator_endpoint_policy": "verified_or_hint",
   "chain_id": "weall-testnet-v1",
   "economics_active": false,
-  "genesis_hash": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
-  "genesis_state_root": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
+  "genesis_hash": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
+  "genesis_state_root": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
   "network_id": "weall-public-observer-testnet-v1",
   "nodes": [
     {
@@ -27,12 +27,12 @@
     "tls://p2p.genesis.weallprotocol.xyz:30303"
   ],
   "seed_registry_rotation_commitment": {
-    "genesis_hash": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
-    "genesis_state_root": "b6bc7fc28921d1ed4d95554d61e85b5d58271717c60cf4843e3a38c4e48cf84c",
+    "genesis_hash": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
+    "genesis_state_root": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
     "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
     "tx_index_hash": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
   },
-  "seed_registry_rotation_reason": "audit_remediation_tx_index_change_20260929",
+  "seed_registry_rotation_reason": "a15_f003_account_registration_scarcity_chain_identity_change_20261004",
   "seed_registry_rotation_required": true,
   "seed_registry_sig_profile": "pq-mldsa-v1",
   "seed_registry_signature": "",

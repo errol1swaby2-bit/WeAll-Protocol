@@ -126,6 +126,8 @@
     "tx_index_hash": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
   },
   "params": {
+    "account_registration_work_difficulty_bits": 16,
+    "account_registration_work_required": true,
     "bft_signing_public_beta_gate_enabled": true,
     "bootstrap_allowlist": {
       "@errol-genesis": {
