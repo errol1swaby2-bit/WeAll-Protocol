@@ -1,24 +1,26 @@
-# Human Uniqueness, Registration Friction, and Tier-0 Lifecycle
+# Human Uniqueness, Registration Friction, and Optional Tier-0 Lifecycle
 
-Status: normative design target for PR #38 remediation; implementation/evidence incomplete.
+Status: normative P0-06 design target for PR #38. A15-F003 remains closed by the separately documented account-registration scarcity invariant.
 
-This document separates three protocol problems that must not be collapsed into one mechanism:
+This document separates three protocol concerns that must not be collapsed into one mechanism:
 
-1. registration abuse/friction;
+1. permanent account-state admission scarcity;
 2. one-human authority / duplicate identity adjudication;
-3. permanent Tier-0 state growth.
+3. optional future Tier-0 compaction and storage hardening.
 
-The mechanisms below are deliberately layered. No single layer is allowed to claim properties owned by another layer.
+The mechanisms are deliberately layered. A mechanism may contribute defense in depth outside its primary security role, but it must not be credited with properties it does not establish.
 
 ## 1. Account registration proof-of-work
 
-Account-registration work is retained as a passive first-line friction mechanism.
+Account-registration work is retained.
 
-It MAY:
+For A15-F003, registration PoW is the protocol-level scarcity mechanism that closes free fresh-key permanent-state creation. The proof is consensus-enforced, finite, nonzero in the production/public-testnet policy, and bound to the registration identity and payload as specified in `ACCOUNT_REGISTRATION_SCARCITY.md`.
+
+For A08/P0-06, the same mechanism is only passive anti-Sybil friction. It MAY:
 
 - raise the marginal computational cost of automated bulk account creation;
 - slow simple registration floods;
-- make fresh-key state spam less free at the admission boundary.
+- make large fresh-key farms more expensive to create.
 
 It MUST NOT:
 
@@ -29,7 +31,7 @@ It MUST NOT:
 - be consumed by protocol logic as evidence that two accounts belong to different humans;
 - be described as a hard lifetime account-count bound.
 
-A high-resource actor can perform proportionally more work. Registration PoW is therefore defense in depth, not the authoritative Sybil decision mechanism.
+A high-resource actor can perform proportionally more work. Registration PoW is therefore valid permanent-state scarcity and useful Sybil defense in depth, but it is not the authoritative human-uniqueness decision mechanism.
 
 ## 2. Tier 0 is an account, not a human
 
@@ -58,9 +60,9 @@ Analytics MUST NOT autonomously revoke PoH authority or create a canonical dupli
 
 A duplicate-identity challenge is decided by a separately selected human reviewer/adjudication panel.
 
-Reviewer selection MUST satisfy A20-F001 before production human-authority creation is enabled:
+Reviewer selection MUST satisfy A20-F001 before production positive human-authority creation is enabled:
 
-- the request/challenge context is committed before selection entropy becomes knowable;
+- the request/challenge context is irreversibly committed before selection entropy becomes knowable;
 - applicant-controlled labels such as `case_id` are not entropy;
 - retry/replacement counters are not new entropy sources;
 - applicant and proposer skip/retry grinding is bounded or impossible by protocol rule;
@@ -68,7 +70,9 @@ Reviewer selection MUST satisfy A20-F001 before production human-authority creat
 - restart and state-sync reproduce the same committed selection outcome;
 - replacement selection cannot create an unbounded second panel-search surface.
 
-Until these properties are implemented and proven, production positive PoH authority remains fail-closed.
+The deterministic ML-DSA-signed beacon currently used by WeAll is authenticated and reproducible but is not an unpredictability primitive. It must not be represented as satisfying A20-F001 by itself.
+
+Until the required uniqueness and entropy properties are implemented and proven, production positive PoH authority remains fail-closed through the consensus-visible `scope_closed_pending_uniqueness_entropy` mode. Existing challenge/revocation safety paths remain available.
 
 ## 5. Duplicate decision semantics
 
@@ -103,34 +107,17 @@ If an upheld decision is later overturned on appeal:
 - ordinary reverification is required before human authority is re-awarded;
 - the original decision and overturn remain in deterministic history.
 
-## 7. Tier-0 lifecycle for A15-F003
+## 7. Optional Tier-0 lifecycle hardening
 
-Registration PoW does not by itself bound permanent state. A15-F003 therefore requires a separate deterministic Tier-0 lifecycle.
+A deterministic provisional-account lifecycle or compact tombstone scheme may still be valuable as future storage hardening, but it is not required to reinterpret A15-F003 after the registration-PoW closure already proved on PR #38's preserved closure lineage.
 
-The production target is:
+If future protocol work adds Tier-0 compaction, it must preserve replay, identity, duplicate-challenge, recovery, restart, and state-sync safety. In particular, it must not depend on local wall-clock time, local database size, node-specific garbage collection, or nondeterministic memory pressure.
 
-1. a newly registered Tier-0 account is **provisional**;
-2. a provisional Tier-0 record has a consensus-committed lifecycle deadline or equivalent finite retention rule;
-3. an account becomes retention-relevant when it enters PoH or another explicitly enumerated protocol state that requires the full account record;
-4. a provisional account that never becomes retention-relevant may be compacted after the deterministic lifecycle condition is met;
-5. compaction preserves a minimal canonical tombstone/commitment sufficient to prevent replay, identity resurrection ambiguity, challenge-history corruption, and restart/state-sync disagreement.
+Any future compaction design must be reviewed as a consensus-state migration in its own right rather than smuggled into P0-06 as an unrelated merge blocker.
 
-The lifecycle MUST NOT depend on local wall-clock time, local database size, node-specific garbage collection, or nondeterministic memory pressure.
+## 8. Required evidence before P0-06 closure
 
-## 8. Tombstone / commitment safety requirements
-
-A compacted Tier-0 account representation must preserve enough consensus-visible information to ensure that every honest node agrees on whether a later transaction is:
-
-- a replay of an already-consumed registration identity;
-- a prohibited attempt to resurrect a retired account identifier without the defined recovery/re-registration semantics;
-- a valid protocol-defined re-registration/recovery action, if such an action is explicitly allowed;
-- linked to an existing duplicate-identity or challenge history that still has authority consequences.
-
-The exact tombstone schema is an implementation decision and must be covered by state-root, restart, replay, and state-sync equality tests before A15-F003 is closed.
-
-## 9. Required evidence before closure
-
-### A08-F001 / P0-06
+### A08-F001 — human uniqueness
 
 Closure requires evidence for:
 
@@ -146,7 +133,7 @@ Closure requires evidence for:
 - analytics that suggest rather than autonomously revoke;
 - restart/state-sync equality for challenge, decision, appeal, and authority effects.
 
-### A20-F001 / P0-06
+### A20-F001 — reviewer anti-grinding
 
 Closure additionally requires:
 
@@ -158,23 +145,23 @@ Closure additionally requires:
 - restart/state-sync tests;
 - deterministic property/Monte-Carlo evidence where appropriate.
 
-### A15-F003 / P0-10
+## 9. A15-F003 closure boundary
 
-Closure requires evidence for:
+A15-F003 remains owned by `ACCOUNT_REGISTRATION_SCARCITY.md` and the preserved exact-head P0-10 evidence. Its claim is intentionally narrow:
 
-- registration PoW remains identity/payload bound and non-reusable;
-- provisional Tier-0 lifecycle is deterministic;
-- inactive Tier-0 accounts compact at the protocol-defined boundary;
-- retention-relevant accounts do not compact incorrectly;
-- compacted accounts cannot replay registration or evade duplicate/challenge consequences;
-- proposer/follower, restart, replay, and state-sync roots remain equal across compaction;
-- long-run state growth is bounded by the live provisional window plus constant/minimally bounded tombstone representation rather than by ever-growing full account records.
+- free fresh-key permanent-state creation is no longer unbounded because every production/public-testnet registration pays finite identity-bound computation;
+- the work cannot be reused across signer/nonce/chain/payload identities;
+- the mechanism does not establish one-human uniqueness;
+- it does not claim a hard lifetime maximum on legitimate accounts.
+
+Human uniqueness remains A08. Reviewer anti-grinding remains A20.
 
 ## 10. Claim boundary
 
-Until the above implementation and evidence are present on one exact commit/tree:
+Until P0-06 implementation and evidence are present on one exact commit/tree:
 
-- registration PoW may be described only as passive computational friction / abuse throttling;
-- P0-06 must remain open;
-- A15-F003 must not be represented as closed solely because registration PoW is enabled;
-- stronger public/release claims remain fail-closed.
+- registration PoW may be described as the A15 permanent-state scarcity mechanism and as passive anti-Sybil friction;
+- registration PoW must not be described as human-uniqueness proof;
+- P0-06 remains open;
+- production positive PoH authority remains scope-closed pending uniqueness + entropy closure;
+- stronger release claims remain fail-closed until the same-tree ledger, generated artifacts, full suite, reviewer-readiness and normal CI all agree.
