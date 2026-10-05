@@ -43,16 +43,6 @@ jobs:
           rm -f "$PROTO/scripts/p0_06_scope_closure.py"
           rm -f "$ROOT/.github/workflows/p0-06-scope-closure.yml"
           WEALL_REPO_ROOT="$ROOT" python /tmp/p0_06_scope_closure.py
-          python - <<'PY'
-          from pathlib import Path
-          path = Path("docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md")
-          text = path.read_text(encoding="utf-8")
-          old = "| P0-06 Human uniqueness / reviewer anti-grinding | A08-F001, A20-F001 | CLOSED — SCOPE-CLOSED AND PROVEN |"
-          new = "| P0-06 Human uniqueness / reviewer anti-grinding | A08-F001, A20-F001 | CLOSED — PATCHED AND PROVEN |"
-          if text.count(old) != 1:
-              raise SystemExit(f"p0_06_status_normalization_count={text.count(old)}")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
-          PY
 
       - name: Ruff bounded Python surface
         working-directory: Weall-Protocol
@@ -126,6 +116,9 @@ jobs:
             --tx-type POH_LIVE_RECEIPT
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
           python scripts/gen_release_evidence_manifest_v1_5.py
           python scripts/gen_current_verified_claims.py
@@ -201,6 +194,9 @@ jobs:
               "Weall-Protocol/specs/v2/source/semantic_reviews.json",
               "Weall-Protocol/specs/v2/source/stable_ids.json",
               "Weall-Protocol/generated/current_verified_claims.json",
+              "Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json",
+              "Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json",
+              "Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
           }
           missing = sorted(required - changed)
           if missing:
