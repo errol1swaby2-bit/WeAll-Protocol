@@ -1,81 +1,75 @@
 {
-  "schema": "weall.p1.post_p0_revalidation_matrix.v1",
-  "baseline": {
+  "schema": "weall.a01_a20.p1_closure_matrix.v1",
+  "source_audit": {
+    "date": "2026-09-30",
+    "base_commit": "cd7f10a8b62e9f5a3711f4263d04e3fd62f0d351",
+    "base_tree": "36a5868c72022f11a61bca8f48816852acccb1c9",
+    "inventory_total": 77,
+    "high_p0_count": 27,
+    "medium_p1_count": 34,
+    "low_remaining_count": 16
+  },
+  "closure_baseline": {
     "branch": "main",
     "commit": "61b1a81f624e7f5c81808aa4b580e3c2f8d55a06",
-    "tree": "a6b0a6e3506e6ff9f38fbf42454b4770ac7ac9a7"
+    "tree": "a6b0a6e3506e6ff9f38fbf42454b4770ac7ac9a7",
+    "meaning": "merged PR #38 A01-A20 HIGH/P0 closure"
   },
-  "historical_reference": {
-    "implementation_commit": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
-    "implementation_tree": "bcda576f9ae44792d86ca949863233b4e6693745",
-    "evidence_only": true
-  },
+  "p1_definition": "All MEDIUM findings in the 2026-09-30 A01-A20 master audit inventory.",
   "allowed_statuses": [
     "pending_revalidation",
     "already_closed_and_proven",
     "patched_and_proven",
+    "scope_closed_and_proven",
+    "design_blocker",
     "open"
   ],
+  "tracks": {
+    "P1-01": "Repository authority, reproducibility, reviewer bootstrap and route source truth",
+    "P1-02": "Typed transaction semantics and all-canon semantic assurance",
+    "P1-03": "Persistence, durability and canonical-state publication",
+    "P1-04": "Consensus timeout and constitutional-slot validity",
+    "P1-05": "Transport/cryptographic identity and signature-profile policy",
+    "P1-06": "PoH evidence and anti-Sybil/collusion enforcement",
+    "P1-07": "Economics, treasury, rewards and fee integrity",
+    "P1-08": "API privacy and operator authorization",
+    "P1-09": "Resource-exhaustion residuals",
+    "P1-10": "Claims truth, repository messaging and browser credential custody"
+  },
   "findings": [
-    {
-      "id": "P1-NET-001",
-      "status": "pending_revalidation",
-      "invariant": "Replayable or non-session-bound hello identity cannot acquire another account's durable peer-security namespace."
-    },
-    {
-      "id": "P1-SEC-002",
-      "status": "pending_revalidation",
-      "invariant": "Account key revocation schema and handler use the same canonical key_id."
-    },
-    {
-      "id": "P1-CONS-003",
-      "status": "pending_revalidation",
-      "invariant": "Validator lifecycle transitions share the future-epoch guard across all relevant paths."
-    },
-    {
-      "id": "P1-CONS-004",
-      "status": "pending_revalidation",
-      "invariant": "Consensus-visible reputation/system payloads remain deterministic integer/fixed-point values and reject floats."
-    },
-    {
-      "id": "P1-CONS-005",
-      "status": "pending_revalidation",
-      "invariant": "Equivocation evidence cannot synthesize an unauthorized automatic slash execution path."
-    },
-    {
-      "id": "P1-ECON-001",
-      "status": "pending_revalidation",
-      "invariant": "Self-transfer cannot mint, duplicate, or distort balances/economic state."
-    },
-    {
-      "id": "P1-CONTENT-001",
-      "status": "pending_revalidation",
-      "invariant": "Media/target mutation authority is checked against stored ownership/authorship."
-    },
-    {
-      "id": "P1-DISPUTE-001",
-      "status": "pending_revalidation",
-      "invariant": "Coarse ballot/dispute resolution cannot inherit arbitrary juror-supplied execution actions."
-    },
-    {
-      "id": "P1-GROUP-001",
-      "status": "pending_revalidation",
-      "invariant": "Scoped group operations verify stored group scope/authority rather than trusting caller-provided scope."
-    },
-    {
-      "id": "P1-TREAS-001",
-      "status": "pending_revalidation",
-      "invariant": "Treasury spend mutation/cancellation remains bound to the stored treasury scope."
-    },
-    {
-      "id": "P1-ROLE-001",
-      "status": "pending_revalidation",
-      "invariant": "Node-operator suspension is durable and scheduler/activation logic cannot silently reactivate a suspended operator."
-    },
-    {
-      "id": "P1-STOR-001",
-      "status": "pending_revalidation",
-      "invariant": "User-created storage offers bind operator identity to the signer."
-    }
+    {"id":"A01-F001","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Authoritative main branch does not enforce the validation gates"},
+    {"id":"A01-F002","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Clean checkout proof is not a clean-machine/hermetic reproducibility proof"},
+    {"id":"A01-F003","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Generated V2 route inventory includes four unmounted duplicate endpoint implementations"},
+    {"id":"A02-F002","severity":"MEDIUM","track":"P1-02","status":"pending_revalidation","summary":"Schema accepts textual false while social execution applies it as true"},
+    {"id":"A03-F001","severity":"MEDIUM","track":"P1-03","status":"pending_revalidation","summary":"Nonzero stale ledger snapshot can pass startup while newer persisted blocks already exist"},
+    {"id":"A03-F002","severity":"MEDIUM","track":"P1-03","status":"pending_revalidation","summary":"Observer durable_tx_queue acknowledgement is not backed by an explicit filesystem durability barrier"},
+    {"id":"A05-F003","severity":"MEDIUM","track":"P1-04","status":"pending_revalidation","summary":"Timeout certificates do not actually identify the highest referenced QC"},
+    {"id":"A06-F002","severity":"MEDIUM","track":"P1-04","status":"pending_revalidation","summary":"Future constitutional-slot blocks are rejected by honest construction but accepted by follower/BFT admission before the slot"},
+    {"id":"A07-F003","severity":"MEDIUM","track":"P1-05","status":"pending_revalidation","summary":"Production TLS peer connections can silently disable certificate verification"},
+    {"id":"A08-F002","severity":"MEDIUM","track":"P1-06","status":"pending_revalidation","summary":"Fresh async PoH can progress using commitment-only evidence with no cryptographically bound reviewable ciphertext"},
+    {"id":"A08-F003","severity":"MEDIUM","track":"P1-06","status":"pending_revalidation","summary":"Anti-Sybil/collusion scoring exists as rehearsal/library logic but is not automatically enforced by the canonical PoH lifecycle"},
+    {"id":"A10-F003","severity":"MEDIUM","track":"P1-07","status":"pending_revalidation","summary":"Reward scheduler reallocates empty-bucket and split remainder value to the protocol treasury"},
+    {"id":"A10-F004","severity":"MEDIUM","track":"P1-07","status":"pending_revalidation","summary":"Generic treasury cancellation is authorized by a global emissary role rather than treasury-scoped cancellation authority"},
+    {"id":"A11-F001","severity":"MEDIUM","track":"P1-07","status":"pending_revalidation","summary":"Positive FEE_PAY can remove balance value without a destination or explicit burn accounting"},
+    {"id":"A11-F002","severity":"MEDIUM","track":"P1-07","status":"pending_revalidation","summary":"Positive transfer fee policy is currently unenforceable"},
+    {"id":"A12-F002","severity":"MEDIUM","track":"P1-08","status":"pending_revalidation","summary":"Anonymous mempool status returns complete pending transaction envelopes despite a redacted-public contract"},
+    {"id":"A12-F003","severity":"MEDIUM","track":"P1-08","status":"pending_revalidation","summary":"Observer-edge operator authorization trusts loopback peers by default"},
+    {"id":"A13-F001","severity":"MEDIUM","track":"P1-05","status":"pending_revalidation","summary":"Alternate encodings of the same ML-DSA key are treated as different protocol authorities"},
+    {"id":"A13-F002","severity":"MEDIUM","track":"P1-05","status":"pending_revalidation","summary":"Signature-profile mode policy and explicit allowlist can fail open to ML-DSA"},
+    {"id":"A14-F001","severity":"MEDIUM","track":"P1-03","status":"pending_revalidation","summary":"An older persisted read can overwrite a newer committed in-memory canonical state"},
+    {"id":"A15-F004","severity":"MEDIUM","track":"P1-09","status":"pending_revalidation","summary":"Health/readiness endpoints are rate-limit-exempt but load and parse the entire ledger snapshot"},
+    {"id":"A15-F005","severity":"MEDIUM","track":"P1-09","status":"pending_revalidation","summary":"Public state snapshot has unbounded response/work size and recursively copies/redacts the whole state"},
+    {"id":"A15-F006","severity":"MEDIUM","track":"P1-09","status":"pending_revalidation","summary":"A02 apply-failed replay defect is an indefinitely reusable block-capacity exhaustion primitive"},
+    {"id":"A16-F006","severity":"MEDIUM","track":"P1-02","status":"pending_revalidation","summary":"Transaction coverage is structural; no all-236 semantic property/mutation matrix exists"},
+    {"id":"A17-F001","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Full reviewer-readiness reproduction depends on Git history, not only the current source archive"},
+    {"id":"A17-F002","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Application lockfiles do not make the full clean-machine build hermetic"},
+    {"id":"A17-F003","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Current clean CI proves source/install/test health but not complete node restart/replay reproducibility"},
+    {"id":"A18-F003","severity":"MEDIUM","track":"P1-10","status":"pending_revalidation","summary":"Current verified-claims registry cannot invalidate itself from same-tree adversarial findings"},
+    {"id":"A18-F004","severity":"MEDIUM","track":"P1-10","status":"pending_revalidation","summary":"Verified-human tier wording omits the critical uniqueness/Sybil limitation at the point of claim"},
+    {"id":"A19-F001","severity":"MEDIUM","track":"P1-10","status":"pending_revalidation","summary":"Public repository description overstates exact canon conformance"},
+    {"id":"A19-F002","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Advertised one-command tester node is not a self-contained clean-clone bootstrap"},
+    {"id":"A19-F003","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"fresh_clone_smoke.sh can pass without exact-commit binding or frontend verification"},
+    {"id":"A19-F004","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Reviewer verification paths are fragmented and non-equivalent without a front-door decision tree"},
+    {"id":"A20-F002","severity":"MEDIUM","track":"P1-10","status":"pending_revalidation","summary":"Raw API session bearer key is persisted in browser localStorage"}
   ]
 }
