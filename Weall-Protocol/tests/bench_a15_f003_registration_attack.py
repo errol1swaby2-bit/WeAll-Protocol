@@ -5,6 +5,7 @@ import json
 import time
 from pathlib import Path
 
+from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.account_registration_work import (
     ACCOUNT_REGISTRATION_WORK_PRODUCTION_MIN_BITS,
     ACCOUNT_REGISTRATION_WORK_VERSION,
@@ -14,6 +15,7 @@ from weall.runtime.account_registration_work import (
 )
 from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.testing.sigtools import deterministic_mldsa_keypair
 from weall.tx.canon import TxIndex
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,7 +28,7 @@ def _load_json(path: Path) -> dict:
     return data
 
 
-def _unsigned_registration(*, signer: str, index: int) -> TxEnvelope:
+def _unsigned_registration(*, signer: str, pubkey: str) -> TxEnvelope:
     return TxEnvelope.from_json(
         {
             "chain_id": "weall-prod",
@@ -34,12 +36,7 @@ def _unsigned_registration(*, signer: str, index: int) -> TxEnvelope:
             "signer": signer,
             "nonce": 1,
             "sig_profile": "pq-mldsa-v1",
-            "payload": {
-                # This rehearsal measures the pre-signature permanent-state work
-                # envelope. Cryptographic key validity is exercised separately by
-                # the end-to-end registration regression.
-                "pubkey": f"{index + 1:064x}",
-            },
+            "payload": {"pubkey": pubkey},
             "parent": None,
         }
     )
@@ -84,7 +81,8 @@ def main() -> int:
 
     for index in range(account_count):
         signer = f"@a15bench{index:04d}"
-        unsigned = _unsigned_registration(signer=signer, index=index)
+        pubkey, privkey = deterministic_mldsa_keypair(label=signer)
+        unsigned = _unsigned_registration(signer=signer, pubkey=pubkey)
         work_nonce, attempts = _solve(
             unsigned,
             difficulty_bits=difficulty_bits,
@@ -96,19 +94,20 @@ def main() -> int:
         raw["payload"] = dict(raw["payload"])
         raw["payload"]["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
         raw["payload"]["registration_work_nonce"] = work_nonce
-        env = TxEnvelope.from_json(raw)
+        solved_env = TxEnvelope.from_json(raw)
 
-        work_ok, work_reason, work_meta = verify_account_registration_work(state, env)
+        work_ok, work_reason, work_meta = verify_account_registration_work(state, solved_env)
         if not work_ok:
             raise SystemExit(
                 f"solved_work_rejected:{signer}:{work_reason}:"
                 f"{json.dumps(work_meta, sort_keys=True)}"
             )
 
-        # Exercise canonical transaction admission. Mempool context intentionally
-        # isolates the scarcity envelope from ML-DSA signing cost; the end-to-end
-        # regression separately signs, builds, commits, and restarts fresh accounts.
-        verdict = admit_tx(env, state, canon, context="mempool")
+        signed = sign_tx_envelope_dict(
+            tx=raw,
+            privkey=privkey.private_bytes_raw().hex(),
+        )
+        verdict = admit_tx(signed, state, canon, context="mempool")
         if not verdict.ok:
             raise SystemExit(
                 f"solved_registration_admission_rejected:{signer}:"
@@ -140,12 +139,13 @@ def main() -> int:
                 "attempts_per_second": round(attempts_per_second, 3),
                 "all_solved_work_verified": True,
                 "all_solved_work_passed_canonical_admission": True,
+                "all_admissions_used_valid_mldsa_signatures": True,
                 "distributed_signers": account_count,
                 "solutions": solved,
                 "note": (
                     "Deterministic CPU rehearsal of independent production-difficulty "
-                    "registration-work solutions and canonical admission. Timing is CI-host "
-                    "evidence, not a validator throughput or Sybil-resistance claim."
+                    "registration-work solutions and fully signed canonical public admission. "
+                    "Timing is CI-host evidence, not a validator throughput or Sybil-resistance claim."
                 ),
             },
             sort_keys=True,
