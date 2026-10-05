@@ -100,8 +100,11 @@ def _env(*, signer: str, nonce: int, pubkey: str) -> TxEnvelope:
 
 
 def _work_state(bits: int = 4) -> dict:
+    # Property generation intentionally uses cheap work on a non-production
+    # policy surface. The reviewed 16-bit production floor is asserted and
+    # mutation-tested separately in test_a15_f003_account_registration_scarcity.py.
     return {
-        "chain_id": "weall-prod",
+        "chain_id": "property-chain",
         "accounts": {},
         "params": {
             "account_registration_work_required": True,
