@@ -1,140 +1,174 @@
-# Post-P0 P1 revalidation plan
+# A01–A20 P1 closure plan
 
 ## Objective
 
-Revalidate and, only where necessary, repair the complete known r20 P1 finding set against the repository state produced by the merged P0 closure PR #38.
+Close the **P1 tier derived from the most recent comprehensive WeAll production-readiness audit**, the September 30, 2026 A01–A20 master audit.
 
-This is a closure/revalidation effort, not a feature-development sprint. Historical P1 patches and evidence are regression oracles only. They are not proof that the findings remain closed after the later P2/P0/runtime changes.
+This supersedes the obsolete 12-finding September P1 revalidation plan that initially occupied this branch.
 
-## Authoritative baseline
+The September 30 inventory contains 77 findings:
 
-- repository: `errol1swaby2-bit/WeAll-Protocol`
-- base branch: `main`
-- base commit: `61b1a81f624e7f5c81808aa4b580e3c2f8d55a06`
-- base tree: `a6b0a6e3506e6ff9f38fbf42454b4770ac7ac9a7`
-- base commit meaning: merge of PR #38, the consolidated A01-A20 HIGH/P0 closure
+- 27 HIGH — already mapped to P0 and closed through merged PR #38;
+- 34 MEDIUM — **this P1 closure scope**;
+- 16 LOW — remain outside this P1 scope.
 
-The current working branch for this revalidation is `p1-revalidation-after-p0-20261005`.
+P1 is therefore defined here as **every MEDIUM finding in the A01–A20 master audit inventory**. Audit-local “Priority 1” ordering inside an individual Axx report does not replace the cross-audit severity tier.
 
-## Historical P1 closure reference only
+## Authoritative audit source
 
-The prior complete P1 remediation was merged in PR #27 and final evidence was attached by PR #28.
+Audit snapshot:
 
-Historical implementation freeze:
+- audit date: `2026-09-30`
+- audited commit: `cd7f10a8b62e9f5a3711f4263d04e3fd62f0d351`
+- audited tree: `36a5868c72022f11a61bca8f48816852acccb1c9`
+- total findings: 77
+- HIGH/P0: 27
+- MEDIUM/P1: 34
+- LOW remaining: 16
 
-- commit: `06694e0d14ca318d6a9ffa1cad6253cedae38a10`
-- tree: `bcda576f9ae44792d86ca949863233b4e6693745`
+Authoritative implementation baseline for this closure:
 
-Historical evidence reported all 12 findings as `patched_and_proven`, with targeted regressions, canonical-account-key compatibility, restart/replay/convergence checks, a full backend suite, a 12-finding source-invariant scan, and merge-commit CI.
+- branch: `main`
+- commit: `61b1a81f624e7f5c81808aa4b580e3c2f8d55a06`
+- tree: `a6b0a6e3506e6ff9f38fbf42454b4770ac7ac9a7`
+- meaning: merged PR #38, A01–A20 HIGH/P0 closure
 
-That evidence remains useful for defining the intended invariants and regression tests, but closure must now be reproven on the post-P0 source tree.
+## P1 tracks
 
-## Known P1 set and invariant to preserve
+### P1-01 — Repository authority, reproducibility, reviewer bootstrap and route source truth
 
-1. `P1-NET-001` — a replayable unauthenticated/non-session-bound hello identity must not acquire another account's durable peer-security namespace.
-2. `P1-SEC-002` — account key revocation schema and runtime handler must use the same canonical `key_id` identity.
-3. `P1-CONS-003` — validator lifecycle changes must share the same future-epoch guard across all relevant transition paths.
-4. `P1-CONS-004` — consensus-visible reputation/system-scheduler payloads must remain deterministic integer/fixed-point data; floats must not enter consensus admission.
-5. `P1-CONS-005` — equivocation evidence must not synthesize an automatic slash authority path that bypasses the required governance/authorization boundary.
-6. `P1-ECON-001` — self-transfer must not mint, duplicate, or otherwise distort balances/economic state.
-7. `P1-CONTENT-001` — content media/target mutations must be authorized against the stored owner/author rather than caller-supplied identifiers alone.
-8. `P1-DISPUTE-001` — coarse dispute/ballot resolution must not inherit arbitrary juror-supplied execution actions.
-9. `P1-GROUP-001` — scoped group operations must verify the stored group's scope/authority rather than trusting a mismatched caller-provided scope.
-10. `P1-TREAS-001` — treasury spend mutation/cancellation must remain bound to the stored treasury scope.
-11. `P1-ROLE-001` — node-operator suspension must be durable and consumed by activation/scheduler logic so automatic scheduling cannot silently reactivate a suspended operator.
-12. `P1-STOR-001` — user-created storage offers must bind the operator identity to the signer and must not allow a caller to create an offer on behalf of another operator.
+Findings:
+`A01-F001`, `A01-F002`, `A01-F003`, `A17-F001`, `A17-F002`, `A17-F003`, `A19-F002`, `A19-F003`, `A19-F004`.
 
-## Revalidation rule
+Closure objective:
+make source promotion mechanically trustworthy, distinguish source-clean from machine-clean proof, eliminate or explicitly classify shadow API route authority, and provide one reproducible exact-ref reviewer path whose prerequisites and skips are explicit.
 
-For each finding, one of only three final adjudications is allowed:
+### P1-02 — Typed transaction semantics and all-canon semantic assurance
 
-- `already_closed_and_proven` — current post-P0 source still enforces the invariant and exact-head executable evidence proves it;
-- `patched_and_proven` — the invariant regressed or the proof surface was insufficient, a root-cause patch was applied, and exact-head evidence proves closure;
-- `open` — closure has not been proven. The PR must remain draft/not merge-ready.
+Findings:
+`A02-F002`, `A16-F006`.
 
-No finding may be marked closed solely because PR #27/#28 once closed it.
+Closure objective:
+make accepted signed payload semantics identical between schema validation and execution, then strengthen canon assurance beyond handler/schema presence toward executable semantic vectors.
 
-## Existing executable regression contract to reuse
+### P1-03 — Persistence, durability and canonical-state publication
 
-The historical P1 evidence manifest defines the minimum reusable regression surface:
+Findings:
+`A03-F001`, `A03-F002`, `A14-F001`.
 
-```bash
-pytest -q \
-  tests/test_p1_remaining_complete_remediation.py \
-  tests/p0/test_p1_cons003_future_validator_epochs.py \
-  tests/test_balance_transfer_self_transfer_regression.py \
-  tests/test_p1_group001_scoped_reference_authority.py \
-  tests/test_consensus_equivocation_slash_execute.py
+Closure objective:
+reject stale persisted snapshots when newer durable history exists, give durable queue acknowledgements an explicit durability boundary, and prevent older reads from replacing newer canonical in-memory state.
 
-pytest -q tests/test_priority0_account_key_normalization.py
+### P1-04 — Consensus timeout and constitutional-slot validity
 
-pytest -q \
-  tests/test_feed_persists_order_after_restart_api.py \
-  tests/test_priority1_replay_schedule_consistency.py \
-  tests/test_priority2_state_replay_determinism.py \
-  tests/test_e2e_two_node_convergence.py
-```
+Findings:
+`A05-F003`, `A06-F002`.
 
-These tests are necessary but not sufficient. Each finding must also be re-traced through the current production path and challenged for bypasses introduced by later changes.
+Closure objective:
+rank timeout-certificate referenced QCs by real verifiable QC rank and make builder/BFT/follower treatment of future constitutional slots one coherent consensus rule.
 
-## Post-P0 overlap review
+### P1-05 — Transport/cryptographic identity and signature-profile policy
 
-The P0 merge substantially changed or revalidated network authentication, transaction admission/replay, consensus/HotStuff behavior, governance, economics, group authority, system scheduling, persistence, API authorization, and generated claim/evidence machinery. Therefore:
+Findings:
+`A07-F003`, `A13-F001`, `A13-F002`.
 
-- `P1-NET-001`, `P1-CONS-003`, `P1-CONS-004`, and `P1-CONS-005` require full path re-traces, not only unit-test reruns.
-- `P1-ECON-001`, `P1-GROUP-001`, and `P1-TREAS-001` must be checked against the strengthened governance/economics scope boundaries.
-- `P1-SEC-002`, `P1-CONTENT-001`, `P1-DISPUTE-001`, `P1-ROLE-001`, and `P1-STOR-001` require current-source invariant and admission/apply boundary checks because shared transaction/admission infrastructure changed after the historical P1 freeze.
+Closure objective:
+fail closed on production TLS verification, canonicalize cryptographic authority identity across equivalent key encodings, and ensure signature-profile policy cannot silently fall back to an unintended profile.
 
-A later P0 hardening change may strengthen a P1 invariant; that should be recorded as `already_closed_and_proven`, not redundantly patched.
+### P1-06 — PoH evidence and anti-Sybil/collusion enforcement
 
-## Required per-finding closure evidence
+Findings:
+`A08-F002`, `A08-F003`.
 
-For each of the 12 findings:
+Closure objective:
+revalidate these findings under the P0-06 production human-authority scope lock. A finding may be scope-closed only if the unsafe positive authority path is genuinely unreachable in the production contract and exact tests prove no bypass. Do not invent missing privacy/uniqueness protocols merely to mark these closed.
 
-1. identify the current ingress/admission/apply/persistence or scheduler path;
-2. state the security/consensus invariant in executable terms;
-3. attempt the original exploit class and at least one adjacent bypass variant;
-4. confirm restart/replay behavior where durable state is involved;
-5. add or strengthen a regression only if the existing regression does not discriminate the failure;
-6. record the exact test(s), current source boundary, and final adjudication.
+### P1-07 — Economics, treasury, rewards and fee integrity
 
-For consensus-visible findings, add two-node/replay/convergence evidence when the failure could create divergent state or ordering.
+Findings:
+`A10-F003`, `A10-F004`, `A11-F001`, `A11-F002`.
 
-## Whole-PR closure gates
+Closure objective:
+align reward residual/bucket behavior with the authoritative policy, bind treasury cancellation to treasury-scoped authority, prevent value disappearance in FEE_PAY, and either enforce configured transfer fees exactly or fail closed on unsupported nonzero fee policy.
 
-The final candidate is not merge-ready until all of the following pass on the exact final source tree:
+### P1-08 — API privacy and operator authorization
 
-1. all 12 P1 findings have a non-`open` adjudication with current evidence;
-2. the historical targeted P1 regression matrix passes;
-3. canonical account-key compatibility tests pass;
-4. restart/replay/two-node convergence tests pass;
-5. a regenerated 12-P1 source-invariant scan passes against current source;
-6. dependency audit passes;
-7. canon lint and generated-artifact/current-claim checks pass;
-8. the complete backend test suite passes;
-9. Reviewer Readiness passes;
-10. Web CI passes;
-11. Secrets Guard passes;
-12. evidence is bound to the exact final commit and Git tree;
-13. the worktree/release tree is clean and no temporary closure workflow remains in the final tree.
+Findings:
+`A12-F002`, `A12-F003`.
 
-## Evidence-truth requirements
+Closure objective:
+make anonymous mempool status a bounded public projection and require explicit production operator authentication independent of loopback/reverse-proxy topology.
 
-- Do not reuse the September `P1_EVIDENCE_MANIFEST.json` as current proof.
-- Historical artifacts must remain clearly labeled by their historical implementation commit/tree.
-- Run-specific logs should be treated as CI/run artifacts unless a deterministic same-tree artifact is intentionally generated and freshness-checked.
-- Any current P1 closure summary must name the exact implementation commit/tree it certifies.
-- A source change after final evidence invalidates that evidence and requires revalidation.
+### P1-09 — Resource-exhaustion residuals
 
-## Suggested remediation order
+Findings:
+`A15-F004`, `A15-F005`, `A15-F006`.
 
-1. network/security identity boundaries — `P1-NET-001`, `P1-SEC-002`
-2. consensus/determinism/authorization — `P1-CONS-003`, `P1-CONS-004`, `P1-CONS-005`
-3. economics and scoped authority — `P1-ECON-001`, `P1-GROUP-001`, `P1-TREAS-001`
-4. content/dispute/roles/storage authority — `P1-CONTENT-001`, `P1-DISPUTE-001`, `P1-ROLE-001`, `P1-STOR-001`
-5. restart/replay/convergence and full regression
-6. exact-head evidence/claim reconciliation and permanent CI
+Closure objective:
+make health/readiness constant/bounded-cost, bound public state snapshot work/response size, and revalidate `A15-F006` against the P0-01 one-shot transaction-identity closure. If P0-01 already removes the reusable failed-work primitive, close A15-F006 as already closed only with current executable evidence.
 
-## Scope boundary
+### P1-10 — Claims truth, repository messaging and browser credential custody
 
-Closing this effort means the **known r20 P1 set** is revalidated as closed against the post-P0 implementation. It does not itself claim public mainnet, public beta, live economics, public governance, production multi-validator BFT launch authorization, global Proof-of-Human uniqueness, independent cryptographic review, or closure of unrelated P2/P3/new findings.
+Findings:
+`A18-F003`, `A18-F004`, `A19-F001`, `A20-F002`.
+
+Closure objective:
+make current claims consume the complete same-tree finding state, put the uniqueness/Sybil limitation at the point of verified-human claims, remove or qualify overbroad canon-conformance messaging, and establish an explicit browser session-custody model that does not persist raw bearer authority without a reviewed need.
+
+## Adjudication rule
+
+Every finding must finish as exactly one of:
+
+- `already_closed_and_proven` — P0 or later work already eliminated the defect and current exact-head evidence proves it;
+- `patched_and_proven` — a root-cause repair was required and exact-head evidence proves closure;
+- `scope_closed_and_proven` — a reviewed production scope lock makes the unsafe capability unreachable and bypass evidence proves that boundary;
+- `design_blocker` — a normative rule is genuinely missing and code must not invent it;
+- `open` — not closed.
+
+A historical green test, disabled feature, or nearby P0 patch is not sufficient by itself.
+
+## First pass: current-source revalidation
+
+Before changing protocol/runtime code:
+
+1. trace each of the 34 finding paths against the post-P0 `main`;
+2. identify findings already eliminated incidentally by P0;
+3. reproduce every surviving defect with the smallest discriminating executable test;
+4. record any finding whose source-audit premise no longer matches current source;
+5. only then patch surviving findings.
+
+The branch must preserve the finding IDs from the September 30 audit. Do not replace them with the older `P1-NET-*`, `P1-SEC-*`, or other September pre-A01–A20 identifiers.
+
+## Closure evidence requirements
+
+Per finding, closure evidence should include the audit-required negative/positive regression and, where applicable:
+
+- proposer/follower/replay parity;
+- restart persistence;
+- two-node deterministic agreement;
+- wrong-principal/right-principal authorization matrix;
+- exact durability/readback behavior;
+- bounded resource/work evidence;
+- cryptographic identity/profile negative cases;
+- generated API/spec/claim truth.
+
+Whole-PR final gates:
+
+1. all 34 MEDIUM/P1 findings adjudicated with no `open` or unresolved `design_blocker`;
+2. P0 invariants remain closed;
+3. dependency audit green;
+4. canon lint green;
+5. transaction/generated/V2/current-claim artifacts regenerated and current;
+6. focused P1 matrix green;
+7. complete backend suite green;
+8. Reviewer Readiness green;
+9. Web CI green;
+10. Secrets Guard green;
+11. temporary closure workflows removed;
+12. final commit and Git tree recorded in exact-head evidence.
+
+## Truth boundary
+
+Closing this P1 effort means the 34 MEDIUM findings from the September 30 A01–A20 audit have been adjudicated and proven closed against the post-P0 implementation.
+
+It does not close the 16 LOW findings, does not reactivate scope-closed Proof-of-Human authority, and does not by itself authorize public mainnet, public economics, or broader launch claims.
