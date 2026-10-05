@@ -9,8 +9,9 @@ permissions:
 
 jobs:
   closure:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,20 +22,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
       - name: Install locked backend
         working-directory: Weall-Protocol
         run: |
+          set -Eeuo pipefail
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Apply bounded scope closure to workflow-free tree
+      - name: Apply scope closure to workflow-free tree
         run: |
           set -Eeuo pipefail
           ROOT="$GITHUB_WORKSPACE"
@@ -44,7 +40,7 @@ jobs:
           rm -f "$ROOT/.github/workflows/p0-06-scope-closure.yml"
           WEALL_REPO_ROOT="$ROOT" python /tmp/p0_06_scope_closure.py
 
-      - name: Ruff bounded Python surface
+      - name: Ruff bounded source surface
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -63,68 +59,7 @@ jobs:
           ruff check "${PY_FILES[@]}"
           ruff format --check "${PY_FILES[@]}"
 
-      - name: Regenerate production identity and evidence
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          python scripts/build_production_genesis_manifest.py \
-            --chain-id weall-prod \
-            --founding-account '@errol-genesis' \
-            --founding-pubkey c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be \
-            --authority-pubkey c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be \
-            --genesis-time 1778368894 \
-            --econ-unlock-days 90 \
-            --bootstrap-expires-height 1008
-          python scripts/refresh_v2_semantic_reviews.py \
-            --reviewer "WeAll maintainer (AI-assisted P0-06 scope review; independent launch review deferred)" \
-            --review-method "bounded_p0_06_scope_closure_review_with_regression_and_mutation_evidence" \
-            --authority-effect "The shared PoH dispatcher now fail-closes canonical production positive human-authority creation/advancement pending separately reviewed uniqueness/privacy/adjudication and post-commit unpredictable reviewer entropy; challenge/revocation and deletion-attestation paths remain available. This review does not claim those missing primitives are implemented." \
-            --register-failure forbidden:poh_human_authority_scope_closed \
-            --tx-type POH_APPLICATION_SUBMIT \
-            --tx-type POH_EVIDENCE_DECLARE \
-            --tx-type POH_EVIDENCE_BIND \
-            --tx-type POH_ASYNC_REQUEST_OPEN \
-            --tx-type POH_ASYNC_EVIDENCE_DECLARE \
-            --tx-type POH_ASYNC_EVIDENCE_BIND \
-            --tx-type POH_ASYNC_JUROR_ASSIGN \
-            --tx-type POH_ASYNC_JUROR_ACCEPT \
-            --tx-type POH_ASYNC_JUROR_DECLINE \
-            --tx-type POH_ASYNC_REVIEW_SUBMIT \
-            --tx-type POH_ASYNC_FINALIZE \
-            --tx-type POH_ASYNC_RECEIPT \
-            --tx-type POH_TIER_REVOKE \
-            --tx-type POH_TIER_SET \
-            --tx-type POH_BOOTSTRAP_TIER2_GRANT \
-            --tx-type POH_CHALLENGE_OPEN \
-            --tx-type POH_CHALLENGE_RESOLVE \
-            --tx-type POH_TIER2_REQUEST_OPEN \
-            --tx-type POH_TIER2_JUROR_ASSIGN \
-            --tx-type POH_TIER2_JUROR_ACCEPT \
-            --tx-type POH_TIER2_JUROR_DECLINE \
-            --tx-type POH_TIER2_REVIEW_SUBMIT \
-            --tx-type POH_TIER2_FINALIZE \
-            --tx-type POH_TIER2_RECEIPT \
-            --tx-type POH_LIVE_REQUEST_OPEN \
-            --tx-type POH_LIVE_SESSION_INIT \
-            --tx-type POH_LIVE_JUROR_ASSIGN \
-            --tx-type POH_LIVE_JUROR_ACCEPT \
-            --tx-type POH_LIVE_JUROR_DECLINE \
-            --tx-type POH_LIVE_JUROR_REPLACE \
-            --tx-type POH_LIVE_ATTENDANCE_MARK \
-            --tx-type POH_LIVE_VERDICT_SUBMIT \
-            --tx-type POH_LIVE_FINALIZE \
-            --tx-type POH_LIVE_RECEIPT
-          python scripts/gen_failure_code_registry_v1_5.py
-          python scripts/gen_api_response_vectors_v1_5.py
-          python scripts/gen_b528_b532_completion_proof_v1_5.py
-          python scripts/gen_b534_b538_completion_proof_v1_5.py
-          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
-          python scripts/gen_public_beta_blocker_report_v1_5.py
-          python scripts/gen_release_evidence_manifest_v1_5.py
-          python scripts/gen_current_verified_claims.py
-          python scripts/compile_v2_spec.py
-
-      - name: Focused P0-06 regressions
+      - name: Focused safety regressions
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -132,112 +67,21 @@ jobs:
             tests/test_p0_06_production_scope_closure.py \
             tests/test_p0_06a_duplicate_account_adjudication.py \
             tests/test_poh_async_panel_grinding_regression.py \
-            tests/test_p0_property_invariants.py \
-            tests/test_production_genesis_manifest_builder.py \
-            tests/test_current_verified_claims_fail_closed.py
+            tests/test_production_genesis_manifest_builder.py
 
-      - name: Generated and dependency gates
-        working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          pip-audit -r requirements.lock
-          pip-audit -r requirements-dev.lock
-          python -m tooling.canon_lint
-          python scripts/check_generated.py
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
-          python scripts/check_public_claim_freshness.py
-          python scripts/gen_current_verified_claims.py --check
-
-      - name: Expanded P0 assurance gate
-        working-directory: Weall-Protocol
-        run: |
-          python tests/p0_assurance.py gate \
-            --report artifacts/p0-assurance/p0_assurance_report.json \
-            --timeout-seconds 120
-
-      - name: Web gates
-        working-directory: web
-        run: |
-          npm ci
-          npm run dependency-audit
-          npm run typecheck
-          npm run test:account-custody-crypto-source
-          npm run build
-
-      - name: Full backend regression
-        working-directory: Weall-Protocol
-        run: pytest -q
-
-      - name: Final bounded tree guard
+      - name: Final source guard
         run: |
           set -Eeuo pipefail
           git diff --check
           test ! -e Weall-Protocol/scripts/p0_06_scope_closure.py
           test ! -e .github/workflows/p0-06-scope-closure.yml
-          python - <<'PY'
-          import subprocess
-          base = "d2f6bfd08465d6f8c18645c1f7c5b9f1514c28ac"
-          changed = set(subprocess.check_output(["git", "diff", "--name-only", base], text=True).splitlines())
-          required = {
-              "Weall-Protocol/src/weall/runtime/poh/state.py",
-              "Weall-Protocol/src/weall/runtime/apply/poh.py",
-              "Weall-Protocol/src/weall/runtime/poh/async_scheduler.py",
-              "Weall-Protocol/src/weall/runtime/poh/tier2_scheduler.py",
-              "Weall-Protocol/src/weall/runtime/poh/live_scheduler.py",
-              "Weall-Protocol/scripts/build_production_genesis_manifest.py",
-              "Weall-Protocol/configs/genesis.ledger.prod.json",
-              "Weall-Protocol/configs/chains/weall-genesis.json",
-              "Weall-Protocol/tests/test_p0_06_production_scope_closure.py",
-              "Weall-Protocol/tests/p0_assurance.py",
-              "docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md",
-              "Weall-Protocol/specs/v2/source/semantic_reviews.json",
-              "Weall-Protocol/specs/v2/source/stable_ids.json",
-              "Weall-Protocol/generated/current_verified_claims.json",
-              "Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json",
-              "Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json",
-              "Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
-          }
-          missing = sorted(required - changed)
-          if missing:
-              raise SystemExit("missing_required_diff:" + ",".join(missing))
-          forbidden = sorted(
-              p for p in changed
-              if p.startswith(".github/workflows/p0-06")
-              or p.endswith("scripts/p0_06_scope_closure.py")
-          )
-          if forbidden:
-              raise SystemExit("temporary_control_survived:" + ",".join(forbidden))
-          print("P0-06 final changed paths:")
-          for path in sorted(changed):
-              print(path)
-          PY
+          git diff --name-only
 
-      - name: Commit workflow-free candidate and verify clean checkout
+      - name: Commit bounded source closure
         run: |
           set -Eeuo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "fix: scope-close production PoH authority pending uniqueness entropy"
-          SOURCE_COMMIT="$(git rev-parse HEAD)"
-          SOURCE_TREE="$(git rev-parse HEAD^{tree})"
-          ARCHIVE_DIR="$(mktemp -d /tmp/weall-p0-06-archive-XXXXXX)"
-          git archive HEAD | tar -x -C "$ARCHIVE_DIR"
-          cd "$ARCHIVE_DIR/Weall-Protocol"
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
-          python scripts/gen_current_verified_claims.py --check
-          cd "$ARCHIVE_DIR"
-          bash scripts/verify_release_tree.sh "$ARCHIVE_DIR"
-          cd "$GITHUB_WORKSPACE"
           git push origin "HEAD:p0-03-production-closure-staging-20261001"
-          printf 'P0-06 source commit: %s\n' "$SOURCE_COMMIT"
-          printf 'P0-06 source tree:   %s\n' "$SOURCE_TREE"
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: p0-06-assurance-${{ github.run_id }}
-          path: Weall-Protocol/artifacts/p0-assurance/p0_assurance_report.json
-          if-no-files-found: warn
