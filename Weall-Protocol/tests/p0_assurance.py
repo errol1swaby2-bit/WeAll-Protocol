@@ -115,7 +115,7 @@ MUTATIONS: tuple[MutationSpec, ...] = (
             ),
         ),
         tests=(
-            "tests/test_p0_a01_a20_closure_regressions.py::test_durable_commit_rejects_unbound_received_receipt_body",
+            "tests/test_p0_scheduler_and_receipt_breadth_closure.py::test_p0_04_follower_rejects_receipt_body_tamper_and_restart_preserves_canonical_block",
         ),
     ),
     MutationSpec(
