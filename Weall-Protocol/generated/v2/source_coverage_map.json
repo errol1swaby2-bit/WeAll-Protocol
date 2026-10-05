@@ -67,19 +67,6 @@
       "mappings": [
         "M-075"
       ],
-      "path": "../.github/workflows/p1-refresh-fee-semantic-review.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "0ae91828bf9474f8a76ce0cdecc2d1301974492295f9cf6fc6bdcba6a499ac0d",
-      "source_id": "SRC-D4BC48E41B73FBD9"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
       "sha256": "17a641dee4a75da06baf33615b9ccd2dd579333fc2066b2d65675eb260dad2b6",
@@ -110,6 +97,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "02b8b65a3b88e84940e1218a9a8ab280d12a819bbe41bfcb6e2e99d3275e8714",
       "source_id": "SRC-EFC50317C3E5E615"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/v2-spec-refresh.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "f223e237ec9db471a18e4bbe0081b5a01c73ea2d76d6602e22b171a91b271b1e",
+      "source_id": "SRC-4DF17321F27735E9"
     },
     {
       "affected_registers": [
