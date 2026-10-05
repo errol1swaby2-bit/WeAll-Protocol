@@ -186,7 +186,10 @@ MUTATIONS: tuple[MutationSpec, ...] = (
                 '    if False and not bool(report.get("ready")):\n',
             ),
         ),
-        tests=("tests/test_economics_activation_requires_hardened_governance_electorate.py",),
+        tests=(
+            "tests/test_economics_activation_requires_hardened_governance_electorate.py",
+            "tests/test_launch_gate_proof_surfaces.py",
+        ),
     ),
     MutationSpec(
         mutation_id="P0-09-POH-SCOPED-QUERY-AUTH",
