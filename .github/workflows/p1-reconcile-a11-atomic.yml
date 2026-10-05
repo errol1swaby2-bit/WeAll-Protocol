@@ -96,3 +96,5 @@ jobs:
           git diff --check --cached
           git commit -m 'audit: reconcile atomic transfer fee evidence'
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# retry after atomic fee state ID registration
