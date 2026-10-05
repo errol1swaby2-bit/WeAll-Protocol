@@ -113,11 +113,17 @@ jobs:
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_failure_code_registry_v1_5.py --check
 
+      - name: Recompile V2 derivatives after v1.5 registry refresh
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
       - name: Verify workflow-free working-tree derivatives
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           git -C .. diff --check
