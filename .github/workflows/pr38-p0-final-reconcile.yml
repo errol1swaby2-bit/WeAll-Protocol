@@ -198,10 +198,17 @@ jobs:
         run: |
           pytest -q
 
+      - name: Verify clean release tree from exact candidate archive
+        run: |
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          git archive HEAD | tar -x -C "$tmp"
+          bash "$tmp/Weall-Protocol/scripts/verify_release_tree.sh"
+
       - name: Reviewer readiness on exact local candidate
         working-directory: Weall-Protocol
         env:
-          WEALL_RELEASE_TREE_ALREADY_VERIFIED: "0"
+          WEALL_RELEASE_TREE_ALREADY_VERIFIED: "1"
         run: |
           bash scripts/reviewer_production_readiness_gate.sh
 
