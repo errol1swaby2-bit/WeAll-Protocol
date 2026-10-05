@@ -23642,6 +23642,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Economics:transfer_fee_int",
+      "kind": "state",
+      "stable_id": "STATE-B5CC861BAA1A48FF",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:session",
       "kind": "state",
       "stable_id": "STATE-B62083D39A31E651",
