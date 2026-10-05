@@ -1,0 +1,98 @@
+name: P1 Reconcile A11 Atomic Fees
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-reconcile-a11-atomic.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Verify A11 atomic-fee behavior before regeneration
+        working-directory: Weall-Protocol
+        run: |
+          ruff format --check src/weall/runtime/apply/economics.py tests/test_p1_latest_medium_closure.py
+          ruff check src/weall/runtime/apply/economics.py tests/test_p1_latest_medium_closure.py
+          pytest -q \
+            tests/test_p1_latest_medium_closure.py \
+            tests/test_civic_social_governance_fee_free_after_activation.py \
+            tests/test_genesis_econ_lock_smoke.py \
+            tests/test_economics_canon_apply_alignment.py
+
+      - name: Refresh changed A11 transaction semantic bindings
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/refresh_v2_semantic_reviews.py \
+            --tx-type FEE_POLICY_SET \
+            --tx-type BALANCE_TRANSFER \
+            --reviewer "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
+
+      - name: Regenerate dependent evidence twice
+        working-directory: Weall-Protocol
+        run: |
+          for round in 1 2; do
+            echo "regeneration round $round"
+            python scripts/gen_failure_code_registry_v1_5.py
+            if [[ -f scripts/gen_api_response_vectors_v1_5.py ]]; then
+              python scripts/gen_api_response_vectors_v1_5.py
+            fi
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+            python scripts/gen_b528_b532_completion_proof_v1_5.py
+            python scripts/gen_b534_b538_completion_proof_v1_5.py
+            python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+            python scripts/gen_public_beta_blocker_report_v1_5.py
+            python scripts/gen_release_evidence_manifest_v1_5.py
+            python scripts/gen_current_verified_claims.py
+          done
+
+      - name: Verify regenerated truth
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          pytest -q \
+            tests/test_p1_latest_medium_closure.py \
+            tests/test_civic_social_governance_fee_free_after_activation.py \
+            tests/test_genesis_econ_lock_smoke.py \
+            tests/test_economics_canon_apply_alignment.py
+
+      - name: Commit workflow-free reconciled A11 candidate
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/p1-reconcile-a11-atomic.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No reconciliation diff produced'; exit 1; }
+          git diff --check --cached
+          git commit -m 'audit: reconcile atomic transfer fee evidence'
+          git push origin HEAD:p1-revalidation-after-p0-20261005
