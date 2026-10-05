@@ -30,8 +30,16 @@ def _load_json(path: Path) -> dict:
     return data
 
 
-def _unsigned_registration(*, signer: str, pubkey: str, recovery_pubkey: str, index: int) -> TxEnvelope:
-    evidence_kem_pubkey = base64.b64encode(bytes([index % 251 + 1]) * 1184).decode("ascii")
+def _unsigned_registration(
+    *,
+    signer: str,
+    pubkey: str,
+    recovery_pubkey: str,
+    index: int,
+) -> TxEnvelope:
+    evidence_kem_pubkey = base64.b64encode(bytes([index % 251 + 1]) * 1184).decode(
+        "ascii"
+    )
     return TxEnvelope.from_json(
         {
             "chain_id": "weall-prod",
@@ -92,7 +100,9 @@ def main() -> int:
     for index in range(account_count):
         signer = f"@a15bench{index:04d}"
         pubkey, privkey = deterministic_mldsa_keypair(label=f"{signer}:main")
-        recovery_pubkey, _recovery_privkey = deterministic_mldsa_keypair(label=f"{signer}:recovery")
+        recovery_pubkey, _recovery_privkey = deterministic_mldsa_keypair(
+            label=f"{signer}:recovery"
+        )
         unsigned = _unsigned_registration(
             signer=signer,
             pubkey=pubkey,
@@ -123,7 +133,11 @@ def main() -> int:
             tx=raw,
             privkey=privkey.private_bytes_raw().hex(),
         )
-        verdict = admit_tx(signed, state, canon, context="mempool")
+        # Block admission exercises the cryptographic signature verifier for a
+        # fresh ACCOUNT_REGISTER using the registration payload key. This keeps
+        # the evidence honest: each distributed identity pays work *and* proves
+        # control of its independently generated ML-DSA key before state apply.
+        verdict = admit_tx(signed, state, canon, context="block")
         if not verdict.ok:
             raise SystemExit(
                 f"solved_registration_admission_rejected:{signer}:"
@@ -170,15 +184,15 @@ def main() -> int:
                 "elapsed_seconds": round(elapsed, 6),
                 "attempts_per_second": round(attempts_per_second, 3),
                 "all_solved_work_verified": True,
-                "all_solved_work_passed_canonical_admission": True,
-                "all_admissions_used_valid_mldsa_signatures": True,
+                "all_solved_work_passed_canonical_block_admission": True,
+                "all_admissions_verified_valid_mldsa_signatures": True,
                 "all_payloads_include_production_required_recovery_and_kem_material": True,
                 "all_registrations_applied_to_production_genesis_state": True,
                 "distributed_signers": account_count,
                 "solutions": solved,
                 "note": (
                     "Deterministic CPU rehearsal of independent production-difficulty "
-                    "registration-work solutions, fully signed canonical public admission, and "
+                    "registration-work solutions, fully signed canonical block admission, and "
                     "permanent account-state application. Timing is CI-host evidence, not a "
                     "validator throughput or Sybil-resistance claim."
                 ),
