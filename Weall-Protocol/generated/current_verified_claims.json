@@ -79,18 +79,16 @@
           "P0-07",
           "P0-08",
           "P0-09",
+          "P0-10",
           "P0-11",
           "P0-12"
         ],
         "open_high_finding_ids": [
           "A08-F001",
-          "A15-F001",
-          "A15-F002",
           "A20-F001"
         ],
         "open_track_ids": [
-          "P0-06",
-          "P0-10"
+          "P0-06"
         ],
         "stronger_release_claims_blocked": true,
         "total_tracks": 12
@@ -392,7 +390,7 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
-    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "be6fcc40a0ba6ca3ff686cb1457a0930474eb7b0d188f90c66dc3e86544b5563",
+    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "b2ef6bbff370c9e5f2e6136f3720103da65a571fe12983103e2a2d4cc3b647a4",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
     "generated/public_beta_blocker_report_v1_5.json": "14294a0a986ec33418312b7512408403422c2ba6be79116ce7fa9cdf665018a7",
     "generated/release_evidence_manifest_v1_5.json": "cfc9cdf91891d766e1974961119e83d6b396d2d608966bd20bbcc0b03648c8bb",

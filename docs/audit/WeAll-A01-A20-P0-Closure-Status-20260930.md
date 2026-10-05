@@ -28,9 +28,20 @@ This document is deliberately stricter than a normal PR checklist. A runtime pat
 | P0-07 Governance electorate / proposal binding / constitutional authority | A09-F001..F004, A16-F005 | CLOSED — PATCHED AND PROVEN | A09-F001 through A09-F003 are closed: production civic governance fails closed, executable proposals use the Tier-2 human electorate, and votes bind an immutable executable proposal version. A09-F004 is scope-closed rather than supplied with invented constitutional rules: strict civic profiles reject `CONSTITUTION_UPGRADE_DECLARE`/`ACTIVATE` at proposal authoring and independently reject direct SYSTEM protocol application; the record-only compatibility path remains outside production civic authority. A16-F005 is now supplied by the locked P0 assurance gate: production chain-mode and voting-stage proposal-freeze mutants are non-equivalent P0-07 operators and are killed by the exact-head gate. |
 | P0-08 Economics activation / treasury governance binding | A10-F001, A10-F002, A10-F005 | CLOSED — PATCHED AND PROVEN | Locked economics cannot schedule value execution; production enablement runs readiness preconditions; group treasury requires governance approval bound to the immutable spend plan; approved queue-to-apply value movement is one-shot across restart/replay and mutation is rejected. |
 | P0-09 PoH API authorization/privacy | A12-F001, A18-F002 | CLOSED — PATCHED AND PROVEN | All six scoped account/juror queues and Tier-2/Live full-case reads are session/principal or participant bound. Anonymous, wrong-principal, and authorized runtime matrices pass, and all protected surfaces are represented by current generated auth/privacy vectors executed against runtime truth. |
-| P0-10 Bounded production state / state sync / permanent account state | A15-F001..F003 | PARTIAL | A15-F003 is closed by an explicitly enabled, finite nonzero, identity-bound account-registration work requirement on production/public-testnet genesis. Required policy fails closed; one account's proof cannot be reused for another signer/nonce/payload; admission repeats the check before permanent Tier-0 materialization; browser onboarding solves locally before signing. This establishes marginal computational scarcity for each permanent registration without claiming global human uniqueness or a lifetime account cap. Open findings: A15-F001, A15-F002. A15-F001 still requires bounded consensus-visible ancestry/history architecture, and A15-F002 still requires a finite authenticated state-sync work/response envelope with amplification bounds. |
+| P0-10 Bounded production state / state sync / permanent account state | A15-F001..F003 | CLOSED — PATCHED AND PROVEN | A15-F001 bounds root-visible live ancestry to a consensus-committed ceiling with a rolling checkpoint commitment; restart, proposer/follower equality, fork-choice/HotStuff finality and state-sync verification cross the compaction boundary. Synthetic steady-state evidence at 100k/1M/5M heights retains exactly 10,000 live ancestry records while measuring state size, deepcopy, state-root/replay-root, durable serialization/write, restart parse, RSS and per-block compaction. A15-F002 uses finite wire-derived response caps, cheap trusted-anchor/range preflight before state materialization, and a global/per-peer bounded off-loop worker with bounded result drain; 10/100/500 MiB synthetic state requests remain response-capped, concurrent accepted work is globally bounded, excess requests fail `sync_busy`, and BFT routing remains independently serviceable under saturated sync work. A15-F003 remains closed by finite nonzero identity-bound registration work without claiming human uniqueness or a lifetime account cap. |
 | P0-11 Property/mutation gate | A16-F001 | CLOSED — PATCHED AND PROVEN | A deterministic P0 assurance framework is locked into Backend CI with fixed reviewable property seeds, lifecycle-focused property tests, explicit P0 mutation operators, a survivor artifact, and a fail-closed gate. On the exact current tree all 13 non-equivalent P0 mutants are killed, with zero survivors and zero invalid mutations; the normal Backend CI independently passes this gate before the full pytest suite. |
 | P0-12 Claim/evidence truth binding | A18-F001, A18-F002 | CLOSED — PATCHED AND PROVEN | Current claim generation consumes the canonical same-tree A01–A20 P0 closure ledger, enumerates open HIGH/P0 tracks and findings, hashes the ledger as a required generation input, and fails closed if any release claim boundary is enabled while a P0 track remains open. Dedicated malformed/missing-track and claim-promotion regressions pass. |
+
+
+## P0-10 A15-F001/F002 dedicated closure evidence
+
+Dedicated closure workflow run: `37258212437`.
+
+A15-F001 synthetic steady-state heights were exercised at 100,000 / 1,000,000 / 5,000,000 while retaining the protocol ceiling of 10,000 live ancestry records plus a constant-size rolling checkpoint. The run measured candidate deepcopy, state-root and replay-root equality, canonical serialization/write, restart parse, RSS, and one-block compaction at each height. The largest measured state-root time was `26.724 ms`; the largest encoded bounded state was `820,364` bytes. These are CI-host synthetic measurements, not validator-hardware throughput claims.
+
+A15-F002 exercised synthetic 10 / 100 / 500 MiB state snapshots. Every oversized request was rejected as `snapshot_too_large` under the finite wire-derived response cap; the 500 MiB case completed in `8444.363 ms` with peak process RSS `1,587,508 KiB` on the CI host. A saturated worker admitted `4` requests at the global work cap, rejected `2` excess requests as `sync_busy`, drained at one result per tick, and routed `500` BFT vote messages with measured max callback latency `0.003627 ms`. These are bounded stress measurements, not network throughput claims.
+
+The workflow artifact contains the machine-readable JSON/CSV evidence and the long-height SVG plot. Closure remains contingent on the workflow-free exact tree passing the normal Backend CI, Reviewer Readiness, Web CI and Secrets Guard gates.
 
 ## Additional CI blockers discovered during closure
 
@@ -55,7 +66,7 @@ On that exact tree:
 - the P0 assurance gate kills 13/13 non-equivalent mutants with zero survivors and zero invalid mutations;
 - the helper workflows used to repair the final survivor are absent from the permanent tree.
 
-These exact-head passes prove the current source/evidence tree; they do not override the still-open P0-06 and A15-F001/A15-F002 design/implementation blockers.
+These exact-head passes prove the current source/evidence tree. P0-10 A15-F001/F002 are now closed by the bounded-history/state-sync architecture plus the dedicated long-height/large-state proof run; P0-06 remains the only open P0 track.
 
 ## Merge / closure prohibition
 
@@ -71,6 +82,5 @@ PR #38 remains the single canonical closure PR and MUST NOT be represented as fu
 
 ## Next implementation order
 
-1. Complete P0-10 A15-F001 bounded consensus-visible ancestry/history and A15-F002 finite authenticated state-sync work/response architecture with adversarial stress evidence.
-2. Adjudicate P0-06 A08/A20 together so global human uniqueness and reviewer anti-grinding share one coherent protocol trust model.
-3. After those remaining runtime/design tracks close, capture the final closure SHA/tree, regenerate final same-tree public evidence, and require all four normal exact-head gates plus the P0 assurance gate to remain green.
+1. Adjudicate P0-06 A08/A20 together so global human uniqueness and reviewer anti-grinding share one coherent protocol trust model.
+2. After P0-06 closes, capture the final closure SHA/tree, regenerate final same-tree public evidence, and require all four normal exact-head gates plus the P0 assurance gate to remain green.

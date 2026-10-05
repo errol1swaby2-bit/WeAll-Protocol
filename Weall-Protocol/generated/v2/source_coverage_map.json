@@ -539,7 +539,7 @@
       ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "80eda1f18df2f395cb21135ff77e64cfb178c6b8d8d97d7d2443b5d9dd0c589f",
+      "sha256": "82b672d282450fac6fcad026c791872efb318f95c12628dcac58c265616c9ea5",
       "source_id": "SRC-251A50F3DB56A30F"
     },
     {
@@ -3223,7 +3223,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "165cba61610c15ab1325a4ad87dfe395a8890e69e3e1ab6b2a6b27c9a21f63a7",
+      "sha256": "6bb4ca0748a4ac0af30d85ba292ed1f5b282dc2e88e07a18d91404282f6e1988",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -22075,7 +22075,7 @@
       ],
       "path": "tests/test_p0_10_a15_f001_bounded_block_history.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "6e7cfbf37efd9a329e06a9e30d68a1d7c6f3db6905026641aee74b0532560719",
+      "sha256": "554f3d9c821d731505000a04605b27e764ef66e9df7db3ee0cdf96ec286e9c33",
       "source_id": "SRC-D294F2C408F10F7B"
     },
     {
@@ -22090,7 +22090,7 @@
       ],
       "path": "tests/test_p0_10_a15_f002_state_sync_resource_bounds.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2558bdc1a63f4680ba0bb1359a069d39280d3e6d19bd580aa0072820b8078533",
+      "sha256": "c334a690bcaba3c878bab2ee761659d6d8d68a5346d6acd7b17395b316cfc313",
       "source_id": "SRC-4DAA17327F131401"
     },
     {

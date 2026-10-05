@@ -13,7 +13,7 @@ export const WEALL_PROTOCOL_STATUS = {
   "publicMultiValidatorBft": false,
   "publicStorageProviderMarket": false,
   "repositorySnapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
-  "sourceTreeDigest": "8d91955bab10db392227448823c952e5e1027fd48656b446d5017c10ff593f9b",
+  "sourceTreeDigest": "bcff638a88d7436ce45e09600154fbc6c8cb74ec7ed331f537f97a0113d85890",
   "specCandidate": "2.0 Candidate 3.11R3"
 } as const;
 export type WeAllProtocolStatus = typeof WEALL_PROTOCOL_STATUS;

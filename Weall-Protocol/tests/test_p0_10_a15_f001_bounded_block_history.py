@@ -5,6 +5,9 @@ from pathlib import Path
 
 import pytest
 
+from weall.net.messages import MsgType, StateSyncRequestMsg, WireHeader
+from weall.net.state_sync import StateSyncService, build_snapshot_anchor
+from weall.runtime.bft_hotstuff import HotStuffBFT, qc_from_json
 from weall.runtime.block_history import (
     BLOCK_HISTORY_CHECKPOINT_KEY,
     BlockHistoryRetentionError,
@@ -12,6 +15,7 @@ from weall.runtime.block_history import (
     project_bounded_block_history_state,
 )
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.fork_choice import choose_head
 from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
 
 
@@ -209,3 +213,81 @@ def test_leader_follower_and_restart_share_bounded_history_root(
     assert len(restarted.state.get("blocks") or {}) <= 3
     assert restarted.state.get(BLOCK_HISTORY_CHECKPOINT_KEY) == expected_checkpoint
     assert compute_state_root(restarted.state) == expected_root
+
+
+def test_compacted_history_preserves_fork_choice_finality_and_state_sync(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "test")
+    state = _chain_state(8, max_records=4, finalized_height=5)
+    compact_bounded_block_history_in_place(state)
+
+    assert list(state["blocks"].keys()) == ["b5", "b6", "b7", "b8"]
+    assert state[BLOCK_HISTORY_CHECKPOINT_KEY]["through_height"] == 4
+
+    def _qc(view: int, block_id: str, parent_id: str) -> dict:
+        return {
+            "t": "QC",
+            "chain_id": "p0-10-history-test",
+            "view": view,
+            "block_id": block_id,
+            "block_hash": f"h:{block_id}",
+            "parent_id": parent_id,
+            "votes": [],
+        }
+
+    state["bft"] = {
+        "finalized_block_id": "b5",
+        "high_qc": _qc(8, "b8", "b7"),
+    }
+    state["block_attestations"] = {}
+    assert choose_head(state) == "b8"
+
+    hotstuff = HotStuffBFT(chain_id="p0-10-history-test")
+    hotstuff.finalized_block_id = "b5"
+    hotstuff.finalized_view = 5
+    hotstuff.locked_qc = qc_from_json(_qc(6, "b6", "b5"))
+    finalized = hotstuff.observe_qc(
+        blocks=state["blocks"],
+        qc=qc_from_json(_qc(8, "b8", "b7")),
+    )
+    assert finalized == "b6"
+    assert hotstuff.finalized_block_id == "b6"
+
+    sync_state = copy.deepcopy(state)
+    sync_state.pop("bft", None)
+    trusted = build_snapshot_anchor(sync_state)
+    selector = {
+        "trusted_anchor": {
+            "height": trusted["height"],
+            "state_root": trusted["state_root"],
+            "finalized_height": trusted["finalized_height"],
+            "finalized_block_id": trusted["finalized_block_id"],
+        }
+    }
+    service = StateSyncService(
+        chain_id="p0-10-history-test",
+        schema_version="1",
+        tx_index_hash="deadbeef",
+        state_provider=lambda: sync_state,
+        require_trusted_anchor=True,
+    )
+    request = StateSyncRequestMsg(
+        header=WireHeader(
+            type=MsgType.STATE_SYNC_REQUEST,
+            chain_id="p0-10-history-test",
+            schema_version="1",
+            tx_index_hash="deadbeef",
+            corr_id="compacted-history",
+        ),
+        mode="snapshot",
+        selector=selector,
+        from_height=0,
+        to_height=None,
+    )
+    response = service.handle_request(request)
+    assert response.ok is True, response.reason
+    assert isinstance(response.snapshot, dict)
+    assert len(response.snapshot["blocks"]) == 4
+    assert response.snapshot[BLOCK_HISTORY_CHECKPOINT_KEY] == state[BLOCK_HISTORY_CHECKPOINT_KEY]
+    service.verify_response(response, trusted_anchor=selector["trusted_anchor"])

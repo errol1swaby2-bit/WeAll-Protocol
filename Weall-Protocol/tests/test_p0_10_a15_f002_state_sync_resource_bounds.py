@@ -314,3 +314,43 @@ def test_net_loop_builds_state_sync_with_profile_trusted_anchor(
     assert node.sync_service is not None
     assert node.sync_service.require_trusted_anchor is True
     node.close()
+
+
+def test_state_sync_result_drain_is_bounded_per_tick(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WEALL_NET_SYNC_WORK_MAX", "2")
+    monkeypatch.setenv("WEALL_NET_SYNC_WORK_PER_PEER_MAX", "2")
+    monkeypatch.setenv("WEALL_NET_SYNC_RESULTS_PER_TICK", "1")
+
+    service = StateSyncService(
+        chain_id="test",
+        schema_version="1",
+        tx_index_hash="deadbeef",
+        state_provider=lambda: {"height": 0, "accounts": {}},
+    )
+    node = NetNode(cfg=_cfg(), sync_service=service, transport=InMemoryTransport())
+    peer = _established(node, "peer-a")
+
+    assert peer.router.handle_message(_request("drain-1")) is None
+    assert peer.router.handle_message(_request("drain-2")) is None
+
+    deadline = time.monotonic() + 2.0
+    before = node.sync_work_debug()
+    while time.monotonic() < deadline:
+        before = node.sync_work_debug()
+        if before["completed_waiting"] == 2:
+            break
+        time.sleep(0.01)
+
+    assert before["outstanding"] == 2
+    assert before["completed_waiting"] == 2
+    node.tick(max_packets=0)
+    after_one = node.sync_work_debug()
+    assert after_one["completed_waiting"] == 1
+    assert after_one["outstanding"] == 1
+    node.tick(max_packets=0)
+    after_two = node.sync_work_debug()
+    assert after_two["completed_waiting"] == 0
+    assert after_two["outstanding"] == 0
+    node.close()
