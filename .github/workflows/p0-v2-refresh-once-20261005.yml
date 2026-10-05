@@ -1,0 +1,79 @@
+name: P0 one-shot V2 derivative refresh
+
+on:
+  push:
+    branches: ["p0-03-production-closure-staging-20261001"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p0-v2-refresh-once-20261005
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          ref: p0-03-production-closure-staging-20261001
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked development environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Remove helper from source tree before generation
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/p0-v2-refresh-once-20261005.yml
+          git commit -m 'ci: remove one-shot P0 V2 refresh helper'
+
+      - name: Regenerate deterministic V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+
+      - name: Commit deterministic derivative refresh
+        run: |
+          set -Eeuo pipefail
+          git add Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'No derivative changes required.'
+          else
+            git commit -m 'chore: refresh V2 derivatives for P0 assurance gate'
+          fi
+
+      - name: Verify final helper-free tree
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          test ! -e ../.github/workflows/p0-v2-refresh-once-20261005.yml
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          git status --short
+          test -z "$(git status --porcelain)"
+
+      - name: Push helper-free refreshed tree
+        run: |
+          set -Eeuo pipefail
+          git push origin HEAD:p0-03-production-closure-staging-20261001
