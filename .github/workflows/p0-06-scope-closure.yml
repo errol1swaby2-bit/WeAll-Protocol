@@ -43,6 +43,16 @@ jobs:
           rm -f "$PROTO/scripts/p0_06_scope_closure.py"
           rm -f "$ROOT/.github/workflows/p0-06-scope-closure.yml"
           WEALL_REPO_ROOT="$ROOT" python /tmp/p0_06_scope_closure.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md")
+          text = path.read_text(encoding="utf-8")
+          old = "| P0-06 Human uniqueness / reviewer anti-grinding | A08-F001, A20-F001 | CLOSED — SCOPE-CLOSED AND PROVEN |"
+          new = "| P0-06 Human uniqueness / reviewer anti-grinding | A08-F001, A20-F001 | CLOSED — PATCHED AND PROVEN |"
+          if text.count(old) != 1:
+              raise SystemExit(f"p0_06_status_normalization_count={text.count(old)}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
 
       - name: Ruff bounded Python surface
         working-directory: Weall-Protocol
