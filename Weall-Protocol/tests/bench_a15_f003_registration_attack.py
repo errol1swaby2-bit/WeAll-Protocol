@@ -37,9 +37,7 @@ def _unsigned_registration(
     recovery_pubkey: str,
     index: int,
 ) -> TxEnvelope:
-    evidence_kem_pubkey = base64.b64encode(bytes([index % 251 + 1]) * 1184).decode(
-        "ascii"
-    )
+    evidence_kem_pubkey = base64.b64encode(bytes([index % 251 + 1]) * 1184).decode("ascii")
     return TxEnvelope.from_json(
         {
             "chain_id": "weall-prod",
@@ -100,9 +98,7 @@ def main() -> int:
     for index in range(account_count):
         signer = f"@a15bench{index:04d}"
         pubkey, privkey = deterministic_mldsa_keypair(label=f"{signer}:main")
-        recovery_pubkey, _recovery_privkey = deterministic_mldsa_keypair(
-            label=f"{signer}:recovery"
-        )
+        recovery_pubkey, _recovery_privkey = deterministic_mldsa_keypair(label=f"{signer}:recovery")
         unsigned = _unsigned_registration(
             signer=signer,
             pubkey=pubkey,
@@ -140,8 +136,7 @@ def main() -> int:
         verdict = admit_tx(signed, state, canon, context="block")
         if not verdict.ok:
             raise SystemExit(
-                f"solved_registration_admission_rejected:{signer}:"
-                f"{verdict.code}:{verdict.reason}"
+                f"solved_registration_admission_rejected:{signer}:{verdict.code}:{verdict.reason}"
             )
 
         applied_env = TxEnvelope.from_json(signed)

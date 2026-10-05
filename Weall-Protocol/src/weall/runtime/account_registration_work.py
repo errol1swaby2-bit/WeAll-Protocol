@@ -229,11 +229,7 @@ def verify_account_registration_work(state: Json, env: TxEnvelope) -> tuple[bool
         return False, "account_registry_invalid", {}
     accounts = accounts_any if isinstance(accounts_any, dict) else {}
     signer = str(env.signer or "").strip()
-    if (
-        policy.max_accounts > 0
-        and signer not in accounts
-        and len(accounts) >= policy.max_accounts
-    ):
+    if policy.max_accounts > 0 and signer not in accounts and len(accounts) >= policy.max_accounts:
         return (
             False,
             "account_registration_capacity_exhausted",
@@ -244,10 +240,14 @@ def verify_account_registration_work(state: Json, env: TxEnvelope) -> tuple[bool
         )
 
     if not policy.required:
-        return True, "", {
-            "max_accounts": int(policy.max_accounts),
-            "current_accounts": len(accounts),
-        }
+        return (
+            True,
+            "",
+            {
+                "max_accounts": int(policy.max_accounts),
+                "current_accounts": len(accounts),
+            },
+        )
 
     payload = env.payload if isinstance(env.payload, dict) else {}
     version = str(payload.get("registration_work_version") or "").strip()

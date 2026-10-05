@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "3fe4f174d847ac2a19747ba8c9793dccba6075bb257411a1f1986157954cfad9"
+    "source_tree_digest": "4b14884c0a4a69b643d9f99362dab8a506bcbebb45b027bc2fbd06effdb7f751"
   },
   "rows": [
     {
@@ -136,6 +136,8 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/bench_a15_f003_registration_attack.py",
+        "tests/p0_assurance.py",
         "tests/prod/test_external_observer_signed_onboarding_tx_e2e.py",
         "tests/prod/test_multinode_mempool_propagation_convergence.py",
         "tests/test_a15_f003_account_registration_scarcity.py",

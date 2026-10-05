@@ -320,6 +320,32 @@ MUTATIONS: tuple[MutationSpec, ...] = (
         ),
         tests=("tests/test_a15_f003_account_registration_scarcity.py",),
     ),
+    MutationSpec(
+        mutation_id="P0-10-ACCOUNT-WORK-PRODUCTION-REQUIRED",
+        track="P0-10",
+        description="Permit a production chain to disable account-registration work.",
+        edits=(
+            _edit(
+                "src/weall/runtime/account_registration_work.py",
+                "    if production_chain and not required:\n",
+                "    if False and production_chain and not required:\n",
+            ),
+        ),
+        tests=("tests/test_a15_f003_account_registration_scarcity.py",),
+    ),
+    MutationSpec(
+        mutation_id="P0-10-ACCOUNT-CARDINALITY-BOUND",
+        track="P0-10",
+        description="Bypass the production root-visible account cardinality ceiling.",
+        edits=(
+            _edit(
+                "src/weall/runtime/account_registration_work.py",
+                "    if policy.max_accounts > 0 and signer not in accounts and len(accounts) >= policy.max_accounts:\n",
+                "    if False and policy.max_accounts > 0 and signer not in accounts and len(accounts) >= policy.max_accounts:\n",
+            ),
+        ),
+        tests=("tests/test_a15_f003_account_registration_scarcity.py",),
+    ),
 )
 
 

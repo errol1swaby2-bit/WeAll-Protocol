@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1995,
+  "file_count": 1996,
   "files": [
     {
       "affected_registers": [
@@ -56,7 +56,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ab290894d8566a843c780b5a3f44be55b980581411a69fdd753b643c3d59012c",
+      "sha256": "a430d47a0707d5f5d6732eb81abb48233bad8eb0ea1dbcf916e33f83937a8f04",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -2519,7 +2519,7 @@
       ],
       "path": "docs/security/ACCOUNT_REGISTRATION_SCARCITY.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "6bf3d123b959252bb3ccf63f6cf59449dba3f0c77764f5f2564822ff5c34b4a1",
+      "sha256": "a8c0f0bb5763526b2e71bae8bdb7b55a7c1b48fd040bebbb1ed7f7114796d702",
       "source_id": "SRC-386BCD477D9CFA25"
     },
     {
@@ -3041,7 +3041,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "1c332542ae7a95ccdda58dac75e854094a4f625679bb9d2482f487f956c7d2de",
+      "sha256": "8d230e9e0c9a6820bc2675d8557c4d151ca9720e8035f39bf644aae71286dc88",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3055,7 +3055,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8f59345c7e5b356096bb45792b4d10087b618b15b425cd3b5a0073eceaace7eb",
+      "sha256": "e7b8143cfed9101618869f7bdf0eb50d3c4e8ece0e42fb688be0488e79d25094",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3139,7 +3139,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "92e96747a14e49322cd2a95410cd8eed6f63facdc586a40d132d2bfe97ef0125",
+      "sha256": "cab784d0e3c541e9645dd674a784fda10bcb79960ce6ba35f906c5ff5e6259ba",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3236,7 +3236,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3bdfdd5336734d91765f0e361ecc8f9db073b4edb356565021132cff2aab481b",
+      "sha256": "d5d8b1edd443cb2d9d2d07df225220a03e17e759efc63ca2d2100e17b8a159eb",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -8242,7 +8242,7 @@
       ],
       "path": "src/weall/runtime/account_registration_work.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "54a84bfb8689d609d5452ed8a401e67adbcafcc3ab1f55974fdcbfd5a1eb39c9",
+      "sha256": "8eab9fb537f311e5d3c7ffba046cb6e7e4fff80893d4d36be1bece8de78a1072",
       "source_id": "SRC-913C640C96148F7E"
     },
     {
@@ -12445,6 +12445,21 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-0001"
+      ],
+      "path": "tests/bench_a15_f003_registration_attack.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "cec3d4d816cdee322011eb097c5d854aa6d120b9a5f954d21462152b16bab96c",
+      "source_id": "SRC-FB6B324E634B5F3A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
         "ROUTE-150316944D629C32"
       ],
       "path": "tests/conftest.py",
@@ -12613,11 +12628,12 @@
       "mappings": [
         "M-076",
         "ROUTE-137CB9FB31356917",
-        "ROUTE-150316944D629C32"
+        "ROUTE-150316944D629C32",
+        "TX-0001"
       ],
       "path": "tests/p0_assurance.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "1d1ca575e23228112f7275ef4e608803d8e185da2d32142810ae802fcdd0ab30",
+      "sha256": "6a2787fbbfc600dfd679045f14c6dfefeb58adeb869de8de3aa97bac017104e6",
       "source_id": "SRC-AA6DA9828EBC4008"
     },
     {
@@ -13397,7 +13413,7 @@
       ],
       "path": "tests/test_a15_f003_account_registration_scarcity.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "0ba54a188ef928e5e3f47d19d08c54cb440505875bb5c42a5d833d5220f12798",
+      "sha256": "d17a83de15d714c9c02cbc33c0f41e3b63c7a670df4a6b12db4b754d777db95d",
       "source_id": "SRC-A58F1526DAB019FB"
     },
     {
@@ -22326,7 +22342,7 @@
       ],
       "path": "tests/test_p0_property_invariants.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "0676d9e2a816d0b49b1b44d8556d975a19c2f245771a5ac9357514cf2bf9246b",
+      "sha256": "1492e3a78aa25aaf13b86067fa56014c9dd54f94727d691be036cdca398a088b",
       "source_id": "SRC-F812BBD65EAE2E84"
     },
     {

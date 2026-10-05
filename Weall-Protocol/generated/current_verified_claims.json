@@ -386,7 +386,7 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
-    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "e30ac67bea21686b4a5a5c986298e5b6179d6757009dd62ab774491fa8324461",
+    "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "1a5653024b2b75172403987ef9ae647e4e85d7b3af8fd7c976a198292b1051b3",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
     "generated/public_beta_blocker_report_v1_5.json": "1970a1bbbddc6297a773141b9f9ab98791a133dad834b8802b89907506fd8b03",
     "generated/release_evidence_manifest_v1_5.json": "5b3039c9d8483f5864427982d4fcd7ceab7a29e24438532de93c3349d0bdb896",
