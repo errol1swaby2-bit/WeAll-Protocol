@@ -297,8 +297,12 @@ MUTATIONS: tuple[MutationSpec, ...] = (
         edits=(
             _edit(
                 "src/weall/runtime/account_registration_work.py",
+                '    if str(env.tx_type or "").strip().upper() != "ACCOUNT_REGISTER":\n'
+                '        return True, "", {}\n\n'
                 "    policy = account_registration_work_policy(state)\n",
-                '    return True, "", {}\n\n    policy = account_registration_work_policy(state)\n',
+                '    if str(env.tx_type or "").strip().upper() != "ACCOUNT_REGISTER":\n'
+                '        return True, "", {}\n\n'
+                '    return True, "", {}\n',
             ),
         ),
         tests=("tests/test_a15_f003_account_registration_scarcity.py",),
@@ -517,6 +521,13 @@ def _run_gate(*, report_path: Path, timeout_s: int) -> int:
 
     print(json.dumps(report["mutation_summary"], sort_keys=True))
     print(f"property_suite_returncode={property_result['returncode']}")
+    if property_result["returncode"] != 0:
+        print("property_suite_output_tail:")
+        print(property_result["output_tail"])
+    for row in mutation_results:
+        if row["status"] in {"survived", "invalid"}:
+            print(f"mutation_{row['status']}={row['mutation_id']}")
+            print(row["output_tail"])
     print(f"report={report_path}")
     if report["gate"]["passed"]:
         print("P0 assurance gate: PASS")
