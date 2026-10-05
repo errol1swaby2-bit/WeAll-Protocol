@@ -22956,6 +22956,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Economics:fee_amount",
+      "kind": "state",
+      "stable_id": "STATE-A0706E47B17C829E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:new_pubkey",
       "kind": "state",
       "stable_id": "STATE-A08ECABF203AD333",
@@ -25129,6 +25136,13 @@
       "canonical_key": "Indexing:registered_at_nonce",
       "kind": "state",
       "stable_id": "STATE-E27A137F843ADA13",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Economics:fee_to",
+      "kind": "state",
+      "stable_id": "STATE-E2C5F1CDA1605EED",
       "status": "active"
     },
     {
