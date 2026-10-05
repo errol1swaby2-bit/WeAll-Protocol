@@ -1,5 +1,5 @@
 {
-  "count": 1141,
+  "count": 1142,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b14884c0a4a69b643d9f99362dab8a506bcbebb45b027bc2fbd06effdb7f751"
+    "source_tree_digest": "5a7e48182131c8a3465c2e9a6c0394df96ff92f6f758326efe86f6e921634f19"
   },
   "rows": [
     {
@@ -13557,6 +13557,34 @@
       "writes_by": [
         "TX-1300"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Economics",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-063",
+      "reads_by": [
+        "TX-1304"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/economics.py",
+      "stable_id": "STATE-B5CC861BAA1A48FF",
+      "state_key_or_namespace": "transfer_fee_int",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [],

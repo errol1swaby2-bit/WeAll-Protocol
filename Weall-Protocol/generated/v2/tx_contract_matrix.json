@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b14884c0a4a69b643d9f99362dab8a506bcbebb45b027bc2fbd06effdb7f751"
+    "source_tree_digest": "5a7e48182131c8a3465c2e9a6c0394df96ff92f6f758326efe86f6e921634f19"
   },
   "required_fields": [
     "stable_id",
@@ -8009,6 +8009,7 @@
         "tests/test_mempool_received_ms_safety.py",
         "tests/test_node_lifecycle_dev_helper_compat.py",
         "tests/test_p0_a01_a20_closure_regressions.py",
+        "tests/test_p1_a12_mempool_redaction.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_parallel_execution_conflict_lanes.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
@@ -20738,7 +20739,7 @@
       "implementation_source": {
         "function": "_apply_balance_transfer",
         "handler": "economics",
-        "line": 930,
+        "line": 952,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21009,6 +21010,10 @@
         {
           "code": "forbidden",
           "reason": "system_tx_required"
+        },
+        {
+          "code": "forbidden",
+          "reason": "transfer_fee_policy_not_enforced"
         }
       ],
       "frontend_surfaces": [],
@@ -21040,10 +21045,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "9850abb58a59a329b06a76c90c543d83ad0b9fb8d8fe591cb59b02ac5c55b96b",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "1523488f1bf010b012a6dc38deb8652f1b8798a91103ff9affafacf271c76627",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-05T23:13:41Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1304",
@@ -21053,7 +21058,8 @@
         "key:fee_policy",
         "key:mempool_reject_receipts",
         "key:rate_limit_policy",
-        "key:rate_limit_strikes"
+        "key:rate_limit_strikes",
+        "key:transfer_fee_int"
       ],
       "state_writes": [
         "key:economics",
@@ -21073,6 +21079,7 @@
         "tests/test_governance_followups.py",
         "tests/test_governance_runtime_surface.py",
         "tests/test_governance_system_queue_autoprogress.py",
+        "tests/test_p1_latest_medium_closure.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_bft_economics_go_gates.py"
       ],
@@ -21121,6 +21128,10 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "fee_destination_required"
+        },
+        {
+          "code": "invalid_payload",
           "reason": "missing_from_account"
         },
         {
@@ -21132,7 +21143,7 @@
       "implementation_source": {
         "function": "_apply_fee_pay",
         "handler": "economics",
-        "line": 860,
+        "line": 875,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21159,10 +21170,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "5a13580621519e141fa42210983af1f8b02aed9ef87df8c95f3566c8b588972f",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "59c2f2320d855d51ba296f4a13a8f81da47110bb7c4112c5e8d3cd915c0da199",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-05T23:13:41Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1305",
@@ -21200,6 +21211,7 @@
         "tests/test_economics_canon_apply_alignment.py",
         "tests/test_four_gate_safety.py",
         "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_p1_latest_medium_closure.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "FEE_PAY",
@@ -24846,7 +24858,7 @@
       "implementation_source": {
         "function": "_apply_rate_limit_strike_apply",
         "handler": "economics",
-        "line": 1097,
+        "line": 1119,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24940,7 +24952,7 @@
       "implementation_source": {
         "function": "_apply_mempool_reject_receipt",
         "handler": "economics",
-        "line": 1119,
+        "line": 1141,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

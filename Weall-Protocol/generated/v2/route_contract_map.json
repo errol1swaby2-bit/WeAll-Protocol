@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b14884c0a4a69b643d9f99362dab8a506bcbebb45b027bc2fbd06effdb7f751"
+    "source_tree_digest": "5a7e48182131c8a3465c2e9a6c0394df96ff92f6f758326efe86f6e921634f19"
   },
   "required_fields": [
     "stable_id",
@@ -295,7 +295,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "account_nonce_status",
-        "line": 2011,
+        "line": 2013,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -583,7 +583,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_genesis",
-        "line": 1736,
+        "line": 1757,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -633,7 +633,7 @@
       ],
       "implementation_source": {
         "function": "chain_head",
-        "line": 1769,
+        "line": 1790,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -681,7 +681,7 @@
       ],
       "implementation_source": {
         "function": "chain_identity",
-        "line": 1589,
+        "line": 1610,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -743,7 +743,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_manifest",
-        "line": 1761,
+        "line": 1782,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -813,7 +813,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_state_root",
-        "line": 1722,
+        "line": 1743,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1873,7 +1873,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "genesis_api_readiness",
-        "line": 1715,
+        "line": 1736,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1919,7 +1919,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "genesis_observer_readiness",
-        "line": 1710,
+        "line": 1731,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4188,7 +4188,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_reconcile_tx",
-        "line": 2062,
+        "line": 2064,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4237,7 +4237,7 @@
       ],
       "implementation_source": {
         "function": "observer_edge_status",
-        "line": 2024,
+        "line": 2026,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4268,6 +4268,7 @@
         "tests/prod/test_public_observer_boot_and_evidence_scripts.py",
         "tests/test_local_observer_tx_propagation.py",
         "tests/test_observer_tx_queue_safety.py",
+        "tests/test_p1_a12_observer_operator_loopback_auth.py",
         "tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py"
       ],
       "vector_ids": [
@@ -4286,7 +4287,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_tx_queue_drain",
-        "line": 2050,
+        "line": 2052,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7607,7 +7608,11 @@
         "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
+        "tests/test_p1_a07_tls_verification.py",
+        "tests/test_p1_a12_mempool_redaction.py",
+        "tests/test_p1_a12_observer_operator_loopback_auth.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
+        "tests/test_p1_latest_medium_closure.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_dispute_appeal_actor.py",
         "tests/test_p2_final_source_closure.py",
@@ -8505,6 +8510,8 @@
         "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
+        "tests/test_p1_a12_mempool_redaction.py",
+        "tests/test_p1_a12_observer_operator_loopback_auth.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_scoped_authority_repairs.py",
@@ -8665,7 +8672,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "status_attestations",
-        "line": 1476,
+        "line": 1497,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8962,6 +8969,7 @@
       "tests": [
         "tests/prod/test_public_beta_evidence_gates.py",
         "tests/test_operator_helpers_fail_closed.py",
+        "tests/test_p1_a12_mempool_redaction.py",
         "tests/test_status_consensus_diagnostics.py"
       ],
       "vector_ids": [
@@ -9345,7 +9353,7 @@
       ],
       "implementation_source": {
         "function": "tx_catalog",
-        "line": 2293,
+        "line": 2295,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9394,7 +9402,7 @@
       ],
       "implementation_source": {
         "function": "tx_status",
-        "line": 2075,
+        "line": 2077,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9476,7 +9484,7 @@
       ],
       "implementation_source": {
         "function": "tx_submit",
-        "line": 1810,
+        "line": 1812,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
