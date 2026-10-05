@@ -60,9 +60,7 @@ def _reviewer_state(order: list[str] | None = None) -> dict:
     }
 
 
-def _chain_state(
-    height: int = 8, *, max_records: int = 4, finalized_height: int = 5
-) -> dict:
+def _chain_state(height: int = 8, *, max_records: int = 4, finalized_height: int = 5) -> dict:
     blocks = {}
     for h in range(1, height + 1):
         blocks[f"b{h}"] = {
@@ -196,11 +194,10 @@ def test_property_bounded_history_projection_is_mapping_order_invariant() -> Non
         assert projected["blocks"] == expected["blocks"], property_reproducer(
             "property_bounded_history_projection_is_mapping_order_invariant", seed
         )
-        assert (
-            projected[BLOCK_HISTORY_CHECKPOINT_KEY]
-            == expected[BLOCK_HISTORY_CHECKPOINT_KEY]
-        ), property_reproducer(
-            "property_bounded_history_projection_is_mapping_order_invariant", seed
+        assert projected[BLOCK_HISTORY_CHECKPOINT_KEY] == expected[BLOCK_HISTORY_CHECKPOINT_KEY], (
+            property_reproducer(
+                "property_bounded_history_projection_is_mapping_order_invariant", seed
+            )
         )
 
 
@@ -209,9 +206,7 @@ def test_property_registration_work_is_bound_to_signer_nonce_and_payload() -> No
     for seed, rng in property_cases(
         "property_registration_work_is_bound_to_signer_nonce_and_payload"
     ):
-        base = _with_work(
-            _env(signer=f"@base-{seed}", nonce=1, pubkey="pk-a"), bits=bits
-        )
+        base = _with_work(_env(signer=f"@base-{seed}", nonce=1, pubkey="pk-a"), bits=bits)
         ok, reason, _ = verify_account_registration_work(_work_state(bits), base)
         assert ok is True and reason == ""
 
@@ -232,14 +227,10 @@ def test_property_registration_work_is_bound_to_signer_nonce_and_payload() -> No
         for variant in variants:
             raw = variant.to_json()
             raw["payload"] = dict(raw["payload"])
-            raw["payload"][
-                "registration_work_version"
-            ] = ACCOUNT_REGISTRATION_WORK_VERSION
+            raw["payload"]["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
             raw["payload"]["registration_work_nonce"] = work_nonce
             variant_with_work = TxEnvelope.from_json(raw)
-            accepted, _, _ = verify_account_registration_work(
-                _work_state(bits), variant_with_work
-            )
+            accepted, _, _ = verify_account_registration_work(_work_state(bits), variant_with_work)
             assert accepted is False, property_reproducer(
                 "property_registration_work_is_bound_to_signer_nonce_and_payload", seed
             )
