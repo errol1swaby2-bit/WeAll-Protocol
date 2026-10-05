@@ -59,15 +59,21 @@ jobs:
           ruff check "${PY_FILES[@]}"
           ruff format --check "${PY_FILES[@]}"
 
-      - name: Focused safety regressions
+      - name: Test production scope closure
         working-directory: Weall-Protocol
-        run: |
-          set -Eeuo pipefail
-          pytest -q \
-            tests/test_p0_06_production_scope_closure.py \
-            tests/test_p0_06a_duplicate_account_adjudication.py \
-            tests/test_poh_async_panel_grinding_regression.py \
-            tests/test_production_genesis_manifest_builder.py
+        run: pytest -q tests/test_p0_06_production_scope_closure.py
+
+      - name: Test duplicate-account adjudication
+        working-directory: Weall-Protocol
+        run: pytest -q tests/test_p0_06a_duplicate_account_adjudication.py
+
+      - name: Test async panel grinding regression
+        working-directory: Weall-Protocol
+        run: pytest -q tests/test_poh_async_panel_grinding_regression.py
+
+      - name: Test production genesis builder
+        working-directory: Weall-Protocol
+        run: pytest -q tests/test_production_genesis_manifest_builder.py
 
       - name: Final source guard
         run: |
