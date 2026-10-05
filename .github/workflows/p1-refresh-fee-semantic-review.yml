@@ -36,6 +36,7 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           python scripts/refresh_v2_semantic_reviews.py \
+            --register-failure forbidden:transfer_fee_policy_not_enforced \
             --tx-type FEE_POLICY_SET \
             --reviewer "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
 
@@ -59,3 +60,5 @@ jobs:
           git push origin HEAD:p1-revalidation-after-p0-20261005
 
 # retry after registering Economics:transfer_fee_int stable ID
+
+# retry after registering transfer-fee enforcement failure ID
