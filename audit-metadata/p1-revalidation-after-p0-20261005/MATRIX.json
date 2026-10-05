@@ -1,0 +1,81 @@
+{
+  "schema": "weall.p1.post_p0_revalidation_matrix.v1",
+  "baseline": {
+    "branch": "main",
+    "commit": "61b1a81f624e7f5c81808aa4b580e3c2f8d55a06",
+    "tree": "a6b0a6e3506e6ff9f38fbf42454b4770ac7ac9a7"
+  },
+  "historical_reference": {
+    "implementation_commit": "06694e0d14ca318d6a9ffa1cad6253cedae38a10",
+    "implementation_tree": "bcda576f9ae44792d86ca949863233b4e6693745",
+    "evidence_only": true
+  },
+  "allowed_statuses": [
+    "pending_revalidation",
+    "already_closed_and_proven",
+    "patched_and_proven",
+    "open"
+  ],
+  "findings": [
+    {
+      "id": "P1-NET-001",
+      "status": "pending_revalidation",
+      "invariant": "Replayable or non-session-bound hello identity cannot acquire another account's durable peer-security namespace."
+    },
+    {
+      "id": "P1-SEC-002",
+      "status": "pending_revalidation",
+      "invariant": "Account key revocation schema and handler use the same canonical key_id."
+    },
+    {
+      "id": "P1-CONS-003",
+      "status": "pending_revalidation",
+      "invariant": "Validator lifecycle transitions share the future-epoch guard across all relevant paths."
+    },
+    {
+      "id": "P1-CONS-004",
+      "status": "pending_revalidation",
+      "invariant": "Consensus-visible reputation/system payloads remain deterministic integer/fixed-point values and reject floats."
+    },
+    {
+      "id": "P1-CONS-005",
+      "status": "pending_revalidation",
+      "invariant": "Equivocation evidence cannot synthesize an unauthorized automatic slash execution path."
+    },
+    {
+      "id": "P1-ECON-001",
+      "status": "pending_revalidation",
+      "invariant": "Self-transfer cannot mint, duplicate, or distort balances/economic state."
+    },
+    {
+      "id": "P1-CONTENT-001",
+      "status": "pending_revalidation",
+      "invariant": "Media/target mutation authority is checked against stored ownership/authorship."
+    },
+    {
+      "id": "P1-DISPUTE-001",
+      "status": "pending_revalidation",
+      "invariant": "Coarse ballot/dispute resolution cannot inherit arbitrary juror-supplied execution actions."
+    },
+    {
+      "id": "P1-GROUP-001",
+      "status": "pending_revalidation",
+      "invariant": "Scoped group operations verify stored group scope/authority rather than trusting caller-provided scope."
+    },
+    {
+      "id": "P1-TREAS-001",
+      "status": "pending_revalidation",
+      "invariant": "Treasury spend mutation/cancellation remains bound to the stored treasury scope."
+    },
+    {
+      "id": "P1-ROLE-001",
+      "status": "pending_revalidation",
+      "invariant": "Node-operator suspension is durable and scheduler/activation logic cannot silently reactivate a suspended operator."
+    },
+    {
+      "id": "P1-STOR-001",
+      "status": "pending_revalidation",
+      "invariant": "User-created storage offers bind operator identity to the signer."
+    }
+  ]
+}
