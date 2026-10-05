@@ -15,8 +15,10 @@ from weall.runtime.account_registration_work import (
     verify_account_registration_work,
 )
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.testing.sigtools import deterministic_mldsa_keypair
+from weall.tx.canon import TxIndex
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -136,6 +138,15 @@ def test_production_policy_rejects_weak_nonzero_work() -> None:
     assert meta["difficulty_bits"] == weak_bits
 
 
+def test_canonical_admission_rejects_missing_registration_work() -> None:
+    state = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
+    canon = TxIndex.load_from_file(ROOT / "generated" / "tx_index.json")
+    verdict = admit_tx(_env(), state, canon, context="mempool")
+    assert verdict.ok is False
+    assert verdict.code == "registration_work_invalid"
+    assert verdict.reason == "registration_work_version_required"
+
+
 def test_valid_work_is_bound_to_full_registration_identity() -> None:
     env = _with_work(_env(), 8)
     ok, reason, meta = verify_account_registration_work(_state(8), env)
@@ -214,7 +225,7 @@ def test_distributed_fresh_signers_each_pay_work_and_persist_across_restart(
         assert submitted["ok"] is True, submitted
 
     # The attack model is distributed signers, not one signer reusing a solved
-    # nonce.  Every registration above solved its identity-bound preimage.
+    # nonce. Every registration above solved its identity-bound preimage.
     assert len(solved_nonces) == account_count
 
     block, state, applied, invalid, error = executor.build_block_candidate(
