@@ -57,3 +57,5 @@ jobs:
           git diff --cached --quiet && { echo 'No semantic-review refresh produced'; exit 1; }
           git commit -m 'audit: refresh FEE_POLICY_SET semantic review'
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# retry after registering Economics:transfer_fee_int stable ID
