@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "f223e237ec9db471a18e4bbe0081b5a01c73ea2d76d6602e22b171a91b271b1e",
+      "sha256": "0d23f2a0c085a7ad4364767512317e686a535efa8ce2dc3b4e5c23255af048ea",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -2969,7 +2969,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3b61ebda93e3419ae68f6cd5d658bec4e2ea73029004c66081f72cfa0166ab8c",
+      "sha256": "b9b102abe5bb8968dff0a246e2457fb349c5e59988f54ea13ff2ef10e2470ca2",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -3290,7 +3290,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "1a7f866d7f55b7903517ec47b020162a7b54715393089500b8cfe470483ce6ca",
+      "sha256": "943bdeed4a66618299ff6a494bd7f611f65c577833b8e82738515b7c062c3a2c",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3388,7 +3388,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "1970a1bbbddc6297a773141b9f9ab98791a133dad834b8802b89907506fd8b03",
+      "sha256": "171cb4b65cfc84e1255ea88650d0dfc441d0118efbe5d8fb936522efae07c866",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3570,7 +3570,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5b3039c9d8483f5864427982d4fcd7ceab7a29e24438532de93c3349d0bdb896",
+      "sha256": "016b16b1895f7e18fc55a5331f2b5802f09613ac791662df589041b0d1d54d7e",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
