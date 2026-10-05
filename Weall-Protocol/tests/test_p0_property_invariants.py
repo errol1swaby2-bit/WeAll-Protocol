@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 
 from p0_assurance import property_cases, property_reproducer
+
 from weall.runtime.account_registration_work import (
     ACCOUNT_REGISTRATION_WORK_VERSION,
     account_registration_work_digest,
