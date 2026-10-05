@@ -63,3 +63,12 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           pytest -q tests/test_current_verified_claims_p0_scope_closed_status.py
+
+      - name: Current A01-A20 P1 remediation regressions
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q \
+            tests/test_p1_latest_medium_closure.py \
+            tests/test_p1_a07_tls_verification.py \
+            tests/test_p1_a12_mempool_redaction.py \
+            tests/test_p1_a12_observer_operator_loopback_auth.py
