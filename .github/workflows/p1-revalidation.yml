@@ -1,4 +1,4 @@
-name: P1 Revalidation
+name: A01-A20 P1 Revalidation
 
 on:
   push:
@@ -43,26 +43,23 @@ jobs:
           python -m tooling.canon_lint
           python scripts/check_generated.py
 
-      - name: Historical P1 targeted regression matrix
+      - name: P1-06 PoH production scope-closure overlap
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q tests/test_p0_06_production_scope_closure.py
+
+      - name: P1-09 failed-transaction replay residual overlap
         working-directory: Weall-Protocol
         run: |
           pytest -q \
-            tests/test_p1_remaining_complete_remediation.py \
-            tests/p0/test_p1_cons003_future_validator_epochs.py \
-            tests/test_balance_transfer_self_transfer_regression.py \
-            tests/test_p1_group001_scoped_reference_authority.py \
-            tests/test_consensus_equivocation_slash_execute.py
+            tests/test_p0_a01_a20_closure_regressions.py::test_block_inclusion_context_forces_nonce_consumption_on_apply_failure
 
-      - name: Canonical account-key compatibility
+      - name: P0 overlap regression guard
         working-directory: Weall-Protocol
         run: |
-          pytest -q tests/test_priority0_account_key_normalization.py
+          pytest -q tests/test_p0_a01_a20_closure_regressions.py
 
-      - name: Restart replay and convergence
+      - name: P0 claim-scope truth remains closed
         working-directory: Weall-Protocol
         run: |
-          pytest -q \
-            tests/test_feed_persists_order_after_restart_api.py \
-            tests/test_priority1_replay_schedule_consistency.py \
-            tests/test_priority2_state_replay_determinism.py \
-            tests/test_e2e_two_node_convergence.py
+          pytest -q tests/test_current_verified_claims_p0_scope_closed_status.py
