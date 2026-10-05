@@ -41,7 +41,7 @@ A15-F001 synthetic steady-state heights were exercised at 100,000 / 1,000,000 / 
 
 A15-F002 exercised synthetic 10 / 100 / 500 MiB state snapshots. Every oversized request was rejected as `snapshot_too_large` under the finite wire-derived response cap; the 500 MiB case completed in `8444.363 ms` with peak process RSS `1,587,508 KiB` on the CI host. A saturated worker admitted `4` requests at the global work cap, rejected `2` excess requests as `sync_busy`, drained at one result per tick, and routed `500` BFT vote messages with measured max callback latency `0.003627 ms`. These are bounded stress measurements, not network throughput claims.
 
-The workflow artifact contains the machine-readable JSON/CSV evidence and the long-height SVG plot. Closure remains contingent on the workflow-free exact tree passing the normal Backend CI, Reviewer Readiness, Web CI and Secrets Guard gates.
+The workflow artifact contains the machine-readable JSON/CSV evidence and the long-height SVG plot. That workflow-free exact-tree contingency was subsequently satisfied on the reconciled PR head recorded in PR #38 metadata. Any later follow-up commit must re-establish the same exact-head gates before reviewer handoff.
 
 ## Additional CI blockers discovered during closure
 

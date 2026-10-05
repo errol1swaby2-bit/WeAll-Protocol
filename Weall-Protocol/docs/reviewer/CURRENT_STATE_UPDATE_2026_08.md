@@ -18,7 +18,7 @@ Protocol-native social, civic, governance, moderation, dispute, group, reputatio
 
 ## Current evidence posture
 
-Repository evidence includes public-only regression checks, signed/pinned observer discovery inputs, governance/dispute lifecycle tests, record-only protocol-upgrade tests, economics-lock tests, release hygiene, secret guard, generated artifact checks, and deterministic source/derivative validation.
+Repository evidence includes public-only regression checks, pinned observer discovery inputs and signature-verification gates, governance/dispute lifecycle tests, record-only protocol-upgrade tests, economics-lock tests, release hygiene, secret guard, generated artifact checks, and deterministic source/derivative validation. The checked-in seed registry is intentionally fail-closed pending operator-held ML-DSA re-signing after the chain-identity change.
 
 External evidence remains required for stronger launch claims, including independent validator/operator operation, cross-machine replay, real storage/IPFS operation, legal/compliance attestation, executable upgrade staging/rollback proof, production-helper topology proof, external observer journey evidence, and independent cryptographic review.
 

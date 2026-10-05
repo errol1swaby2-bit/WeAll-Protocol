@@ -146,4 +146,4 @@ For PR #38 and its production profile:
 - the repository must not claim that global human uniqueness or unbiasable reviewer entropy is implemented;
 - the deterministic ML-DSA beacon must not be described as unpredictable randomness;
 - any future re-enablement of production positive human authority requires separate protocol review, implementation, adversarial evidence, and activation gating;
-- PR #38 itself remains non-merge-ready until its final exact tree has current generated artifacts, current claim/evidence bindings, a green P0 assurance gate, the full backend suite, Reviewer Readiness, Web CI, and Secrets Guard.
+- any follow-up commit after an exact-head closure invalidates the prior exact-SHA/tree binding until generated artifacts, claim/evidence bindings, the P0 assurance gate, the full backend suite, Reviewer Readiness, Web CI, and Secrets Guard are green on the new head; the final exact SHA/tree belongs in PR #38 metadata.

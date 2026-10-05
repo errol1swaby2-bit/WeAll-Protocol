@@ -31,6 +31,10 @@ intentionally does not duplicate the numeric totals, because duplicated prose co
 become stale when blockers open or close. `public_beta_ready` must remain `false` while
 any still-open blocker remains.
 
+## P0 namespace clarification
+
+The **A01-A20 P0/HIGH closure ledger** uses repository-remediation track IDs `P0-01` through `P0-12`; those tracks are closed at the scoped repository level represented by PR #38. That statement is distinct from public-release blocker severity labels such as `AUD-618-P0-001`, `AUD-618-P0-002`, `AUD-618-P0-003`, and `AUD-633-P0-004`. Those release blockers remain open and continue to keep `public_beta_ready=false`. Closing the A01-A20 P0/HIGH remediation ledger must not be read as closing every release blocker whose severity string contains `P0`.
+
 ## What is implemented repository evidence
 
 Repository evidence currently includes generated artifacts, tests, scripts, and docs that make the bounded rehearsal package inspectable:
@@ -85,8 +89,8 @@ Generated files are evidence of repository consistency. They are not substitutes
 - **Governance:** public proposal/vote/finalization flow with block-height lifecycle progression.
 - **Disputes/reviews:** public report/review surfaces, assignments, votes, receipts, outcomes, and restricted evidence boundaries.
 - **Transaction lifecycle:** canonical tx index, admission/status, mempool/block/receipt evidence, with mutable canon counts read from `generated/tx_index.json`.
-- **Node/operator surfaces:** readiness/status, signed discovery evidence, validator authority gating, observer status, release hygiene, and secret guard.
-- **Observer boot:** `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` runbook with signed/pinned registry checks.
+- **Node/operator surfaces:** readiness/status, pinned discovery inputs and signature-gated discovery evidence, validator authority gating, observer status, release hygiene, and secret guard. The checked-in seed registry remains fail-closed pending re-signing.
+- **Observer boot:** `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` runbook with pinned registry/signature checks; the current checked-in registry is intentionally fail-closed pending operator-held ML-DSA re-signing.
 - **External evidence packages:** proof templates under `docs/proofs/` and testnet runbooks under `docs/testnet/`.
 
 ## Verification path

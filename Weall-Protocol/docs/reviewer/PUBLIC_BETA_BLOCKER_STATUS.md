@@ -14,6 +14,10 @@ This document preserves blocker truth for reviewer use. It must not be used to i
 
 Do not hide or soften the authoritative generated values. Entries closed in the repository show repository progress; open entries remain real readiness blockers.
 
+## P0 namespace clarification
+
+The **A01-A20 P0/HIGH closure ledger** uses repository-remediation track IDs `P0-01` through `P0-12`; those tracks are closed at the scoped repository level represented by PR #38. That statement is distinct from public-release blocker severity labels such as `AUD-618-P0-001`, `AUD-618-P0-002`, `AUD-618-P0-003`, and `AUD-633-P0-004`. Those release blockers remain open and continue to keep `public_beta_ready=false`. Closing the A01-A20 P0/HIGH remediation ledger must not be read as closing every release blocker whose severity string contains `P0`.
+
 ## Canonical sources
 
 - `generated/public_beta_blocker_report_v1_5.json`

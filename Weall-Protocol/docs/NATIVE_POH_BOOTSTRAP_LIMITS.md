@@ -2,15 +2,19 @@
 
 WeAll's primary human-verification path must be protocol-native. It must not require email, SMTP, DNS, named hosting providers, CAPTCHA, OAuth, KYC vendors, government ID, or input_queue control.
 
-## Current model
+## Current production authority boundary
+
+The production profile currently commits `params.poh.human_authority_mode = scope_closed_pending_uniqueness_entropy`. Under that mode, new positive PoH human-authority creation/advancement and its schedulers fail closed. This document therefore describes compatibility/rehearsal behavior and future re-enablement requirements; it must not be read as claiming current production human uniqueness or an active production bootstrap path.
+
+## Compatibility / rehearsal model
 
 - Basic Account: account exists, no human verification yet.
-- Verified Person: native async human review.
-- Trusted Verified Person: native live juror-attested review.
+- Verified Person: native async human-review state in compatibility/rehearsal profiles; not proof of global one-human uniqueness.
+- Trusted Verified Person: native live juror-attested state in compatibility/rehearsal profiles; not proof of global one-human uniqueness.
 
 Current canon includes native async and live PoH transaction families. The chain/backend remains the authority for case state, evidence commitments, juror assignment, reviews, finalization, and receipts.
 
-## Bootstrap problem
+## Bootstrap problem for any future re-enablement
 
 Async review requires eligible reviewers. Live review requires live verified jurors. Therefore the first eligible reviewer set must come from an auditable bootstrap process. This is unavoidable for a new human-verification network.
 
@@ -28,7 +32,7 @@ Bootstrap grants must be:
 
 ## What this milestone should claim
 
-This milestone may claim that WeAll has a protocol-native PoH architecture and implementation path that does not require centralized identity infrastructure for primary verification. It should not claim that the reviewer set is already fully decentralized unless a live network transcript proves it.
+This milestone may claim that WeAll contains protocol-native PoH transaction/review architecture and implementation paths that do not require centralized identity infrastructure as the primary verification mechanism. Production positive human-authority creation is currently scope-closed; this document must not be used to claim active production verified-human issuance, global uniqueness, or a fully decentralized reviewer set.
 
 
 ## Batch 437-446 bootstrap/live policy observability

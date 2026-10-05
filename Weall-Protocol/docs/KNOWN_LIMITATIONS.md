@@ -1,5 +1,7 @@
 # Known limitations for the reviewer external observer milestone
 
+**Classification:** historical milestone notes with current cautionary value. Canonical current claims are `docs/CURRENT_VERIFIED_CLAIMS.md` and `docs/reviewer/CURRENT_READINESS_STATEMENT.md`; batch-specific statements below must not be treated as current readiness evidence.
+
 WeAll is pre-production. These limits should be disclosed in reviewer docs and grant materials.
 
 ## Not yet claimed
@@ -16,14 +18,14 @@ The defensible milestone is external reviewability:
 
 - documented production-like genesis posture,
 - verifiable observer/operator bundle or chain manifest,
-- two-machine observer reachability,
-- signed observer onboarding/account/networking/native-PoH-adjacent transaction submission,
+- runbooks and gates for two-machine observer reachability; completion requires a fresh external transcript,
+- signed observer onboarding requirements and verification tooling; completion is not claimed until the signature gate and external transcript pass,
 - frontend representation of protocol truth in normal user language,
 - deterministic backend authority with inspectable tx status/receipts.
 
 ## Native PoH bootstrap boundary
 
-Native async/live PoH exists as protocol-state transaction families, but the first live verified humans and jurors still require an auditable bootstrap path. This is a trust boundary, not a contradiction. Bootstrap authority must remain visible, limited, receipt-backed, and progressively replaceable by native juror-attested verification as the network gains enough reviewers.
+Native async/live PoH transaction/review families exist, but production positive human-authority creation/advancement is currently consensus-disabled under `scope_closed_pending_uniqueness_entropy`. The older bootstrap model is therefore a compatibility/future re-enablement design boundary, not a current production authority path. Any re-enablement requires separately reviewed uniqueness/privacy/adjudication and unpredictable reviewer-entropy design, plus an auditable bootstrap if one is still needed.
 
 ## Validator-ready boundary
 
