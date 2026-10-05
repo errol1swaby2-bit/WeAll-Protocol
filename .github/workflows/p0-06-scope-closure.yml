@@ -85,6 +85,40 @@ jobs:
             --genesis-time 1778368894 \
             --econ-unlock-days 90 \
             --bootstrap-expires-height 1008
+          python scripts/refresh_v2_semantic_reviews.py \
+            --reviewer "WeAll maintainer (AI-assisted P0-06 scope review; independent launch review deferred)" \
+            --review-method "bounded_p0_06_scope_closure_review_with_regression_and_mutation_evidence" \
+            --authority-effect "Canonical production positive PoH human-authority paths are disabled pending separately reviewed uniqueness/privacy/adjudication and post-commit unpredictable reviewer-entropy protocols; this review does not claim those primitives are implemented." \
+            --register-failure forbidden:poh_human_authority_scope_closed \
+            --tx-type POH_APPLICATION_SUBMIT \
+            --tx-type POH_ASYNC_REQUEST_OPEN \
+            --tx-type POH_ASYNC_EVIDENCE_DECLARE \
+            --tx-type POH_ASYNC_EVIDENCE_BIND \
+            --tx-type POH_ASYNC_JUROR_ASSIGN \
+            --tx-type POH_ASYNC_JUROR_ACCEPT \
+            --tx-type POH_ASYNC_JUROR_DECLINE \
+            --tx-type POH_ASYNC_REVIEW_SUBMIT \
+            --tx-type POH_ASYNC_FINALIZE \
+            --tx-type POH_ASYNC_RECEIPT \
+            --tx-type POH_TIER_SET \
+            --tx-type POH_BOOTSTRAP_TIER2_GRANT \
+            --tx-type POH_TIER2_REQUEST_OPEN \
+            --tx-type POH_TIER2_JUROR_ASSIGN \
+            --tx-type POH_TIER2_JUROR_ACCEPT \
+            --tx-type POH_TIER2_JUROR_DECLINE \
+            --tx-type POH_TIER2_REVIEW_SUBMIT \
+            --tx-type POH_TIER2_FINALIZE \
+            --tx-type POH_TIER2_RECEIPT \
+            --tx-type POH_LIVE_REQUEST_OPEN \
+            --tx-type POH_LIVE_SESSION_INIT \
+            --tx-type POH_LIVE_JUROR_ASSIGN \
+            --tx-type POH_LIVE_JUROR_ACCEPT \
+            --tx-type POH_LIVE_JUROR_DECLINE \
+            --tx-type POH_LIVE_JUROR_REPLACE \
+            --tx-type POH_LIVE_ATTENDANCE_MARK \
+            --tx-type POH_LIVE_VERDICT_SUBMIT \
+            --tx-type POH_LIVE_FINALIZE \
+            --tx-type POH_LIVE_RECEIPT
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
@@ -159,6 +193,8 @@ jobs:
               "Weall-Protocol/tests/test_p0_06_production_scope_closure.py",
               "Weall-Protocol/tests/p0_assurance.py",
               "docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md",
+              "Weall-Protocol/specs/v2/source/semantic_reviews.json",
+              "Weall-Protocol/specs/v2/source/stable_ids.json",
               "Weall-Protocol/generated/current_verified_claims.json",
           }
           missing = sorted(required - changed)
