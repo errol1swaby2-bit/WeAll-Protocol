@@ -274,6 +274,7 @@ def _build_genesis(
             "poh_live_partial_panels_enabled": True,
             "poh_live_partial_until_height": int(bootstrap_expires_height),
             "poh": {
+                "human_authority_mode": "scope_closed_pending_uniqueness_entropy",
                 "live_partial_panels_enabled": True,
                 "live_partial_until_height": int(bootstrap_expires_height),
                 "live_min_panel_after_bootstrap": 10,

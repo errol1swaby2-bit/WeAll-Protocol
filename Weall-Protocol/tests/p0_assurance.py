@@ -147,6 +147,32 @@ MUTATIONS: tuple[MutationSpec, ...] = (
         ),
     ),
     MutationSpec(
+        mutation_id="P0-06-PRODUCTION-AUTHORITY-SCOPE",
+        track="P0-06",
+        description="Bypass the canonical production PoH human-authority scope lock.",
+        edits=(
+            _edit(
+                "src/weall/runtime/apply/poh.py",
+                "    if poh_human_authority_scope_closed(state) and t in _P0_06_SCOPE_CLOSED_AUTHORITY_TX_TYPES:\n",
+                "    if False and poh_human_authority_scope_closed(state) and t in _P0_06_SCOPE_CLOSED_AUTHORITY_TX_TYPES:\n",
+            ),
+        ),
+        tests=("tests/test_p0_06_production_scope_closure.py",),
+    ),
+    MutationSpec(
+        mutation_id="P0-06-PRODUCTION-ASYNC-SCHEDULER-SCOPE",
+        track="P0-06",
+        description="Re-enable async reviewer scheduling while the production human-authority scope is closed.",
+        edits=(
+            _edit(
+                "src/weall/runtime/poh/async_scheduler.py",
+                "    if poh_human_authority_scope_closed(state):\n        return 0\n",
+                "    if False and poh_human_authority_scope_closed(state):\n        return 0\n",
+            ),
+        ),
+        tests=("tests/test_p0_06_production_scope_closure.py",),
+    ),
+    MutationSpec(
         mutation_id="P0-07-PRODUCTION-CHAIN-MODE",
         track="P0-07",
         description="Stop recognizing the checked production chain ID as strict production governance.",

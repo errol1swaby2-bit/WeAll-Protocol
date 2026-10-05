@@ -10,6 +10,7 @@ from weall.runtime.poh.live_quorum import (
     MAX_LIVE_JURORS,
     live_quorum_summary,
 )
+from weall.runtime.poh.state import poh_human_authority_scope_closed
 from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
@@ -269,6 +270,9 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
 
     Returns number of enqueued system txs.
     """
+
+    if poh_human_authority_scope_closed(state):
+        return 0
 
     enq = 0
     cases = _live_cases(state)

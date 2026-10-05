@@ -21,8 +21,8 @@
     "procedure_time_source": "finalized_block_height",
     "target_block_interval_ms": 20000
   },
-  "genesis_hash": "a5ce128b7183d1c04ab4b1a5e5444a7ce32c5a47e63a55ba39e1f6aae40189ab",
-  "genesis_state_root": "a5ce128b7183d1c04ab4b1a5e5444a7ce32c5a47e63a55ba39e1f6aae40189ab",
+  "genesis_hash": "2bcba2fbacb4d40627f3bcb92403f3235c7341282ebf1bdc66356d1e3d074c3c",
+  "genesis_state_root": "2bcba2fbacb4d40627f3bcb92403f3235c7341282ebf1bdc66356d1e3d074c3c",
   "genesis_time_ms": 0,
   "mode": "prod",
   "name": "WeAll Genesis Canonical Chain",

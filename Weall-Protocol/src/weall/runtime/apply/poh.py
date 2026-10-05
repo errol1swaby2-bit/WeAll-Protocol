@@ -34,6 +34,8 @@ from weall.runtime.poh.live_quorum import (
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
     TIER2_VALIDITY_BLOCKS,
+    poh_human_authority_mode,
+    poh_human_authority_scope_closed,
     require_valid_poh_tier,
     revoke_account_poh_status,
     set_account_poh_status,
@@ -47,6 +49,40 @@ from weall.runtime.reviewer_responsibilities import (
 )
 
 Json = dict[str, Any]
+
+_P0_06_SCOPE_CLOSED_AUTHORITY_TX_TYPES: frozenset[str] = frozenset(
+    {
+        "POH_APPLICATION_SUBMIT",
+        "POH_ASYNC_REQUEST_OPEN",
+        "POH_ASYNC_EVIDENCE_DECLARE",
+        "POH_ASYNC_EVIDENCE_BIND",
+        "POH_ASYNC_JUROR_ASSIGN",
+        "POH_ASYNC_JUROR_ACCEPT",
+        "POH_ASYNC_JUROR_DECLINE",
+        "POH_ASYNC_REVIEW_SUBMIT",
+        "POH_ASYNC_FINALIZE",
+        "POH_ASYNC_RECEIPT",
+        "POH_TIER_SET",
+        "POH_BOOTSTRAP_TIER2_GRANT",
+        "POH_TIER2_REQUEST_OPEN",
+        "POH_TIER2_JUROR_ASSIGN",
+        "POH_TIER2_JUROR_ACCEPT",
+        "POH_TIER2_JUROR_DECLINE",
+        "POH_TIER2_REVIEW_SUBMIT",
+        "POH_TIER2_FINALIZE",
+        "POH_TIER2_RECEIPT",
+        "POH_LIVE_REQUEST_OPEN",
+        "POH_LIVE_SESSION_INIT",
+        "POH_LIVE_JUROR_ASSIGN",
+        "POH_LIVE_JUROR_ACCEPT",
+        "POH_LIVE_JUROR_DECLINE",
+        "POH_LIVE_JUROR_REPLACE",
+        "POH_LIVE_ATTENDANCE_MARK",
+        "POH_LIVE_VERDICT_SUBMIT",
+        "POH_LIVE_FINALIZE",
+        "POH_LIVE_RECEIPT",
+    }
+)
 
 _COMMITMENT_RE = re.compile(
     r"^(?:[0-9a-f]{64}|sha256:[0-9a-f]{64}|[a-z][a-z0-9_-]{1,32}:[a-z0-9][a-z0-9:._/-]{0,191}|[a-z][a-z0-9_-]{1,63})$"
@@ -307,6 +343,12 @@ def _grant_active_poh_tier(
     opt-ins.
     """
 
+    if poh_human_authority_scope_closed(state):
+        raise ApplyError(
+            "forbidden",
+            "poh_human_authority_scope_closed",
+            {"account_id": account_id, "mode": poh_human_authority_mode(state)},
+        )
     acct = _require_registered_account(state, account_id)
     duplicate_identity = _active_duplicate_identity_record(state, account_id)
     if duplicate_identity is not None:
@@ -4507,6 +4549,13 @@ def apply_poh_live_receipt(state: Json, env: Any) -> Json:
 
 def apply_poh(state: Json, env: Any) -> Json | None:
     t = _tx_type(env)
+
+    if poh_human_authority_scope_closed(state) and t in _P0_06_SCOPE_CLOSED_AUTHORITY_TX_TYPES:
+        raise ApplyError(
+            "forbidden",
+            "poh_human_authority_scope_closed",
+            {"tx_type": t, "mode": poh_human_authority_mode(state)},
+        )
 
     if t in {"POH_APPLICATION_SUBMIT", "POH_EVIDENCE_DECLARE", "POH_EVIDENCE_BIND"}:
         poh = _poh_root(state)
