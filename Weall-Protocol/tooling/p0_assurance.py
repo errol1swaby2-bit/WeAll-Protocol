@@ -77,8 +77,7 @@ MUTATIONS: tuple[MutationSpec, ...] = (
                 "    # deterministic ordering baseline (before seeded shuffle)\n"
                 "    out.sort()\n"
                 "    return out\n",
-                "    # MUTANT: preserve attacker/representation insertion order.\n"
-                "    return out\n",
+                "    # MUTANT: preserve attacker/representation insertion order.\n    return out\n",
             ),
         ),
         tests=("tests/test_p0_property_invariants.py",),
@@ -110,10 +109,10 @@ MUTATIONS: tuple[MutationSpec, ...] = (
                 "src/weall/net/handshake.py",
                 "    identity: dict[str, Any] | None = None\n"
                 "    if cfg.require_identity:\n"
-                "        pubkey = str(cfg.identity_pubkey or \"\").strip()\n",
+                '        pubkey = str(cfg.identity_pubkey or "").strip()\n',
                 "    identity: dict[str, Any] | None = None\n"
                 "    if False and cfg.require_identity:\n"
-                "        pubkey = str(cfg.identity_pubkey or \"\").strip()\n",
+                '        pubkey = str(cfg.identity_pubkey or "").strip()\n',
             ),
         ),
         tests=("tests/test_p0_05_f001_mutual_peer_auth.py",),
@@ -138,8 +137,8 @@ MUTATIONS: tuple[MutationSpec, ...] = (
         edits=(
             _edit(
                 "src/weall/runtime/poh/juror_select.py",
-                "    scored = [(_score(entropy, \"pohasync-v2\", a), a) for a in pool]\n",
-                "    scored = [(_score(entropy, \"pohasync-v2\", str(case_id), a), a) for a in pool]\n",
+                '    scored = [(_score(entropy, "pohasync-v2", a), a) for a in pool]\n',
+                '    scored = [(_score(entropy, "pohasync-v2", str(case_id), a), a) for a in pool]\n',
             ),
         ),
         tests=(
@@ -238,10 +237,8 @@ MUTATIONS: tuple[MutationSpec, ...] = (
         edits=(
             _edit(
                 "src/weall/runtime/account_registration_work.py",
-                '        str(env.signer or "").strip(),\n'
-                "        int(env.nonce),\n",
-                '        "",\n'
-                "        0,\n",
+                '        str(env.signer or "").strip(),\n        int(env.nonce),\n',
+                '        "",\n        0,\n',
             ),
         ),
         tests=("tests/test_a15_f003_account_registration_scarcity.py",),
@@ -310,9 +307,7 @@ def _apply_mutation(src_root: Path, mutation: MutationSpec) -> None:
         target.write_text(text.replace(edit.find, edit.replace, 1), encoding="utf-8")
 
 
-def _run_pytest(
-    test_paths: Sequence[str], *, src_overlay: Path | None, timeout_s: int
-) -> dict:
+def _run_pytest(test_paths: Sequence[str], *, src_overlay: Path | None, timeout_s: int) -> dict:
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     if src_overlay is not None:
@@ -410,16 +405,10 @@ def _run_gate(*, report_path: Path, timeout_s: int) -> int:
 
     mutation_results = [_run_mutation(m, timeout_s=timeout_s) for m in MUTATIONS]
     killed = sum(1 for row in mutation_results if row["status"] == "killed")
-    survived = [
-        row["mutation_id"] for row in mutation_results if row["status"] == "survived"
-    ]
-    invalid = [
-        row["mutation_id"] for row in mutation_results if row["status"] == "invalid"
-    ]
+    survived = [row["mutation_id"] for row in mutation_results if row["status"] == "survived"]
+    invalid = [row["mutation_id"] for row in mutation_results if row["status"] == "invalid"]
     allowed = [
-        row["mutation_id"]
-        for row in mutation_results
-        if row["status"] == "equivalent_allowed"
+        row["mutation_id"] for row in mutation_results if row["status"] == "equivalent_allowed"
     ]
     denominator = sum(1 for m in MUTATIONS if not m.equivalent)
     mutation_score = (killed / denominator) if denominator else 1.0
@@ -451,9 +440,7 @@ def _run_gate(*, report_path: Path, timeout_s: int) -> int:
             ),
         },
     }
-    report_path.write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print(json.dumps(report["mutation_summary"], sort_keys=True))
     print(f"property_suite_returncode={property_result['returncode']}")
@@ -479,14 +466,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    manifest = sub.add_parser(
-        "manifest", help="Print the locked mutation/property manifest"
-    )
+    manifest = sub.add_parser("manifest", help="Print the locked mutation/property manifest")
     manifest.add_argument("--json", action="store_true")
 
-    gate = sub.add_parser(
-        "gate", help="Run deterministic property and mutation assurance"
-    )
+    gate = sub.add_parser("gate", help="Run deterministic property and mutation assurance")
     gate.add_argument(
         "--report",
         default="artifacts/p0-assurance/p0_assurance_report.json",
