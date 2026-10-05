@@ -76,7 +76,6 @@ jobs:
           fi
 
           printf 'Checking %s\n' "${PY_FILES[@]}"
-          ruff format --diff tooling/p0_assurance.py tests/test_p0_property_invariants.py || true
           ruff format --check "${PY_FILES[@]}"
           ruff check "${PY_FILES[@]}"
 
