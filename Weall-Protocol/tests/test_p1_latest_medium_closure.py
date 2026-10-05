@@ -134,9 +134,7 @@ def test_a11_f002_nonzero_transfer_fee_is_atomically_settled_and_deduped() -> No
     assert state["accounts"]["@fees"]["balance"] == 7
 
     settlements = [
-        row
-        for row in state["economics"]["fee_payments"]
-        if row.get("tx_id") == "transfer:alice:2"
+        row for row in state["economics"]["fee_payments"] if row.get("tx_id") == "transfer:alice:2"
     ]
     assert settlements == [
         {
