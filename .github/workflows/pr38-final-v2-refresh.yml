@@ -11,7 +11,7 @@ jobs:
   finalize:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,6 +29,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
+
+      - name: Remove all temporary PR38 workflow sources before generation
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/pr38-v2-semantic-stale-diagnostic.yml
+          rm -f .github/workflows/pr38-semantic-stale-audit.yml
+          rm -f .github/workflows/pr38-final-v2-refresh.yml
+          rm -f .github/workflows/pr38-workflow-free-finalizer.yml
+          git diff --check
 
       - name: Register exact missing state stable IDs
         working-directory: Weall-Protocol
@@ -80,7 +89,7 @@ jobs:
           path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
           PY
 
-      - name: Refresh only audited stale transaction semantic bindings
+      - name: Refresh only audited stale transaction semantic bindings on workflow-free tree
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -97,12 +106,13 @@ jobs:
             --review-method "p0_scope_closure_semantic_refresh_with_focused_regression_evidence" \
             --authority-effect "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols."
 
-      - name: Verify working-tree stable IDs and generated V2 derivatives
+      - name: Verify workflow-free working-tree derivatives
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
+          git -C .. diff --check
 
       - name: Focused P0-06 and V2 regression suite
         working-directory: Weall-Protocol
@@ -115,22 +125,18 @@ jobs:
             tests/test_production_genesis_manifest_builder.py \
             tests/test_v2_spec_compiler.py
 
-      - name: Remove temporary PR38 diagnostic workflows
-        run: |
-          set -Eeuo pipefail
-          rm -f .github/workflows/pr38-v2-semantic-stale-diagnostic.yml
-          rm -f .github/workflows/pr38-semantic-stale-audit.yml
-          rm -f .github/workflows/pr38-final-v2-refresh.yml
-          git diff --check
-
-      - name: Commit exact candidate before clean-checkout validation
+      - name: Commit workflow-free candidate before clean-checkout validation
         run: |
           set -Eeuo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --check
-          git commit -m "chore: refresh PR38 exact-tree V2 semantic bindings"
+          test ! -e .github/workflows/pr38-v2-semantic-stale-diagnostic.yml
+          test ! -e .github/workflows/pr38-semantic-stale-audit.yml
+          test ! -e .github/workflows/pr38-final-v2-refresh.yml
+          test ! -e .github/workflows/pr38-workflow-free-finalizer.yml
+          git commit -m "chore: finalize PR38 workflow-free V2 bindings"
 
       - name: Exact-commit generated public and claim validation
         working-directory: Weall-Protocol
@@ -151,7 +157,7 @@ jobs:
           set -Eeuo pipefail
           git diff --exit-code
           git diff --cached --exit-code
-          git status --short
+          test -z "$(git status --porcelain)"
 
-      - name: Push validated candidate
+      - name: Push validated workflow-free candidate
         run: git push origin HEAD:p0-03-production-closure-staging-20261001
