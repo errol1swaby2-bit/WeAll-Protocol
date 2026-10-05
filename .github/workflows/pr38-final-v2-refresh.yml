@@ -97,13 +97,12 @@ jobs:
             --review-method "p0_scope_closure_semantic_refresh_with_focused_regression_evidence" \
             --authority-effect "No new production human authority; positive PoH authority remains fail-closed pending separately reviewed uniqueness and entropy protocols."
 
-      - name: Verify stable IDs and generated V2 derivatives
+      - name: Verify working-tree stable IDs and generated V2 derivatives
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
-          python scripts/check_v2_spec_clean_checkout.py
 
       - name: Focused P0-06 and V2 regression suite
         working-directory: Weall-Protocol
@@ -124,7 +123,7 @@ jobs:
           rm -f .github/workflows/pr38-final-v2-refresh.yml
           git diff --check
 
-      - name: Commit exact candidate before final validation
+      - name: Commit exact candidate before clean-checkout validation
         run: |
           set -Eeuo pipefail
           git config user.name "github-actions[bot]"
@@ -133,7 +132,7 @@ jobs:
           git diff --cached --check
           git commit -m "chore: refresh PR38 exact-tree V2 semantic bindings"
 
-      - name: Exact-commit public and claim validation
+      - name: Exact-commit generated public and claim validation
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
