@@ -58,38 +58,38 @@ jobs:
               marker = "\n)\n\n\ndef property_seed_rng"
               if text.count(marker) != 1:
                   raise SystemExit("p0_assurance_mutation_tuple_anchor_invalid")
-              additions = '''
-    MutationSpec(
-        mutation_id="P0-10-ACCOUNT-WORK-PRODUCTION-REQUIRED",
-        track="P0-10",
-        description="Permit a production chain to disable account-registration work.",
-        edits=(
-            _edit(
-                "src/weall/runtime/account_registration_work.py",
-                "    if production_chain and not required:\\n",
-                "    if False and production_chain and not required:\\n",
-            ),
-        ),
-        tests=("tests/test_a15_f003_account_registration_scarcity.py",),
-    ),
-    MutationSpec(
-        mutation_id="P0-10-ACCOUNT-CARDINALITY-BOUND",
-        track="P0-10",
-        description="Bypass the production root-visible account cardinality ceiling.",
-        edits=(
-            _edit(
-                "src/weall/runtime/account_registration_work.py",
-                "        policy.max_accounts > 0\\n"
-                "        and signer not in accounts\\n"
-                "        and len(accounts) >= policy.max_accounts\\n",
-                "        False\\n"
-                "        and signer not in accounts\\n"
-                "        and len(accounts) >= policy.max_accounts\\n",
-            ),
-        ),
-        tests=("tests/test_a15_f003_account_registration_scarcity.py",),
-    ),
-'''
+              additions = (
+                  '    MutationSpec(\n'
+                  '        mutation_id="P0-10-ACCOUNT-WORK-PRODUCTION-REQUIRED",\n'
+                  '        track="P0-10",\n'
+                  '        description="Permit a production chain to disable account-registration work.",\n'
+                  '        edits=(\n'
+                  '            _edit(\n'
+                  '                "src/weall/runtime/account_registration_work.py",\n'
+                  '                "    if production_chain and not required:\\n",\n'
+                  '                "    if False and production_chain and not required:\\n",\n'
+                  '            ),\n'
+                  '        ),\n'
+                  '        tests=("tests/test_a15_f003_account_registration_scarcity.py",),\n'
+                  '    ),\n'
+                  '    MutationSpec(\n'
+                  '        mutation_id="P0-10-ACCOUNT-CARDINALITY-BOUND",\n'
+                  '        track="P0-10",\n'
+                  '        description="Bypass the production root-visible account cardinality ceiling.",\n'
+                  '        edits=(\n'
+                  '            _edit(\n'
+                  '                "src/weall/runtime/account_registration_work.py",\n'
+                  '                "        policy.max_accounts > 0\\n"\n'
+                  '                "        and signer not in accounts\\n"\n'
+                  '                "        and len(accounts) >= policy.max_accounts\\n",\n'
+                  '                "        False\\n"\n'
+                  '                "        and signer not in accounts\\n"\n'
+                  '                "        and len(accounts) >= policy.max_accounts\\n",\n'
+                  '            ),\n'
+                  '        ),\n'
+                  '        tests=("tests/test_a15_f003_account_registration_scarcity.py",),\n'
+                  '    ),\n'
+              )
               text = text.replace(marker, additions + marker, 1)
               path.write_text(text, encoding="utf-8")
           PY
