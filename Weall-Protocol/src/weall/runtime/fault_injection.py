@@ -1071,7 +1071,7 @@ def run_timeout_epoch_storm_soak(
                 _signed_timeout(
                     signer=signer,
                     view=view,
-                    high_qc_id="genesis" if view == 0 else f"qc-{view}",
+                    high_qc_id="genesis",
                     validator_epoch=current_epoch,
                     validator_set_hash=set_hash,
                 )
@@ -1081,7 +1081,7 @@ def run_timeout_epoch_storm_soak(
                     _signed_timeout(
                         signer=signer,
                         view=view,
-                        high_qc_id="genesis" if view == 0 else f"qc-{view}",
+                        high_qc_id="genesis",
                         validator_epoch=current_epoch,
                         validator_set_hash=set_hash,
                     )
@@ -1094,7 +1094,7 @@ def run_timeout_epoch_storm_soak(
                     _signed_timeout(
                         signer=signer,
                         view=view - 1,
-                        high_qc_id=f"qc-{max(0, view - 1)}",
+                        high_qc_id="genesis",
                         validator_epoch=current_epoch,
                         validator_set_hash=set_hash,
                     )
@@ -1131,7 +1131,7 @@ def run_timeout_epoch_storm_soak(
                 _signed_timeout(
                     signer="v1",
                     view=view + 1,
-                    high_qc_id=f"qc-{view + 1}",
+                    high_qc_id="genesis",
                     validator_epoch=old_epoch,
                     validator_set_hash=old_set_hash,
                 )
