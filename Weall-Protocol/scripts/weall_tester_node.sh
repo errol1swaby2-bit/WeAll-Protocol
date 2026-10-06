@@ -5,12 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${ROOT_DIR}/.." && pwd)"
 WEB_ROOT="${REPO_ROOT}/web"
 
-# Batch 480: one-command tester boot should use the repo virtualenv when present.
-# Fresh-clone testers should not need to remember to activate .venv manually.
-if [ -x "${ROOT_DIR}/.venv/bin/python" ]; then
-  export VIRTUAL_ENV="${ROOT_DIR}/.venv"
-  export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
-fi
+# A19-F002: this is a one-command *start* after a hash-locked backend
+# environment has been prepared. Never fall back to ambient Python packages.
+VENV_PYTHON="${ROOT_DIR}/.venv/bin/python"
 
 RUNTIME_DIR="${WEALL_TESTER_RUNTIME_DIR:-${HOME}/.weall/tester-node}"
 BUNDLE_ARG=""
@@ -72,6 +69,10 @@ while [[ $# -gt 0 ]]; do
     *) fail "unknown argument: $1" ;;
   esac
 done
+
+[[ -x "${VENV_PYTHON}" ]] || fail "prepared backend virtualenv missing: create Weall-Protocol/.venv and install requirements.lock plus the local package first"
+export VIRTUAL_ENV="${ROOT_DIR}/.venv"
+export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
 
 [[ -n "${BUNDLE_ARG}" ]] || fail "--bundle is required"
 [[ -f "${MANIFEST_PATH}" ]] || fail "manifest not found: ${MANIFEST_PATH}"
@@ -167,7 +168,9 @@ rm -f /tmp/weall-tester-smoke.out
 bash "${ROOT_DIR}/scripts/external_observer_authority_lock_gate.sh" >/tmp/weall-tester-authority-lock.out
 rm -f /tmp/weall-tester-authority-lock.out
 
-if [[ "${START_FRONTEND}" == "1" && -d "${WEB_ROOT}" && -f "${WEB_ROOT}/package.json" && -x "$(command -v npm || true)" ]]; then
+if [[ "${START_FRONTEND}" == "1" ]]; then
+  [[ -d "${WEB_ROOT}" && -f "${WEB_ROOT}/package.json" ]] || fail "frontend source is missing; pass --skip-frontend only when frontend coverage is intentionally out of scope"
+  command -v npm >/dev/null 2>&1 || fail "npm is required for the default tester frontend path; install Node/npm or pass --skip-frontend explicitly"
   mkdir -p "${RUNTIME_DIR}/logs"
   if [[ ! -d "${WEB_ROOT}/node_modules" ]]; then
     (cd "${WEB_ROOT}" && npm ci) >"${RUNTIME_DIR}/logs/frontend-npm-ci.log" 2>&1 || fail "frontend npm ci failed; see ${RUNTIME_DIR}/logs/frontend-npm-ci.log"
