@@ -1,0 +1,64 @@
+name: P1 Format And Verify A05 Timeout Recovery
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-format-a05-timeout.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-a05:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dev environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and verify A05 timeout recovery surface
+        working-directory: Weall-Protocol
+        run: |
+          FILES=(
+            src/weall/runtime/bft_hotstuff.py
+            src/weall/runtime/bft_runtime_adapter.py
+            tests/test_p1_a05_timeout_qc_ranking.py
+            tests/test_bft_timeout_certificate.py
+            tests/test_pb001bw_pending_timeout_restart_revalidation.py
+          )
+          ruff check --fix "${FILES[@]}"
+          ruff format "${FILES[@]}"
+          ruff check "${FILES[@]}"
+          ruff format --check "${FILES[@]}"
+          pytest -q \
+            tests/test_p1_a05_timeout_qc_ranking.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_bft_timeout_recovery.py \
+            tests/test_pb001bw_pending_timeout_restart_revalidation.py \
+            tests/test_bft_liveness_timeouts_e2e.py
+
+      - name: Commit workflow-free formatted A05 candidate
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/p1-format-a05-timeout.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No A05 formatting diff produced'; exit 1; }
+          git diff --check --cached
+          git commit -m 'style: format and verify A05 timeout recovery'
+          git push origin HEAD:p1-revalidation-after-p0-20261005
