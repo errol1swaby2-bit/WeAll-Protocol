@@ -43,14 +43,6 @@ def _mode() -> str:
     return runtime_mode()
 
 
-def _public_state_snapshot_enabled() -> bool:
-    # A15-F005: a full-state HTTP projection has O(total state) read/copy/
-    # redaction/serialization cost. Production therefore never exposes that
-    # primitive as a public route. Bounded/scoped read APIs and authenticated
-    # state-sync/operator surfaces remain the production access paths.
-    return _mode() != "prod"
-
-
 def _sync_request_routes_enabled() -> bool:
     # State-sync request is read-only, but it can expose snapshots. Keep it on in
     # dev by default for controlled devnet harnesses and require an explicit flag
@@ -361,15 +353,6 @@ def state_snapshot(request: Request) -> Json:
       - This endpoint can grow large over time.
       - Operators may disable it at the edge or replace it with a pruned view.
     """
-
-    if not _public_state_snapshot_enabled():
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "code": "public_state_snapshot_disabled",
-                "message": "full public state snapshots are disabled in production",
-            },
-        )
 
     # A15-F005: the full snapshot remains a dev/test convenience, but in
     # production it is an operator-scoped diagnostic. Authenticate before any
