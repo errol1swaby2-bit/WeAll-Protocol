@@ -136,3 +136,5 @@ jobs:
           git push origin HEAD:p1-revalidation-after-p0-20261005
 
 # retry after adding API contract map generator to dependency order
+
+# retry after claim-freshness wording normalization
