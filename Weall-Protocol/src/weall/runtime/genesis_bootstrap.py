@@ -30,7 +30,6 @@ from weall.runtime.executor import (
     _normalize_mempool_selection_policy,
     account_reputation_units,
     ensure_roles_schema,
-    hashlib,
     os,
     record_bootstrap_tier2_grant,
     sync_account_reputation,

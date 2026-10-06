@@ -51,9 +51,7 @@ def mldsa65_public_key_bytes(pubkey: str) -> bytes:
     """Decode one ML-DSA-65 public key into its canonical authority bytes."""
     raw = _decode_bytes(pubkey)
     if len(raw) != MLDSA65_PUBLIC_KEY_BYTES:
-        raise ValueError(
-            f"mldsa public key must be {MLDSA65_PUBLIC_KEY_BYTES} bytes"
-        )
+        raise ValueError(f"mldsa public key must be {MLDSA65_PUBLIC_KEY_BYTES} bytes")
     return raw
 
 

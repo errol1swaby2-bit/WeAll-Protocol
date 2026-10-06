@@ -83,12 +83,12 @@ def test_a13_f001_all_supported_encodings_share_one_fingerprint_and_key_id() -> 
     pubkey_hex, _ = deterministic_mldsa_keypair(label="a13-f001-canonical")
     variants = _variants(pubkey_hex)
 
-    canonical = {
-        canonical_mldsa65_public_key(value, encoding="hex") for value in variants.values()
-    }
+    canonical = {canonical_mldsa65_public_key(value, encoding="hex") for value in variants.values()}
     fingerprints = {mldsa65_public_key_fingerprint(value) for value in variants.values()}
     key_ids = {account_key_id_for_pubkey(value) for value in variants.values()}
-    records = {mldsa_account_key_record(pubkey=value)["pubkeys"]["mldsa"] for value in variants.values()}
+    records = {
+        mldsa_account_key_record(pubkey=value)["pubkeys"]["mldsa"] for value in variants.values()
+    }
 
     assert canonical == {pubkey_hex}
     assert len(fingerprints) == 1

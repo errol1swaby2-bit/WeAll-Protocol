@@ -232,8 +232,8 @@ def _merge_canonical_key_alias_records(left: Json, right: Json) -> Json:
     merged = dict(left)
     revoked = bool(left.get("revoked", False) or right.get("revoked", False))
     merged["revoked"] = revoked
-    merged["active"] = False if revoked else bool(
-        left.get("active", True) and right.get("active", True)
+    merged["active"] = (
+        False if revoked else bool(left.get("active", True) and right.get("active", True))
     )
 
     created = [
@@ -299,9 +299,7 @@ def _canonicalize_account_key_aliases(account: Json) -> None:
         normalized = dict(record)
         normalized["key_id"] = canonical_id
         pubkeys = (
-            dict(normalized.get("pubkeys"))
-            if isinstance(normalized.get("pubkeys"), dict)
-            else {}
+            dict(normalized.get("pubkeys")) if isinstance(normalized.get("pubkeys"), dict) else {}
         )
         pubkeys["mldsa"] = canonical_account_key_pubkey(pubkey, profile=profile)
         normalized["pubkeys"] = pubkeys
