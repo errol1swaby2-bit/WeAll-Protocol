@@ -20618,6 +20618,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Identity:aliases",
+      "kind": "state",
+      "stable_id": "STATE-52E85010A6D669D5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:retired_reason",
       "kind": "state",
       "stable_id": "STATE-52E994F67C81E52D",
