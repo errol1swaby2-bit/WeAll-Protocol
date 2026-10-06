@@ -345,16 +345,22 @@ def _executor_wire_header(ex: Any, msg_type: MsgType, *, corr_id: str | None = N
 
 @router.get("/state/snapshot")
 def state_snapshot(request: Request) -> Json:
-    """Return a redacted ledger snapshot.
+    """Return a redacted ledger snapshot outside production.
 
-    A15-F005: in production this is an operator-scoped diagnostic, not a
-    public full-state endpoint. Authenticate before touching the executor so
-    an anonymous tiny GET cannot amplify into O(total-state) read/copy/redact
-    work. Dev/test retains the legacy public convenience behavior.
+    A15-F005: the full-state projection has O(total-state) read/copy/redact/
+    serialization cost, so it is not a production HTTP surface. Production
+    consumers must use bounded/scoped read routes or authenticated bounded
+    state-sync paths. Reject before touching the executor.
     """
 
     if _mode() == "prod":
-        _require_state_raw_read_operator(request)
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "public_state_snapshot_disabled",
+                "message": "full public state snapshots are disabled in production",
+            },
+        )
 
     ex = _executor(request)
     st = ex.read_state()
