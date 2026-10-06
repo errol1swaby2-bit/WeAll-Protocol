@@ -669,7 +669,7 @@ txs:
   name: TREASURY_SPEND_CANCEL
   domain: Treasury
   origin: USER
-  gate: Emissary
+  gate: Signer
   context: mempool
   receipt_only: false
 - id: 507
