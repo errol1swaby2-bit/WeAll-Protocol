@@ -394,10 +394,10 @@ def test_v2_transaction_contract_matrix_has_complete_structural_coverage() -> No
 def test_v2_route_contract_map_covers_all_route_implementations() -> None:
     payload = _read("generated/v2/route_contract_map.json")
     rows = payload["routes"]
-    assert payload["route_count"] == 163
+    assert payload["route_count"] == 159
     assert payload["unique_method_path_count"] == 159
-    assert payload["duplicate_route_implementation_count"] == 8
-    assert len({row["stable_id"] for row in rows}) == 163
+    assert payload["duplicate_route_implementation_count"] == 0
+    assert len({row["stable_id"] for row in rows}) == 159
     assert all(row["primary_mechanism_id"] == "M-069" for row in rows)
     assert all(row["semantic_precision"] == "explicit_maintainer_reviewed_contract" for row in rows)
     assert all(len(row["semantic_review"]["review_digest"]) == 64 for row in rows)
