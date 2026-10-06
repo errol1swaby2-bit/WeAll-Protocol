@@ -3,6 +3,8 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 
+import yaml
+
 from weall.api.routes_public_parts.health import _try_executor_state
 from weall.runtime.executor import WeAllExecutor
 
@@ -116,3 +118,31 @@ def test_a15_f004_health_telemetry_does_not_wait_for_branch_lock(
     probe_thread.join(timeout=10)
     assert not holder.is_alive()
     assert not probe_thread.is_alive()
+
+def test_a15_f004_production_deployment_keeps_health_on_private_operator_boundary() -> None:
+    compose_path = ROOT / "docker-compose.prod.yml"
+    compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
+    service = compose["services"]["weall-node"]
+
+    exposed = {str(value) for value in (service.get("expose") or [])}
+    published = {str(value) for value in (service.get("ports") or [])}
+    assert "8000" in exposed
+    assert all("8000" not in value for value in published)
+
+    healthcheck = " ".join(str(value) for value in service["healthcheck"]["test"])
+    assert "/v1/readyz" in healthcheck
+    assert "127.0.0.1:8000" in healthcheck
+
+    runbook = (ROOT / "docs" / "operator_runbook_prod.md").read_text(encoding="utf-8")
+    assert "operator/orchestrator surface" in runbook
+    assert "must not route" in runbook
+    for route in (
+        "/health",
+        "/healthz",
+        "/readyz",
+        "/v1/health",
+        "/v1/healthz",
+        "/v1/readyz",
+    ):
+        assert route in runbook
+
