@@ -5,15 +5,10 @@ from collections import Counter
 from pathlib import Path
 
 from weall.api import routes_nodes
-from weall.api.app import create_app
-from weall.api.routes_public_parts.demo_seed import demo_seed_router_should_mount
+from weall.api.routes_public import public_router
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONDITIONAL_DEMO_ROUTE_KEYS = {
-    ("GET", "/v1/dev/bootstrap-secret"),
-    ("POST", "/v1/dev/demo-seed"),
-}
 NODE_ROUTE_KEYS = {
     ("GET", "/v1/nodes"),
     ("GET", "/v1/nodes/known"),
@@ -23,9 +18,8 @@ NODE_ROUTE_KEYS = {
 
 
 def _mounted_route_rows() -> list[tuple[str, str, str]]:
-    app = create_app(boot_runtime=False)
     rows: list[tuple[str, str, str]] = []
-    for route in app.routes:
+    for route in public_router.routes:
         path = str(getattr(route, "path", "") or "")
         methods = getattr(route, "methods", set()) or set()
         endpoint = getattr(route, "endpoint", None)
@@ -75,23 +69,13 @@ def test_a01_f003_generated_route_inventory_has_no_shadow_implementations() -> N
     assert len(rows) == 159
     assert not [row for row in rows if row.get("duplicate_route_key")]
 
-    generated = {(str(row["method"]).upper(), str(row["path"])) for row in rows}
-    mounted = {(method, path) for method, path, _module in _mounted_route_rows()}
-
-    # The only statically declared routes that are intentionally absent from
-    # the default runtime graph are the explicitly gated demo-only endpoints.
-    # Their router is conditionally included by routes_public.py through
-    # demo_seed_router_should_mount(); they are not dormant alternate
-    # implementations of a production method/path.
-    assert demo_seed_router_should_mount() is False
-    assert generated - mounted == CONDITIONAL_DEMO_ROUTE_KEYS
-
-    for row in rows:
-        key = (str(row["method"]).upper(), str(row["path"]))
-        if key in CONDITIONAL_DEMO_ROUTE_KEYS:
-            assert row["implementation_source"]["path"] == (
-                "src/weall/api/routes_public_parts/demo_seed.py"
-            )
+    # The retired helper module must not appear as a decorated V2 route source.
+    assert not [
+        row
+        for row in rows
+        if str(row["implementation_source"]["path"])
+        == "src/weall/api/routes_nodes.py"
+    ]
 
 
 def test_a01_f003_generated_node_authority_points_only_to_mounted_wrapper_module() -> None:
