@@ -596,22 +596,6 @@
       "authority_effect": "none; does not activate public testnet or Mainnet",
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
-        "function": "v1_nodes",
-        "line": 512,
-        "path": "src/weall/api/routes_nodes.py"
-      },
-      "independent_review": false,
-      "review_digest": "29ec2830bb76a2ef1de6e29406e6d154852211f8bf4d659f3320adde7319a2ce",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
-      "route_key": "GET /v1/nodes",
-      "stable_id": "ROUTE-33157A0C76623B22"
-    },
-    {
-      "authority_effect": "none; does not activate public testnet or Mainnet",
-      "disposition": "accepted_current_semantic_contract",
-      "implementation_source": {
         "function": "v1_disputes_list",
         "line": 574,
         "path": "src/weall/api/routes_public_parts/disputes.py"
@@ -719,22 +703,6 @@
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted adversarial invariant closure); independent launch review deferred",
       "route_key": "POST /v1/session/login",
       "stable_id": "ROUTE-3FFABBEFCB7FF39D"
-    },
-    {
-      "authority_effect": "none; does not activate public testnet or Mainnet",
-      "disposition": "accepted_current_semantic_contract",
-      "implementation_source": {
-        "function": "v1_nodes_known",
-        "line": 532,
-        "path": "src/weall/api/routes_nodes.py"
-      },
-      "independent_review": false,
-      "review_digest": "21d97afe92d604da5d0533e9a258fe12459118c03ca2d6a0683bba296eaff8f1",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
-      "route_key": "GET /v1/nodes/known",
-      "stable_id": "ROUTE-4017D7268FA1760D"
     },
     {
       "authority_effect": "none; does not activate public testnet or Mainnet",
@@ -1604,22 +1572,6 @@
       "authority_effect": "none; does not activate public testnet or Mainnet",
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
-        "function": "v1_nodes_seeds",
-        "line": 526,
-        "path": "src/weall/api/routes_nodes.py"
-      },
-      "independent_review": false,
-      "review_digest": "2c225761fe2107c4da0cec1828d16c221b682eb492d33a1bdc5c36f287e035bf",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
-      "route_key": "GET /v1/nodes/seeds",
-      "stable_id": "ROUTE-9D2EF135FA91584C"
-    },
-    {
-      "authority_effect": "none; does not activate public testnet or Mainnet",
-      "disposition": "accepted_current_semantic_contract",
-      "implementation_source": {
         "function": "poh_tier2_video_upload",
         "line": 213,
         "path": "src/weall/api/routes_public_parts/poh.py"
@@ -1695,22 +1647,6 @@
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "GET /v1/activity/notices",
       "stable_id": "ROUTE-A2A85AC93E907C82"
-    },
-    {
-      "authority_effect": "none; does not activate public testnet or Mainnet",
-      "disposition": "accepted_current_semantic_contract",
-      "implementation_source": {
-        "function": "v1_nodes_validators",
-        "line": 541,
-        "path": "src/weall/api/routes_nodes.py"
-      },
-      "independent_review": false,
-      "review_digest": "eb9bdbe8354f1c1cce0920ba7a1caa7ab9a4f8fcae8ba2653e955f3d62034c4c",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
-      "route_key": "GET /v1/nodes/validators",
-      "stable_id": "ROUTE-A2ED585AF34A0150"
     },
     {
       "authority_effect": "none; does not activate public testnet or Mainnet",
