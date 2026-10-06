@@ -73,6 +73,10 @@ jobs:
             tests/test_p1_a02_strict_social_booleans.py \
             tests/test_p1_a03_startup_durable_authority.py \
             tests/test_p1_a03_observer_queue_durability.py \
+            tests/test_p1_a05_timeout_qc_ranking.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_bft_timeout_recovery.py \
+            tests/test_pb001bw_pending_timeout_restart_revalidation.py \
             tests/test_recursive_production_readiness_closure.py::test_pruned_delta_falls_back_to_restartable_checkpoint_snapshot \
             tests/test_state_sync_aux_branch_reset.py::test_checkpoint_sync_purges_aux_attestation_pool_and_restart_stays_clean \
             tests/test_pb001bo_canonical_block_hash_persistence.py::test_restart_fails_closed_when_persisted_tip_header_does_not_match_hash \
