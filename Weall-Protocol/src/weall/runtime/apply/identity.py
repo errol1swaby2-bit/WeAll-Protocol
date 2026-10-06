@@ -520,7 +520,6 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
     if not pubkey:
         raise ApplyError("invalid_tx", "missing_pubkey", {})
 
-    _canonicalize_account_key_aliases(a)
     keys = a.get("keys")
     if not isinstance(keys, dict):
         keys = {}
@@ -552,7 +551,6 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
     key_id = _as_str(p.get("key_id") or "").strip()
     legacy_pubkey = _as_str(p.get("pubkey") or "").strip()
 
-    _canonicalize_account_key_aliases(a)
     keys = a.get("keys")
     if not isinstance(keys, dict) or not isinstance(keys.get("by_id"), dict):
         raise ApplyError("invalid_state", "keys_not_configured", {})
