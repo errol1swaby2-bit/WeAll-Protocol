@@ -49,7 +49,8 @@ def test_genesis_rehearsal_script_requires_matching_canonical_validator_key() ->
 def test_tester_one_command_docs_exist() -> None:
     doc = _read("docs/TESTER_ONE_COMMAND_NODE_BOOT.md")
 
-    assert "One-command tester node boot" in doc
+    assert "One-command tester node start after prerequisites" in doc
+    assert "one-command start path after explicit prerequisites" in doc
     assert "scripts/weall_tester_node.sh" in doc
     assert "observer onboarding" in doc
     assert "does not grant validator" in doc
