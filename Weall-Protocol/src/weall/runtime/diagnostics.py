@@ -184,15 +184,28 @@ def read_cached_state(self) -> Json:
 
 
 def read_state(self) -> Json:
-    """Return the latest persisted ledger snapshot or fail closed."""
-    try:
-        persisted = self._ledger_store.read()
-    except Exception as exc:
-        raise LedgerStateReadError("persisted_ledger_state_read_failed") from exc
-    if not isinstance(persisted, dict):
-        raise LedgerStateReadError("persisted_ledger_state_invalid_type")
-    self.state = persisted
-    return self.state
+    """Return and publish the latest persisted snapshot at one branch-linearized point.
+
+    A14-F001: a persisted read is also a publication into self.state. It
+    therefore participates in the same process-local canonical-branch ordering
+    domain as block commit, follower replay, and destructive checkpoint install.
+    Holding the RLock across both SQLite read and publication prevents a reader
+    that captured height N from resuming after N+1 and moving the shared runtime
+    view backward. It also protects same-height tip/root/validator transitions,
+    which a height-only compare could miss.
+    """
+    guard = getattr(self, "_bft_branch_guard_lock", None)
+    if not callable(guard):
+        raise LedgerStateReadError("canonical_branch_guard_unavailable")
+    with guard():
+        try:
+            persisted = self._ledger_store.read()
+        except Exception as exc:
+            raise LedgerStateReadError("persisted_ledger_state_read_failed") from exc
+        if not isinstance(persisted, dict):
+            raise LedgerStateReadError("persisted_ledger_state_invalid_type")
+        self.state = persisted
+        return self.state
 
 
 def tx_index_hash(self) -> str:
