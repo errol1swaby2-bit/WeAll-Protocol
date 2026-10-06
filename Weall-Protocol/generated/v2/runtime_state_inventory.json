@@ -1,5 +1,5 @@
 {
-  "count": 1144,
+  "count": 1145,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "434f6e5b2232f750a2b4ac998b5e20754d0cec684334fa87fbe906d122eaeaae"
+    "source_tree_digest": "16967eb151692f1e209f0bec90e67ff8243a974d50608a0c0b47aa1c768a09b1"
   },
   "rows": [
     {
@@ -18416,6 +18416,7 @@
     },
     {
       "creation_contracts": [
+        "TX-0003",
         "TX-0007"
       ],
       "domain": "Identity",
@@ -18427,6 +18428,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_key_revoke",
         "src/weall/runtime/apply/identity.py#_apply_account_session_key_revoke"
       ],
       "primary_mechanism_id": "M-028",
@@ -18438,6 +18440,7 @@
       "state_key_or_namespace": "active",
       "status": "current_partial",
       "transition_contracts": [
+        "TX-0003",
         "TX-0007"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -18445,6 +18448,7 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
+        "TX-0003",
         "TX-0007"
       ]
     },
@@ -18491,6 +18495,34 @@
         "TX-2106",
         "TX-2107"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0003"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-52E85010A6D669D5",
+      "state_key_or_namespace": "aliases",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -21379,7 +21411,6 @@
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
-        "TX-0002",
         "TX-0003",
         "TX-0004",
         "TX-0005"

@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2007,
+  "file_count": 2008,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "d734cc12f551b04c82caebf22007092aeca9d7891edf8845d8a2c5fe5fe88d90",
+      "sha256": "d2d4a93312cff46b315fe2b9f182beec786ed6b11d5fa327111f2ad8f1ddae8d",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -3067,7 +3067,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3514a759338f1caa33057d52597ddfa887c80920f40ce017eea890b77257bcbe",
+      "sha256": "444bbc2506968bc88e2698a4afc493febde54390f69be0e1c1206780b58a21ae",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3081,7 +3081,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "6195b1606202991ef40a6fdec2fbd64d10831acc8a3d71135f649c75d890be09",
+      "sha256": "f08606ff05a0db132c475a8ba0d4e5c02e6a55344efcc787d0899bc877f6f95c",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3165,7 +3165,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8216d5256cae95a6e40534d1294f53159f4dd5ab855d3e5123568a2a8d689a4d",
+      "sha256": "7c86364ddc3028006c9f7ed0e04058152366c60b8e7fd750bce07fcb1e77e54d",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3262,7 +3262,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "9a087e49d0b5e387a84259a2b7fedf4d1351cbb493a668e6b979f092f164d146",
+      "sha256": "15a103c245b6446d521d8beddd091bfbe2e244d921095076fdd1b4f30eaf64a8",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3290,7 +3290,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "1f2aa1235fa7e89f92f948820abea7d27289b43205882f95616c8acc13530eb7",
+      "sha256": "8ffc82af46ee198f702ebc777437897fabbd10861e8817d96b199a17fbf64029",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3388,7 +3388,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "b20abf4c765456c026c3d48057864229ecf0b2ac89845139ad410ad75f5978be",
+      "sha256": "a6876c0579f2e03b0d0be287cbc63b6de7ffcbf8c1315da2aae328c09a37de36",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3570,7 +3570,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "322fc58a8b19ef628d7321de49ab7e44384e9237284c0f0d92b878a2f75f9207",
+      "sha256": "9270c76077d40114e01ecb9cf2ca07984a88e578527413b3037abe6fd6139579",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -6785,7 +6785,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "656577be1715f7b163d5807e60f5696f895a6ca6f52a9e9e647f84bce7df5ce3",
+      "sha256": "09dad4498c9effabacd3778fb120c797fa50ac2dffbefa1f22996997a2b642ec",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6811,7 +6811,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "be4554dc31dd2869fc6e62bc5927618f4e2604232252863998af514961949836",
+      "sha256": "322890d3d9be8728868719fd0871589dfe6f6ce9b509e1962798583009ce2449",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -7717,7 +7717,7 @@
       ],
       "path": "src/weall/crypto/account_keys.py",
       "primary_mechanism_id": "M-006",
-      "sha256": "988918e914724a8acad95103f00cd25715be41b4553abf5767595a2db34ab931",
+      "sha256": "be7341c52ed46fb96e05977b9a5ca8d22d7b18df5ea66c214fc349592c43f572",
       "source_id": "SRC-909FA9DEB4E459F3"
     },
     {
@@ -7730,7 +7730,7 @@
       ],
       "path": "src/weall/crypto/pq_mldsa.py",
       "primary_mechanism_id": "M-006",
-      "sha256": "a736657481e83c01ebe0dca065f8f7c1d109685d60c6b7a9b373771db2ac9fb4",
+      "sha256": "e976cc0d7fc7657e4664c5f15b7db3ff3bb6c8f2db31853d154971e116e65afa",
       "source_id": "SRC-B793E253ED560BD8"
     },
     {
@@ -9026,6 +9026,7 @@
         "STATE-4CC58B98DA7A9F3A",
         "STATE-4D746947ADA13CF7",
         "STATE-4DB3212F29B5B746",
+        "STATE-52E85010A6D669D5",
         "STATE-52E994F67C81E52D",
         "STATE-5439941494C39266",
         "STATE-55285A955AAB6692",
@@ -9127,7 +9128,7 @@
       ],
       "path": "src/weall/runtime/apply/identity.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "2eb5c7c31224e919cedbfa12f2da49b0bbcdb6f54e8dfe4b8c7a400da2ed0a88",
+      "sha256": "7553b5b561bd55ff2271222f436f3ddb062a6eb5095c9470904c0879bf6fab6b",
       "source_id": "SRC-0163D21FDAB45401"
     },
     {
@@ -10731,7 +10732,7 @@
       ],
       "path": "src/weall/runtime/genesis_bootstrap.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "56cab2e858b8e118d7187bbc5da5aecc1c48a923995fb701b6baa12f73841ca6",
+      "sha256": "7d738ed237361c8c586fd2f38cddc110693cca53bcde1a4117896eb47aa64acf",
       "source_id": "SRC-795ADF0884ACC9CB"
     },
     {
@@ -11911,7 +11912,7 @@
       ],
       "path": "src/weall/runtime/sigverify.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "c71d9b67352c4c9d6d66225b9880859efb8f7ed980d502b006dcefe73e14c39d",
+      "sha256": "54a563fa7c6aa40a5fd3011b4c937a4ee906e39eb27ab291fa7704517ccee1ff",
       "source_id": "SRC-067B0C74E569E00C"
     },
     {
@@ -22497,6 +22498,23 @@
       "primary_mechanism_id": "M-076",
       "sha256": "0c00f345271c661a50cb9f55546ab57c758439b63d141950fd42b4b4f6e51060",
       "source_id": "SRC-813EED373A284116"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-0002",
+        "TX-0003",
+        "TX-2100"
+      ],
+      "path": "tests/test_p1_a13_key_identity_canonicalization.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "8b8a8be2c9b3b294f5bbb998ee00b71dd88fb2cdbe24302401813dca63d6f3d3",
+      "source_id": "SRC-92AAE601F03EA16D"
     },
     {
       "affected_registers": [
