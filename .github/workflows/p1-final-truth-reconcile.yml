@@ -110,7 +110,7 @@ jobs:
 
       - name: Restore historical evidence
         run: |
-          bash Weall-Protocol/scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
+          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
 
       - name: Reviewer readiness
         working-directory: Weall-Protocol
@@ -138,3 +138,5 @@ jobs:
 # retry after adding API contract map generator to dependency order
 
 # retry after claim-freshness wording normalization
+
+# retry after correcting root historical-evidence restore path
