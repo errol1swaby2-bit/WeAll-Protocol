@@ -33,9 +33,17 @@ def test_a19_f003_fresh_clone_smoke_is_exact_commit_and_full_stack() -> None:
     assert 'git -C "$WORKDIR" fetch --depth 1 origin "$REVIEW_COMMIT"' in script
     assert 'git -C "$WORKDIR" checkout --detach "$REVIEW_COMMIT"' in script
     assert "require_cmd npm" in script
+    assert "requirements-dev.lock" in script
+    assert "pip install -e . --no-deps" in script
+    assert "actual_tree=" in script
     assert "npm ci" in script
+    assert "npm run typecheck" in script
     assert "npm run production-safety-check" in script
     assert "npm run build" in script
+    assert "PASS_FULL_STACK" in script
+    assert "tested tree:" in script
+    assert "components run:" in script
+    assert "components skipped: none" in script
     assert "skipping frontend build" not in script
 
 
