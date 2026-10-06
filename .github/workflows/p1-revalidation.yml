@@ -78,6 +78,7 @@ jobs:
             tests/test_p1_a12_observer_operator_loopback_auth.py \
             tests/test_crypto_signature_profiles.py \
             tests/test_p1_a13_key_identity_canonicalization.py \
+            tests/test_p1_a14_state_publication_linearization.py \
             tests/test_tx_signature_profile_admission.py \
             tests/test_block_signature_profiles.py \
             tests/test_validator_operator_signature_profiles.py \
