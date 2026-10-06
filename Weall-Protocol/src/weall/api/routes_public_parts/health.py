@@ -93,6 +93,19 @@ def _safe_str(v: Any, default: str = "") -> str:
 def _try_executor_state(ex: Any) -> dict[str, Any] | None:
     if ex is None:
         return None
+
+    # A15-F004: real executors expose a bounded telemetry projection backed by
+    # a constant-size ledger-head query. This path never reads/parses state_json.
+    health_telemetry = getattr(ex, "health_telemetry", None)
+    if callable(health_telemetry):
+        try:
+            st = health_telemetry()
+            return st if isinstance(st, dict) else None
+        except Exception:
+            return None
+
+    # Compatibility for lightweight route/test doubles that predate the bounded
+    # executor telemetry method. Production WeAllExecutor never takes this path.
     read_state = getattr(ex, "read_state", None)
     if not callable(read_state):
         return None
