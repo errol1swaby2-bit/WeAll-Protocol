@@ -4,8 +4,6 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from fastapi.routing import APIRoute
-
 from weall.api import routes_nodes
 from weall.api.app import create_app
 from weall.api.routes_public_parts.demo_seed import demo_seed_router_should_mount
@@ -28,11 +26,11 @@ def _mounted_route_rows() -> list[tuple[str, str, str]]:
     app = create_app(boot_runtime=False)
     rows: list[tuple[str, str, str]] = []
     for route in app.routes:
-        if not isinstance(route, APIRoute):
-            continue
-        path = str(route.path)
-        module = str(getattr(route.endpoint, "__module__", ""))
-        for method in sorted(str(m).upper() for m in route.methods or set()):
+        path = str(getattr(route, "path", "") or "")
+        methods = getattr(route, "methods", set()) or set()
+        endpoint = getattr(route, "endpoint", None)
+        module = str(getattr(endpoint, "__module__", ""))
+        for method in sorted(str(m).upper() for m in methods):
             if method in {"HEAD", "OPTIONS"}:
                 continue
             rows.append((method, path, module))
