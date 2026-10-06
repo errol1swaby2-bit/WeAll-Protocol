@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import time
 from pathlib import Path
 
 import pytest
@@ -40,7 +41,7 @@ def test_a03_f002_durable_queue_fsyncs_file_then_rename_then_parent(
         [
             {
                 "tx_id": "tx-a03",
-                "created_ms": 1,
+                "created_ms": int(time.time() * 1000),
                 "status": "pending",
                 "envelope": {"signer": "@alice", "nonce": 1},
             }
@@ -68,7 +69,7 @@ def test_a03_f002_file_fsync_failure_prevents_queue_publication(
 
     with pytest.raises(OSError, match="synthetic_file_fsync_failure"):
         tx_routes._write_tx_queue_unlocked(
-            [{"tx_id": "tx-fail", "created_ms": 1, "status": "pending"}]
+            [{"tx_id": "tx-fail", "created_ms": int(time.time() * 1000), "status": "pending"}]
         )
 
     assert not queue.exists()
@@ -98,7 +99,7 @@ def test_a03_f002_directory_fsync_failure_prevents_successful_durable_return(
 
     with pytest.raises(OSError, match="synthetic_directory_fsync_failure"):
         tx_routes._write_tx_queue_unlocked(
-            [{"tx_id": "tx-dir-fail", "created_ms": 1, "status": "pending"}]
+            [{"tx_id": "tx-dir-fail", "created_ms": int(time.time() * 1000), "status": "pending"}]
         )
 
     assert calls == 2
