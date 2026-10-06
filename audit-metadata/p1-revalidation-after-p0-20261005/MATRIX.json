@@ -55,8 +55,9 @@
       "id": "A01-F003",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "Generated V2 route inventory includes four unmounted duplicate endpoint implementations"
+      "status": "patched_and_proven",
+      "summary": "Generated V2 route inventory includes four unmounted duplicate endpoint implementations",
+      "evidence": "Dormant decorated node-discovery wrappers were removed from src/weall/api/routes_nodes.py, leaving that module helper-only and src/weall/api/routes_public_parts/nodes.py as the sole decorated authority for GET /v1/nodes, /known, /seeds, and /validators. The V2 route inventory now requires 159 implementation rows, 159 unique method/path keys, and zero duplicate implementation rows. Regression coverage proves each affected node route is declared exactly once by nodes_router and that routes_public mounts that router exactly once under /v1; the generated V2 inventory has zero duplicate implementation rows, and no generated node route points to the retired helper-only routes_nodes.py module. Existing node endpoint TestClient coverage proves the mounted routes execute. Closure run 37402369877 passed route compiler, mounted API, clean-checkout, dependent evidence, and web dependency gates before producing workflow-free candidate fb929491b83cee8315534cd5c18f05dfb975a6e0 / tree 78a8a3056f8c3b01a87007dbcaf8c843e528a174."
     },
     {
       "id": "A02-F002",
