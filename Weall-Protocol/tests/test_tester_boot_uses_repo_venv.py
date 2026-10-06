@@ -13,4 +13,4 @@ def test_tester_boot_requires_prepared_repo_virtualenv() -> None:
     assert "install requirements.lock plus the local package first" in script
     assert 'export VIRTUAL_ENV="${ROOT_DIR}/.venv"' in script
     assert 'export PATH="${ROOT_DIR}/.venv/bin:${PATH}"' in script
-    assert "fallback to ambient Python packages" in script
+    assert "Never fall back to ambient Python packages" in script
