@@ -213,8 +213,9 @@ jobs:
               "authority for GET /v1/nodes, /known, /seeds, and /validators. "
               "The V2 route inventory now requires 159 implementation rows, 159 "
               "unique method/path keys, and zero duplicate implementation rows. "
-              "Regression coverage proves each affected node route is assembled "
-              "exactly once in public_router, the generated V2 inventory has zero "
+              "Regression coverage proves each affected node route is declared "
+              "exactly once by nodes_router and that routes_public mounts that router "
+              "exactly once under /v1; the generated V2 inventory has zero "
               "duplicate implementation rows, and no generated node route points "
               "to the retired helper-only routes_nodes.py module. Existing node "
               "endpoint TestClient coverage proves the mounted routes execute. Closure run "
@@ -295,3 +296,5 @@ jobs:
 # rerun after runtime-neutral route enumeration and final 159 binding
 
 # rerun after assembled-public-router authority correction
+
+# rerun after declaration-plus-mount authority proof
