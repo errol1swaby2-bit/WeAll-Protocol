@@ -140,3 +140,5 @@ jobs:
 # retry after claim-freshness wording normalization
 
 # retry after correcting root historical-evidence restore path
+
+# retry after aligning one-command tester truth regression
