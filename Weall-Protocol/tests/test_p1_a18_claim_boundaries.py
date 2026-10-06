@@ -18,23 +18,36 @@ def _load_claims_module():
     return module
 
 
-def _write_matrix(path: Path, *, pending_index: int | None = None) -> None:
+def _write_matrix(
+    path: Path,
+    *,
+    pending_index: int | None = None,
+    status_override: tuple[int, str] | None = None,
+) -> None:
     findings = []
     for index in range(34):
         status = "pending_revalidation" if index == pending_index else "patched_and_proven"
+        if status_override is not None and index == status_override[0]:
+            status = status_override[1]
         findings.append(
             {
                 "id": f"A{index + 1:02d}-F001",
                 "severity": "MEDIUM",
-                "track": "P1-test",
+                "track": f"P1-{(index % 10) + 1:02d}",
                 "status": status,
                 "summary": f"synthetic finding {index + 1}",
             }
         )
-    pending = sum(row["status"] == "pending_revalidation" for row in findings)
+    open_statuses = {"pending_revalidation", "design_blocker", "open"}
+    pending = sum(row["status"] in open_statuses for row in findings)
     path.write_text(
         json.dumps(
             {
+                "schema": "weall.a01_a20.p1_closure_matrix.v1",
+                "source_audit": {
+                    "date": "2026-09-30",
+                    "medium_p1_count": 34,
+                },
                 "findings": findings,
                 "summary": {
                     "proven_dispositions": 34 - pending,
@@ -126,3 +139,42 @@ def test_a18_f003_unknown_finding_status_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(SystemExit, match="unrecognized status"):
         module._read_p1_audit_matrix(matrix)
+
+@pytest.mark.parametrize("open_status", ["design_blocker", "open"])
+def test_a18_f003_all_declared_open_statuses_remain_claim_blockers(
+    tmp_path: Path, open_status: str
+) -> None:
+    module = _load_claims_module()
+    matrix = tmp_path / "matrix.json"
+    _write_matrix(matrix, status_override=(5, open_status))
+
+    parsed = module._read_p1_audit_matrix(matrix)
+
+    assert parsed["open_finding_ids"] == ["A06-F001"]
+    assert parsed["open_track_ids"] == ["P1-06"]
+    assert parsed["proven_dispositions"] == 33
+
+
+def test_a18_f003_wrong_matrix_schema_fails_closed(tmp_path: Path) -> None:
+    module = _load_claims_module()
+    matrix = tmp_path / "matrix.json"
+    _write_matrix(matrix)
+    obj = json.loads(matrix.read_text(encoding="utf-8"))
+    obj["schema"] = "weall.not-the-p1-matrix.v1"
+    matrix.write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="schema must be"):
+        module._read_p1_audit_matrix(matrix)
+
+
+def test_a18_f003_invalid_track_fails_closed(tmp_path: Path) -> None:
+    module = _load_claims_module()
+    matrix = tmp_path / "matrix.json"
+    _write_matrix(matrix)
+    obj = json.loads(matrix.read_text(encoding="utf-8"))
+    obj["findings"][0]["track"] = "P1-99"
+    matrix.write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="invalid track"):
+        module._read_p1_audit_matrix(matrix)
+
