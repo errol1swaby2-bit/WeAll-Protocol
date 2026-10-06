@@ -142,3 +142,5 @@ jobs:
 # retry after correcting root historical-evidence restore path
 
 # retry after aligning one-command tester truth regression
+
+# retry after tester virtualenv prerequisite regression alignment
