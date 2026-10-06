@@ -20,6 +20,7 @@ PQ_MLKEM_V1 = "pq-mlkem-v1"
 
 SIGNING_PURPOSES = {"signing", "backup_signature"}
 CLOSED_TESTNET_MODES = {
+    "testnet",
     "closed-testnet",
     "closed_testnet",
     "controlled-testnet",
