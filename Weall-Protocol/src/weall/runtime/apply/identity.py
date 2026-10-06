@@ -1038,13 +1038,17 @@ def _all_account_pubkeys(account: Json) -> set[str]:
             if pubkey:
                 out.add(pubkey)
     for field in ("pubkey",):
-        pubkey = _as_str(account.get(field)).strip()
+        pubkey = canonical_account_key_pubkey(_as_str(account.get(field)).strip())
         if pubkey:
             out.add(pubkey)
     for field in ("pubkeys", "active_keys"):
         values = account.get(field)
         if isinstance(values, list):
-            out.update(_as_str(value).strip() for value in values if _as_str(value).strip())
+            out.update(
+                canonical_account_key_pubkey(_as_str(value).strip())
+                for value in values
+                if _as_str(value).strip()
+            )
     return out
 
 
@@ -1052,14 +1056,14 @@ def _recovery_key_history(recovery: Json) -> set[str]:
     out: set[str] = set()
     current = recovery.get("offline_key")
     if isinstance(current, dict):
-        pubkey = _as_str(current.get("pubkey")).strip()
+        pubkey = canonical_account_key_pubkey(_as_str(current.get("pubkey")).strip())
         if pubkey:
             out.add(pubkey)
     prior = recovery.get("prior_offline_keys")
     if isinstance(prior, list):
         for record in prior:
             if isinstance(record, dict):
-                pubkey = _as_str(record.get("pubkey")).strip()
+                pubkey = canonical_account_key_pubkey(_as_str(record.get("pubkey")).strip())
                 if pubkey:
                     out.add(pubkey)
     return out
@@ -1074,10 +1078,11 @@ def _validate_independent_recovery_key(
     require_fresh: bool = False,
 ) -> Json:
     record = _key_record_from_payload_or_raise(state, payload, key_type="recovery")
-    pubkey = _as_str(account_key_pubkey(record)).strip()
+    pubkey = canonical_account_key_pubkey(_as_str(account_key_pubkey(record)).strip())
     if not pubkey:
         raise ApplyError("invalid_tx", "missing_recovery_pubkey", {})
-    if proposed_active_pubkey and pubkey == _as_str(proposed_active_pubkey).strip():
+    proposed_canonical = canonical_account_key_pubkey(_as_str(proposed_active_pubkey).strip())
+    if proposed_canonical and pubkey == proposed_canonical:
         raise ApplyError("invalid_tx", "recovery_key_must_be_independent", {})
     if pubkey in _all_account_pubkeys(account):
         raise ApplyError("invalid_tx", "recovery_key_must_be_independent", {})
@@ -1088,7 +1093,7 @@ def _validate_independent_recovery_key(
 
 
 def _require_fresh_recovered_authority(account: Json, pubkey: str) -> None:
-    candidate = _as_str(pubkey).strip()
+    candidate = canonical_account_key_pubkey(_as_str(pubkey).strip())
     if not candidate:
         raise ApplyError("invalid_tx", "missing_new_pubkey", {})
     if candidate in _all_account_pubkeys(account) or candidate in _recovery_key_history(
@@ -1254,6 +1259,7 @@ def _prior_recovery_reviewer_ids(recovery: Json) -> set[str]:
 def _revoke_account_authority(
     account: Json, *, height: int, reason: str
 ) -> tuple[list[str], list[str], int]:
+    _canonicalize_account_key_aliases(account)
     keys = account.get("keys")
     if not isinstance(keys, dict):
         keys = {}
