@@ -12,7 +12,10 @@ from weall.crypto.account_keys import (
     has_canonical_mldsa_authority,
     validate_account_key_record,
 )
-from weall.crypto.signature_profiles import default_signature_profile_for_mode
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    default_signature_profile_for_mode,
+)
 
 from ..account_recovery_policy import (
     RECOVERY_FAILED_WINDOW_BLOCKS,
@@ -287,7 +290,7 @@ def _canonicalize_account_key_aliases(account: Json) -> None:
         if not isinstance(record, dict):
             continue
         pubkey = account_key_pubkey(record)
-        profile = _as_str(record.get("sig_profile")).strip()
+        profile = _as_str(record.get("sig_profile") or PQ_MLDSA_V1).strip()
         if not pubkey or not has_canonical_mldsa_authority(pubkey, profile=profile):
             canonical[old_id] = dict(record)
             continue
