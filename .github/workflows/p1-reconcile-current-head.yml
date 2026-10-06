@@ -76,6 +76,7 @@ jobs:
             python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
             python scripts/gen_public_beta_blocker_report_v1_5.py
             python scripts/gen_release_evidence_manifest_v1_5.py
+            python scripts/gen_api_contract_map.py
             python scripts/gen_current_verified_claims.py
           done
 
@@ -177,3 +178,5 @@ jobs:
       - name: Push verified workflow-free candidate
         run: |
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# retry after adding deterministic API contract-map regeneration
