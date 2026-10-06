@@ -12,7 +12,7 @@ def _tc_json(*, with_proofs: bool = False) -> dict[str, Any]:
         "t": "TC",
         "chain_id": "c",
         "view": 7,
-        "high_qc_id": "qc-a",
+        "high_qc_id": "genesis",
         "signer_count": 3,
         "signers": list(signers),
         "validator_epoch": 4,
@@ -24,7 +24,7 @@ def _tc_json(*, with_proofs: bool = False) -> dict[str, Any]:
                 "t": "TIMEOUT",
                 "chain_id": "c",
                 "view": 7,
-                "high_qc_id": "qc-a",
+                "high_qc_id": "genesis",
                 "signer": signer,
                 "pubkey": f"pk-{signer}",
                 "sig": f"sig-{signer}",
@@ -85,7 +85,7 @@ def test_formed_timeout_certificate_exports_only_after_verified() -> None:
     bft.last_timeout_certificate = TimeoutCertificate(
         chain_id="c",
         view=1,
-        high_qc_id="qc-a",
+        high_qc_id="genesis",
         signer_count=3,
         signers=("v1", "v2", "v3"),
     )
