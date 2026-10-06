@@ -293,3 +293,5 @@ jobs:
 # rerun after rebinding V2 expected route cardinality
 
 # rerun after runtime-neutral route enumeration and final 159 binding
+
+# rerun after assembled-public-router authority correction
