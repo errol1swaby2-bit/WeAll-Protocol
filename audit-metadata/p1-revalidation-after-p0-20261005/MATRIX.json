@@ -122,8 +122,9 @@
       "id": "A10-F003",
       "severity": "MEDIUM",
       "track": "P1-07",
-      "status": "pending_revalidation",
-      "summary": "Reward scheduler reallocates empty-bucket and split remainder value to the protocol treasury"
+      "status": "scope_closed_and_proven",
+      "summary": "Reward scheduler reallocates empty-bucket and split remainder value to the protocol treasury",
+      "evidence": "A10-F003 launch-scope closure is bound to reconciliation run 37397850376 and workflow-free candidate edfbf5aa5b8f2786de0858fdd57351c5a9618cb9 / tree fe86ddc7d14b1a0f494c7a16e23f68bd4c1f0db8. The known-legacy reward allocator is consensus-unreachable when replicated chain_id is weall-prod or weall-testnet-v1, independent of WEALL_MODE/operator environment; local/noncanonical fixtures retain the compatibility scheduler. The run passed launch-chain scope regressions, legacy epoch-scheduler compatibility, valid signed A15 registration-work admission under the explicitly allowed public-testnet ML-DSA posture while preserving production scarcity parameters, BLOCK_REWARD_MINT/BLOCK_REWARD_DISTRIBUTE semantic refresh, two deterministic regeneration rounds, clean-checkout V2 verification, B528/B534/B567/public-readiness/claim freshness, and workflow-free push. This disposition does not claim the final Candidate 3.11 accepted-work/public-goods/reserve/rotating-remainder allocation is implemented; live reward scheduling on launch identities remains closed until that contract is implemented and reviewed."
     },
     {
       "id": "A10-F004",
@@ -289,7 +290,7 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 12,
-    "pending_revalidation": 22
+    "proven_dispositions": 13,
+    "pending_revalidation": 21
   }
 }
