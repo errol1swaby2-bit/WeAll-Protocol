@@ -15,6 +15,12 @@ BLOCKERS = ROOT / "generated" / "public_beta_blocker_report_v1_5.json"
 RELEASE = ROOT / "generated" / "release_evidence_manifest_v1_5.json"
 PERFORMANCE = ROOT / "evidence" / "performance" / "current_performance_evidence.json"
 AUDIT_STATUS = ROOT.parent / "docs" / "audit" / "WeAll-A01-A20-P0-Closure-Status-20260930.md"
+P1_MATRIX = (
+    ROOT.parent
+    / "audit-metadata"
+    / "p1-revalidation-after-p0-20261005"
+    / "MATRIX.json"
+)
 
 JSON_OUT = ROOT / "generated" / "current_verified_claims.json"
 MD_OUT = ROOT / "docs" / "CURRENT_VERIFIED_CLAIMS.md"
@@ -152,6 +158,58 @@ def _read_p0_audit_status(path: Path) -> dict[str, Any]:
         "closed_track_ids": [
             track_id for track_id in AUDIT_TRACK_IDS if track_id not in open_track_ids
         ],
+    }
+
+
+P1_ALLOWED_STATUSES = {
+    "pending_revalidation",
+    "patched_and_proven",
+    "scope_closed_and_proven",
+    "already_closed_and_proven",
+}
+
+
+def _read_p1_audit_matrix(path: Path) -> dict[str, Any]:
+    obj = _read_json(path)
+    findings = obj.get("findings")
+    if not isinstance(findings, list) or len(findings) != 34:
+        raise SystemExit("P1 audit matrix must contain exactly 34 MEDIUM findings")
+
+    by_id: dict[str, dict[str, Any]] = {}
+    open_finding_ids: list[str] = []
+    for index, row in enumerate(findings):
+        if not isinstance(row, dict):
+            raise SystemExit(f"P1 audit matrix findings[{index}] must be an object")
+        finding_id = str(row.get("id") or "").strip()
+        if not finding_id.startswith("A") or "-F" not in finding_id or finding_id in by_id:
+            raise SystemExit(f"P1 audit matrix finding id invalid or duplicate: {finding_id!r}")
+        if row.get("severity") != "MEDIUM":
+            raise SystemExit(f"P1 audit matrix {finding_id} must retain MEDIUM severity")
+        status = str(row.get("status") or "").strip()
+        if status not in P1_ALLOWED_STATUSES:
+            raise SystemExit(f"P1 audit matrix {finding_id} has unrecognized status: {status!r}")
+        by_id[finding_id] = row
+        if status == "pending_revalidation":
+            open_finding_ids.append(finding_id)
+
+    summary = obj.get("summary")
+    if not isinstance(summary, dict):
+        raise SystemExit("P1 audit matrix missing summary object")
+    proven = len(findings) - len(open_finding_ids)
+    if summary.get("proven_dispositions") != proven:
+        raise SystemExit(
+            "P1 audit matrix proven_dispositions disagrees with finding statuses"
+        )
+    if summary.get("pending_revalidation") != len(open_finding_ids):
+        raise SystemExit(
+            "P1 audit matrix pending_revalidation disagrees with finding statuses"
+        )
+
+    return {
+        "total_findings": len(findings),
+        "proven_dispositions": proven,
+        "open_finding_ids": sorted(open_finding_ids),
+        "closed_finding_ids": sorted(set(by_id) - set(open_finding_ids)),
     }
 
 
@@ -366,6 +424,7 @@ def build() -> dict[str, Any]:
     release = _read_json(RELEASE)
     performance = _read_json(PERFORMANCE)
     audit_status = _read_p0_audit_status(AUDIT_STATUS)
+    p1_audit = _read_p1_audit_matrix(P1_MATRIX)
     performance_summary = _validate_performance_registry(performance)
 
     tx_types = tx.get("tx_types")
@@ -401,6 +460,16 @@ def build() -> dict[str, Any]:
             raise SystemExit(
                 "open P0 audit tracks block stronger release claims: "
                 f"open={open_p0_track_ids}, enabled_boundaries={enabled_boundaries}, "
+                f"public_beta_ready={public_beta_ready}, mainnet_ready={mainnet_ready}"
+            )
+
+    open_p1_finding_ids = p1_audit["open_finding_ids"]
+    if open_p1_finding_ids:
+        enabled_boundaries = sorted(key for key, value in boundaries.items() if value)
+        if public_beta_ready or mainnet_ready or enabled_boundaries:
+            raise SystemExit(
+                "open same-tree P1/MEDIUM findings block stronger release claims: "
+                f"open={open_p1_finding_ids}, enabled_boundaries={enabled_boundaries}, "
                 f"public_beta_ready={public_beta_ready}, mainnet_ready={mainnet_ready}"
             )
 
@@ -476,6 +545,36 @@ def build() -> dict[str, Any]:
                 "P0 is the audit program's mapping of every A01–A20 HIGH finding. "
                 "The tracked closure ledger is now a required claim-generation input; "
                 "an unresolved P0 track therefore cannot coexist with an enabled release boundary."
+            ),
+        )
+    )
+
+    claims.append(
+        _claim(
+            "AUDIT-P1-001",
+            "audit_gate",
+            (
+                "Open same-tree A01–A20 P1/MEDIUM findings require qualification and block stronger release claims."
+                if open_p1_finding_ids
+                else "The same-tree A01–A20 P1/MEDIUM closure matrix has no open findings."
+            ),
+            (
+                "OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS"
+                if open_p1_finding_ids
+                else "PROVEN_GENERATED_CURRENT"
+            ),
+            ["../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json"],
+            value={
+                "total_findings": p1_audit["total_findings"],
+                "proven_dispositions": p1_audit["proven_dispositions"],
+                "open_medium_finding_ids": list(open_p1_finding_ids),
+                "closed_finding_ids": list(p1_audit["closed_finding_ids"]),
+                "stronger_release_claims_blocked": bool(open_p1_finding_ids),
+            },
+            notes=(
+                "The active P1 matrix is a required same-tree claim-generation input. "
+                "A finding cannot be hidden from current claim classification merely by "
+                "leaving it in an audit artifact outside the generator."
             ),
         )
     )
@@ -601,6 +700,9 @@ def build() -> dict[str, Any]:
     generation_inputs["../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md"] = _sha256(
         AUDIT_STATUS
     )
+    generation_inputs[
+        "../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json"
+    ] = _sha256(P1_MATRIX)
 
     return {
         "schema": SCHEMA,
@@ -649,6 +751,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
     tx = by_id["TX-CANON-001"]["value"]
     external = by_id["EXTERNAL-VALIDATION-001"]["value"]
     audit_gate = by_id["AUDIT-P0-001"]["value"]
+    p1_gate = by_id["AUDIT-P1-001"]["value"]
 
     lines += [
         "",
@@ -659,6 +762,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "- Mainnet readiness: **not claimed**.",
         f"- Remaining external-evidence blocker IDs: `{', '.join(external['remaining_external_evidence_required_ids'])}`.",
         f"- Open A01–A20 P0 audit tracks: `{', '.join(audit_gate['open_track_ids']) if audit_gate['open_track_ids'] else 'none'}`.",
+        f"- Open A01–A20 P1/MEDIUM findings: `{', '.join(p1_gate['open_medium_finding_ids']) if p1_gate['open_medium_finding_ids'] else 'none'}`.",
         "",
         "V2 structural counts are intentionally not copied here. Their canonical source is",
         "`generated/v2/spec_compilation_manifest.json`, verified independently by",
