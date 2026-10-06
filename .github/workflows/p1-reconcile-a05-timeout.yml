@@ -1,0 +1,177 @@
+name: P1 Reconcile A05 Timeout QC Closure
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-reconcile-a05-timeout.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r Weall-Protocol/requirements-dev.lock
+          pip install -e Weall-Protocol --no-deps
+          cd web
+          npm ci
+
+      - name: Reprove A05-F003 adversarial timeout recovery
+        working-directory: Weall-Protocol
+        run: |
+          ruff format --check \
+            src/weall/runtime/bft_hotstuff.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            tests/test_p1_a05_timeout_qc_ranking.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_pb001bw_pending_timeout_restart_revalidation.py
+          ruff check \
+            src/weall/runtime/bft_hotstuff.py \
+            src/weall/runtime/bft_runtime_adapter.py \
+            tests/test_p1_a05_timeout_qc_ranking.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_pb001bw_pending_timeout_restart_revalidation.py
+          pytest -q \
+            tests/test_p1_a05_timeout_qc_ranking.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_bft_timeout_recovery.py \
+            tests/test_pb001bw_pending_timeout_restart_revalidation.py \
+            tests/test_bft_liveness_timeouts_e2e.py
+
+      - name: Record A05-F003 closure disposition
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          rows = data.get("findings", [])
+          found = False
+          for row in rows:
+              if row.get("id") != "A05-F003":
+                  continue
+              found = True
+              row["status"] = "patched_and_proven"
+              row["evidence"] = (
+                  "Timeout messages now sign and carry authenticated high_qc_view plus the "
+                  "referenced QC object; accept/restart revalidation independently verifies "
+                  "QC signatures, epoch/set binding, block identity, and claimed view before "
+                  "ranking by actual QC view with deterministic QC-ID tie-break. "
+                  "A05 adversarial evidence covers stale-reference plurality losing to a "
+                  "higher honest QC, same-view conflicting-QC deterministic selection, "
+                  "signed forged-rank rejection, restart revalidation, four-node reordered "
+                  "partition/recovery convergence, embedded verified-QC recovery without "
+                  "trusting a local cache, old-generation restart filtering, and delayed "
+                  "timeout replay. Formatting/targeted proof run: 37536454048. This row is "
+                  "pushed only after the same workflow-free candidate passes regenerated "
+                  "evidence, full pytest, and Reviewer Readiness."
+              )
+          if not found:
+              raise SystemExit("A05-F003 matrix row missing")
+          data.setdefault("summary", {})
+          data["summary"]["proven_dispositions"] = sum(
+              1 for row in rows if row.get("status") != "pending_revalidation"
+          )
+          data["summary"]["pending_revalidation"] = sum(
+              1 for row in rows if row.get("status") == "pending_revalidation"
+          )
+          path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Remove temporary workflow from candidate tree
+        run: |
+          rm -f .github/workflows/p1-reconcile-a05-timeout.yml
+
+      - name: Regenerate exact-tree evidence twice
+        working-directory: Weall-Protocol
+        run: |
+          for round in 1 2; do
+            echo "regeneration round ${round}"
+            python scripts/gen_failure_code_registry_v1_5.py
+            if [[ -f scripts/gen_api_response_vectors_v1_5.py ]]; then
+              python scripts/gen_api_response_vectors_v1_5.py
+            fi
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+            python scripts/gen_b528_b532_completion_proof_v1_5.py
+            python scripts/gen_b534_b538_completion_proof_v1_5.py
+            python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+            python scripts/gen_public_beta_blocker_report_v1_5.py
+            python scripts/gen_release_evidence_manifest_v1_5.py
+            python scripts/gen_current_verified_claims.py
+          done
+
+      - name: Commit workflow-free A05 candidate locally
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No A05 reconciliation diff produced'; exit 1; }
+          git diff --check --cached
+          git commit -m 'audit: close A05 timeout QC ranking'
+          echo "candidate_sha=$(git rev-parse HEAD)"
+          echo "candidate_tree=$(git rev-parse HEAD^{tree})"
+          test -z "$(git status --porcelain)"
+
+      - name: Verify generated truth on committed candidate
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          python -m tooling.canon_lint
+
+      - name: Full backend regression
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q
+
+      - name: Verify clean release tree from exact candidate archive
+        run: |
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          git archive HEAD | tar -x -C "$tmp"
+          bash "$tmp/Weall-Protocol/scripts/verify_release_tree.sh"
+
+      - name: Reviewer readiness on exact local candidate
+        working-directory: Weall-Protocol
+        env:
+          WEALL_RELEASE_TREE_ALREADY_VERIFIED: "1"
+        run: |
+          bash scripts/reviewer_production_readiness_gate.sh
+
+      - name: Push verified workflow-free A05 candidate
+        run: |
+          set -Eeuo pipefail
+          test ! -e .github/workflows/p1-reconcile-a05-timeout.yml
+          test -z "$(git status --porcelain)"
+          git push origin HEAD:p1-revalidation-after-p0-20261005
