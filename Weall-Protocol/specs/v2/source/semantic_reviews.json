@@ -3966,9 +3966,9 @@
       "disposition": "accepted_current_semantic_contract",
       "independent_review": false,
       "review_digest": "484bc775ac802ed7a30c1673427c95a65ccc65fc9903b0807fb513ea03f5c708",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+      "reviewed_at": "2026-10-06T01:11:45Z",
+      "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)",
       "stable_id": "TX-0701",
       "tx_type": "BLOCK_REWARD_MINT"
     },
@@ -3978,8 +3978,8 @@
       "independent_review": false,
       "review_digest": "c8d884c2bdc7e39ef6217d0394bfc21d4a7c375a7ffe9f4b6727c20d1ea653c4",
       "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-      "reviewed_at": "2026-09-27T19:18:42Z",
-      "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred",
+      "reviewed_at": "2026-10-06T01:11:45Z",
+      "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)",
       "stable_id": "TX-0702",
       "tx_type": "BLOCK_REWARD_DISTRIBUTE"
     },

@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "5bc12b00fa1ab432b098f09421273450afd44108e4c7d4c45c3ea7baea6ea3e6"
+    "source_tree_digest": "882d2c046cb396365868894c3ef68968a79c6c87a9e849babdbef1fec016ca47"
   },
   "rows": [
     {
@@ -15071,9 +15071,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "484bc775ac802ed7a30c1673427c95a65ccc65fc9903b0807fb513ea03f5c708",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T01:11:45Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0701",
@@ -15128,6 +15128,7 @@
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_p1_a10_reward_scheduler_scope.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
@@ -15221,8 +15222,8 @@
         "independent_review": false,
         "review_digest": "c8d884c2bdc7e39ef6217d0394bfc21d4a7c375a7ffe9f4b6727c20d1ea653c4",
         "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T19:18:42Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-10-06T01:11:45Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0702",
@@ -15274,6 +15275,7 @@
       "tests": [
         "tests/test_bft_reward_proposer_binding.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_p1_a10_reward_scheduler_scope.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
