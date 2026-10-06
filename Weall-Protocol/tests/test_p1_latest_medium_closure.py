@@ -204,8 +204,8 @@ def test_a11_f002_zero_transfer_fee_remains_fee_free() -> None:
 
     result = apply_economics(state, _transfer())
 
-    assert result["fee_amount"] == 0
-    assert result["fee_to"] == ""
+    assert "fee_amount" not in result
+    assert "fee_to" not in result
     assert state["accounts"]["alice"]["balance"] == 80
     assert state["accounts"]["bob"]["balance"] == 20
     assert state["accounts"]["@fees"]["balance"] == 0
