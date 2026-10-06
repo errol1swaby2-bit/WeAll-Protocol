@@ -290,7 +290,7 @@
       ],
       "path": "configs/public_testnet_seed_registry.json",
       "primary_mechanism_id": "M-001",
-      "sha256": "1a99ffb65b071531339afbf7f85de50bc6faab41bf48444348a66070d4955940",
+      "sha256": "3f083e9d8e9e60b8362e9ca9404487ee9e63c24e3ab5d609f0d32014f3c7b384",
       "source_id": "SRC-7CF79ED639C70F17"
     },
     {
@@ -316,7 +316,7 @@
       ],
       "path": "configs/public_testnet_trust_roots.json",
       "primary_mechanism_id": "M-001",
-      "sha256": "30e2cd1f58619bce67e0dd79c41cac48856980570ccbf92044a4afdb4185259d",
+      "sha256": "b307ab3ee4459f91b224d91096c6def54b0c82cce2ce35ce22013e12a5280294",
       "source_id": "SRC-FAE2A672EAD663F7"
     },
     {
