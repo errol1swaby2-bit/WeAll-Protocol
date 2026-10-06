@@ -144,3 +144,5 @@ jobs:
 # retry after aligning one-command tester truth regression
 
 # retry after tester virtualenv prerequisite regression alignment
+
+# retry after correcting ambient-Python assertion literal
