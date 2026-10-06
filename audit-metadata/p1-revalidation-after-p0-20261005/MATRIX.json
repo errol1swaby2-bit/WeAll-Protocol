@@ -195,8 +195,9 @@
       "id": "A15-F004",
       "severity": "MEDIUM",
       "track": "P1-09",
-      "status": "pending_revalidation",
-      "summary": "Health/readiness endpoints are rate-limit-exempt but load and parse the entire ledger snapshot"
+      "status": "patched_and_proven",
+      "summary": "Health/readiness endpoints are rate-limit-exempt but load and parse the entire ledger snapshot",
+      "evidence": "Exact-head A01-A20 P1 Revalidation run 37532409647 passed tests/test_p1_a15_health_bounded_telemetry.py. Health/readiness telemetry uses the constant-size durable head query instead of loading/parsing the full ledger state; 500 repeated probes performed zero full-state reads, health does not wait on the BFT/checkpoint branch lock, and production compose/runbook evidence keeps health on the private operator boundary."
     },
     {
       "id": "A15-F005",
@@ -252,8 +253,9 @@
       "id": "A18-F004",
       "severity": "MEDIUM",
       "track": "P1-10",
-      "status": "pending_revalidation",
-      "summary": "Verified-human tier wording omits the critical uniqueness/Sybil limitation at the point of claim"
+      "status": "already_closed_and_proven",
+      "summary": "Verified-human tier wording omits the critical uniqueness/Sybil limitation at the point of claim",
+      "evidence": "Exact-head A01-A20 P1 Revalidation run 37532409647 passed tests/test_p1_a18_claim_boundaries.py. The README PoH checkpoint colocates Tier 1/2 review-status wording with scope_closed_pending_uniqueness_entropy and the explicit statement that these tiers are not proof of global one-human uniqueness; the checkpoint also rejects reintroduction of 'verified human' shorthand."
     },
     {
       "id": "A19-F001",
@@ -293,7 +295,7 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 16,
-    "pending_revalidation": 18
+    "proven_dispositions": 18,
+    "pending_revalidation": 16
   }
 }
