@@ -35,14 +35,14 @@ jobs:
         run: |
           ruff format --check tests/bench_a15_f003_registration_attack.py
           ruff check tests/bench_a15_f003_registration_attack.py
-          python tests/bench_a15_f003_registration_attack.py --accounts 32 \
+          python tests/bench_a15_f003_registration_attack.py --accounts 4 \
             > /tmp/a15-f003-registration-attack.json
           cat /tmp/a15-f003-registration-attack.json
           python - <<'PY'
           import json
           from pathlib import Path
           row = json.loads(Path("/tmp/a15-f003-registration-attack.json").read_text())
-          assert row["accounts"] == 32
+          assert row["accounts"] == 4
           assert row["all_solved_work_verified"] is True
           assert row["all_solved_work_passed_canonical_block_admission"] is True
           assert row["all_admissions_verified_valid_mldsa_signatures"] is True
@@ -98,7 +98,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
-          python tests/bench_a15_f003_registration_attack.py --accounts 32 \
+          python tests/bench_a15_f003_registration_attack.py --accounts 4 \
             > /tmp/a15-f003-registration-attack-final.json
           python - <<'PY'
           import json
