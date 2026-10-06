@@ -371,6 +371,12 @@ def state_snapshot(request: Request) -> Json:
             },
         )
 
+    # A15-F005: the full snapshot remains a dev/test convenience, but in
+    # production it is an operator-scoped diagnostic. Authenticate before any
+    # O(state) read/redaction/serialization work so an anonymous tiny GET cannot
+    # amplify into a full-ledger CPU/memory/bandwidth operation.
+    _require_state_raw_read_operator(request)
+
     ex = _executor(request)
     st = ex.read_state()
     if not isinstance(st, dict):
