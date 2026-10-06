@@ -992,18 +992,21 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
 
     existing = transfers_by_id.get(transfer_id)
     if isinstance(existing, dict):
-        return {
+        receipt = {
             "applied": "BALANCE_TRANSFER",
             "from": existing.get("from", frm),
             "to": existing.get("to", to),
             "amount": _as_int(existing.get("amount"), 0),
-            "fee_amount": _as_int(existing.get("fee_amount"), 0),
-            "fee_to": _as_str(existing.get("fee_to")),
             "transfer_id": transfer_id,
             "purpose": _as_str(existing.get("purpose")),
             "content_id": _as_str(existing.get("content_id")),
             "deduped": True,
         }
+        existing_fee = max(0, _as_int(existing.get("fee_amount"), 0))
+        if existing_fee > 0:
+            receipt["fee_amount"] = existing_fee
+            receipt["fee_to"] = _as_str(existing.get("fee_to"))
+        return receipt
 
     fee_policy = econ.get("fee_policy")
     if not isinstance(fee_policy, dict):
@@ -1114,9 +1117,10 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         "from": frm,
         "to": to,
         "amount": amt,
-        "fee_amount": int(transfer_fee),
-        "fee_to": fee_to,
     }
+    if transfer_fee > 0:
+        base_receipt["fee_amount"] = int(transfer_fee)
+        base_receipt["fee_to"] = fee_to
 
     extended_payload = any(
         payload.get(k)
