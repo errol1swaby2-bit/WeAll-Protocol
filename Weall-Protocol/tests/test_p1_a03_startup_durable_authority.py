@@ -40,8 +40,7 @@ def _commit_empty_block(ex: WeAllExecutor, *, ts_ms: int) -> None:
 def _ledger_row(ex: WeAllExecutor) -> tuple[int, str, str, int]:
     with ex._db.connection() as con:
         row = con.execute(
-            "SELECT height, block_id, state_json, updated_ts_ms "
-            "FROM ledger_state WHERE id=1"
+            "SELECT height, block_id, state_json, updated_ts_ms FROM ledger_state WHERE id=1"
         ).fetchone()
     assert row is not None
     return (
@@ -114,9 +113,7 @@ def test_a03_f001_snapshot_ahead_of_block_history_fails_closed(tmp_path: Path) -
     assert _ledger_row(ex)[0] == 2
 
     with ex._db.write_tx() as con:
-        block = con.execute(
-            "SELECT block_id FROM blocks WHERE height=2"
-        ).fetchone()
+        block = con.execute("SELECT block_id FROM blocks WHERE height=2").fetchone()
         assert block is not None
         block_id = str(block["block_id"])
         con.execute("DELETE FROM block_hash_index WHERE block_id=?", (block_id,))
