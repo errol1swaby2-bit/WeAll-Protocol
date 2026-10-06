@@ -60,6 +60,7 @@ jobs:
         run: |
           for round in 1 2; do
             echo "regeneration round $round"
+            python scripts/gen_api_contract_map.py
             python scripts/gen_failure_code_registry_v1_5.py
             if [[ -f scripts/gen_api_response_vectors_v1_5.py ]]; then
               python scripts/gen_api_response_vectors_v1_5.py
@@ -116,3 +117,5 @@ jobs:
           test ! -e .github/workflows/p1-reconcile-a15-benchmark.yml
           test -z "$(git status --porcelain)"
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# retry with API contract map regeneration included
