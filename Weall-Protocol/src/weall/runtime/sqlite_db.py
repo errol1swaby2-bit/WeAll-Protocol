@@ -862,6 +862,20 @@ class SqliteLedgerStore:
                 raise RuntimeError("ledger_state missing")
             return strict_json_loads(row["state_json"])
 
+    def read_head(self) -> Json:
+        """Read constant-size durable head telemetry without parsing state_json."""
+        with self.db.connection() as con:
+            row = con.execute(
+                "SELECT height, block_id, updated_ts_ms FROM ledger_state WHERE id=1;"
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("ledger_state missing")
+            return {
+                "height": int(row["height"] or 0),
+                "block_id": str(row["block_id"] or ""),
+                "updated_ts_ms": int(row["updated_ts_ms"] or 0),
+            }
+
     def write(self, state: Json) -> None:
         if not isinstance(state, dict):
             raise TypeError("ledger state must be a dict")
