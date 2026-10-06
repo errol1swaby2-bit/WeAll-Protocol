@@ -187,8 +187,9 @@
       "id": "A14-F001",
       "severity": "MEDIUM",
       "track": "P1-03",
-      "status": "pending_revalidation",
-      "summary": "An older persisted read can overwrite a newer committed in-memory canonical state"
+      "status": "patched_and_proven",
+      "summary": "An older persisted read can overwrite a newer committed in-memory canonical state",
+      "evidence": "A14-F001 branch-linearized publication reconciliation run 37526882786 passed the forced persisted-read/real block-commit N→N+1 interleaving, same-height wrong-tip + validator-generation publication ordering, existing BFT stale-persistence merge regression, checkpoint signing/canonical checkpoint atomicity, and mempool/checkpoint race tests. read_state now holds the canonical branch RLock across persisted read and self.state publication. Source-bound V2/release evidence regenerated twice from the workflow-free tree and clean-checkout/current-claim verification passed. Exact candidate: 3d872a5caf26d73cd88fae46751856e67d9fd826 / tree ad2101add49b9ccb249664abf7d3fb4767a022ee."
     },
     {
       "id": "A15-F004",
@@ -292,7 +293,7 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 15,
-    "pending_revalidation": 19
+    "proven_dispositions": 16,
+    "pending_revalidation": 18
   }
 }
