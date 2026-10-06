@@ -1,0 +1,149 @@
+name: P1 Reconcile Current Head
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-reconcile-current-head.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Patch vulnerable web lock entry without widening dependency intent
+        working-directory: web
+        run: |
+          set -Eeuo pipefail
+          cp package.json /tmp/weall-package-json.before
+          npm audit fix --package-lock-only
+          cmp -s package.json /tmp/weall-package-json.before
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+          const rec = lock.packages?.["node_modules/source-map-js"];
+          if (!rec || rec.version !== "1.2.2") {
+            throw new Error("source-map-js lock entry is not exactly 1.2.2");
+          }
+          NODE
+          npm ci
+          npm run dependency-audit
+          npm run typecheck
+          npm run build
+
+      - name: Prove current P1/A15 boundaries before evidence regeneration
+        working-directory: Weall-Protocol
+        run: |
+          ruff format --check \
+            src/weall/runtime/system_tx_engine.py \
+            tests/test_p1_a10_reward_scheduler_scope.py \
+            tests/bench_a15_f003_registration_attack.py \
+            tests/test_crypto_signature_profiles.py
+          ruff check \
+            src/weall/runtime/system_tx_engine.py \
+            tests/test_p1_a10_reward_scheduler_scope.py \
+            tests/bench_a15_f003_registration_attack.py \
+            tests/test_crypto_signature_profiles.py
+          python -m tooling.canon_lint
+          pytest -q \
+            tests/test_p1_a10_reward_scheduler_scope.py \
+            tests/test_crypto_signature_profiles.py \
+            tests/prod/test_public_testnet_crypto_profile_gate.py
+          python tests/bench_a15_f003_registration_attack.py --accounts 4 \
+            > /tmp/a15-registration-attack.json
+          cat /tmp/a15-registration-attack.json
+
+      - name: Remove temporary reconciliation workflow
+        run: |
+          rm -f .github/workflows/p1-reconcile-current-head.yml
+
+      - name: Regenerate V2 and dependent evidence twice
+        working-directory: Weall-Protocol
+        run: |
+          for round in 1 2; do
+            echo "regeneration round $round"
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+            python scripts/gen_failure_code_registry_v1_5.py
+            if [[ -f scripts/gen_api_response_vectors_v1_5.py ]]; then
+              python scripts/gen_api_response_vectors_v1_5.py
+            fi
+            python scripts/gen_b528_b532_completion_proof_v1_5.py
+            python scripts/gen_b534_b538_completion_proof_v1_5.py
+            python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+            python scripts/gen_public_beta_blocker_report_v1_5.py
+            python scripts/gen_release_evidence_manifest_v1_5.py
+            python scripts/gen_current_verified_claims.py
+          done
+
+      - name: Commit workflow-free reconciled candidate locally
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git diff --cached -- web/package.json
+          test -z "$(git diff --cached --name-only -- web/package.json)"
+          git diff --cached --quiet && { echo 'No reconciliation diff produced'; exit 1; }
+          git commit -m 'audit: reconcile P1 evidence and web dependency'
+          echo "candidate_sha=$(git rev-parse HEAD)"
+          echo "candidate_tree=$(git rev-parse HEAD^{tree})"
+          test -z "$(git status --porcelain)"
+
+      - name: Verify committed candidate
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          pytest -q \
+            tests/test_p1_a10_reward_scheduler_scope.py \
+            tests/test_crypto_signature_profiles.py \
+            tests/prod/test_public_testnet_crypto_profile_gate.py
+          test -z "$(git status --porcelain)"
+
+      - name: Verify web from committed lock
+        working-directory: web
+        run: |
+          npm ci
+          npm run dependency-audit
+          npm run typecheck
+          npm run build
+
+      - name: Push verified workflow-free candidate
+        run: |
+          set -Eeuo pipefail
+          test ! -e .github/workflows/p1-reconcile-current-head.yml
+          test -z "$(git status --porcelain)"
+          git push origin HEAD:p1-revalidation-after-p0-20261005
