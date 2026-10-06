@@ -578,14 +578,40 @@ def _prune_tx_queue_rows(rows: list[Json]) -> list[Json]:
     return kept
 
 
+def _fsync_parent_directory(path: Path) -> None:
+    """Durably publish an atomic rename on the supported POSIX production posture."""
+
+    if os.name == "nt":
+        # Windows does not provide a portable directory fsync through Python's
+        # os.open/os.fsync interface. Production WeAll deployment is POSIX;
+        # local Windows development retains atomic replacement semantics.
+        return
+    flags = os.O_RDONLY | int(getattr(os, "O_DIRECTORY", 0))
+    fd = os.open(str(path), flags)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def _write_tx_queue_unlocked(rows: list[Json]) -> None:
     path = _tx_queue_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = _prune_tx_queue_rows(rows)
     payload = {"version": 2, "records": rows}
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(payload, sort_keys=True, indent=2), encoding="utf-8")
+    encoded = json.dumps(payload, sort_keys=True, indent=2)
+
+    # A03-F002: "durable_tx_queue" acknowledgement must not outrun stable
+    # storage. Flush + fsync the replacement contents before publication, then
+    # fsync the containing directory after the atomic rename.
+    with tmp.open("w", encoding="utf-8") as fh:
+        fh.write(encoded)
+        fh.flush()
+        os.fsync(fh.fileno())
+
     os.replace(tmp, path)
+    _fsync_parent_directory(path.parent)
 
 
 def _read_tx_queue() -> list[Json]:
