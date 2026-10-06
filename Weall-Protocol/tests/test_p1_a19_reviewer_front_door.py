@@ -32,7 +32,7 @@ def test_a19_f004_front_door_distinguishes_non_equivalent_review_paths() -> None
     # Preserve the two key non-equivalence boundaries found by A19.
     assert "full-history Git clone" in text
     assert "not equivalent to the full-history Reviewer Readiness gate" in text
-    assert "explicit commit/ref" in text
+    assert "exact 40-hex commit under review" in text
     assert "skips frontend verification" in text
     assert "not substitutes for Reviewer Readiness" in text
 
