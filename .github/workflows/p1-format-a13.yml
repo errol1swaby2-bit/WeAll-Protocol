@@ -1,0 +1,55 @@
+name: P1 Format A13 Policy
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-format-a13.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-a13:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned formatter and backend package
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install ruff==0.15.22
+          pip install --require-hashes -r requirements.lock
+          pip install -e . --no-deps
+
+      - name: Format and verify A13 policy files
+        working-directory: Weall-Protocol
+        run: |
+          ruff format src/weall/crypto/signature_profiles.py tests/test_crypto_signature_profiles.py
+          ruff check src/weall/crypto/signature_profiles.py tests/test_crypto_signature_profiles.py
+          pytest -q \
+            tests/test_crypto_signature_profiles.py \
+            tests/test_tx_signature_profile_admission.py \
+            tests/test_block_signature_profiles.py \
+            tests/test_validator_operator_signature_profiles.py \
+            tests/prod/test_public_testnet_crypto_profile_gate.py
+
+      - name: Commit formatted workflow-free tree
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/p1-format-a13.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No A13 format diff produced'; exit 1; }
+          git diff --check --cached
+          git commit -m 'style: format A13 signature policy'
+          git push origin HEAD:p1-revalidation-after-p0-20261005
