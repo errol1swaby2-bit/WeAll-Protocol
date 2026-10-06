@@ -69,6 +69,7 @@ jobs:
         run: |
           pytest -q \
             tests/test_p1_latest_medium_closure.py \
+            tests/test_p1_a01_route_authority.py \
             tests/test_p1_a02_strict_social_booleans.py \
             tests/test_p1_a07_tls_verification.py \
             tests/test_p1_a10_treasury_cancel_scope.py \
