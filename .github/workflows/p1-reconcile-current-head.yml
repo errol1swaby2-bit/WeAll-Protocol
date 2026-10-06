@@ -80,6 +80,30 @@ jobs:
             python scripts/gen_current_verified_claims.py
           done
 
+      - name: Normalize current-facing verification entry and finalize derivatives
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("README.md")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace(
+              "**External reviewers:** start with [Reviewer verification: start here]",
+              "**Verification entry point:** start with [Reviewer verification: start here]",
+          )
+          path.write_text(text, encoding="utf-8")
+          if "**External reviewers:** start with [Reviewer verification: start here]" in text:
+              raise SystemExit("current README reviewer framing normalization failed")
+          PY
+          cd Weall-Protocol
+          python scripts/gen_api_contract_map.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_current_verified_claims.py
+
       - name: Commit workflow-free candidate locally
         run: |
           set -Eeuo pipefail
@@ -182,3 +206,5 @@ jobs:
 # retry after adding deterministic API contract-map regeneration
 
 # retry with API contract map generated before V2 source digest
+
+# retry with final current-facing verification wording normalization
