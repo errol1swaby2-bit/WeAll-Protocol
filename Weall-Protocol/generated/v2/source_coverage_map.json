@@ -173,7 +173,7 @@
       ],
       "path": "configs/chains/weall-genesis.json",
       "primary_mechanism_id": "M-001",
-      "sha256": "4f7fb4750d73e2deb2ab1efe3a0988ab552132ccf96bb31195abf51648208d70",
+      "sha256": "1bd78b8928240a99cb286a67cf2cf2f91306796c63d5513d355df9ab7d9812d0",
       "source_id": "SRC-676EA0D1D657B98D"
     },
     {
@@ -212,7 +212,7 @@
       ],
       "path": "configs/genesis.ledger.prod.json",
       "primary_mechanism_id": "M-001",
-      "sha256": "fbfad43cf39ef7b2f71939ca74714bbd375731e7a682bd6d9f0ee20fdff42e28",
+      "sha256": "7f3eeddf2e93fcf2bde637993aabfd19f4a8efd8c68bfb9fa323dbce0bb5653a",
       "source_id": "SRC-7F6060C9449EE781"
     },
     {
