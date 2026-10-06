@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "ec70e9ed838d6cc45f315187a8447997e60d5fe6c72c3cfd902b847fafc51aed"
+    "source_tree_digest": "3b266f0efe7203c192032783930a36c7efb678d6a7cd379a4397822163040788"
   },
   "required_fields": [
     "stable_id",
@@ -295,7 +295,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "account_nonce_status",
-        "line": 2013,
+        "line": 2039,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3975,7 +3975,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_reconcile_tx",
-        "line": 2064,
+        "line": 2090,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4024,7 +4024,7 @@
       ],
       "implementation_source": {
         "function": "observer_edge_status",
-        "line": 2026,
+        "line": 2052,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4074,7 +4074,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_tx_queue_drain",
-        "line": 2052,
+        "line": 2078,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7399,6 +7399,8 @@
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
         "tests/test_p1_a01_route_authority.py",
         "tests/test_p1_a02_strict_social_booleans.py",
+        "tests/test_p1_a03_observer_queue_durability.py",
+        "tests/test_p1_a03_startup_durable_authority.py",
         "tests/test_p1_a07_tls_verification.py",
         "tests/test_p1_a10_reward_scheduler_scope.py",
         "tests/test_p1_a10_treasury_cancel_scope.py",
@@ -7407,6 +7409,7 @@
         "tests/test_p1_a13_key_identity_canonicalization.py",
         "tests/test_p1_a14_state_publication_linearization.py",
         "tests/test_p1_a15_health_bounded_telemetry.py",
+        "tests/test_p1_a18_claim_boundaries.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_latest_medium_closure.py",
         "tests/test_p1_remaining_complete_remediation.py",
@@ -8306,9 +8309,11 @@
         "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
+        "tests/test_p1_a03_observer_queue_durability.py",
         "tests/test_p1_a10_treasury_cancel_scope.py",
         "tests/test_p1_a12_mempool_redaction.py",
         "tests/test_p1_a12_observer_operator_loopback_auth.py",
+        "tests/test_p1_a18_claim_boundaries.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_scoped_authority_repairs.py",
@@ -9150,7 +9155,7 @@
       ],
       "implementation_source": {
         "function": "tx_catalog",
-        "line": 2295,
+        "line": 2321,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9199,7 +9204,7 @@
       ],
       "implementation_source": {
         "function": "tx_status",
-        "line": 2077,
+        "line": 2103,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9281,7 +9286,7 @@
       ],
       "implementation_source": {
         "function": "tx_submit",
-        "line": 1812,
+        "line": 1838,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "canonical_transaction_submission",

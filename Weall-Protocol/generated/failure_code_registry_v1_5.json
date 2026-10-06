@@ -238,7 +238,7 @@
       "http_status": 502,
       "sample_reason": "public observer has no verified tx upstream for required propagation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1913
+      "source_lineno": 1939
     },
     {
       "code": "SIGNATURE_PROFILE_MISSING",
@@ -463,7 +463,7 @@
       "http_status": 400,
       "sample_reason": "missing tx_id",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1449
+      "source_lineno": 1475
     },
     {
       "code": "bad_sig",
@@ -499,7 +499,7 @@
       "http_status": 403,
       "sample_reason": "signature verification failed",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1887
+      "source_lineno": 1913
     },
     {
       "code": "banned",
@@ -535,7 +535,7 @@
       "http_status": 403,
       "sample_reason": "tx chain_id does not match this node",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1616
+      "source_lineno": 1642
     },
     {
       "code": "conflict",
@@ -1264,7 +1264,7 @@
       "http_status": 400,
       "sample_reason": "tx envelope failed schema validation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1837
+      "source_lineno": 1863
     },
     {
       "code": "invalid_tx",
@@ -1516,7 +1516,7 @@
       "http_status": 403,
       "sample_reason": "chain_id is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1609
+      "source_lineno": 1635
     },
     {
       "code": "missing_env",
@@ -1561,7 +1561,7 @@
       "http_status": 403,
       "sample_reason": "signature is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1879
+      "source_lineno": 1905
     },
     {
       "code": "not_found",
@@ -1867,7 +1867,7 @@
       "http_status": 403,
       "sample_reason": "block receipts cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1865
+      "source_lineno": 1891
     },
     {
       "code": "relay_not_ready",
@@ -1984,7 +1984,7 @@
       "http_status": 403,
       "sample_reason": "system-only txs cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1854
+      "source_lineno": 1880
     },
     {
       "code": "tx_unimplemented",
