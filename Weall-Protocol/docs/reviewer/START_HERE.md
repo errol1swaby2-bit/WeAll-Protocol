@@ -38,7 +38,7 @@ A passing archive check is therefore not equivalent to the full-history Reviewer
 
 Script: `scripts/fresh_clone_smoke.sh`.
 
-For reviewer evidence, the smoke must be bound to an explicit commit/ref and must execute both backend and frontend verification. A smoke that follows moving default-branch HEAD or skips frontend verification is convenience evidence only, not exact-commit full-stack proof.
+For reviewer evidence, the smoke requires `WEALL_FRESH_CLONE_COMMIT` set to the exact 40-hex commit under review and executes both backend and frontend verification. A smoke that follows moving default-branch HEAD or skips frontend verification is convenience evidence only, not exact-commit full-stack proof.
 
 ## 4. External observer / onboarding node
 
