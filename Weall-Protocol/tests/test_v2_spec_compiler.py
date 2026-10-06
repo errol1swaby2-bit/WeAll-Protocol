@@ -618,7 +618,7 @@ def test_w1_closure_manifest_records_release_attestation_boundary() -> None:
     assert closure["structured_schemas"]["state_schema_count"] == 94
     assert closure["structured_schemas"]["target_contract_schema_count"] == 150
     assert closure["semantic_reviews"]["transaction_reviews"] == 236
-    assert closure["semantic_reviews"]["route_reviews"] == 163
+    assert closure["semantic_reviews"]["route_reviews"] == 159
     assert closure["semantic_reviews"]["independent_review_complete"] is False
     assert closure["release_export_attestation_required"] is True
     assert closure["provenance_binding"]["binding_policy"] == "PASS_NON_CIRCULAR_TWO_COMMIT_BINDING"
