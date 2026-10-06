@@ -59,6 +59,20 @@ def account_key_id_for_pubkey(
     return f"k:{h[:16]}"
 
 
+def has_canonical_mldsa_authority(
+    pubkey: str,
+    *,
+    profile: str = PQ_MLDSA_V1,
+) -> bool:
+    if normalize_signature_profile_id(profile) != PQ_MLDSA_V1:
+        return False
+    try:
+        canonical_mldsa65_public_key(str(pubkey or "").strip(), encoding="hex")
+        return True
+    except ValueError:
+        return False
+
+
 def _mk_key_id(profile: str, pubkey: str) -> str:
     return account_key_id_for_pubkey(pubkey, profile=profile)
 
