@@ -26,7 +26,7 @@ JSON_OUT = ROOT / "generated" / "current_verified_claims.json"
 MD_OUT = ROOT / "docs" / "CURRENT_VERIFIED_CLAIMS.md"
 
 SCHEMA = "weall.current_verified_claims.v1"
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 PERFORMANCE_SCHEMA = "weall.current_performance_evidence.v1"
 PERFORMANCE_REQUIRED_BENCHMARK_FIELDS = (
@@ -161,19 +161,45 @@ def _read_p0_audit_status(path: Path) -> dict[str, Any]:
     }
 
 
-P1_ALLOWED_STATUSES = {
-    "pending_revalidation",
+P1_MATRIX_SCHEMA = "weall.a01_a20.p1_closure_matrix.v1"
+P1_EXPECTED_FINDING_COUNT = 34
+P1_TRACK_IDS = tuple(f"P1-{index:02d}" for index in range(1, 11))
+P1_CLOSED_STATUSES = {
     "patched_and_proven",
     "scope_closed_and_proven",
     "already_closed_and_proven",
 }
+P1_OPEN_STATUSES = {
+    "pending_revalidation",
+    "design_blocker",
+    "open",
+}
+P1_ALLOWED_STATUSES = P1_CLOSED_STATUSES | P1_OPEN_STATUSES
 
 
 def _read_p1_audit_matrix(path: Path) -> dict[str, Any]:
     obj = _read_json(path)
+    if obj.get("schema") != P1_MATRIX_SCHEMA:
+        raise SystemExit(
+            f"P1 audit matrix schema must be {P1_MATRIX_SCHEMA!r}, "
+            f"found {obj.get('schema')!r}"
+        )
+
+    source_audit = obj.get("source_audit")
+    if not isinstance(source_audit, dict):
+        raise SystemExit("P1 audit matrix missing source_audit object")
+    if source_audit.get("date") != "2026-09-30":
+        raise SystemExit("P1 audit matrix must bind the 2026-09-30 A01-A20 audit")
+    if source_audit.get("medium_p1_count") != P1_EXPECTED_FINDING_COUNT:
+        raise SystemExit(
+            "P1 audit matrix medium_p1_count does not match the expected 34 findings"
+        )
+
     findings = obj.get("findings")
-    if not isinstance(findings, list) or len(findings) != 34:
-        raise SystemExit("P1 audit matrix must contain exactly 34 MEDIUM findings")
+    if not isinstance(findings, list) or len(findings) != P1_EXPECTED_FINDING_COUNT:
+        raise SystemExit(
+            f"P1 audit matrix must contain exactly {P1_EXPECTED_FINDING_COUNT} MEDIUM findings"
+        )
 
     by_id: dict[str, dict[str, Any]] = {}
     open_finding_ids: list[str] = []
@@ -185,11 +211,14 @@ def _read_p1_audit_matrix(path: Path) -> dict[str, Any]:
             raise SystemExit(f"P1 audit matrix finding id invalid or duplicate: {finding_id!r}")
         if row.get("severity") != "MEDIUM":
             raise SystemExit(f"P1 audit matrix {finding_id} must retain MEDIUM severity")
+        track = str(row.get("track") or "").strip()
+        if track not in P1_TRACK_IDS:
+            raise SystemExit(f"P1 audit matrix {finding_id} has invalid track: {track!r}")
         status = str(row.get("status") or "").strip()
         if status not in P1_ALLOWED_STATUSES:
             raise SystemExit(f"P1 audit matrix {finding_id} has unrecognized status: {status!r}")
         by_id[finding_id] = row
-        if status == "pending_revalidation":
+        if status in P1_OPEN_STATUSES:
             open_finding_ids.append(finding_id)
 
     summary = obj.get("summary")
@@ -197,18 +226,17 @@ def _read_p1_audit_matrix(path: Path) -> dict[str, Any]:
         raise SystemExit("P1 audit matrix missing summary object")
     proven = len(findings) - len(open_finding_ids)
     if summary.get("proven_dispositions") != proven:
-        raise SystemExit(
-            "P1 audit matrix proven_dispositions disagrees with finding statuses"
-        )
+        raise SystemExit("P1 audit matrix proven_dispositions disagrees with finding statuses")
     if summary.get("pending_revalidation") != len(open_finding_ids):
-        raise SystemExit(
-            "P1 audit matrix pending_revalidation disagrees with finding statuses"
-        )
+        raise SystemExit("P1 audit matrix pending_revalidation disagrees with finding statuses")
 
     return {
         "total_findings": len(findings),
         "proven_dispositions": proven,
         "open_finding_ids": sorted(open_finding_ids),
+        "open_track_ids": sorted(
+            {str(by_id[finding_id]["track"]) for finding_id in open_finding_ids}
+        ),
         "closed_finding_ids": sorted(set(by_id) - set(open_finding_ids)),
     }
 
