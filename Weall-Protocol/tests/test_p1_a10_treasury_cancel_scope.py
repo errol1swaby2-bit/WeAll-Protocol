@@ -54,7 +54,7 @@ def _state(*, include_snapshot: bool = True) -> dict:
 def _canon_cancel_entry() -> dict:
     path = Path(__file__).resolve().parents[1] / "specs" / "tx_canon" / "tx_canon.yaml"
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
-    entries = doc.get("transactions") if isinstance(doc, dict) else doc
+    entries = doc.get("txs") if isinstance(doc, dict) else doc
     assert isinstance(entries, list)
     return next(row for row in entries if row.get("name") == "TREASURY_SPEND_CANCEL")
 
