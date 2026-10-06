@@ -37,39 +37,254 @@
     "P1-10": "Claims truth, repository messaging and browser credential custody"
   },
   "findings": [
-    {"id":"A01-F001","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Authoritative main branch does not enforce the validation gates"},
-    {"id":"A01-F002","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Clean checkout proof is not a clean-machine/hermetic reproducibility proof"},
-    {"id":"A01-F003","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Generated V2 route inventory includes four unmounted duplicate endpoint implementations"},
-    {"id":"A02-F002","severity":"MEDIUM","track":"P1-02","status":"pending_revalidation","summary":"Schema accepts textual false while social execution applies it as true"},
-    {"id":"A03-F001","severity":"MEDIUM","track":"P1-03","status":"pending_revalidation","summary":"Nonzero stale ledger snapshot can pass startup while newer persisted blocks already exist"},
-    {"id":"A03-F002","severity":"MEDIUM","track":"P1-03","status":"pending_revalidation","summary":"Observer durable_tx_queue acknowledgement is not backed by an explicit filesystem durability barrier"},
-    {"id":"A05-F003","severity":"MEDIUM","track":"P1-04","status":"pending_revalidation","summary":"Timeout certificates do not actually identify the highest referenced QC"},
-    {"id":"A06-F002","severity":"MEDIUM","track":"P1-04","status":"pending_revalidation","summary":"Future constitutional-slot blocks are rejected by honest construction but accepted by follower/BFT admission before the slot"},
-    {"id":"A07-F003","severity":"MEDIUM","track":"P1-05","status":"pending_revalidation","summary":"Production TLS peer connections can silently disable certificate verification"},
-    {"id":"A08-F002","severity":"MEDIUM","track":"P1-06","status":"scope_closed_and_proven","summary":"Fresh async PoH can progress using commitment-only evidence with no cryptographically bound reviewable ciphertext","evidence":"Post-P0 production human-authority scope lock prevents fresh async/Tier-2/Live positive authority transitions and schedulers; exact branch workflow run 37383418894 passed tests/test_p0_06_production_scope_closure.py."},
-    {"id":"A08-F003","severity":"MEDIUM","track":"P1-06","status":"scope_closed_and_proven","summary":"Anti-Sybil/collusion scoring exists as rehearsal/library logic but is not automatically enforced by the canonical PoH lifecycle","evidence":"Post-P0 production human-authority scope lock prevents canonical positive human-authority progression while uniqueness/entropy work remains unresolved; exact branch workflow run 37383418894 passed tests/test_p0_06_production_scope_closure.py."},
-    {"id":"A10-F003","severity":"MEDIUM","track":"P1-07","status":"pending_revalidation","summary":"Reward scheduler reallocates empty-bucket and split remainder value to the protocol treasury"},
-    {"id":"A10-F004","severity":"MEDIUM","track":"P1-07","status":"pending_revalidation","summary":"Generic treasury cancellation is authorized by a global emissary role rather than treasury-scoped cancellation authority"},
-    {"id":"A11-F001","severity":"MEDIUM","track":"P1-07","status":"patched_and_proven","summary":"Positive FEE_PAY can remove balance value without a destination or explicit burn accounting","evidence":"Positive FEE_PAY without an explicit disposition now fails atomically with fee_destination_required; destination-backed fees remain conserving. Remediation workflow run 37383826940 passed the new focused regressions, existing economics alignment tests, and canon sanity before committing the repair."},
-    {"id":"A11-F002","severity":"MEDIUM","track":"P1-07","status":"patched_and_proven","summary":"Positive transfer fee policy is currently unenforceable","evidence":"Until BALANCE_TRANSFER has an atomic enforced settlement contract, positive transfer_fee_int now fails closed with transfer_fee_policy_not_enforced while zero remains allowed. Remediation workflow run 37384231216 passed focused/economics/canon tests and committed b42e496eee6fc2b2617b848e062e1e1306f2dfb3."},
-    {"id":"A12-F002","severity":"MEDIUM","track":"P1-08","status":"patched_and_proven","summary":"Anonymous mempool status returns complete pending transaction envelopes despite a redacted-public contract","evidence":"Public /v1/status/mempool now projects a strict allowlist of pending transaction metadata and excludes payload/signature contents. Secret-marker regression plus existing status diagnostics and canon checks passed in remediation workflow 37384931649; implementation commit 652f8dd81b036cb4527826ca828d5334745375be."},
-    {"id":"A12-F003","severity":"MEDIUM","track":"P1-08","status":"pending_revalidation","summary":"Observer-edge operator authorization trusts loopback peers by default"},
-    {"id":"A13-F001","severity":"MEDIUM","track":"P1-05","status":"pending_revalidation","summary":"Alternate encodings of the same ML-DSA key are treated as different protocol authorities"},
-    {"id":"A13-F002","severity":"MEDIUM","track":"P1-05","status":"pending_revalidation","summary":"Signature-profile mode policy and explicit allowlist can fail open to ML-DSA"},
-    {"id":"A14-F001","severity":"MEDIUM","track":"P1-03","status":"pending_revalidation","summary":"An older persisted read can overwrite a newer committed in-memory canonical state"},
-    {"id":"A15-F004","severity":"MEDIUM","track":"P1-09","status":"pending_revalidation","summary":"Health/readiness endpoints are rate-limit-exempt but load and parse the entire ledger snapshot"},
-    {"id":"A15-F005","severity":"MEDIUM","track":"P1-09","status":"pending_revalidation","summary":"Public state snapshot has unbounded response/work size and recursively copies/redacts the whole state"},
-    {"id":"A15-F006","severity":"MEDIUM","track":"P1-09","status":"already_closed_and_proven","summary":"A02 apply-failed replay defect is an indefinitely reusable block-capacity exhaustion primitive","evidence":"P0-01 made canonical failed user inclusion one-shot by consuming nonce and preserving committed identity semantics; exact branch workflow run 37383418894 passed the focused one-shot regression and the broader P0 overlap regression suite."},
-    {"id":"A16-F006","severity":"MEDIUM","track":"P1-02","status":"pending_revalidation","summary":"Transaction coverage is structural; no all-236 semantic property/mutation matrix exists"},
-    {"id":"A17-F001","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Full reviewer-readiness reproduction depends on Git history, not only the current source archive"},
-    {"id":"A17-F002","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Application lockfiles do not make the full clean-machine build hermetic"},
-    {"id":"A17-F003","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Current clean CI proves source/install/test health but not complete node restart/replay reproducibility"},
-    {"id":"A18-F003","severity":"MEDIUM","track":"P1-10","status":"pending_revalidation","summary":"Current verified-claims registry cannot invalidate itself from same-tree adversarial findings"},
-    {"id":"A18-F004","severity":"MEDIUM","track":"P1-10","status":"pending_revalidation","summary":"Verified-human tier wording omits the critical uniqueness/Sybil limitation at the point of claim"},
-    {"id":"A19-F001","severity":"MEDIUM","track":"P1-10","status":"pending_revalidation","summary":"Public repository description overstates exact canon conformance"},
-    {"id":"A19-F002","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Advertised one-command tester node is not a self-contained clean-clone bootstrap"},
-    {"id":"A19-F003","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"fresh_clone_smoke.sh can pass without exact-commit binding or frontend verification"},
-    {"id":"A19-F004","severity":"MEDIUM","track":"P1-01","status":"pending_revalidation","summary":"Reviewer verification paths are fragmented and non-equivalent without a front-door decision tree"},
-    {"id":"A20-F002","severity":"MEDIUM","track":"P1-10","status":"patched_and_proven","summary":"Raw API session bearer key is persisted in browser localStorage","evidence":"Durable localStorage now retains non-secret session metadata only; the reusable bearer is tab/session-scoped in sessionStorage, legacy persistent bearers are scrubbed/migrated, and logout clears the bearer. Custody source proof, existing account-custody checks, TypeScript typecheck and Vite build all passed in workflow 37385473272; implementation commit 8750238534cfdeabacc9e30d7007ff6dde1ef3fb."}
-  ]
+    {
+      "id": "A01-F001",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "Authoritative main branch does not enforce the validation gates"
+    },
+    {
+      "id": "A01-F002",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "Clean checkout proof is not a clean-machine/hermetic reproducibility proof"
+    },
+    {
+      "id": "A01-F003",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "Generated V2 route inventory includes four unmounted duplicate endpoint implementations"
+    },
+    {
+      "id": "A02-F002",
+      "severity": "MEDIUM",
+      "track": "P1-02",
+      "status": "pending_revalidation",
+      "summary": "Schema accepts textual false while social execution applies it as true"
+    },
+    {
+      "id": "A03-F001",
+      "severity": "MEDIUM",
+      "track": "P1-03",
+      "status": "pending_revalidation",
+      "summary": "Nonzero stale ledger snapshot can pass startup while newer persisted blocks already exist"
+    },
+    {
+      "id": "A03-F002",
+      "severity": "MEDIUM",
+      "track": "P1-03",
+      "status": "pending_revalidation",
+      "summary": "Observer durable_tx_queue acknowledgement is not backed by an explicit filesystem durability barrier"
+    },
+    {
+      "id": "A05-F003",
+      "severity": "MEDIUM",
+      "track": "P1-04",
+      "status": "pending_revalidation",
+      "summary": "Timeout certificates do not actually identify the highest referenced QC"
+    },
+    {
+      "id": "A06-F002",
+      "severity": "MEDIUM",
+      "track": "P1-04",
+      "status": "pending_revalidation",
+      "summary": "Future constitutional-slot blocks are rejected by honest construction but accepted by follower/BFT admission before the slot"
+    },
+    {
+      "id": "A07-F003",
+      "severity": "MEDIUM",
+      "track": "P1-05",
+      "status": "pending_revalidation",
+      "summary": "Production TLS peer connections can silently disable certificate verification"
+    },
+    {
+      "id": "A08-F002",
+      "severity": "MEDIUM",
+      "track": "P1-06",
+      "status": "scope_closed_and_proven",
+      "summary": "Fresh async PoH can progress using commitment-only evidence with no cryptographically bound reviewable ciphertext",
+      "evidence": "Post-P0 production human-authority scope lock prevents fresh async/Tier-2/Live positive authority transitions and schedulers; exact branch workflow run 37383418894 passed tests/test_p0_06_production_scope_closure.py."
+    },
+    {
+      "id": "A08-F003",
+      "severity": "MEDIUM",
+      "track": "P1-06",
+      "status": "scope_closed_and_proven",
+      "summary": "Anti-Sybil/collusion scoring exists as rehearsal/library logic but is not automatically enforced by the canonical PoH lifecycle",
+      "evidence": "Post-P0 production human-authority scope lock prevents canonical positive human-authority progression while uniqueness/entropy work remains unresolved; exact branch workflow run 37383418894 passed tests/test_p0_06_production_scope_closure.py."
+    },
+    {
+      "id": "A10-F003",
+      "severity": "MEDIUM",
+      "track": "P1-07",
+      "status": "pending_revalidation",
+      "summary": "Reward scheduler reallocates empty-bucket and split remainder value to the protocol treasury"
+    },
+    {
+      "id": "A10-F004",
+      "severity": "MEDIUM",
+      "track": "P1-07",
+      "status": "pending_revalidation",
+      "summary": "Generic treasury cancellation is authorized by a global emissary role rather than treasury-scoped cancellation authority"
+    },
+    {
+      "id": "A11-F001",
+      "severity": "MEDIUM",
+      "track": "P1-07",
+      "status": "patched_and_proven",
+      "summary": "Positive FEE_PAY can remove balance value without a destination or explicit burn accounting",
+      "evidence": "Positive FEE_PAY without an explicit disposition now fails atomically with fee_destination_required; destination-backed fees remain conserving. Remediation workflow run 37383826940 passed the new focused regressions, existing economics alignment tests, and canon sanity before committing the repair."
+    },
+    {
+      "id": "A11-F002",
+      "severity": "MEDIUM",
+      "track": "P1-07",
+      "status": "patched_and_proven",
+      "summary": "Positive transfer fee policy is currently unenforceable",
+      "evidence": "Until BALANCE_TRANSFER has an atomic enforced settlement contract, positive transfer_fee_int now fails closed with transfer_fee_policy_not_enforced while zero remains allowed. Remediation workflow run 37384231216 passed focused/economics/canon tests and committed b42e496eee6fc2b2617b848e062e1e1306f2dfb3."
+    },
+    {
+      "id": "A12-F002",
+      "severity": "MEDIUM",
+      "track": "P1-08",
+      "status": "patched_and_proven",
+      "summary": "Anonymous mempool status returns complete pending transaction envelopes despite a redacted-public contract",
+      "evidence": "Public /v1/status/mempool now projects a strict allowlist of pending transaction metadata and excludes payload/signature contents. Secret-marker regression plus existing status diagnostics and canon checks passed in remediation workflow 37384931649; implementation commit 652f8dd81b036cb4527826ca828d5334745375be."
+    },
+    {
+      "id": "A12-F003",
+      "severity": "MEDIUM",
+      "track": "P1-08",
+      "status": "pending_revalidation",
+      "summary": "Observer-edge operator authorization trusts loopback peers by default"
+    },
+    {
+      "id": "A13-F001",
+      "severity": "MEDIUM",
+      "track": "P1-05",
+      "status": "pending_revalidation",
+      "summary": "Alternate encodings of the same ML-DSA key are treated as different protocol authorities"
+    },
+    {
+      "id": "A13-F002",
+      "severity": "MEDIUM",
+      "track": "P1-05",
+      "status": "pending_revalidation",
+      "summary": "Signature-profile mode policy and explicit allowlist can fail open to ML-DSA"
+    },
+    {
+      "id": "A14-F001",
+      "severity": "MEDIUM",
+      "track": "P1-03",
+      "status": "pending_revalidation",
+      "summary": "An older persisted read can overwrite a newer committed in-memory canonical state"
+    },
+    {
+      "id": "A15-F004",
+      "severity": "MEDIUM",
+      "track": "P1-09",
+      "status": "pending_revalidation",
+      "summary": "Health/readiness endpoints are rate-limit-exempt but load and parse the entire ledger snapshot"
+    },
+    {
+      "id": "A15-F005",
+      "severity": "MEDIUM",
+      "track": "P1-09",
+      "status": "pending_revalidation",
+      "summary": "Public state snapshot has unbounded response/work size and recursively copies/redacts the whole state"
+    },
+    {
+      "id": "A15-F006",
+      "severity": "MEDIUM",
+      "track": "P1-09",
+      "status": "already_closed_and_proven",
+      "summary": "A02 apply-failed replay defect is an indefinitely reusable block-capacity exhaustion primitive",
+      "evidence": "P0-01 made canonical failed user inclusion one-shot by consuming nonce and preserving committed identity semantics; exact branch workflow run 37383418894 passed the focused one-shot regression and the broader P0 overlap regression suite."
+    },
+    {
+      "id": "A16-F006",
+      "severity": "MEDIUM",
+      "track": "P1-02",
+      "status": "pending_revalidation",
+      "summary": "Transaction coverage is structural; no all-236 semantic property/mutation matrix exists"
+    },
+    {
+      "id": "A17-F001",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "Full reviewer-readiness reproduction depends on Git history, not only the current source archive"
+    },
+    {
+      "id": "A17-F002",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "Application lockfiles do not make the full clean-machine build hermetic"
+    },
+    {
+      "id": "A17-F003",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "Current clean CI proves source/install/test health but not complete node restart/replay reproducibility"
+    },
+    {
+      "id": "A18-F003",
+      "severity": "MEDIUM",
+      "track": "P1-10",
+      "status": "pending_revalidation",
+      "summary": "Current verified-claims registry cannot invalidate itself from same-tree adversarial findings"
+    },
+    {
+      "id": "A18-F004",
+      "severity": "MEDIUM",
+      "track": "P1-10",
+      "status": "pending_revalidation",
+      "summary": "Verified-human tier wording omits the critical uniqueness/Sybil limitation at the point of claim"
+    },
+    {
+      "id": "A19-F001",
+      "severity": "MEDIUM",
+      "track": "P1-10",
+      "status": "pending_revalidation",
+      "summary": "Public repository description overstates exact canon conformance"
+    },
+    {
+      "id": "A19-F002",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "Advertised one-command tester node is not a self-contained clean-clone bootstrap"
+    },
+    {
+      "id": "A19-F003",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "fresh_clone_smoke.sh can pass without exact-commit binding or frontend verification"
+    },
+    {
+      "id": "A19-F004",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "pending_revalidation",
+      "summary": "Reviewer verification paths are fragmented and non-equivalent without a front-door decision tree"
+    },
+    {
+      "id": "A20-F002",
+      "severity": "MEDIUM",
+      "track": "P1-10",
+      "status": "patched_and_proven",
+      "summary": "Raw API session bearer key is persisted in browser localStorage",
+      "evidence": "Durable localStorage now retains non-secret session metadata only; the reusable bearer is tab/session-scoped in sessionStorage, legacy persistent bearers are scrubbed/migrated, and logout clears the bearer. Custody source proof, existing account-custody checks, TypeScript typecheck and Vite build all passed in workflow 37385473272; implementation commit 8750238534cfdeabacc9e30d7007ff6dde1ef3fb."
+    }
+  ],
+  "summary": {
+    "proven_dispositions": 7,
+    "pending_revalidation": 27
+  }
 }
