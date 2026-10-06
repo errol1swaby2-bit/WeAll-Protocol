@@ -1,0 +1,53 @@
+name: P1 Format A06 Regression
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-format-a06.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-a06:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dev environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and prove A06 and A15 closures
+        working-directory: Weall-Protocol
+        run: |
+          ruff check --fix tests/test_p1_a06_constitutional_not_before.py
+          ruff format tests/test_p1_a06_constitutional_not_before.py
+          ruff check tests/test_p1_a06_constitutional_not_before.py
+          pytest -q \
+            tests/test_p1_a06_constitutional_not_before.py \
+            tests/test_p1_a15_public_snapshot_scope.py
+
+      - name: Commit workflow-free formatted tree
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/p1-format-a06.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No A06 format diff produced'; exit 1; }
+          git diff --check --cached
+          git commit -m 'style: format A06 closure regression'
+          git push origin HEAD:p1-revalidation-after-p0-20261005
