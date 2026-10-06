@@ -54,6 +54,7 @@ def test_chain_allowlist_cannot_reenable_disabled_legacy_ed25519(monkeypatch):
     assert ok is False
     assert reason == "signature_profile_disabled"
 
+
 @pytest.mark.parametrize(
     ("mode", "expected"),
     [
@@ -88,10 +89,13 @@ def test_a13_f002_mode_flags_are_runtime_authority(mode, expected):
 )
 def test_a13_f002_explicit_unsatisfied_allowlist_fails_closed(allowed):
     chain_config = {"crypto": {"allowed_signature_profiles": allowed}}
-    assert allowed_signature_profiles_for_mode(
-        mode="closed-testnet",
-        chain_config=chain_config,
-    ) == set()
+    assert (
+        allowed_signature_profiles_for_mode(
+            mode="closed-testnet",
+            chain_config=chain_config,
+        )
+        == set()
+    )
 
     ok, reason = profile_allowed_for_context(
         PQ_MLDSA_V1,
@@ -130,4 +134,3 @@ def test_a13_f002_public_testnet_posture_is_distinct_from_mainnet(monkeypatch):
     ok, reason = profile_allowed_for_context(PQ_MLDSA_V1, require_verifier=False)
     assert ok is False
     assert reason == "signature_profile_not_allowed"
-

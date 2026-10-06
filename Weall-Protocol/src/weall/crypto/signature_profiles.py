@@ -210,9 +210,7 @@ def _chain_allowlist_policy(
         if not isinstance(raw, list):
             return True, []
         return True, [
-            normalized
-            for value in raw
-            if (normalized := normalize_signature_profile_id(value))
+            normalized for value in raw if (normalized := normalize_signature_profile_id(value))
         ]
     return False, []
 
@@ -235,7 +233,9 @@ def allowed_signature_profiles_for_mode(
     mode: str | None = None,
     chain_config: dict[str, Any] | None = None,
 ) -> set[str]:
-    active_mode = normalize_signature_profile_id(mode) if mode is not None else runtime_crypto_mode()
+    active_mode = (
+        normalize_signature_profile_id(mode) if mode is not None else runtime_crypto_mode()
+    )
     registry = signature_profile_registry()
     mode_allowed = {
         profile_id
