@@ -4,7 +4,7 @@ import os
 import time
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import Request
 
 from weall.api.config import allow_insecure_localhost, normalize_base_url, read_nodes_registry
 from weall.api.errors import ApiError
@@ -19,7 +19,6 @@ from weall.runtime.commitments import consensus_active_validator_ids
 
 Json = dict[str, Any]
 
-router = APIRouter(tags=["nodes"])
 
 
 class NodesEndpointConfigError(RuntimeError):
@@ -511,42 +510,3 @@ def _validator_endpoints_response(request: Request) -> Json:
         },
         "registry": registry_status,
     }
-
-
-@router.get("/v1/nodes")
-def v1_nodes(request: Request) -> Json:
-    """Removed legacy aggregate node directory endpoint.
-
-    Direct protocol surfaces use /v1/nodes/seeds for configured bootstrap
-    seeds and /v1/nodes/known for the node-local peer view.
-    """
-    raise ApiError.gone(
-        "legacy_endpoint_removed",
-        "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
-        {"canonical_endpoints": ["/v1/nodes/seeds", "/v1/nodes/known"]},
-    )
-
-
-@router.get("/v1/nodes/seeds")
-def v1_nodes_seeds(request: Request) -> Json:
-    """Bootstrap seeds: operator-configured list + optional registry file."""
-    return _seeds_response(request)
-
-
-@router.get("/v1/nodes/known")
-def v1_nodes_known(request: Request) -> Json:
-    """Node-local peer view.
-
-    Returns connected peers (best-effort), not a global directory.
-    """
-    return _known_peers_response(request)
-
-
-@router.get("/v1/nodes/validators")
-def v1_nodes_validators(request: Request) -> Json:
-    """Active protocol validators plus endpoint hints.
-
-    Validator membership is read from protocol state only. Endpoint records are
-    discoverability hints and never grant authority by themselves.
-    """
-    return _validator_endpoints_response(request)
