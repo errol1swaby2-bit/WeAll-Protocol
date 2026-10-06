@@ -251,8 +251,9 @@
       "id": "A18-F003",
       "severity": "MEDIUM",
       "track": "P1-10",
-      "status": "pending_revalidation",
-      "summary": "Current verified-claims registry cannot invalidate itself from same-tree adversarial findings"
+      "status": "patched_and_proven",
+      "summary": "Current verified-claims registry cannot invalidate itself from same-tree adversarial findings",
+      "evidence": "Current-claims generation now consumes the active 34-finding P1 matrix as a same-tree hashed input, exposes open MEDIUM finding IDs through AUDIT-P1-001, and blocks stronger release boundaries while any P1 finding remains open. The parser validates the authoritative matrix schema/source/track contract, rejects summary drift, and treats pending_revalidation/design_blocker/open as claim-blocking states. A01-A20 P1 Revalidation run 37543738888 passed the strengthened self-invalidation tests."
     },
     {
       "id": "A18-F004",
@@ -303,7 +304,7 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 26,
-    "pending_revalidation": 8
+    "proven_dispositions": 27,
+    "pending_revalidation": 7
   }
 }
