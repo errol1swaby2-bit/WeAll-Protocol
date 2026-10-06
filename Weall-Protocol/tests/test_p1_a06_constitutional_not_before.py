@@ -126,7 +126,9 @@ def test_a06_f002_follower_replay_enforces_not_before(monkeypatch) -> None:
         SimpleNamespace(
             from_executor=lambda _executor: SimpleNamespace(
                 scheduler_set=SimpleNamespace(),
-                tx_execution_set=SimpleNamespace(apply_tx_atomic_meta=lambda *_args, **_kwargs: None),
+                tx_execution_set=SimpleNamespace(
+                    apply_tx_atomic_meta=lambda *_args, **_kwargs: None
+                ),
             )
         ),
     )
