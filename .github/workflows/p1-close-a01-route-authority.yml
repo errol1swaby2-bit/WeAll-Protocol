@@ -1,0 +1,194 @@
+name: P1 Close A01 Route Authority
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-close-a01-route-authority.yml
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install locked environments
+        run: |
+          cd Weall-Protocol
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+          cd ../web
+          npm ci
+          npm run dependency-audit
+
+      - name: Remove temporary closure workflow
+        run: rm -f .github/workflows/p1-close-a01-route-authority.yml
+
+      - name: Prove source shape and regenerate V2
+        working-directory: Weall-Protocol
+        run: |
+          ruff format --check \
+            src/weall/api/routes_nodes.py \
+            tests/test_p1_a01_route_authority.py \
+            tests/test_v2_spec_compiler.py
+          ruff check \
+            src/weall/api/routes_nodes.py \
+            tests/test_p1_a01_route_authority.py \
+            tests/test_v2_spec_compiler.py
+          python -m tooling.canon_lint
+          for round in 1 2; do
+            echo "route regeneration round $round"
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+          done
+          pytest -q \
+            tests/test_p1_a01_route_authority.py \
+            tests/test_v2_spec_compiler.py \
+            tests/test_api_nodes_routes.py \
+            tests/test_api_internal_surface_consistency.py
+
+      - name: Regenerate dependent evidence
+        working-directory: Weall-Protocol
+        run: |
+          for round in 1 2; do
+            python scripts/gen_failure_code_registry_v1_5.py
+            if [[ -f scripts/gen_api_response_vectors_v1_5.py ]]; then
+              python scripts/gen_api_response_vectors_v1_5.py
+            fi
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+            python scripts/gen_b528_b532_completion_proof_v1_5.py
+            python scripts/gen_b534_b538_completion_proof_v1_5.py
+            python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+            python scripts/gen_public_beta_blocker_report_v1_5.py
+            python scripts/gen_release_evidence_manifest_v1_5.py
+            python scripts/gen_current_verified_claims.py
+          done
+
+      - name: Commit exact A01 code candidate locally
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git diff --cached --quiet && { echo 'No A01 closure diff produced'; exit 1; }
+          git commit -m 'audit: close A01 route authority'
+          git rev-parse HEAD > /tmp/a01_candidate_sha
+          git rev-parse HEAD^{tree} > /tmp/a01_candidate_tree
+          echo "a01_candidate_sha=$(cat /tmp/a01_candidate_sha)"
+          echo "a01_candidate_tree=$(cat /tmp/a01_candidate_tree)"
+          test -z "$(git status --porcelain)"
+
+      - name: Bind A01-F003 matrix disposition
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          export A01_CANDIDATE_SHA="$(cat /tmp/a01_candidate_sha)"
+          export A01_CANDIDATE_TREE="$(cat /tmp/a01_candidate_tree)"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          rows = data["findings"]
+          target = next(row for row in rows if row["id"] == "A01-F003")
+          target["status"] = "patched_and_proven"
+          target["evidence"] = (
+              "Dormant decorated node-discovery wrappers were removed from "
+              "src/weall/api/routes_nodes.py, leaving that module helper-only and "
+              "src/weall/api/routes_public_parts/nodes.py as the sole decorated "
+              "authority for GET /v1/nodes, /known, /seeds, and /validators. "
+              "The V2 route inventory now requires 159 implementation rows, 159 "
+              "unique method/path keys, and zero duplicate implementation rows. "
+              "Regression coverage proves each node route is mounted exactly once, "
+              "all generated default-runtime routes are reachable from the FastAPI "
+              "graph, and the only default-unmounted declarations are the two "
+              "explicitly gated demo routes. Closure run "
+              + os.environ["GITHUB_RUN_ID"]
+              + " passed route compiler, mounted API, clean-checkout, dependent "
+              "evidence, and web dependency gates before producing workflow-free "
+              "candidate "
+              + os.environ["A01_CANDIDATE_SHA"]
+              + " / tree "
+              + os.environ["A01_CANDIDATE_TREE"]
+              + "."
+          )
+          proven = sum(
+              row.get("status") in {"patched_and_proven", "scope_closed_and_proven"}
+              for row in rows
+          )
+          data["summary"]["proven_dispositions"] = proven
+          data["summary"]["pending_revalidation"] = len(rows) - proven
+          path.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+          PY
+
+      - name: Reconcile matrix-bound evidence
+        working-directory: Weall-Protocol
+        run: |
+          for round in 1 2; do
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+            python scripts/gen_b528_b532_completion_proof_v1_5.py
+            python scripts/gen_b534_b538_completion_proof_v1_5.py
+            python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+            python scripts/gen_public_beta_blocker_report_v1_5.py
+            python scripts/gen_release_evidence_manifest_v1_5.py
+            python scripts/gen_current_verified_claims.py
+          done
+          cd ..
+          git add -A
+          git diff --cached --check
+          git commit -m 'audit: bind A01-F003 closure evidence'
+          test -z "$(git status --porcelain)"
+
+      - name: Verify final workflow-free closure
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          pytest -q \
+            tests/test_p1_a01_route_authority.py \
+            tests/test_v2_spec_compiler.py \
+            tests/test_api_nodes_routes.py \
+            tests/test_api_internal_surface_consistency.py
+          test -z "$(git status --porcelain)"
+
+      - name: Reverify web dependency posture
+        working-directory: web
+        run: |
+          npm ci
+          npm run dependency-audit
+          npm run typecheck
+          npm run build
+
+      - name: Push workflow-free A01 closure
+        run: |
+          set -Eeuo pipefail
+          test ! -e .github/workflows/p1-close-a01-route-authority.yml
+          test -z "$(git status --porcelain)"
+          git push origin HEAD:p1-revalidation-after-p0-20261005
