@@ -1511,6 +1511,11 @@ class WeAllExecutor:
 
         return _impl.read_cached_state(self)
 
+    def health_telemetry(self) -> Json:
+        from weall.runtime import diagnostics as _impl
+
+        return _impl.health_telemetry(self)
+
     def read_state(self) -> Json:
         from weall.runtime import diagnostics as _impl
 
