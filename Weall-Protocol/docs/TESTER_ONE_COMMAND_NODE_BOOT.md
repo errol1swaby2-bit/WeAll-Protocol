@@ -1,10 +1,32 @@
-# One-command tester node boot
+# One-command tester node start after prerequisites
 
-This runbook defines the safe one-command path for a first external tester to build, install, and run a WeAll observer/onboarding node without needing validator, BFT, helper, treasury, authority, oracle, named hosting-provider, or external identity-provider secrets.
+This runbook defines the safe **one-command start path after explicit prerequisites** for an external tester running a WeAll observer/onboarding node. It is not a blank-machine installer and does not claim to acquire the external observer bundle or Genesis API endpoint for the tester.
+
+The path does not require validator, BFT, helper, treasury, authority, oracle, named hosting-provider, or external identity-provider secrets.
+
+## Required prerequisites
+
+From a fresh clone, prepare the hash-locked backend environment first:
+
+```bash
+cd WeAll-Protocol/Weall-Protocol
+python3 -m venv .venv
+.venv/bin/python -m pip install --require-hashes -r requirements.lock
+.venv/bin/python -m pip install -e . --no-deps
+cd ..
+```
+
+You must also have:
+
+- a verified external observer bundle available as a local path or HTTPS URL;
+- the usable Genesis API base for the rehearsal/network being tested;
+- `npm` when the default frontend path is requested, or pass `--skip-frontend` explicitly.
+
+The tester script fails closed if the prepared backend virtual environment is absent. It does not fall back to ambient Python packages.
 
 ## Normal external tester command
 
-From a cloned repository:
+After those prerequisites:
 
 ```bash
 bash Weall-Protocol/scripts/weall_tester_node.sh \
@@ -22,7 +44,7 @@ bash Weall-Protocol/scripts/weall_tester_node.sh \
   --allow-lan-genesis-api
 ```
 
-The script verifies the public bundle, installs public chain anchors into a local env file, creates runtime paths outside the repository, starts the frontend helper when possible, and then starts the observer/onboarding node.
+The script verifies the public bundle, installs public chain anchors into a local env file, creates runtime paths outside the repository, starts the frontend when requested, and then starts the observer/onboarding node. These actions occur only after the locked backend environment prerequisite above has been satisfied.
 
 ## Safety invariants
 
