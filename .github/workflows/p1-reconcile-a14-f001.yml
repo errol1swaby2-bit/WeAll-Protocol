@@ -1,0 +1,109 @@
+name: P1 Reconcile A14 State Publication
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-reconcile-a14-f001.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Prove A14-F001 branch-linearized publication
+        working-directory: Weall-Protocol
+        run: |
+          ruff check \
+            src/weall/runtime/diagnostics.py \
+            tests/test_p1_a14_state_publication_linearization.py
+          ruff format --check \
+            src/weall/runtime/diagnostics.py \
+            tests/test_p1_a14_state_publication_linearization.py
+          pytest -q \
+            tests/test_p1_a14_state_publication_linearization.py \
+            tests/test_adversarial_invariant_closure.py::test_bft_persistence_merges_into_newer_committed_snapshot \
+            tests/test_pb001bah_checkpoint_signing_authority_atomicity.py \
+            tests/test_pb001bai_canonical_ledger_checkpoint_atomicity.py \
+            tests/test_pb001baj_mempool_canonical_height_atomicity.py
+
+      - name: Remove temporary workflow from candidate tree
+        run: |
+          rm -f .github/workflows/p1-reconcile-a14-f001.yml
+
+      - name: Regenerate source-bound evidence twice
+        working-directory: Weall-Protocol
+        run: |
+          for round in 1 2; do
+            echo "regeneration round $round"
+            python scripts/gen_failure_code_registry_v1_5.py
+            if [[ -f scripts/gen_api_response_vectors_v1_5.py ]]; then
+              python scripts/gen_api_response_vectors_v1_5.py
+            fi
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+            python scripts/gen_b528_b532_completion_proof_v1_5.py
+            python scripts/gen_b534_b538_completion_proof_v1_5.py
+            python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+            python scripts/gen_public_beta_blocker_report_v1_5.py
+            python scripts/gen_release_evidence_manifest_v1_5.py
+            python scripts/gen_current_verified_claims.py
+          done
+
+      - name: Commit workflow-free A14 candidate locally
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No A14 reconciliation diff produced'; exit 1; }
+          git diff --check --cached
+          git commit -m 'audit: reconcile A14 state publication evidence'
+          echo "candidate_sha=$(git rev-parse HEAD)"
+          echo "candidate_tree=$(git rev-parse HEAD^{tree})"
+          test -z "$(git status --porcelain)"
+
+      - name: Verify committed A14 candidate
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          pytest -q \
+            tests/test_p1_a14_state_publication_linearization.py \
+            tests/test_adversarial_invariant_closure.py::test_bft_persistence_merges_into_newer_committed_snapshot \
+            tests/test_pb001bah_checkpoint_signing_authority_atomicity.py \
+            tests/test_pb001bai_canonical_ledger_checkpoint_atomicity.py \
+            tests/test_pb001baj_mempool_canonical_height_atomicity.py
+          test -z "$(git status --porcelain)"
+
+      - name: Push verified workflow-free A14 candidate
+        run: |
+          set -Eeuo pipefail
+          test ! -e .github/workflows/p1-reconcile-a14-f001.yml
+          test -z "$(git status --porcelain)"
+          git push origin HEAD:p1-revalidation-after-p0-20261005
