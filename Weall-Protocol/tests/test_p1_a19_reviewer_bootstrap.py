@@ -18,16 +18,16 @@ def test_a19_f002_tester_start_contract_requires_prepared_locked_environment() -
     assert "verified external observer bundle" in doc
     assert "usable Genesis API base" in doc
 
-    assert 'VENV_PYTHON="\${ROOT_DIR}/.venv/bin/python"' in script
+    assert 'VENV_PYTHON="${ROOT_DIR}/.venv/bin/python"' in script
     assert "prepared backend virtualenv missing" in script
     assert "npm is required for the default tester frontend path" in script
-    assert 'if [ -x "\${ROOT_DIR}/.venv/bin/python" ]' not in script
+    assert 'if [ -x "${ROOT_DIR}/.venv/bin/python" ]' not in script
 
 
 def test_a19_f003_fresh_clone_smoke_is_exact_commit_and_full_stack() -> None:
     script = (ROOT / "scripts" / "fresh_clone_smoke.sh").read_text(encoding="utf-8")
 
-    assert 'REVIEW_COMMIT="\${WEALL_FRESH_CLONE_COMMIT:-}"' in script
+    assert 'REVIEW_COMMIT="${WEALL_FRESH_CLONE_COMMIT:-}"' in script
     assert "WEALL_FRESH_CLONE_COMMIT must be the exact 40-hex commit under review" in script
     assert 'git clone --no-checkout "$clone_url" "$WORKDIR"' in script
     assert 'git -C "$WORKDIR" fetch --depth 1 origin "$REVIEW_COMMIT"' in script
