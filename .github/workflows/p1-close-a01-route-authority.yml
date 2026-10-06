@@ -198,3 +198,5 @@ jobs:
           test ! -e .github/workflows/p1-close-a01-route-authority.yml
           test -z "$(git status --porcelain)"
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# rerun after retiring removed shadow-route semantic reviews
