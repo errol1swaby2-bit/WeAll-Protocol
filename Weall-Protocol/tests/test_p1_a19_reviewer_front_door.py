@@ -10,7 +10,7 @@ def test_a19_f004_root_readme_links_canonical_reviewer_front_door() -> None:
     root_readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "Weall-Protocol/docs/reviewer/START_HERE.md" in root_readme
-    assert "External reviewers" in root_readme
+    assert "Verification entry point" in root_readme
 
 
 def test_a19_f004_front_door_distinguishes_non_equivalent_review_paths() -> None:
