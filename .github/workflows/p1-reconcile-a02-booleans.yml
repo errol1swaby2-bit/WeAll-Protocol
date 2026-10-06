@@ -114,3 +114,5 @@ jobs:
           test ! -e .github/workflows/p1-reconcile-a02-booleans.yml
           test -z "$(git status --porcelain)"
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# retry after Ruff-safe A02 regression formatting
