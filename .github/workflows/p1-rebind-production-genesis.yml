@@ -38,49 +38,37 @@ jobs:
           rc=$?
           set -e
           echo "current_prod_chain_manifest_check_rc=$rc"
-          python scripts/assert_production_genesis_artifacts.py             --manifest configs/chains/weall-genesis.json             --genesis configs/genesis.ledger.prod.json             --tx-index generated/tx_index.json || true
+          python scripts/assert_production_genesis_artifacts.py \
+            --manifest configs/chains/weall-genesis.json \
+            --genesis configs/genesis.ledger.prod.json \
+            --tx-index generated/tx_index.json || true
 
       - name: Rebuild production genesis and manifest with preserved ceremony identity
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          eval "$(
-            python - <<'PY'
-import json
-import shlex
-from pathlib import Path
-
-manifest = json.loads(Path("configs/chains/weall-genesis.json").read_text())
-genesis = json.loads(Path("configs/genesis.ledger.prod.json").read_text())
-
-founder = str(genesis["params"]["bootstrap_founder_account"])
-founding_pubkey = str(genesis["params"]["bootstrap_allowlist"][founder]["pubkey"])
-authority_pubkey = str(manifest["trusted_authority_pubkeys"][0])
-genesis_time = int(genesis["params"]["genesis_time"])
-unlock_time = int(genesis["params"]["economic_unlock_time"])
-delta = unlock_time - genesis_time
-if delta <= 0 or delta % 86400:
-    raise SystemExit("non_integral_existing_econ_unlock_days")
-econ_days = delta // 86400
-bootstrap_expires = int(genesis["params"]["bootstrap_expires_height"])
-
-for key, value in {
-    "CHAIN_ID": str(manifest["chain_id"]),
-    "FOUNDER": founder,
-    "FOUNDING_PUBKEY": founding_pubkey,
-    "AUTHORITY_PUBKEY": authority_pubkey,
-    "GENESIS_TIME": str(genesis_time),
-    "ECON_DAYS": str(econ_days),
-    "BOOTSTRAP_EXPIRES": str(bootstrap_expires),
-}.items():
-    print(f"{key}={shlex.quote(value)}")
-PY
-          )"
+          CHAIN_ID="$(python -c 'import json; print(json.load(open("configs/chains/weall-genesis.json"))["chain_id"])')"
+          FOUNDER="$(python -c 'import json; print(json.load(open("configs/genesis.ledger.prod.json"))["params"]["bootstrap_founder_account"])')"
+          FOUNDING_PUBKEY="$(python -c 'import json; g=json.load(open("configs/genesis.ledger.prod.json")); f=g["params"]["bootstrap_founder_account"]; print(g["params"]["bootstrap_allowlist"][f]["pubkey"])')"
+          AUTHORITY_PUBKEY="$(python -c 'import json; print(json.load(open("configs/chains/weall-genesis.json"))["trusted_authority_pubkeys"][0])')"
+          GENESIS_TIME="$(python -c 'import json; print(json.load(open("configs/genesis.ledger.prod.json"))["params"]["genesis_time"])')"
+          ECON_DAYS="$(python -c 'import json; g=json.load(open("configs/genesis.ledger.prod.json")); d=int(g["params"]["economic_unlock_time"])-int(g["params"]["genesis_time"]); assert d>0 and d%86400==0; print(d//86400)')"
+          BOOTSTRAP_EXPIRES="$(python -c 'import json; print(json.load(open("configs/genesis.ledger.prod.json"))["params"]["bootstrap_expires_height"])')"
 
           test "$CHAIN_ID" = "weall-prod"
           test "$ECON_DAYS" -ge 90
 
-          python scripts/build_production_genesis_manifest.py             --chain-id "$CHAIN_ID"             --founding-account "$FOUNDER"             --founding-pubkey "$FOUNDING_PUBKEY"             --authority-pubkey "$AUTHORITY_PUBKEY"             --tx-index generated/tx_index.json             --genesis-out configs/genesis.ledger.prod.json             --manifest-out configs/chains/weall-genesis.json             --genesis-time "$GENESIS_TIME"             --econ-unlock-days "$ECON_DAYS"             --bootstrap-expires-height "$BOOTSTRAP_EXPIRES"
+          python scripts/build_production_genesis_manifest.py \
+            --chain-id "$CHAIN_ID" \
+            --founding-account "$FOUNDER" \
+            --founding-pubkey "$FOUNDING_PUBKEY" \
+            --authority-pubkey "$AUTHORITY_PUBKEY" \
+            --tx-index generated/tx_index.json \
+            --genesis-out configs/genesis.ledger.prod.json \
+            --manifest-out configs/chains/weall-genesis.json \
+            --genesis-time "$GENESIS_TIME" \
+            --econ-unlock-days "$ECON_DAYS" \
+            --bootstrap-expires-height "$BOOTSTRAP_EXPIRES"
 
           changed="$(git diff --name-only -- configs/genesis.ledger.prod.json configs/chains/weall-genesis.json)"
           test -n "$changed"
@@ -90,8 +78,13 @@ PY
         working-directory: Weall-Protocol
         run: |
           bash scripts/prod_chain_manifest_check.sh configs/chains/weall-genesis.json
-          python scripts/assert_production_genesis_artifacts.py             --manifest configs/chains/weall-genesis.json             --genesis configs/genesis.ledger.prod.json             --tx-index generated/tx_index.json
-          pytest -q             tests/test_external_testnet_p0_p2_safety.py::test_authority_lock_gate_passes_minimal_observer_posture             tests/test_genesis_api_external_observer_readiness.py::test_first_external_observer_gate_still_passes_local_scope
+          python scripts/assert_production_genesis_artifacts.py \
+            --manifest configs/chains/weall-genesis.json \
+            --genesis configs/genesis.ledger.prod.json \
+            --tx-index generated/tx_index.json
+          pytest -q \
+            tests/test_external_testnet_p0_p2_safety.py::test_authority_lock_gate_passes_minimal_observer_posture \
+            tests/test_genesis_api_external_observer_readiness.py::test_first_external_observer_gate_still_passes_local_scope
 
       - name: Remove temporary workflow from candidate tree
         run: |
@@ -132,7 +125,10 @@ PY
         working-directory: Weall-Protocol
         run: |
           bash scripts/prod_chain_manifest_check.sh configs/chains/weall-genesis.json
-          python scripts/assert_production_genesis_artifacts.py             --manifest configs/chains/weall-genesis.json             --genesis configs/genesis.ledger.prod.json             --tx-index generated/tx_index.json
+          python scripts/assert_production_genesis_artifacts.py \
+            --manifest configs/chains/weall-genesis.json \
+            --genesis configs/genesis.ledger.prod.json \
+            --tx-index generated/tx_index.json
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
@@ -142,7 +138,9 @@ PY
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
-          pytest -q             tests/test_external_testnet_p0_p2_safety.py::test_authority_lock_gate_passes_minimal_observer_posture             tests/test_genesis_api_external_observer_readiness.py::test_first_external_observer_gate_still_passes_local_scope
+          pytest -q \
+            tests/test_external_testnet_p0_p2_safety.py::test_authority_lock_gate_passes_minimal_observer_posture \
+            tests/test_genesis_api_external_observer_readiness.py::test_first_external_observer_gate_still_passes_local_scope
           test -z "$(git status --porcelain)"
 
       - name: Push verified workflow-free candidate
