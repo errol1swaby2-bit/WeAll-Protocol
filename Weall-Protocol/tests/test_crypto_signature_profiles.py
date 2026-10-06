@@ -60,6 +60,7 @@ def test_chain_allowlist_cannot_reenable_disabled_legacy_ed25519(monkeypatch):
     [
         ("dev", True),
         ("test", True),
+        ("testnet", True),
         ("controlled-testnet", True),
         ("closed-testnet", True),
         ("public-testnet", True),
