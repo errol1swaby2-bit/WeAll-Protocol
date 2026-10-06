@@ -71,6 +71,10 @@ jobs:
             tests/test_p1_latest_medium_closure.py \
             tests/test_p1_a01_route_authority.py \
             tests/test_p1_a02_strict_social_booleans.py \
+            tests/test_p1_a03_startup_durable_authority.py \
+            tests/test_recursive_production_readiness_closure.py::test_pruned_delta_falls_back_to_restartable_checkpoint_snapshot \
+            tests/test_state_sync_aux_branch_reset.py::test_checkpoint_sync_purges_aux_attestation_pool_and_restart_stays_clean \
+            tests/test_pb001bo_canonical_block_hash_persistence.py::test_restart_fails_closed_when_persisted_tip_header_does_not_match_hash \
             tests/test_p1_a07_tls_verification.py \
             tests/test_p1_a10_treasury_cancel_scope.py \
             tests/test_p1_a10_reward_scheduler_scope.py \
