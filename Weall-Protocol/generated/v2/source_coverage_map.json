@@ -147,7 +147,7 @@
       ],
       "path": "configs/chains/weall-controlled-devnet.json",
       "primary_mechanism_id": "M-001",
-      "sha256": "c8da68f0f2aa65ad9f81a2a2874b96fa3f9034fb899510b1c0aa371de94f8979",
+      "sha256": "b5e7d62f113f03441429a1ec426db2ed278614c233cc2d47094440a8386a56a5",
       "source_id": "SRC-DDB64083CDF94BC1"
     },
     {
@@ -186,7 +186,7 @@
       ],
       "path": "configs/chains/weall-testnet-v1.json",
       "primary_mechanism_id": "M-001",
-      "sha256": "0bb7ba3eb907f39639e47077e5bf936aedde9ba4e1fdef374f1880da2ed8c2fd",
+      "sha256": "42519c6128bf533d50b9614d131bc4885a14aafbe8b0fa8f5cadec7f47f0a117",
       "source_id": "SRC-60F85CA4C5A29D88"
     },
     {
@@ -225,7 +225,7 @@
       ],
       "path": "configs/genesis.ledger.testnet-v1.json",
       "primary_mechanism_id": "M-001",
-      "sha256": "a8dcaca7d977b8492acc44906a8bcc83cca9efb395ff217803103ce9b5f5301e",
+      "sha256": "a46e924bc75787c2db6e06ca20b7673fe211f5d5982b1525c828955485c76c1c",
       "source_id": "SRC-EAE1F9A450E92942"
     },
     {
@@ -264,7 +264,7 @@
       ],
       "path": "configs/public_testnet_chain_commitments.json",
       "primary_mechanism_id": "M-001",
-      "sha256": "c3b84f85318b6fc7b151b0cf3a30f1b31631de251db3687d0ee877b831f564ee",
+      "sha256": "7691626d745a2eed284f85f0101692bace954be1c6b5b9b7db386d16de41e568",
       "source_id": "SRC-DE5E40FAB89FB6F7"
     },
     {
@@ -3067,7 +3067,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "012a82f758e6bbb876668826c84f393019ff174aafd61d1545aaa99ed8d44f59",
+      "sha256": "3514a759338f1caa33057d52597ddfa887c80920f40ce017eea890b77257bcbe",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3081,7 +3081,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "bdb49803ed1a695f40dad5feecb194c1b057380d2c126f431f0daa5540fa5fc2",
+      "sha256": "6195b1606202991ef40a6fdec2fbd64d10831acc8a3d71135f649c75d890be09",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3095,7 +3095,7 @@
       ],
       "path": "generated/b539_b543_production_path_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "44f1b73c8fca054f88f694f6f789c2b2915f0c3e51dd7646d1e5b97d55e9caab",
+      "sha256": "4c97730ea832b90b1885c491a52007ee7435a9c213238e31dccdd0216f81b035",
       "source_id": "SRC-53061E3DE6083DDC"
     },
     {
@@ -3123,7 +3123,7 @@
       ],
       "path": "generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "bebf0dabba4a8e9cec389cf25147854e66790204e1aff5209fc0f327800afa77",
+      "sha256": "89f0d568d3323828b1316656eb64ac012e427ebc80d11aef3fbf9c4c051f4408",
       "source_id": "SRC-0524901BF4D5FCD1"
     },
     {
@@ -3165,7 +3165,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "589c9c3303b880f5f7802521b51e7c3196cd4371d8aeb6fcb21ebd89f11dd4a1",
+      "sha256": "8216d5256cae95a6e40534d1294f53159f4dd5ab855d3e5123568a2a8d689a4d",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3888,7 +3888,7 @@
       ],
       "path": "scripts/bft_consensus_resilience_matrix.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "cd0946dfb4e3a3083707d6f52eefe8104bdbfd17c265f00f79da976fb04d8731",
+      "sha256": "6dc955dd722cd6c92a027ad7babf5278832e45658cea863599356c01ed8c8b9d",
       "source_id": "SRC-9797EFD8F117EEF3"
     },
     {
@@ -3902,7 +3902,7 @@
       ],
       "path": "scripts/bft_fault_injection_soak.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2b63b2e8efe9434b33db1310684c5b27a08a600d143f1825fac1961041c1c9bb",
+      "sha256": "12ba42c05e0476a8fec2812e98e4d1c59a7658ed7f9d795f1e79cf4847b356a6",
       "source_id": "SRC-DFAD1140BC2F4EC9"
     },
     {
@@ -7756,7 +7756,7 @@
       ],
       "path": "src/weall/crypto/signature_profiles.py",
       "primary_mechanism_id": "M-006",
-      "sha256": "d71e39217538f979c559e307e034feee7815abf4fc71b4a430d0749aa1064600",
+      "sha256": "f54200bc9dc40b8e074d9ddf2f2aa081aabb7e61ea173a88cb3b8f23f6acba1f",
       "source_id": "SRC-1C13372693ED5BF3"
     },
     {
@@ -15720,7 +15720,7 @@
       ],
       "path": "tests/test_crypto_signature_profiles.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b4654b38c4b0a6863be411dcf6a15a0bc0b5e68113237bcda2110b81e120d6b9",
+      "sha256": "43e782d7db07d09c7b7dbc7a9e7240d5a714716a57e5536822e6ce62772f3033",
       "source_id": "SRC-EC9621F206F9E186"
     },
     {
@@ -22046,7 +22046,7 @@
       ],
       "path": "tests/test_p0_03_production_composition.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "a7b2b6b1813e3183ff944441d83d5077e7b354c9ca692bb43cf5116d76d12856",
+      "sha256": "6f7d3dbbd8db03791b9d706af97ca1fdda3ddcbea140c7d72a4a826a7b61fbbc",
       "source_id": "SRC-DF1D27D330664F95"
     },
     {
@@ -27286,7 +27286,7 @@
       ],
       "path": "tests/test_session_auth_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "871f9d9517f8a5c76f34b6fc0c1aec0d68f211f49c229cd420c0a6133c64d125",
+      "sha256": "e397ed8b775069bba06c80a1e188fb57c6460e3c67908935ba464a97cb653f54",
       "source_id": "SRC-513162AD290B7D2B"
     },
     {
@@ -27302,7 +27302,7 @@
       ],
       "path": "tests/test_session_login_route.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "06efa6856b9e4c5ee31afb89e93adccd37b0a854c2f2fee300ec0fbff2f4bf09",
+      "sha256": "f7c7ff21231ecb47c3a1222daa4414a10057dde59275ef687bb456ca444a8e95",
       "source_id": "SRC-0982738BFE8DA58C"
     },
     {
