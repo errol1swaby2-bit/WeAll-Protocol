@@ -953,10 +953,10 @@
         "path": "src/weall/api/routes_public_parts/nodes.py"
       },
       "independent_review": false,
-      "review_digest": "823a73f9c44320c29aa3a66b01571662d808c647891af6df2f19d77901ed5eb7",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "review_digest": "5819c7a7133da0382dee29673f4d7c1eb1f7c17c20dfb5dfb16e8137e3c5e6dc",
+      "review_method": "A01-F003 mounted-route authority review after shadow implementation removal",
+      "reviewed_at": "2026-10-06T02:05:24Z",
+      "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)",
       "route_key": "GET /v1/nodes/known",
       "stable_id": "ROUTE-638693CFF92199D1"
     },
@@ -1593,10 +1593,10 @@
         "path": "src/weall/api/routes_public_parts/nodes.py"
       },
       "independent_review": false,
-      "review_digest": "0a88354047c08b8e7386d72b2370630cdb0072e2a40efa77630648012cbb41c5",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "review_digest": "80b9d6e99e59facdc783ec873f6cf36618cc9b653a23db89c3f91293fb2e72c1",
+      "review_method": "A01-F003 mounted-route authority review after shadow implementation removal",
+      "reviewed_at": "2026-10-06T02:05:24Z",
+      "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)",
       "route_key": "GET /v1/nodes/validators",
       "stable_id": "ROUTE-9E056EFBE44E5CE8"
     },
@@ -1897,10 +1897,10 @@
         "path": "src/weall/api/routes_public_parts/nodes.py"
       },
       "independent_review": false,
-      "review_digest": "db8e730201def1cbfb7c67915601b7cf984e89bebb1fe1248c74232246225cd9",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "review_digest": "542bc415174c495db6a8abfa6b3dc0d238331ac6e51aa1d51e9ffee1141d5c7c",
+      "review_method": "A01-F003 mounted-route authority review after shadow implementation removal",
+      "reviewed_at": "2026-10-06T02:05:24Z",
+      "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)",
       "route_key": "GET /v1/nodes/seeds",
       "stable_id": "ROUTE-C18BCB4969F85942"
     },
@@ -2388,10 +2388,10 @@
         "path": "src/weall/api/routes_public_parts/nodes.py"
       },
       "independent_review": false,
-      "review_digest": "2dba964bd5ee96e0c9a13a69366de0a30890ef18c4398958997f924f27f976e9",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "review_digest": "4f016ae6295c2e2174256a7d7dfd1e11a0bac4d7711c84338f55197195e9a51b",
+      "review_method": "A01-F003 mounted-route authority review after shadow implementation removal",
+      "reviewed_at": "2026-10-06T02:05:24Z",
+      "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)",
       "route_key": "GET /v1/nodes",
       "stable_id": "ROUTE-EE2EFB47FA6F30A2"
     },

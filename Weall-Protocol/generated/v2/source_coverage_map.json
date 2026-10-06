@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2006,
+  "file_count": 2007,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "7e305143a3bab7fa4ba9ca37b68703a0d9dc958f41a9f5ca0faff44fcf8894bf",
+      "sha256": "d734cc12f551b04c82caebf22007092aeca9d7891edf8845d8a2c5fe5fe88d90",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -3067,7 +3067,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "b23d02ff349af6e78cd5932c7c37e5a13ccb5b10f73730a7dc3c05fb82498a4a",
+      "sha256": "012a82f758e6bbb876668826c84f393019ff174aafd61d1545aaa99ed8d44f59",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3081,7 +3081,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "d4f6b4ed55c1619595c27a95a85768192635e98cb4868b22950d284c7fb21deb",
+      "sha256": "bdb49803ed1a695f40dad5feecb194c1b057380d2c126f431f0daa5540fa5fc2",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3165,7 +3165,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "d8d0f0e9ac9dd1777068ba4b0573a5bb35eae450299831ea040810cd9487cae0",
+      "sha256": "589c9c3303b880f5f7802521b51e7c3196cd4371d8aeb6fcb21ebd89f11dd4a1",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3262,7 +3262,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5afa5e08d7d4e6f4d0a1db89d959fb729a5be9b3ed4fae56fd81833e0eedb0b3",
+      "sha256": "9a087e49d0b5e387a84259a2b7fedf4d1351cbb493a668e6b979f092f164d146",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3290,7 +3290,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5ef0ec347c2475e273d38834df8293690f269fc457d95e796d15b2c6d7fa9dc8",
+      "sha256": "1f2aa1235fa7e89f92f948820abea7d27289b43205882f95616c8acc13530eb7",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3388,7 +3388,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5c780fabecdd28244a99354e5d90153c2dbc0c449c35bf9d6fc238e8380e245b",
+      "sha256": "b20abf4c765456c026c3d48057864229ecf0b2ac89845139ad410ad75f5978be",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3570,7 +3570,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "d37023ab1ff7d77db8ef95d39afdfd65ebbafbe21f130d857f22781a120ebcb4",
+      "sha256": "322fc58a8b19ef628d7321de49ab7e44384e9237284c0f0d92b878a2f75f9207",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -6591,7 +6591,7 @@
       ],
       "path": "specs/v2/source/manifest.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "49cc891b4b54209653d29f5628ea20d9f1c53a4a77d22f1d68b8e485cfab81b6",
+      "sha256": "7421147b08021494f6c4d6383b18a2ebe26027fe904b8069a8ae550a2f8a88e9",
       "source_id": "SRC-72C2BC955E2646B0"
     },
     {
@@ -6785,7 +6785,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "ba4dbb20802b7f913a27d067a6dffb94e78f350f3f617a4e0e0ea610b26e0480",
+      "sha256": "656577be1715f7b163d5807e60f5696f895a6ca6f52a9e9e647f84bce7df5ce3",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -7066,15 +7066,11 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "mappings": [
-        "M-069",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-4017D7268FA1760D",
-        "ROUTE-9D2EF135FA91584C",
-        "ROUTE-A2ED585AF34A0150"
+        "M-069"
       ],
       "path": "src/weall/api/routes_nodes.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "fc233394f9e669d21673b874117623b2a7f272e2acb0bf4a336ba49b6b051a42",
+      "sha256": "d5f51e2aed6c3f85a03452e8f786812ae3ab187248fcf2f27ff8fe36d357e30d",
       "source_id": "SRC-2D084A71F2125297"
     },
     {
@@ -12966,11 +12962,8 @@
       "mappings": [
         "M-076",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
         "ROUTE-6A893502420D6173",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-9E056EFBE44E5CE8",
-        "ROUTE-A2ED585AF34A0150",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
@@ -13116,10 +13109,7 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-9E056EFBE44E5CE8",
-        "ROUTE-A2ED585AF34A0150",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-DA3C62DECBAC1A54",
         "ROUTE-EE2EFB47FA6F30A2",
@@ -13153,8 +13143,6 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
@@ -13186,8 +13174,6 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
@@ -13234,8 +13220,6 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
@@ -13267,8 +13251,6 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
@@ -13346,9 +13328,7 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
         "ROUTE-9E056EFBE44E5CE8",
-        "ROUTE-A2ED585AF34A0150",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
       "path": "tests/prod/test_public_validator_endpoint_discovery.py",
@@ -13663,10 +13643,7 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-4017D7268FA1760D",
         "ROUTE-638693CFF92199D1",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
@@ -13730,10 +13707,7 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-4017D7268FA1760D",
         "ROUTE-638693CFF92199D1",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
@@ -21929,11 +21903,8 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-4017D7268FA1760D",
         "ROUTE-638693CFF92199D1",
         "ROUTE-6F58230A3E73000F",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-DA3C62DECBAC1A54",
         "ROUTE-EE2EFB47FA6F30A2"
@@ -22412,6 +22383,24 @@
       "primary_mechanism_id": "M-076",
       "sha256": "b1835e7d89f3a3cb7020cbf6a7fa0690ca7cc3fa4bc0a49b2df277be1cd4ace4",
       "source_id": "SRC-EDE23E266ABACCEC"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "ROUTE-638693CFF92199D1",
+        "ROUTE-9E056EFBE44E5CE8",
+        "ROUTE-C18BCB4969F85942",
+        "ROUTE-EE2EFB47FA6F30A2"
+      ],
+      "path": "tests/test_p1_a01_route_authority.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "90d497f411eed8778983fced760d4594bb0461746221d62074e521457d57ead3",
+      "source_id": "SRC-2935DACE9495D34E"
     },
     {
       "affected_registers": [
@@ -29047,7 +29036,7 @@
       ],
       "path": "tests/test_v2_spec_compiler.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8f1c5adc8196d9481c73ed3579108ebd68ab6192baa6e44322ca3ef18df5a303",
+      "sha256": "7575512ec71b4309c7a433a75a091b2045cbaa72a31f81774d86400f71b795de",
       "source_id": "SRC-9B8B949DCD736399"
     },
     {
@@ -30356,7 +30345,6 @@
         "ROUTE-2A97CF95EFCBCE17",
         "ROUTE-2DF8BBDA645F0D99",
         "ROUTE-2E273A9B691E4F24",
-        "ROUTE-33157A0C76623B22",
         "ROUTE-34AB12E8DD4D87BB",
         "ROUTE-36FC58B3F61A2F45",
         "ROUTE-38D6D9BE50465A56",
@@ -30376,12 +30364,10 @@
         "ROUTE-8A6B3BEDE044826B",
         "ROUTE-90C6B3C681D6452A",
         "ROUTE-9CF6C814B6638E9B",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-9D551FBF3797BF76",
         "ROUTE-9E056EFBE44E5CE8",
         "ROUTE-A0E0231D291ABB8E",
         "ROUTE-A2A85AC93E907C82",
-        "ROUTE-A2ED585AF34A0150",
         "ROUTE-A50D8153572E2A70",
         "ROUTE-A63D80180DD77A57",
         "ROUTE-A6A03246B904655F",
@@ -30705,8 +30691,6 @@
       "classification": "authoritative_or_launch_critical",
       "mappings": [
         "M-069",
-        "ROUTE-33157A0C76623B22",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],
@@ -31283,9 +31267,7 @@
       "mappings": [
         "M-069",
         "ROUTE-137CB9FB31356917",
-        "ROUTE-33157A0C76623B22",
         "ROUTE-4CBFA6847142B599",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2",
         "ROUTE-F693A62493C1AC49"
@@ -31886,14 +31868,11 @@
       "mappings": [
         "M-069",
         "ROUTE-137CB9FB31356917",
-        "ROUTE-33157A0C76623B22",
         "ROUTE-6F58230A3E73000F",
         "ROUTE-7794E1902B01CB23",
         "ROUTE-7B11DE7ACC94F5D3",
         "ROUTE-8A6B3BEDE044826B",
-        "ROUTE-9D2EF135FA91584C",
         "ROUTE-9E056EFBE44E5CE8",
-        "ROUTE-A2ED585AF34A0150",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2"
       ],

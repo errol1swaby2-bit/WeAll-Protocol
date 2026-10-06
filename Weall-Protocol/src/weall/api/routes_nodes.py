@@ -20,7 +20,6 @@ from weall.runtime.commitments import consensus_active_validator_ids
 Json = dict[str, Any]
 
 
-
 class NodesEndpointConfigError(RuntimeError):
     """Raised when operator-supplied node registry/seed config is malformed in prod."""
 

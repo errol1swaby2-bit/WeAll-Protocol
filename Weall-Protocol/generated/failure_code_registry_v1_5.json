@@ -1,6 +1,6 @@
 {
   "by_domain": {
-    "api": 108,
+    "api": 107,
     "launch_readiness": 32,
     "runtime": 8,
     "runtime_apply": 75
@@ -1361,15 +1361,6 @@
       "domain": "api",
       "family": "ApiError.gone",
       "http_status": null,
-      "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
-      "source": "src/weall/api/routes_nodes.py",
-      "source_lineno": 523
-    },
-    {
-      "code": "legacy_endpoint_removed",
-      "domain": "api",
-      "family": "ApiError.gone",
-      "http_status": null,
       "sample_reason": "direct media gateway redirect has been removed; use /v1/media/proxy/{cid}",
       "source": "src/weall/api/routes_public_parts/media.py",
       "source_lineno": 1014
@@ -2014,7 +2005,7 @@
       "source_lineno": 128
     }
   ],
-  "entry_count": 223,
+  "entry_count": 222,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",

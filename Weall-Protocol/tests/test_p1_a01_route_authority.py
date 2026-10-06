@@ -7,7 +7,6 @@ from pathlib import Path
 from weall.api import routes_nodes
 from weall.api.routes_public_parts.nodes import router as nodes_router
 
-
 ROOT = Path(__file__).resolve().parents[1]
 NODE_ROUTE_KEYS = {
     ("GET", "/v1/nodes"),
@@ -64,9 +63,9 @@ def test_a01_f003_node_routes_have_one_mounted_canonical_implementation() -> Non
     }
     assert set(node_modules.values()) == {"weall.api.routes_public_parts.nodes"}
 
-    routes_public_source = (
-        ROOT / "src" / "weall" / "api" / "routes_public.py"
-    ).read_text(encoding="utf-8")
+    routes_public_source = (ROOT / "src" / "weall" / "api" / "routes_public.py").read_text(
+        encoding="utf-8"
+    )
     mount = 'public_router.include_router(nodes_router, prefix="/v1", tags=["nodes"])'
     assert routes_public_source.count(mount) == 1
 
@@ -85,23 +84,18 @@ def test_a01_f003_generated_route_inventory_has_no_shadow_implementations() -> N
     assert not [
         row
         for row in rows
-        if str(row["implementation_source"]["path"])
-        == "src/weall/api/routes_nodes.py"
+        if str(row["implementation_source"]["path"]) == "src/weall/api/routes_nodes.py"
     ]
 
 
 def test_a01_f003_generated_node_authority_points_only_to_mounted_wrapper_module() -> None:
     rows = _generated_route_map()["routes"]
     node_rows = [
-        row
-        for row in rows
-        if (str(row["method"]).upper(), str(row["path"])) in NODE_ROUTE_KEYS
+        row for row in rows if (str(row["method"]).upper(), str(row["path"])) in NODE_ROUTE_KEYS
     ]
 
     assert len(node_rows) == 4
-    assert {
-        (str(row["method"]).upper(), str(row["path"])) for row in node_rows
-    } == NODE_ROUTE_KEYS
-    assert {
-        str(row["implementation_source"]["path"]) for row in node_rows
-    } == {"src/weall/api/routes_public_parts/nodes.py"}
+    assert {(str(row["method"]).upper(), str(row["path"])) for row in node_rows} == NODE_ROUTE_KEYS
+    assert {str(row["implementation_source"]["path"]) for row in node_rows} == {
+        "src/weall/api/routes_public_parts/nodes.py"
+    }
