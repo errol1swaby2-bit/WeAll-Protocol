@@ -215,19 +215,23 @@ def canonical_timeout_message(
     view: int,
     high_qc_id: str,
     signer: str,
+    high_qc_view: int = -1,
+    high_qc: Json | None = None,
     validator_epoch: int = 0,
     validator_set_hash: str = "",
     sig_profile: str = PQ_MLDSA_V1,
 ) -> bytes:
     profile = _bft_sig_profile(sig_profile)
     payload = {
-        "domain_separator": "weall.bft.timeout.v1",
+        "domain_separator": "weall.bft.timeout.v2",
         "object_kind": "bft_timeout",
         "sig_profile": profile,
         "t": "TIMEOUT",
         "chain_id": str(chain_id),
         "view": int(view),
         "high_qc_id": str(high_qc_id),
+        "high_qc_view": int(high_qc_view),
+        "high_qc": dict(high_qc) if isinstance(high_qc, dict) else None,
         "signer": str(signer),
         "validator_epoch": int(validator_epoch),
         "validator_set_hash": str(validator_set_hash),
@@ -359,22 +363,28 @@ class TimeoutCertificate:
     high_qc_id: str
     signer_count: int
     signers: tuple[str, ...]
+    high_qc_view: int = -1
+    high_qc: Json | None = None
     timeouts: tuple[Json, ...] = ()
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
     def to_json(self) -> Json:
-        return {
+        out: Json = {
             "t": "TC",
             "chain_id": self.chain_id,
             "view": int(self.view),
             "high_qc_id": self.high_qc_id,
+            "high_qc_view": int(self.high_qc_view),
             "signer_count": int(self.signer_count),
             "signers": list(self.signers),
             "timeouts": [dict(item) for item in self.timeouts],
             "validator_epoch": int(self.validator_epoch),
             "validator_set_hash": self.validator_set_hash,
         }
+        if isinstance(self.high_qc, dict):
+            out["high_qc"] = dict(self.high_qc)
+        return out
 
 
 @dataclass(frozen=True, slots=True)
@@ -385,16 +395,19 @@ class BftTimeout:
     signer: str
     pubkey: str
     sig: str
+    high_qc_view: int = -1
+    high_qc: Json | None = None
     sig_profile: str = PQ_MLDSA_V1
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
     def to_json(self) -> Json:
-        return {
+        out: Json = {
             "t": "TIMEOUT",
             "chain_id": self.chain_id,
             "view": int(self.view),
             "high_qc_id": self.high_qc_id,
+            "high_qc_view": int(self.high_qc_view),
             "signer": self.signer,
             "pubkey": self.pubkey,
             "sig": self.sig,
@@ -402,6 +415,9 @@ class BftTimeout:
             "validator_epoch": int(self.validator_epoch),
             "validator_set_hash": self.validator_set_hash,
         }
+        if isinstance(self.high_qc, dict):
+            out["high_qc"] = dict(self.high_qc)
+        return out
 
     def verify(self) -> bool:
         if not self.chain_id or not self.signer:
@@ -412,6 +428,8 @@ class BftTimeout:
             chain_id=self.chain_id,
             view=int(self.view),
             high_qc_id=self.high_qc_id,
+            high_qc_view=int(self.high_qc_view),
+            high_qc=self.high_qc,
             signer=self.signer,
             validator_epoch=int(self.validator_epoch),
             validator_set_hash=self.validator_set_hash,
@@ -459,6 +477,62 @@ def qc_from_json(q: Json) -> QuorumCert | None:
         validator_epoch=int(validator_epoch),
         validator_set_hash=validator_set_hash_s,
     )
+
+
+def _validated_timeout_high_qc(
+    *,
+    timeout: BftTimeout,
+    validators: list[str],
+    vpub: dict[str, str] | None,
+) -> tuple[bool, QuorumCert | None]:
+    """Verify the QC evidence a timeout claims to rank for recovery."""
+
+    qid = _as_str(timeout.high_qc_id or "")
+    qview = int(timeout.high_qc_view)
+    proof = timeout.high_qc if isinstance(timeout.high_qc, dict) else None
+
+    if qid == "genesis":
+        return (qview == -1 and proof is None), None
+    if not qid or qview < 0 or proof is None:
+        return False, None
+
+    qc = qc_from_json(proof)
+    if qc is None:
+        return False, None
+    if qc.chain_id != timeout.chain_id:
+        return False, None
+    if qc.block_id != qid or int(qc.view) != qview:
+        return False, None
+    if int(qc.validator_epoch) != int(timeout.validator_epoch):
+        return False, None
+    if str(qc.validator_set_hash or "") != str(timeout.validator_set_hash or ""):
+        return False, None
+    if not verify_qc(qc=qc, validators=validators, vpub=vpub, require_threshold=True):
+        return False, None
+    return True, qc
+
+
+def _highest_timeout_qc_reference(
+    proofs: list[Json] | tuple[Json, ...],
+) -> tuple[str, int, Json | None]:
+    """Return the highest verified QC reference represented by timeout proofs."""
+
+    candidates: list[tuple[int, str, Json | None]] = []
+    for item in proofs:
+        if not isinstance(item, dict):
+            continue
+        qid = _as_str(item.get("high_qc_id") or "")
+        qview = _as_int(item.get("high_qc_view"), -1)
+        proof = item.get("high_qc") if isinstance(item.get("high_qc"), dict) else None
+        if qid == "genesis" and qview == -1 and proof is None:
+            candidates.append((-1, "genesis", None))
+        elif qid and qview >= 0 and isinstance(proof, dict):
+            candidates.append((int(qview), qid, dict(proof)))
+    if not candidates:
+        return "", -1, None
+    candidates.sort(key=lambda row: (-int(row[0]), str(row[1])))
+    qview, qid, proof = candidates[0]
+    return str(qid), int(qview), dict(proof) if isinstance(proof, dict) else None
 
 
 def is_descendant(blocks: dict[str, Any], *, candidate: str, ancestor: str) -> bool:
@@ -820,12 +894,15 @@ class HotStuffBFT:
                 for item in timeouts_any:
                     if isinstance(item, dict):
                         timeouts.append(dict(item))
+            tc_high_qc = tcj.get("high_qc") if isinstance(tcj.get("high_qc"), dict) else None
             self.last_timeout_certificate = TimeoutCertificate(
                 chain_id=_as_str(tcj.get("chain_id") or self.chain_id),
                 view=_as_int(tcj.get("view"), 0),
                 high_qc_id=_as_str(tcj.get("high_qc_id") or ""),
                 signer_count=max(0, _as_int(tcj.get("signer_count"), len(signers))),
                 signers=tuple(signers),
+                high_qc_view=_as_int(tcj.get("high_qc_view"), -1),
+                high_qc=dict(tc_high_qc) if isinstance(tc_high_qc, dict) else None,
                 timeouts=tuple(timeouts),
                 validator_epoch=_as_int(tcj.get("validator_epoch"), 0),
                 validator_set_hash=_as_str(tcj.get("validator_set_hash") or ""),
