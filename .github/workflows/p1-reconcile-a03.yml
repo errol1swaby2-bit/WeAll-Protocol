@@ -1,0 +1,94 @@
+name: P1 Reconcile A03 Persistence
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-reconcile-a03.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Prove A03 persistence repairs before regeneration
+        working-directory: Weall-Protocol
+        run: |
+          ruff format --check             src/weall/runtime/executor.py             src/weall/api/routes_public_parts/tx.py             tests/test_p1_a03_startup_durable_authority.py             tests/test_p1_a03_observer_queue_durability.py
+          ruff check             src/weall/runtime/executor.py             src/weall/api/routes_public_parts/tx.py             tests/test_p1_a03_startup_durable_authority.py             tests/test_p1_a03_observer_queue_durability.py
+          pytest -q             tests/test_p1_a03_startup_durable_authority.py             tests/test_p1_a03_observer_queue_durability.py             tests/test_recursive_production_readiness_closure.py::test_pruned_delta_falls_back_to_restartable_checkpoint_snapshot             tests/test_state_sync_aux_branch_reset.py::test_checkpoint_sync_purges_aux_attestation_pool_and_restart_stays_clean             tests/test_pb001bo_canonical_block_hash_persistence.py::test_restart_fails_closed_when_persisted_tip_header_does_not_match_hash
+
+      - name: Remove temporary workflow from candidate tree
+        run: rm -f .github/workflows/p1-reconcile-a03.yml
+
+      - name: Regenerate dependent evidence twice
+        working-directory: Weall-Protocol
+        run: |
+          for round in 1 2; do
+            echo "regeneration round $round"
+            python scripts/gen_api_contract_map.py
+            python scripts/gen_failure_code_registry_v1_5.py
+            if [[ -f scripts/gen_api_response_vectors_v1_5.py ]]; then
+              python scripts/gen_api_response_vectors_v1_5.py
+            fi
+            PYTHONPATH=src python scripts/compile_v2_spec.py
+            python scripts/gen_b528_b532_completion_proof_v1_5.py
+            python scripts/gen_b534_b538_completion_proof_v1_5.py
+            python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+            python scripts/gen_public_beta_blocker_report_v1_5.py
+            python scripts/gen_release_evidence_manifest_v1_5.py
+            python scripts/gen_current_verified_claims.py
+          done
+
+      - name: Commit workflow-free A03 candidate locally
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No A03 reconciliation diff produced'; exit 1; }
+          git diff --check --cached
+          git commit -m 'audit: reconcile A03 persistence evidence'
+          echo "candidate_sha=$(git rev-parse HEAD)"
+          echo "candidate_tree=$(git rev-parse HEAD^{tree})"
+          test -z "$(git status --porcelain)"
+
+      - name: Verify committed A03 candidate
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          pytest -q             tests/test_p1_a03_startup_durable_authority.py             tests/test_p1_a03_observer_queue_durability.py             tests/test_recursive_production_readiness_closure.py::test_pruned_delta_falls_back_to_restartable_checkpoint_snapshot             tests/test_state_sync_aux_branch_reset.py::test_checkpoint_sync_purges_aux_attestation_pool_and_restart_stays_clean             tests/test_pb001bo_canonical_block_hash_persistence.py::test_restart_fails_closed_when_persisted_tip_header_does_not_match_hash
+          test -z "$(git status --porcelain)"
+
+      - name: Push verified workflow-free A03 candidate
+        run: |
+          test ! -e .github/workflows/p1-reconcile-a03.yml
+          test -z "$(git status --porcelain)"
+          git push origin HEAD:p1-revalidation-after-p0-20261005
