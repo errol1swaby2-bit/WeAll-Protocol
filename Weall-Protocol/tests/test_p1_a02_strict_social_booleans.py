@@ -9,7 +9,6 @@ from weall.runtime.apply.social import SocialApplyError, apply_social
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_schema import model_for_tx_type
 
-
 EDGE_TYPES = ("FOLLOW_SET", "BLOCK_SET", "MUTE_SET")
 INVALID_BOOLEAN_VALUES = ("false", "true", "0", "1", 0, 1)
 
@@ -45,9 +44,7 @@ def _env(tx_type: str, active: object) -> TxEnvelope:
 
 @pytest.mark.parametrize("tx_type", EDGE_TYPES)
 @pytest.mark.parametrize("value", INVALID_BOOLEAN_VALUES)
-def test_a02_f002_schema_rejects_coercible_non_boolean_values(
-    tx_type: str, value: object
-) -> None:
+def test_a02_f002_schema_rejects_coercible_non_boolean_values(tx_type: str, value: object) -> None:
     model = model_for_tx_type(tx_type)
     assert model is not None
     with pytest.raises(ValidationError):
@@ -65,9 +62,7 @@ def test_a02_f002_schema_preserves_real_json_booleans(tx_type: str, value: bool)
 
 @pytest.mark.parametrize("tx_type", EDGE_TYPES)
 @pytest.mark.parametrize("value", INVALID_BOOLEAN_VALUES)
-def test_a02_f002_apply_fails_closed_on_non_boolean_values(
-    tx_type: str, value: object
-) -> None:
+def test_a02_f002_apply_fails_closed_on_non_boolean_values(tx_type: str, value: object) -> None:
     state = _state()
     before = copy.deepcopy(state)
 
