@@ -1397,10 +1397,11 @@ class WeAllExecutor:
                 )
             return
 
-        if st_h > max_h:
+        if st_h != max_h:
+            relation = "exceeds" if st_h > max_h else "trails"
             raise ExecutorError(
-                f"db_invariant_violation: snapshot height {st_h} exceeds max persisted block height {max_h}. "
-                "Refuse to start."
+                f"db_invariant_violation: snapshot height {st_h} {relation} "
+                f"max persisted block height {max_h}. Refuse to start."
             )
 
         try:
