@@ -95,8 +95,9 @@
       "id": "A06-F002",
       "severity": "MEDIUM",
       "track": "P1-04",
-      "status": "pending_revalidation",
-      "summary": "Future constitutional-slot blocks are rejected by honest construction but accepted by follower/BFT admission before the slot"
+      "status": "patched_and_proven",
+      "summary": "Future constitutional-slot blocks are rejected by honest construction but accepted by follower/BFT admission before the slot",
+      "evidence": "BFT block admission and follower replay now enforce the same constitutional physical not-before rule used by honest block construction. The focused regression proves a positive-genesis controlled clock rejects at not_before_ms-1 and accepts at the boundary, and instruments both BFT admission and follower replay to prove enforce_not_before=true. P1 Revalidation run 37543184561 passed on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
     },
     {
       "id": "A07-F003",
@@ -192,7 +193,7 @@
       "track": "P1-03",
       "status": "patched_and_proven",
       "summary": "An older persisted read can overwrite a newer committed in-memory canonical state",
-      "evidence": "A14-F001 branch-linearized publication reconciliation run 37526882786 passed the forced persisted-read/real block-commit N\u2192N+1 interleaving, same-height wrong-tip + validator-generation publication ordering, existing BFT stale-persistence merge regression, checkpoint signing/canonical checkpoint atomicity, and mempool/checkpoint race tests. read_state now holds the canonical branch RLock across persisted read and self.state publication. Source-bound V2/release evidence regenerated twice from the workflow-free tree and clean-checkout/current-claim verification passed. Exact candidate: 3d872a5caf26d73cd88fae46751856e67d9fd826 / tree ad2101add49b9ccb249664abf7d3fb4767a022ee."
+      "evidence": "A14-F001 branch-linearized publication reconciliation run 37526882786 passed the forced persisted-read/real block-commit N→N+1 interleaving, same-height wrong-tip + validator-generation publication ordering, existing BFT stale-persistence merge regression, checkpoint signing/canonical checkpoint atomicity, and mempool/checkpoint race tests. read_state now holds the canonical branch RLock across persisted read and self.state publication. Source-bound V2/release evidence regenerated twice from the workflow-free tree and clean-checkout/current-claim verification passed. Exact candidate: 3d872a5caf26d73cd88fae46751856e67d9fd826 / tree ad2101add49b9ccb249664abf7d3fb4767a022ee."
     },
     {
       "id": "A15-F004",
@@ -206,8 +207,9 @@
       "id": "A15-F005",
       "severity": "MEDIUM",
       "track": "P1-09",
-      "status": "pending_revalidation",
-      "summary": "Public state snapshot has unbounded response/work size and recursively copies/redacts the whole state"
+      "status": "scope_closed_and_proven",
+      "summary": "Public state snapshot has unbounded response/work size and recursively copies/redacts the whole state",
+      "evidence": "The O(total-state) /v1/state/snapshot projection is scope-closed from production before executor/state access; dev/test retains the redacted convenience route. The regression proves a legacy enable attempt cannot reopen the production path and that rejected production calls perform zero state reads. P1 Revalidation run 37543184561 passed on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
     },
     {
       "id": "A15-F006",
@@ -271,22 +273,25 @@
       "id": "A19-F002",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "Advertised one-command tester node is not a self-contained clean-clone bootstrap"
+      "status": "patched_and_proven",
+      "summary": "Advertised one-command tester node is not a self-contained clean-clone bootstrap",
+      "evidence": "The tester-node contract is now explicitly a one-command start after prerequisites rather than a blank-machine installer. The runbook requires a hash-locked backend virtualenv plus bundle/Genesis inputs, and the script fails closed if the prepared .venv is absent or npm is missing for the default frontend path. Shell syntax and source-contract regressions passed in P1 Revalidation run 37543184561 on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
     },
     {
       "id": "A19-F003",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "fresh_clone_smoke.sh can pass without exact-commit binding or frontend verification"
+      "status": "patched_and_proven",
+      "summary": "fresh_clone_smoke.sh can pass without exact-commit binding or frontend verification",
+      "evidence": "fresh_clone_smoke.sh now requires WEALL_FRESH_CLONE_COMMIT as an exact 40-hex commit, checks out that immutable subject detached, records commit and tree, installs the locked dev environment, runs full pytest, and requires frontend npm install/typecheck/production-safety/build with PASS_FULL_STACK and no skipped components. P1 Revalidation run 37543184561 passed on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
     },
     {
       "id": "A19-F004",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "Reviewer verification paths are fragmented and non-equivalent without a front-door decision tree"
+      "status": "patched_and_proven",
+      "summary": "Reviewer verification paths are fragmented and non-equivalent without a front-door decision tree",
+      "evidence": "docs/reviewer/START_HERE.md is now the canonical reviewer verification decision tree and is linked from the root README. It explicitly distinguishes full-history exact review, historyless archive checks, exact-commit fresh-clone smoke, external observer/onboarding, and local dev/demo paths and states their non-equivalence. Source-contract regressions passed in P1 Revalidation run 37543184561 on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
     },
     {
       "id": "A20-F002",
@@ -298,7 +303,7 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 21,
-    "pending_revalidation": 13
+    "proven_dispositions": 26,
+    "pending_revalidation": 8
   }
 }
