@@ -33,6 +33,7 @@ jobs:
       - name: Format and verify A02 regression
         working-directory: Weall-Protocol
         run: |
+          ruff check --fix tests/test_p1_a02_strict_social_booleans.py
           ruff format tests/test_p1_a02_strict_social_booleans.py
           ruff check tests/test_p1_a02_strict_social_booleans.py
           pytest -q tests/test_p1_a02_strict_social_booleans.py
