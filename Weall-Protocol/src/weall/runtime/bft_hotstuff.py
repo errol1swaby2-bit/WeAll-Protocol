@@ -1218,6 +1218,7 @@ class HotStuffBFT:
             if not registered_pubkey or (embedded_pubkey and embedded_pubkey != registered_pubkey):
                 self.last_timeout_certificate = None
                 return False
+            proof = item.get("high_qc") if isinstance(item.get("high_qc"), dict) else None
             tmo = BftTimeout(
                 chain_id=_as_str(item.get("chain_id") or ""),
                 view=_as_int(item.get("view"), -1),
@@ -1225,6 +1226,8 @@ class HotStuffBFT:
                 signer=signer,
                 pubkey=registered_pubkey,
                 sig=_as_str(item.get("sig") or ""),
+                high_qc_view=_as_int(item.get("high_qc_view"), -1),
+                high_qc=dict(proof) if isinstance(proof, dict) else None,
                 sig_profile=_bft_sig_profile(
                     item.get("sig_profile") or item.get("signature_profile")
                 ),
@@ -1243,6 +1246,14 @@ class HotStuffBFT:
             if not tmo.verify():
                 self.last_timeout_certificate = None
                 return False
+            reference_ok, _qc = _validated_timeout_high_qc(
+                timeout=tmo,
+                validators=vset,
+                vpub=pubmap,
+            )
+            if not reference_ok:
+                self.last_timeout_certificate = None
+                return False
             verified[signer] = tmo.to_json()
 
         signers = tuple(sorted(verified))
@@ -1250,19 +1261,18 @@ class HotStuffBFT:
             self.last_timeout_certificate = None
             return False
 
-        high_qc_counts: dict[str, int] = {}
-        for item in verified.values():
-            qid = _as_str(item.get("high_qc_id") or "")
-            if qid:
-                high_qc_counts[qid] = int(high_qc_counts.get(qid, 0)) + 1
-        chosen_high_qc_id = ""
-        if high_qc_counts:
-            chosen_high_qc_id = sorted(
-                high_qc_counts.items(), key=lambda kv: (-int(kv[1]), str(kv[0]))
-            )[0][0]
-        elif self.high_qc is not None:
-            chosen_high_qc_id = str(self.high_qc.block_id or "")
-        if str(tc.high_qc_id or "") != str(chosen_high_qc_id or ""):
+        chosen_id, chosen_view, chosen_qc = _highest_timeout_qc_reference(
+            tuple(verified.values())
+        )
+        if str(tc.high_qc_id or "") != chosen_id or int(tc.high_qc_view) != chosen_view:
+            self.last_timeout_certificate = None
+            return False
+        tc_qc = tc.high_qc if isinstance(tc.high_qc, dict) else None
+        if isinstance(chosen_qc, dict):
+            if not isinstance(tc_qc, dict) or _canon_json(tc_qc) != _canon_json(chosen_qc):
+                self.last_timeout_certificate = None
+                return False
+        elif tc_qc is not None:
             self.last_timeout_certificate = None
             return False
 
@@ -1369,7 +1379,7 @@ class HotStuffBFT:
             embedded_pubkey = _as_str(item.get("pubkey") or "")
             if not registered_pubkey or (embedded_pubkey and embedded_pubkey != registered_pubkey):
                 continue
-
+            proof = item.get("high_qc") if isinstance(item.get("high_qc"), dict) else None
             artifact = BftTimeout(
                 chain_id=_as_str(item.get("chain_id") or ""),
                 view=_as_int(item.get("view"), -1),
@@ -1377,6 +1387,8 @@ class HotStuffBFT:
                 signer=signer,
                 pubkey=registered_pubkey,
                 sig=_as_str(item.get("sig") or ""),
+                high_qc_view=_as_int(item.get("high_qc_view"), -1),
+                high_qc=dict(proof) if isinstance(proof, dict) else None,
                 sig_profile=_bft_sig_profile(
                     item.get("sig_profile") or item.get("signature_profile")
                 ),
@@ -1391,6 +1403,13 @@ class HotStuffBFT:
                 continue
             try:
                 if not artifact.verify():
+                    continue
+                reference_ok, _qc = _validated_timeout_high_qc(
+                    timeout=artifact,
+                    validators=vset,
+                    vpub=vpub,
+                )
+                if not reference_ok:
                     continue
             except Exception:
                 continue
@@ -1732,14 +1751,18 @@ class HotStuffBFT:
         vpub: dict[str, str],
         verified_admission: Callable[[Json], bool] | None = None,
     ) -> int | None:
-        """
-        Accept TIMEOUT; if threshold reached for view, return new_view to advance to.
-        """
+        """Accept a timeout whose referenced QC evidence is independently valid."""
+
         if not isinstance(timeout_json, dict):
             return None
         if _as_str(timeout_json.get("t") or "") != "TIMEOUT":
             return None
 
+        proof = (
+            timeout_json.get("high_qc")
+            if isinstance(timeout_json.get("high_qc"), dict)
+            else None
+        )
         tmo = BftTimeout(
             chain_id=_as_str(timeout_json.get("chain_id") or self.chain_id),
             view=_as_int(timeout_json.get("view"), 0),
@@ -1747,6 +1770,8 @@ class HotStuffBFT:
             signer=_as_str(timeout_json.get("signer") or ""),
             pubkey=_as_str(timeout_json.get("pubkey") or ""),
             sig=_as_str(timeout_json.get("sig") or ""),
+            high_qc_view=_as_int(timeout_json.get("high_qc_view"), -1),
+            high_qc=dict(proof) if isinstance(proof, dict) else None,
             sig_profile=_bft_sig_profile(
                 timeout_json.get("sig_profile") or timeout_json.get("signature_profile")
             ),
@@ -1756,7 +1781,8 @@ class HotStuffBFT:
         if tmo.chain_id != self.chain_id:
             return None
 
-        vset = set(normalize_validators(validators))
+        vlist = normalize_validators(validators)
+        vset = set(vlist)
         if tmo.signer not in vset:
             return None
         registered_pubkey = _as_str(vpub.get(tmo.signer) or "")
@@ -1764,20 +1790,28 @@ class HotStuffBFT:
             return None
         if tmo.pubkey and tmo.pubkey != registered_pubkey:
             return None
-        pubkey = registered_pubkey
 
         tmo2 = BftTimeout(
             chain_id=tmo.chain_id,
             view=int(tmo.view),
             high_qc_id=tmo.high_qc_id,
             signer=tmo.signer,
-            pubkey=pubkey,
+            pubkey=registered_pubkey,
             sig=tmo.sig,
+            high_qc_view=int(tmo.high_qc_view),
+            high_qc=dict(tmo.high_qc) if isinstance(tmo.high_qc, dict) else None,
             sig_profile=_bft_sig_profile(tmo.sig_profile),
             validator_epoch=int(tmo.validator_epoch),
             validator_set_hash=tmo.validator_set_hash,
         )
         if not tmo2.verify():
+            return None
+        reference_ok, _qc = _validated_timeout_high_qc(
+            timeout=tmo2,
+            validators=vlist,
+            vpub=vpub,
+        )
+        if not reference_ok:
             return None
 
         v = int(tmo2.view)
@@ -1798,7 +1832,7 @@ class HotStuffBFT:
             bucket = self._revalidate_pending_liveness_bucket(
                 view=v,
                 bucket=bucket,
-                validators=validators,
+                validators=vlist,
                 vpub=vpub,
                 validator_epoch=int(tmo2.validator_epoch),
                 validator_set_hash_expected=str(tmo2.validator_set_hash or ""),
@@ -1809,35 +1843,23 @@ class HotStuffBFT:
             bucket[tmo2.signer] = dict(validated_timeout_json)
         self._prune_local_liveness_caches()
 
-        th = quorum_threshold(len(vset))
-        if len(bucket) >= th:
-            high_qc_counts: dict[str, int] = {}
-            for item in bucket.values():
-                if not isinstance(item, dict):
-                    continue
-                qid = _as_str(item.get("high_qc_id") or "")
-                if not qid:
-                    continue
-                high_qc_counts[qid] = int(high_qc_counts.get(qid, 0)) + 1
-
-            chosen_high_qc_id = ""
-            if high_qc_counts:
-                chosen_high_qc_id = sorted(
-                    high_qc_counts.items(), key=lambda kv: (-int(kv[1]), str(kv[0]))
-                )[0][0]
-            elif self.high_qc is not None:
-                chosen_high_qc_id = str(self.high_qc.block_id or "")
-
+        threshold = quorum_threshold(len(vset))
+        if len(bucket) >= threshold:
             signers = tuple(sorted(str(s) for s in bucket.keys() if str(s)))
             timeout_proofs = tuple(
                 dict(bucket[s]) for s in signers if isinstance(bucket.get(s), dict)
             )
+            chosen_id, chosen_view, chosen_qc = _highest_timeout_qc_reference(timeout_proofs)
+            if not chosen_id:
+                return None
             self.last_timeout_certificate = TimeoutCertificate(
                 chain_id=self.chain_id,
                 view=int(v),
-                high_qc_id=str(chosen_high_qc_id or ""),
+                high_qc_id=chosen_id,
                 signer_count=len(signers),
                 signers=signers,
+                high_qc_view=int(chosen_view),
+                high_qc=dict(chosen_qc) if isinstance(chosen_qc, dict) else None,
                 timeouts=timeout_proofs,
                 validator_epoch=int(tmo2.validator_epoch),
                 validator_set_hash=str(tmo2.validator_set_hash or ""),
@@ -1857,3 +1879,4 @@ class HotStuffBFT:
             self._prune_local_liveness_caches()
             return new_view
         return None
+
