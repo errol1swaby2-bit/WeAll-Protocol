@@ -118,6 +118,7 @@ jobs:
             python scripts/gen_b528_b532_completion_proof_v1_5.py
             python scripts/gen_b534_b538_completion_proof_v1_5.py
             python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+            PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py
             python scripts/gen_public_beta_blocker_report_v1_5.py
             python scripts/gen_release_evidence_manifest_v1_5.py
             python scripts/gen_current_verified_claims.py
@@ -175,3 +176,5 @@ jobs:
           test ! -e .github/workflows/p1-reconcile-a05-timeout.yml
           test -z "$(git status --porcelain)"
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# retry with public-only protocol audit regeneration before release evidence
