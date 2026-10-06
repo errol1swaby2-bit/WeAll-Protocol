@@ -183,6 +183,26 @@ def read_cached_state(self) -> Json:
     return self.state
 
 
+def health_telemetry(self) -> Json:
+    """Return bounded health/readiness telemetry without parsing full state_json."""
+    head = self._ledger_store.read_head()
+    cached = self.state if isinstance(getattr(self, "state", None), dict) else {}
+    params = cached.get("params") if isinstance(cached.get("params"), dict) else {}
+    return {
+        "chain_id": str(cached.get("chain_id") or params.get("chain_id") or self.chain_id or ""),
+        "node_id": str(cached.get("node_id") or params.get("node_id") or self.node_id or ""),
+        "height": int(head.get("height") or 0),
+        "tip": str(head.get("block_id") or ""),
+        "durable_updated_ts_ms": int(head.get("updated_ts_ms") or 0),
+        "time": cached.get("time"),
+        "params": {
+            "economic_unlock_time": params.get("economic_unlock_time"),
+            "genesis_time": params.get("genesis_time"),
+            "economics_enabled": params.get("economics_enabled", False),
+        },
+    }
+
+
 def read_state(self) -> Json:
     """Return and publish the latest persisted snapshot at one branch-linearized point.
 
