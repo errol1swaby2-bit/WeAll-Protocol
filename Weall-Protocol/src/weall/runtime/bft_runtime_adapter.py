@@ -1729,10 +1729,9 @@ def _bft_best_justify_qc_json(self) -> Json | None:
     if isinstance(tc_qc, dict):
         qc = self.bft_verify_qc_json(tc_qc)
         if qc is not None:
-            if (
-                str(qc.block_id or "") == str(getattr(tc, "high_qc_id", "") or "")
-                and int(qc.view) == int(getattr(tc, "high_qc_view", -1))
-            ):
+            if str(qc.block_id or "") == str(getattr(tc, "high_qc_id", "") or "") and int(
+                qc.view
+            ) == int(getattr(tc, "high_qc_view", -1)):
                 return qc.to_json()
         return None
 
@@ -1745,6 +1744,7 @@ def _bft_best_justify_qc_json(self) -> Json | None:
         if qc is not None and int(qc.view) == int(getattr(tc, "high_qc_view", -1)):
             return qc.to_json()
     return None
+
 
 def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
     if not self._validator_signing_permitted():
@@ -2128,6 +2128,7 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
         timeout_ms=int(self._bft.pacemaker_timeout_ms()),
     )
     return tjson
+
 
 def bft_handle_timeout(self, timeout_json: Json) -> int | None:
     if not isinstance(timeout_json, dict):

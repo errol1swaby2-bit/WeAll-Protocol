@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 from weall.crypto.sig import sign_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.runtime import bft_runtime_adapter
@@ -18,7 +16,6 @@ from weall.runtime.bft_hotstuff import (
     verify_qc,
 )
 from weall.testing.sigtools import deterministic_mldsa_keypair
-
 
 CHAIN_ID = "a05-timeout-rank"
 VALIDATORS = ["v1", "v2", "v3", "v4"]

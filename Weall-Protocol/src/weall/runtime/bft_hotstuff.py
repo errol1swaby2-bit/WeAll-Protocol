@@ -1261,9 +1261,7 @@ class HotStuffBFT:
             self.last_timeout_certificate = None
             return False
 
-        chosen_id, chosen_view, chosen_qc = _highest_timeout_qc_reference(
-            tuple(verified.values())
-        )
+        chosen_id, chosen_view, chosen_qc = _highest_timeout_qc_reference(tuple(verified.values()))
         if str(tc.high_qc_id or "") != chosen_id or int(tc.high_qc_view) != chosen_view:
             self.last_timeout_certificate = None
             return False
@@ -1759,9 +1757,7 @@ class HotStuffBFT:
             return None
 
         proof = (
-            timeout_json.get("high_qc")
-            if isinstance(timeout_json.get("high_qc"), dict)
-            else None
+            timeout_json.get("high_qc") if isinstance(timeout_json.get("high_qc"), dict) else None
         )
         tmo = BftTimeout(
             chain_id=_as_str(timeout_json.get("chain_id") or self.chain_id),
@@ -1879,4 +1875,3 @@ class HotStuffBFT:
             self._prune_local_liveness_caches()
             return new_view
         return None
-
