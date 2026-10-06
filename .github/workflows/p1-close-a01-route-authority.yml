@@ -45,6 +45,9 @@ jobs:
       - name: Prove source shape and regenerate V2
         working-directory: Weall-Protocol
         run: |
+          ruff check --fix \
+            src/weall/api/routes_nodes.py \
+            tests/test_p1_a01_route_authority.py
           ruff format \
             src/weall/api/routes_nodes.py \
             tests/test_p1_a01_route_authority.py
