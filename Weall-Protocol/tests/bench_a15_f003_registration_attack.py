@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import os
 import time
 from pathlib import Path
 
@@ -73,7 +74,24 @@ def main() -> int:
     )
     parser.add_argument("--accounts", type=int, default=32)
     parser.add_argument("--max-nonce", type=int, default=5_000_000)
+    parser.add_argument(
+        "--signature-mode",
+        choices=("closed-testnet", "public-testnet"),
+        default="public-testnet",
+        help=(
+            "Cryptographic admission posture for this scarcity benchmark. "
+            "Production registration-work parameters are still loaded from the "
+            "checked-in production genesis; mainnet ML-DSA remains fail-closed."
+        ),
+    )
     args = parser.parse_args()
+
+    signature_mode = str(args.signature_mode)
+    os.environ["WEALL_MODE"] = signature_mode
+    if signature_mode == "public-testnet":
+        os.environ["WEALL_PUBLIC_TESTNET"] = "1"
+    else:
+        os.environ.pop("WEALL_PUBLIC_TESTNET", None)
 
     account_count = max(1, int(args.accounts))
     max_nonce = max(1, int(args.max_nonce))
@@ -181,15 +199,21 @@ def main() -> int:
                 "all_solved_work_verified": True,
                 "all_solved_work_passed_canonical_block_admission": True,
                 "all_admissions_verified_valid_mldsa_signatures": True,
+                "signature_runtime_mode": signature_mode,
+                "production_mainnet_mldsa_admission_claimed": False,
+                "production_registration_work_parameters_used": True,
                 "all_payloads_include_production_required_recovery_and_kem_material": True,
                 "all_registrations_applied_to_production_genesis_state": True,
                 "distributed_signers": account_count,
                 "solutions": solved,
                 "note": (
                     "Deterministic CPU rehearsal of independent production-difficulty "
-                    "registration-work solutions, fully signed canonical block admission, and "
-                    "permanent account-state application. Timing is CI-host evidence, not a "
-                    "validator throughput or Sybil-resistance claim."
+                    "registration-work solutions using the checked-in production scarcity "
+                    "parameters, fully signed canonical admission under the explicitly valid "
+                    f"{signature_mode} ML-DSA posture, and permanent account-state application. "
+                    "This does not claim mainnet ML-DSA admission; mainnet remains fail-closed "
+                    "pending the separately tracked cryptographic review. Timing is CI-host "
+                    "evidence, not a validator throughput or Sybil-resistance claim."
                 ),
             },
             sort_keys=True,
