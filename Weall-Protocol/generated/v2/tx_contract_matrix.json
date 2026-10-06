@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "5eff78d5479c07947c538e0716920b20840cd0ca0395883c16f6efb63484bbbd"
+    "source_tree_digest": "2d866490aeb527d185f2f2e2137b35b210f98568be906d58f364e2fda2dc02f2"
   },
   "required_fields": [
     "stable_id",
@@ -20193,7 +20193,7 @@
       "implementation_source": {
         "function": "_apply_profile_update",
         "handler": "social",
-        "line": 117,
+        "line": 123,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20298,7 +20298,7 @@
       "implementation_source": {
         "function": "_apply_follow_set",
         "handler": "social",
-        "line": 140,
+        "line": 146,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20326,9 +20326,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "5d5d0cbd0cf9661edc8c9a934e6b138d9136df45fb993a69d4d1d585fa7b632d",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T00:35:29Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1201",
@@ -20350,6 +20350,7 @@
       "tests": [
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_genesis_multi_user_rehearsal_safety.py",
+        "tests/test_p1_a02_strict_social_booleans.py",
         "tests/test_read_write_scope_guards.py",
         "tests/test_tx_schema_social_notifications.py"
       ],
@@ -20413,7 +20414,7 @@
       "implementation_source": {
         "function": "_apply_block_set",
         "handler": "social",
-        "line": 156,
+        "line": 162,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20441,9 +20442,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "2c7e3ac6927cfd3d2ee1a128e84901b37df0ab49da6bc1a96684b57c5609f4c7",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T00:35:29Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1202",
@@ -20463,6 +20464,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_a02_strict_social_booleans.py",
         "tests/test_tx_schema_social_notifications.py"
       ],
       "tx_type": "BLOCK_SET",
@@ -20521,7 +20523,7 @@
       "implementation_source": {
         "function": "_apply_mute_set",
         "handler": "social",
-        "line": 172,
+        "line": 178,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20549,9 +20551,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "2ecc604d8aa18dfee61e8a12afec8ff87e6151e6b8557ea45837f3d93c756cd8",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T00:35:29Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1203",
@@ -20571,6 +20573,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_a02_strict_social_booleans.py",
         "tests/test_tx_schema_social_notifications.py"
       ],
       "tx_type": "MUTE_SET",
@@ -20625,7 +20628,7 @@
       "implementation_source": {
         "function": "_apply_content_share_create",
         "handler": "social",
-        "line": 193,
+        "line": 199,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

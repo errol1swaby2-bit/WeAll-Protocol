@@ -868,7 +868,7 @@
       "http_status": null,
       "sample_reason": "account_not_registered",
       "source": "src/weall/runtime/apply/social.py",
-      "source_lineno": 96
+      "source_lineno": 102
     },
     {
       "code": "forbidden",
@@ -1100,9 +1100,9 @@
       "domain": "runtime_apply",
       "family": "SocialApplyError",
       "http_status": null,
-      "sample_reason": "missing_target",
+      "sample_reason": "boolean_required",
       "source": "src/weall/runtime/apply/social.py",
-      "source_lineno": 146
+      "source_lineno": 61
     },
     {
       "code": "invalid_payload",

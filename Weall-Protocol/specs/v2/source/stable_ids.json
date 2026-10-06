@@ -7243,6 +7243,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_payload:boolean_required",
+      "kind": "failure",
+      "stable_id": "FAIL-FD234D34AF92C053",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_tx:missing_evidence_id",
       "kind": "failure",
       "stable_id": "FAIL-FD859E8BEC1C1561",

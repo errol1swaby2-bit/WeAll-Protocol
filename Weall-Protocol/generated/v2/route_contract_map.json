@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "5eff78d5479c07947c538e0716920b20840cd0ca0395883c16f6efb63484bbbd"
+    "source_tree_digest": "2d866490aeb527d185f2f2e2137b35b210f98568be906d58f364e2fda2dc02f2"
   },
   "required_fields": [
     "stable_id",
@@ -7609,6 +7609,7 @@
         "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
+        "tests/test_p1_a02_strict_social_booleans.py",
         "tests/test_p1_a07_tls_verification.py",
         "tests/test_p1_a10_treasury_cancel_scope.py",
         "tests/test_p1_a12_mempool_redaction.py",
