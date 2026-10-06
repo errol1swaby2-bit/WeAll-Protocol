@@ -62,8 +62,9 @@
       "id": "A02-F002",
       "severity": "MEDIUM",
       "track": "P1-02",
-      "status": "pending_revalidation",
-      "summary": "Schema accepts textual false while social execution applies it as true"
+      "status": "patched_and_proven",
+      "summary": "Schema accepts textual false while social execution applies it as true",
+      "evidence": "Strict JSON boolean semantics are enforced for FOLLOW_SET, BLOCK_SET, and MUTE_SET at both schema and apply boundaries. The 3x8 coercion matrix rejects textual/integers and preserves real booleans; invalid direct apply leaves state unchanged. Reconciliation run 37394764328 registered invalid_payload:boolean_required, refreshed all three V2 semantic bindings, regenerated dependent evidence twice, passed clean-checkout V2/public-claim checks, and pushed workflow-free candidate 41c10839a3aeb965147006ca57ea5f089096b751."
     },
     {
       "id": "A03-F001",
@@ -97,8 +98,9 @@
       "id": "A07-F003",
       "severity": "MEDIUM",
       "track": "P1-05",
-      "status": "pending_revalidation",
-      "summary": "Production TLS peer connections can silently disable certificate verification"
+      "status": "patched_and_proven",
+      "summary": "Production TLS peer connections can silently disable certificate verification",
+      "evidence": "Production TLS transport fails closed without a CA unless the explicit WEALL_NET_TLS_INSECURE_OK compatibility override is set. The regression remained green in the combined A10/A13 reconciliation run 37394044969 before workflow-free candidate 00619c3892753f0da7b161a44666c2145b8ce4f0 was pushed."
     },
     {
       "id": "A08-F002",
@@ -127,8 +129,9 @@
       "id": "A10-F004",
       "severity": "MEDIUM",
       "track": "P1-07",
-      "status": "pending_revalidation",
-      "summary": "Generic treasury cancellation is authorized by a global emissary role rather than treasury-scoped cancellation authority"
+      "status": "patched_and_proven",
+      "summary": "Generic treasury cancellation is authorized by a global emissary role rather than treasury-scoped cancellation authority",
+      "evidence": "TREASURY_SPEND_CANCEL is now canon-gated by treasury-scoped Signer authority, and the treasury applier independently checks the proposal-time allowed_signers snapshot (or derives a scoped legacy set) before mutation. The adversarial regression proves a globally seated non-signer emissary cannot cancel another treasury's spend. Reconciliation run 37394044969 refreshed TX-0506 semantics, regenerated dependent evidence twice, passed clean-checkout verification, and pushed workflow-free candidate 00619c3892753f0da7b161a44666c2145b8ce4f0."
     },
     {
       "id": "A11-F001",
@@ -144,7 +147,7 @@
       "track": "P1-07",
       "status": "patched_and_proven",
       "summary": "Positive transfer fee policy is currently unenforceable",
-      "evidence": "Until BALANCE_TRANSFER has an atomic enforced settlement contract, positive transfer_fee_int now fails closed with transfer_fee_policy_not_enforced while zero remains allowed. Remediation workflow run 37384231216 passed focused/economics/canon tests and committed b42e496eee6fc2b2617b848e062e1e1306f2dfb3."
+      "evidence": "Configured positive BALANCE_TRANSFER fees are now settled atomically in the transfer transition: sender is debited amount+fee, recipient and canonical fee sink are credited, settlement is bound to deterministic transfer_id, missing sink/insufficient total funds fail closed, and replay dedupes before re-charge. A standalone zero/wrong FEE_PAY cannot authorize bypass. Reconciliation run 37391108169 passed targeted economics regressions, semantic refresh, two regeneration rounds, clean-checkout V2/B528/B534/B567/public-claim freshness, and pushed workflow-free candidate 08fd14aff62921ee505bfd21ae35de6c5bc7772f."
     },
     {
       "id": "A12-F002",
@@ -158,8 +161,9 @@
       "id": "A12-F003",
       "severity": "MEDIUM",
       "track": "P1-08",
-      "status": "pending_revalidation",
-      "summary": "Observer-edge operator authorization trusts loopback peers by default"
+      "status": "patched_and_proven",
+      "summary": "Observer-edge operator authorization trusts loopback peers by default",
+      "evidence": "Production observer-edge operator authorization no longer trusts loopback peers by default: missing/bad token loopback requests are rejected and only the configured token passes, while dev-only convenience remains explicitly bounded. The regression remained green in combined reconciliation run 37394044969."
     },
     {
       "id": "A13-F001",
@@ -172,8 +176,9 @@
       "id": "A13-F002",
       "severity": "MEDIUM",
       "track": "P1-05",
-      "status": "pending_revalidation",
-      "summary": "Signature-profile mode policy and explicit allowlist can fail open to ML-DSA"
+      "status": "patched_and_proven",
+      "summary": "Signature-profile mode policy and explicit allowlist can fail open to ML-DSA",
+      "evidence": "Runtime signature-profile admission enforces registry mode flags and explicit allowlists are authoritative: empty, unknown-only, and mixed-invalid policies fail closed rather than restoring pq-mldsa-v1; mainnet rejects ML-DSA while registry mainnet permission is false, while controlled/public testnet remains explicitly allowed. Transaction, block, validator/operator, and public-testnet caller matrices passed, and combined reconciliation run 37394044969 regenerated exact-tree evidence before pushing candidate 00619c3892753f0da7b161a44666c2145b8ce4f0."
     },
     {
       "id": "A14-F001",
@@ -284,7 +289,7 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 7,
-    "pending_revalidation": 27
+    "proven_dispositions": 12,
+    "pending_revalidation": 22
   }
 }
