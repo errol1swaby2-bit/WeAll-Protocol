@@ -27,7 +27,7 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           python -m pip install ruff==0.15.22
-          pip install --require-hashes -r requirements.lock
+          pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
       - name: Format and verify A13 policy files
