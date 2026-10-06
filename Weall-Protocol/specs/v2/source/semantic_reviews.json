@@ -4566,9 +4566,9 @@
       "authority_effect": "none; does not activate public testnet or Mainnet",
       "disposition": "accepted_current_semantic_contract",
       "independent_review": false,
-      "review_digest": "58554f523719051db1b406958a6d7e3f1aa521d656a752604c8fb9b86b13d18c",
+      "review_digest": "2ddfc04ad5e132a089a80dfeef90188f517d3903a69334d3c93fcf5cdbc52b34",
       "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-      "reviewed_at": "2026-10-05T23:54:43Z",
+      "reviewed_at": "2026-10-06T00:52:15Z",
       "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)",
       "stable_id": "TX-1300",
       "tx_type": "BALANCE_TRANSFER"

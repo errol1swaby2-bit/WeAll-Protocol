@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "1f5674bfdc0a1a099edf57fad6429a203ee58412deee7e94ca8f865815ad0b94"
+    "source_tree_digest": "5bc12b00fa1ab432b098f09421273450afd44108e4c7d4c45c3ea7baea6ea3e6"
   },
   "rows": [
     {
@@ -20739,16 +20739,10 @@
         "kind": "user_transaction_apply_result",
         "parent": null,
         "return_fields": [
-          "amount",
-          "applied",
           "content_id",
           "deduped",
-          "fee_amount",
-          "fee_to",
-          "from",
           "purpose",
           "tip_indexed",
-          "to",
           "transfer_id"
         ],
         "stable_id": "RCP-EBB8281C1C5B9477"
@@ -20761,9 +20755,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "58554f523719051db1b406958a6d7e3f1aa521d656a752604c8fb9b86b13d18c",
+        "review_digest": "2ddfc04ad5e132a089a80dfeef90188f517d3903a69334d3c93fcf5cdbc52b34",
         "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-10-05T23:54:43Z",
+        "reviewed_at": "2026-10-06T00:52:15Z",
         "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
@@ -20808,8 +20802,10 @@
         "key:balance",
         "key:count",
         "key:economics",
+        "key:fee_amount",
         "key:fee_payments",
         "key:fee_policy",
+        "key:fee_to",
         "key:mempool_reject_receipts",
         "key:rate_limit_policy",
         "key:rate_limit_strikes",
@@ -24849,7 +24845,7 @@
       "implementation_source": {
         "function": "_apply_rate_limit_strike_apply",
         "handler": "economics",
-        "line": 1149,
+        "line": 1153,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24943,7 +24939,7 @@
       "implementation_source": {
         "function": "_apply_mempool_reject_receipt",
         "handler": "economics",
-        "line": 1171,
+        "line": 1175,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

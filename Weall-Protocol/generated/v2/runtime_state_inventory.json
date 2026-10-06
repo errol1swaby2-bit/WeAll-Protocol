@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "1f5674bfdc0a1a099edf57fad6429a203ee58412deee7e94ca8f865815ad0b94"
+    "source_tree_digest": "5bc12b00fa1ab432b098f09421273450afd44108e4c7d4c45c3ea7baea6ea3e6"
   },
   "rows": [
     {
@@ -12651,7 +12651,9 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [],
+      "creation_contracts": [
+        "TX-1300"
+      ],
       "domain": "Economics",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -12660,7 +12662,9 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
+      "mutators": [
+        "src/weall/runtime/apply/economics.py#_apply_balance_transfer"
+      ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
         "TX-1300"
@@ -12671,12 +12675,16 @@
       "stable_id": "STATE-A0706E47B17C829E",
       "state_key_or_namespace": "fee_amount",
       "status": "current_partial",
-      "transition_contracts": [],
+      "transition_contracts": [
+        "TX-1300"
+      ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": []
+      "writes_by": [
+        "TX-1300"
+      ]
     },
     {
       "creation_contracts": [
@@ -12840,7 +12848,9 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [],
+      "creation_contracts": [
+        "TX-1300"
+      ],
       "domain": "Economics",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -12849,7 +12859,9 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
+      "mutators": [
+        "src/weall/runtime/apply/economics.py#_apply_balance_transfer"
+      ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
         "TX-1300"
@@ -12860,12 +12872,16 @@
       "stable_id": "STATE-E2C5F1CDA1605EED",
       "state_key_or_namespace": "fee_to",
       "status": "current_partial",
-      "transition_contracts": [],
+      "transition_contracts": [
+        "TX-1300"
+      ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": []
+      "writes_by": [
+        "TX-1300"
+      ]
     },
     {
       "creation_contracts": [],

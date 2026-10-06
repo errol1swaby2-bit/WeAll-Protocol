@@ -3067,7 +3067,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "154f526441e19509638887655b678ae0e6b61a9f7262c489426722740dd3ddf2",
+      "sha256": "28a35129dafa924b20c1d4004336231ffd6d82cece54a253c40819b10ed258e6",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3081,7 +3081,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "fdf86a8c8f86b2601c3b23c6a23f8d544bef5491b0bf7c16d54cd08111815c30",
+      "sha256": "24a2efffe4a9ab61491d6804f2988f750f8c3d737217f654c057a4b625157512",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3165,7 +3165,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "cd3e469253a07568d1ecf24dceaf57155860d2a91cf5677f74deb2784b4fb522",
+      "sha256": "d1de705294db3e35cafe3271613c3a3190f83f42006434203ab13b46b630b067",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -6785,7 +6785,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "fa6bfa32f1f49f9b85353872625a492b953b8a0475e5f54a105f6a419d25430c",
+      "sha256": "c4836ada9369aedae72bf6b0a1bf5e855f4848d903632ea9c255db4edfa6c63b",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -8790,7 +8790,7 @@
       ],
       "path": "src/weall/runtime/apply/economics.py",
       "primary_mechanism_id": "M-063",
-      "sha256": "2eebaadc48f982d631575333104c77de947597d635d85c6ee4af5e4b73795bd2",
+      "sha256": "f445151a1538ec95097388596cf7138b38552bed3cade0e2953a4208e03724f1",
       "source_id": "SRC-3A60F279F82C9786"
     },
     {
@@ -22527,7 +22527,7 @@
       ],
       "path": "tests/test_p1_latest_medium_closure.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "84616ea113afaf54e9c01d2b9b99d7c5ea079cf97884f372bb8c7993787dad49",
+      "sha256": "9e77f55822a1542bf12e16670c0b0952cb4e26073547448c220fb1d168e977a2",
       "source_id": "SRC-F9D43302F3A3F003"
     },
     {
