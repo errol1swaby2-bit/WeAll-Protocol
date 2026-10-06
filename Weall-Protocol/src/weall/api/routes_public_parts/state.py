@@ -345,12 +345,16 @@ def _executor_wire_header(ex: Any, msg_type: MsgType, *, corr_id: str | None = N
 
 @router.get("/state/snapshot")
 def state_snapshot(request: Request) -> Json:
-    """Return the node's current ledger snapshot for non-production tooling.
+    """Return a redacted ledger snapshot.
 
-    A15-F005: full-state snapshot work is disabled in production before the
-    executor is touched. Production consumers must use bounded/scoped state
-    routes or authenticated bounded state-sync surfaces instead.
+    A15-F005: in production this is an operator-scoped diagnostic, not a
+    public full-state endpoint. Authenticate before touching the executor so
+    an anonymous tiny GET cannot amplify into O(total-state) read/copy/redact
+    work. Dev/test retains the legacy public convenience behavior.
     """
+
+    if _mode() == "prod":
+        _require_state_raw_read_operator(request)
 
     ex = _executor(request)
     st = ex.read_state()
