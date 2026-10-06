@@ -71,15 +71,17 @@
       "id": "A03-F001",
       "severity": "MEDIUM",
       "track": "P1-03",
-      "status": "pending_revalidation",
-      "summary": "Nonzero stale ledger snapshot can pass startup while newer persisted blocks already exist"
+      "status": "patched_and_proven",
+      "summary": "Nonzero stale ledger snapshot can pass startup while newer persisted blocks already exist",
+      "evidence": "Workflow-free A03 reconciliation run 37533819920 produced exact candidate 7e7094a0eb01ac555a0fb47700c6885f61f1cffb / tree dfffac682b4ae22a7d0abf420fdc6c2de7087324. Startup now fails closed whenever a non-genesis ledger snapshot height differs from the highest persisted canonical block height. The regression matrix covers fresh/normal restart, zero-behind, nonzero stale snapshot behind newer blocks, snapshot ahead of block history, pruned-history checkpoint fallback, state-sync checkpoint restart, and persisted tip corruption. The reconciliation also passed two-pass evidence regeneration and clean-checkout verification."
     },
     {
       "id": "A03-F002",
       "severity": "MEDIUM",
       "track": "P1-03",
-      "status": "pending_revalidation",
-      "summary": "Observer durable_tx_queue acknowledgement is not backed by an explicit filesystem durability barrier"
+      "status": "patched_and_proven",
+      "summary": "Observer durable_tx_queue acknowledgement is not backed by an explicit filesystem durability barrier",
+      "evidence": "Workflow-free A03 reconciliation run 37533819920 produced exact candidate 7e7094a0eb01ac555a0fb47700c6885f61f1cffb / tree dfffac682b4ae22a7d0abf420fdc6c2de7087324. Observer durable_tx_queue publication now flushes and fsyncs replacement file contents, atomically renames, and fsyncs the parent directory on the supported POSIX production posture. Focused evidence proves file_fsync -> replace -> directory_fsync ordering, file-fsync failure prevents publication, and directory-fsync failure propagates so the caller cannot acknowledge a durable handoff."
     },
     {
       "id": "A05-F003",
@@ -295,7 +297,7 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 18,
-    "pending_revalidation": 16
+    "proven_dispositions": 20,
+    "pending_revalidation": 14
   }
 }
