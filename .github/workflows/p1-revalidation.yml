@@ -67,6 +67,7 @@ jobs:
       - name: Current A01-A20 P1 remediation regressions
         working-directory: Weall-Protocol
         run: |
+          bash -n ../scripts/fresh_clone_smoke.sh scripts/weall_tester_node.sh
           pytest -q \
             tests/test_p1_latest_medium_closure.py \
             tests/test_p1_a01_route_authority.py \
@@ -93,6 +94,7 @@ jobs:
             tests/test_p1_a15_snapshot_scope.py \
             tests/test_p1_a18_claim_boundaries.py \
             tests/test_p1_a19_reviewer_front_door.py \
+            tests/test_p1_a19_reviewer_bootstrap.py \
             tests/test_tx_signature_profile_admission.py \
             tests/test_block_signature_profiles.py \
             tests/test_validator_operator_signature_profiles.py \
