@@ -1310,7 +1310,7 @@
       "route_id": "e91e45e57720669a",
       "route_path_without_v1_prefix": "/health",
       "source": "src/weall/api/routes_public_parts/health.py",
-      "source_lineno": 437,
+      "source_lineno": 450,
       "summary": "",
       "tags": [
         "health"
@@ -1332,7 +1332,7 @@
       "route_id": "36912f0eca7b3e4f",
       "route_path_without_v1_prefix": "/healthz",
       "source": "src/weall/api/routes_public_parts/health.py",
-      "source_lineno": 516,
+      "source_lineno": 529,
       "summary": "",
       "tags": [
         "health"
@@ -2740,7 +2740,7 @@
       "route_id": "64443de16ddcc57b",
       "route_path_without_v1_prefix": "/readyz",
       "source": "src/weall/api/routes_public_parts/health.py",
-      "source_lineno": 511,
+      "source_lineno": 524,
       "summary": "",
       "tags": [
         "health"
