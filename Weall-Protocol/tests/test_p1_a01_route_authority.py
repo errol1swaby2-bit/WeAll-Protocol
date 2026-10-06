@@ -1,0 +1,113 @@
+from __future__ import annotations
+
+import json
+from collections import Counter
+from pathlib import Path
+
+from fastapi.routing import APIRoute
+
+from weall.api import routes_nodes
+from weall.api.app import create_app
+from weall.api.routes_public_parts.demo_seed import demo_seed_router_should_mount
+
+
+ROOT = Path(__file__).resolve().parents[1]
+CONDITIONAL_DEMO_ROUTE_KEYS = {
+    ("GET", "/v1/dev/bootstrap-secret"),
+    ("POST", "/v1/dev/demo-seed"),
+}
+NODE_ROUTE_KEYS = {
+    ("GET", "/v1/nodes"),
+    ("GET", "/v1/nodes/known"),
+    ("GET", "/v1/nodes/seeds"),
+    ("GET", "/v1/nodes/validators"),
+}
+
+
+def _mounted_route_rows() -> list[tuple[str, str, str]]:
+    app = create_app(boot_runtime=False)
+    rows: list[tuple[str, str, str]] = []
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        path = str(route.path)
+        module = str(getattr(route.endpoint, "__module__", ""))
+        for method in sorted(str(m).upper() for m in route.methods or set()):
+            if method in {"HEAD", "OPTIONS"}:
+                continue
+            rows.append((method, path, module))
+    return rows
+
+
+def _generated_route_map() -> dict:
+    return json.loads(
+        (ROOT / "generated" / "v2" / "route_contract_map.json").read_text(encoding="utf-8")
+    )
+
+
+def test_a01_f003_routes_nodes_is_helper_only_not_a_shadow_router() -> None:
+    assert not hasattr(routes_nodes, "router")
+    source = (ROOT / "src" / "weall" / "api" / "routes_nodes.py").read_text(encoding="utf-8")
+    assert "@router." not in source
+    assert "APIRouter" not in source
+
+
+def test_a01_f003_node_routes_have_one_mounted_canonical_implementation() -> None:
+    mounted = _mounted_route_rows()
+    counts = Counter((method, path) for method, path, _module in mounted)
+
+    for key in NODE_ROUTE_KEYS:
+        assert counts[key] == 1
+
+    node_modules = {
+        (method, path): module
+        for method, path, module in mounted
+        if (method, path) in NODE_ROUTE_KEYS
+    }
+    assert set(node_modules.values()) == {"weall.api.routes_public_parts.nodes"}
+
+
+def test_a01_f003_generated_route_inventory_has_no_shadow_implementations() -> None:
+    payload = _generated_route_map()
+    rows = payload["routes"]
+
+    assert payload["route_count"] == 159
+    assert payload["unique_method_path_count"] == 159
+    assert payload["duplicate_route_implementation_count"] == 0
+    assert len(rows) == 159
+    assert not [row for row in rows if row.get("duplicate_route_key")]
+
+    generated = {(str(row["method"]).upper(), str(row["path"])) for row in rows}
+    mounted = {(method, path) for method, path, _module in _mounted_route_rows()}
+
+    # The only statically declared routes that are intentionally absent from
+    # the default runtime graph are the explicitly gated demo-only endpoints.
+    # Their router is conditionally included by routes_public.py through
+    # demo_seed_router_should_mount(); they are not dormant alternate
+    # implementations of a production method/path.
+    assert demo_seed_router_should_mount() is False
+    assert generated - mounted == CONDITIONAL_DEMO_ROUTE_KEYS
+
+    for row in rows:
+        key = (str(row["method"]).upper(), str(row["path"]))
+        if key in CONDITIONAL_DEMO_ROUTE_KEYS:
+            assert row["implementation_source"]["path"] == (
+                "src/weall/api/routes_public_parts/demo_seed.py"
+            )
+
+
+def test_a01_f003_generated_node_authority_points_only_to_mounted_wrapper_module() -> None:
+    rows = _generated_route_map()["routes"]
+    node_rows = [
+        row
+        for row in rows
+        if (str(row["method"]).upper(), str(row["path"])) in NODE_ROUTE_KEYS
+    ]
+
+    assert len(node_rows) == 4
+    assert {
+        (str(row["method"]).upper(), str(row["path"])) for row in node_rows
+    } == NODE_ROUTE_KEYS
+    assert {
+        str(row["implementation_source"]["path"]) for row in node_rows
+    } == {"src/weall/api/routes_public_parts/nodes.py"}
