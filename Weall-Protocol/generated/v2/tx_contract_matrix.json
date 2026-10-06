@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "bbf0529b8020e9456121b87202e4f8f9e3812391bda4392e4f961283ff21ab8b"
+    "source_tree_digest": "5eff78d5479c07947c538e0716920b20840cd0ca0395883c16f6efb63484bbbd"
   },
   "required_fields": [
     "stable_id",
@@ -11632,7 +11632,7 @@
       "implementation_source": {
         "function": "_apply_treasury_wallet_create",
         "handler": "treasury",
-        "line": 578,
+        "line": 598,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11735,7 +11735,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signer_add",
         "handler": "treasury",
-        "line": 609,
+        "line": 629,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11851,7 +11851,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signer_remove",
         "handler": "treasury",
-        "line": 665,
+        "line": 685,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11950,7 +11950,7 @@
       "implementation_source": {
         "function": "_apply_treasury_policy_set",
         "handler": "treasury",
-        "line": 717,
+        "line": 737,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12303,7 +12303,7 @@
         "status": "disabled_all_profiles_pending_governance_and_milestone_contracts"
       },
       "api_routes": [],
-      "authority": "origin:USER;subject_gate:Emissary;runtime_handler:treasury",
+      "authority": "origin:USER;subject_gate:Signer;runtime_handler:treasury",
       "conflict_rules": {
         "family": "treasury",
         "requirement": "descriptor_must_be_deterministic_for_identical_canonical_envelopes",
@@ -12312,6 +12312,10 @@
       "context": "mempool",
       "domain": "Treasury",
       "failure_codes": [
+        {
+          "code": "forbidden",
+          "reason": "not_authorized_signer"
+        },
         {
           "code": "forbidden",
           "reason": "spend_already_executed"
@@ -12360,21 +12364,22 @@
         "stable_id": "RCP-FA99A7CFDA979E98"
       },
       "replay_behavior": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
-      "role_gate": "Emissary",
+      "role_gate": "Signer",
       "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "ce4963ad181a7467e1b370087e9b1bce4cad7a622d407b979f3c63c12c3ad73d",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "180d58b7d2a746d208cc37a5cb42cdefce5200c0b7c036cb5765e0dc62a69f2a",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T00:27:21Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0506",
       "state_reads": [
+        "key:allowed_signers",
         "key:audit_anchors",
         "key:id",
         "key:params",
@@ -12387,6 +12392,7 @@
         "key:wallet_id"
       ],
       "state_writes": [
+        "key:allowed_signers",
         "key:audit_anchors",
         "key:canceled_at_nonce",
         "key:canceled_by",
@@ -12398,6 +12404,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_a10_treasury_cancel_scope.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_tx_schema_treasury_groups.py"
@@ -12450,7 +12457,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_expire",
         "handler": "treasury",
-        "line": 763,
+        "line": 783,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12596,7 +12603,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_execute",
         "handler": "treasury",
-        "line": 444,
+        "line": 464,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12712,7 +12719,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_create",
         "handler": "treasury",
-        "line": 839,
+        "line": 859,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12794,7 +12801,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_update",
         "handler": "treasury",
-        "line": 847,
+        "line": 867,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12876,7 +12883,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_close",
         "handler": "treasury",
-        "line": 855,
+        "line": 875,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12962,7 +12969,7 @@
       "implementation_source": {
         "function": "_apply_treasury_audit_anchor_set",
         "handler": "treasury",
-        "line": 744,
+        "line": 764,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

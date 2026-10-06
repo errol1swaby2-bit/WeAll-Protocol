@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "bbf0529b8020e9456121b87202e4f8f9e3812391bda4392e4f961283ff21ab8b"
+    "source_tree_digest": "5eff78d5479c07947c538e0716920b20840cd0ca0395883c16f6efb63484bbbd"
   },
   "rows": [
     {
@@ -43215,7 +43215,8 @@
     },
     {
       "creation_contracts": [
-        "TX-0505"
+        "TX-0505",
+        "TX-0506"
       ],
       "domain": "Treasury",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -43226,11 +43227,13 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_spend_cancel",
         "src/weall/runtime/apply/treasury.py#_apply_treasury_spend_sign"
       ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
         "TX-0505",
+        "TX-0506",
         "TX-0508"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -43240,14 +43243,16 @@
       "state_key_or_namespace": "allowed_signers",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0505"
+        "TX-0505",
+        "TX-0506"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0505"
+        "TX-0505",
+        "TX-0506"
       ]
     },
     {

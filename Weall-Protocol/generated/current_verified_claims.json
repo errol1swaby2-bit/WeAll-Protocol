@@ -390,7 +390,7 @@
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
     "generated/public_beta_blocker_report_v1_5.json": "171cb4b65cfc84e1255ea88650d0dfc441d0118efbe5d8fb936522efae07c866",
     "generated/release_evidence_manifest_v1_5.json": "016b16b1895f7e18fc55a5331f2b5802f09613ac791662df589041b0d1d54d7e",
-    "generated/tx_index.json": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
+    "generated/tx_index.json": "ce9919610e7f69ca10955a6d8f23a01e280dbe1b35f9eacbb045cae1a4381404"
   },
   "schema": "weall.current_verified_claims.v1",
   "tracked_manifest_is_commit_agnostic": true,
