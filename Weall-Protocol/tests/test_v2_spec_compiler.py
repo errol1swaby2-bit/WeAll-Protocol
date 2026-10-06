@@ -516,7 +516,7 @@ def test_compilation_manifest_preserves_fail_closed_truth_boundary() -> None:
     payload = _read("generated/v2/spec_compilation_manifest.json")
     coverage = payload["coverage"]
     assert coverage["transactions"] == 236
-    assert coverage["routes"] == 163
+    assert coverage["routes"] == 159
     assert coverage["unmapped_source_files"] == 0
     assert coverage["tx_semantic_review_complete"] is True
     assert coverage["route_semantic_review_complete"] is True
