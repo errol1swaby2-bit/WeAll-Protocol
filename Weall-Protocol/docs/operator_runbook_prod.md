@@ -108,13 +108,27 @@ Recommended retention:
 
 ## 6. Health checks
 
+Health/readiness endpoints are an **operator/orchestrator surface**, not a public API surface. The checked-in production Compose profile exposes port 8000 only on the internal Docker network. A public reverse proxy or tunnel **must not route** any of these paths by default:
+
+- `/health`
+- `/healthz`
+- `/readyz`
+- `/v1/health`
+- `/v1/healthz`
+- `/v1/readyz`
+
+Use them from localhost, the container network, or a private monitoring network. If an operator has a deployment-specific reason to expose a health path beyond that boundary, the edge configuration must make the exception explicit and apply an allowlist/authentication policy plus a finite rate limit. Do not depend on application health-route rate limiting as the public exposure control.
+
+The node implementation keeps these probes bounded: the real executor reads a constant-size durable ledger-head row and already-resident telemetry rather than loading/parsing the full `ledger_state.state_json` blob.
+
 With the API bound locally:
 
 ```bash
 curl -s http://127.0.0.1:8000/v1/readyz | head
 curl -s http://127.0.0.1:8000/v1/status | head
-curl -s http://127.0.0.1:8000/v1/state/snapshot | head
 ```
+
+The full state snapshot endpoint is intentionally **not** a health probe and must not be used by an orchestrator.
 
 If health fails:
 
