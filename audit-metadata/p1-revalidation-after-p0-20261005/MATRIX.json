@@ -171,8 +171,9 @@
       "id": "A13-F001",
       "severity": "MEDIUM",
       "track": "P1-05",
-      "status": "pending_revalidation",
-      "summary": "Alternate encodings of the same ML-DSA key are treated as different protocol authorities"
+      "status": "patched_and_proven",
+      "summary": "Alternate encodings of the same ML-DSA key are treated as different protocol authorities",
+      "evidence": "A13-F001 canonical authority reconciliation run 37525717489 passed the real ML-DSA encoding matrix (hex/uppercase/Base64/unpadded/URL-safe variants -> one decoded-byte fingerprint and key ID), duplicate-add rejection without failed-tx mutation, recovery independence and historical freshness across aliases, alias-wide targeted revocation, deterministic historical alias migration, JSON restart/state-sync shape preservation, surrounding account/recovery regressions, crypto-posture regeneration, refresh of all 18 Identity V2 semantic bindings, two deterministic dependent-evidence regeneration rounds, clean-checkout V2/B528/B534/B567/public-readiness/current-claim verification, and workflow-free push. Exact candidate: 3b32f32b4345897d7f94289d767f7471d721630b / tree 0cf6a9ce2c2dd120b0bff47994e3b633ce3abe72."
     },
     {
       "id": "A13-F002",
@@ -291,7 +292,7 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 13,
-    "pending_revalidation": 21
+    "proven_dispositions": 15,
+    "pending_revalidation": 19
   }
 }
