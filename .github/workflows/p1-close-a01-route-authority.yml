@@ -288,3 +288,5 @@ jobs:
           git push origin HEAD:p1-revalidation-after-p0-20261005
 
 # rerun after retiring removed shadow-route semantic reviews
+
+# rerun after rebinding V2 expected route cardinality
