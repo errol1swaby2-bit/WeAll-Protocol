@@ -74,6 +74,7 @@ jobs:
             tests/test_p1_a03_startup_durable_authority.py \
             tests/test_p1_a03_observer_queue_durability.py \
             tests/test_p1_a05_timeout_qc_ranking.py \
+            tests/test_p1_a06_constitutional_not_before.py \
             tests/test_bft_timeout_certificate.py \
             tests/test_bft_timeout_recovery.py \
             tests/test_pb001bw_pending_timeout_restart_revalidation.py \
