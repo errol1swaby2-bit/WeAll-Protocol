@@ -10,6 +10,7 @@ must fail closed.
 """
 
 import base64
+import hashlib
 import re
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,26 @@ def _encode_bytes(data: bytes, *, encoding: str = "hex") -> str:
     if encoding in {"b64", "base64"}:
         return base64.b64encode(data).decode("ascii")
     raise ValueError("unsupported encoding")
+
+
+def mldsa65_public_key_bytes(pubkey: str) -> bytes:
+    """Decode one ML-DSA-65 public key into its canonical authority bytes."""
+    raw = _decode_bytes(pubkey)
+    if len(raw) != MLDSA65_PUBLIC_KEY_BYTES:
+        raise ValueError(
+            f"mldsa public key must be {MLDSA65_PUBLIC_KEY_BYTES} bytes"
+        )
+    return raw
+
+
+def canonical_mldsa65_public_key(pubkey: str, *, encoding: str = "hex") -> str:
+    """Return a canonical serialization for an ML-DSA-65 public key."""
+    return _encode_bytes(mldsa65_public_key_bytes(pubkey), encoding=encoding)
+
+
+def mldsa65_public_key_fingerprint(pubkey: str) -> str:
+    """Return the encoding-independent SHA-256 fingerprint of ML-DSA key bytes."""
+    return hashlib.sha256(mldsa65_public_key_bytes(pubkey)).hexdigest()
 
 
 def _mldsa_classes() -> tuple[Any, Any]:
