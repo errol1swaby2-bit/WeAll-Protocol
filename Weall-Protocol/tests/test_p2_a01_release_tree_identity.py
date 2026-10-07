@@ -5,7 +5,6 @@ from pathlib import Path
 
 from scripts.gen_release_evidence_manifest_v1_5 import build_runtime
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
