@@ -18,6 +18,7 @@ def test_status_consensus_forensics_surfaces_profile_compatibility(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_CONSENSUS_FORENSICS_OPERATOR_TOKEN", "forensics-token")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator,helper")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
@@ -64,7 +65,10 @@ def test_status_consensus_forensics_surfaces_profile_compatibility(
     app.state.executor = ex
     client = TestClient(app)
 
-    resp = client.get("/v1/status/consensus/forensics")
+    resp = client.get(
+        "/v1/status/consensus/forensics",
+        headers={"X-WeAll-Consensus-Forensics-Token": "forensics-token"},
+    )
     assert resp.status_code == 200
     body = resp.json()
     compat = body["profile_compatibility"]
