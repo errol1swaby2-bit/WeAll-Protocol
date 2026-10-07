@@ -317,11 +317,16 @@ def build_runtime(clean_gate_report: Path | None = None) -> Json:
         **payload,
         "schema": "weall.v1_5.release_evidence_runtime_manifest",
         "git_head": _run_git(["rev-parse", "HEAD"]),
+        "git_tree": _run_git(["rev-parse", "HEAD^{tree}"]),
         "git_branch": _run_git(["branch", "--show-current"]),
         "latest_commit": _run_git(["log", "--oneline", "-1"]),
         "git_status_short": status,
         "worktree_clean": status == "",
         "runtime_manifest_not_for_tracked_artifact_check": True,
+        "release_identity_semantics": (
+            "git_tree is the whole tracked release-tree identity; V2 source_tree_digest "
+            "is a semantic compiler/source-coverage digest and is not a whole-release fingerprint"
+        ),
     }
     if clean_gate_report is not None:
         runtime["clean_gate_report_path"] = str(clean_gate_report)
