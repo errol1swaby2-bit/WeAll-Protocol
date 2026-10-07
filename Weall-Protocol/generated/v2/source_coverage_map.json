@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "1ed5db215fc19898c82df9fe31d4b09b39cf08649a8c33e3eadea7dafa1f372f",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -22837,7 +22837,7 @@
       ],
       "path": "tests/test_p2_a01_release_tree_identity.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7b3a655e2d8b2b7d6f934b31f46f072a322c8f70040dd784d2a5b14d97d4cada",
+      "sha256": "15f1b5992fe80d8e54494c22f697639a0a53ce6ba7e8c6dc2beabce2587ffb1e",
       "source_id": "SRC-F702DC9BE4C38041"
     },
     {
