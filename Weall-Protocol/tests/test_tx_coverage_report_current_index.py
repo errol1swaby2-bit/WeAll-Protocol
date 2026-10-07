@@ -30,6 +30,10 @@ def test_current_tx_index_shape_produces_nonempty_canonical_report(tmp_path):
     assert expected > 0
     assert f"- total tx types: **{expected}**" in text
     assert "- total tx types: **0**" not in text
+    assert "structural canon/schema inventory only" in text
+    assert "does **not** establish 236/236 executable semantic conformance" in text
+    assert "- all-236 semantic conformance proven: **False**" in text
+    assert "- structural canon/schema inventory proven: **True**" in text
     assert sum(1 for line in text.splitlines() if line.startswith("| `")) == expected
 
 
