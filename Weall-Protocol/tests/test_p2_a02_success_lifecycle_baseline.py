@@ -564,7 +564,6 @@ def _prepare_dispute(
     return "@tester", payload
 
 
-
 def _poh_reviewers(state: dict[str, Any]) -> None:
     roles = state.setdefault("roles", {})
     roles["jurors"] = {
@@ -1059,6 +1058,7 @@ def _prepare_poh(
         return "SYSTEM", payload
 
     return "@tester", payload
+
 
 def _prepared_envelope(
     state: dict[str, Any],
