@@ -117,3 +117,5 @@ jobs:
           test ! -e .github/workflows/p1-final-a16-reconcile.yml
           test -z "$(git status --porcelain)"
           git push origin HEAD:p1-revalidation-after-p0-20261005
+
+# retry after V2 source classification for A16 assurance
