@@ -57,7 +57,7 @@ def _base_state() -> dict[str, Any]:
             "genesis_time": 0,
             "economic_unlock_time": 0,
             "system_signer": "SYSTEM",
-            "group_treasury_timelock_blocks": 0,
+            "group_treasury_timelock_blocks": 1,
         },
         "accounts": {actor: _account() for actor in sorted(actors)},
         "roles": {"groups_by_id": {}, "treasuries_by_id": {}},
@@ -91,7 +91,7 @@ def _tx(
         parent = "PARENT-A02"
     return TxEnvelope(
         tx_type=tx_type,
-        signer="SYSTEM" if system and signer == "@tester" else signer,
+        signer=signer,
         nonce=nonce,
         payload=copy.deepcopy(payload or {}),
         parent=parent,
@@ -115,7 +115,7 @@ def _apply(
         _tx(
             tx_type,
             payload,
-            signer=signer,
+            signer="SYSTEM" if system and signer == "@tester" else signer,
             system=system,
             parent=parent,
             nonce=nonce,
@@ -803,7 +803,6 @@ def _prepare_poh(
         return "@tester", payload
 
     if tx_type.startswith("POH_ASYNC_"):
-        case_id = _open_async_poh(state)
         if tx_type == "POH_ASYNC_REQUEST_OPEN":
             payload.update(
                 {
@@ -815,6 +814,7 @@ def _prepare_poh(
             )
             return "@tester", payload
 
+        case_id = _open_async_poh(state)
         if tx_type == "POH_ASYNC_EVIDENCE_DECLARE":
             payload.update(
                 {
@@ -889,8 +889,8 @@ def _prepare_poh(
         return "SYSTEM", payload
 
     if tx_type.startswith("POH_TIER2_"):
-        case_id = _open_tier2_poh(state)
         if tx_type == "POH_TIER2_REQUEST_OPEN":
+            state["accounts"]["@tester"]["poh_tier"] = 1
             payload.update(
                 {
                     "account_id": "@tester",
@@ -900,6 +900,7 @@ def _prepare_poh(
             )
             return "@tester", payload
 
+        case_id = _open_tier2_poh(state)
         if tx_type == "POH_TIER2_JUROR_ASSIGN":
             payload.update(
                 {
@@ -945,8 +946,8 @@ def _prepare_poh(
         return "SYSTEM", payload
 
     if tx_type.startswith("POH_LIVE_"):
-        case_id = _open_live_poh(state)
         if tx_type == "POH_LIVE_REQUEST_OPEN":
+            state["accounts"]["@tester"]["poh_tier"] = 1
             payload.update(
                 {
                     "account_id": "@tester",
@@ -958,6 +959,7 @@ def _prepare_poh(
             )
             return "@tester", payload
 
+        case_id = _open_live_poh(state)
         if tx_type == "POH_LIVE_SESSION_INIT":
             payload.update(
                 {
