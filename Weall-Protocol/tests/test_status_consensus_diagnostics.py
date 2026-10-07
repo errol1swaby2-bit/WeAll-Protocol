@@ -354,7 +354,8 @@ def test_status_consensus_exposes_helper_execution_diagnostics() -> None:
     assert helper_exec["summary"]["fallback_reason_counts"]["plan_id_mismatch"] == 1
 
 
-def test_status_consensus_forensics_exposes_helper_execution_diagnostics() -> None:
+def test_status_consensus_forensics_exposes_helper_execution_diagnostics(monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "test")
     app = create_app(boot_runtime=False)
     app.state.executor = _FakeExecutor()
     client = TestClient(app)
@@ -383,7 +384,8 @@ def test_status_operator_exposes_transition_guardrail_diagnostics() -> None:
     assert guard["tx_type_counts"]["GROUP_SIGNERS_SET"]["group_treasury_spend_open"] == 1
 
 
-def test_status_consensus_forensics_exposes_transition_guardrail_diagnostics() -> None:
+def test_status_consensus_forensics_exposes_transition_guardrail_diagnostics(monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "test")
     app = create_app(boot_runtime=False)
     app.state.executor = _FakeExecutor()
     client = TestClient(app)
@@ -399,7 +401,8 @@ def test_status_consensus_forensics_exposes_transition_guardrail_diagnostics() -
     assert body["startup_posture"]["startup_clock_sanity_required"] is True
 
 
-def test_status_consensus_forensics_exposes_mempool_selection_last() -> None:
+def test_status_consensus_forensics_exposes_mempool_selection_last(monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "test")
     app = create_app(boot_runtime=False)
     app.state.executor = _FakeExecutor()
     client = TestClient(app)
