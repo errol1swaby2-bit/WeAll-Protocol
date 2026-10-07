@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "82d858fd1cefdc9e2d6784210943690b2bc0482b5c2802ce37c51698d3373a89",
+  "artifact_digest": "883d563e4c6bae2b5bb5a4e397830e1a24d2a68c1959566bc7e1ef1513acc07a",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -148,7 +148,7 @@
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "c03b16b37e216084f9c6e2b6e463e6ecf20b98e1fd8542a5b252bf27c7cc2472",
+      "file_sha256": "62973c0c4efa96ea25b6f2eda25859a6d7e76a741997148d7c06e3b387243ade",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,

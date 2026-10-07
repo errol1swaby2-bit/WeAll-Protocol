@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2014,
+  "file_count": 2021,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "7cb853ec3757ba8cab6797ceab014790f3ddffe83d5723696581b2ba733c8837",
+      "sha256": "5b01787c78387ca9942a70c6bda03a46aef34db5fff4603d12d1dcafc9e21162",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -565,7 +565,7 @@
       ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "ee2c14f0b4bf0ad7c6b0e5f0b6dab9d10505136da7ebcfcedfe8e5232bbb4dcb",
+      "sha256": "a44476fcbeb99389aadddf5ee15c656af18ad9c1c660f35c6a9a4ed542d45513",
       "source_id": "SRC-251A50F3DB56A30F"
     },
     {
@@ -1233,7 +1233,7 @@
       ],
       "path": "docs/TESTER_ONE_COMMAND_NODE_BOOT.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "b7146752156e134b4edb9df0e1bbc55bd90c3a3867986d9ecc57a72a0f60c228",
+      "sha256": "9b4f53ccbc781fc9a2cceb171b76b232adb543f481bbac1dde25ba99984958f4",
       "source_id": "SRC-08E78ADD47F1FF00"
     },
     {
@@ -2517,6 +2517,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "docs/reviewer/START_HERE.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "98b17e129f8fd3ad818f980fb56461916c965fb010a3e4e605ad40d5d53b2c36",
+      "source_id": "SRC-11E088A7B97F8795"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
       "path": "docs/runtime_consensus_profile_snapshot_2026-03-prod.4.md",
       "primary_mechanism_id": "M-076",
       "sha256": "d4a83bd2d1f30f9f1584b68c74276724a2865fb8a01b772073f2f561379b28a3",
@@ -2969,7 +2982,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c03b16b37e216084f9c6e2b6e463e6ecf20b98e1fd8542a5b252bf27c7cc2472",
+      "sha256": "62973c0c4efa96ea25b6f2eda25859a6d7e76a741997148d7c06e3b387243ade",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -3067,7 +3080,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "2864f638adad23ec9853cd2b5470531941e40f890ed2831d4e8c381db2c8fb46",
+      "sha256": "91c8699ddb37e25be6a6e8cebbeb33704b0b51907324b6ef313a24cd2a56226a",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3081,7 +3094,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "e9c682e7e758317b12a551e6e2312beb0c85d8e12f6867e1b7d6f03003310c8e",
+      "sha256": "0c72a46732055bed55dd9fc0a43329d3d0442fc1904d425e90c78e9cbbd98d71",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3165,7 +3178,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "e94c5104529826fece72c67225f4fb03fe3e696252bf1501c77da5ec144acf9a",
+      "sha256": "f1110718c1a3d5b0de9c9be5accaadd7e3af3fe28ef4059e7a3366a8e9991997",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3262,7 +3275,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a51dad3f48ee002ed84b6fe737119a256652c1864501bd12a145e61899e038fa",
+      "sha256": "11f454db5d1ccde028665b4b7cec47023a5e7e43039c340c489af438913f9c39",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3388,7 +3401,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "472a4cacd9ff86c06283fccc200ab4d0bf86524849506ceb94494a4ad82956b5",
+      "sha256": "56d002be2add684a7026a34e38f9cbc051eb9646dff43fe8ca9589929ce2da2a",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3570,7 +3583,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "f3fadb76e4d107130e4c36e28d1b60e3d07e63d50e30c8b9baf25d8f586d63a8",
+      "sha256": "935ed85dfbad52839bbb6b178a5ed1c384122dab85c2dc61e6279d1b63002ade",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -4687,7 +4700,7 @@
       ],
       "path": "scripts/gen_current_verified_claims.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e05e8d45a09323cf9fc75cfafa92d2655e7ca18ac4f053453753fc02196c5145",
+      "sha256": "0fda3aa0fdfc8987fb0f9bcfe2e2861ead730fe33abac35d9566677eb5100974",
       "source_id": "SRC-93B86585553DBDA5"
     },
     {
@@ -7584,7 +7597,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/state.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "74152ed311db0f668400b6746cf1f7f2c97ea61a1e2a3197e1c286d77471f188",
+      "sha256": "64ffe22d0c5f131d31e7462e8c788828d82df2ad55f55c713760f3f316e048c8",
       "source_id": "SRC-4CEB464DC4BF8930"
     },
     {
@@ -10230,7 +10243,7 @@
       ],
       "path": "src/weall/runtime/block_admission.py",
       "primary_mechanism_id": "M-018",
-      "sha256": "d336d3930db29131f444fc4da5f1eb3a478b17a05ed89eff7bb983bcef7b9a7c",
+      "sha256": "47f7bcb2ceda160bcf2c97c42c1b34eb74891ad46e28c74d82a9cc6aa98c8f85",
       "source_id": "SRC-1E29E321E4F99072"
     },
     {
@@ -10338,7 +10351,7 @@
       ],
       "path": "src/weall/runtime/block_replay.py",
       "primary_mechanism_id": "M-018",
-      "sha256": "cef66556052670a2c99bf11ac35d4a98ab3435218c3dc376cf2f0f4136408258",
+      "sha256": "f86b626651a69472d26ec063476cae5a15365fc8553188f52f70007929802101",
       "source_id": "SRC-2473A0C86BF0C699"
     },
     {
@@ -21830,7 +21843,7 @@
       ],
       "path": "tests/test_one_command_tester_boot.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "5f91eb21cb50f0147373f7deb1411c3c2d8bb70843b8ec05c28ed1594c074f0f",
+      "sha256": "46facc37609795add03f21b0bd4b1dd38b7fabdc54a4a90017380d595420e73b",
       "source_id": "SRC-9DBE2A4FEDA8384D"
     },
     {
@@ -22255,7 +22268,7 @@
       ],
       "path": "tests/test_p0_claim_audit_binding.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ab91d33d25850af7f59457286ea24ede07d286e15a84afed22a41a286b8781bd",
+      "sha256": "4a1684aec2bc3f198217f9cf7306fc061e3c4048d6bc14319fc32fe2efd2c902",
       "source_id": "SRC-B0C14D40E164058C"
     },
     {
@@ -22472,6 +22485,20 @@
         "M-076",
         "ROUTE-150316944D629C32"
       ],
+      "path": "tests/test_p1_a06_constitutional_not_before.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "ac527d86b7943afc3f75b2f01cd8c9ee54815fabd2c0d857d0fd720c04b6cdd2",
+      "source_id": "SRC-EE1098B913A0D5EF"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
       "path": "tests/test_p1_a07_tls_verification.py",
       "primary_mechanism_id": "M-076",
       "sha256": "4c83a2868ad9cab48ef7b4b58408471b15770d97c51f10041b4b34b9b3f66210",
@@ -22598,12 +22625,88 @@
       "mappings": [
         "M-076",
         "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-A6A03246B904655F"
+      ],
+      "path": "tests/test_p1_a15_snapshot_scope.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "70451bae6a8366abfc2daf4b3eceebef4bbebdfb9ec2b0f5d7c45eab4b1d7c0b",
+      "source_id": "SRC-8DF7C1CF696DA170"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-A3D2344F33C6912D",
+        "ROUTE-C6A91D2143954D6D",
+        "TX-0001"
+      ],
+      "path": "tests/test_p1_a17_clean_lifecycle.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "b3eff839ffb6be2d328499dba5e421818c2967cda799ea96bfbed7be073b930c",
+      "source_id": "SRC-564FC0FA033EE50B"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p1_a17_reviewer_repro_contract.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "ee6266665c6daf2add562e932ce4da12f8af2a53c67e738554f75b52b0e8082f",
+      "source_id": "SRC-F4007CAE326F8321"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32"
       ],
       "path": "tests/test_p1_a18_claim_boundaries.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "cceb0af2413cb59e1fbe4fd07358487bce87f505ced97587b308bd51196df311",
+      "sha256": "bf28e4585d9ad29c562fba79a6fbce6f229ee607e70ce52c22c99bcc39b1c7da",
       "source_id": "SRC-03E7F35099E35C12"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p1_a19_reviewer_bootstrap.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "e5b8afa20ad918645300570021f40cf7cd3462000e3c8e5022f3c0be7349046f",
+      "source_id": "SRC-D90D46B8388848C4"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p1_a19_reviewer_front_door.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "d5008105862ce5fdab1a2c0e7d0ee6afc27981c30a39686994a7535c0d90d358",
+      "source_id": "SRC-257F32817A2B414A"
     },
     {
       "affected_registers": [
@@ -28194,7 +28297,7 @@
       ],
       "path": "tests/test_tester_boot_uses_repo_venv.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d2adc334e2d2f951594d4e26b95715dc78804bb56edc8e911b05f7cec928af8f",
+      "sha256": "ac819d184e1d463d64ae478b6d5effe059d08850e985ddc79d83991baf046db6",
       "source_id": "SRC-63A9C12A5856E24D"
     },
     {

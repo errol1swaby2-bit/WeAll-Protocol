@@ -3,7 +3,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT / "Weall-Protocol"
 
@@ -19,9 +18,7 @@ def test_a17_f001_reviewer_contract_explicitly_distinguishes_history_and_archive
 
 
 def test_a17_f001_history_restore_preflights_exact_commit_objects() -> None:
-    script = (ROOT / "scripts" / "restore_m2_m3_evidence_from_git.sh").read_text(
-        encoding="utf-8"
-    )
+    script = (ROOT / "scripts" / "restore_m2_m3_evidence_from_git.sh").read_text(encoding="utf-8")
 
     required_defaults = (
         "017cadc8d7825036b23fe0bc07156ca763eb52fc",

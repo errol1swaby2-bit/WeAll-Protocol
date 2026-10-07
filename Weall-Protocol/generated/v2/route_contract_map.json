@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "9489698e52594898ffc86e9661910725de2d8b9d97658d298ce8829c870044be"
+    "source_tree_digest": "7d2d938c0701380af934b66c0d7cb371fab27a2c58e1671978a63cf47e634784"
   },
   "required_fields": [
     "stable_id",
@@ -7402,6 +7402,7 @@
         "tests/test_p1_a03_observer_queue_durability.py",
         "tests/test_p1_a03_startup_durable_authority.py",
         "tests/test_p1_a05_timeout_qc_ranking.py",
+        "tests/test_p1_a06_constitutional_not_before.py",
         "tests/test_p1_a07_tls_verification.py",
         "tests/test_p1_a10_reward_scheduler_scope.py",
         "tests/test_p1_a10_treasury_cancel_scope.py",
@@ -7410,7 +7411,12 @@
         "tests/test_p1_a13_key_identity_canonicalization.py",
         "tests/test_p1_a14_state_publication_linearization.py",
         "tests/test_p1_a15_health_bounded_telemetry.py",
+        "tests/test_p1_a15_snapshot_scope.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
+        "tests/test_p1_a17_reviewer_repro_contract.py",
         "tests/test_p1_a18_claim_boundaries.py",
+        "tests/test_p1_a19_reviewer_bootstrap.py",
+        "tests/test_p1_a19_reviewer_front_door.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_latest_medium_closure.py",
         "tests/test_p1_remaining_complete_remediation.py",
@@ -7888,7 +7894,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_block",
-        "line": 384,
+        "line": 392,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7934,7 +7940,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_block_header",
-        "line": 368,
+        "line": 376,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8028,6 +8034,7 @@
         "tests/test_node_lifecycle_dev_helper_compat.py",
         "tests/test_node_lifecycle_production_preflight.py",
         "tests/test_node_lifecycle_profile.py",
+        "tests/test_p1_a15_snapshot_scope.py",
         "tests/test_post31_closure_pack.py",
         "tests/test_priority1_concurrent_determinism.py",
         "tests/test_priority3_profile_startup_alignment.py",
@@ -8314,6 +8321,8 @@
         "tests/test_p1_a10_treasury_cancel_scope.py",
         "tests/test_p1_a12_mempool_redaction.py",
         "tests/test_p1_a12_observer_operator_loopback_auth.py",
+        "tests/test_p1_a15_snapshot_scope.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
         "tests/test_p1_a18_claim_boundaries.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
@@ -8956,7 +8965,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_sync_apply",
-        "line": 464,
+        "line": 472,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9007,7 +9016,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_sync_request",
-        "line": 401,
+        "line": 409,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9250,6 +9259,7 @@
         "tests/test_nonce_failure_block_progression.py",
         "tests/test_observer_live_upstream_sync_truth.py",
         "tests/test_observer_tx_queue_and_scoped_reads.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
         "tests/test_public_profile_contract.py",
         "tests/test_restart_api_and_producer_recovery.py",
         "tests/test_restart_tx_status_persistence.py",
@@ -9333,6 +9343,7 @@
         "tests/test_observer_reconciliation_and_bounded_details.py",
         "tests/test_observer_tx_queue_and_scoped_reads.py",
         "tests/test_observer_tx_queue_safety.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
         "tests/test_poh_video_upload_request_cap.py",
         "tests/test_priority0_chainid_and_schema_safety.py",
         "tests/test_production_bft_block_replay_api_storage_claim_boundaries.py",

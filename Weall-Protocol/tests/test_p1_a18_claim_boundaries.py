@@ -105,9 +105,9 @@ def test_a18_f003_current_build_exposes_open_p1_findings_and_hashes_matrix() -> 
         "PROVEN_GENERATED_CURRENT",
     }
     assert claim["value"]["total_findings"] == 34
-    assert claim["value"]["proven_dispositions"] + len(
-        claim["value"]["open_medium_finding_ids"]
-    ) == 34
+    assert (
+        claim["value"]["proven_dispositions"] + len(claim["value"]["open_medium_finding_ids"]) == 34
+    )
     assert (
         "../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json"
         in payload["generation_inputs"]
@@ -139,6 +139,7 @@ def test_a18_f003_unknown_finding_status_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(SystemExit, match="unrecognized status"):
         module._read_p1_audit_matrix(matrix)
+
 
 @pytest.mark.parametrize("open_status", ["design_blocker", "open"])
 def test_a18_f003_all_declared_open_statuses_remain_claim_blockers(
@@ -177,4 +178,3 @@ def test_a18_f003_invalid_track_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(SystemExit, match="invalid track"):
         module._read_p1_audit_matrix(matrix)
-

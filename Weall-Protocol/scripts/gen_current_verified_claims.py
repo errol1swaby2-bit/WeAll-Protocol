@@ -15,12 +15,7 @@ BLOCKERS = ROOT / "generated" / "public_beta_blocker_report_v1_5.json"
 RELEASE = ROOT / "generated" / "release_evidence_manifest_v1_5.json"
 PERFORMANCE = ROOT / "evidence" / "performance" / "current_performance_evidence.json"
 AUDIT_STATUS = ROOT.parent / "docs" / "audit" / "WeAll-A01-A20-P0-Closure-Status-20260930.md"
-P1_MATRIX = (
-    ROOT.parent
-    / "audit-metadata"
-    / "p1-revalidation-after-p0-20261005"
-    / "MATRIX.json"
-)
+P1_MATRIX = ROOT.parent / "audit-metadata" / "p1-revalidation-after-p0-20261005" / "MATRIX.json"
 
 JSON_OUT = ROOT / "generated" / "current_verified_claims.json"
 MD_OUT = ROOT / "docs" / "CURRENT_VERIFIED_CLAIMS.md"
@@ -181,8 +176,7 @@ def _read_p1_audit_matrix(path: Path) -> dict[str, Any]:
     obj = _read_json(path)
     if obj.get("schema") != P1_MATRIX_SCHEMA:
         raise SystemExit(
-            f"P1 audit matrix schema must be {P1_MATRIX_SCHEMA!r}, "
-            f"found {obj.get('schema')!r}"
+            f"P1 audit matrix schema must be {P1_MATRIX_SCHEMA!r}, found {obj.get('schema')!r}"
         )
 
     source_audit = obj.get("source_audit")
@@ -191,9 +185,7 @@ def _read_p1_audit_matrix(path: Path) -> dict[str, Any]:
     if source_audit.get("date") != "2026-09-30":
         raise SystemExit("P1 audit matrix must bind the 2026-09-30 A01-A20 audit")
     if source_audit.get("medium_p1_count") != P1_EXPECTED_FINDING_COUNT:
-        raise SystemExit(
-            "P1 audit matrix medium_p1_count does not match the expected 34 findings"
-        )
+        raise SystemExit("P1 audit matrix medium_p1_count does not match the expected 34 findings")
 
     findings = obj.get("findings")
     if not isinstance(findings, list) or len(findings) != P1_EXPECTED_FINDING_COUNT:
@@ -728,9 +720,9 @@ def build() -> dict[str, Any]:
     generation_inputs["../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md"] = _sha256(
         AUDIT_STATUS
     )
-    generation_inputs[
-        "../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json"
-    ] = _sha256(P1_MATRIX)
+    generation_inputs["../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json"] = _sha256(
+        P1_MATRIX
+    )
 
     return {
         "schema": SCHEMA,
