@@ -18,9 +18,11 @@
   "p2_definition": "All LOW findings in the 2026-09-30 A01-A20 master audit inventory.",
   "allowed_statuses": [
     "pending_revalidation",
+    "patched_pending_proof",
     "already_closed_and_proven",
     "patched_and_proven",
     "scope_closed_and_proven",
+    "external_evidence_blocker",
     "design_blocker",
     "open"
   ],
@@ -40,152 +42,146 @@
       "id": "A01-F004",
       "severity": "LOW",
       "track": "P2-01",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "V2 source_tree_digest is a partial protocol-source digest, not a full release-tree behavior digest",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Runtime release evidence now records exact git_head and git_tree, while docs/V2_SPEC_COMPILER.md explicitly distinguishes the whole tracked release-tree identity from the narrower V2 semantic source_tree_digest. tests/test_p2_a01_release_tree_identity.py proves a tracked build-only mutation changes Git tree identity and the runtime manifest binds the exact current tree."
     },
     {
       "id": "A01-F005",
       "severity": "LOW",
       "track": "P2-01",
-      "status": "pending_revalidation",
+      "status": "already_closed_and_proven",
       "summary": "Exact reviewer procedure is Git-history-dependent and not reproducible from a plain HEAD source archive",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "The merged P1 reviewer-reproducibility work already distinguishes full-history verification from historyless source archives, fails explicitly when required historical Git objects are unavailable, and provides the exact restoration/verification path. The P2 baseline inherited that proven closure."
     },
     {
       "id": "A02-F003",
       "severity": "LOW",
       "track": "P2-02",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "All-canon coverage gates do not prove an executable lifecycle for every canonical type",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "A generated tx_lifecycle_assurance_v1_5.json now contains exactly 236 unique canonical lifecycle rows with 236 successful admissions, 236 successful applies, 236 failure-stage vectors, 236 exact success-receipt expectations, 236 duplicate/replay expectations, and persistence/restart requirements for every state-writing row. tests/test_p2_a02_lifecycle_manifest.py rebuilds the manifest exactly, verifies signatures/tx IDs/receipts, reopens every state-writing vector through SQLite with identical state root, and proves an intentionally broken registered handler fails the matrix. Backend and focused revalidation both run gen_tx_lifecycle_assurance_v1_5.py --check."
     },
     {
       "id": "A04-F002",
       "severity": "LOW",
       "track": "P2-03",
-      "status": "pending_revalidation",
+      "status": "external_evidence_blocker",
       "summary": "Determinism validation remains incomplete across machines and protocol breadth",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Repository-internal determinism coverage is stronger, but the original closure contract requires two independent external/physical-machine packets on the same exact commit, varied PYTHONHASHSEED, broad transition/state-sync replay coverage, matching roots, and an aggregate exact-commit transcript. Hosted repository CI does not substitute for that external evidence."
     },
     {
       "id": "A05-F004",
       "severity": "LOW",
       "track": "P2-04",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Existing production BFT rehearsal does not exercise production BFT consensus validity",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "The production-composition suite exercises WEALL_MODE=prod, QC-less blocks disabled, signature verification enabled, real follower proposal handling/voting, chained QC progression, restart, wrong-parent rejection, and finality; P2 additionally exercises proposal ingress through NetMeshLoop. These tests passed on the P2 branch in the full backend suite."
     },
     {
       "id": "A11-F003",
       "severity": "LOW",
       "track": "P2-05",
-      "status": "pending_revalidation",
+      "status": "design_blocker",
       "summary": "Halving clock advances while issuance is locked, creating an unresolved delayed-activation monetary-policy interpretation",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Current issuance/halving behavior is deterministic and absolute-height/Genesis-relative, but neither the checked Constitution/full-scope specification nor the audited source establishes whether delayed economics activation is normatively Genesis-relative or activation-relative. Changing this would choose monetary policy rather than remediate an implementation bug. Protocol authority must choose the rule before boundary/restart/replay/cap proof can close the finding."
     },
     {
       "id": "A12-F004",
       "severity": "LOW",
       "track": "P2-06",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Consensus forensics exposes operator/BFT internals anonymously in production",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Production anonymous consensus-forensics now returns only a public consensus-health projection. Wrong presented credentials fail closed and an explicitly configured operator token unlocks bounded forensic detail. tests/test_p2_a12_consensus_forensics_auth.py covers anonymous, wrong-token, and authorized-operator behavior and passes in the P2 backend suite."
     },
     {
       "id": "A13-F003",
       "severity": "LOW",
       "track": "P2-07",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Explicit signature profile required is not consistently enforced outside transaction signing",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Received peer identities and helper receipts no longer gain authority through verifier-side signature-profile defaults; missing and unsupported profiles fail closed. tests/test_p2_a13_signature_authority.py covers profile stripping/substitution and passes in the P2 backend suite."
     },
     {
       "id": "A13-F004",
       "severity": "LOW",
       "track": "P2-07",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Mainline helper-certificate signatures omit the explicit certificate domain used by the newer hardening path",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Mainline helper certificates bind the explicit certificate domain and signature profile into the signed object; receive-side verification rejects domain/profile stripping, substitution, and cross-object receipt-signature reuse. Adversarial P2 signature-authority tests pass."
     },
     {
       "id": "A14-F002",
       "severity": "LOW",
       "track": "P2-08",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Timed block-loop shutdown can hand ownership to a new generation while the old worker is still alive",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "BlockProducerLoop lifecycle ownership is serialized; a timed-out stop retains ownership until the worker exits, replacement generation start is refused while the prior worker lives, and finalizer cleanup is generation-sensitive. tests/test_p2_a14_concurrency_closure.py deterministically exercises the stop-timeout/restart/lock-contention interleaving."
     },
     {
       "id": "A14-F003",
       "severity": "LOW",
       "track": "P2-08",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "The WebRTC durable signal queue can lose updates because its lock is not a single inter-process RMW lock",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "The WebRTC durable signal queue now uses one path-scoped POSIX inter-process flock around the entire read/modify/write transaction plus durable atomic replacement. tests/test_p2_a14_concurrency_closure.py drives two OS processes through the same queue and proves no lost rows."
     },
     {
       "id": "A14-F004",
       "severity": "LOW",
       "track": "P2-08",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Transaction status can transiently report unknown while a transaction atomically moves from mempool to confirmed index",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Transaction status now resolves tx_index and mempool state from one explicit SQLite read snapshot. The P2 concurrency test forces a commit between the logical lifecycle lookups and proves the response remains pending/confirmed rather than synthesizing unknown."
     },
     {
       "id": "A17-F004",
       "severity": "LOW",
       "track": "P2-01",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Primary fresh checkout verification instructions assume an already-created virtual environment",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "The primary root/backend fresh-checkout reviewer paths now create a venv, activate it, install hash-locked development dependencies, and install the package before verification. tests/test_p2_a17_fresh_checkout_docs.py enforces the bootstrap ordering."
     },
     {
       "id": "A18-F005",
       "severity": "LOW",
       "track": "P2-01",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Frontend repositorySnapshot is a historical V2 specification snapshot, not the current implementation commit",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Frontend provenance no longer labels the historical V2 specification snapshot as repositorySnapshot; the generated field is v2SpecificationSnapshot and tests/test_p2_a18_v2_provenance_label.py enforces the unambiguous name. Generated protocolStatus.ts is regenerated by the reviewer-artifact workflow."
     },
     {
       "id": "A19-F005",
       "severity": "LOW",
       "track": "P2-01",
-      "status": "pending_revalidation",
+      "status": "patched_and_proven",
       "summary": "Current whole-system architecture and source-authority map is not obvious from the repository front door",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Weall-Protocol/docs/ARCHITECTURE.md now maps the current runtime/control plane, authority hierarchy, transaction lifecycle, consensus/persistence/PoH/governance/helper/P2P/frontend boundaries, current-vs-target hierarchy, disabled surfaces, and legacy/shadow material; the repository front door links to it and a P2 regression enforces the sections."
     },
     {
       "id": "A20-F003",
       "severity": "LOW",
       "track": "P2-09",
-      "status": "pending_revalidation",
+      "status": "patched_pending_proof",
       "summary": "Documented production static deployment does not mechanically deliver the repository CSP posture",
-      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+      "evidence": "Documented Nginx and Caddy production paths now emit CSP with script-src 'self' and object-src 'none', and tests/test_p2_a20_deployment_csp.py guards those examples. The original closure contract additionally requires a built production frontend served through the documented deployment path, assertion of the actual response CSP, browser/API-media functionality, and browser E2E smoke. That deployed-header proof is not yet present, so this finding is patched but not closed."
     }
   ],
   "summary": {
-    "proven_dispositions": 0,
-    "pending_revalidation": 16,
+    "proven_dispositions": 13,
+    "patched_pending_proof": 1,
+    "external_evidence_blockers": [
+      "A04-F002"
+    ],
+    "design_blockers": [
+      "A11-F003"
+    ],
     "open_or_blocked_findings": [
-      "A01-F004",
-      "A01-F005",
-      "A02-F003",
       "A04-F002",
-      "A05-F004",
       "A11-F003",
-      "A12-F004",
-      "A13-F003",
-      "A13-F004",
-      "A14-F002",
-      "A14-F003",
-      "A14-F004",
-      "A17-F004",
-      "A18-F005",
-      "A19-F005",
       "A20-F003"
     ],
-    "adjudicated_findings": 0
+    "adjudicated_findings": 16,
+    "closure_complete": false
   }
 }
