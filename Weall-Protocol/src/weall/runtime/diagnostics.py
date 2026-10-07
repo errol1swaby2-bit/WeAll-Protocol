@@ -129,6 +129,11 @@ def get_tx_status(self, tx_id: str) -> dict[str, object]:
         return {"ok": True, "tx_id": tx_id, "status": "unknown"}
 
     with self._db.connection() as con:
+        # A14-F004: pin both lifecycle reads to one SQLite snapshot. Without
+        # this explicit read transaction a block commit could land between the
+        # tx_index and mempool SELECTs and synthesize a transient "unknown"
+        # state even though the transaction was always pending or confirmed.
+        con.execute("BEGIN;")
         row = con.execute(
             """
             SELECT tx_id, height, block_id, tx_type, signer, nonce, ok, included_ts_ms
