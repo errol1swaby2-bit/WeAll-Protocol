@@ -103,6 +103,7 @@ def _tx(
         signer=signer if signer is not None else ("SYSTEM" if system else "@tester"),
         nonce=nonce,
         payload=copy.deepcopy(payload or {}),
+        sig_profile="" if system else "pq-mldsa-v1",
         parent=parent,
         system=system,
         chain_id="weall-testnet-v1",
