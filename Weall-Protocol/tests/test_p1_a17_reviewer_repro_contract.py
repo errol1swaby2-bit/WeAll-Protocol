@@ -61,3 +61,18 @@ def test_a17_f001_archive_reproducible_v2_gate_executes() -> None:
 
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "clean Git archive reproduces all WeAll v2 specification derivatives" in proc.stdout
+
+def test_a01_f002_and_a17_f002_reproducibility_claims_are_explicitly_scoped() -> None:
+    start = (APP / "docs" / "reviewer" / "START_HERE.md").read_text(encoding="utf-8")
+    compiler = (APP / "docs" / "V2_SPEC_COMPILER.md").read_text(encoding="utf-8")
+
+    assert "Reproducibility levels and non-claims" in start
+    assert "source archive consistency under an already-provisioned toolchain" in start
+    assert "does **not** claim byte-for-byte clean-machine" in start
+    assert "Python base-image tag" in start
+    assert "Kubo/Alpine image tags" in start
+    assert "GitHub Action major-version refs" in start
+
+    assert "source-archive consistency under the already-provisioned Python/toolchain" in compiler
+    assert "not evidence of byte-for-byte clean-machine" in compiler
+
