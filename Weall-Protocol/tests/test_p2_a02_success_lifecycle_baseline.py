@@ -443,6 +443,7 @@ def _prepare_groups(
                 signer="@tester",
             )
             state["height"] = 11
+            state["treasury_wallets"]["TREASURY_GROUP::group-a16"]["balance"] = 100
             return "SYSTEM", payload
 
         return "SYSTEM", payload
@@ -1082,6 +1083,8 @@ def _prepared_envelope(
         signer, payload = _prepare_poh(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
+    if system and tx_type != "POH_BOOTSTRAP_TIER2_GRANT":
+        signer = "SYSTEM"
     block_only = str(row.get("context") or "").lower() == "block"
     receipt_only = bool(row.get("receipt_only"))
     return _tx(
