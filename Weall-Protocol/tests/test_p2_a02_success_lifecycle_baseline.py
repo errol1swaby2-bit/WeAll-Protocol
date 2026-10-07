@@ -119,9 +119,7 @@ def test_a02_f003_all_canon_baselines_have_successful_apply_fixture() -> None:
             successes.append(tx_type)
 
     if failures:
-        detail = "\n".join(
-            f"{tx_type}\t{code}\t{reason}" for tx_type, code, reason in failures
-        )
+        detail = "\n".join(f"{tx_type}\t{code}\t{reason}" for tx_type, code, reason in failures)
         raise AssertionError(
             f"A02-F003 successful-baseline gap: "
             f"success_count={len(successes)} failure_count={len(failures)}\n{detail}"
