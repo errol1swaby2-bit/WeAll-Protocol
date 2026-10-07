@@ -259,6 +259,8 @@ class HelperExecutionCertificate:
         )
         if not all(required_fields):
             return False
+        if str(self.domain or "").strip() != CERTIFICATE_DOMAIN:
+            return False
         if int(self.block_height) < 0 or int(self.view) < 0 or int(self.validator_epoch) < 0:
             return False
         if tuple(str(x) for x in self.tx_ids) != tuple(self.tx_ids):
@@ -285,6 +287,7 @@ class HelperExecutionCertificate:
             manifest_hash=self.manifest_hash,
             plan_id=self.plan_id,
             signature=self.helper_signature,
+            sig_profile=self.sig_profile,
             domain=self.domain,
         )
 
