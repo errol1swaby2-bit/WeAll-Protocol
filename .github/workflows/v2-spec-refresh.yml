@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P1 final reconciliation refresh trigger
 
 on:
   workflow_dispatch:
