@@ -57,6 +57,18 @@ def test_a02_lifecycle_manifest_is_current_complete_and_exact() -> None:
         tx_id = compute_tx_id_from_envelope(str(env.chain_id or ""), env)
         assert tx_id == success["tx_id"]
 
+        signature = success["signature_evidence"]
+        assert signature["admission_verified"] is True
+        if bool(env.system):
+            assert signature["required"] is False
+        else:
+            assert signature["required"] is True
+            assert signature["sig_profile"] == "pq-mldsa-v1"
+            assert signature["algorithm"] == "ML-DSA"
+            assert signature["pubkey"]
+            assert signature["signature_bytes"] > 0
+            assert signature["signature_bytes_omitted_from_manifest"] is True
+
         assert success["success_receipt"] == {
             "tx_id": tx_id,
             "tx_type": str(env.tx_type or ""),
