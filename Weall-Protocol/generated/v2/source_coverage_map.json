@@ -565,7 +565,7 @@
       ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "e65d7d012e99a226e1c9ec42f5b54256a416d38e1f0bc5522a988cc374c60837",
+      "sha256": "c80f41bd4c445b2719134a0beac69e70bf019f8011c5eb71f92346234abb221c",
       "source_id": "SRC-251A50F3DB56A30F"
     },
     {
@@ -3275,7 +3275,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c7e828a6592c1507793fd0eeca8b5e5a561f21d7b8a393ca0cc5b2112f469f79",
+      "sha256": "44ae443b1509b1d6e54c4b0f420ba76cf90ebba6b42f768532bb375b92a8ca93",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {

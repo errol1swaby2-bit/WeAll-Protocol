@@ -41,9 +41,9 @@
       "id": "A01-F001",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "open",
+      "status": "patched_and_proven",
       "summary": "Authoritative main branch does not enforce the validation gates",
-      "evidence": "Current GitHub repository state rechecked during PR #40: `main` remains `protected=false`, branch protection enforcement is off with no required status contexts, and the repository ruleset list is empty. Source/CI changes cannot close this external repository-administration control; branch/ruleset protection plus controlled blocked/allowed merge evidence is still required."
+      "evidence": "Repository administration closure verified after PR #40. Active repository ruleset `WeAll Audit Closure Standard` (ruleset 24625129), targeting `~DEFAULT_BRANCH`, requires pull requests, linear history, and required status contexts `backend`, `web`, `secrets_guard`, and `reviewer-readiness`; it prohibits deletion and non-fast-forward updates, has no bypass actors, and reports current_user_can_bypass=`never`. Positive control: PR #40 merged at 2026-10-07T02:54:21Z after all four required checks succeeded on exact head 35f0c48770fb812ae5aec894cadf1830f4f32a4d. Negative control: PR #41, based on main 94ea935eb039f484bd735cbb1d62b500e47ad314, intentionally made only generated/current_verified_claims.json stale; required `backend` failed at generated-artifact freshness, reviewer-readiness and focused-p1 also failed, GitHub reported mergeable_state=`blocked`, and the PR was closed unmerged. Together these establish required-check enforcement on authoritative main with explicit no-bypass policy."
     },
     {
       "id": "A01-F002",
@@ -273,9 +273,9 @@
       "id": "A19-F001",
       "severity": "MEDIUM",
       "track": "P1-10",
-      "status": "open",
+      "status": "patched_and_proven",
       "summary": "Public repository description overstates exact canon conformance",
-      "evidence": "Current GitHub repository metadata still says `Tx Canon defines all legal state transitions; code conforms to canon.` That remains stronger than current evidence, and A16-F006 is still open because the required 236/236 semantic matrix does not yet exist. The GitHub connector available in this review can read repository metadata but exposes no repository-description administration action, so revised public metadata remains an external/manual blocker."
+      "evidence": "Public GitHub repository metadata now uses the bounded description: `WeAll Protocol reference node and specifications. Tx Canon is the intended canonical transaction contract; conformance is continuously tested and remains subject to audit.` The prior unqualified `code conforms to canon` assertion is gone. The technical prerequisites are also closed on the merged P1 tree: A02 strict-boolean semantic disagreement is repaired and the permanent all-236 semantic assurance gate reports all 236 canonical transaction vectors current. PR #40 exact-head required checks passed before merge. This closes the reviewer-first-impression overstatement without promoting a stronger semantic-conformance claim."
     },
     {
       "id": "A19-F002",
@@ -311,12 +311,9 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 32,
-    "pending_revalidation": 2,
-    "open_or_blocked_findings": [
-      "A01-F001",
-      "A19-F001"
-    ],
+    "proven_dispositions": 34,
+    "pending_revalidation": 0,
+    "open_or_blocked_findings": [],
     "adjudicated_findings": 34
   }
 }
