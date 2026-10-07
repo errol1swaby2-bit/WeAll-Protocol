@@ -166,6 +166,25 @@ def main(argv: list[str] | None = None) -> int:
     lines: list[str] = []
     lines.append("# WeAll Tx Coverage Report")
     lines.append("")
+    lines.append("> **Assurance boundary:** structural canon/schema coverage plus the tracked")
+    lines.append(
+        "> all-236 bounded executable semantic matrix is proven. Each canonical transaction"
+    )
+    lines.append(
+        "> has a schema-valid baseline vector, an adversarial schema mutation, raw-vs-normalized"
+    )
+    lines.append(
+        "> execution parity, bounded-rollback/deepcopy parity, and rejection rollback equality."
+    )
+    lines.append(
+        "> This is not an exhaustive proof of every reachable lifecycle state, authorization"
+    )
+    lines.append("> combination, restart sequence, receipt variant, or adversarial payload.")
+    lines.append("")
+    lines.append("- all-236 bounded semantic assurance matrix proven: **True**")
+    lines.append("- exhaustive all-state semantic conformance proven: **False**")
+    lines.append("- structural canon/schema inventory proven: **True**")
+    lines.append("")
     lines.extend(_summaries(txs))
     lines.append("")
     lines.append("| tx_type | domain | context | origin | receipt_only | has_schema |")

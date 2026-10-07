@@ -93,6 +93,7 @@ jobs:
       - name: Check generated artifacts
         run: |
           python scripts/check_generated.py
+          python scripts/gen_tx_semantic_assurance_v1_5.py --check
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py

@@ -84,8 +84,9 @@ notIncludes(executor, 'def snapshot(self)', 'executor snapshot compatibility met
 includes(executor, 'def read_state(self)', 'executor direct state reader must remain');
 
 const health = read('Weall-Protocol/src/weall/api/routes_public_parts/health.py');
-includes(health, 'def _try_executor_state', 'health readiness must use direct executor state helper');
-includes(health, 'read_state = getattr(ex, "read_state", None)', 'health readiness must call read_state directly');
+includes(health, 'def _try_executor_state', 'health readiness must use bounded executor telemetry helper');
+includes(health, 'health_telemetry = getattr(ex, "health_telemetry", None)', 'health readiness must prefer bounded health telemetry');
+includes(health, 'read_state = getattr(ex, "read_state", None)', 'health readiness may retain read_state fallback for lightweight test doubles');
 notIncludes(health, '_try_executor_snapshot', 'health readiness snapshot helper must be removed');
 notIncludes(health, 'getattr(ex, "snapshot"', 'health readiness must not use executor snapshot compatibility');
 

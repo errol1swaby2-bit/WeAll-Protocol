@@ -1,0 +1,106 @@
+name: A01-A20 P1 Revalidation
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-p1:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Record tested identity
+        run: |
+          echo "commit=$(git rev-parse HEAD)"
+          echo "tree=$(git rev-parse HEAD^{tree})"
+
+      - name: Canon sanity
+        working-directory: Weall-Protocol
+        run: |
+          python -m tooling.canon_lint
+          python scripts/check_generated.py
+          python scripts/gen_tx_semantic_assurance_v1_5.py --check
+
+      - name: P1-06 PoH production scope-closure overlap
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q tests/test_p0_06_production_scope_closure.py
+
+      - name: P1-09 failed-transaction replay residual overlap
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q \
+            tests/test_p0_a01_a20_closure_regressions.py::test_block_inclusion_context_forces_nonce_consumption_on_apply_failure
+
+      - name: P0 overlap regression guard
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q tests/test_p0_a01_a20_closure_regressions.py
+
+      - name: P0 claim-scope truth remains closed
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q tests/test_current_verified_claims_p0_scope_closed_status.py
+
+      - name: Current A01-A20 P1 remediation regressions
+        working-directory: Weall-Protocol
+        run: |
+          bash -n ../scripts/fresh_clone_smoke.sh scripts/weall_tester_node.sh
+          pytest -q \
+            tests/test_p1_latest_medium_closure.py \
+            tests/test_p1_a01_route_authority.py \
+            tests/test_p1_a02_strict_social_booleans.py \
+            tests/test_p1_a03_startup_durable_authority.py \
+            tests/test_p1_a03_observer_queue_durability.py \
+            tests/test_p1_a05_timeout_qc_ranking.py \
+            tests/test_p1_a06_constitutional_not_before.py \
+            tests/test_bft_timeout_certificate.py \
+            tests/test_bft_timeout_recovery.py \
+            tests/test_pb001bw_pending_timeout_restart_revalidation.py \
+            tests/test_recursive_production_readiness_closure.py::test_pruned_delta_falls_back_to_restartable_checkpoint_snapshot \
+            tests/test_state_sync_aux_branch_reset.py::test_checkpoint_sync_purges_aux_attestation_pool_and_restart_stays_clean \
+            tests/test_pb001bo_canonical_block_hash_persistence.py::test_restart_fails_closed_when_persisted_tip_header_does_not_match_hash \
+            tests/test_p1_a07_tls_verification.py \
+            tests/test_p1_a10_treasury_cancel_scope.py \
+            tests/test_p1_a10_reward_scheduler_scope.py \
+            tests/test_p1_a12_mempool_redaction.py \
+            tests/test_p1_a12_observer_operator_loopback_auth.py \
+            tests/test_crypto_signature_profiles.py \
+            tests/test_p1_a13_key_identity_canonicalization.py \
+            tests/test_p1_a14_state_publication_linearization.py \
+            tests/test_p1_a15_health_bounded_telemetry.py \
+            tests/test_p1_a15_snapshot_scope.py \
+            tests/test_p1_a17_reviewer_repro_contract.py \
+            tests/test_p1_a17_clean_lifecycle.py \
+            tests/test_p1_a18_claim_boundaries.py \
+            tests/test_p1_a19_reviewer_front_door.py \
+            tests/test_p1_a19_reviewer_bootstrap.py \
+            tests/test_a16_f006_all_tx_semantic_assurance.py \
+            tests/test_tx_coverage_report_current_index.py \
+            tests/test_tx_signature_profile_admission.py \
+            tests/test_block_signature_profiles.py \
+            tests/test_validator_operator_signature_profiles.py \
+            tests/prod/test_public_testnet_crypto_profile_gate.py

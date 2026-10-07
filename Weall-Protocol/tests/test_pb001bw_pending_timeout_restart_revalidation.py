@@ -20,7 +20,7 @@ def _timeout(
         "t": "TIMEOUT",
         "chain_id": "pbw",
         "view": int(view),
-        "high_qc_id": "hq",
+        "high_qc_id": "genesis",
         "signer": signer,
         "pubkey": VPUB[signer],
         "sig": sig,

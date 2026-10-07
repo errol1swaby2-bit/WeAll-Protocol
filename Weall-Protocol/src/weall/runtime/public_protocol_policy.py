@@ -72,6 +72,7 @@ SAFE_RESTRICTED_EVIDENCE_KEYS: set[str] = {
     "ciphertext_commitment",
     "encryption_context_commitment",
     "ciphertext_size",
+    "ciphertext_mime",
     "key_envelope_commitments",
     "kem_ciphertext_commitment",
     "wrapped_key_commitment",

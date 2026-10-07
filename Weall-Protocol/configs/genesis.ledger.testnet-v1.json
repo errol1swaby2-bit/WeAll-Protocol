@@ -123,7 +123,7 @@
     "reputation_scale": 1000,
     "schema_version": "1",
     "state_root_commitment_version": "weall.state-root.v2",
-    "tx_index_hash": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
+    "tx_index_hash": "ce9919610e7f69ca10955a6d8f23a01e280dbe1b35f9eacbb045cae1a4381404"
   },
   "params": {
     "account_registration_work_difficulty_bits": 16,

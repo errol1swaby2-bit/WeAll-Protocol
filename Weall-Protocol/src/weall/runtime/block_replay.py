@@ -166,6 +166,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         chain_floor_ms=int(chain_floor_ms),
         max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
         mode=str(os.environ.get("WEALL_MODE", "") or ""),
+        enforce_not_before=True,
     )
     if not bool(time_verdict.ok):
         code = str(time_verdict.code or "ts")

@@ -9,6 +9,7 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
+from weall.crypto.account_keys import account_key_id_for_pubkey
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE
 from weall.runtime.executor import (
@@ -29,7 +30,6 @@ from weall.runtime.executor import (
     _normalize_mempool_selection_policy,
     account_reputation_units,
     ensure_roles_schema,
-    hashlib,
     os,
     record_bootstrap_tier2_grant,
     sync_account_reputation,
@@ -245,8 +245,7 @@ def _initial_state(self) -> Json:
 
 def _mk_key_id(pubkey: str) -> str:
     """Stable deterministic key id for accounts[acct]["keys"]["by_id"]."""
-    h = hashlib.sha256(str(pubkey).encode("utf-8")).hexdigest()
-    return f"k:{h[:16]}"
+    return account_key_id_for_pubkey(str(pubkey))
 
 
 def _apply_genesis_bootstrap_live(self, state: Json) -> None:

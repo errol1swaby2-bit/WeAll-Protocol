@@ -394,10 +394,10 @@ def test_v2_transaction_contract_matrix_has_complete_structural_coverage() -> No
 def test_v2_route_contract_map_covers_all_route_implementations() -> None:
     payload = _read("generated/v2/route_contract_map.json")
     rows = payload["routes"]
-    assert payload["route_count"] == 163
+    assert payload["route_count"] == 159
     assert payload["unique_method_path_count"] == 159
-    assert payload["duplicate_route_implementation_count"] == 8
-    assert len({row["stable_id"] for row in rows}) == 163
+    assert payload["duplicate_route_implementation_count"] == 0
+    assert len({row["stable_id"] for row in rows}) == 159
     assert all(row["primary_mechanism_id"] == "M-069" for row in rows)
     assert all(row["semantic_precision"] == "explicit_maintainer_reviewed_contract" for row in rows)
     assert all(len(row["semantic_review"]["review_digest"]) == 64 for row in rows)
@@ -516,7 +516,7 @@ def test_compilation_manifest_preserves_fail_closed_truth_boundary() -> None:
     payload = _read("generated/v2/spec_compilation_manifest.json")
     coverage = payload["coverage"]
     assert coverage["transactions"] == 236
-    assert coverage["routes"] == 163
+    assert coverage["routes"] == 159
     assert coverage["unmapped_source_files"] == 0
     assert coverage["tx_semantic_review_complete"] is True
     assert coverage["route_semantic_review_complete"] is True
@@ -618,7 +618,7 @@ def test_w1_closure_manifest_records_release_attestation_boundary() -> None:
     assert closure["structured_schemas"]["state_schema_count"] == 94
     assert closure["structured_schemas"]["target_contract_schema_count"] == 150
     assert closure["semantic_reviews"]["transaction_reviews"] == 236
-    assert closure["semantic_reviews"]["route_reviews"] == 163
+    assert closure["semantic_reviews"]["route_reviews"] == 159
     assert closure["semantic_reviews"]["independent_review_complete"] is False
     assert closure["release_export_attestation_required"] is True
     assert closure["provenance_binding"]["binding_policy"] == "PASS_NON_CIRCULAR_TWO_COMMIT_BINDING"

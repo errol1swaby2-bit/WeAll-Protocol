@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b14884c0a4a69b643d9f99362dab8a506bcbebb45b027bc2fbd06effdb7f751"
+    "source_tree_digest": "06e96982abf37cdf3b41e25eb42d24c8e15cccd3d7abb464e8cd4dcea1edb123"
   },
   "rows": [
     {
@@ -3099,14 +3099,10 @@
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
-        "amount",
-        "applied",
         "content_id",
         "deduped",
-        "from",
         "purpose",
         "tip_indexed",
-        "to",
         "transfer_id"
       ],
       "kind": "user_transaction_apply_result",

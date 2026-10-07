@@ -434,6 +434,26 @@ def _apply_treasury_spend_cancel(state: Json, env: TxEnvelope) -> Json:
     if status == "canceled":
         return {"applied": "TREASURY_SPEND_CANCEL", "spend_id": spend_id, "deduped": True}
 
+    # A10-F004: cancellation authority is treasury-scoped and must be
+    # independently enforced at apply time. Prefer the proposal-time signer
+    # snapshot so later role churn cannot retroactively broaden authority.
+    allowed = spend.get("allowed_signers")
+    if not isinstance(allowed, list):
+        require_emissary = _treasury_requires_emissaries(state, treasury_id)
+        seated = _seated_emissaries(state) if require_emissary else set()
+        signers, _threshold = _treasury_signer_policy(state, treasury_id)
+        allowed = [s for s in signers if (s in seated) or (not require_emissary)]
+        spend["allowed_signers"] = allowed
+
+    signer = _as_str(env.signer).strip()
+    allowed_set = {str(item).strip() for item in allowed if str(item).strip()}
+    if not signer or signer not in allowed_set:
+        raise TreasuryApplyError(
+            "forbidden",
+            "not_authorized_signer",
+            {"spend_id": spend_id, "treasury_id": treasury_id, "signer": signer},
+        )
+
     spend["status"] = "canceled"
     spend["canceled_by"] = _as_str(env.signer).strip()
     spend["canceled_at_nonce"] = int(env.nonce)

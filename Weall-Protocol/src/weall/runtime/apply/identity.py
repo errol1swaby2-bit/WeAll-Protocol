@@ -5,11 +5,17 @@ import hashlib
 from typing import Any
 
 from weall.crypto.account_keys import (
+    account_key_id_for_pubkey,
     account_key_pubkey,
     account_key_record_from_payload,
+    canonical_account_key_pubkey,
+    has_canonical_mldsa_authority,
     validate_account_key_record,
 )
-from weall.crypto.signature_profiles import default_signature_profile_for_mode
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    default_signature_profile_for_mode,
+)
 
 from ..account_recovery_policy import (
     RECOVERY_FAILED_WINDOW_BLOCKS,
@@ -164,9 +170,7 @@ def _require_not_banned_or_locked(state: Json, account_id: str) -> Json:
 
 
 def _mk_key_id(pubkey: str) -> str:
-    # Stable, deterministic key id for by_id mapping
-    h = hashlib.sha256(pubkey.encode("utf-8")).hexdigest()
-    return f"k:{h[:16]}"
+    return account_key_id_for_pubkey(pubkey)
 
 
 def _current_height(state: Json) -> int:
@@ -224,6 +228,108 @@ def _reject_non_public_protocol_payload(env: TxEnvelope) -> None:
         raise ApplyError(violation.code, violation.reason, violation.details)
 
 
+def _merge_canonical_key_alias_records(left: Json, right: Json) -> Json:
+    merged = dict(left)
+    revoked = bool(left.get("revoked", False) or right.get("revoked", False))
+    merged["revoked"] = revoked
+    merged["active"] = (
+        False if revoked else bool(left.get("active", True) and right.get("active", True))
+    )
+
+    created = [
+        _as_int(record.get("created_height"), 0)
+        for record in (left, right)
+        if record.get("created_height") is not None
+    ]
+    if created:
+        merged["created_height"] = min(created)
+
+    for field in ("revoked_at", "revoked_height"):
+        values = [
+            _as_int(record.get(field), 0)
+            for record in (left, right)
+            if record.get(field) is not None
+        ]
+        if values:
+            merged[field] = min(values)
+
+    reasons = sorted(
+        {
+            _as_str(record.get("revocation_reason")).strip()
+            for record in (left, right)
+            if _as_str(record.get("revocation_reason")).strip()
+        }
+    )
+    if reasons:
+        merged["revocation_reason"] = reasons[0]
+    return merged
+
+
+def _canonicalize_account_key_aliases(account: Json) -> None:
+    """Collapse historical alternate ML-DSA encodings into one authority record.
+
+    Invalid/legacy fixture keys are intentionally left untouched. For real
+    ML-DSA-65 keys, decoded bytes define the authority identity. Old textual
+    key IDs are retained as aliases so historical revocation references still
+    resolve after deterministic migration.
+    """
+
+    keys = account.get("keys")
+    if not isinstance(keys, dict):
+        return
+    by_id = keys.get("by_id")
+    if not isinstance(by_id, dict):
+        return
+
+    canonical: dict[str, Json] = {}
+    aliases: dict[str, str] = {}
+    prior_aliases = keys.get("aliases") if isinstance(keys.get("aliases"), dict) else {}
+
+    for old_id in sorted(str(value) for value in by_id.keys()):
+        record = by_id.get(old_id)
+        if not isinstance(record, dict):
+            continue
+        pubkey = account_key_pubkey(record)
+        profile = _as_str(record.get("sig_profile") or PQ_MLDSA_V1).strip()
+        if not pubkey or not has_canonical_mldsa_authority(pubkey, profile=profile):
+            canonical[old_id] = dict(record)
+            continue
+
+        canonical_id = account_key_id_for_pubkey(pubkey, profile=profile)
+        normalized = dict(record)
+        normalized["key_id"] = canonical_id
+        pubkeys = (
+            dict(normalized.get("pubkeys")) if isinstance(normalized.get("pubkeys"), dict) else {}
+        )
+        pubkeys["mldsa"] = canonical_account_key_pubkey(pubkey, profile=profile)
+        normalized["pubkeys"] = pubkeys
+        normalized.pop("pubkey", None)
+
+        if canonical_id in canonical:
+            canonical[canonical_id] = _merge_canonical_key_alias_records(
+                canonical[canonical_id], normalized
+            )
+        else:
+            canonical[canonical_id] = normalized
+        if old_id != canonical_id:
+            aliases[old_id] = canonical_id
+
+    for old_id, target in sorted(prior_aliases.items()):
+        old = _as_str(old_id).strip()
+        resolved = _as_str(target).strip()
+        if not old or not resolved:
+            continue
+        resolved = aliases.get(resolved, resolved)
+        if resolved in canonical and old != resolved:
+            aliases[old] = resolved
+
+    keys["by_id"] = {key: canonical[key] for key in sorted(canonical)}
+    if aliases:
+        keys["aliases"] = {key: aliases[key] for key in sorted(aliases)}
+    else:
+        keys.pop("aliases", None)
+
+
 def _extract_active_pubkeys(acct: Json) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
@@ -231,7 +337,7 @@ def _extract_active_pubkeys(acct: Json) -> list[str]:
     def _add(pk: Any) -> None:
         if not isinstance(pk, str):
             return
-        p = pk.strip()
+        p = canonical_account_key_pubkey(pk)
         if not p or p in seen:
             return
         seen.add(p)
@@ -296,6 +402,7 @@ def _extract_active_pubkeys(acct: Json) -> list[str]:
 
 
 def _sync_account_key_views(a: Json) -> None:
+    _canonicalize_account_key_aliases(a)
     active = _extract_active_pubkeys(a)
     a["active_keys"] = list(active)
     a["pubkeys"] = list(active)
@@ -424,8 +531,11 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
         keys["by_id"] = by_id
 
     kid = _mk_key_id(pubkey)
-    if kid in by_id and isinstance(by_id.get(kid), dict) and by_id[kid].get("revoked") is not True:
-        raise ApplyError("invalid_tx", "key_exists", {"pubkey": pubkey})
+    for existing in by_id.values():
+        if not isinstance(existing, dict):
+            continue
+        if account_key_pubkey(existing) == pubkey:
+            raise ApplyError("invalid_tx", "key_exists", {"pubkey": pubkey})
 
     key_record["key_id"] = str(key_record.get("key_id") or kid)
     by_id[kid] = key_record
@@ -447,27 +557,33 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("invalid_state", "keys_not_configured", {})
 
     by_id = keys["by_id"]
-    match_kid: str | None = None
+    aliases = keys.get("aliases") if isinstance(keys.get("aliases"), dict) else {}
+    target_pubkey = ""
     if key_id:
-        rec = by_id.get(key_id)
+        resolved_key_id = _as_str(aliases.get(key_id) or key_id).strip()
+        rec = by_id.get(resolved_key_id)
         if isinstance(rec, dict) and rec.get("revoked") is not True:
-            match_kid = key_id
+            target_pubkey = account_key_pubkey(rec)
     elif legacy_pubkey:
-        for kid, rec in by_id.items():
-            if not isinstance(rec, dict):
-                continue
-            if account_key_pubkey(rec) == legacy_pubkey and rec.get("revoked") is not True:
-                match_kid = kid
-                break
+        target_pubkey = canonical_account_key_pubkey(legacy_pubkey)
     else:
         raise ApplyError("invalid_tx", "missing_key_id", {})
 
-    if not match_kid:
+    matching_ids = [
+        kid
+        for kid, rec in sorted(by_id.items())
+        if isinstance(rec, dict)
+        and rec.get("revoked") is not True
+        and account_key_pubkey(rec) == target_pubkey
+    ]
+    if not target_pubkey or not matching_ids:
         details = {"key_id": key_id} if key_id else {"pubkey": legacy_pubkey}
         raise ApplyError("invalid_tx", "unknown_key", details)
 
-    by_id[match_kid]["revoked"] = True
-    by_id[match_kid]["revoked_at"] = _as_int(state.get("height"), 0)
+    for match_kid in matching_ids:
+        by_id[match_kid]["revoked"] = True
+        by_id[match_kid]["active"] = False
+        by_id[match_kid]["revoked_at"] = _as_int(state.get("height"), 0)
     a["nonce"] = _as_int(a.get("nonce"), 0) + 1
     _sync_account_key_views(a)
     return state
@@ -921,13 +1037,17 @@ def _all_account_pubkeys(account: Json) -> set[str]:
             if pubkey:
                 out.add(pubkey)
     for field in ("pubkey",):
-        pubkey = _as_str(account.get(field)).strip()
+        pubkey = canonical_account_key_pubkey(_as_str(account.get(field)).strip())
         if pubkey:
             out.add(pubkey)
     for field in ("pubkeys", "active_keys"):
         values = account.get(field)
         if isinstance(values, list):
-            out.update(_as_str(value).strip() for value in values if _as_str(value).strip())
+            out.update(
+                canonical_account_key_pubkey(_as_str(value).strip())
+                for value in values
+                if _as_str(value).strip()
+            )
     return out
 
 
@@ -935,14 +1055,14 @@ def _recovery_key_history(recovery: Json) -> set[str]:
     out: set[str] = set()
     current = recovery.get("offline_key")
     if isinstance(current, dict):
-        pubkey = _as_str(current.get("pubkey")).strip()
+        pubkey = canonical_account_key_pubkey(_as_str(current.get("pubkey")).strip())
         if pubkey:
             out.add(pubkey)
     prior = recovery.get("prior_offline_keys")
     if isinstance(prior, list):
         for record in prior:
             if isinstance(record, dict):
-                pubkey = _as_str(record.get("pubkey")).strip()
+                pubkey = canonical_account_key_pubkey(_as_str(record.get("pubkey")).strip())
                 if pubkey:
                     out.add(pubkey)
     return out
@@ -957,10 +1077,11 @@ def _validate_independent_recovery_key(
     require_fresh: bool = False,
 ) -> Json:
     record = _key_record_from_payload_or_raise(state, payload, key_type="recovery")
-    pubkey = _as_str(account_key_pubkey(record)).strip()
+    pubkey = canonical_account_key_pubkey(_as_str(account_key_pubkey(record)).strip())
     if not pubkey:
         raise ApplyError("invalid_tx", "missing_recovery_pubkey", {})
-    if proposed_active_pubkey and pubkey == _as_str(proposed_active_pubkey).strip():
+    proposed_canonical = canonical_account_key_pubkey(_as_str(proposed_active_pubkey).strip())
+    if proposed_canonical and pubkey == proposed_canonical:
         raise ApplyError("invalid_tx", "recovery_key_must_be_independent", {})
     if pubkey in _all_account_pubkeys(account):
         raise ApplyError("invalid_tx", "recovery_key_must_be_independent", {})
@@ -971,7 +1092,7 @@ def _validate_independent_recovery_key(
 
 
 def _require_fresh_recovered_authority(account: Json, pubkey: str) -> None:
-    candidate = _as_str(pubkey).strip()
+    candidate = canonical_account_key_pubkey(_as_str(pubkey).strip())
     if not candidate:
         raise ApplyError("invalid_tx", "missing_new_pubkey", {})
     if candidate in _all_account_pubkeys(account) or candidate in _recovery_key_history(
@@ -1137,6 +1258,7 @@ def _prior_recovery_reviewer_ids(recovery: Json) -> set[str]:
 def _revoke_account_authority(
     account: Json, *, height: int, reason: str
 ) -> tuple[list[str], list[str], int]:
+    _canonicalize_account_key_aliases(account)
     keys = account.get("keys")
     if not isinstance(keys, dict):
         keys = {}

@@ -49,6 +49,7 @@ def _bind(module, tmp_path: Path, *, open_tracks: dict[str, str]) -> dict:
     release = tmp_path / "release.json"
     performance = tmp_path / "performance.json"
     audit = tmp_path / "audit.md"
+    p1_matrix = tmp_path / "p1-matrix.json"
 
     _write_json(
         tx,
@@ -82,6 +83,31 @@ def _bind(module, tmp_path: Path, *, open_tracks: dict[str, str]) -> dict:
         },
     )
     _write_audit_status(audit, open_tracks=open_tracks)
+    p1_findings = [
+        {
+            "id": f"A{index + 1:02d}-F001",
+            "severity": "MEDIUM",
+            "track": f"P1-{(index % 10) + 1:02d}",
+            "status": "patched_and_proven",
+            "summary": f"synthetic closed P1 finding {index + 1}",
+        }
+        for index in range(module.P1_EXPECTED_FINDING_COUNT)
+    ]
+    _write_json(
+        p1_matrix,
+        {
+            "schema": module.P1_MATRIX_SCHEMA,
+            "source_audit": {
+                "date": "2026-09-30",
+                "medium_p1_count": module.P1_EXPECTED_FINDING_COUNT,
+            },
+            "findings": p1_findings,
+            "summary": {
+                "proven_dispositions": module.P1_EXPECTED_FINDING_COUNT,
+                "pending_revalidation": 0,
+            },
+        },
+    )
 
     module.ROOT = tmp_path
     module.TX_INDEX = tx
@@ -89,7 +115,13 @@ def _bind(module, tmp_path: Path, *, open_tracks: dict[str, str]) -> dict:
     module.RELEASE = release
     module.PERFORMANCE = performance
     module.AUDIT_STATUS = audit
-    return {"release": release, "release_payload": release_payload, "audit": audit}
+    module.P1_MATRIX = p1_matrix
+    return {
+        "release": release,
+        "release_payload": release_payload,
+        "audit": audit,
+        "p1_matrix": p1_matrix,
+    }
 
 
 def _claim(payload: dict, claim_id: str) -> dict:

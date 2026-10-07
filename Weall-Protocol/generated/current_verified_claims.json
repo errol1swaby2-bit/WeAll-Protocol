@@ -91,6 +91,65 @@
       }
     },
     {
+      "claim_id": "AUDIT-P1-001",
+      "claim_text": "Open same-tree A01\u2013A20 P1/MEDIUM findings require qualification and block stronger release claims.",
+      "claim_type": "audit_gate",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "The active P1 matrix is a required same-tree claim-generation input. A finding cannot be hidden from current claim classification merely by leaving it in an audit artifact outside the generator.",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS",
+      "value": {
+        "closed_finding_ids": [
+          "A01-F002",
+          "A01-F003",
+          "A02-F002",
+          "A03-F001",
+          "A03-F002",
+          "A05-F003",
+          "A06-F002",
+          "A07-F003",
+          "A08-F002",
+          "A08-F003",
+          "A10-F003",
+          "A10-F004",
+          "A11-F001",
+          "A11-F002",
+          "A12-F002",
+          "A12-F003",
+          "A13-F001",
+          "A13-F002",
+          "A14-F001",
+          "A15-F004",
+          "A15-F005",
+          "A15-F006",
+          "A16-F006",
+          "A17-F001",
+          "A17-F002",
+          "A17-F003",
+          "A18-F003",
+          "A18-F004",
+          "A19-F002",
+          "A19-F003",
+          "A19-F004",
+          "A20-F002"
+        ],
+        "open_medium_finding_ids": [
+          "A01-F001",
+          "A19-F001"
+        ],
+        "proven_dispositions": 32,
+        "stronger_release_claims_blocked": true,
+        "total_findings": 34
+      }
+    },
+    {
       "claim_id": "TX-CANON-001",
       "claim_text": "The canonical transaction index count and version are generated facts.",
       "claim_type": "structural_count",
@@ -386,13 +445,14 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
+    "../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json": "de7fdca1a22f2a44952d5b64c46bdee17757766dee3bfffa275d81456e53643c",
     "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "1a5653024b2b75172403987ef9ae647e4e85d7b3af8fd7c976a198292b1051b3",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
-    "generated/public_beta_blocker_report_v1_5.json": "1970a1bbbddc6297a773141b9f9ab98791a133dad834b8802b89907506fd8b03",
-    "generated/release_evidence_manifest_v1_5.json": "5b3039c9d8483f5864427982d4fcd7ceab7a29e24438532de93c3349d0bdb896",
-    "generated/tx_index.json": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a"
+    "generated/public_beta_blocker_report_v1_5.json": "56d002be2add684a7026a34e38f9cbc051eb9646dff43fe8ca9589929ce2da2a",
+    "generated/release_evidence_manifest_v1_5.json": "935ed85dfbad52839bbb6b178a5ed1c384122dab85c2dc61e6279d1b63002ade",
+    "generated/tx_index.json": "ce9919610e7f69ca10955a6d8f23a01e280dbe1b35f9eacbb045cae1a4381404"
   },
   "schema": "weall.current_verified_claims.v1",
   "tracked_manifest_is_commit_agnostic": true,
-  "version": "1.1.0"
+  "version": "1.2.0"
 }

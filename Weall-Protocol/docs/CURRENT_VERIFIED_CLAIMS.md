@@ -18,6 +18,7 @@ cryptographic review, or a current scalar TPS measurement.
 | `READINESS-002` | readiness | `PROVEN_GENERATED_CURRENT` | Mainnet readiness is not currently claimed. | `generated/public_beta_blocker_report_v1_5.json`<br>`generated/release_evidence_manifest_v1_5.json` |
 | `READINESS-003` | readiness | `SUPPORTED_BUT_QUALIFICATION_REQUIRED` | The current repository posture is pre-public-testnet / active hardening, not public beta or mainnet. | `docs/reviewer/CURRENT_READINESS_STATEMENT.md`<br>`docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md`<br>`generated/public_beta_blocker_report_v1_5.json` |
 | `AUDIT-P0-001` | audit_gate | `PROVEN_GENERATED_CURRENT` | The same-tree A01–A20 P0/HIGH closure ledger has no open tracks. | `../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md` |
+| `AUDIT-P1-001` | audit_gate | `OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS` | Open same-tree A01–A20 P1/MEDIUM findings require qualification and block stronger release claims. | `../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json` |
 | `TX-CANON-001` | structural_count | `PROVEN_GENERATED_CURRENT` | The canonical transaction index count and version are generated facts. | `generated/tx_index.json` |
 | `BOUNDARY-AUTOMATIC_PROTOCOL_UPGRADES` | claim_boundary | `PROVEN_GENERATED_CURRENT` | Release claim boundary `automatic_protocol_upgrades` is not claimed/enabled. | `generated/release_evidence_manifest_v1_5.json` |
 | `BOUNDARY-LEGAL_COMPLIANCE_READY` | claim_boundary | `PROVEN_GENERATED_CURRENT` | Release claim boundary `legal_compliance_ready` is not claimed/enabled. | `generated/release_evidence_manifest_v1_5.json` |
@@ -42,6 +43,7 @@ cryptographic review, or a current scalar TPS measurement.
 - Mainnet readiness: **not claimed**.
 - Remaining external-evidence blocker IDs: `AUD-618-P0-001, AUD-618-P0-002, AUD-618-P0-003, AUD-633-P0-004, AUD-618-P1-003, AUD-618-P1-004, AUD-618-P1-005, AUD-628-P1-001`.
 - Open A01–A20 P0 audit tracks: `none`.
+- Open A01–A20 P1/MEDIUM findings: `A01-F001, A19-F001`.
 
 V2 structural counts are intentionally not copied here. Their canonical source is
 `generated/v2/spec_compilation_manifest.json`, verified independently by

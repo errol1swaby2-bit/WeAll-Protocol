@@ -61,6 +61,10 @@ def _setup_env() -> dict[str, str]:
 def _prod_env(vid: str, *, pub: str, priv: str) -> dict[str, str]:
     return {
         "WEALL_MODE": "prod",
+        # This P0 fixture proves production lifecycle/BFT composition with
+        # deterministic test keys. A13 independently proves that mainnet
+        # cryptographic admission remains closed until ML-DSA is approved.
+        "WEALL_CRYPTO_MODE": "closed-testnet",
         "WEALL_NODE_LIFECYCLE_STATE": "production_service",
         "WEALL_SERVICE_ROLES": "node_operator,validator",
         "WEALL_NODE_ROLE": "validator",

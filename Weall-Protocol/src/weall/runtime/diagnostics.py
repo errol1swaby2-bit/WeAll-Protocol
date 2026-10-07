@@ -183,16 +183,49 @@ def read_cached_state(self) -> Json:
     return self.state
 
 
+def health_telemetry(self) -> Json:
+    """Return bounded health/readiness telemetry without parsing full state_json."""
+    head = self._ledger_store.read_head()
+    cached = self.state if isinstance(getattr(self, "state", None), dict) else {}
+    params = cached.get("params") if isinstance(cached.get("params"), dict) else {}
+    return {
+        "chain_id": str(cached.get("chain_id") or params.get("chain_id") or self.chain_id or ""),
+        "node_id": str(cached.get("node_id") or params.get("node_id") or self.node_id or ""),
+        "height": int(head.get("height") or 0),
+        "tip": str(head.get("block_id") or ""),
+        "durable_updated_ts_ms": int(head.get("updated_ts_ms") or 0),
+        "time": cached.get("time"),
+        "params": {
+            "economic_unlock_time": params.get("economic_unlock_time"),
+            "genesis_time": params.get("genesis_time"),
+            "economics_enabled": params.get("economics_enabled", False),
+        },
+    }
+
+
 def read_state(self) -> Json:
-    """Return the latest persisted ledger snapshot or fail closed."""
-    try:
-        persisted = self._ledger_store.read()
-    except Exception as exc:
-        raise LedgerStateReadError("persisted_ledger_state_read_failed") from exc
-    if not isinstance(persisted, dict):
-        raise LedgerStateReadError("persisted_ledger_state_invalid_type")
-    self.state = persisted
-    return self.state
+    """Return and publish the latest persisted snapshot at one branch-linearized point.
+
+    A14-F001: a persisted read is also a publication into self.state. It
+    therefore participates in the same process-local canonical-branch ordering
+    domain as block commit, follower replay, and destructive checkpoint install.
+    Holding the RLock across both SQLite read and publication prevents a reader
+    that captured height N from resuming after N+1 and moving the shared runtime
+    view backward. It also protects same-height tip/root/validator transitions,
+    which a height-only compare could miss.
+    """
+    guard = getattr(self, "_bft_branch_guard_lock", None)
+    if not callable(guard):
+        raise LedgerStateReadError("canonical_branch_guard_unavailable")
+    with guard():
+        try:
+            persisted = self._ledger_store.read()
+        except Exception as exc:
+            raise LedgerStateReadError("persisted_ledger_state_read_failed") from exc
+        if not isinstance(persisted, dict):
+            raise LedgerStateReadError("persisted_ledger_state_invalid_type")
+        self.state = persisted
+        return self.state
 
 
 def tx_index_hash(self) -> str:

@@ -231,6 +231,7 @@ def _bft_semantic_cache_artifact(self, kind: str, artifact: Json) -> Json | None
             "chain_id": str(artifact.get("chain_id") or self.chain_id).strip(),
             "view": _safe_int(artifact.get("view"), 0),
             "high_qc_id": str(artifact.get("high_qc_id") or "").strip(),
+            "high_qc_view": _safe_int(artifact.get("high_qc_view"), -1),
             "signer": str(artifact.get("signer") or "").strip(),
             "sig_profile": profile,
             "validator_epoch": _safe_int(artifact.get("validator_epoch"), 0),
@@ -1723,13 +1724,24 @@ def _bft_best_justify_qc_json(self) -> Json | None:
     tc = getattr(self._bft, "best_timeout_certificate", lambda: None)()
     if tc is None:
         return None
+
+    tc_qc = getattr(tc, "high_qc", None)
+    if isinstance(tc_qc, dict):
+        qc = self.bft_verify_qc_json(tc_qc)
+        if qc is not None:
+            if str(qc.block_id or "") == str(getattr(tc, "high_qc_id", "") or "") and int(
+                qc.view
+            ) == int(getattr(tc, "high_qc_view", -1)):
+                return qc.to_json()
+        return None
+
     qid = str(getattr(tc, "high_qc_id", "") or "").strip()
-    if not qid:
+    if not qid or qid == "genesis":
         return None
     cached = self._pending_missing_qc_json(block_id=qid)
     if isinstance(cached, dict):
         qc = self.bft_verify_qc_json(cached)
-        if qc is not None:
+        if qc is not None and int(qc.view) == int(getattr(tc, "high_qc_view", -1)):
             return qc.to_json()
     return None
 
@@ -2065,8 +2077,12 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
         return None
 
     high_qc_id = "genesis"
+    high_qc_view = -1
+    high_qc: Json | None = None
     if self._bft.high_qc is not None and str(self._bft.high_qc.block_id or "").strip():
         high_qc_id = str(self._bft.high_qc.block_id)
+        high_qc_view = int(self._bft.high_qc.view)
+        high_qc = self._bft.high_qc.to_json()
 
     validator_epoch = self._current_validator_epoch()
     validator_set_hash = self._current_validator_set_hash() if int(validator_epoch) > 0 else ""
@@ -2075,6 +2091,8 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
         chain_id=self.chain_id,
         view=int(view),
         high_qc_id=high_qc_id,
+        high_qc_view=int(high_qc_view),
+        high_qc=high_qc,
         signer=signer,
         validator_epoch=int(validator_epoch),
         validator_set_hash=validator_set_hash,
@@ -2090,6 +2108,8 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
         signer=signer,
         pubkey=pubkey,
         sig=sig,
+        high_qc_view=int(high_qc_view),
+        high_qc=dict(high_qc) if isinstance(high_qc, dict) else None,
         sig_profile=sig_profile,
         validator_epoch=int(validator_epoch),
         validator_set_hash=validator_set_hash,
@@ -2097,10 +2117,6 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
     tjson = tmo.to_json()
     tjson["consensus_phase"] = self._current_consensus_phase()
 
-    # Persist the exact signed timeout obligation before advancing the local
-    # same-view emission cursor.  If the process crashes between these steps,
-    # restart recovers the cursor from the durable outbox and replays this exact
-    # artifact instead of signing a second timeout for the same view.
     self._bft_enqueue_outbound("timeout", tjson)
     self._bft.note_timeout_emitted(view=int(view))
     self._persist_bft_state()
@@ -2108,6 +2124,7 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
         "bft_timeout_emitted",
         view=int(view),
         high_qc_id=high_qc_id,
+        high_qc_view=int(high_qc_view),
         timeout_ms=int(self._bft.pacemaker_timeout_ms()),
     )
     return tjson
@@ -2137,6 +2154,9 @@ def bft_handle_timeout(self, timeout_json: Json) -> int | None:
     validators = self._active_validators()
     vpub = self._validator_pubkeys()
 
+    timeout_high_qc = (
+        timeout_json.get("high_qc") if isinstance(timeout_json.get("high_qc"), dict) else None
+    )
     tmo = BftTimeout(
         chain_id=str(timeout_json.get("chain_id") or self.chain_id).strip(),
         view=int(timeout_json.get("view") or 0),
@@ -2144,6 +2164,8 @@ def bft_handle_timeout(self, timeout_json: Json) -> int | None:
         signer=str(timeout_json.get("signer") or "").strip(),
         pubkey=str(timeout_json.get("pubkey") or "").strip(),
         sig=str(timeout_json.get("sig") or "").strip(),
+        high_qc_view=_safe_int(timeout_json.get("high_qc_view"), -1),
+        high_qc=dict(timeout_high_qc) if isinstance(timeout_high_qc, dict) else None,
         sig_profile=normalize_signature_profile_id(
             timeout_json.get("sig_profile") or timeout_json.get("signature_profile")
         ),

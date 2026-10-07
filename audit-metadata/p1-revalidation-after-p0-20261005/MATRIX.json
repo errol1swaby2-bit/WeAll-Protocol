@@ -1,0 +1,322 @@
+{
+  "schema": "weall.a01_a20.p1_closure_matrix.v1",
+  "source_audit": {
+    "date": "2026-09-30",
+    "base_commit": "cd7f10a8b62e9f5a3711f4263d04e3fd62f0d351",
+    "base_tree": "36a5868c72022f11a61bca8f48816852acccb1c9",
+    "inventory_total": 77,
+    "high_p0_count": 27,
+    "medium_p1_count": 34,
+    "low_remaining_count": 16
+  },
+  "closure_baseline": {
+    "branch": "main",
+    "commit": "61b1a81f624e7f5c81808aa4b580e3c2f8d55a06",
+    "tree": "a6b0a6e3506e6ff9f38fbf42454b4770ac7ac9a7",
+    "meaning": "merged PR #38 A01-A20 HIGH/P0 closure"
+  },
+  "p1_definition": "All MEDIUM findings in the 2026-09-30 A01-A20 master audit inventory.",
+  "allowed_statuses": [
+    "pending_revalidation",
+    "already_closed_and_proven",
+    "patched_and_proven",
+    "scope_closed_and_proven",
+    "design_blocker",
+    "open"
+  ],
+  "tracks": {
+    "P1-01": "Repository authority, reproducibility, reviewer bootstrap and route source truth",
+    "P1-02": "Typed transaction semantics and all-canon semantic assurance",
+    "P1-03": "Persistence, durability and canonical-state publication",
+    "P1-04": "Consensus timeout and constitutional-slot validity",
+    "P1-05": "Transport/cryptographic identity and signature-profile policy",
+    "P1-06": "PoH evidence and anti-Sybil/collusion enforcement",
+    "P1-07": "Economics, treasury, rewards and fee integrity",
+    "P1-08": "API privacy and operator authorization",
+    "P1-09": "Resource-exhaustion residuals",
+    "P1-10": "Claims truth, repository messaging and browser credential custody"
+  },
+  "findings": [
+    {
+      "id": "A01-F001",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "open",
+      "summary": "Authoritative main branch does not enforce the validation gates",
+      "evidence": "Current GitHub repository state rechecked during PR #40: `main` remains `protected=false`, branch protection enforcement is off with no required status contexts, and the repository ruleset list is empty. Source/CI changes cannot close this external repository-administration control; branch/ruleset protection plus controlled blocked/allowed merge evidence is still required."
+    },
+    {
+      "id": "A01-F002",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "scope_closed_and_proven",
+      "summary": "Clean checkout proof is not a clean-machine/hermetic reproducibility proof",
+      "evidence": "The audit explicitly allowed scoping the clean-checkout claim instead of claiming a hermetic machine. `docs/reviewer/START_HERE.md` and `docs/V2_SPEC_COMPILER.md` now define `check_v2_spec_clean_checkout.py` as source-archive consistency under an already-provisioned toolchain and explicitly disclaim byte-for-byte clean-machine/container/toolchain hermeticity. Assurance reconciliation run 37551824457 regenerated exact-tree derivatives, reproduced all 42 V2 derivatives from a clean Git archive, and passed the claim-scope regressions on workflow-free commit 6cfa4f971f08d1508690f89d1ab06730894f37a4 / tree f7777d0a485e5815757efdb7a4076f3df1debb6c."
+    },
+    {
+      "id": "A01-F003",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "patched_and_proven",
+      "summary": "Generated V2 route inventory includes four unmounted duplicate endpoint implementations",
+      "evidence": "Dormant decorated node-discovery wrappers were removed from src/weall/api/routes_nodes.py, leaving that module helper-only and src/weall/api/routes_public_parts/nodes.py as the sole decorated authority for GET /v1/nodes, /known, /seeds, and /validators. The V2 route inventory now requires 159 implementation rows, 159 unique method/path keys, and zero duplicate implementation rows. Regression coverage proves each affected node route is declared exactly once by nodes_router and that routes_public mounts that router exactly once under /v1; the generated V2 inventory has zero duplicate implementation rows, and no generated node route points to the retired helper-only routes_nodes.py module. Existing node endpoint TestClient coverage proves the mounted routes execute. Closure run 37402369877 passed route compiler, mounted API, clean-checkout, dependent evidence, and web dependency gates before producing workflow-free candidate fb929491b83cee8315534cd5c18f05dfb975a6e0 / tree 78a8a3056f8c3b01a87007dbcaf8c843e528a174."
+    },
+    {
+      "id": "A02-F002",
+      "severity": "MEDIUM",
+      "track": "P1-02",
+      "status": "patched_and_proven",
+      "summary": "Schema accepts textual false while social execution applies it as true",
+      "evidence": "Strict JSON boolean semantics are enforced for FOLLOW_SET, BLOCK_SET, and MUTE_SET at both schema and apply boundaries. The 3x8 coercion matrix rejects textual/integers and preserves real booleans; invalid direct apply leaves state unchanged. Reconciliation run 37394764328 registered invalid_payload:boolean_required, refreshed all three V2 semantic bindings, regenerated dependent evidence twice, passed clean-checkout V2/public-claim checks, and pushed workflow-free candidate 41c10839a3aeb965147006ca57ea5f089096b751."
+    },
+    {
+      "id": "A03-F001",
+      "severity": "MEDIUM",
+      "track": "P1-03",
+      "status": "patched_and_proven",
+      "summary": "Nonzero stale ledger snapshot can pass startup while newer persisted blocks already exist",
+      "evidence": "Workflow-free A03 reconciliation run 37533819920 produced exact candidate 7e7094a0eb01ac555a0fb47700c6885f61f1cffb / tree dfffac682b4ae22a7d0abf420fdc6c2de7087324. Startup now fails closed whenever a non-genesis ledger snapshot height differs from the highest persisted canonical block height. The regression matrix covers fresh/normal restart, zero-behind, nonzero stale snapshot behind newer blocks, snapshot ahead of block history, pruned-history checkpoint fallback, state-sync checkpoint restart, and persisted tip corruption. The reconciliation also passed two-pass evidence regeneration and clean-checkout verification."
+    },
+    {
+      "id": "A03-F002",
+      "severity": "MEDIUM",
+      "track": "P1-03",
+      "status": "patched_and_proven",
+      "summary": "Observer durable_tx_queue acknowledgement is not backed by an explicit filesystem durability barrier",
+      "evidence": "Workflow-free A03 reconciliation run 37533819920 produced exact candidate 7e7094a0eb01ac555a0fb47700c6885f61f1cffb / tree dfffac682b4ae22a7d0abf420fdc6c2de7087324. Observer durable_tx_queue publication now flushes and fsyncs replacement file contents, atomically renames, and fsyncs the parent directory on the supported POSIX production posture. Focused evidence proves file_fsync -> replace -> directory_fsync ordering, file-fsync failure prevents publication, and directory-fsync failure propagates so the caller cannot acknowledge a durable handoff."
+    },
+    {
+      "id": "A05-F003",
+      "severity": "MEDIUM",
+      "track": "P1-04",
+      "status": "patched_and_proven",
+      "summary": "Timeout certificates do not actually identify the highest referenced QC",
+      "evidence": "Timeout messages now sign and carry authenticated high_qc_view plus the referenced QC object; accept/restart revalidation independently verifies QC signatures, epoch/set binding, block identity, and claimed view before ranking by actual QC view with deterministic QC-ID tie-break. A05 adversarial evidence covers stale-reference plurality losing to a higher honest QC, same-view conflicting-QC deterministic selection, signed forged-rank rejection, restart revalidation, four-node reordered partition/recovery convergence, embedded verified-QC recovery without trusting a local cache, old-generation restart filtering, and delayed timeout replay. Formatting/targeted proof run: 37536454048. This row is pushed only after the same workflow-free candidate passes regenerated evidence, full pytest, and Reviewer Readiness."
+    },
+    {
+      "id": "A06-F002",
+      "severity": "MEDIUM",
+      "track": "P1-04",
+      "status": "patched_and_proven",
+      "summary": "Future constitutional-slot blocks are rejected by honest construction but accepted by follower/BFT admission before the slot",
+      "evidence": "BFT block admission and follower replay now enforce the same constitutional physical not-before rule used by honest block construction. The focused regression proves a positive-genesis controlled clock rejects at not_before_ms-1 and accepts at the boundary, and instruments both BFT admission and follower replay to prove enforce_not_before=true. P1 Revalidation run 37543184561 passed on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
+    },
+    {
+      "id": "A07-F003",
+      "severity": "MEDIUM",
+      "track": "P1-05",
+      "status": "patched_and_proven",
+      "summary": "Production TLS peer connections can silently disable certificate verification",
+      "evidence": "Production TLS transport fails closed without a CA unless the explicit WEALL_NET_TLS_INSECURE_OK compatibility override is set. The regression remained green in the combined A10/A13 reconciliation run 37394044969 before workflow-free candidate 00619c3892753f0da7b161a44666c2145b8ce4f0 was pushed."
+    },
+    {
+      "id": "A08-F002",
+      "severity": "MEDIUM",
+      "track": "P1-06",
+      "status": "scope_closed_and_proven",
+      "summary": "Fresh async PoH can progress using commitment-only evidence with no cryptographically bound reviewable ciphertext",
+      "evidence": "Post-P0 production human-authority scope lock prevents fresh async/Tier-2/Live positive authority transitions and schedulers; exact branch workflow run 37383418894 passed tests/test_p0_06_production_scope_closure.py."
+    },
+    {
+      "id": "A08-F003",
+      "severity": "MEDIUM",
+      "track": "P1-06",
+      "status": "scope_closed_and_proven",
+      "summary": "Anti-Sybil/collusion scoring exists as rehearsal/library logic but is not automatically enforced by the canonical PoH lifecycle",
+      "evidence": "Post-P0 production human-authority scope lock prevents canonical positive human-authority progression while uniqueness/entropy work remains unresolved; exact branch workflow run 37383418894 passed tests/test_p0_06_production_scope_closure.py."
+    },
+    {
+      "id": "A10-F003",
+      "severity": "MEDIUM",
+      "track": "P1-07",
+      "status": "scope_closed_and_proven",
+      "summary": "Reward scheduler reallocates empty-bucket and split remainder value to the protocol treasury",
+      "evidence": "A10-F003 launch-scope closure is bound to reconciliation run 37397850376 and workflow-free candidate edfbf5aa5b8f2786de0858fdd57351c5a9618cb9 / tree fe86ddc7d14b1a0f494c7a16e23f68bd4c1f0db8. The known-legacy reward allocator is consensus-unreachable when replicated chain_id is weall-prod or weall-testnet-v1, independent of WEALL_MODE/operator environment; local/noncanonical fixtures retain the compatibility scheduler. The run passed launch-chain scope regressions, legacy epoch-scheduler compatibility, valid signed A15 registration-work admission under the explicitly allowed public-testnet ML-DSA posture while preserving production scarcity parameters, BLOCK_REWARD_MINT/BLOCK_REWARD_DISTRIBUTE semantic refresh, two deterministic regeneration rounds, clean-checkout V2 verification, B528/B534/B567/public-readiness/claim freshness, and workflow-free push. This disposition does not claim the final Candidate 3.11 accepted-work/public-goods/reserve/rotating-remainder allocation is implemented; live reward scheduling on launch identities remains closed until that contract is implemented and reviewed."
+    },
+    {
+      "id": "A10-F004",
+      "severity": "MEDIUM",
+      "track": "P1-07",
+      "status": "patched_and_proven",
+      "summary": "Generic treasury cancellation is authorized by a global emissary role rather than treasury-scoped cancellation authority",
+      "evidence": "TREASURY_SPEND_CANCEL is now canon-gated by treasury-scoped Signer authority, and the treasury applier independently checks the proposal-time allowed_signers snapshot (or derives a scoped legacy set) before mutation. The adversarial regression proves a globally seated non-signer emissary cannot cancel another treasury's spend. Reconciliation run 37394044969 refreshed TX-0506 semantics, regenerated dependent evidence twice, passed clean-checkout verification, and pushed workflow-free candidate 00619c3892753f0da7b161a44666c2145b8ce4f0. Because the canon change updates tx_index_hash, production genesis and chain-manifest commitments were deterministically rebuilt with the existing founder/account public keys, genesis time, unlock period, and bootstrap expiry; rebind run 37395566356 passed production manifest checks, both local observer gates, clean-checkout V2/public-claim freshness, and pushed candidate 3063c17a4549479b3b3f67c9decfd42299c9db5d."
+    },
+    {
+      "id": "A11-F001",
+      "severity": "MEDIUM",
+      "track": "P1-07",
+      "status": "patched_and_proven",
+      "summary": "Positive FEE_PAY can remove balance value without a destination or explicit burn accounting",
+      "evidence": "Positive FEE_PAY without an explicit disposition now fails atomically with fee_destination_required; destination-backed fees remain conserving. Remediation workflow run 37383826940 passed the new focused regressions, existing economics alignment tests, and canon sanity before committing the repair."
+    },
+    {
+      "id": "A11-F002",
+      "severity": "MEDIUM",
+      "track": "P1-07",
+      "status": "patched_and_proven",
+      "summary": "Positive transfer fee policy is currently unenforceable",
+      "evidence": "Configured positive BALANCE_TRANSFER fees are now settled atomically in the transfer transition: sender is debited amount+fee, recipient and canonical fee sink are credited, settlement is bound to deterministic transfer_id, missing sink/insufficient total funds fail closed, and replay dedupes before re-charge. A standalone zero/wrong FEE_PAY cannot authorize bypass. Reconciliation run 37391108169 passed targeted economics regressions, semantic refresh, two regeneration rounds, clean-checkout V2/B528/B534/B567/public-claim freshness, and pushed workflow-free candidate 08fd14aff62921ee505bfd21ae35de6c5bc7772f. Receipt compatibility was subsequently tightened so zero-fee BALANCE_TRANSFER preserves the pre-existing exact receipt shape while positive-fee transfers still expose fee settlement metadata; reconciliation run 37396195608 passed atomic-fee tests plus the full transfer-tip compatibility contract, refreshed BALANCE_TRANSFER semantics, regenerated evidence twice, verified clean checkout, and pushed workflow-free candidate d57e8dacd13fdfae65fb2e22617b6e8da7c241ed."
+    },
+    {
+      "id": "A12-F002",
+      "severity": "MEDIUM",
+      "track": "P1-08",
+      "status": "patched_and_proven",
+      "summary": "Anonymous mempool status returns complete pending transaction envelopes despite a redacted-public contract",
+      "evidence": "Public /v1/status/mempool now projects a strict allowlist of pending transaction metadata and excludes payload/signature contents. Secret-marker regression plus existing status diagnostics and canon checks passed in remediation workflow 37384931649; implementation commit 652f8dd81b036cb4527826ca828d5334745375be."
+    },
+    {
+      "id": "A12-F003",
+      "severity": "MEDIUM",
+      "track": "P1-08",
+      "status": "patched_and_proven",
+      "summary": "Observer-edge operator authorization trusts loopback peers by default",
+      "evidence": "Production observer-edge operator authorization no longer trusts loopback peers by default: missing/bad token loopback requests are rejected and only the configured token passes, while dev-only convenience remains explicitly bounded. The regression remained green in combined reconciliation run 37394044969."
+    },
+    {
+      "id": "A13-F001",
+      "severity": "MEDIUM",
+      "track": "P1-05",
+      "status": "patched_and_proven",
+      "summary": "Alternate encodings of the same ML-DSA key are treated as different protocol authorities",
+      "evidence": "A13-F001 canonical authority reconciliation run 37525717489 passed the real ML-DSA encoding matrix (hex/uppercase/Base64/unpadded/URL-safe variants -> one decoded-byte fingerprint and key ID), duplicate-add rejection without failed-tx mutation, recovery independence and historical freshness across aliases, alias-wide targeted revocation, deterministic historical alias migration, JSON restart/state-sync shape preservation, surrounding account/recovery regressions, crypto-posture regeneration, refresh of all 18 Identity V2 semantic bindings, two deterministic dependent-evidence regeneration rounds, clean-checkout V2/B528/B534/B567/public-readiness/current-claim verification, and workflow-free push. Exact candidate: 3b32f32b4345897d7f94289d767f7471d721630b / tree 0cf6a9ce2c2dd120b0bff47994e3b633ce3abe72."
+    },
+    {
+      "id": "A13-F002",
+      "severity": "MEDIUM",
+      "track": "P1-05",
+      "status": "patched_and_proven",
+      "summary": "Signature-profile mode policy and explicit allowlist can fail open to ML-DSA",
+      "evidence": "Runtime signature-profile admission enforces registry mode flags and explicit allowlists are authoritative: empty, unknown-only, and mixed-invalid policies fail closed rather than restoring pq-mldsa-v1; mainnet rejects ML-DSA while registry mainnet permission is false, while controlled/public testnet remains explicitly allowed. Transaction, block, validator/operator, and public-testnet caller matrices passed, and combined reconciliation run 37394044969 regenerated exact-tree evidence before pushing candidate 00619c3892753f0da7b161a44666c2145b8ce4f0."
+    },
+    {
+      "id": "A14-F001",
+      "severity": "MEDIUM",
+      "track": "P1-03",
+      "status": "patched_and_proven",
+      "summary": "An older persisted read can overwrite a newer committed in-memory canonical state",
+      "evidence": "A14-F001 branch-linearized publication reconciliation run 37526882786 passed the forced persisted-read/real block-commit N→N+1 interleaving, same-height wrong-tip + validator-generation publication ordering, existing BFT stale-persistence merge regression, checkpoint signing/canonical checkpoint atomicity, and mempool/checkpoint race tests. read_state now holds the canonical branch RLock across persisted read and self.state publication. Source-bound V2/release evidence regenerated twice from the workflow-free tree and clean-checkout/current-claim verification passed. Exact candidate: 3d872a5caf26d73cd88fae46751856e67d9fd826 / tree ad2101add49b9ccb249664abf7d3fb4767a022ee."
+    },
+    {
+      "id": "A15-F004",
+      "severity": "MEDIUM",
+      "track": "P1-09",
+      "status": "patched_and_proven",
+      "summary": "Health/readiness endpoints are rate-limit-exempt but load and parse the entire ledger snapshot",
+      "evidence": "Exact-head A01-A20 P1 Revalidation run 37532409647 passed tests/test_p1_a15_health_bounded_telemetry.py. Health/readiness telemetry uses the constant-size durable head query instead of loading/parsing the full ledger state; 500 repeated probes performed zero full-state reads, health does not wait on the BFT/checkpoint branch lock, and production compose/runbook evidence keeps health on the private operator boundary."
+    },
+    {
+      "id": "A15-F005",
+      "severity": "MEDIUM",
+      "track": "P1-09",
+      "status": "scope_closed_and_proven",
+      "summary": "Public state snapshot has unbounded response/work size and recursively copies/redacts the whole state",
+      "evidence": "The O(total-state) /v1/state/snapshot projection is scope-closed from production before executor/state access; dev/test retains the redacted convenience route. The regression proves a legacy enable attempt cannot reopen the production path and that rejected production calls perform zero state reads. P1 Revalidation run 37543184561 passed on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
+    },
+    {
+      "id": "A15-F006",
+      "severity": "MEDIUM",
+      "track": "P1-09",
+      "status": "already_closed_and_proven",
+      "summary": "A02 apply-failed replay defect is an indefinitely reusable block-capacity exhaustion primitive",
+      "evidence": "P0-01 made canonical failed user inclusion one-shot by consuming nonce and preserving committed identity semantics; exact branch workflow run 37383418894 passed the focused one-shot regression and the broader P0 overlap regression suite."
+    },
+    {
+      "id": "A16-F006",
+      "severity": "MEDIUM",
+      "track": "P1-02",
+      "status": "patched_and_proven",
+      "summary": "Transaction coverage is structural; no all-236 semantic property/mutation matrix exists",
+      "evidence": "All-236 semantic assurance is now executable and machine-readable. generated/tx_semantic_assurance_v1_5.json contains exactly 236 canonical rows, each with a schema-valid baseline, adversarial schema-rejection mutation, coercion probe, and required execution properties. tests/test_a16_f006_all_tx_semantic_assurance.py requires raw-vs-schema-normalized semantic parity, bounded-rollback versus deepcopy-oracle parity, and exact rollback equality on rejected execution for every canonical transaction. Initial run 37556225303 found two genuine survivors (POH_ASYNC_EVIDENCE_DECLARE default-metadata policy drift and REPUTATION_DELTA_APPLY journal-proxy-dependent event_history_root); both runtime causes were repaired without weakening the matrix. Run 37556616170 then generated and passed all 236 rows with zero survivors. Run 37556858369 regenerated the tracked manifest from a workflow-free tree, reran the entire 236-row matrix, committed candidate 0f9513f5b4d1e211f0fd58ead15e55cc6ea9f3af / tree d517dbb43f2d017e64721dd28d1169f22747e359, and verified manifest --check plus the full matrix from that committed candidate. Backend CI and A01-A20 P1 Revalidation now permanently require manifest freshness; the coverage report is scoped to this bounded semantic assurance and explicitly does not claim exhaustive all-state conformance."
+    },
+    {
+      "id": "A17-F001",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "scope_closed_and_proven",
+      "summary": "Full reviewer-readiness reproduction depends on Git history, not only the current source archive",
+      "evidence": "The reviewer input/provenance contract now explicitly distinguishes a full-history clone from a historyless source archive. `restore_m2_m3_evidence_from_git.sh` preflights the exact required historical commit objects and fails with exact missing-SHA guidance, while `check_v2_spec_clean_checkout.py` proves only the archive-compatible derivative subset. `tests/test_p1_a17_reviewer_repro_contract.py` plus assurance reconciliation run 37551824457 passed on exact workflow-free commit 6cfa4f971f08d1508690f89d1ab06730894f37a4 / tree f7777d0a485e5815757efdb7a4076f3df1debb6c."
+    },
+    {
+      "id": "A17-F002",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "scope_closed_and_proven",
+      "summary": "Application lockfiles do not make the full clean-machine build hermetic",
+      "evidence": "Full byte-for-byte clean-machine/toolchain hermeticity is intentionally not claimed. The canonical reviewer front door now distinguishes dependency-reproducible application install, source-archive derivative reproducibility, and full-history reviewer provenance, and explicitly lists mutable external selectors (base-image/tool image tags, Python/Node version families, GitHub Action major refs) as outside the archive proof. This closes the overbroad reproducibility scope without asserting immutable toolchain bytes; regression evidence passed in run 37551824457 on commit 6cfa4f971f08d1508690f89d1ab06730894f37a4."
+    },
+    {
+      "id": "A17-F003",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "patched_and_proven",
+      "summary": "Current clean CI proves source/install/test health but not complete node restart/replay reproducibility",
+      "evidence": "A new two-process lifecycle regression now crosses a real OS-process boundary over the same durable SQLite database: process 1 submits via API and commits @alice, exits, process 2 reloads persisted state/tx status, proves height/tip/state-root equivalence, submits @bob, commits the next block, and verifies continued durable state. Together with the existing in-process API/restart test, this passed in assurance reconciliation run 37551824457 on workflow-free commit 6cfa4f971f08d1508690f89d1ab06730894f37a4 / tree f7777d0a485e5815757efdb7a4076f3df1debb6c. Scope is local node process restart/replay, not a public/multimachine claim."
+    },
+    {
+      "id": "A18-F003",
+      "severity": "MEDIUM",
+      "track": "P1-10",
+      "status": "patched_and_proven",
+      "summary": "Current verified-claims registry cannot invalidate itself from same-tree adversarial findings",
+      "evidence": "Current-claims generation now consumes the active 34-finding P1 matrix as a same-tree hashed input, exposes open MEDIUM finding IDs through AUDIT-P1-001, and blocks stronger release boundaries while any P1 finding remains open. The parser validates the authoritative matrix schema/source/track contract, rejects summary drift, and treats pending_revalidation/design_blocker/open as claim-blocking states. A01-A20 P1 Revalidation run 37543738888 passed the strengthened self-invalidation tests."
+    },
+    {
+      "id": "A18-F004",
+      "severity": "MEDIUM",
+      "track": "P1-10",
+      "status": "already_closed_and_proven",
+      "summary": "Verified-human tier wording omits the critical uniqueness/Sybil limitation at the point of claim",
+      "evidence": "Exact-head A01-A20 P1 Revalidation run 37532409647 passed tests/test_p1_a18_claim_boundaries.py. The README PoH checkpoint colocates Tier 1/2 review-status wording with scope_closed_pending_uniqueness_entropy and the explicit statement that these tiers are not proof of global one-human uniqueness; the checkpoint also rejects reintroduction of 'verified human' shorthand."
+    },
+    {
+      "id": "A19-F001",
+      "severity": "MEDIUM",
+      "track": "P1-10",
+      "status": "open",
+      "summary": "Public repository description overstates exact canon conformance",
+      "evidence": "Current GitHub repository metadata still says `Tx Canon defines all legal state transitions; code conforms to canon.` That remains stronger than current evidence, and A16-F006 is still open because the required 236/236 semantic matrix does not yet exist. The GitHub connector available in this review can read repository metadata but exposes no repository-description administration action, so revised public metadata remains an external/manual blocker."
+    },
+    {
+      "id": "A19-F002",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "patched_and_proven",
+      "summary": "Advertised one-command tester node is not a self-contained clean-clone bootstrap",
+      "evidence": "The tester-node contract is now explicitly a one-command start after prerequisites rather than a blank-machine installer. The runbook requires a hash-locked backend virtualenv plus bundle/Genesis inputs, and the script fails closed if the prepared .venv is absent or npm is missing for the default frontend path. Shell syntax and source-contract regressions passed in P1 Revalidation run 37543184561 on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
+    },
+    {
+      "id": "A19-F003",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "patched_and_proven",
+      "summary": "fresh_clone_smoke.sh can pass without exact-commit binding or frontend verification",
+      "evidence": "fresh_clone_smoke.sh now requires WEALL_FRESH_CLONE_COMMIT as an exact 40-hex commit, checks out that immutable subject detached, records commit and tree, installs the locked dev environment, runs full pytest, and requires frontend npm install/typecheck/production-safety/build with PASS_FULL_STACK and no skipped components. P1 Revalidation run 37543184561 passed on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
+    },
+    {
+      "id": "A19-F004",
+      "severity": "MEDIUM",
+      "track": "P1-01",
+      "status": "patched_and_proven",
+      "summary": "Reviewer verification paths are fragmented and non-equivalent without a front-door decision tree",
+      "evidence": "docs/reviewer/START_HERE.md is now the canonical reviewer verification decision tree and is linked from the root README. It explicitly distinguishes full-history exact review, historyless archive checks, exact-commit fresh-clone smoke, external observer/onboarding, and local dev/demo paths and states their non-equivalence. Source-contract regressions passed in P1 Revalidation run 37543184561 on 9f23c293b06272c0bb140421c05f85ccff95396b / tree ede5568202f6f3ca9880ff825659d114911aa2dd."
+    },
+    {
+      "id": "A20-F002",
+      "severity": "MEDIUM",
+      "track": "P1-10",
+      "status": "patched_and_proven",
+      "summary": "Raw API session bearer key is persisted in browser localStorage",
+      "evidence": "Durable localStorage now retains non-secret session metadata only; the reusable bearer is tab/session-scoped in sessionStorage, legacy persistent bearers are scrubbed/migrated, and logout clears the bearer. Custody source proof, existing account-custody checks, TypeScript typecheck and Vite build all passed in workflow 37385473272; implementation commit 8750238534cfdeabacc9e30d7007ff6dde1ef3fb."
+    }
+  ],
+  "summary": {
+    "proven_dispositions": 32,
+    "pending_revalidation": 2,
+    "open_or_blocked_findings": [
+      "A01-F001",
+      "A19-F001"
+    ],
+    "adjudicated_findings": 34
+  }
+}

@@ -3960,6 +3960,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "invalid_payload:fee_destination_required",
+      "kind": "failure",
+      "stable_id": "FAIL-2A075EF6843058B9",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_payload:cannot_mute_self",
       "kind": "failure",
       "stable_id": "FAIL-2A3D134926D47F79",
@@ -7026,6 +7033,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "forbidden:transfer_fee_policy_not_enforced",
+      "kind": "failure",
+      "stable_id": "FAIL-EFB58637920BD399",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "invalid_block:unknown_attested_block",
       "kind": "failure",
       "stable_id": "FAIL-EFDD731C8D367FCE",
@@ -7225,6 +7239,13 @@
       "canonical_key": "forbidden:storage_capacity_probe_not_allowed",
       "kind": "failure",
       "stable_id": "FAIL-FCDFCB77B83949BE",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:boolean_required",
+      "kind": "failure",
+      "stable_id": "FAIL-FD234D34AF92C053",
       "status": "active"
     },
     {
@@ -20597,6 +20618,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Identity:aliases",
+      "kind": "state",
+      "stable_id": "STATE-52E85010A6D669D5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:retired_reason",
       "kind": "state",
       "stable_id": "STATE-52E994F67C81E52D",
@@ -22942,6 +22970,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Economics:fee_amount",
+      "kind": "state",
+      "stable_id": "STATE-A0706E47B17C829E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:new_pubkey",
       "kind": "state",
       "stable_id": "STATE-A08ECABF203AD333",
@@ -23638,6 +23673,13 @@
       "canonical_key": "Identity:evidence_bound_ids",
       "kind": "state",
       "stable_id": "STATE-B5B4AC79D2AD8170",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Economics:transfer_fee_int",
+      "kind": "state",
+      "stable_id": "STATE-B5CC861BAA1A48FF",
       "status": "active"
     },
     {
@@ -25108,6 +25150,13 @@
       "canonical_key": "Indexing:registered_at_nonce",
       "kind": "state",
       "stable_id": "STATE-E27A137F843ADA13",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Economics:fee_to",
+      "kind": "state",
+      "stable_id": "STATE-E2C5F1CDA1605EED",
       "status": "active"
     },
     {

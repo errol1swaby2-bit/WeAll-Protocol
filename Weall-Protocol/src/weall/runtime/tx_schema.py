@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, StrictBool, model_validator
 
 from weall.util.ipfs_cid import validate_ipfs_cid
 
@@ -599,7 +599,7 @@ class _EdgeTargetPayload(_StrictModel):
         ...,
         min_length=1,
     )
-    active: bool | None = None
+    active: StrictBool | None = None
 
 
 class FollowSetPayload(_EdgeTargetPayload):

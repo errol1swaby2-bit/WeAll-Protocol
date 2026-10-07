@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from weall.crypto.account_keys import canonical_account_key_pubkey
 from weall.crypto.sig import (
     canonical_tx_message,
     verify_signature_for_profile,
@@ -20,7 +21,7 @@ def _add_pubkey(out: list[str], seen: set[str], pk: Any) -> None:
     """Add a pubkey to out (deduped) if it's a non-empty string."""
     if not isinstance(pk, str):
         return
-    pk2 = pk.strip()
+    pk2 = canonical_account_key_pubkey(pk.strip())
     if not pk2 or pk2 in seen:
         return
     seen.add(pk2)

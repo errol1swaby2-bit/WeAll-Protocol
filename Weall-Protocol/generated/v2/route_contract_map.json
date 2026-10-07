@@ -1,5 +1,5 @@
 {
-  "duplicate_route_implementation_count": 8,
+  "duplicate_route_implementation_count": 0,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b14884c0a4a69b643d9f99362dab8a506bcbebb45b027bc2fbd06effdb7f751"
+    "source_tree_digest": "06e96982abf37cdf3b41e25eb42d24c8e15cccd3d7abb464e8cd4dcea1edb123"
   },
   "required_fields": [
     "stable_id",
@@ -36,7 +36,7 @@
     "semantic_derivation",
     "semantic_review"
   ],
-  "route_count": 163,
+  "route_count": 159,
   "routes": [
     {
       "activation": {
@@ -295,7 +295,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "account_nonce_status",
-        "line": 2011,
+        "line": 2039,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -583,7 +583,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_genesis",
-        "line": 1736,
+        "line": 1757,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -633,7 +633,7 @@
       ],
       "implementation_source": {
         "function": "chain_head",
-        "line": 1769,
+        "line": 1790,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -681,7 +681,7 @@
       ],
       "implementation_source": {
         "function": "chain_identity",
-        "line": 1589,
+        "line": 1610,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -743,7 +743,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_manifest",
-        "line": 1761,
+        "line": 1782,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -813,7 +813,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_state_root",
-        "line": 1722,
+        "line": 1743,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1873,7 +1873,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "genesis_api_readiness",
-        "line": 1715,
+        "line": 1736,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1919,7 +1919,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "genesis_observer_readiness",
-        "line": 1710,
+        "line": 1731,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2876,7 +2876,7 @@
       ],
       "implementation_source": {
         "function": "health",
-        "line": 437,
+        "line": 450,
         "path": "src/weall/api/routes_public_parts/health.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2918,6 +2918,7 @@
         "tests/test_helper_manifest_capability.py",
         "tests/test_local_rehearsal_ipfs_temp_dir_repair.py",
         "tests/test_operator_observability.py",
+        "tests/test_p1_a15_health_bounded_telemetry.py",
         "tests/test_priority0_runtime_authority_and_chainid.py",
         "tests/test_priority12_network_recovery.py",
         "tests/test_priority3_operator_forensics.py",
@@ -2949,7 +2950,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "healthz",
-        "line": 516,
+        "line": 529,
         "path": "src/weall/api/routes_public_parts/health.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2977,7 +2978,7 @@
       },
       "stable_id": "ROUTE-C81B30307BC99421",
       "tests": [
-        "tests/test_v2_spec_compiler.py"
+        "tests/test_p1_a15_health_bounded_telemetry.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -3725,67 +3726,7 @@
       },
       "authority_source": "public_or_session_scoped_read_projection",
       "canonical_mappings": [],
-      "duplicate_route_key": true,
-      "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
-      "frontend_consumers": [
-        "../web/src/api/weall.ts",
-        "../web/src/components/NodeConnectionPanel.tsx",
-        "../web/src/lib/nodeConnectionManager.ts",
-        "../web/src/pages/NodeDashboard.tsx"
-      ],
-      "implementation_source": {
-        "function": "v1_nodes",
-        "line": 517,
-        "path": "src/weall/api/routes_nodes.py"
-      },
-      "local_or_service_status": "service_projection_or_local_control_surface",
-      "metadata_source": "compiler_static_inference",
-      "method": "GET",
-      "path": "/v1/nodes",
-      "primary_mechanism_id": "M-069",
-      "request_limits": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds",
-      "route_key": "GET /v1/nodes",
-      "security_policy": {
-        "auth": "public_or_session_scoped_read_projection",
-        "cache": "no_store_dynamic_protocol_surface",
-        "idempotency": "route_specific_no_general_claim",
-        "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
-      },
-      "semantic_derivation": "static_route_inference",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
-        "independent_review": false,
-        "review_digest": "29ec2830bb76a2ef1de6e29406e6d154852211f8bf4d659f3320adde7319a2ce",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
-      },
-      "stable_id": "ROUTE-33157A0C76623B22",
-      "tests": [
-        "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
-        "tests/prod/test_public_observer_boot_and_evidence_scripts.py",
-        "tests/prod/test_public_observer_default_registry_and_placeholder_gate.py",
-        "tests/prod/test_public_observer_hybrid_discovery.py",
-        "tests/prod/test_public_observer_provider_not_authority.py",
-        "tests/prod/test_public_observer_seed_discovery.py",
-        "tests/prod/test_public_validator_endpoint_discovery.py",
-        "tests/test_api_contract_shapes_minimal.py",
-        "tests/test_api_nodes_routes.py",
-        "tests/test_operator_helpers_fail_closed.py"
-      ],
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ]
-    },
-    {
-      "activation": {
-        "mainnet": "disabled_pending_activation_receipt",
-        "public_testnet": "disabled_pending_activation_receipt"
-      },
-      "authority_source": "public_or_session_scoped_read_projection",
-      "canonical_mappings": [],
-      "duplicate_route_key": true,
+      "duplicate_route_key": false,
       "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
       "frontend_consumers": [
         "../web/src/api/weall.ts",
@@ -3816,10 +3757,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "2dba964bd5ee96e0c9a13a69366de0a30890ef18c4398958997f924f27f976e9",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "4f016ae6295c2e2174256a7d7dfd1e11a0bac4d7711c84338f55197195e9a51b",
+        "review_method": "A01-F003 mounted-route authority review after shadow implementation removal",
+        "reviewed_at": "2026-10-06T02:05:24Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "stable_id": "ROUTE-EE2EFB47FA6F30A2",
       "tests": [
@@ -3846,6 +3787,7 @@
         "tests/test_m3_closure_integrity.py",
         "tests/test_operator_helpers_fail_closed.py",
         "tests/test_p0_03_production_composition.py",
+        "tests/test_p1_a01_route_authority.py",
         "tests/test_pb001bm_validator_authority_fail_closed.py",
         "tests/test_priority1_cross_node_merge_consistency.py",
         "tests/test_priority1_deterministic_execution.py",
@@ -3867,55 +3809,7 @@
       },
       "authority_source": "public_or_session_scoped_read_projection",
       "canonical_mappings": [],
-      "duplicate_route_key": true,
-      "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
-      "frontend_consumers": [],
-      "implementation_source": {
-        "function": "v1_nodes_known",
-        "line": 537,
-        "path": "src/weall/api/routes_nodes.py"
-      },
-      "local_or_service_status": "service_projection_or_local_control_surface",
-      "metadata_source": "compiler_static_inference",
-      "method": "GET",
-      "path": "/v1/nodes/known",
-      "primary_mechanism_id": "M-069",
-      "request_limits": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds",
-      "route_key": "GET /v1/nodes/known",
-      "security_policy": {
-        "auth": "public_or_session_scoped_read_projection",
-        "cache": "no_store_dynamic_protocol_surface",
-        "idempotency": "route_specific_no_general_claim",
-        "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
-      },
-      "semantic_derivation": "static_route_inference",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
-        "independent_review": false,
-        "review_digest": "21d97afe92d604da5d0533e9a258fe12459118c03ca2d6a0683bba296eaff8f1",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
-      },
-      "stable_id": "ROUTE-4017D7268FA1760D",
-      "tests": [
-        "tests/test_api_contract_shapes_minimal.py",
-        "tests/test_api_nodes_routes.py",
-        "tests/test_operator_helpers_fail_closed.py"
-      ],
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ]
-    },
-    {
-      "activation": {
-        "mainnet": "disabled_pending_activation_receipt",
-        "public_testnet": "disabled_pending_activation_receipt"
-      },
-      "authority_source": "public_or_session_scoped_read_projection",
-      "canonical_mappings": [],
-      "duplicate_route_key": true,
+      "duplicate_route_key": false,
       "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
       "frontend_consumers": [],
       "implementation_source": {
@@ -3941,16 +3835,17 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "823a73f9c44320c29aa3a66b01571662d808c647891af6df2f19d77901ed5eb7",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "5819c7a7133da0382dee29673f4d7c1eb1f7c17c20dfb5dfb16e8137e3c5e6dc",
+        "review_method": "A01-F003 mounted-route authority review after shadow implementation removal",
+        "reviewed_at": "2026-10-06T02:05:24Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "stable_id": "ROUTE-638693CFF92199D1",
       "tests": [
         "tests/test_api_contract_shapes_minimal.py",
         "tests/test_api_nodes_routes.py",
-        "tests/test_operator_helpers_fail_closed.py"
+        "tests/test_operator_helpers_fail_closed.py",
+        "tests/test_p1_a01_route_authority.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -3963,66 +3858,7 @@
       },
       "authority_source": "public_or_session_scoped_read_projection",
       "canonical_mappings": [],
-      "duplicate_route_key": true,
-      "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
-      "frontend_consumers": [
-        "../web/src/api/weall.ts",
-        "../web/src/components/NodeConnectionPanel.tsx",
-        "../web/src/lib/nodeConnectionManager.ts",
-        "../web/src/pages/NodeDashboard.tsx"
-      ],
-      "implementation_source": {
-        "function": "v1_nodes_seeds",
-        "line": 531,
-        "path": "src/weall/api/routes_nodes.py"
-      },
-      "local_or_service_status": "service_projection_or_local_control_surface",
-      "metadata_source": "compiler_static_inference",
-      "method": "GET",
-      "path": "/v1/nodes/seeds",
-      "primary_mechanism_id": "M-069",
-      "request_limits": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds",
-      "route_key": "GET /v1/nodes/seeds",
-      "security_policy": {
-        "auth": "public_or_session_scoped_read_projection",
-        "cache": "no_store_dynamic_protocol_surface",
-        "idempotency": "route_specific_no_general_claim",
-        "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
-      },
-      "semantic_derivation": "static_route_inference",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
-        "independent_review": false,
-        "review_digest": "2c225761fe2107c4da0cec1828d16c221b682eb492d33a1bdc5c36f287e035bf",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
-      },
-      "stable_id": "ROUTE-9D2EF135FA91584C",
-      "tests": [
-        "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
-        "tests/prod/test_public_observer_boot_and_evidence_scripts.py",
-        "tests/prod/test_public_observer_default_registry_and_placeholder_gate.py",
-        "tests/prod/test_public_observer_hybrid_discovery.py",
-        "tests/prod/test_public_observer_provider_not_authority.py",
-        "tests/prod/test_public_observer_seed_discovery.py",
-        "tests/test_api_contract_shapes_minimal.py",
-        "tests/test_api_nodes_routes.py",
-        "tests/test_operator_helpers_fail_closed.py"
-      ],
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ]
-    },
-    {
-      "activation": {
-        "mainnet": "disabled_pending_activation_receipt",
-        "public_testnet": "disabled_pending_activation_receipt"
-      },
-      "authority_source": "public_or_session_scoped_read_projection",
-      "canonical_mappings": [],
-      "duplicate_route_key": true,
+      "duplicate_route_key": false,
       "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
       "frontend_consumers": [
         "../web/src/api/weall.ts",
@@ -4053,10 +3889,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "db8e730201def1cbfb7c67915601b7cf984e89bebb1fe1248c74232246225cd9",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "542bc415174c495db6a8abfa6b3dc0d238331ac6e51aa1d51e9ffee1141d5c7c",
+        "review_method": "A01-F003 mounted-route authority review after shadow implementation removal",
+        "reviewed_at": "2026-10-06T02:05:24Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "stable_id": "ROUTE-C18BCB4969F85942",
       "tests": [
@@ -4068,7 +3904,8 @@
         "tests/prod/test_public_observer_seed_discovery.py",
         "tests/test_api_contract_shapes_minimal.py",
         "tests/test_api_nodes_routes.py",
-        "tests/test_operator_helpers_fail_closed.py"
+        "tests/test_operator_helpers_fail_closed.py",
+        "tests/test_p1_a01_route_authority.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -4081,58 +3918,7 @@
       },
       "authority_source": "public_or_session_scoped_read_projection",
       "canonical_mappings": [],
-      "duplicate_route_key": true,
-      "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
-      "frontend_consumers": [
-        "../web/src/api/weall.ts",
-        "../web/src/pages/NodeDashboard.tsx"
-      ],
-      "implementation_source": {
-        "function": "v1_nodes_validators",
-        "line": 546,
-        "path": "src/weall/api/routes_nodes.py"
-      },
-      "local_or_service_status": "service_projection_or_local_control_surface",
-      "metadata_source": "compiler_static_inference",
-      "method": "GET",
-      "path": "/v1/nodes/validators",
-      "primary_mechanism_id": "M-069",
-      "request_limits": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds",
-      "route_key": "GET /v1/nodes/validators",
-      "security_policy": {
-        "auth": "public_or_session_scoped_read_projection",
-        "cache": "no_store_dynamic_protocol_surface",
-        "idempotency": "route_specific_no_general_claim",
-        "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
-      },
-      "semantic_derivation": "static_route_inference",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
-        "independent_review": false,
-        "review_digest": "eb9bdbe8354f1c1cce0920ba7a1caa7ab9a4f8fcae8ba2653e955f3d62034c4c",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
-      },
-      "stable_id": "ROUTE-A2ED585AF34A0150",
-      "tests": [
-        "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
-        "tests/prod/test_public_observer_boot_and_evidence_scripts.py",
-        "tests/prod/test_public_validator_endpoint_discovery.py"
-      ],
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ]
-    },
-    {
-      "activation": {
-        "mainnet": "disabled_pending_activation_receipt",
-        "public_testnet": "disabled_pending_activation_receipt"
-      },
-      "authority_source": "public_or_session_scoped_read_projection",
-      "canonical_mappings": [],
-      "duplicate_route_key": true,
+      "duplicate_route_key": false,
       "failure_contract": "standard_api_error_envelope_or_route_specific_failure_payload",
       "frontend_consumers": [
         "../web/src/api/weall.ts",
@@ -4161,16 +3947,17 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "0a88354047c08b8e7386d72b2370630cdb0072e2a40efa77630648012cbb41c5",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "80b9d6e99e59facdc783ec873f6cf36618cc9b653a23db89c3f91293fb2e72c1",
+        "review_method": "A01-F003 mounted-route authority review after shadow implementation removal",
+        "reviewed_at": "2026-10-06T02:05:24Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "stable_id": "ROUTE-9E056EFBE44E5CE8",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
         "tests/prod/test_public_observer_boot_and_evidence_scripts.py",
-        "tests/prod/test_public_validator_endpoint_discovery.py"
+        "tests/prod/test_public_validator_endpoint_discovery.py",
+        "tests/test_p1_a01_route_authority.py"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -4188,7 +3975,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_reconcile_tx",
-        "line": 2062,
+        "line": 2090,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4237,7 +4024,7 @@
       ],
       "implementation_source": {
         "function": "observer_edge_status",
-        "line": 2024,
+        "line": 2052,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4268,6 +4055,7 @@
         "tests/prod/test_public_observer_boot_and_evidence_scripts.py",
         "tests/test_local_observer_tx_propagation.py",
         "tests/test_observer_tx_queue_safety.py",
+        "tests/test_p1_a12_observer_operator_loopback_auth.py",
         "tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py"
       ],
       "vector_ids": [
@@ -4286,7 +4074,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_tx_queue_drain",
-        "line": 2050,
+        "line": 2078,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6326,7 +6114,7 @@
       ],
       "implementation_source": {
         "function": "readyz",
-        "line": 511,
+        "line": 524,
         "path": "src/weall/api/routes_public_parts/health.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6363,6 +6151,7 @@
         "tests/test_helper_status_route_adapter.py",
         "tests/test_operator_observability.py",
         "tests/test_operator_observability_truthfulness.py",
+        "tests/test_p1_a15_health_bounded_telemetry.py",
         "tests/test_public_route_poh_health_fail_closed.py",
         "tests/test_readyz_block_loop_signals.py",
         "tests/test_readyz_empty_chain_and_restored_chain.py",
@@ -7084,6 +6873,7 @@
         "tests/prod/test_release_cleanup_hygiene.py",
         "tests/prod/test_reviewer_lane_schema_and_frontend_coherence.py",
         "tests/test_a15_f003_account_registration_scarcity.py",
+        "tests/test_a16_f006_all_tx_semantic_assurance.py",
         "tests/test_account_gate_and_tx_queue_status.py",
         "tests/test_admission.py",
         "tests/test_admission_peer_payload_mvp.py",
@@ -7219,6 +7009,7 @@
         "tests/test_cross_tx_conflict_safety.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_cross_tx_treasury_policy_safety.py",
+        "tests/test_crypto_signature_profiles.py",
         "tests/test_csp_test_compatibility_regression.py",
         "tests/test_current_document_registry.py",
         "tests/test_current_verified_claims_fail_closed.py",
@@ -7607,7 +7398,28 @@
         "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
+        "tests/test_p1_a01_route_authority.py",
+        "tests/test_p1_a02_strict_social_booleans.py",
+        "tests/test_p1_a03_observer_queue_durability.py",
+        "tests/test_p1_a03_startup_durable_authority.py",
+        "tests/test_p1_a05_timeout_qc_ranking.py",
+        "tests/test_p1_a06_constitutional_not_before.py",
+        "tests/test_p1_a07_tls_verification.py",
+        "tests/test_p1_a10_reward_scheduler_scope.py",
+        "tests/test_p1_a10_treasury_cancel_scope.py",
+        "tests/test_p1_a12_mempool_redaction.py",
+        "tests/test_p1_a12_observer_operator_loopback_auth.py",
+        "tests/test_p1_a13_key_identity_canonicalization.py",
+        "tests/test_p1_a14_state_publication_linearization.py",
+        "tests/test_p1_a15_health_bounded_telemetry.py",
+        "tests/test_p1_a15_snapshot_scope.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
+        "tests/test_p1_a17_reviewer_repro_contract.py",
+        "tests/test_p1_a18_claim_boundaries.py",
+        "tests/test_p1_a19_reviewer_bootstrap.py",
+        "tests/test_p1_a19_reviewer_front_door.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
+        "tests/test_p1_latest_medium_closure.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_dispute_appeal_actor.py",
         "tests/test_p2_final_source_closure.py",
@@ -8083,7 +7895,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_block",
-        "line": 384,
+        "line": 392,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8129,7 +7941,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_block_header",
-        "line": 368,
+        "line": 376,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8223,6 +8035,7 @@
         "tests/test_node_lifecycle_dev_helper_compat.py",
         "tests/test_node_lifecycle_production_preflight.py",
         "tests/test_node_lifecycle_profile.py",
+        "tests/test_p1_a15_snapshot_scope.py",
         "tests/test_post31_closure_pack.py",
         "tests/test_priority1_concurrent_determinism.py",
         "tests/test_priority3_profile_startup_alignment.py",
@@ -8505,6 +8318,13 @@
         "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
+        "tests/test_p1_a03_observer_queue_durability.py",
+        "tests/test_p1_a10_treasury_cancel_scope.py",
+        "tests/test_p1_a12_mempool_redaction.py",
+        "tests/test_p1_a12_observer_operator_loopback_auth.py",
+        "tests/test_p1_a15_snapshot_scope.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
+        "tests/test_p1_a18_claim_boundaries.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_scoped_authority_repairs.py",
@@ -8665,7 +8485,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "status_attestations",
-        "line": 1476,
+        "line": 1497,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8962,6 +8782,7 @@
       "tests": [
         "tests/prod/test_public_beta_evidence_gates.py",
         "tests/test_operator_helpers_fail_closed.py",
+        "tests/test_p1_a12_mempool_redaction.py",
         "tests/test_status_consensus_diagnostics.py"
       ],
       "vector_ids": [
@@ -9145,7 +8966,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_sync_apply",
-        "line": 464,
+        "line": 472,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9196,7 +9017,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_sync_request",
-        "line": 401,
+        "line": 409,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9345,7 +9166,7 @@
       ],
       "implementation_source": {
         "function": "tx_catalog",
-        "line": 2293,
+        "line": 2321,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9394,7 +9215,7 @@
       ],
       "implementation_source": {
         "function": "tx_status",
-        "line": 2075,
+        "line": 2103,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9439,6 +9260,7 @@
         "tests/test_nonce_failure_block_progression.py",
         "tests/test_observer_live_upstream_sync_truth.py",
         "tests/test_observer_tx_queue_and_scoped_reads.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
         "tests/test_public_profile_contract.py",
         "tests/test_restart_api_and_producer_recovery.py",
         "tests/test_restart_tx_status_persistence.py",
@@ -9476,7 +9298,7 @@
       ],
       "implementation_source": {
         "function": "tx_submit",
-        "line": 1810,
+        "line": 1838,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -9522,6 +9344,7 @@
         "tests/test_observer_reconciliation_and_bounded_details.py",
         "tests/test_observer_tx_queue_and_scoped_reads.py",
         "tests/test_observer_tx_queue_safety.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
         "tests/test_poh_video_upload_request_cap.py",
         "tests/test_priority0_chainid_and_schema_safety.py",
         "tests/test_production_bft_block_replay_api_storage_claim_boundaries.py",

@@ -7,6 +7,7 @@ WORKDIR="${WORKDIR:-/tmp/weall-fresh-clone-smoke}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 BACKEND_DIR_NAME="Weall-Protocol"
 FRONTEND_DIR_NAME="web"
+REVIEW_COMMIT="${WEALL_FRESH_CLONE_COMMIT:-}"
 
 log() {
   printf '[fresh-clone] %s\n' "$*"
@@ -32,6 +33,9 @@ require_cmd() {
 main() {
   require_cmd git
   require_cmd "$PYTHON_BIN"
+  require_cmd npm
+
+  [[ "${REVIEW_COMMIT}" =~ ^[0-9a-fA-F]{40}$ ]] || die "WEALL_FRESH_CLONE_COMMIT must be the exact 40-hex commit under review"
 
   local clone_url
   clone_url="$(choose_clone_url)"
@@ -40,7 +44,16 @@ main() {
   log "workdir: $WORKDIR"
 
   rm -rf "$WORKDIR"
-  git clone "$clone_url" "$WORKDIR"
+  git clone --no-checkout "$clone_url" "$WORKDIR"
+  git -C "$WORKDIR" fetch --depth 1 origin "$REVIEW_COMMIT"
+  git -C "$WORKDIR" checkout --detach "$REVIEW_COMMIT"
+
+  local actual_commit actual_tree
+  actual_commit="$(git -C "$WORKDIR" rev-parse HEAD)"
+  actual_tree="$(git -C "$WORKDIR" rev-parse 'HEAD^{tree}')"
+  [[ "$actual_commit" == "${REVIEW_COMMIT,,}" ]] || die "checked-out commit mismatch: expected ${REVIEW_COMMIT,,}, got $actual_commit"
+  log "review commit: $actual_commit"
+  log "review tree: $actual_tree"
 
   cd "$WORKDIR/$BACKEND_DIR_NAME"
   log "entered backend repo: $(pwd)"
@@ -50,7 +63,8 @@ main() {
   source .venv/bin/activate
 
   python -m pip install --upgrade pip >/dev/null
-  pip install --require-hashes -r requirements.lock
+  pip install --require-hashes -r requirements-dev.lock
+  pip install -e . --no-deps
 
   log "verifying locked backend/frontend release dependencies"
   bash scripts/verify_release_dependencies.sh
@@ -72,16 +86,18 @@ main() {
   pytest -q
 
   cd "$WORKDIR/$FRONTEND_DIR_NAME"
-  if command -v npm >/dev/null 2>&1; then
-    log "Node detected; running frontend install/build"
-    npm ci
-    npm run production-safety-check
-    npm run build
-  else
-    log "npm not found; skipping frontend build"
-  fi
+  log "running mandatory frontend install/typecheck/safety/build"
+  npm ci
+  npm run typecheck
+  npm run production-safety-check
+  npm run build
 
-  log "fresh clone smoke passed"
+  log "result: PASS_FULL_STACK"
+  log "tested commit: $actual_commit"
+  log "tested tree: $actual_tree"
+  log "components run: locked backend dev install, generated checks, full pytest, frontend install/typecheck/safety/build"
+  log "components skipped: none"
+  log "fresh clone smoke passed for exact commit: $actual_commit"
   log "clone remains at: $WORKDIR"
 }
 

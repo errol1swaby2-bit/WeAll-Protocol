@@ -56,7 +56,13 @@ def _as_str(x: Any) -> str:
 def _as_bool(x: Any, default: bool = False) -> bool:
     if x is None:
         return default
-    return bool(x)
+    if isinstance(x, bool):
+        return x
+    raise SocialApplyError(
+        "invalid_payload",
+        "boolean_required",
+        {"value_type": type(x).__name__},
+    )
 
 
 def _ensure_root_dict(state: Json, key: str) -> Json:

@@ -234,6 +234,7 @@ def test_seeded_demo_direct_login_stores_hashed_session_key(
             "ttl_s": ttl_s,
             "issued_at_ms": issued_at_ms,
             "device_id": device_id,
+            "sig_profile": "pq-mldsa-v1",
             "pubkey": SESSION_LOGIN_PUBKEY,
             "sig": sig,
         },

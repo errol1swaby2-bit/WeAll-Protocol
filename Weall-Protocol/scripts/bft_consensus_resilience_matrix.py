@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from weall.runtime.fault_injection import run_consensus_resilience_matrix
@@ -22,6 +23,11 @@ def main() -> int:
     ap.add_argument("--chain-id-prefix", default="consensus-resilience")
     ap.add_argument("--tx-index-path", default="")
     args = ap.parse_args()
+
+    # Local resilience harness: preserve production fail-closed cryptography by
+    # declaring an explicit testnet posture for deterministic fixture keys.
+    os.environ.setdefault("WEALL_MODE", "testnet")
+    os.environ.setdefault("WEALL_REQUIRE_VRF", "0")
 
     summary = run_consensus_resilience_matrix(
         work_dir=str(Path(args.work_dir).resolve()) if str(args.work_dir).strip() else None,

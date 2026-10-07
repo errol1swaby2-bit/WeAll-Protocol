@@ -21,8 +21,8 @@
     "procedure_time_source": "finalized_block_height",
     "target_block_interval_ms": 20000
   },
-  "genesis_hash": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
-  "genesis_state_root": "3bf380351989921b4e951bab39281dc814831821ad4170ce58f2310b3284dbbd",
+  "genesis_hash": "e349fc79c6b00b0d75f40a1c1d50538e2fcb03562beb9b521acea1808f8b8c8d",
+  "genesis_state_root": "e349fc79c6b00b0d75f40a1c1d50538e2fcb03562beb9b521acea1808f8b8c8d",
   "genesis_time_ms": 0,
   "mode": "prod",
   "name": "WeAll Public Observer Testnet v1",
@@ -35,6 +35,6 @@
   "trusted_authority_pubkeys": [
     "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"
   ],
-  "tx_index_hash": "dcfb2db6fb49e66a3fd3e7ae2f7645e9417b785771aadb60a0f4e32f6bccb20a",
+  "tx_index_hash": "ce9919610e7f69ca10955a6d8f23a01e280dbe1b35f9eacbb045cae1a4381404",
   "version": 1
 }

@@ -90,9 +90,15 @@ export async function createActorContext(browser: Browser, baseURL: string, acto
     }
     await sessionModule.loginOnThisDevice({ account: recovery.account, ttlSeconds: 60 * 60, base: apiBaseValue });
   }, { actorValue: actor, apiBaseValue: apiBase });
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("weall_session_v1") || "{}"));
+  const custody = await page.evaluate(() => ({
+    stored: JSON.parse(localStorage.getItem("weall_session_v1") || "{}"),
+    bearer: JSON.parse(sessionStorage.getItem("weall_session_bearer_v1") || "{}"),
+  }));
+  const stored = custody.stored;
   expect(stored.account).toBe(actor.account);
-  expect(String(stored.sessionKey || "")).not.toBe("");
+  expect(stored.sessionKey).toBeUndefined();
+  expect(custody.bearer.account).toBe(actor.account);
+  expect(String(custody.bearer.sessionKey || "")).not.toBe("");
   return { context, page };
 }
 

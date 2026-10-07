@@ -899,6 +899,13 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
         or ""
     ).strip()
 
+    if amount > 0 and not to_account:
+        raise EconomicsApplyError(
+            "invalid_payload",
+            "fee_destination_required",
+            {"amount": int(amount)},
+        )
+
     if amount > 0:
         payer = _require_existing_account(state, from_account, field="from")
         balance = _as_int(payer.get("balance"), 0)
@@ -985,7 +992,7 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
 
     existing = transfers_by_id.get(transfer_id)
     if isinstance(existing, dict):
-        return {
+        receipt = {
             "applied": "BALANCE_TRANSFER",
             "from": existing.get("from", frm),
             "to": existing.get("to", to),
@@ -995,17 +1002,61 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
             "content_id": _as_str(existing.get("content_id")),
             "deduped": True,
         }
+        existing_fee = max(0, _as_int(existing.get("fee_amount"), 0))
+        if existing_fee > 0:
+            receipt["fee_amount"] = existing_fee
+            receipt["fee_to"] = _as_str(existing.get("fee_to"))
+        return receipt
+
+    fee_policy = econ.get("fee_policy")
+    if not isinstance(fee_policy, dict):
+        fee_policy = {}
+    transfer_fee = max(0, _as_int(fee_policy.get("transfer_fee_int"), 0))
+    fee_to = ""
+    if transfer_fee > 0:
+        fee_to = _as_str(_as_dict(state.get("params")).get("fee_sink_account")).strip()
+        if not fee_to or fee_to == frm:
+            raise EconomicsApplyError(
+                "invalid_payload",
+                "fee_destination_required",
+                {"amount": int(transfer_fee), "tx_type": env.tx_type},
+            )
 
     fa = _require_existing_account(state, frm, field="from")
     ta = _require_existing_account(state, to, field="to")
+    fee_account = (
+        _require_existing_account(state, fee_to, field="fee_to") if transfer_fee > 0 else None
+    )
 
     fb = _as_int(fa.get("balance"), 0)
     tb = _as_int(ta.get("balance"), 0)
-    if fb < amt:
-        raise EconomicsApplyError("forbidden", "insufficient_funds", {"balance": fb, "amount": amt})
+    total_debit = int(amt) + int(transfer_fee)
+    if fb < total_debit:
+        raise EconomicsApplyError(
+            "forbidden",
+            "insufficient_funds",
+            {"balance": fb, "amount": int(amt), "fee_amount": int(transfer_fee)},
+        )
 
-    fa["balance"] = fb - amt
+    fa["balance"] = fb - total_debit
     ta["balance"] = tb + amt
+    if fee_account is not None:
+        fee_account["balance"] = _as_int(fee_account.get("balance"), 0) + transfer_fee
+        econ["fee_payments"].append(
+            {
+                "at_nonce": int(env.nonce),
+                "from": frm,
+                "to": fee_to,
+                "amount": int(transfer_fee),
+                "tx_id": transfer_id,
+                "tx_type": "BALANCE_TRANSFER",
+                "payload": {
+                    "settlement": "atomic_balance_transfer",
+                    "transfer_id": transfer_id,
+                },
+                "parent": env.parent,
+            }
+        )
 
     purpose = _as_str(payload.get("purpose")).strip()
     content_id = _as_str(
@@ -1019,6 +1070,8 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         "from": frm,
         "to": to,
         "amount": int(amt),
+        "fee_amount": int(transfer_fee),
+        "fee_to": fee_to,
         "purpose": purpose,
         "content_id": content_id,
         "memo": memo,
@@ -1065,6 +1118,9 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         "to": to,
         "amount": amt,
     }
+    if transfer_fee > 0:
+        base_receipt["fee_amount"] = int(transfer_fee)
+        base_receipt["fee_to"] = fee_to
 
     extended_payload = any(
         payload.get(k)

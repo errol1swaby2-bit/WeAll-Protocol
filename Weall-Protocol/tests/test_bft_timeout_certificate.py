@@ -163,7 +163,7 @@ def test_timeout_certificate_persists_across_restart(tmp_path: Path) -> None:
                 chain_id="bft-live",
                 signer=signer,
                 view=0,
-                high_qc_id="qc-block-7",
+                high_qc_id="genesis",
                 validator_epoch=3,
                 validator_set_hash=set_hash,
                 pubkey=vpub[signer],
@@ -174,7 +174,7 @@ def test_timeout_certificate_persists_across_restart(tmp_path: Path) -> None:
     tc = ex._bft.best_timeout_certificate()
     assert tc is not None
     assert tc.view == 0
-    assert tc.high_qc_id == "qc-block-7"
+    assert tc.high_qc_id == "genesis"
     assert list(tc.signers) == ["v1", "v2", "v3"]
     assert len(tc.timeouts) == 3
     assert all(str(item.get("sig") or "") for item in tc.timeouts)
@@ -185,7 +185,7 @@ def test_timeout_certificate_persists_across_restart(tmp_path: Path) -> None:
     _seed_validator_set(ex2, validators=validators, pub=vpub, epoch=3)
     tc2 = ex2._bft.best_timeout_certificate()
     assert tc2 is not None
-    assert tc2.high_qc_id == "qc-block-7"
+    assert tc2.high_qc_id == "genesis"
     assert list(tc2.signers) == ["v1", "v2", "v3"]
     assert len(tc2.timeouts) == 3
 
@@ -248,6 +248,8 @@ def test_leader_proposal_can_use_cached_qc_from_timeout_certificate(
         high_qc_id=parent_id,
         signer_count=3,
         signers=("v1", "v3", "v4"),
+        high_qc_view=0,
+        high_qc=qc,
         validator_epoch=3,
         validator_set_hash=set_hash,
     )

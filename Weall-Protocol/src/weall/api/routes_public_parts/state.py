@@ -345,14 +345,22 @@ def _executor_wire_header(ex: Any, msg_type: MsgType, *, corr_id: str | None = N
 
 @router.get("/state/snapshot")
 def state_snapshot(request: Request) -> Json:
-    """Return the node's current ledger snapshot.
+    """Return a redacted ledger snapshot outside production.
 
-    This is a public debugging/UX endpoint used by the web front.
-
-    Production note:
-      - This endpoint can grow large over time.
-      - Operators may disable it at the edge or replace it with a pruned view.
+    A15-F005: the full-state projection has O(total-state) read/copy/redact/
+    serialization cost, so it is not a production HTTP surface. Production
+    consumers must use bounded/scoped read routes or authenticated bounded
+    state-sync paths. Reject before touching the executor.
     """
+
+    if _mode() == "prod":
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "public_state_snapshot_disabled",
+                "message": "full public state snapshots are disabled in production",
+            },
+        )
 
     ex = _executor(request)
     st = ex.read_state()

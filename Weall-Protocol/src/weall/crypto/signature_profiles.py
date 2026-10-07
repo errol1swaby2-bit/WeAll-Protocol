@@ -19,15 +19,17 @@ PQ_SLHDSA_V1 = "pq-slhdsa-v1"
 PQ_MLKEM_V1 = "pq-mlkem-v1"
 
 SIGNING_PURPOSES = {"signing", "backup_signature"}
-STRICT_TESTNET_MODES = {
+CLOSED_TESTNET_MODES = {
+    "testnet",
     "closed-testnet",
     "closed_testnet",
     "controlled-testnet",
     "controlled_testnet",
-    "public-testnet",
-    "public_testnet",
 }
+PUBLIC_TESTNET_MODES = {"public-testnet", "public_testnet"}
+STRICT_TESTNET_MODES = CLOSED_TESTNET_MODES | PUBLIC_TESTNET_MODES
 LOCAL_MODES = {"dev", "local", "test", "ci", "demo", "controlled_devnet", "controlled-devnet"}
+MAINNET_MODES = {"prod", "production", "mainnet"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,12 +193,40 @@ def _chain_crypto_config(chain_config: dict[str, Any] | None) -> dict[str, Any]:
     return raw if isinstance(raw, dict) else {}
 
 
-def _chain_allowlist(chain_config: dict[str, Any] | None) -> list[str]:
+def _chain_allowlist_policy(
+    chain_config: dict[str, Any] | None,
+) -> tuple[bool, list[str]]:
+    """Return whether an allowlist was explicitly supplied and its normalized values.
+
+    A13-F002 requires a material distinction between no cryptographic allowlist
+    and an explicitly supplied policy that resolves to nothing.  The latter
+    must fail closed instead of silently restoring a previous default profile.
+    """
+
     crypto = _chain_crypto_config(chain_config)
-    raw = crypto.get("allowed_signature_profiles") or crypto.get("allowed_profiles")
-    if isinstance(raw, list):
-        return [normalize_signature_profile_id(x) for x in raw if normalize_signature_profile_id(x)]
-    return []
+    for key in ("allowed_signature_profiles", "allowed_profiles"):
+        if key not in crypto:
+            continue
+        raw = crypto.get(key)
+        if not isinstance(raw, list):
+            return True, []
+        return True, [
+            normalized for value in raw if (normalized := normalize_signature_profile_id(value))
+        ]
+    return False, []
+
+
+def _profile_allowed_in_mode(profile: SignatureProfile, mode: str) -> bool:
+    normalized = normalize_signature_profile_id(mode)
+    if normalized in LOCAL_MODES:
+        return bool(profile.allowed_in_dev_local)
+    if normalized in CLOSED_TESTNET_MODES:
+        return bool(profile.allowed_in_closed_testnet)
+    if normalized in PUBLIC_TESTNET_MODES:
+        return bool(profile.allowed_in_public_testnet)
+    if normalized in MAINNET_MODES:
+        return bool(profile.allowed_in_mainnet)
+    return False
 
 
 def allowed_signature_profiles_for_mode(
@@ -204,10 +234,25 @@ def allowed_signature_profiles_for_mode(
     mode: str | None = None,
     chain_config: dict[str, Any] | None = None,
 ) -> set[str]:
-    allowlist = {p for p in _chain_allowlist(chain_config) if p in signature_profile_registry()}
-    if allowlist:
-        return allowlist
-    return {PQ_MLDSA_V1}
+    active_mode = (
+        normalize_signature_profile_id(mode) if mode is not None else runtime_crypto_mode()
+    )
+    registry = signature_profile_registry()
+    mode_allowed = {
+        profile_id
+        for profile_id, profile in registry.items()
+        if _profile_allowed_in_mode(profile, active_mode)
+    }
+
+    explicit, requested = _chain_allowlist_policy(chain_config)
+    if explicit:
+        # An explicit empty, malformed, or partly unknown migration policy is
+        # unsatisfied policy, not permission to fall back to the old default.
+        if not requested or any(profile_id not in registry for profile_id in requested):
+            return set()
+        return set(requested).intersection(mode_allowed)
+
+    return {PQ_MLDSA_V1}.intersection(mode_allowed)
 
 
 def profile_allowed_for_context(

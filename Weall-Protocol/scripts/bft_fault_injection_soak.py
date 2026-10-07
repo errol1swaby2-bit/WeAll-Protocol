@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from weall.runtime.fault_injection import run_bft_fault_injection_soak
@@ -46,6 +47,11 @@ def main() -> int:
     ap.add_argument("--validator-epoch", type=int, default=3)
     ap.add_argument("--tx-index-path", default="")
     args = ap.parse_args()
+
+    # Local fault-injection harness: never inherit the production default from
+    # a deliberately scrubbed subprocess environment.
+    os.environ.setdefault("WEALL_MODE", "testnet")
+    os.environ.setdefault("WEALL_REQUIRE_VRF", "0")
 
     summary = run_bft_fault_injection_soak(
         work_dir=str(Path(args.work_dir).resolve()) if str(args.work_dir).strip() else None,

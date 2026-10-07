@@ -1397,10 +1397,11 @@ class WeAllExecutor:
                 )
             return
 
-        if st_h > max_h:
+        if st_h != max_h:
+            relation = "exceeds" if st_h > max_h else "trails"
             raise ExecutorError(
-                f"db_invariant_violation: snapshot height {st_h} exceeds max persisted block height {max_h}. "
-                "Refuse to start."
+                f"db_invariant_violation: snapshot height {st_h} {relation} "
+                f"max persisted block height {max_h}. Refuse to start."
             )
 
         try:
@@ -1510,6 +1511,11 @@ class WeAllExecutor:
         from weall.runtime import diagnostics as _impl
 
         return _impl.read_cached_state(self)
+
+    def health_telemetry(self) -> Json:
+        from weall.runtime import diagnostics as _impl
+
+        return _impl.health_telemetry(self)
 
     def read_state(self) -> Json:
         from weall.runtime import diagnostics as _impl

@@ -40,6 +40,16 @@ LINEAGE_WITNESS_PAYLOAD_KEY = "_lineage_witness"
 BLOCK_FINALIZE_TX_TYPE = "BLOCK_FINALIZE"
 EPOCH_FINALITY_SINGLE_TX_CHILDREN = frozenset({"EPOCH_OPEN", "EPOCH_CLOSE"})
 
+# A10-F003: the legacy 20/20/20/20/20 scheduler reallocates empty-bucket
+# value and split remainders to the protocol treasury and does not implement
+# the final accepted-work/public-goods/reserve/remainder-rotation contract.
+# Keep that known-wrong allocation path consensus-unreachable on the pinned
+# production/public-testnet chain identities until the final allocation
+# contract is implemented and reviewed.  This boundary is state-derived, never
+# process-environment-derived, so proposer/follower scheduling cannot diverge
+# because of WEALL_MODE or operator configuration.
+FINAL_REWARD_ALLOCATION_REQUIRED_CHAIN_IDS = frozenset({"weall-prod", "weall-testnet-v1"})
+
 
 class SystemTxEngineError(RuntimeError):
     """Base error for consensus-adjacent system-tx scheduling and emission."""
@@ -422,7 +432,12 @@ def schedule_block_rewards_system_txs(
         block interval, one 10-minute issuance epoch closes every 30 blocks.
 
     Split:
-      - 20/20/20/20/20 across validators/proposer, operators, jurors, creators, treasury.
+      - The legacy local/dev compatibility model is 20/20/20/20/20 across
+        validators/proposer, operators, jurors, creators, treasury.
+      - That legacy allocation is intentionally disabled on the pinned
+        production/public-testnet chain identities until the final
+        accepted-work, public-goods, reserve, rotating-remainder contract is
+        implemented and reviewed.
 
     NOTE: Fees are not yet wired into the fee engine in this build, so fees default to 0.
     """
@@ -432,6 +447,10 @@ def schedule_block_rewards_system_txs(
         return
 
     if not econ_allowed_from_state(state):
+        return
+
+    chain_id = _as_str(state.get("chain_id")).strip()
+    if chain_id in FINAL_REWARD_ALLOCATION_REQUIRED_CHAIN_IDS:
         return
 
     h = int(next_height)

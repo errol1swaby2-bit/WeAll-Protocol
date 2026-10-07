@@ -6,6 +6,7 @@ import hashlib
 import json
 from typing import Any
 
+from weall.crypto.pq_mldsa import canonical_mldsa65_public_key
 from weall.crypto.signature_profiles import (
     PQ_MLDSA_V1,
     normalize_signature_profile_id,
@@ -25,15 +26,61 @@ def key_id_for_record(record: Json) -> str:
     return hashlib.sha256(_canon(record)).hexdigest()[:32]
 
 
-def _mk_key_id(profile: str, pubkey: str) -> str:
-    h = hashlib.sha256(f"{profile}:{pubkey}".encode()).hexdigest()
+def canonical_account_key_pubkey(
+    pubkey: str,
+    *,
+    profile: str = PQ_MLDSA_V1,
+) -> str:
+    """Canonicalize a cryptographic authority without breaking legacy fixtures.
+
+    Real ML-DSA-65 keys are normalized from any supported textual encoding to
+    lowercase hex over the decoded 1952 authority bytes. Historical non-ML-DSA
+    fixture strings are preserved verbatim after whitespace trimming.
+    """
+
+    value = str(pubkey or "").strip()
+    normalized_profile = normalize_signature_profile_id(profile)
+    if normalized_profile != PQ_MLDSA_V1 or not value:
+        return value
+    try:
+        return canonical_mldsa65_public_key(value, encoding="hex")
+    except ValueError:
+        return value
+
+
+def account_key_id_for_pubkey(
+    pubkey: str,
+    *,
+    profile: str = PQ_MLDSA_V1,
+) -> str:
+    canonical = canonical_account_key_pubkey(pubkey, profile=profile)
+    normalized_profile = normalize_signature_profile_id(profile)
+    h = hashlib.sha256(f"{normalized_profile}:{canonical}".encode()).hexdigest()
     return f"k:{h[:16]}"
+
+
+def has_canonical_mldsa_authority(
+    pubkey: str,
+    *,
+    profile: str = PQ_MLDSA_V1,
+) -> bool:
+    if normalize_signature_profile_id(profile) != PQ_MLDSA_V1:
+        return False
+    try:
+        canonical_mldsa65_public_key(str(pubkey or "").strip(), encoding="hex")
+        return True
+    except ValueError:
+        return False
+
+
+def _mk_key_id(profile: str, pubkey: str) -> str:
+    return account_key_id_for_pubkey(pubkey, profile=profile)
 
 
 def mldsa_account_key_record(
     *, pubkey: str, created_height: int = 0, active: bool = True, key_type: str = "main"
 ) -> Json:
-    pk = str(pubkey).strip()
+    pk = canonical_account_key_pubkey(pubkey, profile=PQ_MLDSA_V1)
     return {
         "key_id": _mk_key_id(PQ_MLDSA_V1, pk),
         "sig_profile": PQ_MLDSA_V1,
@@ -75,7 +122,10 @@ def account_key_pubkey(record: Any, *, preferred_profile: str = "") -> str:
     if profile != PQ_MLDSA_V1:
         return ""
     pubkeys = record.get("pubkeys") if isinstance(record.get("pubkeys"), dict) else {}
-    return str(pubkeys.get("mldsa") or record.get("pubkey") or "").strip()
+    return canonical_account_key_pubkey(
+        str(pubkeys.get("mldsa") or record.get("pubkey") or "").strip(),
+        profile=profile,
+    )
 
 
 def validate_account_key_record(

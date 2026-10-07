@@ -98,6 +98,7 @@ def test_session_login_creates_device_and_session(monkeypatch):
             "ttl_s": ttl_s,
             "issued_at_ms": issued_at_ms,
             "device_id": device_id,
+            "sig_profile": "pq-mldsa-v1",
             "pubkey": SESSION_LOGIN_PUBKEY,
             "sig": sig,
         },

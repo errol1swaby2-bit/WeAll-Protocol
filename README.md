@@ -54,6 +54,8 @@ The checked-in public testnet seed registry is `configs/public_testnet_seed_regi
 
 ## Verification path
 
+**Verification entry point:** start with [Technical verification: start here](Weall-Protocol/docs/reviewer/START_HERE.md). It distinguishes exact full-history verification, historyless source-archive checks, fresh-clone smoke, external observer/onboarding, and local developer/demo paths so their evidence strength is not conflated.
+
 Run these checks from a fresh checkout before relying on verification-facing claims:
 
 ```bash

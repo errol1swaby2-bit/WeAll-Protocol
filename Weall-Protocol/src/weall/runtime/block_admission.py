@@ -543,6 +543,7 @@ def admit_bft_block(
             chain_floor_ms=chain_time_floor_ms_from_state(state),
             max_block_time_advance_ms=int(runtime_max_block_future_drift_ms()),
             mode=str(os.environ.get("WEALL_MODE", "") or ""),
+            enforce_not_before=True,
         )
         if not bool(time_verdict.ok):
             return False, BlockReject(

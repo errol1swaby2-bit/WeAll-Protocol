@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b14884c0a4a69b643d9f99362dab8a506bcbebb45b027bc2fbd06effdb7f751"
+    "source_tree_digest": "06e96982abf37cdf3b41e25eb42d24c8e15cccd3d7abb464e8cd4dcea1edb123"
   },
   "rows": [
     {
@@ -87,7 +87,7 @@
       "implementation_source": {
         "function": "_apply_account_register",
         "handler": "identity",
-        "line": 305,
+        "line": 412,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -110,9 +110,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "cd78c431507e5e9d65bb766dfd352573a738e8323c1cb92aaa354a21e752ac3a",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-10-05T00:19:04Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0001",
@@ -233,6 +233,7 @@
         "tests/test_p0_property_invariants.py",
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
+        "tests/test_p1_a17_clean_lifecycle.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
         "tests/test_pb001bab_http_relay_bft_admission_ack_boundary.py",
         "tests/test_pb001bah_checkpoint_signing_authority_atomicity.py",
@@ -359,7 +360,7 @@
       "implementation_source": {
         "function": "_apply_account_key_add",
         "handler": "identity",
-        "line": 406,
+        "line": 513,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -381,10 +382,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "ad3c5be9a6f76d8d193a786d15fd611872d2868bcb78a6b079b8b438a9327093",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "e2780a4e2e4863b09ae1db23f8ba37f537fa261ecf2ccc616295265f3f16d63d",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0002",
@@ -395,8 +396,7 @@
         "key:key_type",
         "key:keys",
         "key:locked",
-        "key:nonce",
-        "key:revoked"
+        "key:nonce"
       ],
       "state_writes": [
         "key:by_id",
@@ -408,6 +408,7 @@
       "tests": [
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_p1_a13_key_identity_canonicalization.py",
         "tests/test_priority0_account_key_normalization.py"
       ],
       "tx_type": "ACCOUNT_KEY_ADD",
@@ -470,7 +471,7 @@
       "implementation_source": {
         "function": "_apply_account_key_revoke",
         "handler": "identity",
-        "line": 437,
+        "line": 547,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -492,14 +493,15 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "348312a169a1f50ffe0cd5fee4baaa1740f264ee7d0eaaa5a39f369e38d19250",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "1ffde47e9f840ad89188b1856db0f2b59985e3ea4832c18ea9e62ed078379f8d",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0003",
       "state_reads": [
+        "key:aliases",
         "key:banned",
         "key:by_id",
         "key:height",
@@ -511,12 +513,14 @@
         "key:revoked"
       ],
       "state_writes": [
+        "key:active",
         "key:nonce",
         "key:revoked",
         "key:revoked_at"
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_a13_key_identity_canonicalization.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_priority0_account_key_normalization.py"
       ],
@@ -587,7 +591,7 @@
       "implementation_source": {
         "function": "_apply_account_device_register",
         "handler": "identity",
-        "line": 476,
+        "line": 592,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -610,9 +614,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "07e7ca32599a5fc31d40e6358139a1af7571fcda79df3f299893ff88af689824",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0004",
@@ -716,7 +720,7 @@
       "implementation_source": {
         "function": "_apply_account_device_revoke",
         "handler": "identity",
-        "line": 543,
+        "line": 659,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -739,9 +743,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "9c27af9f70181f67ab2d975dba773fd347f2c3e57122c4bf0a4a8fa92c29f83c",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0005",
@@ -821,7 +825,7 @@
       "implementation_source": {
         "function": "_apply_account_session_key_issue",
         "handler": "identity",
-        "line": 571,
+        "line": 687,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -845,8 +849,8 @@
         "independent_review": false,
         "review_digest": "3c9a937293a0e4628724d5c02a0d2d86ceb2701ce064a10f95f3868769a2395f",
         "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T19:32:11Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0006",
@@ -942,7 +946,7 @@
       "implementation_source": {
         "function": "_apply_account_session_key_revoke",
         "handler": "identity",
-        "line": 632,
+        "line": 748,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -965,9 +969,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "1c70265991c5c68b9cc989c61682057c6838b10af97beb0226e3396108689721",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0007",
@@ -1055,7 +1059,7 @@
       "implementation_source": {
         "function": "_apply_account_security_policy_set",
         "handler": "identity",
-        "line": 801,
+        "line": 917,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -1079,8 +1083,8 @@
         "independent_review": false,
         "review_digest": "8530fb3f84f45c0dbad826edba28fb7ec69c8c6408a191e76d88c9757306783a",
         "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T19:32:11Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0008",
@@ -1150,7 +1154,7 @@
       "implementation_source": {
         "function": "_apply_account_lock",
         "handler": "identity",
-        "line": 657,
+        "line": 773,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -1173,9 +1177,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "23498e4eb9cdcacde4e1db1835b9f316a69a56f921aa3fcb927462a0c8686828",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0009",
@@ -1235,7 +1239,7 @@
       "implementation_source": {
         "function": "_apply_account_unlock",
         "handler": "identity",
-        "line": 687,
+        "line": 803,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -1258,9 +1262,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "b1a1ce1cfc39a81969e83e8d47ee66adc89831543e7eee474f3d46ee08da33a0",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0010",
@@ -7983,6 +7987,7 @@
         "tests/test_mempool_received_ms_safety.py",
         "tests/test_node_lifecycle_dev_helper_compat.py",
         "tests/test_p0_a01_a20_closure_regressions.py",
+        "tests/test_p1_a12_mempool_redaction.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_parallel_execution_conflict_lanes.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
@@ -11605,7 +11610,7 @@
       "implementation_source": {
         "function": "_apply_treasury_wallet_create",
         "handler": "treasury",
-        "line": 578,
+        "line": 598,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11708,7 +11713,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signer_add",
         "handler": "treasury",
-        "line": 609,
+        "line": 629,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11824,7 +11829,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signer_remove",
         "handler": "treasury",
-        "line": 665,
+        "line": 685,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11923,7 +11928,7 @@
       "implementation_source": {
         "function": "_apply_treasury_policy_set",
         "handler": "treasury",
-        "line": 717,
+        "line": 737,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12276,7 +12281,7 @@
         "status": "disabled_all_profiles_pending_governance_and_milestone_contracts"
       },
       "api_routes": [],
-      "authority": "origin:USER;subject_gate:Emissary;runtime_handler:treasury",
+      "authority": "origin:USER;subject_gate:Signer;runtime_handler:treasury",
       "conflict_rules": {
         "family": "treasury",
         "requirement": "descriptor_must_be_deterministic_for_identical_canonical_envelopes",
@@ -12285,6 +12290,10 @@
       "context": "mempool",
       "domain": "Treasury",
       "failure_codes": [
+        {
+          "code": "forbidden",
+          "reason": "not_authorized_signer"
+        },
         {
           "code": "forbidden",
           "reason": "spend_already_executed"
@@ -12333,21 +12342,22 @@
         "stable_id": "RCP-FA99A7CFDA979E98"
       },
       "replay_behavior": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
-      "role_gate": "Emissary",
+      "role_gate": "Signer",
       "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "ce4963ad181a7467e1b370087e9b1bce4cad7a622d407b979f3c63c12c3ad73d",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "180d58b7d2a746d208cc37a5cb42cdefce5200c0b7c036cb5765e0dc62a69f2a",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T00:27:21Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0506",
       "state_reads": [
+        "key:allowed_signers",
         "key:audit_anchors",
         "key:id",
         "key:params",
@@ -12360,6 +12370,7 @@
         "key:wallet_id"
       ],
       "state_writes": [
+        "key:allowed_signers",
         "key:audit_anchors",
         "key:canceled_at_nonce",
         "key:canceled_by",
@@ -12371,6 +12382,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_a10_treasury_cancel_scope.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_tx_schema_treasury_groups.py"
@@ -12423,7 +12435,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_expire",
         "handler": "treasury",
-        "line": 763,
+        "line": 783,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12569,7 +12581,7 @@
       "implementation_source": {
         "function": "_apply_treasury_spend_execute",
         "handler": "treasury",
-        "line": 444,
+        "line": 464,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12685,7 +12697,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_create",
         "handler": "treasury",
-        "line": 839,
+        "line": 859,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12767,7 +12779,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_update",
         "handler": "treasury",
-        "line": 847,
+        "line": 867,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12849,7 +12861,7 @@
       "implementation_source": {
         "function": "_apply_treasury_program_close",
         "handler": "treasury",
-        "line": 855,
+        "line": 875,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -12935,7 +12947,7 @@
       "implementation_source": {
         "function": "_apply_treasury_audit_anchor_set",
         "handler": "treasury",
-        "line": 744,
+        "line": 764,
         "path": "src/weall/runtime/apply/treasury.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -15063,9 +15075,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "484bc775ac802ed7a30c1673427c95a65ccc65fc9903b0807fb513ea03f5c708",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T01:11:45Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0701",
@@ -15120,6 +15132,7 @@
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_p1_a10_reward_scheduler_scope.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
@@ -15213,8 +15226,8 @@
         "independent_review": false,
         "review_digest": "c8d884c2bdc7e39ef6217d0394bfc21d4a7c375a7ffe9f4b6727c20d1ea653c4",
         "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T19:18:42Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-10-06T01:11:45Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0702",
@@ -15266,6 +15279,7 @@
       "tests": [
         "tests/test_bft_reward_proposer_binding.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_p1_a10_reward_scheduler_scope.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
@@ -20159,7 +20173,7 @@
       "implementation_source": {
         "function": "_apply_profile_update",
         "handler": "social",
-        "line": 117,
+        "line": 123,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20264,7 +20278,7 @@
       "implementation_source": {
         "function": "_apply_follow_set",
         "handler": "social",
-        "line": 140,
+        "line": 146,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20292,9 +20306,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "5d5d0cbd0cf9661edc8c9a934e6b138d9136df45fb993a69d4d1d585fa7b632d",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T00:35:29Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1201",
@@ -20316,6 +20330,7 @@
       "tests": [
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_genesis_multi_user_rehearsal_safety.py",
+        "tests/test_p1_a02_strict_social_booleans.py",
         "tests/test_read_write_scope_guards.py",
         "tests/test_tx_schema_social_notifications.py"
       ],
@@ -20379,7 +20394,7 @@
       "implementation_source": {
         "function": "_apply_block_set",
         "handler": "social",
-        "line": 156,
+        "line": 162,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20407,9 +20422,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "2c7e3ac6927cfd3d2ee1a128e84901b37df0ab49da6bc1a96684b57c5609f4c7",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T00:35:29Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1202",
@@ -20429,6 +20444,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_a02_strict_social_booleans.py",
         "tests/test_tx_schema_social_notifications.py"
       ],
       "tx_type": "BLOCK_SET",
@@ -20487,7 +20503,7 @@
       "implementation_source": {
         "function": "_apply_mute_set",
         "handler": "social",
-        "line": 172,
+        "line": 178,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20515,9 +20531,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "2ecc604d8aa18dfee61e8a12afec8ff87e6151e6b8557ea45837f3d93c756cd8",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T00:35:29Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1203",
@@ -20537,6 +20553,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_a02_strict_social_booleans.py",
         "tests/test_tx_schema_social_notifications.py"
       ],
       "tx_type": "MUTE_SET",
@@ -20591,7 +20608,7 @@
       "implementation_source": {
         "function": "_apply_content_share_create",
         "handler": "social",
-        "line": 193,
+        "line": 199,
         "path": "src/weall/runtime/apply/social.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20690,6 +20707,10 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "fee_destination_required"
+        },
+        {
+          "code": "invalid_payload",
           "reason": "missing_amount"
         },
         {
@@ -20712,7 +20733,7 @@
       "implementation_source": {
         "function": "_apply_balance_transfer",
         "handler": "economics",
-        "line": 930,
+        "line": 937,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20724,14 +20745,10 @@
         "kind": "user_transaction_apply_result",
         "parent": null,
         "return_fields": [
-          "amount",
-          "applied",
           "content_id",
           "deduped",
-          "from",
           "purpose",
           "tip_indexed",
-          "to",
           "transfer_id"
         ],
         "stable_id": "RCP-EBB8281C1C5B9477"
@@ -20744,10 +20761,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "9ba59de792a8a81eff9ad5c9d44c1e3350856c2712f75741c84c0484715755d9",
+        "review_digest": "2ddfc04ad5e132a089a80dfeef90188f517d3903a69334d3c93fcf5cdbc52b34",
         "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T20:00:07Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "reviewed_at": "2026-10-06T00:52:15Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1300",
@@ -20758,12 +20775,16 @@
         "key:content_id",
         "key:count",
         "key:economics",
+        "key:fee_amount",
         "key:fee_payments",
         "key:fee_policy",
+        "key:fee_sink_account",
+        "key:fee_to",
         "key:from",
         "key:from_account_id",
         "key:memo",
         "key:mempool_reject_receipts",
+        "key:params",
         "key:post_id",
         "key:purpose",
         "key:rate_limit_policy",
@@ -20776,6 +20797,7 @@
         "key:to",
         "key:to_account_id",
         "key:total_amount",
+        "key:transfer_fee_int",
         "key:transfer_id",
         "key:transfers",
         "key:transfers_by_id",
@@ -20786,8 +20808,10 @@
         "key:balance",
         "key:count",
         "key:economics",
+        "key:fee_amount",
         "key:fee_payments",
         "key:fee_policy",
+        "key:fee_to",
         "key:mempool_reject_receipts",
         "key:rate_limit_policy",
         "key:rate_limit_strikes",
@@ -20811,6 +20835,7 @@
         "tests/test_helper_conflict_matrix.py",
         "tests/test_helper_execution_lane_alignment.py",
         "tests/test_launch_gate_proof_surfaces.py",
+        "tests/test_p1_latest_medium_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_transfer_tip_contract.py",
         "tests/test_tx_conflicts.py",
@@ -21015,9 +21040,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "9850abb58a59a329b06a76c90c543d83ad0b9fb8d8fe591cb59b02ac5c55b96b",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-05T23:54:43Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1304",
@@ -21047,6 +21072,7 @@
         "tests/test_governance_followups.py",
         "tests/test_governance_runtime_surface.py",
         "tests/test_governance_system_queue_autoprogress.py",
+        "tests/test_p1_latest_medium_closure.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_bft_economics_go_gates.py"
       ],
@@ -21095,6 +21121,10 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "fee_destination_required"
+        },
+        {
+          "code": "invalid_payload",
           "reason": "missing_from_account"
         },
         {
@@ -21133,10 +21163,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "5a13580621519e141fa42210983af1f8b02aed9ef87df8c95f3566c8b588972f",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "59c2f2320d855d51ba296f4a13a8f81da47110bb7c4112c5e8d3cd915c0da199",
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-05T23:13:41Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1305",
@@ -21174,6 +21204,7 @@
         "tests/test_economics_canon_apply_alignment.py",
         "tests/test_four_gate_safety.py",
         "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_p1_latest_medium_closure.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "FEE_PAY",
@@ -24820,7 +24851,7 @@
       "implementation_source": {
         "function": "_apply_rate_limit_strike_apply",
         "handler": "economics",
-        "line": 1097,
+        "line": 1153,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24914,7 +24945,7 @@
       "implementation_source": {
         "function": "_apply_mempool_reject_receipt",
         "handler": "economics",
-        "line": 1119,
+        "line": 1175,
         "path": "src/weall/runtime/apply/economics.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25042,7 +25073,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_config_set",
         "handler": "identity",
-        "line": 1246,
+        "line": 1368,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25065,9 +25096,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "95e88a30dd12d919516799b0fd25dd15f0a72eee32920ef57f040cbd175f0c99",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2100",
@@ -25111,7 +25142,8 @@
       "tests": [
         "tests/test_identity_domain_mvp.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
-        "tests/test_m2_complete_security_and_lifecycle.py"
+        "tests/test_m2_complete_security_and_lifecycle.py",
+        "tests/test_p1_a13_key_identity_canonicalization.py"
       ],
       "tx_type": "ACCOUNT_RECOVERY_CONFIG_SET",
       "vector_ids": [
@@ -25177,7 +25209,7 @@
       "implementation_source": {
         "function": "_apply_account_guardian_add",
         "handler": "identity",
-        "line": 859,
+        "line": 975,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25200,9 +25232,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "85fe665f31bc506a9c2b275da9dc33eee51dc2339a1e1abdf8f4641819b4f553",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2101",
@@ -25287,7 +25319,7 @@
       "implementation_source": {
         "function": "_apply_account_guardian_remove",
         "handler": "identity",
-        "line": 881,
+        "line": 997,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25310,9 +25342,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "99a30c4710be25bec639d588d58ea80f2596622cca29a3904d59dd7b3ade2c9d",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2102",
@@ -25461,7 +25493,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_request",
         "handler": "identity",
-        "line": 1665,
+        "line": 1787,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25484,9 +25516,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "2c72a3f3dfee411900cd9ea798623af414c091a37c4d946f45cce5e457412794",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2103",
@@ -25729,7 +25761,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_approve",
         "handler": "identity",
-        "line": 1500,
+        "line": 1622,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25752,9 +25784,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "2d90e0d36f28809f4df7dffe2801ec157e845edfdd6699d0ec4a7964421b14c1",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2104",
@@ -25890,7 +25922,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_cancel",
         "handler": "identity",
-        "line": 1870,
+        "line": 1992,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -25913,9 +25945,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "797ec1ba65c0855737cb022e4cfd8fb4b364529abcb26e1217f481fb18816976",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2105",
@@ -25999,7 +26031,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_finalize",
         "handler": "identity",
-        "line": 1901,
+        "line": 2023,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -26022,9 +26054,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "a98088f45552e16d2b7e680d78a6e0b34c2a0a03f734ef944f43957c96e98d8b",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-2106",
@@ -26106,7 +26138,7 @@
       "implementation_source": {
         "function": "_apply_account_recovery_receipt",
         "handler": "identity",
-        "line": 2000,
+        "line": 2122,
         "path": "src/weall/runtime/apply/identity.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -26134,9 +26166,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "d7a2e8d7c501fc49c4f37748da1d2b1cbc5622eeef363aae7c9cb80135ef15f2",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
+        "reviewed_at": "2026-10-06T20:21:11Z",
+        "reviewer": "Errol Jacob Jones Swaby (maintainer-assisted P1 audit)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-2107",
