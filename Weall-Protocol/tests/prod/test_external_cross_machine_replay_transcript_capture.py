@@ -59,6 +59,19 @@ def _sample_transcript() -> dict[str, Any]:
             },
         },
         "state_root_vectors_sha256": "a" * 64,
+        "tx_lifecycle_assurance_sha256": "d" * 64,
+        "tx_semantic_assurance_sha256": "e" * 64,
+        "tx_contract_map_sha256": "f" * 64,
+        "live_lifecycle_digest": "1" * 64,
+        "broad_probe_lifecycle_manifest_sha256": "d" * 64,
+        "broad_probe_lifecycle_projection_sha256": "2" * 64,
+        "broad_probe_reversed_projection_sha256": "2" * 64,
+        "broad_probe_hash_seed_render_sha256": {
+            "0": "d" * 64,
+            "1": "d" * 64,
+            "7": "d" * 64,
+            "42": "d" * 64,
+        },
         "tx_index_hash_by_machine": {
             "external-replay-machine-a-20260705": "b" * 64,
             "external-replay-machine-b-20260705": "b" * 64,
@@ -66,6 +79,35 @@ def _sample_transcript() -> dict[str, Any]:
         "state_root_by_machine": {
             "external-replay-machine-a-20260705": "c" * 64,
             "external-replay-machine-b-20260705": "c" * 64,
+        },
+        "replay_manifest_digest_by_machine": {
+            "external-replay-machine-a-20260705": "3" * 64,
+            "external-replay-machine-b-20260705": "3" * 64,
+        },
+        "db_replay_digest_by_machine": {
+            "external-replay-machine-a-20260705": "4" * 64,
+            "external-replay-machine-b-20260705": "4" * 64,
+        },
+        "fresh_node_replay_digest_by_machine": {
+            "external-replay-machine-a-20260705": "5" * 64,
+            "external-replay-machine-b-20260705": "5" * 64,
+        },
+        "hashseed_results_by_machine": {
+            machine: {
+                seed: {
+                    "ok": True,
+                    "tx_count": 236,
+                    "successful_apply_count": 236,
+                    "successful_admission_count": 236,
+                    "lifecycle_runtime_digest": "1" * 64,
+                    "determinism_pytest_ok": True,
+                }
+                for seed in ("1", "7", "31337")
+            }
+            for machine in (
+                "external-replay-machine-a-20260705",
+                "external-replay-machine-b-20260705",
+            )
         },
         "replay_commands": [
             "bash scripts/capture_external_cross_machine_replay_transcript_v1_5.sh --machine-id external-replay-machine-a-20260705 --operator-id external-replay-operator-20260705 --out-dir evidence/a",
@@ -79,6 +121,16 @@ def _sample_transcript() -> dict[str, Any]:
         "same_vectors": True,
         "state_roots_match": True,
         "tx_index_hash_match": True,
+        "per_block_replay_match": True,
+        "db_replay_match": True,
+        "fresh_node_state_sync_match": True,
+        "hashseed_matrix_match": True,
+        "broad_probe_match": True,
+        "insertion_order_projection_match": True,
+        "broad_transition_corpus": "all_236_canonical_lifecycle_vectors",
+        "scheduler_order_permutation_vectors": True,
+        "helper_serial_equivalence_vectors": True,
+        "failed_receipt_replay_vectors": True,
         "external_machine_or_two_physical_machines": True,
         "operator_signatures": ["external-signature-reference-20260705-abcdef"],
         "claim_boundaries": {
@@ -109,6 +161,9 @@ def test_external_cross_machine_replay_capture_script_is_helpful_and_non_authori
         "same commit and same generated vector artifacts",
         "scripts/replay_consistency_audit.py",
         "scripts/rehearse_fresh_node_replay_sync_v1_5.py",
+        "capture_a04_external_determinism_packet_v1_5.py",
+        "236-type lifecycle corpus",
+        "PYTHONHASHSEED",
         "public_beta_ready",
         "external_review_required_before_closure",
     ]:
@@ -158,7 +213,15 @@ def test_external_cross_machine_replay_schema_and_validator_accept_real_shape(
     assert "external_cross_machine_replay_transcript" in schemas
     schema = schemas["external_cross_machine_replay_transcript"]
     assert "state_root_by_machine" in schema["required_fields"]
+    assert "tx_lifecycle_assurance_sha256" in schema["required_fields"]
+    assert "hashseed_results_by_machine" in schema["required_fields"]
     assert schema["required_truths"]["blocker"] == "AUD-618-P1-003"
+    assert schema["required_truths"]["broad_probe_match"] is True
+    assert schema["required_truths"]["insertion_order_projection_match"] is True
+    assert (
+        schema["required_truths"]["broad_transition_corpus"]
+        == "all_236_canonical_lifecycle_vectors"
+    )
     assert payload["public_beta_ready"] is False
 
     transcript_path = tmp_path / "external-cross-machine-replay-transcript.json"
@@ -203,3 +266,40 @@ def test_public_beta_and_release_artifacts_reference_external_cross_machine_repl
     assert gate["required_before_public_beta"] is True
     assert gate["required_before_public_observer_launch"] is True
     assert "capture_external_cross_machine_replay_transcript_v1_5.sh" in gate["capture_script"]
+
+
+
+def test_a04_broad_cross_machine_determinism_probe_is_green() -> None:
+    proc = _run(
+        sys.executable,
+        "scripts/a04_cross_machine_determinism_probe_v1_5.py",
+        "--json",
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    payload = json.loads(proc.stdout)
+    assert payload["ok"] is True
+    assert payload["tx_count"] == 236
+    assert payload["expected_236_contract_counts"] is True
+    assert payload["insertion_order_invariant"] is True
+    assert payload["hash_seed_render_match"] is True
+    assert set(payload["hash_seed_render_sha256"]) == {"0", "1", "7", "42"}
+
+
+def test_strict_external_replay_rejects_mismatched_machine_digest(tmp_path: Path) -> None:
+    payload = _sample_transcript()
+    payload["state_root_by_machine"]["external-replay-machine-b-20260705"] = "9" * 64
+    payload["transcript_digest"] = _digest_without_self(payload)
+    path = tmp_path / "mismatched-replay.json"
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+    proc = _run(
+        sys.executable,
+        "scripts/validate_external_operator_transcript_v1_5.py",
+        "--kind",
+        "external_cross_machine_replay_transcript",
+        "--strict-release",
+        "--path",
+        str(path),
+    )
+    assert proc.returncode == 1
+    assert "matching values in state_root_by_machine" in proc.stderr
