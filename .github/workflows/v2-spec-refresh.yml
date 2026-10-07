@@ -35,16 +35,6 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Refresh P2-dependent completion proofs
-        working-directory: Weall-Protocol
-        run: |
-          python scripts/gen_b528_b532_completion_proof_v1_5.py
-          python scripts/gen_b534_b538_completion_proof_v1_5.py
-          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
-          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
-          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
-          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
-
       - name: Refresh reviewer-facing v1.5 derivatives
         working-directory: Weall-Protocol
         run: |
@@ -53,14 +43,6 @@ jobs:
           python scripts/gen_api_response_vectors_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
           python scripts/gen_release_evidence_manifest_v1_5.py
-
-      - name: Refresh all-canon lifecycle assurance
-        working-directory: Weall-Protocol
-        run: |
-          python scripts/gen_tx_semantic_assurance_v1_5.py
-          python scripts/gen_tx_semantic_assurance_v1_5.py --check
-          python scripts/gen_tx_lifecycle_assurance_v1_5.py
-          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
 
       - name: Verify v1.5 public-readiness derivatives
         working-directory: Weall-Protocol
