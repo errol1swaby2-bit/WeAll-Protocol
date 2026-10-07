@@ -86,6 +86,8 @@ Compilation fails when any of the following occurs:
 runs the compiler freshness check inside it. This prevents ignored or untracked
 files from influencing committed derivatives.
 
+This check is intentionally scoped to **source-archive consistency under the already-provisioned Python/toolchain environment that invokes it**. It does not provision an immutable interpreter/container/toolchain and is not evidence of byte-for-byte clean-machine or complete build hermeticity. The canonical reviewer entry point documents those distinct reproducibility levels explicitly.
+
 ## Assurance boundary
 
 Milestone 1 full-scope completion establishes specification compilation, typed register
