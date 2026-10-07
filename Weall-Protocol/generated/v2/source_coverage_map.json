@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "5b01787c78387ca9942a70c6bda03a46aef34db5fff4603d12d1dcafc9e21162",
+      "sha256": "2c2a8504075daa1797748ceab2af46c75fa087b26d521649c7ae19c2acfae945",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -1365,7 +1365,7 @@
       ],
       "path": "docs/V2_SPEC_COMPILER.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "7741cd11d15cbf98c0b394ce0633222e4b6079fb947512f5dfb33737b0d372ff",
+      "sha256": "baa6dc3ba16520d9ff9ffe36c42ccd57c07c9d2b1fae04a1d94b1020e3ff535f",
       "source_id": "SRC-A8946DAF268912DC"
     },
     {
@@ -2519,7 +2519,7 @@
       ],
       "path": "docs/reviewer/START_HERE.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "98b17e129f8fd3ad818f980fb56461916c965fb010a3e4e605ad40d5d53b2c36",
+      "sha256": "723de1d9ffbb71069c9538f149f9d87b3ccbdf7277c6a025068e4894aa8a697f",
       "source_id": "SRC-11E088A7B97F8795"
     },
     {
@@ -5120,7 +5120,7 @@
       ],
       "path": "scripts/generate_tx_coverage_report.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7f422aa1973708765f51b4613139a9786d7a415f6730aebc010cd135757d8fa7",
+      "sha256": "7c65d89dc5b7e868acfabfb59c6619e40d71309410de3cf3b6b360ab942fc760",
       "source_id": "SRC-003A78B7BFCFB667"
     },
     {
@@ -22648,7 +22648,7 @@
       ],
       "path": "tests/test_p1_a17_clean_lifecycle.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b3eff839ffb6be2d328499dba5e421818c2967cda799ea96bfbed7be073b930c",
+      "sha256": "b7391ad31c082c6175d3f2c6e76785acf04ebfdd6011e065d41af2444568c5c4",
       "source_id": "SRC-564FC0FA033EE50B"
     },
     {
@@ -22662,7 +22662,7 @@
       ],
       "path": "tests/test_p1_a17_reviewer_repro_contract.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ee6266665c6daf2add562e932ce4da12f8af2a53c67e738554f75b52b0e8082f",
+      "sha256": "1a6b5d993ca597ec82c3c96c59c72ba7fe67a413f88022065c3f1dd84b519368",
       "source_id": "SRC-F4007CAE326F8321"
     },
     {
@@ -28642,7 +28642,7 @@
       ],
       "path": "tests/test_tx_coverage_report_current_index.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b7d7c8e0b87f983060a40c9900248fdb3dfa5efe02b4f6c066c4b7f116fa495d",
+      "sha256": "8cc7e9d5826e0f74effda07c9600b2ccc0ef328e0d89d951b57fda5aa427cffe",
       "source_id": "SRC-25228E4266A0B7ED"
     },
     {

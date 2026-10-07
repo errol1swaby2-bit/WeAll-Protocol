@@ -12,7 +12,6 @@ from weall.api.app import create_app
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -113,6 +112,7 @@ def test_a17_f003_api_commit_restart_state_equivalence_and_continuation(
     assert compute_state_root(final_state) != before_root
     assert "@alice" in (final_state.get("accounts") or {})
     assert "@bob" in (final_state.get("accounts") or {})
+
 
 _CHILD = r"""
 import json
@@ -276,4 +276,3 @@ def test_a17_f003_process_restart_reloads_committed_state_and_continues(
     assert second["state_root"] != first["state_root"]
     assert "@alice" in second["accounts"]
     assert "@bob" in second["accounts"]
-
