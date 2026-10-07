@@ -424,6 +424,7 @@ def _prepare_groups(
         payload["group_id"] = "group-a16"
         payload["election_id"] = "election-a16"
         if tx_type == "GROUP_EMISSARY_BALLOT_CAST":
+            payload.pop("group_id", None)
             payload["ranking"] = ["@tester"]
             return "@tester", payload
         _apply(
@@ -492,6 +493,8 @@ def _prepare_groups(
             )
             state["height"] = 11
             state["treasury_wallets"]["TREASURY_GROUP::group-a16"]["balance"] = 100
+            payload.clear()
+            payload["spend_id"] = "spend-a16"
             return "SYSTEM", payload
 
         return "SYSTEM", payload
@@ -1305,6 +1308,10 @@ def _prepare_treasury(
     tx_type: str,
     payload: dict[str, Any],
 ) -> tuple[str, dict[str, Any]]:
+    if tx_type == "TREASURY_CREATE":
+        payload["treasury_id"] = "treasury-a16"
+        return "@tester", payload
+
     if tx_type == "TREASURY_SIGNERS_SET":
         _apply(
             state,
@@ -1365,6 +1372,8 @@ def _prepare_treasury(
             {"treasury_id": "treasury-a16", "spend_id": "spend-a16"},
             signer="@tester",
         )
+        payload.clear()
+        payload["spend_id"] = "spend-a16"
         return "SYSTEM", payload
 
     return "SYSTEM" if tx_type.startswith("TREASURY_") else "@tester", payload
@@ -1458,12 +1467,16 @@ def _prepare_identity(
         _apply(
             state,
             "ACCOUNT_KEY_ADD",
-            {"pubkey": "k:p2-a02-secondary", "key_type": "secondary"},
+            {
+                "pubkey": "k:p2-a02-secondary",
+                "key_type": "secondary",
+                "key_id": "key-p2-secondary",
+            },
             signer="@tester",
             nonce=1,
         )
-        payload.pop("key_id", None)
-        payload["pubkey"] = "k:p2-a02-secondary"
+        payload.clear()
+        payload["key_id"] = "key-p2-secondary"
         return "@tester", payload
 
     if tx_type == "ACCOUNT_SESSION_KEY_ISSUE":
@@ -1617,6 +1630,9 @@ def _prepare_rewards(
     tx_type: str,
     payload: dict[str, Any],
 ) -> tuple[str, dict[str, Any]]:
+    if tx_type == "REWARD_POOL_OPT_IN_SET":
+        payload["enabled"] = True
+        return "@tester", payload
     if tx_type == "BLOCK_REWARD_MINT":
         payload.update({"block_id": "block-a16", "issuance_epoch": 0, "amount": 1})
     return "SYSTEM", payload
@@ -1759,9 +1775,16 @@ def _prepare_roles(
         elif tx_type == "NODE_OPERATOR_VALIDATOR_OPT_IN":
             payload["validator_opt_in"] = True
         elif tx_type == "NODE_OPERATOR_HELPER_OPT_IN":
-            payload["helper_opt_in"] = True
+            payload.clear()
+            payload["account_id"] = "@tester"
         else:
-            payload["helper_opt_in"] = True
+            payload.clear()
+            payload.update(
+                {
+                    "account_id": "@tester",
+                    "responsibilities": {"helper": {"opted_in": True}},
+                }
+            )
         return "@tester", payload
 
     if tx_type == "VALIDATOR_READINESS_VERIFY":
@@ -2005,6 +2028,10 @@ def _prepare_consensus(
     tx_type: str,
     payload: dict[str, Any],
 ) -> tuple[str, dict[str, Any]]:
+    if tx_type == "BLOCK_PROPOSE":
+        payload.update({"block_id": "a", "height": 1})
+        return "@validator1", payload
+
     if tx_type == "BLOCK_ATTEST":
         _consensus_known_block(state)
         payload.update({"block_id": "a", "height": 1, "round": 0})
@@ -2160,6 +2187,60 @@ def test_a02_f003_all_canon_baselines_have_successful_apply_fixture() -> None:
 
 
 
+def _seed_a02_admission_authority(
+    state: dict[str, Any],
+    tx_type: str,
+    signer: str,
+    payload: dict[str, Any],
+) -> None:
+    roles = state.setdefault("roles", {})
+
+    if tx_type in {
+        "BLOCK_ATTEST",
+        "BLOCK_PROPOSE",
+        "SLASH_VOTE",
+        "VALIDATOR_DEREGISTER",
+        "VALIDATOR_HEARTBEAT",
+        "VALIDATOR_PERFORMANCE_REPORT",
+    }:
+        roles["validators"] = {
+            "active_set": [signer],
+            "by_id": {signer: {"active": True}},
+        }
+
+    if tx_type == "NODE_OPERATOR_PERFORMANCE_REPORT":
+        roles["node_operators"] = {
+            "active_set": [signer],
+            "by_id": {signer: {"active": True}},
+        }
+
+    if tx_type in {
+        "GROUP_TREASURY_SPEND_PROPOSE",
+        "GROUP_TREASURY_SPEND_CANCEL",
+    }:
+        group_id = str(payload.get("group_id") or "group-a16")
+        group_roles = roles.setdefault("groups_by_id", {}).setdefault(group_id, {})
+        group_roles["emissaries"] = [signer]
+        roles["emissaries"] = {
+            "seated": [signer],
+            "by_id": {signer: {"active": True}},
+        }
+
+    if tx_type == "TREASURY_SPEND_PROPOSE":
+        treasury_id = str(payload.get("treasury_id") or "treasury-a16")
+        treasury_roles = roles.setdefault("treasuries_by_id", {}).setdefault(treasury_id, {})
+        treasury_roles.update(
+            {
+                "signers": [signer],
+                "require_emissary_signers": True,
+            }
+        )
+        roles["emissaries"] = {
+            "seated": [signer],
+            "by_id": {signer: {"active": True}},
+        }
+
+
 def test_a02_f003_all_canon_prepared_vectors_pass_admission() -> None:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     rows = manifest["rows"]
@@ -2173,6 +2254,7 @@ def test_a02_f003_all_canon_prepared_vectors_pass_admission() -> None:
         state = _base_state()
         env = _prepared_envelope(state, row)
         context = str(row.get("context") or "mempool").strip().lower() or "mempool"
+        _seed_a02_admission_authority(state, tx_type, env.signer, env.payload)
 
         if context == "block" and not bool(env.system):
             ensure_account_has_test_key(state.setdefault("accounts", {}), account_id=env.signer)
