@@ -1319,6 +1319,165 @@ def _prepare_treasury(
 
     return "SYSTEM" if tx_type.startswith("TREASURY_") else "@tester", payload
 
+
+def _identity_guardian_config(
+    state: dict[str, Any],
+    *,
+    subject: str = "@tester",
+    guardian: str = "a",
+) -> None:
+    state["params"]["guardian_recovery_new_admission"] = True
+    _apply(
+        state,
+        "ACCOUNT_RECOVERY_CONFIG_SET",
+        {"guardians": [guardian], "threshold": 1},
+        signer=subject,
+        nonce=1,
+    )
+
+
+def _identity_recovery_request(
+    state: dict[str, Any],
+    *,
+    subject: str = "@tester",
+    guardian: str = "a",
+) -> None:
+    _identity_guardian_config(state, subject=subject, guardian=guardian)
+    _apply(
+        state,
+        "ACCOUNT_RECOVERY_REQUEST",
+        {"request_id": "request-a16"},
+        signer=subject,
+        nonce=2,
+    )
+
+
+def _identity_approved_recovery(state: dict[str, Any]) -> None:
+    _identity_recovery_request(state, subject="@target", guardian="@tester")
+    _apply(
+        state,
+        "ACCOUNT_RECOVERY_APPROVE",
+        {"request_id": "request-a16"},
+        signer="@tester",
+        nonce=1,
+    )
+
+
+def _prepare_identity(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    state["params"]["guardian_recovery_new_admission"] = True
+
+    if tx_type == "ACCOUNT_REGISTER":
+        state["accounts"].pop("@tester", None)
+        payload["pubkey"] = "k:p2-a02-account"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_DEVICE_REGISTER":
+        payload.update({"device_id": "device-a16", "pubkey": "k:p2-a02-device"})
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_DEVICE_REVOKE":
+        _apply(
+            state,
+            "ACCOUNT_DEVICE_REGISTER",
+            {"device_id": "device-a16", "pubkey": "k:p2-a02-device"},
+            signer="@tester",
+            nonce=1,
+        )
+        payload["device_id"] = "device-a16"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_KEY_REVOKE":
+        _apply(
+            state,
+            "ACCOUNT_KEY_ADD",
+            {"pubkey": "k:p2-a02-secondary", "key_type": "secondary"},
+            signer="@tester",
+            nonce=1,
+        )
+        payload.pop("key_id", None)
+        payload["pubkey"] = "k:p2-a02-secondary"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_SESSION_KEY_ISSUE":
+        payload.update({"session_key": "p2-a02-session-key", "ttl_s": 3600})
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_SESSION_KEY_REVOKE":
+        _apply(
+            state,
+            "ACCOUNT_SESSION_KEY_ISSUE",
+            {"session_key": "p2-a02-session-key", "ttl_s": 3600},
+            signer="@tester",
+            nonce=1,
+        )
+        payload["session_key"] = "p2-a02-session-key"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_GUARDIAN_ADD":
+        payload["guardian_id"] = "a"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_GUARDIAN_REMOVE":
+        _apply(
+            state,
+            "ACCOUNT_GUARDIAN_ADD",
+            {"guardian_id": "a"},
+            signer="@tester",
+            nonce=1,
+        )
+        payload["guardian_id"] = "a"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_RECOVERY_CONFIG_SET":
+        payload.update({"guardians": ["a"], "threshold": 1})
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_RECOVERY_REQUEST":
+        _identity_guardian_config(state)
+        payload["request_id"] = "request-a16"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_RECOVERY_CANCEL":
+        _identity_recovery_request(state)
+        payload["request_id"] = "request-a16"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_RECOVERY_APPROVE":
+        _identity_recovery_request(state, subject="@target", guardian="@tester")
+        payload["request_id"] = "request-a16"
+        return "@tester", payload
+
+    if tx_type == "ACCOUNT_RECOVERY_FINALIZE":
+        _identity_approved_recovery(state)
+        payload["request_id"] = "request-a16"
+        return "SYSTEM", payload
+
+    if tx_type == "ACCOUNT_RECOVERY_RECEIPT":
+        _identity_approved_recovery(state)
+        _apply(
+            state,
+            "ACCOUNT_RECOVERY_FINALIZE",
+            {"request_id": "request-a16"},
+            system=True,
+        )
+        payload.update({"request_id": "request-a16", "status": "finalized"})
+        return "SYSTEM", payload
+
+    if tx_type == "ACCOUNT_LOCK":
+        payload["target"] = "@target"
+        return "SYSTEM", payload
+
+    if tx_type == "ACCOUNT_UNLOCK":
+        state["accounts"]["@target"]["locked"] = True
+        payload["target"] = "@target"
+        return "SYSTEM", payload
+
+    return "@tester", payload
+
 def _prepared_envelope(
     state: dict[str, Any],
     row: dict[str, Any],
@@ -1342,17 +1501,25 @@ def _prepared_envelope(
         signer, payload = _prepare_indexing(state, tx_type, payload)
     elif str(row.get("domain") or "") == "Treasury":
         signer, payload = _prepare_treasury(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Identity":
+        signer, payload = _prepare_identity(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
     if system and tx_type != "POH_BOOTSTRAP_TIER2_GRANT":
         signer = "SYSTEM"
     block_only = str(row.get("context") or "").lower() == "block"
     receipt_only = bool(row.get("receipt_only"))
+    nonce = 1
+    if not system:
+        account = state.get("accounts", {}).get(signer)
+        if isinstance(account, dict):
+            nonce = int(account.get("nonce") or 0) + 1
     return _tx(
         tx_type,
         payload,
         signer=signer,
         system=system,
+        nonce=nonce,
         parent="PARENT-A02" if block_only or receipt_only else None,
     )
 
