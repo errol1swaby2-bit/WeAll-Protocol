@@ -258,6 +258,15 @@ def build_local_packet(
         stderr_path=out / "logs" / "check_tx_lifecycle_assurance.stderr.txt",
     )
 
+    broad_probe = _run_json(
+        [sys.executable, "scripts/a04_cross_machine_determinism_probe_v1_5.py", "--json"],
+        env=env,
+        stdout_path=out / "artifacts" / "a04_cross_machine_determinism_probe.json",
+        stderr_path=out / "logs" / "a04_cross_machine_determinism_probe.stderr.txt",
+    )
+    if broad_probe.get("ok") is not True:
+        raise RuntimeError("A04 broad determinism probe did not report ok=true")
+
     hashseed_results: Json = {}
     for seed in SEEDS:
         result = _runtime_lifecycle_result(seed, env=env, out=out)
@@ -297,6 +306,25 @@ def build_local_packet(
         "tx_contract_map_sha256": _sha256_file(tx_contract_path),
         "tx_lifecycle_assurance_sha256": _sha256_file(lifecycle_path),
         "tx_semantic_assurance_sha256": _sha256_file(semantic_path),
+        "broad_probe_ok": True,
+        "broad_probe_lifecycle_manifest_sha256": str(
+            broad_probe.get("lifecycle_manifest_sha256") or ""
+        ),
+        "broad_probe_lifecycle_projection_sha256": str(
+            broad_probe.get("lifecycle_projection_sha256") or ""
+        ),
+        "broad_probe_reversed_projection_sha256": str(
+            broad_probe.get("reversed_insertion_projection_sha256") or ""
+        ),
+        "broad_probe_insertion_order_invariant": bool(
+            broad_probe.get("insertion_order_invariant")
+        ),
+        "broad_probe_hash_seed_render_match": bool(
+            broad_probe.get("hash_seed_render_match")
+        ),
+        "broad_probe_hash_seed_render_sha256": dict(
+            broad_probe.get("hash_seed_render_sha256") or {}
+        ),
         "replay_consistency_ok": True,
         "fresh_node_replay_sync_ok": True,
         "db_backed_replay_sync_ok": True,
