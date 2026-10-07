@@ -97,6 +97,7 @@ jobs:
             tests/test_p1_a18_claim_boundaries.py \
             tests/test_p1_a19_reviewer_front_door.py \
             tests/test_p1_a19_reviewer_bootstrap.py \
+            tests/test_tx_coverage_report_current_index.py \
             tests/test_tx_signature_profile_admission.py \
             tests/test_block_signature_profiles.py \
             tests/test_validator_operator_signature_profiles.py \
