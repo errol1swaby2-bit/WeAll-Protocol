@@ -107,6 +107,7 @@
       "status": "OPEN_AUDIT_FINDINGS_BLOCK_STRONGER_CLAIMS",
       "value": {
         "closed_finding_ids": [
+          "A01-F002",
           "A01-F003",
           "A02-F002",
           "A03-F001",
@@ -128,6 +129,9 @@
           "A15-F004",
           "A15-F005",
           "A15-F006",
+          "A17-F001",
+          "A17-F002",
+          "A17-F003",
           "A18-F003",
           "A18-F004",
           "A19-F002",
@@ -137,14 +141,10 @@
         ],
         "open_medium_finding_ids": [
           "A01-F001",
-          "A01-F002",
           "A16-F006",
-          "A17-F001",
-          "A17-F002",
-          "A17-F003",
           "A19-F001"
         ],
-        "proven_dispositions": 27,
+        "proven_dispositions": 31,
         "stronger_release_claims_blocked": true,
         "total_findings": 34
       }
@@ -445,7 +445,7 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
-    "../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json": "53c1d1024af1da5495af942af1b9c47894741f340a7c50f7209abf2401667462",
+    "../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json": "6b95a6a11bb19de78ccbc34284146cbaf619b3070e2a7923d4363c613408db45",
     "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "1a5653024b2b75172403987ef9ae647e4e85d7b3af8fd7c976a198292b1051b3",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
     "generated/public_beta_blocker_report_v1_5.json": "56d002be2add684a7026a34e38f9cbc051eb9646dff43fe8ca9589929ce2da2a",

@@ -43,7 +43,7 @@ cryptographic review, or a current scalar TPS measurement.
 - Mainnet readiness: **not claimed**.
 - Remaining external-evidence blocker IDs: `AUD-618-P0-001, AUD-618-P0-002, AUD-618-P0-003, AUD-633-P0-004, AUD-618-P1-003, AUD-618-P1-004, AUD-618-P1-005, AUD-628-P1-001`.
 - Open A01–A20 P0 audit tracks: `none`.
-- Open A01–A20 P1/MEDIUM findings: `A01-F001, A01-F002, A16-F006, A17-F001, A17-F002, A17-F003, A19-F001`.
+- Open A01–A20 P1/MEDIUM findings: `A01-F001, A16-F006, A19-F001`.
 
 V2 structural counts are intentionally not copied here. Their canonical source is
 `generated/v2/spec_compilation_manifest.json`, verified independently by

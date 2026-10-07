@@ -565,7 +565,7 @@
       ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "a44476fcbeb99389aadddf5ee15c656af18ad9c1c660f35c6a9a4ed542d45513",
+      "sha256": "259ad0b51b7cbebe17cd489be32b77e6efe3e364a0ab3cc98e1cb87a27de5b20",
       "source_id": "SRC-251A50F3DB56A30F"
     },
     {
@@ -3275,7 +3275,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "11f454db5d1ccde028665b4b7cec47023a5e7e43039c340c489af438913f9c39",
+      "sha256": "dac7429ddbbb93b525aeb90f5ddc599aee6441a9112cc184fc2f6c684222aaf5",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -22691,7 +22691,7 @@
       ],
       "path": "tests/test_p1_a19_reviewer_bootstrap.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e5b8afa20ad918645300570021f40cf7cd3462000e3c8e5022f3c0be7349046f",
+      "sha256": "d72cf885dac67eb9ae178316dc7459aaa67f85802e600f2c54ec84f0f1367fad",
       "source_id": "SRC-D90D46B8388848C4"
     },
     {
@@ -22705,7 +22705,7 @@
       ],
       "path": "tests/test_p1_a19_reviewer_front_door.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d5008105862ce5fdab1a2c0e7d0ee6afc27981c30a39686994a7535c0d90d358",
+      "sha256": "69779635dddfa4310c43a001467cf55a1184914adc8d6fef552e6ffdfa08bd92",
       "source_id": "SRC-257F32817A2B414A"
     },
     {
