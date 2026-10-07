@@ -54,13 +54,16 @@ The checked-in public testnet seed registry is `configs/public_testnet_seed_regi
 
 ## Verification path
 
-**Verification entry point:** start with [Technical verification: start here](Weall-Protocol/docs/reviewer/START_HERE.md). It distinguishes exact full-history verification, historyless source-archive checks, fresh-clone smoke, external observer/onboarding, and local developer/demo paths so their evidence strength is not conflated.
+**Verification entry point:** start with [Technical verification: start here](Weall-Protocol/docs/reviewer/START_HERE.md). It distinguishes exact full-history verification, historyless source-archive checks, fresh-clone smoke, external observer/onboarding, and local developer/demo paths so their evidence strength is not conflated. For the current runtime/source-of-truth map, read [Current architecture and authority map](Weall-Protocol/docs/ARCHITECTURE.md).
 
 Run these checks from a fresh checkout before relying on verification-facing claims:
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol
+python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --require-hashes -r requirements-dev.lock
+python -m pip install -e . --no-deps
 
 PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
 PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
