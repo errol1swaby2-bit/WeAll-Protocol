@@ -206,6 +206,93 @@ def _strict_release_errors(kind: str, payload: Json) -> list[str]:
             errors.append("external replay strict release transcript requires same_commit=true")
         if payload.get("same_vectors") is not True:
             errors.append("external replay strict release transcript requires same_vectors=true")
+
+        machine_ids = [str(item) for item in (payload.get("machine_ids") or [])]
+        machine_set = set(machine_ids)
+        if len(machine_ids) < 2 or len(machine_set) != len(machine_ids):
+            errors.append("external replay strict release transcript requires at least two distinct machine_ids")
+
+        digest_maps = (
+            "tx_index_hash_by_machine",
+            "state_root_by_machine",
+            "replay_manifest_digest_by_machine",
+            "db_replay_digest_by_machine",
+            "fresh_node_replay_digest_by_machine",
+        )
+        for field in digest_maps:
+            value = payload.get(field)
+            if not isinstance(value, dict) or set(str(key) for key in value) != machine_set:
+                errors.append(f"external replay strict release transcript requires {field} for every machine")
+                continue
+            digests = [str(item or "") for item in value.values()]
+            if any(len(item) != 64 for item in digests):
+                errors.append(f"external replay strict release transcript requires 64-char digests in {field}")
+            if len(set(digests)) != 1:
+                errors.append(f"external replay strict release transcript requires matching values in {field}")
+
+        lifecycle_sha = str(payload.get("tx_lifecycle_assurance_sha256") or "")
+        probe_manifest_sha = str(payload.get("broad_probe_lifecycle_manifest_sha256") or "")
+        if len(lifecycle_sha) != 64 or probe_manifest_sha != lifecycle_sha:
+            errors.append(
+                "external replay strict release transcript requires broad probe lifecycle digest "
+                "to match tx_lifecycle_assurance_sha256"
+            )
+
+        projection_sha = str(payload.get("broad_probe_lifecycle_projection_sha256") or "")
+        reversed_sha = str(payload.get("broad_probe_reversed_projection_sha256") or "")
+        if len(projection_sha) != 64 or projection_sha != reversed_sha:
+            errors.append(
+                "external replay strict release transcript requires insertion-order projection equality"
+            )
+
+        broad_seed_map = payload.get("broad_probe_hash_seed_render_sha256")
+        if not isinstance(broad_seed_map, dict) or set(str(key) for key in broad_seed_map) != {
+            "0",
+            "1",
+            "7",
+            "42",
+        }:
+            errors.append(
+                "external replay strict release transcript requires broad probe seeds 0,1,7,42"
+            )
+        elif len({str(item) for item in broad_seed_map.values()}) != 1:
+            errors.append(
+                "external replay strict release transcript requires matching broad-probe hash-seed digests"
+            )
+
+        seeded = payload.get("hashseed_results_by_machine")
+        required_runtime_seeds = {"1", "7", "31337"}
+        live_digests: set[str] = set()
+        if not isinstance(seeded, dict) or set(str(key) for key in seeded) != machine_set:
+            errors.append(
+                "external replay strict release transcript requires hashseed_results_by_machine "
+                "for every machine"
+            )
+        else:
+            for machine_id, seed_results in seeded.items():
+                if not isinstance(seed_results, dict) or set(str(key) for key in seed_results) != required_runtime_seeds:
+                    errors.append(
+                        f"external replay strict release transcript requires seeds 1,7,31337 for {machine_id}"
+                    )
+                    continue
+                for seed, result in seed_results.items():
+                    if not isinstance(result, dict):
+                        errors.append(f"external replay seed result must be an object: {machine_id}:{seed}")
+                        continue
+                    if result.get("ok") is not True or result.get("determinism_pytest_ok") is not True:
+                        errors.append(f"external replay seeded determinism did not pass: {machine_id}:{seed}")
+                    if int(result.get("tx_count") or 0) != 236:
+                        errors.append(f"external replay seeded lifecycle count is not 236: {machine_id}:{seed}")
+                    digest = str(result.get("lifecycle_runtime_digest") or "")
+                    if len(digest) != 64:
+                        errors.append(f"external replay seeded lifecycle digest is invalid: {machine_id}:{seed}")
+                    else:
+                        live_digests.add(digest)
+            if len(live_digests) != 1:
+                errors.append(
+                    "external replay strict release transcript requires one lifecycle digest "
+                    "across all machines and hash seeds"
+                )
     elif kind == "storage_ipfs_operator_transcript":
         if payload.get("real_daemon_topology") is not True:
             errors.append(
