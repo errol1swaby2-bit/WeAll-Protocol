@@ -1294,6 +1294,15 @@
     },
     {
       "affected_registers": [
+        "evidence"
+      ],
+      "classification": "generated_compatibility_evidence",
+      "path": "generated/tx_lifecycle_assurance_v1_5.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
         "mechanisms",
         "evidence"
       ],
@@ -2229,6 +2238,16 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "scripts/gen_tx_semantic_assurance_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_tx_lifecycle_assurance_v1_5.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
     },
