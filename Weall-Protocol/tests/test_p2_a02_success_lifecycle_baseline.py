@@ -409,12 +409,6 @@ def _prepare_groups(
             {"group_id": "group-a16", "signers": ["@tester"]},
             signer="@tester",
         )
-        _apply(
-            state,
-            "GROUP_TREASURY_CREATE",
-            {"treasury_id": "TREASURY_GROUP::group-a16", "balance": 100},
-            system=True,
-        )
         if tx_type != "GROUP_TREASURY_SPEND_PROPOSE":
             _apply(
                 state,
