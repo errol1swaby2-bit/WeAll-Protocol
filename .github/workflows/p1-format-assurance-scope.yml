@@ -1,0 +1,63 @@
+name: P1 Format Assurance Scope
+
+on:
+  push:
+    branches:
+      - p1-revalidation-after-p0-20261005
+    paths:
+      - .github/workflows/p1-format-assurance-scope.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: p1-revalidation-after-p0-20261005
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format and verify assurance-scope files
+        working-directory: Weall-Protocol
+        run: |
+          FILES=(
+            tests/test_p1_a17_reviewer_repro_contract.py
+            tests/test_p1_a17_clean_lifecycle.py
+            scripts/generate_tx_coverage_report.py
+            tests/test_tx_coverage_report_current_index.py
+          )
+          ruff check --fix "${FILES[@]}"
+          ruff format "${FILES[@]}"
+          ruff check "${FILES[@]}"
+          ruff format --check "${FILES[@]}"
+          pytest -q \
+            tests/test_p1_a17_reviewer_repro_contract.py \
+            tests/test_p1_a17_clean_lifecycle.py \
+            tests/test_tx_coverage_report_current_index.py
+
+      - name: Commit formatted tree and remove temporary proof workflows
+        run: |
+          set -Eeuo pipefail
+          rm -f \
+            .github/workflows/p1-format-assurance-scope.yml \
+            .github/workflows/p1-assurance-scope-proof.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No assurance-scope format diff produced'; exit 1; }
+          git diff --check --cached
+          git commit -m 'style: format P1 assurance scope proof'
+          git push origin HEAD:p1-revalidation-after-p0-20261005
