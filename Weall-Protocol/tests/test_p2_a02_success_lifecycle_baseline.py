@@ -8,7 +8,6 @@ from typing import Any
 from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
 from weall.runtime.tx_admission_types import TxEnvelope
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "generated" / "tx_semantic_assurance_v1_5.json"
 
