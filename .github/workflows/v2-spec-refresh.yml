@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 A04 mapped tooling format and artifact refresh
 
 on:
   workflow_dispatch:
@@ -36,23 +35,10 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Format P2 A04 tooling
-        working-directory: Weall-Protocol
-        run: |
-          ruff format \
-            scripts/a04_cross_machine_determinism_probe_v1_5.py \
-            scripts/build_external_cross_machine_replay_transcript_v1_5.py \
-            scripts/capture_a04_external_determinism_packet_v1_5.py \
-            scripts/gen_external_operator_transcript_requirements_v1_5.py \
-            scripts/validate_external_operator_transcript_v1_5.py \
-            tests/prod/test_external_cross_machine_replay_transcript_capture.py \
-            tests/prod/test_p2_a04_external_determinism_packet.py
-
       - name: Refresh reviewer-facing v1.5 derivatives
         working-directory: Weall-Protocol
         run: |
           python scripts/gen_api_contract_map.py
-          python scripts/gen_external_operator_transcript_requirements_v1_5.py
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
@@ -83,30 +69,12 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          if git diff --quiet -- \
-            Weall-Protocol/generated \
-            web/src/generated/protocolStatus.ts \
-            Weall-Protocol/scripts/a04_cross_machine_determinism_probe_v1_5.py \
-            Weall-Protocol/scripts/build_external_cross_machine_replay_transcript_v1_5.py \
-            Weall-Protocol/scripts/capture_a04_external_determinism_packet_v1_5.py \
-            Weall-Protocol/scripts/gen_external_operator_transcript_requirements_v1_5.py \
-            Weall-Protocol/scripts/validate_external_operator_transcript_v1_5.py \
-            Weall-Protocol/tests/prod/test_external_cross_machine_replay_transcript_capture.py \
-            Weall-Protocol/tests/prod/test_p2_a04_external_determinism_packet.py; then
+          if git diff --quiet -- Weall-Protocol/generated web/src/generated/protocolStatus.ts; then
             echo "Reviewer artifacts already current."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -u \
-            Weall-Protocol/generated \
-            web/src/generated/protocolStatus.ts \
-            Weall-Protocol/scripts/a04_cross_machine_determinism_probe_v1_5.py \
-            Weall-Protocol/scripts/build_external_cross_machine_replay_transcript_v1_5.py \
-            Weall-Protocol/scripts/capture_a04_external_determinism_packet_v1_5.py \
-            Weall-Protocol/scripts/gen_external_operator_transcript_requirements_v1_5.py \
-            Weall-Protocol/scripts/validate_external_operator_transcript_v1_5.py \
-            Weall-Protocol/tests/prod/test_external_cross_machine_replay_transcript_capture.py \
-            Weall-Protocol/tests/prod/test_p2_a04_external_determinism_packet.py
+          git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts
           git commit -m 'audit: refresh reviewer-facing generated artifacts'
           git push origin HEAD:"${GITHUB_REF_NAME}"
