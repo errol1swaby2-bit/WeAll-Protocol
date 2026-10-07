@@ -55,5 +55,5 @@ done
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PYTHON_BIN="\${PYTHON:-python}"
+PYTHON_BIN="${PYTHON:-python}"
 exec "$PYTHON_BIN" scripts/capture_a04_external_determinism_packet_v1_5.py "$@"
