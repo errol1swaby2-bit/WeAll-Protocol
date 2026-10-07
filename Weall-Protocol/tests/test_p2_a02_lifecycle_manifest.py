@@ -1,16 +1,10 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
 import pytest
-
-from scripts.gen_tx_lifecycle_assurance_v1_5 import (
-    OUTPUT_PATH,
-    build_manifest,
-    load_fixture_module,
-    load_semantic_manifest,
-)
 from weall.runtime import tx_contracts
 from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
 from weall.runtime.errors import ApplyError
@@ -20,6 +14,25 @@ from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_id import compute_tx_id_from_envelope
 
 ROOT = Path(__file__).resolve().parents[1]
+LIFECYCLE_SCRIPT = ROOT / "scripts" / "gen_tx_lifecycle_assurance_v1_5.py"
+
+
+def _load_lifecycle_module():
+    spec = importlib.util.spec_from_file_location(
+        "gen_tx_lifecycle_assurance_v1_5_testmod",
+        LIFECYCLE_SCRIPT,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_LIFECYCLE = _load_lifecycle_module()
+OUTPUT_PATH = _LIFECYCLE.OUTPUT_PATH
+build_manifest = _LIFECYCLE.build_manifest
+load_fixture_module = _LIFECYCLE.load_fixture_module
+load_semantic_manifest = _LIFECYCLE.load_semantic_manifest
 
 
 def _rows_by_type(payload: dict) -> dict[str, dict]:
