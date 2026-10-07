@@ -1064,6 +1064,261 @@ def _prepare_poh(
     return "@tester", payload
 
 
+
+_CONTENT_CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3pt5a3u4ct6shwrdfl5f5d4ii"
+
+
+def _content_post(state: dict[str, Any]) -> None:
+    _apply(
+        state,
+        "CONTENT_POST_CREATE",
+        {"post_id": "post-a16", "body": "P2 lifecycle fixture"},
+        signer="@tester",
+    )
+
+
+def _content_media(state: dict[str, Any]) -> None:
+    _apply(
+        state,
+        "CONTENT_MEDIA_DECLARE",
+        {"media_id": "media-a16", "cid": _CONTENT_CID, "kind": "image"},
+        signer="@tester",
+    )
+
+
+def _prepare_content(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "CONTENT_MEDIA_DECLARE":
+        payload.update({"media_id": "media-a16", "cid": _CONTENT_CID, "kind": "image"})
+        return "@tester", payload
+
+    if tx_type in {"CONTENT_POST_EDIT", "CONTENT_POST_DELETE"}:
+        _content_post(state)
+        payload["post_id"] = "post-a16"
+        if tx_type == "CONTENT_POST_EDIT":
+            payload["body"] = "P2 edited post"
+        return "@tester", payload
+
+    if tx_type in {"CONTENT_COMMENT_CREATE", "CONTENT_COMMENT_DELETE"}:
+        _content_post(state)
+        if tx_type == "CONTENT_COMMENT_CREATE":
+            payload.update(
+                {
+                    "post_id": "post-a16",
+                    "comment_id": "comment-a16",
+                    "body": "P2 lifecycle comment",
+                }
+            )
+            return "@tester", payload
+        _apply(
+            state,
+            "CONTENT_COMMENT_CREATE",
+            {
+                "post_id": "post-a16",
+                "comment_id": "comment-a16",
+                "body": "P2 lifecycle comment",
+            },
+            signer="@tester",
+        )
+        payload["comment_id"] = "comment-a16"
+        return "@tester", payload
+
+    if tx_type in {
+        "CONTENT_MEDIA_BIND",
+        "CONTENT_MEDIA_REPLACE",
+        "CONTENT_MEDIA_UNBIND",
+    }:
+        _content_media(state)
+        if tx_type == "CONTENT_MEDIA_REPLACE":
+            payload.update({"media_id": "media-a16", "new_cid": _CONTENT_CID})
+            return "@tester", payload
+
+        _content_post(state)
+        if tx_type == "CONTENT_MEDIA_BIND":
+            payload.update({"media_id": "media-a16", "target_id": "post-a16"})
+            return "@tester", payload
+
+        _apply(
+            state,
+            "CONTENT_MEDIA_BIND",
+            {
+                "media_id": "media-a16",
+                "target_id": "post-a16",
+                "binding_id": "binding-a16",
+            },
+            signer="@tester",
+        )
+        payload["binding_id"] = "binding-a16"
+        return "@tester", payload
+
+    return "@tester", payload
+
+
+def _snapshot_ready(state: dict[str, Any]) -> None:
+    _apply(
+        state,
+        "STATE_SNAPSHOT_DECLARE",
+        {"snapshot_id": "a"},
+        system=True,
+    )
+    _apply(
+        state,
+        "STATE_SNAPSHOT_ACCEPT",
+        {"snapshot_id": "a"},
+        system=True,
+    )
+
+
+def _prepare_indexing(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "STATE_SNAPSHOT_ACCEPT":
+        _apply(
+            state,
+            "STATE_SNAPSHOT_DECLARE",
+            {"snapshot_id": "a"},
+            system=True,
+        )
+        payload["snapshot_id"] = "a"
+        return "SYSTEM", payload
+
+    if tx_type == "COLD_SYNC_REQUEST":
+        _snapshot_ready(state)
+        payload.update({"snapshot_id": "a", "request_id": "request-a16"})
+        return "SYSTEM", payload
+
+    if tx_type == "COLD_SYNC_COMPLETE":
+        _snapshot_ready(state)
+        _apply(
+            state,
+            "COLD_SYNC_REQUEST",
+            {"snapshot_id": "a", "request_id": "request-a16"},
+            system=True,
+        )
+        payload["request_id"] = "request-a16"
+        return "SYSTEM", payload
+
+    return "SYSTEM", payload
+
+
+def _treasury_ready(state: dict[str, Any]) -> None:
+    _apply(
+        state,
+        "TREASURY_CREATE",
+        {"treasury_id": "treasury-a16"},
+        signer="@tester",
+    )
+    _apply(
+        state,
+        "TREASURY_WALLET_CREATE",
+        {"wallet_id": "treasury-a16", "balance": 100},
+        system=True,
+    )
+
+
+def _treasury_signers_ready(state: dict[str, Any]) -> None:
+    _treasury_ready(state)
+    _apply(
+        state,
+        "TREASURY_SIGNERS_SET",
+        {
+            "treasury_id": "treasury-a16",
+            "signers": ["@tester"],
+            "threshold": 1,
+        },
+        signer="@tester",
+    )
+
+
+def _treasury_spend_ready(state: dict[str, Any]) -> None:
+    _treasury_signers_ready(state)
+    _apply(
+        state,
+        "TREASURY_SPEND_PROPOSE",
+        {
+            "treasury_id": "treasury-a16",
+            "spend_id": "spend-a16",
+            "to": "@member",
+            "amount": 1,
+        },
+        signer="@tester",
+    )
+
+
+def _prepare_treasury(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "TREASURY_SIGNERS_SET":
+        _apply(
+            state,
+            "TREASURY_CREATE",
+            {"treasury_id": "treasury-a16"},
+            signer="@tester",
+        )
+        payload.update(
+            {
+                "treasury_id": "treasury-a16",
+                "signers": ["@tester"],
+                "threshold": 1,
+            }
+        )
+        return "@tester", payload
+
+    if tx_type in {"TREASURY_SIGNER_ADD", "TREASURY_SIGNER_REMOVE"}:
+        _treasury_ready(state)
+        if tx_type == "TREASURY_SIGNER_REMOVE":
+            _apply(
+                state,
+                "TREASURY_SIGNER_ADD",
+                {"wallet_id": "treasury-a16", "signer": "@member"},
+                system=True,
+            )
+        payload.update({"wallet_id": "treasury-a16", "signer": "@member"})
+        return "SYSTEM", payload
+
+    spend_family = {
+        "TREASURY_SPEND_PROPOSE",
+        "TREASURY_SPEND_SIGN",
+        "TREASURY_SPEND_CANCEL",
+        "TREASURY_SPEND_EXECUTE",
+    }
+    if tx_type in spend_family:
+        if tx_type == "TREASURY_SPEND_PROPOSE":
+            _treasury_signers_ready(state)
+            payload.update(
+                {
+                    "treasury_id": "treasury-a16",
+                    "spend_id": "spend-a16",
+                    "to": "@member",
+                    "amount": 1,
+                }
+            )
+            return "@tester", payload
+
+        _treasury_spend_ready(state)
+        payload.update({"treasury_id": "treasury-a16", "spend_id": "spend-a16"})
+        if tx_type == "TREASURY_SPEND_SIGN":
+            return "@tester", payload
+        if tx_type == "TREASURY_SPEND_CANCEL":
+            return "@tester", payload
+
+        _apply(
+            state,
+            "TREASURY_SPEND_SIGN",
+            {"treasury_id": "treasury-a16", "spend_id": "spend-a16"},
+            signer="@tester",
+        )
+        return "SYSTEM", payload
+
+    return "SYSTEM" if tx_type.startswith("TREASURY_") else "@tester", payload
+
 def _prepared_envelope(
     state: dict[str, Any],
     row: dict[str, Any],
@@ -1081,6 +1336,12 @@ def _prepared_envelope(
         signer, payload = _prepare_dispute(state, tx_type, payload)
     elif str(row.get("domain") or "") == "PoH":
         signer, payload = _prepare_poh(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Content":
+        signer, payload = _prepare_content(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Indexing":
+        signer, payload = _prepare_indexing(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Treasury":
+        signer, payload = _prepare_treasury(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
     if system and tx_type != "POH_BOOTSTRAP_TIER2_GRANT":
