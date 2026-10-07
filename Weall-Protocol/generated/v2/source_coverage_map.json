@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "6b6f000330e143b3a24507cda1d6ffa0ba6a4ccbb8f1b633b24d6f17eafb0749",
+      "sha256": "9026c6e3caa95cf376e25872651394bb11c8f40b4439964337a7e3ca98d5ef84",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3093,7 +3093,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "42cac1d924cc93ee7ca62dd8cc6b50985b5ddc771d4c81d90f89302512cbf0a8",
+      "sha256": "95b6a37ab67e2b784483d6b1acd6afa5242ffda5af2cbee7a8b929efaf05f2fd",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3107,7 +3107,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3cb1d8065ce12c18574c5b85a038de20dccd2d0d0e62bc2ca9dca831bbe58b33",
+      "sha256": "6aef49a103a3e734d0e99e4420a84f8365f71bed8bf7776ef406ba45b2865bc4",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3191,7 +3191,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "12e97e3ba2c55349fc35842341b3de1880e26e0c86f0bef25fc0d28748a3a13d",
+      "sha256": "024818228dde973edb1c3a3bd8b80dc774002e95c9cf77568c6f07a549d98a80",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -29291,7 +29291,7 @@
       ],
       "path": "tests/test_tx_schema_remaining_canon_cleanup.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d44b53a1004e367e5d7713d16056fdd89cabcf22ace128c48e2d96760fab0cc3",
+      "sha256": "d4db1eb386337cb4eae0894bb99fc2165e22460e1cea48f53183ae7b50f859fb",
       "source_id": "SRC-F50D877F54040588"
     },
     {
