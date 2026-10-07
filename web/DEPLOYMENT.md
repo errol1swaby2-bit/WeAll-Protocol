@@ -26,6 +26,14 @@ npm run build
 
 Output is in dist/.
 
+## Shipped and tested Nginx production configuration
+
+The repository ships `web/deploy/nginx.conf.template` as the mechanically tested Nginx production path. It serves the built `dist/` SPA, proxies `/v1/` to the local node API, and emits the production security headers including CSP.
+
+The template contains a single `__DIST_ROOT__` placeholder. Replace it with the absolute path to the built `web/dist` directory before starting Nginx. Web CI performs that substitution, starts Nginx with this exact template, requests the real HTTP response headers, verifies the CSP boundary, verifies `/v1/readyz` through the proxy, and runs a Chromium smoke against the built app.
+
+The Nginx block below mirrors that shipped template for reviewer readability. The checked-in template is the deployment/test authority.
+
 Reverse proxy examples
 Nginx (UI + API under one origin)
 server {
