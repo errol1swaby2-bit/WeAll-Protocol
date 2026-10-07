@@ -312,10 +312,9 @@
   ],
   "summary": {
     "proven_dispositions": 32,
-    "pending_revalidation": 2,
+    "pending_revalidation": 0,
     "open_or_blocked_findings": [
       "A01-F001",
-      "A16-F006",
       "A19-F001"
     ],
     "adjudicated_findings": 34
