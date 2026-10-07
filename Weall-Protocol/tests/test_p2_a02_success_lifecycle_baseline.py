@@ -12,6 +12,7 @@ from weall.runtime.account_registration_work import (
 )
 from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.runtime.validator_readiness_runner import build_validator_readiness_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "generated" / "tx_semantic_assurance_v1_5.json"
@@ -1615,6 +1616,161 @@ def _prepare_rewards(
         payload.update({"block_id": "block-a16", "issuance_epoch": 0, "amount": 1})
     return "SYSTEM", payload
 
+
+def _node_operator_active(state: dict[str, Any]) -> None:
+    _apply(
+        state,
+        "ROLE_NODE_OPERATOR_ENROLL",
+        {"account_id": "@tester"},
+        signer="@tester",
+    )
+    _apply(
+        state,
+        "ROLE_NODE_OPERATOR_ACTIVATE",
+        {"account_id": "@tester"},
+        system=True,
+    )
+
+
+def _validator_responsibility_ready(state: dict[str, Any]) -> None:
+    _register_node_device(state)
+    _node_operator_active(state)
+    _apply(
+        state,
+        "NODE_OPERATOR_VALIDATOR_OPT_IN",
+        {"account_id": "@tester", "node_pubkey": "node-pub-p2-a02"},
+        signer="@tester",
+    )
+
+
+def _verified_validator_responsibility(state: dict[str, Any]) -> None:
+    _validator_responsibility_ready(state)
+    receipt = build_validator_readiness_receipt(
+        account_id="@tester",
+        node_pubkey="node-pub-p2-a02",
+        bft_pubkey="bft-pub-p2-a02",
+        chain_id="weall-testnet-v1",
+        schema_version="1",
+        protocol_version="1.25.0",
+        manifest_hash="sha256:p2-a02-manifest",
+        tx_index_hash="sha256:p2-a02-tx-index",
+        runtime_profile_hash="sha256:p2-a02-runtime",
+        readiness_expires_height=100,
+    )
+    receipt["verification_status"] = "verified"
+    _apply(
+        state,
+        "VALIDATOR_READINESS_VERIFY",
+        receipt,
+        system=True,
+    )
+
+
+def _prepare_roles(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    payload["account_id"] = "@tester"
+
+    if tx_type == "ROLE_JUROR_ACTIVATE":
+        _apply(
+            state,
+            "ROLE_JUROR_ENROLL",
+            {"account_id": "@tester"},
+            signer="@tester",
+        )
+        return "SYSTEM", payload
+
+    if tx_type == "ROLE_JUROR_SUSPEND":
+        _apply(
+            state,
+            "ROLE_JUROR_ENROLL",
+            {"account_id": "@tester"},
+            signer="@tester",
+        )
+        return "SYSTEM", payload
+
+    if tx_type == "ROLE_JUROR_REINSTATE":
+        _apply(
+            state,
+            "ROLE_JUROR_ENROLL",
+            {"account_id": "@tester"},
+            signer="@tester",
+        )
+        _apply(
+            state,
+            "ROLE_JUROR_SUSPEND",
+            {"account_id": "@tester"},
+            system=True,
+        )
+        return "SYSTEM", payload
+
+    if tx_type == "REVIEWER_LANE_OPT_IN":
+        payload["lane"] = "dispute_review"
+        return "@tester", payload
+
+    if tx_type == "REVIEWER_LANE_OPT_OUT":
+        _apply(
+            state,
+            "REVIEWER_LANE_OPT_IN",
+            {"account_id": "@tester", "lane": "dispute_review"},
+            signer="@tester",
+        )
+        payload["lane"] = "dispute_review"
+        return "@tester", payload
+
+    if tx_type == "ROLE_EMISSARY_VOTE":
+        _apply(
+            state,
+            "ROLE_EMISSARY_NOMINATE",
+            {"account_id": "@tester"},
+            signer="@target",
+        )
+        return "@tester", payload
+
+    if tx_type == "ROLE_NODE_OPERATOR_ACTIVATE":
+        _apply(
+            state,
+            "ROLE_NODE_OPERATOR_ENROLL",
+            {"account_id": "@tester"},
+            signer="@tester",
+        )
+        return "SYSTEM", payload
+
+    if tx_type == "ROLE_NODE_OPERATOR_SUSPEND":
+        _node_operator_active(state)
+        return "SYSTEM", payload
+
+    if tx_type in {
+        "NODE_OPERATOR_STORAGE_OPT_IN",
+        "NODE_OPERATOR_VALIDATOR_OPT_IN",
+        "NODE_OPERATOR_HELPER_OPT_IN",
+        "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+    }:
+        _node_operator_active(state)
+        if tx_type == "NODE_OPERATOR_STORAGE_OPT_IN":
+            payload["declared_capacity_bytes"] = 1024
+        elif tx_type == "NODE_OPERATOR_VALIDATOR_OPT_IN":
+            payload["validator_opt_in"] = True
+        elif tx_type == "NODE_OPERATOR_HELPER_OPT_IN":
+            payload["helper_opt_in"] = True
+        else:
+            payload["helper_opt_in"] = True
+        return "@tester", payload
+
+    if tx_type == "VALIDATOR_READINESS_VERIFY":
+        _validator_responsibility_ready(state)
+        payload["verification_status"] = "failed"
+        return "SYSTEM", payload
+
+    if tx_type == "ROLE_VALIDATOR_ACTIVATE":
+        _verified_validator_responsibility(state)
+        payload["node_pubkey"] = "node-pub-p2-a02"
+        return "SYSTEM", payload
+
+    return "SYSTEM" if tx_type.startswith("ROLE_") else "@tester", payload
+
 def _prepared_envelope(
     state: dict[str, Any],
     row: dict[str, Any],
@@ -1646,6 +1802,8 @@ def _prepared_envelope(
         signer, payload = _prepare_economics(state, tx_type, payload)
     elif str(row.get("domain") or "") == "Rewards":
         signer, payload = _prepare_rewards(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Roles":
+        signer, payload = _prepare_roles(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
     if system and tx_type != "POH_BOOTSTRAP_TIER2_GRANT":
