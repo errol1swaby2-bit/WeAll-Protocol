@@ -447,8 +447,8 @@
     "../audit-metadata/p1-revalidation-after-p0-20261005/MATRIX.json": "ccaeac425e6f22952ace36d4a6c7dd7400ab9c2f4ec648d703ccaa10b35533fd",
     "../docs/audit/WeAll-A01-A20-P0-Closure-Status-20260930.md": "1a5653024b2b75172403987ef9ae647e4e85d7b3af8fd7c976a198292b1051b3",
     "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
-    "generated/public_beta_blocker_report_v1_5.json": "5ba71ccc744280086194a157218d8402f17f8568b20e7aab954481c3456f4578",
-    "generated/release_evidence_manifest_v1_5.json": "620d681f183d5666155631ca9c6d54d2984637ec4aa24aec6bd0803c3ea42bbd",
+    "generated/public_beta_blocker_report_v1_5.json": "5bc028607e05ce56d826ad5eca81a1b8560279e438b9db0a2efbaf1d90c40f4d",
+    "generated/release_evidence_manifest_v1_5.json": "2d3b6056db4290bc83a0c7382f688135f40666d93f1076ca8f6f652881aa4ace",
     "generated/tx_index.json": "ce9919610e7f69ca10955a6d8f23a01e280dbe1b35f9eacbb045cae1a4381404"
   },
   "schema": "weall.current_verified_claims.v1",
