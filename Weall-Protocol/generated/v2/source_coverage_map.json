@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2043,
+  "file_count": 2044,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "e2dcd146a8087488e03dfb9a2d3db8e4197e1cc5e5ab20a95634c1a4410275f4",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1671,6 +1671,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
       "source_id": "SRC-6D33FA3F6E2D84D1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "fe52f0c9f48f7de5fd7d4d6430901534c4c85898f00bb39efab6d118741def00",
+      "source_id": "SRC-179659FD968784AE"
     },
     {
       "affected_registers": [
