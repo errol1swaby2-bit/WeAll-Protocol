@@ -56,7 +56,7 @@
     },
     {
       "claim_id": "AUDIT-P0-001",
-      "claim_text": "The same-tree A01\u2013A20 P0/HIGH closure ledger has no open tracks.",
+      "claim_text": "The same-tree A01–A20 P0/HIGH closure ledger has no open tracks.",
       "claim_type": "audit_gate",
       "current_or_historical": "current",
       "evidence_found": true,
@@ -65,7 +65,7 @@
       ],
       "evidence_required": true,
       "exact_commit_bound": false,
-      "notes": "P0 is the audit program's mapping of every A01\u2013A20 HIGH finding. The tracked closure ledger is now a required claim-generation input; an unresolved P0 track therefore cannot coexist with an enabled release boundary.",
+      "notes": "P0 is the audit program's mapping of every A01–A20 HIGH finding. The tracked closure ledger is now a required claim-generation input; an unresolved P0 track therefore cannot coexist with an enabled release boundary.",
       "replacement_text": null,
       "scope": "repository-current",
       "status": "PROVEN_GENERATED_CURRENT",
@@ -92,7 +92,7 @@
     },
     {
       "claim_id": "AUDIT-P1-001",
-      "claim_text": "Open same-tree A01\u2013A20 P1/MEDIUM findings require qualification and block stronger release claims.",
+      "claim_text": "Open same-tree A01–A20 P1/MEDIUM findings require qualification and block stronger release claims.",
       "claim_type": "audit_gate",
       "current_or_historical": "current",
       "evidence_found": true,
@@ -454,5 +454,6 @@
   },
   "schema": "weall.current_verified_claims.v1",
   "tracked_manifest_is_commit_agnostic": true,
-  "version": "1.2.0"
+  "version": "1.2.0",
+  "_audit_negative_control": "INTENTIONAL_STALE_GENERATED_ARTIFACT_DO_NOT_MERGE"
 }
