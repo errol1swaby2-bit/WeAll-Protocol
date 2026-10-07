@@ -11,9 +11,9 @@ from weall.runtime.domain_apply import (
     apply_tx_atomic_meta_bounded_rollback,
     apply_tx_atomic_meta_deepcopy,
 )
+from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_contracts import load_default_tx_index
 from weall.runtime.tx_schema import model_for_tx_type
-from weall.runtime.tx_admission_types import TxEnvelope
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "generated" / "tx_semantic_assurance_v1_5.json"

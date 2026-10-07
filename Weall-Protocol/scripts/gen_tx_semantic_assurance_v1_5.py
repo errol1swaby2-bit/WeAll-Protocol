@@ -170,8 +170,10 @@ def _sample(schema: Json, defs: Json, name: str = "value") -> Any:
         non_null = [item for item in typ if item != "null"]
         typ = non_null[0] if non_null else "null"
 
-    if typ == "string" or typ is None and (
-        "minLength" in schema or "maxLength" in schema or "pattern" in schema
+    if (
+        typ == "string"
+        or typ is None
+        and ("minLength" in schema or "maxLength" in schema or "pattern" in schema)
     ):
         return _string_sample(name, schema)
 
@@ -253,9 +255,7 @@ def _baseline_payload(model: Any) -> Json:
             "kind",
         )
         optional_fields = [
-            field
-            for field in properties
-            if isinstance(field, str) and field not in set(required)
+            field for field in properties if isinstance(field, str) and field not in set(required)
         ]
         optional_fields.sort(
             key=lambda field: (
