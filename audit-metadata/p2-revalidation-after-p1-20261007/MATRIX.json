@@ -1,0 +1,191 @@
+{
+  "schema": "weall.a01_a20.p2_closure_matrix.v1",
+  "source_audit": {
+    "date": "2026-09-30",
+    "base_commit": "cd7f10a8b62e9f5a3711f4263d04e3fd62f0d351",
+    "base_tree": "36a5868c72022f11a61bca8f48816852acccb1c9",
+    "inventory_total": 77,
+    "high_p0_count": 27,
+    "medium_p1_count": 34,
+    "low_p2_count": 16
+  },
+  "closure_baseline": {
+    "branch": "main",
+    "commit": "c62624936300eb1c22250fb5b1390b63bf8c5db5",
+    "tree": "94ca0785e6b4b4636588cee084492dc5e1961b56",
+    "meaning": "merged PR #42 A01-A20 MEDIUM/P1 closure"
+  },
+  "p2_definition": "All LOW findings in the 2026-09-30 A01-A20 master audit inventory.",
+  "allowed_statuses": [
+    "pending_revalidation",
+    "already_closed_and_proven",
+    "patched_and_proven",
+    "scope_closed_and_proven",
+    "design_blocker",
+    "open"
+  ],
+  "tracks": {
+    "P2-01": "Release fingerprint scope, reviewer reproducibility, provenance labeling and architecture/front-door documentation",
+    "P2-02": "All-canon executable lifecycle assurance",
+    "P2-03": "Cross-machine and broad determinism evidence",
+    "P2-04": "Production BFT rehearsal validity",
+    "P2-05": "Delayed economics activation and issuance/halving semantics",
+    "P2-06": "Consensus forensics privacy and operator authorization",
+    "P2-07": "Explicit signature-profile coverage and helper-certificate domain separation",
+    "P2-08": "Shutdown, durable queue and transaction-status concurrency linearization",
+    "P2-09": "Production CSP deployment consistency"
+  },
+  "findings": [
+    {
+      "id": "A01-F004",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "pending_revalidation",
+      "summary": "V2 source_tree_digest is a partial protocol-source digest, not a full release-tree behavior digest",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A01-F005",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "pending_revalidation",
+      "summary": "Exact reviewer procedure is Git-history-dependent and not reproducible from a plain HEAD source archive",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A02-F003",
+      "severity": "LOW",
+      "track": "P2-02",
+      "status": "pending_revalidation",
+      "summary": "All-canon coverage gates do not prove an executable lifecycle for every canonical type",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A04-F002",
+      "severity": "LOW",
+      "track": "P2-03",
+      "status": "pending_revalidation",
+      "summary": "Determinism validation remains incomplete across machines and protocol breadth",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A05-F004",
+      "severity": "LOW",
+      "track": "P2-04",
+      "status": "pending_revalidation",
+      "summary": "Existing production BFT rehearsal does not exercise production BFT consensus validity",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A11-F003",
+      "severity": "LOW",
+      "track": "P2-05",
+      "status": "pending_revalidation",
+      "summary": "Halving clock advances while issuance is locked, creating an unresolved delayed-activation monetary-policy interpretation",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A12-F004",
+      "severity": "LOW",
+      "track": "P2-06",
+      "status": "pending_revalidation",
+      "summary": "Consensus forensics exposes operator/BFT internals anonymously in production",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A13-F003",
+      "severity": "LOW",
+      "track": "P2-07",
+      "status": "pending_revalidation",
+      "summary": "Explicit signature profile required is not consistently enforced outside transaction signing",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A13-F004",
+      "severity": "LOW",
+      "track": "P2-07",
+      "status": "pending_revalidation",
+      "summary": "Mainline helper-certificate signatures omit the explicit certificate domain used by the newer hardening path",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A14-F002",
+      "severity": "LOW",
+      "track": "P2-08",
+      "status": "pending_revalidation",
+      "summary": "Timed block-loop shutdown can hand ownership to a new generation while the old worker is still alive",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A14-F003",
+      "severity": "LOW",
+      "track": "P2-08",
+      "status": "pending_revalidation",
+      "summary": "The WebRTC durable signal queue can lose updates because its lock is not a single inter-process RMW lock",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A14-F004",
+      "severity": "LOW",
+      "track": "P2-08",
+      "status": "pending_revalidation",
+      "summary": "Transaction status can transiently report unknown while a transaction atomically moves from mempool to confirmed index",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A17-F004",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "pending_revalidation",
+      "summary": "Primary fresh checkout verification instructions assume an already-created virtual environment",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A18-F005",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "pending_revalidation",
+      "summary": "Frontend repositorySnapshot is a historical V2 specification snapshot, not the current implementation commit",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A19-F005",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "pending_revalidation",
+      "summary": "Current whole-system architecture and source-authority map is not obvious from the repository front door",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    },
+    {
+      "id": "A20-F003",
+      "severity": "LOW",
+      "track": "P2-09",
+      "status": "pending_revalidation",
+      "summary": "Documented production static deployment does not mechanically deliver the repository CSP posture",
+      "evidence": "Pending same-tree revalidation against merged P1 baseline c62624936300eb1c22250fb5b1390b63bf8c5db5 / tree 94ca0785e6b4b4636588cee084492dc5e1961b56. Do not treat as closed until the original finding-specific regression evidence or an explicit reviewed production-scope closure is proven."
+    }
+  ],
+  "summary": {
+    "proven_dispositions": 0,
+    "pending_revalidation": 16,
+    "open_or_blocked_findings": [
+      "A01-F004",
+      "A01-F005",
+      "A02-F003",
+      "A04-F002",
+      "A05-F004",
+      "A11-F003",
+      "A12-F004",
+      "A13-F003",
+      "A13-F004",
+      "A14-F002",
+      "A14-F003",
+      "A14-F004",
+      "A17-F004",
+      "A18-F005",
+      "A19-F005",
+      "A20-F003"
+    ],
+    "adjudicated_findings": 0
+  }
+}
