@@ -11,7 +11,10 @@ from weall.runtime.account_registration_work import (
     leading_zero_bits,
 )
 from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
+from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.runtime.tx_contracts import load_default_tx_index
+from weall.testing.sigtools import ensure_account_has_test_key, sign_tx_dict
 from weall.runtime.validator_readiness_runner import build_validator_readiness_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2153,4 +2156,37 @@ def test_a02_f003_all_canon_baselines_have_successful_apply_fixture() -> None:
         raise AssertionError(
             f"A02-F003 successful-baseline gap: "
             f"success_count={len(successes)} failure_count={len(failures)}\n{detail}"
+        )
+
+
+
+def test_a02_f003_all_canon_prepared_vectors_pass_admission() -> None:
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    rows = manifest["rows"]
+    assert len(rows) == 236
+
+    canon = load_default_tx_index()
+    failures: list[tuple[str, str, str, str]] = []
+
+    for row in rows:
+        tx_type = str(row["tx_type"])
+        state = _base_state()
+        env = _prepared_envelope(state, row)
+        context = str(row.get("context") or "mempool").strip().lower() or "mempool"
+
+        if context == "block" and not bool(env.system):
+            ensure_account_has_test_key(state.setdefault("accounts", {}), account_id=env.signer)
+            env = TxEnvelope.from_json(sign_tx_dict(env.to_json(), label=env.signer))
+
+        verdict = admit_tx(env, state, canon=canon, context=context)
+        if not verdict.ok:
+            failures.append((tx_type, context, verdict.code, verdict.reason))
+
+    if failures:
+        detail = "\n".join(
+            f"{tx_type}\t{context}\t{code}\t{reason}"
+            for tx_type, context, code, reason in failures
+        )
+        raise AssertionError(
+            f"A02-F003 admission gap: failure_count={len(failures)}\n{detail}"
         )
