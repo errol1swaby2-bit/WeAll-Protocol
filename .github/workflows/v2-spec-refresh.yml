@@ -1,6 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 A02 diagnostic artifact refresh
-# P2 dependent evidence refresh retry
 
 on:
   workflow_dispatch:
@@ -37,29 +35,14 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Format P2 closure Python files
-        working-directory: Weall-Protocol
-        run: |
-          ruff format \
-            src/weall/runtime/helper_certificates.py \
-            src/weall/runtime/helper_receipts.py \
-            tests/test_p2_a13_signature_authority.py \
-            tests/test_p2_a20_deployment_csp.py
-
       - name: Refresh reviewer-facing v1.5 derivatives
         working-directory: Weall-Protocol
         run: |
           python scripts/gen_api_contract_map.py
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
-          python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py || test $? -eq 1
           python scripts/gen_public_beta_blocker_report_v1_5.py
-          python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py || test $? -eq 1
           python scripts/gen_release_evidence_manifest_v1_5.py
-          python scripts/run_controlled_testnet_go_gate_v1_5.py || test $? -eq 1
-          python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py || test $? -eq 1
-          python scripts/gen_release_evidence_manifest_v1_5.py
-          python scripts/run_controlled_testnet_go_gate_v1_5.py || test $? -eq 1
 
       - name: Verify v1.5 public-readiness derivatives
         working-directory: Weall-Protocol
@@ -86,24 +69,12 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          if git diff --quiet -- \
-            Weall-Protocol/generated \
-            web/src/generated/protocolStatus.ts \
-            Weall-Protocol/src/weall/runtime/helper_certificates.py \
-            Weall-Protocol/src/weall/runtime/helper_receipts.py \
-            Weall-Protocol/tests/test_p2_a13_signature_authority.py \
-            Weall-Protocol/tests/test_p2_a20_deployment_csp.py; then
+          if git diff --quiet -- Weall-Protocol/generated web/src/generated/protocolStatus.ts; then
             echo "Reviewer artifacts already current."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -u \
-            Weall-Protocol/generated \
-            web/src/generated/protocolStatus.ts \
-            Weall-Protocol/src/weall/runtime/helper_certificates.py \
-            Weall-Protocol/src/weall/runtime/helper_receipts.py \
-            Weall-Protocol/tests/test_p2_a13_signature_authority.py \
-            Weall-Protocol/tests/test_p2_a20_deployment_csp.py
+          git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts
           git commit -m 'audit: refresh reviewer-facing generated artifacts'
           git push origin HEAD:"${GITHUB_REF_NAME}"
