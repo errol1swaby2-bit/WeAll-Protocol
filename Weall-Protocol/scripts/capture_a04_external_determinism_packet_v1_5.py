@@ -309,7 +309,7 @@ def build_local_packet(
         "db_replay_digest": _stable_db_replay_digest(db_replay),
         "fresh_node_replay_digest": _stable_fresh_replay_digest(fresh),
         "state_root": str(
-            replay.get("source_manifest", {}).get("state_root")
+            replay.get("source_manifest", {}).get("computed_state_root")
             if isinstance(replay.get("source_manifest"), dict)
             else ""
         ),
