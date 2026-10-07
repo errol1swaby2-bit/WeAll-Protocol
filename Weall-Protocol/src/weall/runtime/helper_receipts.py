@@ -180,9 +180,7 @@ def verify_helper_receipt(
     payload = _signing_material(receipt.signing_payload())
     if helper_pubkey is None:
         return False
-    profile = normalize_signature_profile_id(
-        sig_profile or getattr(receipt, "sig_profile", "")
-    )
+    profile = normalize_signature_profile_id(sig_profile or getattr(receipt, "sig_profile", ""))
     if not profile:
         return False
     if profile != PQ_MLDSA_V1:

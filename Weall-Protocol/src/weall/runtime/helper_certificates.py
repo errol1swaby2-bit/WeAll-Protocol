@@ -435,9 +435,7 @@ def verify_helper_certificate_signature(
     normalized = ensure_helper_execution_certificate(cert)
     if str(getattr(normalized, "domain", "") or "").strip() != CERTIFICATE_DOMAIN:
         return False
-    profile = normalize_signature_profile_id(
-        sig_profile or getattr(normalized, "sig_profile", "")
-    )
+    profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", ""))
     if not profile:
         return False
 

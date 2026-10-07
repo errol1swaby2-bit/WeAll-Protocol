@@ -136,9 +136,9 @@ def test_helper_receipt_profile_stripping_and_unknown_profile_fail() -> None:
 
     assert _receipt_verify(receipt, keypair["pubkey"]) is True
     assert _receipt_verify(replace(receipt, sig_profile=""), keypair["pubkey"]) is False
-    assert _receipt_verify(
-        replace(receipt, sig_profile="unknown-profile"), keypair["pubkey"]
-    ) is False
+    assert (
+        _receipt_verify(replace(receipt, sig_profile="unknown-profile"), keypair["pubkey"]) is False
+    )
 
 
 def _unsigned_certificate() -> HelperExecutionCertificate:

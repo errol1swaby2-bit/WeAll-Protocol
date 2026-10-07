@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_documented_production_reverse_proxies_emit_csp() -> None:
     deployment = (ROOT / "web" / "DEPLOYMENT.md").read_text(encoding="utf-8")
     assert "add_header Content-Security-Policy" in deployment
-    assert "Content-Security-Policy \"default-src" in deployment
+    assert 'Content-Security-Policy "default-src' in deployment
     assert "script-src 'self'" in deployment
     assert "object-src 'none'" in deployment
     assert "script-src 'self' 'unsafe-inline'" not in deployment

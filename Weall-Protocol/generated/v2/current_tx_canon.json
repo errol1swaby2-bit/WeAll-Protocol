@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "e79243d8cefdfe6e55f1a2b4d6ff6fb4559e2048619aefed7dc12c48c60904c4"
+    "source_tree_digest": "834cbe82ac483363e4a17295dd26aef34f86239e97828dadf2ec56dbeb154bc9"
   },
   "rows": [
     {
@@ -234,6 +234,8 @@
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
         "tests/test_p1_a17_clean_lifecycle.py",
+        "tests/test_p2_a13_signature_authority.py",
+        "tests/test_p2_a14_concurrency_closure.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
         "tests/test_pb001bab_http_relay_bft_admission_ack_boundary.py",
         "tests/test_pb001bah_checkpoint_signing_authority_atomicity.py",
@@ -656,6 +658,7 @@
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_one_node_per_user.py",
         "tests/test_one_node_per_user_revocation.py",
+        "tests/test_p2_a13_signature_authority.py",
         "tests/test_priority0_consensus_and_payload_fixes.py",
         "tests/test_production_consensus_profile.py",
         "tests/test_two_process_external_observer_onboarding.py"
