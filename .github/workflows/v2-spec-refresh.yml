@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 A01 CLI test artifact refresh
 
 on:
   workflow_dispatch:
