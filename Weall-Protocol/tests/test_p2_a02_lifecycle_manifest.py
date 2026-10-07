@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from weall.runtime import tx_contracts
 from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
 from weall.runtime.errors import ApplyError
