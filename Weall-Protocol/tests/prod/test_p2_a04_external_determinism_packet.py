@@ -48,6 +48,18 @@ def _packet(machine_id: str) -> dict:
         "tx_contract_map_sha256": "5" * 64,
         "tx_lifecycle_assurance_sha256": "6" * 64,
         "tx_semantic_assurance_sha256": "7" * 64,
+        "broad_probe_ok": True,
+        "broad_probe_lifecycle_manifest_sha256": "6" * 64,
+        "broad_probe_lifecycle_projection_sha256": "e" * 64,
+        "broad_probe_reversed_projection_sha256": "e" * 64,
+        "broad_probe_insertion_order_invariant": True,
+        "broad_probe_hash_seed_render_match": True,
+        "broad_probe_hash_seed_render_sha256": {
+            "0": "6" * 64,
+            "1": "6" * 64,
+            "7": "6" * 64,
+            "42": "6" * 64,
+        },
         "replay_consistency_ok": True,
         "fresh_node_replay_sync_ok": True,
         "db_backed_replay_sync_ok": True,
@@ -93,6 +105,9 @@ def test_a04_aggregate_builder_accepts_two_matching_strict_packets(tmp_path: Pat
     assert transcript["state_roots_match"] is True
     assert transcript["per_block_replay_match"] is True
     assert transcript["hashseed_matrix_match"] is True
+    assert transcript["broad_probe_match"] is True
+    assert transcript["insertion_order_projection_match"] is True
+    assert transcript["broad_probe_lifecycle_manifest_sha256"] == "6" * 64
     assert transcript["broad_transition_corpus"] == "all_236_canonical_lifecycle_vectors"
     assert transcript["scheduler_order_permutation_vectors"] is True
     assert transcript["helper_serial_equivalence_vectors"] is True
@@ -171,6 +186,10 @@ def test_a04_capture_runner_covers_original_audit_evidence_classes() -> None:
         "git_status_short",
         "git_tree",
         "hashseed_results",
+        "a04_cross_machine_determinism_probe_v1_5.py",
+        "broad_probe_ok",
+        "broad_probe_insertion_order_invariant",
+        "broad_probe_hash_seed_render_match",
         "broad_lifecycle_corpus_ok",
         "scheduler_order_permutation_ok",
         "helper_serial_equivalence_ok",
