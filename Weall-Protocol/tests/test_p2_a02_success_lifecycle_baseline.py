@@ -1604,7 +1604,7 @@ def _prepare_economics(
         payload.update({"scope": "global", "window_ms": 60_000, "limit": 100})
         return "SYSTEM", payload
 
-    return "SYSTEM", payload
+    return "@tester", payload
 
 
 def _prepare_rewards(
@@ -1769,7 +1769,206 @@ def _prepare_roles(
         payload["node_pubkey"] = "node-pub-p2-a02"
         return "SYSTEM", payload
 
-    return "SYSTEM" if tx_type.startswith("ROLE_") else "@tester", payload
+    return "@tester", payload
+
+
+def _storage_operator_ready(state: dict[str, Any]) -> None:
+    state["accounts"]["@tester"]["devices"] = {
+        "by_id": {
+            "node:p2-storage": {
+                "device_type": "node",
+                "pubkey": "node-pub-p2-storage",
+                "revoked": False,
+            }
+        }
+    }
+    state["roles"]["node_operators"] = {
+        "active_set": ["@tester"],
+        "by_id": {
+            "@tester": {
+                "account_id": "@tester",
+                "enrolled": True,
+                "active": True,
+                "status": "active",
+                "responsibilities": {
+                    "storage": {
+                        "opted_in": True,
+                        "active": True,
+                        "declared_capacity_bytes": 1024,
+                        "proven_capacity_bytes": 1024,
+                        "allocated_capacity_bytes": 0,
+                        "reserved_capacity_bytes": 0,
+                        "probed_capacity_bytes": 1024,
+                        "used_capacity_bytes": 0,
+                        "proof_status": "verified",
+                        "proof_expires_height": 100,
+                        "node_pubkey": "node-pub-p2-storage",
+                    }
+                },
+            }
+        },
+    }
+
+
+def _storage_offer(state: dict[str, Any]) -> None:
+    _storage_operator_ready(state)
+    _apply(
+        state,
+        "STORAGE_OFFER_CREATE",
+        {
+            "offer_id": "offer-a16",
+            "cid": _CONTENT_CID,
+            "capacity_bytes": 1,
+            "price": 1,
+        },
+        signer="@tester",
+    )
+
+
+def _storage_lease(state: dict[str, Any]) -> None:
+    _storage_offer(state)
+    _apply(
+        state,
+        "STORAGE_LEASE_CREATE",
+        {
+            "lease_id": "lease-a16",
+            "offer_id": "offer-a16",
+            "duration_blocks": 20,
+            "size_bytes": 1,
+        },
+        signer="@tester",
+    )
+
+
+def _storage_lease_challenge(state: dict[str, Any]) -> None:
+    _storage_lease(state)
+    _apply(
+        state,
+        "STORAGE_CHALLENGE_ISSUE",
+        {
+            "challenge_id": "challenge-a16",
+            "lease_id": "lease-a16",
+            "operator_id": "@tester",
+            "account_id": "@tester",
+        },
+        system=True,
+    )
+
+
+def _storage_capacity_challenge(state: dict[str, Any]) -> None:
+    _storage_operator_ready(state)
+    _apply(
+        state,
+        "STORAGE_CHALLENGE_ISSUE",
+        {
+            "challenge_id": "challenge-a16",
+            "proof_scope": "capacity_probe",
+            "account_id": "@tester",
+            "operator_id": "@tester",
+            "sample_count": 1,
+            "sample_size_bytes": 1,
+            "reserved_capacity_bytes": 1,
+            "expires_height": 20,
+            "challenge_seed": "p2-a02-storage",
+        },
+        system=True,
+    )
+
+
+def _prepare_storage(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "STORAGE_OFFER_CREATE":
+        _storage_operator_ready(state)
+        payload.update(
+            {
+                "offer_id": "offer-a16",
+                "cid": _CONTENT_CID,
+                "capacity_bytes": 1,
+                "price": 1,
+            }
+        )
+        return "@tester", payload
+
+    if tx_type == "STORAGE_OFFER_WITHDRAW":
+        _storage_offer(state)
+        payload["offer_id"] = "offer-a16"
+        return "@tester", payload
+
+    if tx_type == "STORAGE_LEASE_CREATE":
+        _storage_offer(state)
+        payload.update(
+            {
+                "lease_id": "lease-a16",
+                "offer_id": "offer-a16",
+                "duration_blocks": 20,
+                "size_bytes": 1,
+            }
+        )
+        return "@tester", payload
+
+    if tx_type in {"STORAGE_LEASE_RENEW", "STORAGE_LEASE_REVOKE", "STORAGE_PROOF_SUBMIT"}:
+        _storage_lease(state)
+        payload["lease_id"] = "lease-a16"
+        if tx_type == "STORAGE_LEASE_RENEW":
+            payload["add_blocks"] = 5
+        elif tx_type == "STORAGE_PROOF_SUBMIT":
+            payload["proof_cid"] = _CONTENT_CID
+        return "@tester", payload
+
+    if tx_type == "STORAGE_CHALLENGE_ISSUE":
+        _storage_lease(state)
+        payload.clear()
+        payload.update(
+            {
+                "challenge_id": "challenge-a16",
+                "lease_id": "lease-a16",
+                "operator_id": "@tester",
+                "account_id": "@tester",
+            }
+        )
+        return "SYSTEM", payload
+
+    if tx_type == "STORAGE_CHALLENGE_RESPOND":
+        _storage_lease_challenge(state)
+        payload.update({"challenge_id": "challenge-a16", "response_cid": _CONTENT_CID})
+        return "@tester", payload
+
+    if tx_type == "STORAGE_CAPACITY_PROOF_VERIFY":
+        _storage_capacity_challenge(state)
+        payload.update(
+            {
+                "challenge_id": "challenge-a16",
+                "verification_status": "failed",
+            }
+        )
+        return "SYSTEM", payload
+
+    if tx_type == "IPFS_PIN_CONFIRM":
+        _storage_operator_ready(state)
+        _apply(
+            state,
+            "IPFS_PIN_REQUEST",
+            {
+                "pin_id": "pin-a16",
+                "cid": _CONTENT_CID,
+                "size_bytes": 1,
+            },
+            signer="@tester",
+        )
+        payload.update(
+            {
+                "pin_id": "pin-a16",
+                "cid": _CONTENT_CID,
+                "operator_id": "@tester",
+                "ok": True,
+            }
+        )
+        return "SYSTEM", payload
+
+    return "@tester", payload
 
 def _prepared_envelope(
     state: dict[str, Any],
@@ -1804,6 +2003,8 @@ def _prepared_envelope(
         signer, payload = _prepare_rewards(state, tx_type, payload)
     elif str(row.get("domain") or "") == "Roles":
         signer, payload = _prepare_roles(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Storage":
+        signer, payload = _prepare_storage(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
     if system and tx_type != "POH_BOOTSTRAP_TIER2_GRANT":
