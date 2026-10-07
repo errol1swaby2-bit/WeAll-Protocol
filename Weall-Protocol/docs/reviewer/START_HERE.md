@@ -32,6 +32,22 @@ You may run archive-compatible source/generated checks such as the V2 clean-chec
 
 A passing archive check is therefore not equivalent to the full-history Reviewer Readiness gate.
 
+### Reproducibility levels and non-claims
+
+The repository intentionally separates three reproducibility levels:
+
+1. **Dependency-reproducible application install.** Python runtime/dev application dependencies are installed from hash-locked requirements files, and the frontend uses `npm ci` against its lockfile.
+2. **Source-archive derivative reproducibility.** `check_v2_spec_clean_checkout.py` proves that committed V2 derivatives reproduce from a clean `git archive` **under the already-provisioned interpreter/toolchain used to run the checker**.
+3. **Full reviewer provenance reproduction.** Reviewer Readiness additionally requires a full-history clone because historical evidence objects are verified by exact Git commit identity.
+
+The repository does **not** claim byte-for-byte clean-machine, container, or complete toolchain hermeticity. Current build/rehearsal inputs still include symbolic external selectors such as the Python base-image tag, Kubo/Alpine image tags, Python/Node version families, and GitHub Action major-version refs. Those inputs are outside the source-archive derivative proof.
+
+Accordingly:
+
+- “clean checkout” means **source archive consistency under an already-provisioned toolchain**;
+- it does not mean that the Git tree alone fixes every external tool or container byte;
+- a future byte-for-byte reproducible-build claim requires separately pinning the relevant external artifacts and proving independent clean-environment equivalence.
+
 ## 3. Fresh-clone smoke
 
 **Use when:** you want to test whether a clean clone can install and execute the advertised smoke path.
