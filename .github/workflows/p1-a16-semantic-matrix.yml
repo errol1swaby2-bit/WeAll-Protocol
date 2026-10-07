@@ -61,3 +61,5 @@ jobs:
           git push origin HEAD:p1-revalidation-after-p0-20261005
 
 # retry after semantic baseline enrichment
+
+# retry after two A16 semantic survivors were repaired
