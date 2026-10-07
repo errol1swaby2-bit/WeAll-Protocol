@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "834cbe82ac483363e4a17295dd26aef34f86239e97828dadf2ec56dbeb154bc9"
+    "source_tree_digest": "da9030e47af23891ae6631f3a0f6b70960f8a591b4bbab97d09334a083af7463"
   },
   "required_fields": [
     "stable_id",
@@ -7423,6 +7423,7 @@
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_latest_medium_closure.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a01_release_tree_identity.py",
         "tests/test_p2_a12_consensus_forensics_auth.py",
         "tests/test_p2_a13_signature_authority.py",
         "tests/test_p2_a14_concurrency_closure.py",
