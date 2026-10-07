@@ -631,7 +631,6 @@ def test_four_validator_prod_three_chain_restart_delayed_qc_and_wrong_parent_rej
     assert after == before
 
 
-
 def test_prod_bft_proposal_ingress_routes_real_signed_proposal_to_follower(
     tmp_path: Path,
 ) -> None:
