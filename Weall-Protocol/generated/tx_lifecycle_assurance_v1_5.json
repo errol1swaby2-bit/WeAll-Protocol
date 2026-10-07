@@ -28836,7 +28836,7 @@
     "success_receipt_shape": "src/weall/runtime/block_builder.py"
   },
   "source_inputs": {
-    "lifecycle_fixture_sha256": "b70d2f34d7be3ff9313e14d97f94fa526973999efddd0ebf370df57291d88729",
+    "lifecycle_fixture_sha256": "c526d8cd1ce23034c399ebc369e6cdd1d578507fdc9a900d0f9b98715bb10e61",
     "semantic_manifest_sha256": "75a748a095d7a8c8b0c14a0799e0e108aba9d9806cc6d32514f3691c70a32b30"
   },
   "summary": {

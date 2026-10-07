@@ -3749,7 +3749,7 @@
       ],
       "path": "generated/tx_lifecycle_assurance_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "58c09d02d6c25f53dc2fb4352b7a3af00f5832bd4e63f3e472e7b92b7da5f4c8",
+      "sha256": "e3185fd7e4c3f36c1cba560abe7933e33ced547def545d917040b06eceef0104",
       "source_id": "SRC-6FB7A2F5900CA009"
     },
     {
@@ -22879,7 +22879,7 @@
       ],
       "path": "tests/test_p2_a02_lifecycle_manifest.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "110e319e5026bd82e493c131a9cf71715cc9f6249b7b8cd63943bba08922daac",
+      "sha256": "f2bd4dd0ada33d90009850be74c37bc1f2cbdc2803b2662790d11c3024a492b7",
       "source_id": "SRC-D41152D5BF142043"
     },
     {
@@ -23061,7 +23061,7 @@
       ],
       "path": "tests/test_p2_a02_success_lifecycle_baseline.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b70d2f34d7be3ff9313e14d97f94fa526973999efddd0ebf370df57291d88729",
+      "sha256": "c526d8cd1ce23034c399ebc369e6cdd1d578507fdc9a900d0f9b98715bb10e61",
       "source_id": "SRC-26CE7F495F144D60"
     },
     {
