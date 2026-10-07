@@ -1,4 +1,5 @@
 name: Reviewer Artifact Refresh
+# P2 A02 admission refresh
 
 on:
   workflow_dispatch:
@@ -35,6 +36,10 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      - name: Format A02 lifecycle diagnostic
+        working-directory: Weall-Protocol
+        run: ruff format tests/test_p2_a02_success_lifecycle_baseline.py
+
       - name: Refresh reviewer-facing v1.5 derivatives
         working-directory: Weall-Protocol
         run: |
@@ -69,12 +74,18 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          if git diff --quiet -- Weall-Protocol/generated web/src/generated/protocolStatus.ts; then
+          if git diff --quiet -- \
+            Weall-Protocol/generated \
+            web/src/generated/protocolStatus.ts \
+            Weall-Protocol/tests/test_p2_a02_success_lifecycle_baseline.py; then
             echo "Reviewer artifacts already current."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts
+          git add -u \
+            Weall-Protocol/generated \
+            web/src/generated/protocolStatus.ts \
+            Weall-Protocol/tests/test_p2_a02_success_lifecycle_baseline.py
           git commit -m 'audit: refresh reviewer-facing generated artifacts'
           git push origin HEAD:"${GITHUB_REF_NAME}"
