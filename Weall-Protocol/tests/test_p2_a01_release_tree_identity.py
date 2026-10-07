@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
-
-from scripts.gen_release_evidence_manifest_v1_5 import build_runtime
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,7 +19,15 @@ def _git(*args: str, cwd: Path = ROOT) -> str:
 
 
 def test_runtime_release_manifest_binds_exact_git_tree() -> None:
-    payload = build_runtime()
+    proc = subprocess.run(
+        ["python", "scripts/gen_release_evidence_manifest_v1_5.py", "--runtime-json"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    payload = json.loads(proc.stdout)
     assert payload["git_head"] == _git("rev-parse", "HEAD")
     assert payload["git_tree"] == _git("rev-parse", "HEAD^{tree}")
     assert len(payload["git_tree"]) == 40
