@@ -47,6 +47,10 @@ def _require_packet(packet: Json, *, path: Path) -> None:
         "tx_contract_map_sha256",
         "tx_lifecycle_assurance_sha256",
         "tx_semantic_assurance_sha256",
+        "broad_probe_lifecycle_manifest_sha256",
+        "broad_probe_lifecycle_projection_sha256",
+        "broad_probe_reversed_projection_sha256",
+        "broad_probe_hash_seed_render_sha256",
         "replay_manifest_digest",
         "db_replay_digest",
         "fresh_node_replay_digest",
@@ -65,6 +69,9 @@ def _require_packet(packet: Json, *, path: Path) -> None:
         "fresh_node_replay_sync_ok",
         "db_backed_replay_sync_ok",
         "broad_lifecycle_corpus_ok",
+        "broad_probe_ok",
+        "broad_probe_insertion_order_invariant",
+        "broad_probe_hash_seed_render_match",
         "scheduler_order_permutation_ok",
         "helper_serial_equivalence_ok",
         "failed_receipt_replay_ok",
@@ -119,6 +126,23 @@ def build_transcript(
     )
     tx_semantic_assurance_sha256 = str(_one_value(packets, "tx_semantic_assurance_sha256"))
     tx_contract_map_sha256 = str(_one_value(packets, "tx_contract_map_sha256"))
+    broad_probe_lifecycle_manifest_sha256 = str(
+        _one_value(packets, "broad_probe_lifecycle_manifest_sha256")
+    )
+    broad_probe_lifecycle_projection_sha256 = str(
+        _one_value(packets, "broad_probe_lifecycle_projection_sha256")
+    )
+    broad_probe_reversed_projection_sha256 = str(
+        _one_value(packets, "broad_probe_reversed_projection_sha256")
+    )
+    broad_probe_hash_seed_render_sha256 = _one_value(
+        packets, "broad_probe_hash_seed_render_sha256"
+    )
+
+    if broad_probe_lifecycle_manifest_sha256 != tx_lifecycle_assurance_sha256:
+        raise ValueError("broad probe lifecycle manifest digest does not match tracked lifecycle manifest")
+    if broad_probe_lifecycle_projection_sha256 != broad_probe_reversed_projection_sha256:
+        raise ValueError("broad probe insertion-order projection mismatch")
 
     # Same live-generated lifecycle digest across every seed on every machine.
     live_lifecycle_digests = {
@@ -194,6 +218,12 @@ def build_transcript(
         "tx_lifecycle_assurance_sha256": tx_lifecycle_assurance_sha256,
         "tx_semantic_assurance_sha256": tx_semantic_assurance_sha256,
         "tx_contract_map_sha256": tx_contract_map_sha256,
+        "broad_probe_lifecycle_manifest_sha256": broad_probe_lifecycle_manifest_sha256,
+        "broad_probe_lifecycle_projection_sha256": broad_probe_lifecycle_projection_sha256,
+        "broad_probe_reversed_projection_sha256": broad_probe_reversed_projection_sha256,
+        "broad_probe_hash_seed_render_sha256": broad_probe_hash_seed_render_sha256,
+        "broad_probe_match": True,
+        "insertion_order_projection_match": True,
         "live_lifecycle_digest": next(iter(live_lifecycle_digests)),
         "tx_index_hash_by_machine": tx_index_hash_by_machine,
         "state_root_by_machine": state_root_by_machine,
