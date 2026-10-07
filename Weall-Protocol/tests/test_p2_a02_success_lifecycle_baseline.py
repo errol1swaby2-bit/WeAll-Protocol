@@ -5,6 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from weall.runtime.account_registration_work import (
+    ACCOUNT_REGISTRATION_WORK_VERSION,
+    account_registration_work_digest,
+    leading_zero_bits,
+)
 from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
 from weall.runtime.tx_admission_types import TxEnvelope
 
@@ -129,6 +134,45 @@ def _prepare_governance(
     payload: dict[str, Any],
 ) -> tuple[str, dict[str, Any]]:
     proposal_id = "proposal-a16"
+
+    if tx_type in {"PROTOCOL_UPGRADE_DECLARE", "PROTOCOL_UPGRADE_ACTIVATE"}:
+        declare = {
+            "upgrade_id": "upgrade-a16",
+            "target_version": "2.0.0",
+        }
+        if tx_type == "PROTOCOL_UPGRADE_DECLARE":
+            payload.update(declare)
+            return "SYSTEM", payload
+        _apply(state, "PROTOCOL_UPGRADE_DECLARE", declare, system=True)
+        payload.update(
+            {
+                "upgrade_id": "upgrade-a16",
+                "target_version": "2.0.0",
+                "activation_height": 12,
+            }
+        )
+        return "SYSTEM", payload
+
+    if tx_type in {"CONSTITUTION_UPGRADE_DECLARE", "CONSTITUTION_UPGRADE_ACTIVATE"}:
+        state["params"]["m3_civic_governance_strict"] = False
+        declare = {
+            "constitution_id": "constitution-a16",
+            "constitution_version": "0.2.0",
+            "document_hash": "1" * 64,
+            "traceability_hash": "2" * 64,
+        }
+        if tx_type == "CONSTITUTION_UPGRADE_DECLARE":
+            payload.update(declare)
+            return "SYSTEM", payload
+        _apply(state, "CONSTITUTION_UPGRADE_DECLARE", declare, system=True)
+        payload.update(
+            {
+                "constitution_id": "constitution-a16",
+                "constitution_version": "0.2.0",
+                "activation_height": 12,
+            }
+        )
+        return "SYSTEM", payload
 
     if tx_type == "GOV_PROPOSAL_CREATE":
         payload.setdefault("proposal_id", proposal_id)
@@ -1372,7 +1416,21 @@ def _prepare_identity(
 
     if tx_type == "ACCOUNT_REGISTER":
         state["accounts"].pop("@tester", None)
+        state["params"].update(
+            {
+                "account_registration_work_required": True,
+                "account_registration_work_difficulty_bits": 16,
+            }
+        )
         payload["pubkey"] = "k:p2-a02-account"
+        payload["registration_work_version"] = ACCOUNT_REGISTRATION_WORK_VERSION
+        probe = _tx("ACCOUNT_REGISTER", payload, signer="@tester", nonce=1)
+        for work_nonce in range(1_000_000):
+            if leading_zero_bits(account_registration_work_digest(probe, work_nonce)) >= 16:
+                payload["registration_work_nonce"] = work_nonce
+                break
+        else:  # pragma: no cover - deterministic 16-bit search should never exhaust.
+            raise AssertionError("unable to find ACCOUNT_REGISTER work nonce")
         return "@tester", payload
 
     if tx_type == "ACCOUNT_DEVICE_REGISTER":
@@ -1478,6 +1536,85 @@ def _prepare_identity(
 
     return "@tester", payload
 
+
+def _register_node_device(state: dict[str, Any]) -> None:
+    _apply(
+        state,
+        "ACCOUNT_DEVICE_REGISTER",
+        {
+            "device_id": "node:p2-a02",
+            "device_type": "node",
+            "pubkey": "node-pub-p2-a02",
+        },
+        signer="@tester",
+        nonce=1,
+    )
+
+
+def _prepare_networking(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "PEER_ADVERTISE":
+        _register_node_device(state)
+        payload.update(
+            {
+                "endpoint": "https://127.0.0.1:8443",
+                "peer_id": "@tester",
+                "device_id": "node:p2-a02",
+                "node_pubkey": "node-pub-p2-a02",
+            }
+        )
+        return "@tester", payload
+
+    if tx_type == "PEER_REQUEST_CONNECT":
+        _register_node_device(state)
+        payload.clear()
+        payload["endpoint"] = "https://127.0.0.1:8443"
+        return "@tester", payload
+
+    if tx_type == "PEER_RENDEZVOUS_TICKET_REVOKE":
+        _apply(
+            state,
+            "PEER_RENDEZVOUS_TICKET_CREATE",
+            {"ticket_id": "ticket-a16", "target_peer": "@target"},
+            signer="@tester",
+        )
+        payload["ticket_id"] = "ticket-a16"
+        return "@tester", payload
+
+    return "@tester", payload
+
+
+def _prepare_economics(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "ECONOMICS_ACTIVATION":
+        state["params"]["economics_enabled"] = False
+        payload.clear()
+        payload["enable"] = True
+        return "SYSTEM", payload
+
+    if tx_type == "RATE_LIMIT_POLICY_SET":
+        payload.clear()
+        payload.update({"scope": "global", "window_ms": 60_000, "limit": 100})
+        return "SYSTEM", payload
+
+    return "SYSTEM", payload
+
+
+def _prepare_rewards(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "BLOCK_REWARD_MINT":
+        payload.update({"block_id": "block-a16", "issuance_epoch": 0, "amount": 1})
+    return "SYSTEM", payload
+
 def _prepared_envelope(
     state: dict[str, Any],
     row: dict[str, Any],
@@ -1503,6 +1640,12 @@ def _prepared_envelope(
         signer, payload = _prepare_treasury(state, tx_type, payload)
     elif str(row.get("domain") or "") == "Identity":
         signer, payload = _prepare_identity(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Networking":
+        signer, payload = _prepare_networking(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Economics":
+        signer, payload = _prepare_economics(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Rewards":
+        signer, payload = _prepare_rewards(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
     if system and tx_type != "POH_BOOTSTRAP_TIER2_GRANT":
