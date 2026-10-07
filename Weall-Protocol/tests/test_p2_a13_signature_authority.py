@@ -117,7 +117,7 @@ def _receipt_verify(receipt, pubkey: str) -> bool:
 
 
 def test_helper_receipt_profile_stripping_and_unknown_profile_fail() -> None:
-    keypair = deterministic_mldsa_keypair(b"p2-a13-helper-receipt")
+    keypair = deterministic_mldsa_keypair()
     receipt = sign_helper_receipt(
         chain_id="weall-testnet-v1",
         height=7,
@@ -165,7 +165,7 @@ def _unsigned_certificate() -> HelperExecutionCertificate:
 
 
 def test_helper_certificate_binds_domain_and_explicit_profile() -> None:
-    keypair = deterministic_mldsa_keypair(b"p2-a13-helper-certificate")
+    keypair = deterministic_mldsa_keypair()
     signed = sign_helper_certificate(
         _unsigned_certificate(),
         privkey=keypair["privkey"],
@@ -202,7 +202,7 @@ def test_helper_certificate_binds_domain_and_explicit_profile() -> None:
 
 
 def test_helper_receipt_signature_cannot_authorize_certificate() -> None:
-    keypair = deterministic_mldsa_keypair(b"p2-a13-cross-object")
+    keypair = deterministic_mldsa_keypair()
     receipt = sign_helper_receipt(
         chain_id="weall-testnet-v1",
         height=9,
