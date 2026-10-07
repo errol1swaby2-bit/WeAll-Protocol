@@ -44,15 +44,19 @@ jobs:
             scripts/gen_current_verified_claims.py
             tests/test_p1_a17_reviewer_repro_contract.py
             tests/test_p1_a18_claim_boundaries.py
+            tests/test_p0_claim_audit_binding.py
           )
           ruff check --fix "${FILES[@]}"
           ruff format "${FILES[@]}"
           ruff check "${FILES[@]}"
           ruff format --check "${FILES[@]}"
 
-      - name: Remove temporary workflow from candidate tree
+      - name: Remove temporary reconciliation workflows from candidate tree
         run: |
-          rm -f .github/workflows/p1-final-truth-reconcile.yml
+          rm -f \
+            .github/workflows/p1-final-truth-reconcile.yml \
+            .github/workflows/p1-reconcile-current-head.yml \
+            .github/workflows/p1-reconcile-current-truth-final.yml
 
       - name: Regenerate deterministic derivatives twice
         working-directory: Weall-Protocol
@@ -127,6 +131,8 @@ jobs:
       - name: Final clean-tree guard
         run: |
           test ! -e .github/workflows/p1-final-truth-reconcile.yml
+          test ! -e .github/workflows/p1-reconcile-current-head.yml
+          test ! -e .github/workflows/p1-reconcile-current-truth-final.yml
           test -z "$(git status --porcelain)"
           echo "final_sha=$(git rev-parse HEAD)"
           echo "final_tree=$(git rev-parse HEAD^{tree})"
@@ -146,3 +152,5 @@ jobs:
 # retry after tester virtualenv prerequisite regression alignment
 
 # retry after correcting ambient-Python assertion literal
+
+# retry after isolating P0 claim tests from the P1 matrix and removing superseded reconcilers
