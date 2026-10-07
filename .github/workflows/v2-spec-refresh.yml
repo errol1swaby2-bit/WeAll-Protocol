@@ -50,8 +50,14 @@ jobs:
           python scripts/gen_api_contract_map.py
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
+          python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py || test $? -eq 1
           python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py || test $? -eq 1
           python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/run_controlled_testnet_go_gate_v1_5.py || test $? -eq 1
+          python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py || test $? -eq 1
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/run_controlled_testnet_go_gate_v1_5.py || test $? -eq 1
 
       - name: Verify v1.5 public-readiness derivatives
         working-directory: Weall-Protocol
