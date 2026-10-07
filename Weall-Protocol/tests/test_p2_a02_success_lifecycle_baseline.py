@@ -2187,7 +2187,6 @@ def test_a02_f003_all_canon_baselines_have_successful_apply_fixture() -> None:
         )
 
 
-
 def _seed_a02_admission_authority(
     state: dict[str, Any],
     tx_type: str,
@@ -2267,9 +2266,6 @@ def test_a02_f003_all_canon_prepared_vectors_pass_admission() -> None:
 
     if failures:
         detail = "\n".join(
-            f"{tx_type}\t{context}\t{code}\t{reason}"
-            for tx_type, context, code, reason in failures
+            f"{tx_type}\t{context}\t{code}\t{reason}" for tx_type, context, code, reason in failures
         )
-        raise AssertionError(
-            f"A02-F003 admission gap: failure_count={len(failures)}\n{detail}"
-        )
+        raise AssertionError(f"A02-F003 admission gap: failure_count={len(failures)}\n{detail}")

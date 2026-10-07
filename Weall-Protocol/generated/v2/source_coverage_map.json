@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "42ca79a0bcb87959e5c4cf20c9389ed134758db4f5a7d5a8ec41887e69fdf36a",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -12125,7 +12125,7 @@
       ],
       "path": "src/weall/runtime/tx_admission.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "510f8f35ffb969924182511458839e07cc172fc9c762b1ef29688e10ecb3052d",
+      "sha256": "82b1588e8c0adcdd195825c53c729d3fab4b0676902424dfa988d8b6083eaa9a",
       "source_id": "SRC-11E78DF740EB2865"
     },
     {
@@ -12222,7 +12222,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "493f2dc13cf0de9401356b1b133292de237707ae28812d9d681ada454229afea",
+      "sha256": "d454481d050cf4df38cbce2e7559e313fc8b8f135d576b8d2fcbd890ac1df530",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -22924,9 +22924,12 @@
         "TX-0602",
         "TX-0603",
         "TX-0604",
+        "TX-0606",
         "TX-0607",
         "TX-0608",
         "TX-0610",
+        "TX-0612",
+        "TX-0700",
         "TX-0701",
         "TX-0800",
         "TX-0801",
@@ -22974,6 +22977,8 @@
         "TX-1715",
         "TX-1716",
         "TX-1717",
+        "TX-1800",
+        "TX-1801",
         "TX-2000",
         "TX-2100",
         "TX-2101",
@@ -23014,7 +23019,7 @@
       ],
       "path": "tests/test_p2_a02_success_lifecycle_baseline.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "38785075712af48b9c9bc2fe8b2c6b07ead159bcc451f84ec78445befcfb847d",
+      "sha256": "c895f1d7c0cc8980683eaee6c200cd606d94556698cc08290a33de211715b22f",
       "source_id": "SRC-26CE7F495F144D60"
     },
     {
