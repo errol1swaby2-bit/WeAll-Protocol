@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c16afc2e739c447719890ba056827dfd90e3ec68bc3e1ddf47de2aa4697e1c4f"
+    "source_tree_digest": "22aa7302fdca996f477268648f954c1f4130c7f341f095f66f22bfa5e2594174"
   },
   "rows": [
     {
@@ -3613,6 +3613,7 @@
         "generated/tx_lifecycle_assurance_v1_5.json",
         "generated/tx_semantic_assurance_v1_5.json",
         "scripts/__init__.py",
+        "scripts/a04_cross_machine_determinism_probe_v1_5.py",
         "scripts/assert_production_genesis_artifacts.py",
         "scripts/audit_frontend_backend_congruity.py",
         "scripts/audit_test_names.py",
@@ -3620,10 +3621,12 @@
         "scripts/bft_adversarial_matrix.py",
         "scripts/bft_consensus_resilience_matrix.py",
         "scripts/bft_fault_injection_soak.py",
+        "scripts/build_external_cross_machine_replay_transcript_v1_5.py",
         "scripts/build_external_observer_bundle.py",
         "scripts/build_m2_browser_actor_manifest.py",
         "scripts/build_production_genesis_manifest.py",
         "scripts/build_reviewer_lan_genesis.py",
+        "scripts/capture_a04_external_determinism_packet_v1_5.py",
         "scripts/check_backend_test_dependencies.py",
         "scripts/check_generated.py",
         "scripts/check_m2_requirement_traceability.py",

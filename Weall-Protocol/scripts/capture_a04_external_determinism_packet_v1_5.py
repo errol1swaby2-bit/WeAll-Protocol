@@ -62,8 +62,7 @@ def _run(
     stderr_path.write_text(proc.stderr, encoding="utf-8")
     if proc.returncode != 0:
         raise RuntimeError(
-            f"command failed ({proc.returncode}): {' '.join(args)}\n"
-            f"{proc.stdout}\n{proc.stderr}"
+            f"command failed ({proc.returncode}): {' '.join(args)}\n{proc.stdout}\n{proc.stderr}"
         )
 
 
@@ -104,9 +103,7 @@ def _stable_db_replay_digest(payload: Json) -> str:
         "interrupted_resume_verified",
         "corrupt_block_rejected",
     )
-    return _sha256_bytes(
-        _canon({key: payload.get(key) for key in keys}).encode("utf-8")
-    )
+    return _sha256_bytes(_canon({key: payload.get(key) for key in keys}).encode("utf-8"))
 
 
 def _stable_fresh_replay_digest(payload: Json) -> str:
@@ -275,8 +272,7 @@ def build_local_packet(
         hashseed_results[seed] = result
 
     live_digests = {
-        str(result.get("lifecycle_runtime_digest") or "")
-        for result in hashseed_results.values()
+        str(result.get("lifecycle_runtime_digest") or "") for result in hashseed_results.values()
     }
     if len(live_digests) != 1:
         raise RuntimeError("lifecycle runtime digest differs across PYTHONHASHSEED values")
@@ -316,12 +312,8 @@ def build_local_packet(
         "broad_probe_reversed_projection_sha256": str(
             broad_probe.get("reversed_insertion_projection_sha256") or ""
         ),
-        "broad_probe_insertion_order_invariant": bool(
-            broad_probe.get("insertion_order_invariant")
-        ),
-        "broad_probe_hash_seed_render_match": bool(
-            broad_probe.get("hash_seed_render_match")
-        ),
+        "broad_probe_insertion_order_invariant": bool(broad_probe.get("insertion_order_invariant")),
+        "broad_probe_hash_seed_render_match": bool(broad_probe.get("hash_seed_render_match")),
         "broad_probe_hash_seed_render_sha256": dict(
             broad_probe.get("hash_seed_render_sha256") or {}
         ),
@@ -342,14 +334,10 @@ def build_local_packet(
             else ""
         ),
         "fresh_state_root": str(
-            fresh.get("fresh_state_root")
-            or db_replay.get("fresh_state_root")
-            or ""
+            fresh.get("fresh_state_root") or db_replay.get("fresh_state_root") or ""
         ),
         "interrupted_resume_root": str(
-            fresh.get("interrupted_resume_root")
-            or db_replay.get("fresh_state_root")
-            or ""
+            fresh.get("interrupted_resume_root") or db_replay.get("fresh_state_root") or ""
         ),
         "capture_command": (
             "python scripts/capture_a04_external_determinism_packet_v1_5.py "

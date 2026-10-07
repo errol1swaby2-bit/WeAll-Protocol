@@ -268,7 +268,6 @@ def test_public_beta_and_release_artifacts_reference_external_cross_machine_repl
     assert "capture_external_cross_machine_replay_transcript_v1_5.sh" in gate["capture_script"]
 
 
-
 def test_a04_broad_cross_machine_determinism_probe_is_green() -> None:
     proc = _run(
         sys.executable,

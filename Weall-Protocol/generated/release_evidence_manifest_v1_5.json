@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "27eb0797be5b079e5989e440f859f5f26b54c76881bd112174c1eb6af5188696",
+  "artifact_digest": "4c57b0f386e2a24600f3f64a4e202579c687753bb42809c35323dadbce57561b",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -193,7 +193,7 @@
     },
     "generated/external_operator_transcript_requirements_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "fb83744d3ea27e170946f2eab1e5225537fe07593e2f160011ea6fd860dcd524",
+      "file_sha256": "59f655bd42b7f18758031fd2daae7a084fad82b11fe19b12f72e988357c1e68a",
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,

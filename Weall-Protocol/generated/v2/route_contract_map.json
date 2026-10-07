@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c16afc2e739c447719890ba056827dfd90e3ec68bc3e1ddf47de2aa4697e1c4f"
+    "source_tree_digest": "22aa7302fdca996f477268648f954c1f4130c7f341f095f66f22bfa5e2594174"
   },
   "required_fields": [
     "stable_id",
@@ -6849,6 +6849,7 @@
         "tests/prod/test_native_poh_no_external_identity_required.py",
         "tests/prod/test_observer_bundle_contains_no_authority_secrets.py",
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
+        "tests/prod/test_p2_a04_external_determinism_packet.py",
         "tests/prod/test_production_helper_topology_hardening_plan.py",
         "tests/prod/test_promoted_validator_live_rehearsal.py",
         "tests/prod/test_protocol_upgrade_execution_hardening_plan.py",
@@ -8129,6 +8130,7 @@
         "tests/prod/test_genesis_testnet_launch_readiness.py",
         "tests/prod/test_independent_controlled_validator_operator_transcript_capture.py",
         "tests/prod/test_legal_compliance_evidence_pack.py",
+        "tests/prod/test_p2_a04_external_determinism_packet.py",
         "tests/prod/test_production_helper_topology_hardening_plan.py",
         "tests/prod/test_protocol_upgrade_execution_hardening_plan.py",
         "tests/prod/test_public_beta_evidence_gates.py",

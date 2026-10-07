@@ -31,10 +31,7 @@ def _sha256(path: Path) -> str:
 
 def _reverse_mappings(value: Any) -> Any:
     if isinstance(value, dict):
-        return {
-            key: _reverse_mappings(value[key])
-            for key in reversed(list(value.keys()))
-        }
+        return {key: _reverse_mappings(value[key]) for key in reversed(list(value.keys()))}
     if isinstance(value, list):
         return [_reverse_mappings(item) for item in value]
     return value

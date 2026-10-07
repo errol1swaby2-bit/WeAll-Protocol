@@ -121,9 +121,7 @@ def build_transcript(
     commit = str(_one_value(packets, "commit"))
     git_tree = str(_one_value(packets, "git_tree"))
     state_root_vectors_sha256 = str(_one_value(packets, "state_root_vectors_sha256"))
-    tx_lifecycle_assurance_sha256 = str(
-        _one_value(packets, "tx_lifecycle_assurance_sha256")
-    )
+    tx_lifecycle_assurance_sha256 = str(_one_value(packets, "tx_lifecycle_assurance_sha256"))
     tx_semantic_assurance_sha256 = str(_one_value(packets, "tx_semantic_assurance_sha256"))
     tx_contract_map_sha256 = str(_one_value(packets, "tx_contract_map_sha256"))
     broad_probe_lifecycle_manifest_sha256 = str(
@@ -135,12 +133,12 @@ def build_transcript(
     broad_probe_reversed_projection_sha256 = str(
         _one_value(packets, "broad_probe_reversed_projection_sha256")
     )
-    broad_probe_hash_seed_render_sha256 = _one_value(
-        packets, "broad_probe_hash_seed_render_sha256"
-    )
+    broad_probe_hash_seed_render_sha256 = _one_value(packets, "broad_probe_hash_seed_render_sha256")
 
     if broad_probe_lifecycle_manifest_sha256 != tx_lifecycle_assurance_sha256:
-        raise ValueError("broad probe lifecycle manifest digest does not match tracked lifecycle manifest")
+        raise ValueError(
+            "broad probe lifecycle manifest digest does not match tracked lifecycle manifest"
+        )
     if broad_probe_lifecycle_projection_sha256 != broad_probe_reversed_projection_sha256:
         raise ValueError("broad probe insertion-order projection mismatch")
 
@@ -228,15 +226,13 @@ def build_transcript(
         "tx_index_hash_by_machine": tx_index_hash_by_machine,
         "state_root_by_machine": state_root_by_machine,
         "replay_manifest_digest_by_machine": {
-            str(packet["machine_id"]): str(packet["replay_manifest_digest"])
-            for packet in packets
+            str(packet["machine_id"]): str(packet["replay_manifest_digest"]) for packet in packets
         },
         "db_replay_digest_by_machine": {
             str(packet["machine_id"]): str(packet["db_replay_digest"]) for packet in packets
         },
         "fresh_node_replay_digest_by_machine": {
-            str(packet["machine_id"]): str(packet["fresh_node_replay_digest"])
-            for packet in packets
+            str(packet["machine_id"]): str(packet["fresh_node_replay_digest"]) for packet in packets
         },
         "hashseed_results_by_machine": {
             str(packet["machine_id"]): packet["hashseed_results"] for packet in packets
@@ -280,7 +276,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build the strict A04/external cross-machine replay aggregate transcript."
     )
-    parser.add_argument("--packet", action="append", required=True, help="Local machine packet JSON")
+    parser.add_argument(
+        "--packet", action="append", required=True, help="Local machine packet JSON"
+    )
     parser.add_argument(
         "--machine-isolation",
         required=True,
