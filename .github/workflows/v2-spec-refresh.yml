@@ -55,8 +55,10 @@ jobs:
       - name: Generate A02 lifecycle assurance manifest
         working-directory: Weall-Protocol
         run: |
+          python scripts/gen_tx_semantic_assurance_v1_5.py
           python scripts/gen_tx_semantic_assurance_v1_5.py --check
           python scripts/gen_tx_lifecycle_assurance_v1_5.py
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
 
       - name: Verify v1.5 public-readiness derivatives
         working-directory: Weall-Protocol
