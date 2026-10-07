@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 A02 governance-groups diagnostic refresh
 
 on:
   workflow_dispatch:
