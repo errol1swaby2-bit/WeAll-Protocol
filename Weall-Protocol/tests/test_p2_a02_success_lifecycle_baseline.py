@@ -550,9 +550,15 @@ def _prepare_dispute(
         payload["juror_id"] = "@juror1"
         return "SYSTEM", payload
 
+    if tx_type == "DISPUTE_JUROR_ATTENDANCE":
+        dispute = state["disputes_by_id"]["a"]
+        dispute["jurors"] = {"SYSTEM": {"status": "assigned"}}
+        dispute["assigned_jurors"] = ["SYSTEM"]
+        payload["present"] = True
+        return "SYSTEM", payload
+
     if tx_type in {
         "DISPUTE_JUROR_ACCEPT",
-        "DISPUTE_JUROR_ATTENDANCE",
         "DISPUTE_JUROR_DECLINE",
         "DISPUTE_JUROR_TIMEOUT",
         "DISPUTE_JUROR_WITHDRAW",
@@ -566,9 +572,6 @@ def _prepare_dispute(
         )
 
     if tx_type == "DISPUTE_JUROR_ACCEPT":
-        return "@juror1", payload
-    if tx_type == "DISPUTE_JUROR_ATTENDANCE":
-        payload["present"] = True
         return "@juror1", payload
     if tx_type == "DISPUTE_JUROR_DECLINE":
         return "@juror1", payload
@@ -1947,7 +1950,7 @@ def _prepare_storage(
         return "SYSTEM", payload
 
     if tx_type == "IPFS_PIN_CONFIRM":
-        _storage_operator_ready(state)
+        _storage_offer(state)
         _apply(
             state,
             "IPFS_PIN_REQUEST",
@@ -1969,6 +1972,99 @@ def _prepare_storage(
         return "SYSTEM", payload
 
     return "@tester", payload
+
+
+def _consensus_known_block(state: dict[str, Any]) -> None:
+    state["blocks"] = {
+        "a": {
+            "block_id": "a",
+            "height": 1,
+            "parent": None,
+        }
+    }
+
+
+def _register_consensus_validator(state: dict[str, Any], account: str) -> None:
+    _apply(
+        state,
+        "VALIDATOR_REGISTER",
+        {
+            "account": account,
+            "pubkey": f"validator-pub:{account}",
+            "node_id": f"node:{account}",
+            "endpoint": "https://127.0.0.1:9443",
+        },
+        system=True,
+    )
+
+
+def _prepare_consensus(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "BLOCK_ATTEST":
+        _consensus_known_block(state)
+        payload.update({"block_id": "a", "height": 1, "round": 0})
+        return "@validator1", payload
+
+    if tx_type == "BLOCK_FINALIZE":
+        _consensus_known_block(state)
+        state["roles"]["validators"] = {"active_set": ["@validator1"], "by_id": {}}
+        _apply(
+            state,
+            "BLOCK_ATTEST",
+            {"block_id": "a", "height": 1, "round": 0, "attestation": "yes"},
+            signer="@validator1",
+        )
+        payload.update({"block_id": "a", "height": 1})
+        return "SYSTEM", payload
+
+    if tx_type == "EPOCH_CLOSE":
+        state["consensus"] = {
+            "epochs": {"current": 1, "events": []},
+            "validators": {"registry": {}},
+        }
+        payload["epoch"] = 1
+        return "SYSTEM", payload
+
+    if tx_type == "VALIDATOR_REGISTER":
+        payload.update(
+            {
+                "account": "@validator1",
+                "pubkey": "validator-pub:@validator1",
+                "node_id": "node:@validator1",
+                "endpoint": "https://127.0.0.1:9443",
+            }
+        )
+        return "SYSTEM", payload
+
+    if tx_type == "VALIDATOR_CANDIDATE_APPROVE":
+        _register_consensus_validator(state, "@validator1")
+        payload.update({"account": "@validator1", "activate_at_epoch": 1})
+        return "SYSTEM", payload
+
+    if tx_type == "VALIDATOR_DEREGISTER":
+        _register_consensus_validator(state, "@tester")
+        payload["account"] = "@tester"
+        return "@tester", payload
+
+    if tx_type == "VALIDATOR_HEARTBEAT":
+        payload.update(
+            {
+                "account": "@validator1",
+                "node_id": "node-heartbeat-a16",
+                "ts_ms": 1,
+            }
+        )
+        return "@validator1", payload
+
+    if tx_type in {"VALIDATOR_REMOVE", "VALIDATOR_SUSPEND"}:
+        _register_consensus_validator(state, "@validator1")
+        payload.update({"account": "@validator1", "effective_epoch": 1})
+        return "SYSTEM", payload
+
+    return "SYSTEM" if str(tx_type).startswith("BLOCK_") else "@tester", payload
 
 def _prepared_envelope(
     state: dict[str, Any],
@@ -2005,6 +2101,8 @@ def _prepared_envelope(
         signer, payload = _prepare_roles(state, tx_type, payload)
     elif str(row.get("domain") or "") == "Storage":
         signer, payload = _prepare_storage(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Consensus":
+        signer, payload = _prepare_consensus(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
     if system and tx_type != "POH_BOOTSTRAP_TIER2_GRANT":
