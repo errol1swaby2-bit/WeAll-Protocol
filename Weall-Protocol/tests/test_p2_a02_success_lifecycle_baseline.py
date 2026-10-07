@@ -564,6 +564,502 @@ def _prepare_dispute(
     return "@tester", payload
 
 
+
+def _poh_reviewers(state: dict[str, Any]) -> None:
+    roles = state.setdefault("roles", {})
+    roles["jurors"] = {
+        "active_set": ["@juror1", *[f"j{i}" for i in range(1, 11)]],
+        "by_id": {},
+    }
+    params = state.setdefault("params", {}).setdefault("poh", {})
+    params.update(
+        {
+            "async_n_jurors": 3,
+            "async_min_reviews": 3,
+            "async_approval_threshold": 2,
+            "async_rejection_threshold": 2,
+            "async_expiry_window_blocks": 100,
+            "tier2_n_jurors": 3,
+            "tier2_min_total_reviews": 3,
+            "tier2_pass_threshold": 2,
+            "tier2_fail_max": 1,
+        }
+    )
+
+
+def _poh_case_id(state: dict[str, Any], family: str) -> str:
+    cases = state.get("poh", {}).get(family, {})
+    assert isinstance(cases, dict) and len(cases) == 1
+    return str(next(iter(cases)))
+
+
+def _open_async_poh(state: dict[str, Any]) -> str:
+    _poh_reviewers(state)
+    state["accounts"]["@tester"]["poh_tier"] = 0
+    _apply(
+        state,
+        "POH_ASYNC_REQUEST_OPEN",
+        {
+            "account_id": "@tester",
+            "case_id": "case-a16",
+            "challenge_id": "prompt-a16",
+            "challenge_commitment": "sha256:" + ("1" * 64),
+        },
+        signer="@tester",
+    )
+    return "case-a16"
+
+
+def _declare_async_evidence(state: dict[str, Any], case_id: str) -> None:
+    _apply(
+        state,
+        "POH_ASYNC_EVIDENCE_DECLARE",
+        {
+            "case_id": case_id,
+            "evidence_id": "evidence-a16",
+            "evidence_commitment": "sha256:" + ("2" * 64),
+        },
+        signer="@tester",
+    )
+
+
+def _bind_async_evidence(state: dict[str, Any], case_id: str) -> None:
+    _apply(
+        state,
+        "POH_ASYNC_EVIDENCE_BIND",
+        {
+            "case_id": case_id,
+            "evidence_id": "evidence-a16",
+            "target_id": case_id,
+            "evidence_root_commitment": "sha256:" + ("2" * 64),
+        },
+        signer="@tester",
+    )
+
+
+def _assign_async_jurors(state: dict[str, Any], case_id: str) -> None:
+    _apply(
+        state,
+        "POH_ASYNC_JUROR_ASSIGN",
+        {"case_id": case_id, "jurors": ["j1", "j2", "j3"]},
+        system=True,
+    )
+
+
+def _accept_async_juror(state: dict[str, Any], case_id: str, juror: str) -> None:
+    _apply(
+        state,
+        "POH_ASYNC_JUROR_ACCEPT",
+        {"case_id": case_id},
+        signer=juror,
+    )
+
+
+def _open_tier2_poh(state: dict[str, Any]) -> str:
+    _poh_reviewers(state)
+    state["accounts"]["@tester"]["poh_tier"] = 1
+    _apply(
+        state,
+        "POH_TIER2_REQUEST_OPEN",
+        {
+            "account_id": "@tester",
+            "target_tier": 2,
+            "video_commitment": "p2-a02-tier2-video-commitment",
+        },
+        signer="@tester",
+    )
+    return _poh_case_id(state, "tier2_cases")
+
+
+def _assign_tier2_jurors(state: dict[str, Any], case_id: str) -> None:
+    _apply(
+        state,
+        "POH_TIER2_JUROR_ASSIGN",
+        {
+            "case_id": case_id,
+            "jurors": ["j1", "j2", "j3"],
+            "n_jurors": 3,
+            "min_total_reviews": 3,
+            "pass_threshold": 2,
+            "fail_max": 1,
+        },
+        system=True,
+    )
+
+
+def _open_live_poh(state: dict[str, Any]) -> str:
+    _poh_reviewers(state)
+    state["accounts"]["@tester"]["poh_tier"] = 1
+    _apply(
+        state,
+        "POH_LIVE_REQUEST_OPEN",
+        {
+            "account_id": "@tester",
+            "session_commitment": "session:cmt:p2",
+            "room_commitment": "room:cmt:p2",
+            "prompt_commitment": "prompt:cmt:p2",
+            "device_pairing_commitment": "device:cmt:p2",
+        },
+        signer="@tester",
+    )
+    return _poh_case_id(state, "live_cases")
+
+
+def _init_live_poh(state: dict[str, Any], case_id: str) -> None:
+    _apply(
+        state,
+        "POH_LIVE_SESSION_INIT",
+        {
+            "case_id": case_id,
+            "account_id": "@tester",
+            "session_commitment": "session:cmt:p2",
+            "room_commitment": "room:cmt:p2",
+            "prompt_commitment": "prompt:cmt:p2",
+            "device_pairing_commitment": "device:cmt:p2",
+        },
+        system=True,
+    )
+
+
+def _assign_live_jurors(state: dict[str, Any], case_id: str) -> None:
+    _apply(
+        state,
+        "POH_LIVE_JUROR_ASSIGN",
+        {"case_id": case_id, "jurors": [f"j{i}" for i in range(1, 11)]},
+        system=True,
+    )
+
+
+def _complete_live_review(state: dict[str, Any], case_id: str, juror: str) -> None:
+    _apply(
+        state,
+        "POH_LIVE_JUROR_ACCEPT",
+        {"case_id": case_id},
+        signer=juror,
+    )
+    _apply(
+        state,
+        "POH_LIVE_ATTENDANCE_MARK",
+        {
+            "case_id": case_id,
+            "juror_id": juror,
+            "attended": True,
+            "session_commitment": "session:cmt:p2",
+        },
+        signer=juror,
+    )
+    _apply(
+        state,
+        "POH_LIVE_VERDICT_SUBMIT",
+        {
+            "case_id": case_id,
+            "verdict": "pass",
+            "session_commitment": "session:cmt:p2",
+        },
+        signer=juror,
+    )
+
+
+def _prepare_poh(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    _poh_reviewers(state)
+
+    if tx_type == "POH_BOOTSTRAP_TIER2_GRANT":
+        state["accounts"]["@tester"]["poh_tier"] = 0
+        state["params"].update(
+            {
+                "poh_bootstrap_mode": "open",
+                "poh_bootstrap_max_height": 100_000,
+            }
+        )
+        payload["account_id"] = "@tester"
+        return "@tester", payload
+
+    if tx_type == "POH_CHALLENGE_RESOLVE":
+        _apply(
+            state,
+            "POH_CHALLENGE_OPEN",
+            {"account_id": "@tester"},
+            signer="@tester",
+        )
+        payload.update(
+            {
+                "challenge_id": "pohc:@tester:1",
+                "resolution": "dismissed",
+            }
+        )
+        return "SYSTEM", payload
+
+    if tx_type == "POH_EVIDENCE_BIND":
+        _apply(
+            state,
+            "POH_EVIDENCE_DECLARE",
+            {"evidence_id": "evidence-a16"},
+            signer="@tester",
+        )
+        payload.update({"evidence_id": "evidence-a16", "target_id": "a"})
+        return "@tester", payload
+
+    if tx_type.startswith("POH_ASYNC_"):
+        case_id = _open_async_poh(state)
+        if tx_type == "POH_ASYNC_REQUEST_OPEN":
+            payload.update(
+                {
+                    "account_id": "@tester",
+                    "case_id": case_id,
+                    "challenge_id": "prompt-a16",
+                    "challenge_commitment": "sha256:" + ("1" * 64),
+                }
+            )
+            return "@tester", payload
+
+        if tx_type == "POH_ASYNC_EVIDENCE_DECLARE":
+            payload.update(
+                {
+                    "case_id": case_id,
+                    "evidence_id": "evidence-a16",
+                    "evidence_commitment": "sha256:" + ("2" * 64),
+                }
+            )
+            return "@tester", payload
+
+        _declare_async_evidence(state, case_id)
+        if tx_type == "POH_ASYNC_EVIDENCE_BIND":
+            payload.update(
+                {
+                    "case_id": case_id,
+                    "evidence_id": "evidence-a16",
+                    "target_id": case_id,
+                    "evidence_root_commitment": "sha256:" + ("2" * 64),
+                }
+            )
+            return "@tester", payload
+
+        _bind_async_evidence(state, case_id)
+        if tx_type == "POH_ASYNC_JUROR_ASSIGN":
+            payload.update({"case_id": case_id, "jurors": ["j1", "j2", "j3"]})
+            return "SYSTEM", payload
+
+        _assign_async_jurors(state, case_id)
+        if tx_type == "POH_ASYNC_JUROR_ACCEPT":
+            payload["case_id"] = case_id
+            return "j1", payload
+        if tx_type == "POH_ASYNC_JUROR_DECLINE":
+            payload["case_id"] = case_id
+            return "j1", payload
+
+        _accept_async_juror(state, case_id, "j1")
+        if tx_type == "POH_ASYNC_REVIEW_SUBMIT":
+            payload.update({"case_id": case_id, "verdict": "approve"})
+            return "j1", payload
+
+        for juror in ("j2", "j3"):
+            _accept_async_juror(state, case_id, juror)
+        _apply(
+            state,
+            "POH_ASYNC_REVIEW_SUBMIT",
+            {"case_id": case_id, "verdict": "approve"},
+            signer="j1",
+        )
+        _apply(
+            state,
+            "POH_ASYNC_REVIEW_SUBMIT",
+            {"case_id": case_id, "verdict": "approve"},
+            signer="j2",
+        )
+        _apply(
+            state,
+            "POH_ASYNC_REVIEW_SUBMIT",
+            {"case_id": case_id, "verdict": "reject"},
+            signer="j3",
+        )
+        if tx_type == "POH_ASYNC_FINALIZE":
+            payload["case_id"] = case_id
+            return "SYSTEM", payload
+
+        _apply(
+            state,
+            "POH_ASYNC_FINALIZE",
+            {"case_id": case_id},
+            system=True,
+        )
+        payload["case_id"] = case_id
+        return "SYSTEM", payload
+
+    if tx_type.startswith("POH_TIER2_"):
+        case_id = _open_tier2_poh(state)
+        if tx_type == "POH_TIER2_REQUEST_OPEN":
+            payload.update(
+                {
+                    "account_id": "@tester",
+                    "target_tier": 2,
+                    "video_commitment": "p2-a02-tier2-video-commitment",
+                }
+            )
+            return "@tester", payload
+
+        if tx_type == "POH_TIER2_JUROR_ASSIGN":
+            payload.update(
+                {
+                    "case_id": case_id,
+                    "jurors": ["j1", "j2", "j3"],
+                    "n_jurors": 3,
+                    "min_total_reviews": 3,
+                    "pass_threshold": 2,
+                    "fail_max": 1,
+                }
+            )
+            return "SYSTEM", payload
+
+        _assign_tier2_jurors(state, case_id)
+        if tx_type == "POH_TIER2_JUROR_ACCEPT":
+            payload["case_id"] = case_id
+            return "j1", payload
+        if tx_type == "POH_TIER2_JUROR_DECLINE":
+            payload["case_id"] = case_id
+            return "j1", payload
+        if tx_type == "POH_TIER2_REVIEW_SUBMIT":
+            payload.update({"case_id": case_id, "verdict": "pass"})
+            return "j1", payload
+
+        for juror, verdict in (("j1", "pass"), ("j2", "pass"), ("j3", "fail")):
+            _apply(
+                state,
+                "POH_TIER2_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": verdict},
+                signer=juror,
+            )
+        if tx_type == "POH_TIER2_FINALIZE":
+            payload["case_id"] = case_id
+            return "SYSTEM", payload
+
+        _apply(
+            state,
+            "POH_TIER2_FINALIZE",
+            {"case_id": case_id, "ts_ms": 2},
+            system=True,
+        )
+        payload["case_id"] = case_id
+        return "SYSTEM", payload
+
+    if tx_type.startswith("POH_LIVE_"):
+        case_id = _open_live_poh(state)
+        if tx_type == "POH_LIVE_REQUEST_OPEN":
+            payload.update(
+                {
+                    "account_id": "@tester",
+                    "session_commitment": "session:cmt:p2",
+                    "room_commitment": "room:cmt:p2",
+                    "prompt_commitment": "prompt:cmt:p2",
+                    "device_pairing_commitment": "device:cmt:p2",
+                }
+            )
+            return "@tester", payload
+
+        if tx_type == "POH_LIVE_SESSION_INIT":
+            payload.update(
+                {
+                    "case_id": case_id,
+                    "account_id": "@tester",
+                    "session_commitment": "session:cmt:p2",
+                    "room_commitment": "room:cmt:p2",
+                    "prompt_commitment": "prompt:cmt:p2",
+                    "device_pairing_commitment": "device:cmt:p2",
+                }
+            )
+            return "SYSTEM", payload
+
+        _init_live_poh(state, case_id)
+        if tx_type == "POH_LIVE_JUROR_ASSIGN":
+            payload.update({"case_id": case_id, "jurors": [f"j{i}" for i in range(1, 11)]})
+            return "SYSTEM", payload
+
+        _assign_live_jurors(state, case_id)
+        if tx_type == "POH_LIVE_JUROR_ACCEPT":
+            payload["case_id"] = case_id
+            return "j1", payload
+        if tx_type == "POH_LIVE_JUROR_DECLINE":
+            payload["case_id"] = case_id
+            return "j1", payload
+        if tx_type == "POH_LIVE_JUROR_REPLACE":
+            payload.update(
+                {
+                    "case_id": case_id,
+                    "old_juror_id": "j10",
+                    "new_juror_id": "@juror1",
+                }
+            )
+            return "SYSTEM", payload
+
+        _apply(
+            state,
+            "POH_LIVE_JUROR_ACCEPT",
+            {"case_id": case_id},
+            signer="j1",
+        )
+        if tx_type == "POH_LIVE_ATTENDANCE_MARK":
+            payload.update(
+                {
+                    "case_id": case_id,
+                    "juror_id": "j1",
+                    "attended": True,
+                    "session_commitment": "session:cmt:p2",
+                }
+            )
+            return "j1", payload
+
+        _apply(
+            state,
+            "POH_LIVE_ATTENDANCE_MARK",
+            {
+                "case_id": case_id,
+                "juror_id": "j1",
+                "attended": True,
+                "session_commitment": "session:cmt:p2",
+            },
+            signer="j1",
+        )
+        if tx_type == "POH_LIVE_VERDICT_SUBMIT":
+            payload.update(
+                {
+                    "case_id": case_id,
+                    "verdict": "pass",
+                    "session_commitment": "session:cmt:p2",
+                }
+            )
+            return "j1", payload
+
+        _apply(
+            state,
+            "POH_LIVE_VERDICT_SUBMIT",
+            {
+                "case_id": case_id,
+                "verdict": "pass",
+                "session_commitment": "session:cmt:p2",
+            },
+            signer="j1",
+        )
+        for juror in ("j2", "j3"):
+            _complete_live_review(state, case_id, juror)
+
+        if tx_type == "POH_LIVE_FINALIZE":
+            payload["case_id"] = case_id
+            return "SYSTEM", payload
+
+        _apply(
+            state,
+            "POH_LIVE_FINALIZE",
+            {"case_id": case_id, "ts_ms": 2},
+            system=True,
+        )
+        payload["case_id"] = case_id
+        return "SYSTEM", payload
+
+    return "@tester", payload
+
 def _prepared_envelope(
     state: dict[str, Any],
     row: dict[str, Any],
@@ -579,6 +1075,8 @@ def _prepared_envelope(
         signer, payload = _prepare_groups(state, tx_type, payload)
     elif str(row.get("domain") or "") == "Dispute":
         signer, payload = _prepare_dispute(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "PoH":
+        signer, payload = _prepare_poh(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
     block_only = str(row.get("context") or "").lower() == "block"
