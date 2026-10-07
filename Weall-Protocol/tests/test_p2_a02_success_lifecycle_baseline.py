@@ -12,7 +12,40 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "generated" / "tx_semantic_assurance_v1_5.json"
 
 
+def _account(*, tier: int = 2, balance: int = 1_000_000) -> dict[str, Any]:
+    return {
+        "nonce": 0,
+        "balance": balance,
+        "poh_tier": tier,
+        "reputation": "10.000",
+        "reputation_milli": 10_000,
+        "banned": False,
+        "locked": False,
+    }
+
+
 def _base_state() -> dict[str, Any]:
+    actors = {
+        "@tester",
+        "@target",
+        "@juror1",
+        "@validator1",
+        "@member",
+        "@owner",
+        "a",
+        "alice",
+        "bob",
+        "j1",
+        "j2",
+        "j3",
+        "j4",
+        "j5",
+        "j6",
+        "j7",
+        "j8",
+        "j9",
+        "j10",
+    }
     return {
         "height": 10,
         "time": 1_000_000,
@@ -20,49 +53,14 @@ def _base_state() -> dict[str, Any]:
         "network_id": "weall-testnet-v1",
         "params": {
             "chain_id": "weall-testnet-v1",
-            "economics_enabled": False,
+            "economics_enabled": True,
             "genesis_time": 0,
-            "economic_unlock_time": 9_999_999_999,
+            "economic_unlock_time": 0,
+            "system_signer": "SYSTEM",
+            "group_treasury_timelock_blocks": 0,
         },
-        "accounts": {
-            "@tester": {
-                "nonce": 0,
-                "balance": 1_000_000,
-                "poh_tier": 2,
-                "reputation": "10.000",
-                "reputation_milli": 10_000,
-                "banned": False,
-                "locked": False,
-            },
-            "@target": {
-                "nonce": 0,
-                "balance": 0,
-                "poh_tier": 2,
-                "reputation": "10.000",
-                "reputation_milli": 10_000,
-                "banned": False,
-                "locked": False,
-            },
-            "@juror1": {
-                "nonce": 0,
-                "balance": 0,
-                "poh_tier": 2,
-                "reputation": "10.000",
-                "reputation_milli": 10_000,
-                "banned": False,
-                "locked": False,
-            },
-            "@validator1": {
-                "nonce": 0,
-                "balance": 0,
-                "poh_tier": 2,
-                "reputation": "10.000",
-                "reputation_milli": 10_000,
-                "banned": False,
-                "locked": False,
-            },
-        },
-        "roles": {},
+        "accounts": {actor: _account() for actor in sorted(actors)},
+        "roles": {"groups_by_id": {}, "treasuries_by_id": {}},
         "social": {},
         "content": {},
         "groups": {},
@@ -76,27 +74,416 @@ def _base_state() -> dict[str, Any]:
         "disputes": {},
         "protocol": {},
         "consensus": {},
+        "system_queue": [],
     }
 
 
-def _envelope(row: dict[str, Any]) -> TxEnvelope:
-    system = str(row.get("origin") or "").upper() == "SYSTEM"
-    block_only = str(row.get("context") or "").lower() == "block"
-    receipt_only = bool(row.get("receipt_only"))
+def _tx(
+    tx_type: str,
+    payload: dict[str, Any] | None = None,
+    *,
+    signer: str = "@tester",
+    system: bool = False,
+    parent: str | None = None,
+    nonce: int = 1,
+) -> TxEnvelope:
+    if system and parent is None:
+        parent = "PARENT-A02"
     return TxEnvelope(
-        tx_type=str(row["tx_type"]),
-        signer="SYSTEM" if system else "@tester",
-        nonce=1,
-        payload=copy.deepcopy(row["baseline_payload"]),
-        parent="PARENT-A02" if block_only or receipt_only else None,
+        tx_type=tx_type,
+        signer="SYSTEM" if system else signer,
+        nonce=nonce,
+        payload=copy.deepcopy(payload or {}),
+        parent=parent,
         system=system,
         chain_id="weall-testnet-v1",
     )
 
 
+def _apply(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any] | None = None,
+    *,
+    signer: str = "@tester",
+    system: bool = False,
+    parent: str | None = None,
+    nonce: int = 1,
+) -> None:
+    apply_tx_atomic_meta_bounded_rollback(
+        state,
+        _tx(
+            tx_type,
+            payload,
+            signer=signer,
+            system=system,
+            parent=parent,
+            nonce=nonce,
+        ),
+    )
+
+
+def _prepare_governance(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    proposal_id = "proposal-a16"
+
+    if tx_type == "GOV_PROPOSAL_CREATE":
+        payload.setdefault("proposal_id", proposal_id)
+        payload.setdefault("title", "P2 lifecycle proposal")
+        payload.setdefault("body", "Executable lifecycle fixture")
+        return "@tester", payload
+
+    proposal_dependent = {
+        "GOV_PROPOSAL_EDIT",
+        "GOV_PROPOSAL_COMMENT",
+        "GOV_PROPOSAL_WITHDRAW",
+        "GOV_STAGE_SET",
+        "GOV_VOTE_CAST",
+        "GOV_VOTE_REVOKE",
+        "GOV_VOTING_CLOSE",
+        "GOV_TALLY_PUBLISH",
+        "GOV_EXECUTE",
+        "GOV_PROPOSAL_FINALIZE",
+    }
+    if tx_type not in proposal_dependent:
+        return "@tester", payload
+
+    _apply(
+        state,
+        "GOV_PROPOSAL_CREATE",
+        {
+            "proposal_id": proposal_id,
+            "title": "P2 lifecycle proposal",
+            "body": "Executable lifecycle fixture",
+        },
+    )
+    payload["proposal_id"] = proposal_id
+
+    if tx_type == "GOV_PROPOSAL_EDIT":
+        payload.setdefault("title", "P2 edited proposal")
+        return "@tester", payload
+
+    if tx_type == "GOV_PROPOSAL_COMMENT":
+        payload.setdefault("body", "P2 lifecycle comment")
+        return "@tester", payload
+
+    if tx_type == "GOV_PROPOSAL_WITHDRAW":
+        return "@tester", payload
+
+    if tx_type == "GOV_STAGE_SET":
+        payload.setdefault("stage", "voting")
+        return "SYSTEM", payload
+
+    _apply(
+        state,
+        "GOV_STAGE_SET",
+        {"proposal_id": proposal_id, "stage": "voting", "_due_height": 11},
+        system=True,
+    )
+
+    if tx_type == "GOV_VOTE_CAST":
+        payload["vote"] = "yes"
+        return "@tester", payload
+
+    if tx_type in {
+        "GOV_VOTE_REVOKE",
+        "GOV_VOTING_CLOSE",
+        "GOV_TALLY_PUBLISH",
+        "GOV_EXECUTE",
+        "GOV_PROPOSAL_FINALIZE",
+    }:
+        _apply(
+            state,
+            "GOV_VOTE_CAST",
+            {"proposal_id": proposal_id, "vote": "yes"},
+            signer="@tester",
+        )
+
+    if tx_type == "GOV_VOTE_REVOKE":
+        return "@tester", payload
+
+    if tx_type in {
+        "GOV_TALLY_PUBLISH",
+        "GOV_EXECUTE",
+        "GOV_PROPOSAL_FINALIZE",
+    }:
+        _apply(
+            state,
+            "GOV_VOTING_CLOSE",
+            {"proposal_id": proposal_id, "_due_height": 11},
+            system=True,
+        )
+
+    if tx_type == "GOV_VOTING_CLOSE":
+        return "SYSTEM", payload
+
+    if tx_type == "GOV_TALLY_PUBLISH":
+        payload.update(
+            {
+                "tally": {"yes": 1, "no": 0, "abstain": 0},
+                "total_votes": 1,
+                "quorum_required": 0,
+                "quorum_met": True,
+                "passed": True,
+                "_due_height": 11,
+            }
+        )
+        return "SYSTEM", payload
+
+    if tx_type in {"GOV_EXECUTE", "GOV_PROPOSAL_FINALIZE"}:
+        _apply(
+            state,
+            "GOV_TALLY_PUBLISH",
+            {
+                "proposal_id": proposal_id,
+                "tally": {"yes": 1, "no": 0, "abstain": 0},
+                "total_votes": 1,
+                "quorum_required": 0,
+                "quorum_met": True,
+                "passed": True,
+                "_due_height": 11,
+            },
+            system=True,
+        )
+
+    if tx_type == "GOV_EXECUTE":
+        payload["_due_height"] = 11
+        return "SYSTEM", payload
+
+    if tx_type == "GOV_PROPOSAL_FINALIZE":
+        _apply(
+            state,
+            "GOV_EXECUTE",
+            {"proposal_id": proposal_id, "_due_height": 11},
+            system=True,
+        )
+        payload["_due_height"] = 11
+        return "SYSTEM", payload
+
+    return "@tester", payload
+
+
+def _create_group(state: dict[str, Any], *, approval_required: bool = False) -> None:
+    _apply(
+        state,
+        "GROUP_CREATE",
+        {
+            "group_id": "group-a16",
+            "charter": "P2 lifecycle group",
+            "membership_mode": "approval_required" if approval_required else "open",
+            "read_visibility": "public",
+        },
+        signer="@tester",
+    )
+
+
+def _prepare_groups(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    if tx_type == "GROUP_CREATE":
+        payload.setdefault("charter", "P2 lifecycle group")
+        payload.setdefault("membership_mode", "open")
+        payload["group_id"] = "group-a16"
+        return "@tester", payload
+
+    if tx_type == "GROUP_TREASURY_CREATE":
+        return "SYSTEM", payload
+
+    approval_required = tx_type == "GROUP_MEMBERSHIP_DECIDE"
+    _create_group(state, approval_required=approval_required)
+    payload.setdefault("group_id", "group-a16")
+
+    if tx_type == "GROUP_MEMBERSHIP_REQUEST":
+        return "@member", payload
+
+    if tx_type == "GROUP_MEMBERSHIP_DECIDE":
+        _apply(
+            state,
+            "GROUP_MEMBERSHIP_REQUEST",
+            {"group_id": "group-a16", "note": "P2 request"},
+            signer="@member",
+        )
+        payload["account"] = "@member"
+        payload["decision"] = "accept"
+        return "@tester", payload
+
+    if tx_type == "GROUP_MEMBERSHIP_REMOVE":
+        _apply(
+            state,
+            "GROUP_MEMBERSHIP_REQUEST",
+            {"group_id": "group-a16"},
+            signer="@member",
+        )
+        payload["account"] = "@member"
+        return "@tester", payload
+
+    if tx_type == "GROUP_ROLE_GRANT":
+        payload["account"] = "@member"
+        payload["role"] = "moderators"
+        return "@tester", payload
+
+    if tx_type == "GROUP_ROLE_REVOKE":
+        _apply(
+            state,
+            "GROUP_ROLE_GRANT",
+            {"group_id": "group-a16", "account": "@member", "role": "moderators"},
+            signer="@tester",
+        )
+        payload["account"] = "@member"
+        payload["role"] = "moderators"
+        return "@tester", payload
+
+    if tx_type == "GROUP_SIGNERS_SET":
+        payload["signers"] = ["@tester"]
+        return "@tester", payload
+
+    if tx_type == "GROUP_MODERATORS_SET":
+        payload["moderators"] = ["@tester", "@member"]
+        return "@tester", payload
+
+    if tx_type == "GROUP_EMISSARY_ELECTION_CREATE":
+        payload.update(
+            {
+                "group_id": "group-a16",
+                "election_id": "election-a16",
+                "candidates": ["@tester"],
+                "seats": 5,
+                "start_height": 11,
+                "end_height": 20,
+            }
+        )
+        return "@tester", payload
+
+    if tx_type in {"GROUP_EMISSARY_BALLOT_CAST", "GROUP_EMISSARY_ELECTION_FINALIZE"}:
+        _apply(
+            state,
+            "GROUP_EMISSARY_ELECTION_CREATE",
+            {
+                "group_id": "group-a16",
+                "election_id": "election-a16",
+                "candidates": ["@tester"],
+                "seats": 5,
+                "start_height": 11,
+                "end_height": 20,
+            },
+            signer="@tester",
+        )
+        payload["group_id"] = "group-a16"
+        payload["election_id"] = "election-a16"
+        if tx_type == "GROUP_EMISSARY_BALLOT_CAST":
+            payload["ranking"] = ["@tester"]
+            return "@tester", payload
+        _apply(
+            state,
+            "GROUP_EMISSARY_BALLOT_CAST",
+            {"election_id": "election-a16", "ranking": ["@tester"]},
+            signer="@tester",
+        )
+        state["height"] = 20
+        return "@tester", payload
+
+    if tx_type == "GROUP_TREASURY_AUDIT_ANCHOR_SET":
+        payload["anchor"] = {"root": "p2-audit-anchor"}
+        return "SYSTEM", payload
+
+    if tx_type == "GROUP_TREASURY_POLICY_SET":
+        payload["policy"] = {"threshold": 1}
+        return "SYSTEM", payload
+
+    spend_family = {
+        "GROUP_TREASURY_SPEND_PROPOSE",
+        "GROUP_TREASURY_SPEND_SIGN",
+        "GROUP_TREASURY_SPEND_CANCEL",
+        "GROUP_TREASURY_SPEND_EXECUTE",
+        "GROUP_TREASURY_SPEND_EXPIRE",
+    }
+    if tx_type in spend_family:
+        _apply(
+            state,
+            "GROUP_SIGNERS_SET",
+            {"group_id": "group-a16", "signers": ["@tester"]},
+            signer="@tester",
+        )
+        _apply(
+            state,
+            "GROUP_TREASURY_CREATE",
+            {"treasury_id": "TREASURY_GROUP::group-a16", "balance": 100},
+            system=True,
+        )
+        if tx_type != "GROUP_TREASURY_SPEND_PROPOSE":
+            _apply(
+                state,
+                "GROUP_TREASURY_SPEND_PROPOSE",
+                {
+                    "group_id": "group-a16",
+                    "spend_id": "spend-a16",
+                    "to": "@member",
+                    "amount": 1,
+                },
+                signer="@tester",
+            )
+
+        payload["group_id"] = "group-a16"
+        payload["spend_id"] = "spend-a16"
+
+        if tx_type == "GROUP_TREASURY_SPEND_PROPOSE":
+            payload.update({"to": "@member", "amount": 1})
+            return "@tester", payload
+
+        if tx_type == "GROUP_TREASURY_SPEND_SIGN":
+            return "@tester", payload
+
+        if tx_type == "GROUP_TREASURY_SPEND_CANCEL":
+            return "@tester", payload
+
+        if tx_type == "GROUP_TREASURY_SPEND_EXECUTE":
+            _apply(
+                state,
+                "GROUP_TREASURY_SPEND_SIGN",
+                {"group_id": "group-a16", "spend_id": "spend-a16"},
+                signer="@tester",
+            )
+            return "SYSTEM", payload
+
+        return "SYSTEM", payload
+
+    return "@tester", payload
+
+
+def _prepared_envelope(
+    state: dict[str, Any],
+    row: dict[str, Any],
+) -> TxEnvelope:
+    tx_type = str(row["tx_type"])
+    payload = copy.deepcopy(row["baseline_payload"])
+    system = str(row.get("origin") or "").upper() == "SYSTEM"
+    signer = "SYSTEM" if system else "@tester"
+
+    if str(row.get("domain") or "") == "Governance":
+        signer, payload = _prepare_governance(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Groups":
+        signer, payload = _prepare_groups(state, tx_type, payload)
+
+    system = str(row.get("origin") or "").upper() == "SYSTEM"
+    block_only = str(row.get("context") or "").lower() == "block"
+    receipt_only = bool(row.get("receipt_only"))
+    return _tx(
+        tx_type,
+        payload,
+        signer=signer,
+        system=system,
+        parent="PARENT-A02" if block_only or receipt_only else None,
+    )
+
+
 def test_a02_f003_all_canon_baselines_have_successful_apply_fixture() -> None:
-    payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    rows = payload["rows"]
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    rows = manifest["rows"]
     assert len(rows) == 236
 
     failures: list[tuple[str, str, str]] = []
@@ -106,7 +493,7 @@ def test_a02_f003_all_canon_baselines_have_successful_apply_fixture() -> None:
         tx_type = str(row["tx_type"])
         state = _base_state()
         try:
-            apply_tx_atomic_meta_bounded_rollback(state, _envelope(row))
+            apply_tx_atomic_meta_bounded_rollback(state, _prepared_envelope(state, row))
         except Exception as exc:  # domain error families intentionally vary.
             failures.append(
                 (
