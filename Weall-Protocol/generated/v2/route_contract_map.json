@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c64e977441238fac81e8f5c5aa46c62b8678eb5b09d35a17db28c06e0be71359"
+    "source_tree_digest": "e4a233d9e5c2c3102fe9273fc5aa9fcefc465b7722fa73c1824359c04b00e711"
   },
   "required_fields": [
     "stable_id",
@@ -6873,6 +6873,7 @@
         "tests/prod/test_release_cleanup_hygiene.py",
         "tests/prod/test_reviewer_lane_schema_and_frontend_coherence.py",
         "tests/test_a15_f003_account_registration_scarcity.py",
+        "tests/test_a16_f006_all_tx_semantic_assurance.py",
         "tests/test_account_gate_and_tx_queue_status.py",
         "tests/test_admission.py",
         "tests/test_admission_peer_payload_mvp.py",

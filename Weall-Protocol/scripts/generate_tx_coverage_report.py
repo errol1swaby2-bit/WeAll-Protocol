@@ -166,9 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     lines: list[str] = []
     lines.append("# WeAll Tx Coverage Report")
     lines.append("")
-    lines.append(
-        "> **Assurance boundary:** structural canon/schema coverage plus the tracked"
-    )
+    lines.append("> **Assurance boundary:** structural canon/schema coverage plus the tracked")
     lines.append(
         "> all-236 bounded executable semantic matrix is proven. Each canonical transaction"
     )
