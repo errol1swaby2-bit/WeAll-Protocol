@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "8cf7194ede766c0cdbd196fdb503ff51dfd777276390b45c867b1467b9879369"
+    "source_tree_digest": "50f959fd690537ba21bc2ff22c75d3fcfc3902334226f3a2e4af6f66da64d9ae"
   },
   "required_fields": [
     "stable_id",
@@ -260,6 +260,7 @@
         "tests/test_p0_restart_and_poh_privacy_closure.py",
         "tests/test_p0_scheduler_and_receipt_breadth_closure.py",
         "tests/test_p1_a17_clean_lifecycle.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_a13_signature_authority.py",
         "tests/test_p2_a14_concurrency_closure.py",
         "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
@@ -437,6 +438,7 @@
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_helper_execution_lane_alignment.py",
         "tests/test_p1_a13_key_identity_canonicalization.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_priority0_account_key_normalization.py"
       ],
       "tx_type": "ACCOUNT_KEY_ADD",
@@ -550,6 +552,7 @@
       "tests": [
         "tests/test_p1_a13_key_identity_canonicalization.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_priority0_account_key_normalization.py"
       ],
       "tx_type": "ACCOUNT_KEY_REVOKE",
@@ -684,6 +687,7 @@
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_one_node_per_user.py",
         "tests/test_one_node_per_user_revocation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_a13_signature_authority.py",
         "tests/test_priority0_consensus_and_payload_fixes.py",
         "tests/test_production_consensus_profile.py",
@@ -797,7 +801,8 @@
         "tests/test_identity_domain_mvp.py",
         "tests/test_nonce_failure_block_progression.py",
         "tests/test_nonce_not_consumed_on_apply_reject.py",
-        "tests/test_one_node_per_user_revocation.py"
+        "tests/test_one_node_per_user_revocation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_DEVICE_REVOKE",
       "vector_ids": [
@@ -910,6 +915,7 @@
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
         "tests/test_mempool_batch_submit_equivalence.py",
         "tests/test_nonce_pipelining_throughput.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_session_auth_safety.py"
       ],
@@ -1022,6 +1028,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_session_auth_safety.py"
       ],
       "tx_type": "ACCOUNT_SESSION_KEY_REVOKE",
@@ -1222,7 +1229,8 @@
       "system_followups": [],
       "tests": [
         "tests/test_dispute_followups.py",
-        "tests/test_domain_apply_nonce_convergence.py"
+        "tests/test_domain_apply_nonce_convergence.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_LOCK",
       "vector_ids": [
@@ -1306,7 +1314,8 @@
       ],
       "system_followups": [],
       "tests": [
-        "tests/test_consensus_attestation_safety.py"
+        "tests/test_consensus_attestation_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_UNLOCK",
       "vector_ids": [
@@ -8050,6 +8059,7 @@
         "tests/test_p0_a01_a20_closure_regressions.py",
         "tests/test_p1_a12_mempool_redaction.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_parallel_execution_conflict_lanes.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
@@ -8234,6 +8244,7 @@
         "tests/test_helper_conflict_matrix.py",
         "tests/test_helper_conflict_safety.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py"
       ],
       "tx_type": "CONTENT_POST_EDIT",
@@ -8365,6 +8376,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_reputation_accrual_policy.py"
       ],
@@ -8535,6 +8547,7 @@
         "tests/test_deep_ai_engineering_integrity_closure.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
         "tests/test_operator_ingress_signature_required_prod.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_public_only_protocol_redesign.py"
       ],
@@ -8666,8 +8679,7 @@
       ],
       "system_followups": [],
       "tests": [
-        "tests/test_tx_contract_coverage.py",
-        "tests/test_v2_spec_compiler.py"
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "CONTENT_COMMENT_DELETE",
       "vector_ids": [
@@ -9649,6 +9661,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_reputation_accrual_policy.py"
@@ -9791,7 +9804,8 @@
       ],
       "system_followups": [],
       "tests": [
-        "tests/test_p1_remaining_complete_remediation.py"
+        "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "CONTENT_MEDIA_BIND",
       "vector_ids": [
@@ -9935,6 +9949,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "CONTENT_MEDIA_REPLACE",
@@ -10068,6 +10083,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "CONTENT_MEDIA_UNBIND",
@@ -11226,6 +11242,7 @@
         "tests/prod/test_protocol_upgrade_execution_hardening_plan.py",
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_launch_gate_proof_surfaces.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_protocol_upgrade_height_scheduled_lifecycle.py",
         "tests/test_protocol_upgrade_record_only_boundary.py",
         "tests/test_readiness_safety.py",
@@ -11370,6 +11387,7 @@
         "tests/prod/test_protocol_upgrade_execution_hardening_plan.py",
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_launch_gate_proof_surfaces.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_protocol_upgrade_height_scheduled_lifecycle.py",
         "tests/test_protocol_upgrade_record_only_boundary.py",
         "tests/test_readiness_safety.py",
@@ -11497,7 +11515,8 @@
         "tests/prod/test_protocol_upgrade_execution_hardening_plan.py",
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_constitution_upgrade_height_scheduled_lifecycle.py",
-        "tests/test_p0_07_constitutional_scope_closure.py"
+        "tests/test_p0_07_constitutional_scope_closure.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "CONSTITUTION_UPGRADE_DECLARE",
       "vector_ids": [
@@ -11632,7 +11651,8 @@
         "tests/prod/test_protocol_upgrade_execution_hardening_plan.py",
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_constitution_upgrade_height_scheduled_lifecycle.py",
-        "tests/test_p0_07_constitutional_scope_closure.py"
+        "tests/test_p0_07_constitutional_scope_closure.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
       "vector_ids": [
@@ -11723,6 +11743,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "TREASURY_WALLET_CREATE",
@@ -11837,6 +11858,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_cross_tx_treasury_policy_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
@@ -11952,6 +11974,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_cross_tx_treasury_policy_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
@@ -13206,6 +13229,7 @@
       "tests": [
         "tests/test_admission_validator_payload_mvp.py",
         "tests/test_observer_boot_onboarding_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_register_system_only.py"
@@ -13513,6 +13537,7 @@
         "tests/test_governance_runtime_surface.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_epoch_convergence.py",
         "tests/test_validator_governance_activation.py",
@@ -13643,6 +13668,7 @@
       "system_followups": [],
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "VALIDATOR_DEREGISTER",
@@ -13758,6 +13784,7 @@
       "system_followups": [],
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "VALIDATOR_HEARTBEAT",
@@ -14188,6 +14215,7 @@
         "tests/test_consensus_attestation_safety.py",
         "tests/test_consensus_equivocation_slash_execute.py",
         "tests/test_lineage_witness_contract.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_state_sync_aux_branch_reset.py",
         "tests/test_tx_catalog_route.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
@@ -14371,6 +14399,7 @@
         "tests/test_bft_canonical_finality_bridge.py",
         "tests/test_epoch_blocks_per_epoch.py",
         "tests/test_lineage_witness_contract.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_system_tx_post_phase_parity.py",
@@ -14641,6 +14670,7 @@
         "tests/test_epoch_blocks_per_epoch.py",
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_epoch_convergence.py",
         "tests/test_validator_generation_network_authority.py",
@@ -15208,6 +15238,7 @@
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_four_gate_safety.py",
         "tests/test_p1_a10_reward_scheduler_scope.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
@@ -15852,6 +15883,7 @@
         "tests/test_ipfs_replication_assignment.py",
         "tests/test_media_pin_and_async_case_visibility.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_storage_capacity_proof_production.py",
         "tests/test_storage_revalidation_and_accounting.py",
         "tests/test_tx_schema_networking_storage.py"
@@ -16016,6 +16048,7 @@
         "tests/test_coverage_behavior.py",
         "tests/test_ipfs_cid_and_capacity_gates.py",
         "tests/test_ipfs_replication_assignment.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_storage_closure.py",
         "tests/test_storage_revalidation_and_accounting.py",
         "tests/test_tx_schema_networking_storage.py",
@@ -16137,6 +16170,7 @@
         "tests/test_apply_storage_peer_validator.py",
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_storage_capacity_proof_production.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
@@ -16251,6 +16285,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
       "tx_type": "STORAGE_OFFER_WITHDRAW",
@@ -16372,6 +16407,7 @@
       "tests": [
         "tests/test_apply_storage_peer_validator.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_storage_closure.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
@@ -16496,6 +16532,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_storage_closure.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
@@ -16612,6 +16649,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
       "tx_type": "STORAGE_LEASE_REVOKE",
@@ -16735,6 +16773,7 @@
       ],
       "tests": [
         "tests/test_helper_serial_equivalence_mixed_lane.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_storage_closure.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
@@ -16911,6 +16950,7 @@
       "tests": [
         "tests/test_apply_storage_peer_validator.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_storage_capacity_proof_production.py",
         "tests/test_storage_revalidation_and_accounting.py",
         "tests/test_tx_schema_networking_storage.py"
@@ -17130,6 +17170,7 @@
         "tests/test_apply_storage_peer_validator.py",
         "tests/test_helper_serial_equivalence_mixed_lane.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_storage_capacity_proof_production.py",
         "tests/test_storage_revalidation_and_accounting.py",
         "tests/test_tx_schema_networking_storage.py"
@@ -18194,6 +18235,7 @@
       ],
       "tests": [
         "tests/test_audit_remediation_spec_compiler.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "STATE_SNAPSHOT_DECLARE",
@@ -18306,6 +18348,7 @@
         "COLD_SYNC_REQUEST"
       ],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "STATE_SNAPSHOT_ACCEPT",
@@ -18416,6 +18459,7 @@
         "COLD_SYNC_COMPLETE"
       ],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "COLD_SYNC_REQUEST",
@@ -18522,6 +18566,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "COLD_SYNC_COMPLETE",
@@ -18650,6 +18695,7 @@
         "tests/test_content_reviewer_selection_and_surface.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_exact_responsibility_lane_consent.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_responsibility_opt_in_safety.py",
@@ -18780,6 +18826,7 @@
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_read_write_scope_guards.py",
         "tests/test_read_write_scope_guards_correction.py",
         "tests/test_tx_conflict_matrix.py",
@@ -18887,6 +18934,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_cross_tx_role_identity_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -19014,6 +19062,7 @@
       ],
       "tests": [
         "tests/test_cross_tx_role_identity_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -19155,6 +19204,7 @@
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_four_gate_safety.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_promoted_validator_reboot_gate.py",
         "tests/test_role_system_applier_defense_in_depth.py",
         "tests/test_tx_conflict_matrix.py",
@@ -19434,6 +19484,7 @@
         "tests/test_fresh_node_to_service_e2e.py",
         "tests/test_node_operator_onboarding_ux.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_role_self_target_safety.py",
         "tests/test_storage_responsibility_scaffold.py",
         "tests/test_tx_conflict_matrix.py",
@@ -19596,6 +19647,7 @@
         "tests/test_node_operator_onboarding_ux.py",
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_post31_closure_pack.py",
         "tests/test_promoted_validator_reboot_gate.py",
         "tests/test_responsibility_opt_in_safety.py",
@@ -19699,6 +19751,7 @@
       "tests": [
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -19786,6 +19839,7 @@
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_cross_tx_role_identity_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -19882,6 +19936,7 @@
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_cross_tx_role_identity_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -21044,6 +21099,7 @@
         "tests/test_launch_gate_proof_surfaces.py",
         "tests/test_operator_ingress_signature_required_prod.py",
         "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_real_tokenomics_policy.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_bft_economics_go_gates.py",
@@ -24900,6 +24956,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_governance_execution_vectors_v1.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_rate_limit_policy_capture_safety.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -25239,7 +25296,8 @@
         "tests/test_identity_domain_mvp.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
-        "tests/test_p1_a13_key_identity_canonicalization.py"
+        "tests/test_p1_a13_key_identity_canonicalization.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_RECOVERY_CONFIG_SET",
       "vector_ids": [
@@ -25353,7 +25411,8 @@
       ],
       "system_followups": [],
       "tests": [
-        "tests/test_identity_domain_mvp.py"
+        "tests/test_identity_domain_mvp.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_GUARDIAN_ADD",
       "vector_ids": [
@@ -25463,7 +25522,8 @@
       ],
       "system_followups": [],
       "tests": [
-        "tests/test_identity_domain_mvp.py"
+        "tests/test_identity_domain_mvp.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_GUARDIAN_REMOVE",
       "vector_ids": [
@@ -25671,7 +25731,8 @@
         "tests/test_identity_domain_mvp.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
-        "tests/test_multi_causal_receipt_contract_truthfulness.py"
+        "tests/test_multi_causal_receipt_contract_truthfulness.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_RECOVERY_REQUEST",
       "vector_ids": [
@@ -25948,7 +26009,8 @@
         "tests/test_identity_domain_mvp.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
-        "tests/test_m2_complete_security_and_lifecycle.py"
+        "tests/test_m2_complete_security_and_lifecycle.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_RECOVERY_APPROVE",
       "vector_ids": [
@@ -26065,7 +26127,8 @@
       "tests": [
         "tests/test_identity_domain_mvp.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
-        "tests/test_m2_complete_security_and_lifecycle.py"
+        "tests/test_m2_complete_security_and_lifecycle.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_RECOVERY_CANCEL",
       "vector_ids": [
@@ -26192,7 +26255,8 @@
         "tests/test_identity_domain_mvp.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
-        "tests/test_multi_causal_receipt_contract_truthfulness.py"
+        "tests/test_multi_causal_receipt_contract_truthfulness.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_RECOVERY_FINALIZE",
       "vector_ids": [
@@ -26294,7 +26358,8 @@
       "tests": [
         "tests/test_identity_domain_mvp.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
-        "tests/test_multi_causal_receipt_contract_truthfulness.py"
+        "tests/test_multi_causal_receipt_contract_truthfulness.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "ACCOUNT_RECOVERY_RECEIPT",
       "vector_ids": [
@@ -26425,6 +26490,7 @@
         "tests/test_external_observer_two_machine_live_e2e.py",
         "tests/test_genesis_multi_user_rehearsal_safety.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_peer_advertise_node_binding_safety.py",
         "tests/test_two_process_external_observer_onboarding.py",
         "tests/test_tx_admission_api_security_fail_closed.py",
@@ -26548,6 +26614,7 @@
         "tests/test_genesis_multi_user_rehearsal_safety.py",
         "tests/test_networking_peer_request_connect_safety.py",
         "tests/test_observer_to_validator_authority_path.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_two_process_external_observer_onboarding.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
@@ -26638,6 +26705,7 @@
       "tests": [
         "tests/prod/test_external_observer_signed_onboarding_tx_e2e.py",
         "tests/test_admission_peer_payload_mvp.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
       "tx_type": "PEER_RENDEZVOUS_TICKET_CREATE",
@@ -26740,6 +26808,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_admission_peer_payload_mvp.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_networking_storage.py"
       ],
       "tx_type": "PEER_RENDEZVOUS_TICKET_REVOKE",
@@ -27723,6 +27792,7 @@
         "tests/test_apply_roles_mvp.py",
         "tests/test_cross_domain_group_treasury_serial_execution_safety.py",
         "tests/test_cross_node_forensics_convergence.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_status_consensus_diagnostics.py",
         "tests/test_transition_and_helper_replay_observability.py",
@@ -28068,6 +28138,7 @@
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_governance_followups.py",
         "tests/test_governance_runtime_surface.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_role_system_applier_defense_in_depth.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
@@ -28192,6 +28263,7 @@
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_governance_followups.py",
         "tests/test_governance_runtime_surface.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_authority_canonical_precedence.py",
         "tests/test_validator_epoch_convergence.py",
@@ -29758,6 +29830,7 @@
         "tests/test_exact_responsibility_lane_consent.py",
         "tests/test_fresh_node_to_service_e2e.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py"
       ],
       "tx_type": "NODE_OPERATOR_STORAGE_OPT_IN",
@@ -29909,6 +29982,7 @@
         "tests/test_fresh_node_to_service_e2e.py",
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_role_system_applier_defense_in_depth.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_validator_live_readiness_runner.py"
@@ -30080,6 +30154,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py"
       ],
       "tx_type": "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
@@ -30254,6 +30329,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_storage_revalidation_and_accounting.py",
         "tests/test_tx_conflict_matrix.py"
       ],
@@ -30396,6 +30472,7 @@
         "tests/test_audit_remediation_validator_transitions.py",
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_operator_storage_validator_production_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_promoted_validator_reboot_gate.py",
         "tests/test_role_system_applier_defense_in_depth.py",
         "tests/test_tx_conflict_matrix.py",
@@ -30773,6 +30850,7 @@
         "tests/prod/test_reviewer_lane_schema_and_frontend_coherence.py",
         "tests/test_content_reviewer_selection_and_surface.py",
         "tests/test_exact_responsibility_lane_consent.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_responsibility_opt_in_safety.py",
         "tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py",
         "tests/test_trusted_responsibility_opt_in.py",
@@ -30912,6 +30990,7 @@
         "tests/prod/test_reviewer_lane_schema_and_frontend_coherence.py",
         "tests/test_content_reviewer_selection_and_surface.py",
         "tests/test_exact_responsibility_lane_consent.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py"
       ],
       "tx_type": "REVIEWER_LANE_OPT_OUT",
@@ -31062,6 +31141,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_exact_responsibility_lane_consent.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_conflict_matrix.py"
       ],
