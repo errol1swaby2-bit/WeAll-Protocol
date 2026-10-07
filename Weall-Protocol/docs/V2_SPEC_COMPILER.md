@@ -136,3 +136,16 @@ python scripts/export_v2_spec_release.py \
 
 The release export does not activate public testnet, Mainnet, economics,
 constitutional execution, validator authority, or production helpers.
+
+
+## Release identity versus V2 source-tree digest
+
+The V2 `source_tree_digest` is deliberately scoped to the compiler's declared semantic/source-coverage set. It answers: “did the behavior/specification material covered by the V2 compiler change?” It is **not** a fingerprint of every tracked build, deployment, bootstrap, documentation, or repository-governance file.
+
+For an exact review/release subject, use the runtime release manifest:
+
+```bash
+python scripts/gen_release_evidence_manifest_v1_5.py --runtime-json
+```
+
+That output records both `git_head` and `git_tree`. The Git tree is the whole tracked-tree identity: a tracked build/deployment/bootstrap-only change changes `git_tree` even when the narrower V2 semantic `source_tree_digest` correctly remains unchanged. A tracked manifest cannot safely embed the hash of the Git tree that contains itself, so this exact-tree binding is runtime/export evidence rather than a self-referential tracked generated file.
