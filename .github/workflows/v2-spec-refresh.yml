@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 first-wave artifact refresh trigger
 
 on:
   workflow_dispatch:
