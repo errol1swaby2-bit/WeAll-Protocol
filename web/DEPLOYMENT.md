@@ -41,6 +41,7 @@ server {
   add_header Referrer-Policy "no-referrer" always;
   add_header X-Frame-Options "DENY" always;
   add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+  add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http://127.0.0.1:* http://localhost:*;" always;
 
   # SPA: send any unknown path to index.html
   location / {
@@ -72,6 +73,7 @@ weall.example.com {
     Referrer-Policy "no-referrer"
     X-Frame-Options "DENY"
     Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http://127.0.0.1:* http://localhost:*;"
   }
 
   # API proxy
@@ -86,4 +88,4 @@ native PoH verification
 
 Tier 1 native async verification routes through the active WeAll API target and protocol-native PoH surfaces. The frontend does not load a third-party challenge widget or external identity-provider endpoint for the primary PoH path.
 
-The CSP permits only the app itself plus normal API/media connections configured by deployment headers.
+The production examples above mechanically emit the same script-execution boundary used by Vite preview: `script-src 'self'` and `object-src 'none'`. Operators that change API/media origins must deliberately adjust `connect-src`, `img-src`, or `media-src` without weakening the script policy.
