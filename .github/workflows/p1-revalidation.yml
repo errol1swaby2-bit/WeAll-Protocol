@@ -42,6 +42,7 @@ jobs:
         run: |
           python -m tooling.canon_lint
           python scripts/check_generated.py
+          python scripts/gen_tx_semantic_assurance_v1_5.py --check
 
       - name: P1-06 PoH production scope-closure overlap
         working-directory: Weall-Protocol
@@ -97,6 +98,7 @@ jobs:
             tests/test_p1_a18_claim_boundaries.py \
             tests/test_p1_a19_reviewer_front_door.py \
             tests/test_p1_a19_reviewer_bootstrap.py \
+            tests/test_a16_f006_all_tx_semantic_assurance.py \
             tests/test_tx_coverage_report_current_index.py \
             tests/test_tx_signature_profile_admission.py \
             tests/test_block_signature_profiles.py \
