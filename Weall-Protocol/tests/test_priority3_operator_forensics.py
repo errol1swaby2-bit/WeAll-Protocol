@@ -174,6 +174,7 @@ class _FakeNetNode:
 
 def test_status_consensus_forensics_endpoint_exposes_operator_debug(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_CONSENSUS_FORENSICS_OPERATOR_TOKEN", "forensics-token")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@validator-2")
 
@@ -182,7 +183,10 @@ def test_status_consensus_forensics_endpoint_exposes_operator_debug(monkeypatch)
     app.state.net_node = _FakeNetNode()
     client = TestClient(app)
 
-    r = client.get("/v1/status/consensus/forensics")
+    r = client.get(
+        "/v1/status/consensus/forensics",
+        headers={"X-WeAll-Consensus-Forensics-Token": "forensics-token"},
+    )
     assert r.status_code == 200
     body = r.json()
 
