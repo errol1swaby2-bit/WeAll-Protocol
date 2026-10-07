@@ -117,7 +117,7 @@ def _receipt_verify(receipt, pubkey: str) -> bool:
 
 
 def test_helper_receipt_profile_stripping_and_unknown_profile_fail() -> None:
-    keypair = deterministic_mldsa_keypair()
+    pubkey, privkey = deterministic_mldsa_keypair(label="p2-a13-helper-receipt")
     receipt = sign_helper_receipt(
         chain_id="weall-testnet-v1",
         height=7,
@@ -130,14 +130,14 @@ def test_helper_receipt_profile_stripping_and_unknown_profile_fail() -> None:
         output_state_hash="out",
         helper_id="helper-a",
         plan_id="plan-p2",
-        privkey=keypair["privkey"],
+        privkey=privkey,
         sig_profile="pq-mldsa-v1",
     )
 
-    assert _receipt_verify(receipt, keypair["pubkey"]) is True
-    assert _receipt_verify(replace(receipt, sig_profile=""), keypair["pubkey"]) is False
+    assert _receipt_verify(receipt, pubkey) is True
+    assert _receipt_verify(replace(receipt, sig_profile=""), pubkey) is False
     assert (
-        _receipt_verify(replace(receipt, sig_profile="unknown-profile"), keypair["pubkey"]) is False
+        _receipt_verify(replace(receipt, sig_profile="unknown-profile"), pubkey) is False
     )
 
 
@@ -165,44 +165,44 @@ def _unsigned_certificate() -> HelperExecutionCertificate:
 
 
 def test_helper_certificate_binds_domain_and_explicit_profile() -> None:
-    keypair = deterministic_mldsa_keypair()
+    pubkey, privkey = deterministic_mldsa_keypair(label="p2-a13-helper-certificate")
     signed = sign_helper_certificate(
         _unsigned_certificate(),
-        privkey=keypair["privkey"],
+        privkey=privkey,
         sig_profile="pq-mldsa-v1",
     )
     assert isinstance(signed, HelperExecutionCertificate)
     assert signed.domain == CERTIFICATE_DOMAIN
-    assert verify_helper_certificate_signature(signed, helper_pubkey=keypair["pubkey"]) is True
+    assert verify_helper_certificate_signature(signed, helper_pubkey=pubkey) is True
 
     domain_mutation = HelperExecutionCertificate(
         **{**signed.to_json(), "domain": "WEALL/HELPER_RECEIPT/V1"}
     )
     assert (
-        verify_helper_certificate_signature(domain_mutation, helper_pubkey=keypair["pubkey"])
+        verify_helper_certificate_signature(domain_mutation, helper_pubkey=pubkey)
         is False
     )
 
     stripped = signed.to_json()
     stripped.pop("domain")
-    assert verify_helper_certificate_signature(stripped, helper_pubkey=keypair["pubkey"]) is False
+    assert verify_helper_certificate_signature(stripped, helper_pubkey=pubkey) is False
 
     stripped_profile = signed.to_json()
     stripped_profile.pop("sig_profile")
     assert (
-        verify_helper_certificate_signature(stripped_profile, helper_pubkey=keypair["pubkey"])
+        verify_helper_certificate_signature(stripped_profile, helper_pubkey=pubkey)
         is False
     )
 
     unknown_profile = {**signed.to_json(), "sig_profile": "unknown-profile"}
     assert (
-        verify_helper_certificate_signature(unknown_profile, helper_pubkey=keypair["pubkey"])
+        verify_helper_certificate_signature(unknown_profile, helper_pubkey=pubkey)
         is False
     )
 
 
 def test_helper_receipt_signature_cannot_authorize_certificate() -> None:
-    keypair = deterministic_mldsa_keypair()
+    pubkey, privkey = deterministic_mldsa_keypair(label="p2-a13-cross-object")
     receipt = sign_helper_receipt(
         chain_id="weall-testnet-v1",
         height=9,
@@ -215,10 +215,10 @@ def test_helper_receipt_signature_cannot_authorize_certificate() -> None:
         output_state_hash="out",
         helper_id="v2",
         plan_id="plan-p2",
-        privkey=keypair["privkey"],
+        privkey=privkey,
         sig_profile="pq-mldsa-v1",
     )
     forged = HelperExecutionCertificate(
         **{**_unsigned_certificate().to_json(), "helper_signature": receipt.signature}
     )
-    assert verify_helper_certificate_signature(forged, helper_pubkey=keypair["pubkey"]) is False
+    assert verify_helper_certificate_signature(forged, helper_pubkey=pubkey) is False
