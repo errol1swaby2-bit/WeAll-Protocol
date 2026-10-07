@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 final closure artifact refresh
 
 on:
   workflow_dispatch:
