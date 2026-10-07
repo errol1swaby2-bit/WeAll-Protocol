@@ -88,6 +88,37 @@ def _receipt(tx_id: str, env: TxEnvelope) -> dict[str, Any]:
     }
 
 
+def _stable_admission_envelope(env: TxEnvelope) -> dict[str, Any]:
+    """Return admission semantics without randomized signature bytes."""
+
+    payload = copy.deepcopy(env.to_json())
+    payload.pop("sig", None)
+    signature = payload.get("signature")
+    if isinstance(signature, dict):
+        signature = dict(signature)
+        signature.pop("sig", None)
+        if signature:
+            payload["signature"] = signature
+        else:
+            payload.pop("signature", None)
+    return payload
+
+
+def _signature_evidence(env: TxEnvelope) -> dict[str, Any]:
+    payload = env.to_json()
+    signature = payload.get("signature") if isinstance(payload.get("signature"), dict) else {}
+    sig_hex = str(payload.get("sig") or signature.get("sig") or "")
+    return {
+        "required": not bool(env.system),
+        "admission_verified": True,
+        "sig_profile": str(payload.get("sig_profile") or ""),
+        "algorithm": str(signature.get("alg") or ""),
+        "pubkey": str(payload.get("pubkey") or signature.get("pubkey") or ""),
+        "signature_bytes": len(bytes.fromhex(sig_hex)) if sig_hex else 0,
+        "signature_bytes_omitted_from_manifest": bool(sig_hex),
+    }
+
+
 def _admitted_envelope(
     fixture: ModuleType,
     state: dict[str, Any],
@@ -99,9 +130,13 @@ def _admitted_envelope(
     fixture._seed_a02_admission_authority(state, tx_type, env.signer, env.payload)
 
     admitted = TxEnvelope.from_json(env.to_json())
-    if context == "block" and not bool(admitted.system):
-        ensure_account_has_test_key(state.setdefault("accounts", {}), account_id=admitted.signer)
-        admitted = TxEnvelope.from_json(sign_tx_dict(admitted.to_json(), label=admitted.signer))
+    if not bool(admitted.system):
+        ensure_account_has_test_key(
+            state.setdefault("accounts", {}), account_id=admitted.signer
+        )
+        admitted = TxEnvelope.from_json(
+            sign_tx_dict(admitted.to_json(), label=admitted.signer)
+        )
 
     verdict = admit_tx(admitted, state, canon=load_default_tx_index(), context=context)
     if not verdict.ok:
@@ -152,7 +187,8 @@ def _build_row(
         "handler": handler_name_for_tx_type(tx_type),
         "successful_execution": {
             "envelope": prepared.to_json(),
-            "admission_envelope": admitted.to_json(),
+            "admission_envelope": _stable_admission_envelope(admitted),
+            "signature_evidence": _signature_evidence(admitted),
             "admission_expected": {
                 "ok": True,
                 "context": context,
