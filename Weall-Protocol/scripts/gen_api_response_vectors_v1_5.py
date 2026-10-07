@@ -189,9 +189,9 @@ _VECTOR_ROUTES: list[Json] = [
         "route_key": "GET /v1/status/consensus/forensics",
         "expected_http_statuses": [200],
         "expected_top_level_keys": ["ok"],
-        "auth_case": "public_read_redacted_snapshot",
-        "error_codes": [],
-        "privacy_boundary": "forensics are bounded diagnostics and not peer secrets",
+        "auth_case": "public_consensus_health_operator_token_for_full_forensics",
+        "error_codes": ["forbidden", "consensus_forensics_operator_token_required"],
+        "privacy_boundary": "anonymous production callers receive a strict chain-health projection; full bounded forensics require an operator token",
     },
     {
         "id": "mempool-status-redacted",
