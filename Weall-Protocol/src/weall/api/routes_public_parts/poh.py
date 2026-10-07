@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import hashlib
 import hmac
 import io
@@ -2166,14 +2168,26 @@ def _webrtc_signal_queue_path() -> Path:
     ) / "webrtc_signal_bridge_tx_queue.json"
 
 
+@contextlib.contextmanager
 def _webrtc_signal_queue_lock():
+    """Serialize the full WebRTC queue read/modify/write transaction.
+
+    A14-F003: this queue is shared local durable state. A process-local
+    threading.Lock cannot serialize multiple Gunicorn workers, and lazy lock
+    construction itself had a first-use race. Use the same POSIX file-lock
+    discipline as the observer transaction queue so every process sharing the
+    path participates in one synchronization domain.
+    """
+
     path = _webrtc_signal_queue_path()
-    locks = globals().setdefault("_WEALL_WEBRTC_SIGNAL_QUEUE_LOCKS", {})
-    lock = locks.get(str(path))
-    if lock is None:
-        lock = threading.Lock()
-        locks[str(path)] = lock
-    return lock
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_suffix(path.suffix + ".lock")
+    with lock_path.open("a+", encoding="utf-8") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
 def _load_webrtc_signal_queue_unlocked() -> list[Json]:
@@ -2226,8 +2240,19 @@ def _write_webrtc_signal_queue_unlocked(rows: list[Json]) -> None:
         diag["max_record_pruned"] = int(diag.get("max_record_pruned") or 0) + overflow_pruned
     clean = clean[-max_rows:]
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(clean, sort_keys=True, indent=2), encoding="utf-8")
-    tmp.replace(path)
+    encoded = json.dumps(clean, sort_keys=True, indent=2)
+    with tmp.open("w", encoding="utf-8") as fh:
+        fh.write(encoded)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+    if os.name != "nt":
+        flags = os.O_RDONLY | int(getattr(os, "O_DIRECTORY", 0))
+        dir_fd = os.open(str(path.parent), flags)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
 
 
 def _read_webrtc_signal_queue() -> list[Json]:
