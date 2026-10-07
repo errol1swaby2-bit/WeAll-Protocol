@@ -18,16 +18,19 @@ def _git(*args: str, cwd: Path = ROOT) -> str:
     return proc.stdout.strip()
 
 
-def test_runtime_release_manifest_binds_exact_git_tree() -> None:
+def _runtime_manifest() -> dict:
     proc = subprocess.run(
         ["python", "scripts/gen_release_evidence_manifest_v1_5.py", "--runtime-json"],
         cwd=ROOT,
-        check=False,
+        check=True,
         capture_output=True,
         text=True,
     )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads(proc.stdout)
+    return json.loads(proc.stdout)
+
+
+def test_runtime_release_manifest_binds_exact_git_tree() -> None:
+    payload = _runtime_manifest()
     assert payload["git_head"] == _git("rev-parse", "HEAD")
     assert payload["git_tree"] == _git("rev-parse", "HEAD^{tree}")
     assert len(payload["git_tree"]) == 40
