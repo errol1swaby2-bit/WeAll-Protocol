@@ -68,7 +68,7 @@
       "track": "P2-03",
       "status": "external_evidence_blocker",
       "summary": "Determinism validation remains incomplete across machines and protocol breadth",
-      "evidence": "Repository-internal determinism coverage is stronger, but the original closure contract requires two independent external/physical-machine packets on the same exact commit, varied PYTHONHASHSEED, broad transition/state-sync replay coverage, matching roots, and an aggregate exact-commit transcript. Hosted repository CI does not substitute for that external evidence."
+      "evidence": "Repository-side closure preparation is now comprehensive but the original external-evidence requirement remains authoritative. scripts/capture_a04_external_determinism_packet_v1_5.py captures exact commit/tree, narrow per-block replay, DB-backed and fresh-node replay/state-sync, the all-236 lifecycle corpus, scheduler/order permutations, helper serial equivalence, failed-receipt replay, and seeded determinism regressions. scripts/a04_cross_machine_determinism_probe_v1_5.py additionally proves all-236 lifecycle regeneration under PYTHONHASHSEED=0,1,7,42 plus insertion-order-invariant canonical projection. scripts/build_external_cross_machine_replay_transcript_v1_5.py rejects cross-machine mismatches, and strict transcript validation independently checks per-machine digest equality. Closure still requires two real external/physical-machine packets for the same exact commit plus attestation, aggregate transcript, and review; hosted CI is not a substitute."
     },
     {
       "id": "A05-F004",
@@ -84,7 +84,7 @@
       "track": "P2-05",
       "status": "design_blocker",
       "summary": "Halving clock advances while issuance is locked, creating an unresolved delayed-activation monetary-policy interpretation",
-      "evidence": "Current issuance/halving behavior is deterministic and absolute-height/Genesis-relative, but neither the checked Constitution/full-scope specification nor the audited source establishes whether delayed economics activation is normatively Genesis-relative or activation-relative. Changing this would choose monetary policy rather than remediate an implementation bug. Protocol authority must choose the rule before boundary/restart/replay/cap proof can close the finding."
+      "evidence": "Current issuance/halving behavior is deterministic and absolute-height/Genesis-relative, but the authoritative audit/specification material does not choose whether delayed activation should be Genesis-relative or activation-relative. docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md records both rules, their consequences, and the required boundary/restart/state-sync/replay/cap evidence while keeping the protocol-authority selection UNSET. No monetary-policy change is made until that authority selects GENESIS_RELATIVE or ACTIVATION_RELATIVE."
     },
     {
       "id": "A12-F004",
