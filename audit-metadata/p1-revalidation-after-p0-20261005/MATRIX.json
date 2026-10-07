@@ -41,15 +41,17 @@
       "id": "A01-F001",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "Authoritative main branch does not enforce the validation gates"
+      "status": "open",
+      "summary": "Authoritative main branch does not enforce the validation gates",
+      "evidence": "Current GitHub repository state rechecked during PR #40: `main` remains `protected=false`, branch protection enforcement is off with no required status contexts, and the repository ruleset list is empty. Source/CI changes cannot close this external repository-administration control; branch/ruleset protection plus controlled blocked/allowed merge evidence is still required."
     },
     {
       "id": "A01-F002",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "Clean checkout proof is not a clean-machine/hermetic reproducibility proof"
+      "status": "scope_closed_and_proven",
+      "summary": "Clean checkout proof is not a clean-machine/hermetic reproducibility proof",
+      "evidence": "The audit explicitly allowed scoping the clean-checkout claim instead of claiming a hermetic machine. `docs/reviewer/START_HERE.md` and `docs/V2_SPEC_COMPILER.md` now define `check_v2_spec_clean_checkout.py` as source-archive consistency under an already-provisioned toolchain and explicitly disclaim byte-for-byte clean-machine/container/toolchain hermeticity. Assurance reconciliation run 37551824457 regenerated exact-tree derivatives, reproduced all 42 V2 derivatives from a clean Git archive, and passed the claim-scope regressions on workflow-free commit 6cfa4f971f08d1508690f89d1ab06730894f37a4 / tree f7777d0a485e5815757efdb7a4076f3df1debb6c."
     },
     {
       "id": "A01-F003",
@@ -223,29 +225,33 @@
       "id": "A16-F006",
       "severity": "MEDIUM",
       "track": "P1-02",
-      "status": "pending_revalidation",
-      "summary": "Transaction coverage is structural; no all-236 semantic property/mutation matrix exists"
+      "status": "design_blocker",
+      "summary": "Transaction coverage is structural; no all-236 semantic property/mutation matrix exists",
+      "evidence": "The repository now mechanically prevents the structural transaction coverage report from being misread as semantic proof: it emits `all-236 semantic conformance proven: False` and states that canon/schema inventory does not establish authorization, replay/duplicate, rollback, restart, exact-receipt, or mutation semantics. However, the September 30 audit requires a genuine 236/236 executable semantic vector/property/mutation matrix for closure; that matrix does not yet exist, so this finding remains an explicit design/assurance blocker."
     },
     {
       "id": "A17-F001",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "Full reviewer-readiness reproduction depends on Git history, not only the current source archive"
+      "status": "scope_closed_and_proven",
+      "summary": "Full reviewer-readiness reproduction depends on Git history, not only the current source archive",
+      "evidence": "The reviewer input/provenance contract now explicitly distinguishes a full-history clone from a historyless source archive. `restore_m2_m3_evidence_from_git.sh` preflights the exact required historical commit objects and fails with exact missing-SHA guidance, while `check_v2_spec_clean_checkout.py` proves only the archive-compatible derivative subset. `tests/test_p1_a17_reviewer_repro_contract.py` plus assurance reconciliation run 37551824457 passed on exact workflow-free commit 6cfa4f971f08d1508690f89d1ab06730894f37a4 / tree f7777d0a485e5815757efdb7a4076f3df1debb6c."
     },
     {
       "id": "A17-F002",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "Application lockfiles do not make the full clean-machine build hermetic"
+      "status": "scope_closed_and_proven",
+      "summary": "Application lockfiles do not make the full clean-machine build hermetic",
+      "evidence": "Full byte-for-byte clean-machine/toolchain hermeticity is intentionally not claimed. The canonical reviewer front door now distinguishes dependency-reproducible application install, source-archive derivative reproducibility, and full-history reviewer provenance, and explicitly lists mutable external selectors (base-image/tool image tags, Python/Node version families, GitHub Action major refs) as outside the archive proof. This closes the overbroad reproducibility scope without asserting immutable toolchain bytes; regression evidence passed in run 37551824457 on commit 6cfa4f971f08d1508690f89d1ab06730894f37a4."
     },
     {
       "id": "A17-F003",
       "severity": "MEDIUM",
       "track": "P1-01",
-      "status": "pending_revalidation",
-      "summary": "Current clean CI proves source/install/test health but not complete node restart/replay reproducibility"
+      "status": "patched_and_proven",
+      "summary": "Current clean CI proves source/install/test health but not complete node restart/replay reproducibility",
+      "evidence": "A new two-process lifecycle regression now crosses a real OS-process boundary over the same durable SQLite database: process 1 submits via API and commits @alice, exits, process 2 reloads persisted state/tx status, proves height/tip/state-root equivalence, submits @bob, commits the next block, and verifies continued durable state. Together with the existing in-process API/restart test, this passed in assurance reconciliation run 37551824457 on workflow-free commit 6cfa4f971f08d1508690f89d1ab06730894f37a4 / tree f7777d0a485e5815757efdb7a4076f3df1debb6c. Scope is local node process restart/replay, not a public/multimachine claim."
     },
     {
       "id": "A18-F003",
@@ -267,8 +273,9 @@
       "id": "A19-F001",
       "severity": "MEDIUM",
       "track": "P1-10",
-      "status": "pending_revalidation",
-      "summary": "Public repository description overstates exact canon conformance"
+      "status": "open",
+      "summary": "Public repository description overstates exact canon conformance",
+      "evidence": "Current GitHub repository metadata still says `Tx Canon defines all legal state transitions; code conforms to canon.` That remains stronger than current evidence, and A16-F006 is still open because the required 236/236 semantic matrix does not yet exist. The GitHub connector available in this review can read repository metadata but exposes no repository-description administration action, so revised public metadata remains an external/manual blocker."
     },
     {
       "id": "A19-F002",
@@ -304,7 +311,13 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 27,
-    "pending_revalidation": 7
+    "proven_dispositions": 31,
+    "pending_revalidation": 3,
+    "open_or_blocked_findings": [
+      "A01-F001",
+      "A16-F006",
+      "A19-F001"
+    ],
+    "adjudicated_findings": 34
   }
 }
