@@ -1067,8 +1067,30 @@ def _as_int(value: Any, default: int = 0) -> int:
         return int(default)
 
 
+def _plain_json(value: Any) -> Any:
+    """Materialize mapping/list proxies before consensus hashing.
+
+    Bounded rollback intentionally presents journaled Mapping/List proxies to
+    domain code.  Hashing those proxy subclasses directly through json.dumps
+    can serialize their empty builtin base containers instead of their
+    delegated semantic contents.  Recursively materializing the public
+    Mapping/list interface makes the hash representation-independent.
+    """
+
+    if isinstance(value, Mapping):
+        return {key: _plain_json(child) for key, child in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain_json(child) for child in value]
+    return value
+
+
 def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return json.dumps(
+        _plain_json(value),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
 
 
 def _sha256_short(value: Any) -> str:
