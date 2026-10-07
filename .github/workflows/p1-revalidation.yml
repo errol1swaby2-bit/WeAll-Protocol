@@ -37,9 +37,15 @@ jobs:
           echo "commit=$(git rev-parse HEAD)"
           echo "tree=$(git rev-parse HEAD^{tree})"
 
-      - name: P2 A02 lifecycle diagnostic
+      - name: P2 A02 lifecycle assurance
         working-directory: Weall-Protocol
-        run: pytest -q tests/test_p2_a02_success_lifecycle_baseline.py
+        run: |
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
+          pytest -q \
+            tests/test_p2_a02_success_lifecycle_baseline.py \
+            tests/test_p2_a02_lifecycle_manifest.py \
+            tests/test_tx_replay_rejected_after_confirmed_restart.py \
+            tests/test_nonce_failure_block_progression.py
 
       - name: Canon sanity
         working-directory: Weall-Protocol
@@ -47,6 +53,7 @@ jobs:
           python -m tooling.canon_lint
           python scripts/check_generated.py
           python scripts/gen_tx_semantic_assurance_v1_5.py --check
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
 
       - name: P1-06 PoH production scope-closure overlap
         working-directory: Weall-Protocol
