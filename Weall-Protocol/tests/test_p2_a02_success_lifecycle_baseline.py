@@ -1112,7 +1112,6 @@ def _prepare_poh(
     return "@tester", payload
 
 
-
 _CONTENT_CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3pt5a3u4ct6shwrdfl5f5d4ii"
 
 
@@ -2065,6 +2064,7 @@ def _prepare_consensus(
         return "SYSTEM", payload
 
     return "SYSTEM" if str(tx_type).startswith("BLOCK_") else "@tester", payload
+
 
 def _prepared_envelope(
     state: dict[str, Any],
