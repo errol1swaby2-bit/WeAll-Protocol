@@ -1713,7 +1713,7 @@ def _render_frontend_status(
     status["normativePdfSha256"] = str(
         provenance.get("normative_specification", {}).get("sha256") or ""
     )
-    status["repositorySnapshot"] = str(
+    status["v2SpecificationSnapshot"] = str(
         provenance.get("repository", {}).get("specification_snapshot") or ""
     )
     status["sourceTreeDigest"] = source_tree_digest
