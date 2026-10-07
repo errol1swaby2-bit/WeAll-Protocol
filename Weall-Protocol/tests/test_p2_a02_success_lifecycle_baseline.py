@@ -91,7 +91,7 @@ def _tx(
         parent = "PARENT-A02"
     return TxEnvelope(
         tx_type=tx_type,
-        signer="SYSTEM" if system else signer,
+        signer="SYSTEM" if system and signer == "@tester" else signer,
         nonce=nonce,
         payload=copy.deepcopy(payload or {}),
         parent=parent,
@@ -449,6 +449,121 @@ def _prepare_groups(
     return "@tester", payload
 
 
+
+def _prepare_dispute(
+    state: dict[str, Any],
+    tx_type: str,
+    payload: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    roles = state.setdefault("roles", {})
+    roles["jurors"] = {"active_set": ["@juror1"], "by_id": {}}
+
+    if tx_type == "DISPUTE_FINAL_RECEIPT":
+        return "SYSTEM", payload
+
+    if tx_type == "DISPUTE_OPEN":
+        payload.update(
+            {
+                "dispute_id": "a",
+                "target_type": "account",
+                "target_id": "@target",
+                "reason": "P2 lifecycle fixture",
+            }
+        )
+        return "@tester", payload
+
+    _apply(
+        state,
+        "DISPUTE_OPEN",
+        {
+            "dispute_id": "a",
+            "target_type": "account",
+            "target_id": "@target",
+            "reason": "P2 lifecycle fixture",
+        },
+        signer="@tester",
+    )
+    payload["dispute_id"] = "a"
+
+    if tx_type == "DISPUTE_STAGE_SET":
+        payload["stage"] = "juror_review"
+        return "SYSTEM", payload
+    if tx_type == "DISPUTE_EVIDENCE_DECLARE":
+        payload.update({"evidence_id": "evidence-a16", "kind": "text"})
+        return "@tester", payload
+    if tx_type == "DISPUTE_EVIDENCE_BIND":
+        _apply(
+            state,
+            "DISPUTE_EVIDENCE_DECLARE",
+            {"dispute_id": "a", "evidence_id": "evidence-a16", "kind": "text"},
+            signer="@tester",
+        )
+        payload["evidence_id"] = "evidence-a16"
+        return "@tester", payload
+    if tx_type == "DISPUTE_JUROR_ASSIGN":
+        payload["juror_id"] = "@juror1"
+        return "SYSTEM", payload
+
+    if tx_type in {
+        "DISPUTE_JUROR_ACCEPT",
+        "DISPUTE_JUROR_ATTENDANCE",
+        "DISPUTE_JUROR_DECLINE",
+        "DISPUTE_JUROR_TIMEOUT",
+        "DISPUTE_JUROR_WITHDRAW",
+        "DISPUTE_VOTE_SUBMIT",
+    }:
+        _apply(
+            state,
+            "DISPUTE_JUROR_ASSIGN",
+            {"dispute_id": "a", "juror_id": "@juror1"},
+            system=True,
+        )
+
+    if tx_type == "DISPUTE_JUROR_ACCEPT":
+        return "@juror1", payload
+    if tx_type == "DISPUTE_JUROR_ATTENDANCE":
+        payload["present"] = True
+        return "@juror1", payload
+    if tx_type == "DISPUTE_JUROR_DECLINE":
+        return "@juror1", payload
+
+    if tx_type in {"DISPUTE_JUROR_TIMEOUT", "DISPUTE_JUROR_WITHDRAW", "DISPUTE_VOTE_SUBMIT"}:
+        _apply(
+            state,
+            "DISPUTE_JUROR_ACCEPT",
+            {"dispute_id": "a"},
+            signer="@juror1",
+        )
+
+    if tx_type == "DISPUTE_JUROR_TIMEOUT":
+        state["height"] = 100_000
+        payload["juror_id"] = "@juror1"
+        return "SYSTEM", payload
+    if tx_type == "DISPUTE_JUROR_WITHDRAW":
+        return "@juror1", payload
+    if tx_type == "DISPUTE_VOTE_SUBMIT":
+        payload.pop("appeal_vote", None)
+        payload["vote"] = "yes"
+        payload["resolution"] = {"summary": "P2 lifecycle fixture"}
+        return "@juror1", payload
+    if tx_type == "DISPUTE_RESOLVE":
+        payload["resolution"] = {"summary": "P2 lifecycle fixture"}
+        return "SYSTEM", payload
+    if tx_type == "DISPUTE_APPEAL":
+        _apply(
+            state,
+            "DISPUTE_RESOLVE",
+            {
+                "dispute_id": "a",
+                "resolution": {"summary": "P2 lifecycle fixture"},
+                "_due_height": int(state.get("height") or 0),
+            },
+            system=True,
+        )
+        return "@target", payload
+
+    return "@tester", payload
+
 def _prepared_envelope(
     state: dict[str, Any],
     row: dict[str, Any],
@@ -462,6 +577,8 @@ def _prepared_envelope(
         signer, payload = _prepare_governance(state, tx_type, payload)
     elif str(row.get("domain") or "") == "Groups":
         signer, payload = _prepare_groups(state, tx_type, payload)
+    elif str(row.get("domain") or "") == "Dispute":
+        signer, payload = _prepare_dispute(state, tx_type, payload)
 
     system = str(row.get("origin") or "").upper() == "SYSTEM"
     block_only = str(row.get("context") or "").lower() == "block"
