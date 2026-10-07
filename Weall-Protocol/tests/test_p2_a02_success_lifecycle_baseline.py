@@ -82,7 +82,7 @@ def _tx(
     tx_type: str,
     payload: dict[str, Any] | None = None,
     *,
-    signer: str = "@tester",
+    signer: str | None = None,
     system: bool = False,
     parent: str | None = None,
     nonce: int = 1,
@@ -91,7 +91,7 @@ def _tx(
         parent = "PARENT-A02"
     return TxEnvelope(
         tx_type=tx_type,
-        signer=signer,
+        signer=signer if signer is not None else ("SYSTEM" if system else "@tester"),
         nonce=nonce,
         payload=copy.deepcopy(payload or {}),
         parent=parent,
@@ -105,7 +105,7 @@ def _apply(
     tx_type: str,
     payload: dict[str, Any] | None = None,
     *,
-    signer: str = "@tester",
+    signer: str | None = None,
     system: bool = False,
     parent: str | None = None,
     nonce: int = 1,
@@ -115,7 +115,7 @@ def _apply(
         _tx(
             tx_type,
             payload,
-            signer="SYSTEM" if system and signer == "@tester" else signer,
+            signer=signer,
             system=system,
             parent=parent,
             nonce=nonce,
@@ -442,6 +442,7 @@ def _prepare_groups(
                 {"group_id": "group-a16", "spend_id": "spend-a16"},
                 signer="@tester",
             )
+            state["height"] = 11
             return "SYSTEM", payload
 
         return "SYSTEM", payload
@@ -807,7 +808,7 @@ def _prepare_poh(
             payload.update(
                 {
                     "account_id": "@tester",
-                    "case_id": case_id,
+                    "case_id": "case-a16",
                     "challenge_id": "prompt-a16",
                     "challenge_commitment": "sha256:" + ("1" * 64),
                 }
