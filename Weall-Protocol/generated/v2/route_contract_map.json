@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "8a219c0e137a4cda1b6d8b0570fa5fa5ca6815b5f0d923c49b49012559b0ca4e"
+    "source_tree_digest": "6fce002ad106ff202f076e8f5d437023858de6329da54dbd6999229498362d94"
   },
   "required_fields": [
     "stable_id",
@@ -7421,6 +7421,10 @@
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_latest_medium_closure.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a17_fresh_checkout_docs.py",
+        "tests/test_p2_a18_v2_provenance_label.py",
+        "tests/test_p2_a19_architecture_front_door.py",
+        "tests/test_p2_a20_deployment_csp.py",
         "tests/test_p2_dispute_appeal_actor.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_p2_persistence_synchronous.py",
@@ -8327,6 +8331,7 @@
         "tests/test_p1_a18_claim_boundaries.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a18_v2_provenance_label.py",
         "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_p2_state_sync_hardening.py",
         "tests/test_p2_storage_closure.py",
