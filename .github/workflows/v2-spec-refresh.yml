@@ -1,5 +1,6 @@
 name: Reviewer Artifact Refresh
 # P2 A02 lifecycle-manifest generation trigger
+# P2 A02 hermetic generator retry
 
 on:
   workflow_dispatch:
