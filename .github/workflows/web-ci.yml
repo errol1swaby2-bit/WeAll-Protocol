@@ -113,7 +113,10 @@ jobs:
 
       - name: Start tested production Nginx deployment
         run: |
-          sed "s|__DIST_ROOT__|$PWD/dist|g" deploy/nginx.conf.template > /tmp/weall-web-nginx.conf
+          sudo rm -rf /tmp/weall-web-dist
+          sudo cp -a "$PWD/dist" /tmp/weall-web-dist
+          sudo chmod -R a+rX /tmp/weall-web-dist
+          sed "s|__DIST_ROOT__|/tmp/weall-web-dist|g" deploy/nginx.conf.template > /tmp/weall-web-nginx.conf
           sudo nginx -t -c /tmp/weall-web-nginx.conf
           sudo nginx -c /tmp/weall-web-nginx.conf
 
