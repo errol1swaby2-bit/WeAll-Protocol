@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "7452cefd5ca3384defc7ad0f535a1384797e2df73fc9bd99cbef2cdeed736a59"
+    "source_tree_digest": "df6b21adfef521db590dcd97374ff5c4e4f20d14275e268cdd8ec28667676103"
   },
   "required_fields": [
     "stable_id",

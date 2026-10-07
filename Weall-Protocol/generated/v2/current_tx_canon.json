@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "7452cefd5ca3384defc7ad0f535a1384797e2df73fc9bd99cbef2cdeed736a59"
+    "source_tree_digest": "df6b21adfef521db590dcd97374ff5c4e4f20d14275e268cdd8ec28667676103"
   },
   "rows": [
     {
@@ -10123,6 +10123,7 @@
         "tests/test_m3_electorate_round_policy.py",
         "tests/test_p0_07_constitutional_scope_closure.py",
         "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_priority4_invariant_fuzz.py",
@@ -10222,6 +10223,7 @@
         "tests/test_constitutional_procedure_clock.py",
         "tests/test_governance_no_creator_fallback_for_executable_prod.py",
         "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "GOV_PROPOSAL_EDIT",
@@ -10311,6 +10313,7 @@
       "tests": [
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_governance_stale_state_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "GOV_PROPOSAL_WITHDRAW",
@@ -10405,6 +10408,7 @@
         "tests/test_governance_stale_state_safety.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_m3_electorate_round_policy.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_system_tx_completeness.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_governance_activation.py"
@@ -10509,6 +10513,7 @@
         "tests/test_m3_closure_integrity.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_m3_electorate_round_policy.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_poh_eligibility_rules.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
@@ -10602,7 +10607,8 @@
       "system_followups": [],
       "tests": [
         "tests/test_bounded_rollback_equivalence.py",
-        "tests/test_constitutional_procedure_clock.py"
+        "tests/test_constitutional_procedure_clock.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "GOV_PROPOSAL_COMMENT",
       "vector_ids": [
@@ -10935,6 +10941,7 @@
         "tests/test_m3_closure_regressions.py",
         "tests/test_p0_07_constitutional_scope_closure.py",
         "tests/test_p0_group_treasury_governance_binding.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_protocol_blocker_safety.py",
@@ -11984,6 +11991,7 @@
         "tests/test_group_treasury_transition_safety.py",
         "tests/test_helper_conflict_matrix.py",
         "tests/test_helper_conflict_matrix_correction.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_read_write_scope_guards_correction.py",
         "tests/test_treasury_transition_safety.py",
@@ -12115,6 +12123,7 @@
       "tests": [
         "tests/test_fail_closed_group_treasury.py",
         "tests/test_helper_serial_equivalence_mixed_lane.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -12257,6 +12266,7 @@
         "tests/test_fail_closed_group_treasury.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_treasury_stale_state_safety.py",
@@ -12388,6 +12398,7 @@
         "tests/test_p1_a10_treasury_cancel_scope.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "TREASURY_SPEND_CANCEL",
@@ -12494,6 +12505,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_fail_closed_group_treasury.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "TREASURY_SPEND_EXPIRE",
@@ -12660,6 +12672,7 @@
         "tests/test_p0_a10_a12_generated_contract_closure.py",
         "tests/test_p0_a10_treasury_restart_replay.py",
         "tests/test_p0_group_treasury_governance_binding.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_tx_schema_treasury_groups.py",
         "tests/test_wallet_treasury_governance_reputation_safety.py"
@@ -12999,6 +13012,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -21528,6 +21542,7 @@
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "GOV_VOTE_REVOKE",
@@ -21621,6 +21636,7 @@
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_m3_electorate_round_policy.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_governance_activation.py"
       ],
@@ -21716,6 +21732,7 @@
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_m3_electorate_round_policy.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_governance_activation.py"
       ],
@@ -21809,6 +21826,7 @@
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "GOV_PROPOSAL_FINALIZE",
@@ -22006,6 +22024,7 @@
         "tests/test_group_policy_transition_safety.py",
         "tests/test_group_treasury_transition_safety.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_poh_eligibility_rules.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
@@ -22190,6 +22209,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -22279,6 +22299,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_ROLE_REVOKE",
@@ -22393,6 +22414,7 @@
         "tests/test_helper_multinode_divergence_guards.py",
         "tests/test_helper_serial_equivalence_fallback.py",
         "tests/test_helper_serial_equivalence_mixed_lane.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_poh_eligibility_rules.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_tx_schema_treasury_groups.py"
@@ -22501,6 +22523,7 @@
       "tests": [
         "tests/test_group_membership_approval_contract.py",
         "tests/test_group_membership_public_autojoin.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_MEMBERSHIP_DECIDE",
@@ -22592,6 +22615,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_MEMBERSHIP_REMOVE",
@@ -22684,6 +22708,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_cross_tx_treasury_policy_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_TREASURY_CREATE",
@@ -22785,6 +22810,7 @@
         "tests/test_group_treasury_transition_safety.py",
         "tests/test_helper_conflict_matrix.py",
         "tests/test_helper_conflict_matrix_correction.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_read_write_scope_guards_correction.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
@@ -22923,6 +22949,7 @@
       ],
       "tests": [
         "tests/test_fail_closed_group_treasury.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_TREASURY_SPEND_PROPOSE",
@@ -23045,6 +23072,7 @@
       "tests": [
         "tests/test_fail_closed_group_treasury.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -23152,6 +23180,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_p1_group001_scoped_reference_authority.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_TREASURY_SPEND_CANCEL",
@@ -23248,6 +23277,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_TREASURY_SPEND_EXPIRE",
@@ -23428,6 +23458,7 @@
         "tests/test_p0_a10_a12_generated_contract_closure.py",
         "tests/test_p0_a10_treasury_restart_replay.py",
         "tests/test_p0_group_treasury_governance_binding.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_tx_schema_treasury_groups.py",
         "tests/test_wallet_treasury_governance_reputation_safety.py"
@@ -23532,6 +23563,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_scoped_authority_repairs.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -23655,6 +23687,7 @@
         "tests/test_group_emissary_elections_stv.py",
         "tests/test_group_policy_transition_safety.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_EMISSARY_ELECTION_CREATE",
@@ -23801,6 +23834,7 @@
         "tests/test_group_emissary_elections_stv.py",
         "tests/test_group_governance_contract.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_EMISSARY_BALLOT_CAST",
@@ -23944,6 +23978,7 @@
         "tests/test_group_emissary_elections_stv.py",
         "tests/test_group_policy_transition_safety.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -27512,6 +27547,7 @@
         "tests/test_apply_roles_mvp.py",
         "tests/test_cross_tx_treasury_policy_safety.py",
         "tests/test_helper_restart_equivalence.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_priority0_helper_fallback_replay_restart.py",
         "tests/test_priority4_invariant_fuzz.py",
@@ -27753,6 +27789,7 @@
         "tests/test_fail_closed_group_treasury.py",
         "tests/test_group_policy_transition_safety.py",
         "tests/test_group_treasury_transition_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_status_consensus_diagnostics.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
@@ -27849,6 +27886,7 @@
       "tests": [
         "tests/test_admission_roles_mvp_gates.py",
         "tests/test_group_policy_transition_safety.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_MODERATORS_SET",

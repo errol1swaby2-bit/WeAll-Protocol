@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "8f0b775ff428b5789b8770bccf9c58dd47ab5f9441d6b63c32b4645ebc780cbf",
+      "sha256": "6aaefb5415d2673039c6cd76b2ba0b725812966c3cf9ab00f414f53d78181232",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "ac9c14df8187fd9a0a4bfb4f403b426ace74c3051add8e2745d99001cf15e88b",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -22847,11 +22847,49 @@
       "classification": "test",
       "mappings": [
         "M-076",
-        "ROUTE-150316944D629C32"
+        "ROUTE-150316944D629C32",
+        "TX-0400",
+        "TX-0401",
+        "TX-0402",
+        "TX-0403",
+        "TX-0404",
+        "TX-0405",
+        "TX-0408",
+        "TX-0503",
+        "TX-0504",
+        "TX-0505",
+        "TX-0506",
+        "TX-0507",
+        "TX-0508",
+        "TX-0512",
+        "TX-1600",
+        "TX-1601",
+        "TX-1602",
+        "TX-1603",
+        "TX-1700",
+        "TX-1702",
+        "TX-1703",
+        "TX-1704",
+        "TX-1705",
+        "TX-1706",
+        "TX-1707",
+        "TX-1708",
+        "TX-1709",
+        "TX-1710",
+        "TX-1711",
+        "TX-1712",
+        "TX-1713",
+        "TX-1714",
+        "TX-1715",
+        "TX-1716",
+        "TX-1717",
+        "TX-2503",
+        "TX-2505",
+        "TX-2506"
       ],
       "path": "tests/test_p2_a02_success_lifecycle_baseline.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "223848f66f3bd90abda70a44f9e89a537435cdfc4771b143585647464d7717a9",
+      "sha256": "cbae6e532d171a4eb8a5f5d4b9335dff6bc87f6ce3fb5754364e99978d936f8b",
       "source_id": "SRC-26CE7F495F144D60"
     },
     {
@@ -22899,7 +22937,7 @@
       ],
       "path": "tests/test_p2_a13_signature_authority.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "dc126facc13fff1b041866f88514ba04cfe47e6db8d8a0782df940e427838659",
+      "sha256": "16f7219f3bcd0dc8660ac54c05af0cc8e37b50e3931a71021d30a2c971ad4d70",
       "source_id": "SRC-CFD3BC87F98AFDE1"
     },
     {
