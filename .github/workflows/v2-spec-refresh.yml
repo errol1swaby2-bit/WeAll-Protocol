@@ -1,5 +1,5 @@
 name: Reviewer Artifact Refresh
-# P2 A04 tooling format and artifact refresh
+# P2 A04 mapped tooling format and artifact refresh
 
 on:
   workflow_dispatch:
