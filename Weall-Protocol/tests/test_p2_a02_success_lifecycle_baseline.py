@@ -1475,8 +1475,9 @@ def _prepare_identity(
             signer="@tester",
             nonce=1,
         )
+        by_id = state["accounts"]["@tester"]["keys"]["by_id"]
         payload.clear()
-        payload["key_id"] = "key-p2-secondary"
+        payload["key_id"] = str(next(iter(by_id)))
         return "@tester", payload
 
     if tx_type == "ACCOUNT_SESSION_KEY_ISSUE":
