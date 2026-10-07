@@ -231,7 +231,62 @@ def _baseline_payload(model: Any) -> Json:
         for field in required
         if isinstance(field, str)
     }
-    parsed = model.model_validate(payload)
+
+    try:
+        parsed = model.model_validate(payload)
+    except (ValidationError, ValueError):
+        # Some transaction schemas intentionally express semantic "one of these
+        # optional fields must be present" rules through model validators. Build
+        # a deterministic baseline by enriching the required-only payload with
+        # optional fields in a stable preference order until the model accepts.
+        preferred_tokens = (
+            "vote",
+            "verdict",
+            "decision",
+            "resolution",
+            "status",
+            "method",
+            "active",
+            "accepted",
+            "enabled",
+            "action",
+            "kind",
+        )
+        optional_fields = [
+            field
+            for field in properties
+            if isinstance(field, str) and field not in set(required)
+        ]
+        optional_fields.sort(
+            key=lambda field: (
+                next(
+                    (
+                        index
+                        for index, token in enumerate(preferred_tokens)
+                        if token in field.lower()
+                    ),
+                    len(preferred_tokens),
+                ),
+                field,
+            )
+        )
+
+        working = dict(payload)
+        last_error: Exception | None = None
+        for field in optional_fields:
+            working[field] = _sample(properties.get(field, {}), defs, field)
+            try:
+                parsed = model.model_validate(working)
+            except (ValidationError, ValueError) as exc:
+                last_error = exc
+                continue
+            payload = working
+            break
+        else:
+            if last_error is not None:
+                raise last_error
+            raise
+
     dumped = parsed.model_dump(exclude_none=True)
     if not isinstance(dumped, dict):
         raise RuntimeError("payload_model_dump_not_object")
