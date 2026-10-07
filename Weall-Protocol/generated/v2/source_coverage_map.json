@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "11291f7fccc8d48d69eebbc7313525f8ec1dee6563953e0da236a9140e468f30",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -22848,6 +22848,18 @@
       "mappings": [
         "M-076",
         "ROUTE-150316944D629C32",
+        "TX-0200",
+        "TX-0201",
+        "TX-0202",
+        "TX-0203",
+        "TX-0204",
+        "TX-0205",
+        "TX-0206",
+        "TX-0207",
+        "TX-0208",
+        "TX-0209",
+        "TX-0210",
+        "TX-0211",
         "TX-0400",
         "TX-0401",
         "TX-0402",
@@ -22885,11 +22897,13 @@
         "TX-1717",
         "TX-2503",
         "TX-2505",
-        "TX-2506"
+        "TX-2506",
+        "TX-2622",
+        "TX-2623"
       ],
       "path": "tests/test_p2_a02_success_lifecycle_baseline.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ff1921dbcfc561b89c538f1fd451585a9d69df3a15ee5bd1a08b4b9a4e522ad4",
+      "sha256": "60234230c4d6592f2995fc3a962936ba02877dc50260338c9d8d2918a57d60e1",
       "source_id": "SRC-26CE7F495F144D60"
     },
     {
@@ -22937,7 +22951,7 @@
       ],
       "path": "tests/test_p2_a13_signature_authority.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "16f7219f3bcd0dc8660ac54c05af0cc8e37b50e3931a71021d30a2c971ad4d70",
+      "sha256": "0805eeaef1d8e6e962e907d8f25140bb5995cb3c53956f9372bd5db77073dd5d",
       "source_id": "SRC-CFD3BC87F98AFDE1"
     },
     {

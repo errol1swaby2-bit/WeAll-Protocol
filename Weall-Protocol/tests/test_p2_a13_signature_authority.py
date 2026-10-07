@@ -136,9 +136,7 @@ def test_helper_receipt_profile_stripping_and_unknown_profile_fail() -> None:
 
     assert _receipt_verify(receipt, pubkey) is True
     assert _receipt_verify(replace(receipt, sig_profile=""), pubkey) is False
-    assert (
-        _receipt_verify(replace(receipt, sig_profile="unknown-profile"), pubkey) is False
-    )
+    assert _receipt_verify(replace(receipt, sig_profile="unknown-profile"), pubkey) is False
 
 
 def _unsigned_certificate() -> HelperExecutionCertificate:
@@ -178,10 +176,7 @@ def test_helper_certificate_binds_domain_and_explicit_profile() -> None:
     domain_mutation = HelperExecutionCertificate(
         **{**signed.to_json(), "domain": "WEALL/HELPER_RECEIPT/V1"}
     )
-    assert (
-        verify_helper_certificate_signature(domain_mutation, helper_pubkey=pubkey)
-        is False
-    )
+    assert verify_helper_certificate_signature(domain_mutation, helper_pubkey=pubkey) is False
 
     stripped = signed.to_json()
     stripped.pop("domain")
@@ -189,16 +184,10 @@ def test_helper_certificate_binds_domain_and_explicit_profile() -> None:
 
     stripped_profile = signed.to_json()
     stripped_profile.pop("sig_profile")
-    assert (
-        verify_helper_certificate_signature(stripped_profile, helper_pubkey=pubkey)
-        is False
-    )
+    assert verify_helper_certificate_signature(stripped_profile, helper_pubkey=pubkey) is False
 
     unknown_profile = {**signed.to_json(), "sig_profile": "unknown-profile"}
-    assert (
-        verify_helper_certificate_signature(unknown_profile, helper_pubkey=pubkey)
-        is False
-    )
+    assert verify_helper_certificate_signature(unknown_profile, helper_pubkey=pubkey) is False
 
 
 def test_helper_receipt_signature_cannot_authorize_certificate() -> None:

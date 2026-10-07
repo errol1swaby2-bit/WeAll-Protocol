@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "402d742f8aca53dc53407db523ad928d029fbbf13beea03f7164f9e77491f074"
+    "source_tree_digest": "a71ba57387163ea880cb94baf7a45c025b348dd79b1f680046aea59c66e66b09"
   },
   "rows": [
     {
@@ -6440,6 +6440,7 @@
         "tests/test_m2_complete_security_and_lifecycle.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_multi_causal_receipt_contract_truthfulness.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_dispute_appeal_actor.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
@@ -6531,6 +6532,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "DISPUTE_STAGE_SET",
@@ -6620,6 +6622,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
@@ -6710,6 +6713,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "DISPUTE_EVIDENCE_BIND",
@@ -6826,6 +6830,7 @@
         "tests/test_dispute_height_lifecycle_boundaries.py",
         "tests/test_dispute_review_outcome_semantics.py",
         "tests/test_multi_causal_receipt_contract_truthfulness.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_responsibility_opt_in_safety.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -6970,6 +6975,7 @@
         "tests/test_dispute_review_outcome_semantics.py",
         "tests/test_m3_closure_integrity.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_public_activity_dispute_flow.py",
         "tests/test_reputation_matrix_completion_v1_5.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -7063,6 +7069,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_public_activity_dispute_flow.py"
       ],
       "tx_type": "DISPUTE_JUROR_DECLINE",
@@ -7170,6 +7177,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "DISPUTE_JUROR_ATTENDANCE",
@@ -7341,6 +7349,7 @@
         "tests/test_lineage_witness_contract.py",
         "tests/test_m3_closure_integrity.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_reputation_matrix_completion_v1_5.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -7501,6 +7510,7 @@
         "tests/test_dispute_followups.py",
         "tests/test_local_rehearsal_qol_regressions.py",
         "tests/test_m3_closure_integrity.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_contract_coverage.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
@@ -7654,6 +7664,7 @@
         "tests/test_constitutional_procedure_clock.py",
         "tests/test_local_rehearsal_qol_regressions.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "DISPUTE_APPEAL",
@@ -7804,6 +7815,7 @@
         "tests/test_dispute_followups.py",
         "tests/test_full_node_db_api_dispute_storage_coverage.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_protocol_blocker_safety.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -30454,6 +30466,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_reputation_matrix_completion_v1_5.py"
       ],
       "tx_type": "DISPUTE_JUROR_WITHDRAW",
@@ -30569,6 +30582,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_reputation_matrix_completion_v1_5.py"
       ],
       "tx_type": "DISPUTE_JUROR_TIMEOUT",

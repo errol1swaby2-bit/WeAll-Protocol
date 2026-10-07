@@ -449,7 +449,6 @@ def _prepare_groups(
     return "@tester", payload
 
 
-
 def _prepare_dispute(
     state: dict[str, Any],
     tx_type: str,
@@ -563,6 +562,7 @@ def _prepare_dispute(
         return "@target", payload
 
     return "@tester", payload
+
 
 def _prepared_envelope(
     state: dict[str, Any],
