@@ -151,7 +151,7 @@ def test_models_registered() -> None:
             "REPUTATION_THRESHOLD_CROSS",
             {"account_id": "@bob", "threshold": "tier2", "direction": "down"},
         ),
-        ("VALIDATOR_REGISTER", {"endpoint": "https://node.example"}),
+        ("VALIDATOR_REGISTER", {"account": "@alice", "endpoint": "https://node.example"}),
         (
             "VALIDATOR_CANDIDATE_REGISTER",
             {"node_id": "node-bob", "pubkey": "mldsa:bob", "endpoints": ["https://node.example"]},
