@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hmac
 import os
 from collections.abc import Mapping
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
 from weall.crypto.pq_mldsa import mldsa_backend_status
 from weall.crypto.signature_profiles import (
@@ -80,6 +81,43 @@ def _env_bool(name: str, default: bool) -> bool:
     if _is_prod():
         raise StatusRouteConfigError(f"invalid_boolean_env:{name}")
     return bool(default)
+
+
+def _consensus_forensics_operator_token() -> str:
+    return str(
+        os.environ.get("WEALL_CONSENSUS_FORENSICS_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OPERATOR_TOKEN")
+        or ""
+    ).strip()
+
+
+def _consensus_forensics_operator_authorized(request: Request) -> bool:
+    if not _is_prod():
+        return True
+
+    got = str(
+        request.headers.get("X-WeAll-Consensus-Forensics-Token")
+        or request.headers.get("X-WeAll-Operator-Token")
+        or ""
+    ).strip()
+    if not got:
+        return False
+
+    want = _consensus_forensics_operator_token()
+    if not want:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "consensus_forensics_operator_token_required",
+                "message": "full consensus forensics require an explicitly configured operator token",
+            },
+        )
+    if not hmac.compare_digest(got, want):
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "forbidden", "message": "bad consensus forensics operator token"},
+        )
+    return True
 
 
 def _env_int(name: str, default: int) -> int:
@@ -1400,6 +1438,28 @@ def status_consensus(request: Request) -> dict[str, Any]:
 
 @router.get("/status/consensus/forensics")
 def status_consensus_forensics(request: Request) -> dict[str, Any]:
+    if not _consensus_forensics_operator_authorized(request):
+        public = status_consensus(request)
+        safe_keys = (
+            "chain_id",
+            "height",
+            "tip",
+            "finalized_height",
+            "active_validator_count",
+            "quorum_threshold",
+            "validator_set_hash",
+            "view",
+            "current_leader",
+            "next_leader",
+            "consensus_phase",
+            "security_summary",
+        )
+        return {
+            "ok": True,
+            "scope": "public_consensus_health",
+            **{key: public.get(key) for key in safe_keys},
+        }
+
     ex = getattr(request.app.state, "executor", None)
     fn = getattr(ex, "bft_operator_forensics", None)
     if callable(fn):
