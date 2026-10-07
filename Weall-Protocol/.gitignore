@@ -51,6 +51,7 @@ generated/*
 !generated/helper_contract_map.json
 !generated/tx_contract_map.json
 !generated/tx_semantic_assurance_v1_5.json
+!generated/tx_lifecycle_assurance_v1_5.json
 !generated/api_contract_map_v1_5.json
 !generated/launch_disabled_matrix_v1_5.json
 !generated/v15_implementation_gap_register.json
