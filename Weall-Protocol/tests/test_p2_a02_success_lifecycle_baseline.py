@@ -491,7 +491,7 @@ def test_a02_f003_all_canon_baselines_have_successful_apply_fixture() -> None:
 
     for row in rows:
         tx_type = str(row["tx_type"])
-        state = _state_for(tx_type)
+        state = _base_state()
         try:
             apply_tx_atomic_meta_bounded_rollback(state, _prepared_envelope(state, row))
         except Exception as exc:  # domain error families intentionally vary.
