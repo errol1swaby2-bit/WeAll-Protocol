@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2038,
+  "file_count": 2039,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "b56faab1231697ca58ceb8928a529a5c73144e52d71e7d73a7034cbf53265b03",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "3e7b77635146b0435321f5015726f8ed5e38b14a211f9004deef9d6399f39171",
+      "sha256": "6ca60669fc78e57ef94d6c4d27d4ddafa6621180ac8d885494eed5a7b1de5e62",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -32822,6 +32822,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "ec9ca7a43764dac7f794b547e106cf311585e93ecf53226b095119666104c687",
       "source_id": "SRC-3ABB044E07B9C013"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/tests/e2e/production_deployment_csp.spec.ts",
+      "primary_mechanism_id": "M-076",
+      "sha256": "b4f0a435f6561186e2a084d14642cef65da0332019b1c7b07cb34f3a21660161",
+      "source_id": "SRC-942ED1D5D3E3ACE8"
     },
     {
       "affected_registers": [
