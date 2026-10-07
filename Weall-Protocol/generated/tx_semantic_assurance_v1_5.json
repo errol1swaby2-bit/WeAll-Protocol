@@ -7993,13 +7993,15 @@
     },
     {
       "baseline_payload": {
+        "account": "a",
         "endpoint": "a"
       },
       "coercion_probe": {
-        "field": "endpoint",
+        "field": "account",
         "kind": "type_coercion_probe",
         "payload": {
-          "endpoint": 1
+          "account": 1,
+          "endpoint": "a"
         },
         "schema_outcome": "reject"
       },
@@ -8017,9 +8019,11 @@
       "receipt_only": false,
       "required_mutation": {
         "expected": "schema_reject",
-        "field": "endpoint",
+        "field": "account",
         "kind": "drop_required_field",
-        "payload": {}
+        "payload": {
+          "endpoint": "a"
+        }
       },
       "schema_model": "ValidatorRegisterPayload",
       "tx_type": "VALIDATOR_REGISTER"

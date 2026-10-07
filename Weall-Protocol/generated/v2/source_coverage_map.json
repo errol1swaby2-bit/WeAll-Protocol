@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2035,
+  "file_count": 2038,
   "files": [
     {
       "affected_registers": [
@@ -56,7 +56,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "cf5796181f856bb1c54e14f30e28a943a37a98bd6f383cbb3ecea980bc8904af",
+      "sha256": "ebe435e4eb057c52b58b51feed1e45ee2ad23560f6356d5874f26dc5f51f3fb9",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "6aaefb5415d2673039c6cd76b2ba0b725812966c3cf9ab00f414f53d78181232",
+      "sha256": "ce1700e1d58e7b355917a94ec2933b8ec196c1b5dc673da96c6af9d1284c4531",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "73fc06d4dc77fa5828bf19a3d2eb528c341204c3fc0a5506acef1e619b509b1e",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3747,9 +3747,22 @@
       "mappings": [
         "M-076"
       ],
+      "path": "generated/tx_lifecycle_assurance_v1_5.json",
+      "primary_mechanism_id": "M-076",
+      "sha256": "58c09d02d6c25f53dc2fb4352b7a3af00f5832bd4e63f3e472e7b92b7da5f4c8",
+      "source_id": "SRC-6FB7A2F5900CA009"
+    },
+    {
+      "affected_registers": [
+        "evidence"
+      ],
+      "classification": "generated_compatibility_evidence",
+      "mappings": [
+        "M-076"
+      ],
       "path": "generated/tx_semantic_assurance_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5e11a08445921f3dddf95740aa1a6d39045d7312489e3728eebb9e3657bff3a2",
+      "sha256": "75a748a095d7a8c8b0c14a0799e0e108aba9d9806cc6d32514f3691c70a32b30",
       "source_id": "SRC-922B78A5A8FEA57E"
     },
     {
@@ -5134,6 +5147,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d59369c798236c7865b05d4fef23f948c4aa6541c3169b3292efbcc2f9c4ce48",
       "source_id": "SRC-DB083B9704C1BFDF"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/gen_tx_lifecycle_assurance_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "ae8eb72a07e64766fb0d23dba3090075a4305298f9220004151b594f48ae0194",
+      "source_id": "SRC-501FC7C3305C2320"
     },
     {
       "affected_registers": [
@@ -6851,7 +6878,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "2fd229b01015c8cbf31669c4666189aab94512612ce317caff65bc53b490ac2a",
+      "sha256": "cce3d0225fe79ebfff56c177e9543cabae4c73f60e8a527d98ea0edabf9acd89",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -22847,6 +22874,21 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-1200"
+      ],
+      "path": "tests/test_p2_a02_lifecycle_manifest.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "d985d6eecd08097f70522814ea8a274fc9b58c05797f5df1d155e4516446705c",
+      "source_id": "SRC-D41152D5BF142043"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "TX-0001",
@@ -23019,7 +23061,7 @@
       ],
       "path": "tests/test_p2_a02_success_lifecycle_baseline.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "c895f1d7c0cc8980683eaee6c200cd606d94556698cc08290a33de211715b22f",
+      "sha256": "b70d2f34d7be3ff9313e14d97f94fa526973999efddd0ebf370df57291d88729",
       "source_id": "SRC-26CE7F495F144D60"
     },
     {

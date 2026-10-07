@@ -131,12 +131,8 @@ def _admitted_envelope(
 
     admitted = TxEnvelope.from_json(env.to_json())
     if not bool(admitted.system):
-        ensure_account_has_test_key(
-            state.setdefault("accounts", {}), account_id=admitted.signer
-        )
-        admitted = TxEnvelope.from_json(
-            sign_tx_dict(admitted.to_json(), label=admitted.signer)
-        )
+        ensure_account_has_test_key(state.setdefault("accounts", {}), account_id=admitted.signer)
+        admitted = TxEnvelope.from_json(sign_tx_dict(admitted.to_json(), label=admitted.signer))
 
     verdict = admit_tx(admitted, state, canon=load_default_tx_index(), context=context)
     if not verdict.ok:
@@ -232,9 +228,7 @@ def _build_row(
         "persistence_restart_expectation": {
             "required": state_writing,
             "assertion": (
-                "sqlite_reopen_preserves_exact_state_root"
-                if state_writing
-                else "not_state_writing"
+                "sqlite_reopen_preserves_exact_state_root" if state_writing else "not_state_writing"
             ),
             "evidence_test": "tests/test_p2_a02_lifecycle_manifest.py",
         },
@@ -279,9 +273,7 @@ def build_manifest() -> dict[str, Any]:
                 1 for row in rows if row["duplicate_replay_expectation"]
             ),
             "persistence_required_count": sum(
-                1
-                for row in rows
-                if row["persistence_restart_expectation"]["required"]
+                1 for row in rows if row["persistence_restart_expectation"]["required"]
             ),
         },
         "shared_contract_evidence": {
@@ -309,10 +301,7 @@ def main() -> int:
             print(f"stale_lifecycle_manifest:{OUTPUT_PATH}")
             return 1
         payload = json.loads(rendered)
-        print(
-            "OK: "
-            f"{payload['summary']['tx_count']} transaction lifecycle vectors are current"
-        )
+        print(f"OK: {payload['summary']['tx_count']} transaction lifecycle vectors are current")
         return 0
 
     OUTPUT_PATH.write_text(rendered, encoding="utf-8")
