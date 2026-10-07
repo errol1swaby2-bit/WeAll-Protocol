@@ -162,14 +162,14 @@
       "id": "A20-F003",
       "severity": "LOW",
       "track": "P2-09",
-      "status": "patched_pending_proof",
+      "status": "patched_and_proven",
       "summary": "Documented production static deployment does not mechanically deliver the repository CSP posture",
-      "evidence": "Documented Nginx and Caddy production paths now emit CSP with script-src 'self' and object-src 'none', and tests/test_p2_a20_deployment_csp.py guards those examples. The original closure contract additionally requires a built production frontend served through the documented deployment path, assertion of the actual response CSP, browser/API-media functionality, and browser E2E smoke. That deployed-header proof is not yet present, so this finding is patched but not closed."
+      "evidence": "The repository ships web/deploy/nginx.conf.template as the tested production Nginx path. Web CI run 37683086740 / job 113003857844 built the production Vite bundle, copied it to an Nginx-readable deployment directory, validated and started the shipped config, asserted the actual HTTP Content-Security-Policy contains script-src 'self' and object-src 'none' without unsafe-inline/unsafe-eval script execution, verified /v1/readyz through the same-origin production proxy, and passed a Chromium browser smoke that rendered the app, loaded same-origin JS assets, exercised the proxied API, and loaded permitted data-image content. The Nginx test and browser smoke both completed success."
     }
   ],
   "summary": {
-    "proven_dispositions": 13,
-    "patched_pending_proof": 1,
+    "proven_dispositions": 14,
+    "patched_pending_proof": 0,
     "external_evidence_blockers": [
       "A04-F002"
     ],
@@ -178,8 +178,7 @@
     ],
     "open_or_blocked_findings": [
       "A04-F002",
-      "A11-F003",
-      "A20-F003"
+      "A11-F003"
     ],
     "adjudicated_findings": 16,
     "closure_complete": false
