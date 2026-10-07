@@ -225,9 +225,9 @@
       "id": "A16-F006",
       "severity": "MEDIUM",
       "track": "P1-02",
-      "status": "design_blocker",
+      "status": "patched_and_proven",
       "summary": "Transaction coverage is structural; no all-236 semantic property/mutation matrix exists",
-      "evidence": "The repository now mechanically prevents the structural transaction coverage report from being misread as semantic proof: it emits `all-236 semantic conformance proven: False` and states that canon/schema inventory does not establish authorization, replay/duplicate, rollback, restart, exact-receipt, or mutation semantics. However, the September 30 audit requires a genuine 236/236 executable semantic vector/property/mutation matrix for closure; that matrix does not yet exist, so this finding remains an explicit design/assurance blocker."
+      "evidence": "All-236 semantic assurance is now executable and machine-readable. generated/tx_semantic_assurance_v1_5.json contains exactly 236 canonical rows, each with a schema-valid baseline, adversarial schema-rejection mutation, coercion probe, and required execution properties. tests/test_a16_f006_all_tx_semantic_assurance.py requires raw-vs-schema-normalized semantic parity, bounded-rollback versus deepcopy-oracle parity, and exact rollback equality on rejected execution for every canonical transaction. Initial run 37556225303 found two genuine survivors (POH_ASYNC_EVIDENCE_DECLARE default-metadata policy drift and REPUTATION_DELTA_APPLY journal-proxy-dependent event_history_root); both runtime causes were repaired without weakening the matrix. Run 37556616170 then generated and passed all 236 rows with zero survivors. Run 37556858369 regenerated the tracked manifest from a workflow-free tree, reran the entire 236-row matrix, committed candidate 0f9513f5b4d1e211f0fd58ead15e55cc6ea9f3af / tree d517dbb43f2d017e64721dd28d1169f22747e359, and verified manifest --check plus the full matrix from that committed candidate. Backend CI and A01-A20 P1 Revalidation now permanently require manifest freshness; the coverage report is scoped to this bounded semantic assurance and explicitly does not claim exhaustive all-state conformance."
     },
     {
       "id": "A17-F001",
@@ -311,8 +311,8 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 31,
-    "pending_revalidation": 3,
+    "proven_dispositions": 32,
+    "pending_revalidation": 2,
     "open_or_blocked_findings": [
       "A01-F001",
       "A16-F006",
