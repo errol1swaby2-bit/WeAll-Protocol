@@ -5,6 +5,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -18,6 +19,16 @@ OUTPUT_PATH = ROOT / "generated" / "tx_lifecycle_assurance_v1_5.json"
 
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
+
+# This is a hermetic contract-evidence generator, not a production node boot.
+# Match tests/conftest.py so operator shell WEALL_* exports cannot change the
+# 236-vector fixture semantics or the tracked manifest bytes.
+for _name in list(os.environ):
+    if _name.startswith("WEALL_"):
+        os.environ.pop(_name, None)
+os.environ["WEALL_MODE"] = "test"
+os.environ["WEALL_CRYPTO_MODE"] = "closed-testnet"
+os.environ["WEALL_API_BOOT_RUNTIME"] = "0"
 
 from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
 from weall.runtime.state_hash import compute_state_root
@@ -205,6 +216,11 @@ def build_manifest() -> dict[str, Any]:
 
     return {
         "schema": "weall.tx_lifecycle_assurance.v1",
+        "harness_environment": {
+            "WEALL_MODE": "test",
+            "WEALL_CRYPTO_MODE": "closed-testnet",
+            "WEALL_API_BOOT_RUNTIME": "0",
+        },
         "source_inputs": {
             "semantic_manifest_sha256": _sha256(SEMANTIC_PATH),
             "lifecycle_fixture_sha256": _sha256(FIXTURE_PATH),
