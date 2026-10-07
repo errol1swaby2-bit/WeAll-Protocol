@@ -14,8 +14,8 @@ from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
 from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_contracts import load_default_tx_index
-from weall.testing.sigtools import ensure_account_has_test_key, sign_tx_dict
 from weall.runtime.validator_readiness_runner import build_validator_readiness_receipt
+from weall.testing.sigtools import ensure_account_has_test_key, sign_tx_dict
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "generated" / "tx_semantic_assurance_v1_5.json"
