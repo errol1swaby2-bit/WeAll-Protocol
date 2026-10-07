@@ -37,6 +37,10 @@ jobs:
           echo "commit=$(git rev-parse HEAD)"
           echo "tree=$(git rev-parse HEAD^{tree})"
 
+      - name: P2 A02 lifecycle diagnostic
+        working-directory: Weall-Protocol
+        run: pytest -q tests/test_p2_a02_success_lifecycle_baseline.py
+
       - name: Canon sanity
         working-directory: Weall-Protocol
         run: |
