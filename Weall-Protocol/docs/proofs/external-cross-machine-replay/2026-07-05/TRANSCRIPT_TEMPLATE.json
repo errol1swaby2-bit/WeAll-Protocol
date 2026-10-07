@@ -3,8 +3,13 @@
   "blocker": "AUD-618-P1-003",
   "commit": "<same git commit on all machines>",
   "branch": "<branch name>",
-  "operator_ids": ["<external operator id>"],
-  "machine_ids": ["<external-machine-a>", "<external-machine-b>"],
+  "operator_ids": [
+    "<external operator id>"
+  ],
+  "machine_ids": [
+    "<external-machine-a>",
+    "<external-machine-b>"
+  ],
   "machine_isolation": "two_physical_machines",
   "operator_attestation": "external_replay_operator_signed",
   "external_attestation_attached": true,
@@ -44,7 +49,9 @@
   "state_roots_match": true,
   "tx_index_hash_match": true,
   "external_machine_or_two_physical_machines": true,
-  "operator_signatures": ["<external operator signature or controlled attestation reference>"],
+  "operator_signatures": [
+    "<external operator signature or controlled attestation reference>"
+  ],
   "claim_boundaries": {
     "public_beta_ready": false,
     "mainnet_ready": false,
@@ -56,5 +63,95 @@
     "legal_compliance_ready": false,
     "public_storage_provider_market": false
   },
-  "transcript_digest": "<sha256 of canonical transcript without this field>"
+  "transcript_digest": "<sha256 of canonical transcript without this field>",
+  "git_tree": "<same git tree on all machines>",
+  "tx_lifecycle_assurance_sha256": "<same generated/tx_lifecycle_assurance_v1_5.json sha256>",
+  "tx_semantic_assurance_sha256": "<same generated/tx_semantic_assurance_v1_5.json sha256>",
+  "tx_contract_map_sha256": "<same generated/tx_contract_map.json sha256>",
+  "live_lifecycle_digest": "<same live-generated 236-vector lifecycle digest across machines/seeds>",
+  "broad_probe_lifecycle_manifest_sha256": "<must equal tx_lifecycle_assurance_sha256>",
+  "broad_probe_lifecycle_projection_sha256": "<same canonical broad lifecycle projection sha256>",
+  "broad_probe_reversed_projection_sha256": "<same value as broad_probe_lifecycle_projection_sha256>",
+  "broad_probe_hash_seed_render_sha256": {
+    "0": "<same lifecycle render sha256>",
+    "1": "<same lifecycle render sha256>",
+    "7": "<same lifecycle render sha256>",
+    "42": "<same lifecycle render sha256>"
+  },
+  "replay_manifest_digest_by_machine": {
+    "<external-machine-a>": "<same per-block replay manifest digest>",
+    "<external-machine-b>": "<same per-block replay manifest digest>"
+  },
+  "db_replay_digest_by_machine": {
+    "<external-machine-a>": "<same DB-backed replay digest>",
+    "<external-machine-b>": "<same DB-backed replay digest>"
+  },
+  "fresh_node_replay_digest_by_machine": {
+    "<external-machine-a>": "<same fresh-node replay digest>",
+    "<external-machine-b>": "<same fresh-node replay digest>"
+  },
+  "hashseed_results_by_machine": {
+    "<external-machine-a>": {
+      "1": {
+        "ok": true,
+        "tx_count": 236,
+        "successful_apply_count": 236,
+        "successful_admission_count": 236,
+        "lifecycle_runtime_digest": "<same digest>",
+        "determinism_pytest_ok": true
+      },
+      "7": {
+        "ok": true,
+        "tx_count": 236,
+        "successful_apply_count": 236,
+        "successful_admission_count": 236,
+        "lifecycle_runtime_digest": "<same digest>",
+        "determinism_pytest_ok": true
+      },
+      "31337": {
+        "ok": true,
+        "tx_count": 236,
+        "successful_apply_count": 236,
+        "successful_admission_count": 236,
+        "lifecycle_runtime_digest": "<same digest>",
+        "determinism_pytest_ok": true
+      }
+    },
+    "<external-machine-b>": {
+      "1": {
+        "ok": true,
+        "tx_count": 236,
+        "successful_apply_count": 236,
+        "successful_admission_count": 236,
+        "lifecycle_runtime_digest": "<same digest>",
+        "determinism_pytest_ok": true
+      },
+      "7": {
+        "ok": true,
+        "tx_count": 236,
+        "successful_apply_count": 236,
+        "successful_admission_count": 236,
+        "lifecycle_runtime_digest": "<same digest>",
+        "determinism_pytest_ok": true
+      },
+      "31337": {
+        "ok": true,
+        "tx_count": 236,
+        "successful_apply_count": 236,
+        "successful_admission_count": 236,
+        "lifecycle_runtime_digest": "<same digest>",
+        "determinism_pytest_ok": true
+      }
+    }
+  },
+  "per_block_replay_match": true,
+  "db_replay_match": true,
+  "fresh_node_state_sync_match": true,
+  "hashseed_matrix_match": true,
+  "broad_probe_match": true,
+  "insertion_order_projection_match": true,
+  "broad_transition_corpus": "all_236_canonical_lifecycle_vectors",
+  "scheduler_order_permutation_vectors": true,
+  "helper_serial_equivalence_vectors": true,
+  "failed_receipt_replay_vectors": true
 }
