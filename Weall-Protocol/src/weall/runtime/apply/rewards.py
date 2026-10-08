@@ -22,9 +22,11 @@ from weall.ledger.constants import (
     HALVING_INTERVAL_ISSUANCE_EPOCHS,
     INITIAL_ISSUANCE_PER_EPOCH,
     ISSUANCE_EPOCH_BLOCKS,
+    FEE_REWARD_POOL_ACCOUNT_ID,
     MAX_SUPPLY,
     MINT_POOL_ACCOUNT_ID,
 )
+from weall.ledger.fee_reward_pool import validated_fee_reward_pool_balance
 from weall.ledger.issuance import issuance_epoch_index_for_height
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.tx_admission import TxEnvelope
@@ -398,6 +400,19 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         amt = _as_int(d.get("amount"), 0)
         if not src or amt <= 0:
             continue
+        # Reward system transactions cannot sweep arbitrary user accounts.
+        if src not in {MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID}:
+            raise RewardsApplyError(
+                "forbidden", "reward_funding_source_not_allowed", {"account": src}
+            )
+        if src == FEE_REWARD_POOL_ACCOUNT_ID:
+            params = _as_dict(state.get("params"))
+            if _as_str(params.get("fee_sink_account")).strip() != FEE_REWARD_POOL_ACCOUNT_ID:
+                raise RewardsApplyError("forbidden", "reward_fee_pool_not_configured", {})
+            try:
+                validated_fee_reward_pool_balance(state)
+            except ValueError as exc:
+                raise RewardsApplyError("forbidden", str(exc), {}) from exc
         normalized_debits.append({"from": src, "amount": int(amt)})
         debit_totals[src] = debit_totals.get(src, 0) + int(amt)
 
@@ -414,6 +429,10 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         amt = _as_int(t.get("amount"), 0)
         if not to or amt <= 0:
             continue
+        if to in {MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID}:
+            raise RewardsApplyError(
+                "forbidden", "reward_internal_pool_recipient_forbidden", {"account": to}
+            )
 
         # Batch 486 repair: credit recipients must already exist.
         # Reward distribution must not silently create missing accounts.
