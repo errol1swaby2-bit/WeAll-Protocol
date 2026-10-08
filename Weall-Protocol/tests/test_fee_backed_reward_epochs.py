@@ -12,6 +12,8 @@ from weall.ledger.constants import (
     MINT_POOL_ACCOUNT_ID,
 )
 from weall.runtime.apply.economics import EconomicsApplyError, apply_economics
+from weall.runtime.apply.identity import apply_identity
+from weall.runtime.errors import ApplyError
 from weall.runtime.apply.rewards import RewardsApplyError, apply_rewards
 from weall.runtime.system_tx_engine import (
     SystemSchedulerError,
@@ -35,7 +37,11 @@ def _state(*, issued: int = MAX_SUPPLY, fee_balance: int = 0, configured: bool =
         "params": params,
         "accounts": {
             MINT_POOL_ACCOUNT_ID: {"balance": 0},
-            FEE_REWARD_POOL_ACCOUNT_ID: {"balance": fee_balance},
+            FEE_REWARD_POOL_ACCOUNT_ID: {
+                "account_type": "system",
+                "system_role": "fee_reward_pool",
+                "balance": fee_balance,
+            },
             "@payer": {"balance": 100},
             "@validator": {"balance": 0},
             "@recipient": {"balance": 0},
@@ -168,7 +174,7 @@ def test_fee_only_rewards_remain_subject_to_economics_lock() -> None:
 def test_invalid_canonical_fee_pool_fails_closed() -> None:
     st = _state(fee_balance=8)
     del st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]
-    with pytest.raises(SystemSchedulerError, match="canonical_fee_pool_missing"):
+    with pytest.raises(SystemSchedulerError, match="canonical_fee_reward_pool_missing"):
         _schedule(st)
 
 
@@ -231,3 +237,100 @@ def test_reward_distribution_rejects_unaccounted_excess_debit_without_mutation()
     assert "issuance_epoch:excess" not in st.get("rewards", {}).get(
         "block_reward_distributions_by_id", {}
     )
+
+
+def test_human_cannot_register_reserved_system_fee_pool_id() -> None:
+    st = _state()
+    del st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]
+    with pytest.raises(ApplyError, match="reserved_system_account_id"):
+        apply_identity(
+            st,
+            TxEnvelope(
+                tx_type="ACCOUNT_REGISTER",
+                signer=FEE_REWARD_POOL_ACCOUNT_ID,
+                nonce=1,
+                system=False,
+                payload={"pubkey": "untrusted"},
+            ),
+        )
+    assert FEE_REWARD_POOL_ACCOUNT_ID not in st["accounts"]
+
+
+@pytest.mark.parametrize(
+    "fake_pool",
+    [
+        {"balance": 5, "account_type": "human"},
+        {"balance": 5, "account_type": "system", "system_role": "different"},
+        {
+            "balance": 5,
+            "account_type": "system",
+            "system_role": "fee_reward_pool",
+            "keys": {"by_id": {"attacker": "pubkey"}},
+        },
+        {"balance": True, "account_type": "system", "system_role": "fee_reward_pool"},
+        {"balance": -1, "account_type": "system", "system_role": "fee_reward_pool"},
+    ],
+)
+def test_squatted_or_malformed_pool_cannot_fund_rewards(fake_pool: dict) -> None:
+    st = _state()
+    st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID] = fake_pool
+    with pytest.raises(SystemSchedulerError, match="canonical_fee_reward_pool_"):
+        _schedule(st)
+    assert st["system_queue"] == []
+
+
+def test_untrusted_fee_pool_cannot_receive_fees() -> None:
+    st = _state()
+    st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID] = {
+        "account_type": "human", "balance": 0, "keys": ["attacker"]
+    }
+    with pytest.raises(EconomicsApplyError, match="fee_reward_pool_not_system_owned"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="FEE_PAY", signer="@payer", nonce=1,
+                payload={"amount": 7}, system=False,
+            ),
+        )
+    assert st["accounts"]["@payer"]["balance"] == 100
+
+
+def test_arbitrary_user_account_cannot_be_reward_debit_source() -> None:
+    st = _state(fee_balance=0)
+    with pytest.raises(RewardsApplyError, match="reward_funding_source_not_allowed"):
+        apply_rewards(
+            st, _sys("BLOCK_REWARD_DISTRIBUTE", {
+                "block_id": "unsupported-source",
+                "transfers": [{"to": "@validator", "amount": 10}],
+                "debits": [{"from": "@payer", "amount": 10}],
+            }, 1),
+        )
+    assert st["accounts"]["@payer"]["balance"] == 100
+    assert st["accounts"]["@validator"]["balance"] == 0
+
+
+@pytest.mark.parametrize("destination", [MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID])
+def test_internal_pool_cannot_be_reward_recipient(destination: str) -> None:
+    st = _state(fee_balance=50)
+    with pytest.raises(RewardsApplyError, match="reward_internal_pool_recipient_forbidden"):
+        apply_rewards(
+            st, _sys("BLOCK_REWARD_DISTRIBUTE", {
+                "block_id": "bad-internal-recipient",
+                "transfers": [{"to": destination, "amount": 10}],
+                "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 10}],
+            }, 1),
+        )
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 50
+
+
+def test_unconfigured_pool_cannot_be_reward_debit_source() -> None:
+    st = _state(fee_balance=30, configured=False)
+    with pytest.raises(RewardsApplyError, match="reward_fee_pool_not_configured"):
+        apply_rewards(
+            st, _sys("BLOCK_REWARD_DISTRIBUTE", {
+                "block_id": "disabled-fee-pool",
+                "transfers": [{"to": "@validator", "amount": 30}],
+                "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 30}],
+            }, 1),
+        )
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 30
