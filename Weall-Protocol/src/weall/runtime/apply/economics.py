@@ -909,9 +909,13 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
             {"amount": int(amount)},
         )
     # Only the configured canonical fee sink may receive protocol reward fees.
-    if to_account == FEE_REWARD_POOL_ACCOUNT_ID and _as_str(
+    configured_fee_sink = _as_str(
         _as_dict(state.get("params")).get("fee_sink_account")
-    ).strip() != FEE_REWARD_POOL_ACCOUNT_ID:
+    ).strip()
+    if (
+        to_account == FEE_REWARD_POOL_ACCOUNT_ID
+        and configured_fee_sink != FEE_REWARD_POOL_ACCOUNT_ID
+    ):
         raise EconomicsApplyError("forbidden", "reward_fee_pool_not_configured", {})
 
     if amount > 0:
