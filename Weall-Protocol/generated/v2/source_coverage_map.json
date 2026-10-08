@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "e2dcd146a8087488e03dfb9a2d3db8e4197e1cc5e5ab20a95634c1a4410275f4",
+      "sha256": "15b55c8ef5b810fb9be8f08c01c96c33d96d26b4e93fbee7adf85183101abac4",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3883,7 +3883,7 @@
       ],
       "path": "scripts/a04_cross_machine_determinism_probe_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "c903640898796c12457453366eb24fd012fc7e1a97fb103631713ef9f67fb000",
+      "sha256": "8a294724178bae84f0d93eb3f3ee2a7311e40d251871c8e71c945caebce03e01",
       "source_id": "SRC-4DB07C970B582587"
     },
     {
@@ -4107,7 +4107,7 @@
       ],
       "path": "scripts/capture_a04_external_determinism_packet_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "bd35fb14758c6c34d3d7ddfaa6d5c04d8ff43fb0f83df1bff7d96185f26f8796",
+      "sha256": "0ded6fa8164454bb03a8b5f69be3039f51cbe4790d65ee0f1f9b84cd8e8cac06",
       "source_id": "SRC-D5A25636496F68AE"
     },
     {
