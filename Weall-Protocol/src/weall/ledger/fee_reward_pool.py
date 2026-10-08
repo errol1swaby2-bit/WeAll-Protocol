@@ -12,7 +12,6 @@ from typing import Any
 
 from weall.ledger.constants import FEE_REWARD_POOL_ACCOUNT_ID
 
-
 FEE_REWARD_POOL_CONTRACT_VERSION = 1
 
 
