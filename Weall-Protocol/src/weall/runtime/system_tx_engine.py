@@ -485,19 +485,25 @@ def schedule_block_rewards_system_txs(
     # The production/public-testnet path remains disabled above until the
     # complete accepted-work / public-goods / reserve policy is implemented.
     params = state.get("params")
-    configured_fee_sink = (
-        _as_str(params.get("fee_sink_account")).strip()
-        if isinstance(params, dict)
-        else ""
-    )
+    configured_fee_sink = ""
+    if isinstance(params, dict):
+        configured_fee_sink = _as_str(params.get("fee_sink_account")).strip()
     fee_total = 0
     if configured_fee_sink == FEE_REWARD_POOL_ACCOUNT_ID:
         accounts = state.get("accounts")
-        fee_pool = accounts.get(FEE_REWARD_POOL_ACCOUNT_ID) if isinstance(accounts, dict) else None
+        fee_pool = (
+            accounts.get(FEE_REWARD_POOL_ACCOUNT_ID)
+            if isinstance(accounts, dict)
+            else None
+        )
         if not isinstance(fee_pool, dict):
             raise SystemSchedulerError("canonical_fee_pool_missing")
         fee_balance = fee_pool.get("balance", 0)
-        if not isinstance(fee_balance, int) or isinstance(fee_balance, bool) or fee_balance < 0:
+        if (
+            not isinstance(fee_balance, int)
+            or isinstance(fee_balance, bool)
+            or fee_balance < 0
+        ):
             raise SystemSchedulerError("canonical_fee_pool_invalid_balance")
         fee_total = fee_balance
 
