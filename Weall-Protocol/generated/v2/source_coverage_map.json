@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "b013dfaecae888e126df8ab80ae43500a97c59f3fe55c547b9fd2a845c9b6f95",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -2676,7 +2676,7 @@
       ],
       "path": "docs/testnet/EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "29b07f125d0f64c20f6c7e946fb49250bad3ce4d8c4dc9899a6c5637630a9024",
+      "sha256": "a2b778e631024b8d7d24bb3a118cb581942edd32db5bd3064f8d238a540f5ecd",
       "source_id": "SRC-CFB03315F15D4B08"
     },
     {
@@ -12879,7 +12879,7 @@
       ],
       "path": "tests/prod/test_external_cross_machine_replay_transcript_capture.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2044af6d9d160951615b671ead2c4f52912f46e3b779d6cb5dc5d602bf5ad5ac",
+      "sha256": "8e515274c03b9120ea9878fc8ec4b527961c83a8fdcee2a7da6298534cfd8279",
       "source_id": "SRC-11003648BBDC3903"
     },
     {
