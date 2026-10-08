@@ -90,6 +90,15 @@ jobs:
         run: |
           python -m tooling.canon_lint
 
+      # TEMPORARY diagnostic: remove after capturing exact-commit results.
+      - name: Temporary fee reserve focused regression verification
+        run: |
+          pytest -q tests/test_fee_backed_reward_epochs.py \
+            tests/test_v15_epoch_issuance_scheduler.py \
+            tests/test_reward_issuance_invariants.py \
+            tests/test_p1_a10_reward_scheduler_scope.py \
+            tests/test_pending_tx_semantic_review_report.py
+
       - name: Check generated artifacts
         run: |
           python scripts/check_generated.py
