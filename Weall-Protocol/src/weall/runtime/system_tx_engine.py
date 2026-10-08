@@ -16,7 +16,10 @@ from weall.ledger.constants import (
     MINT_POOL_ACCOUNT_ID,
     TREASURY_ACCOUNT_ID,
 )
-from weall.ledger.fee_reward_pool import validated_fee_reward_pool_balance
+from weall.ledger.fee_reward_pool import (
+    fee_reward_pool_contract_enabled,
+    validated_fee_reward_pool_balance,
+)
 from weall.ledger.issuance import (
     cap_issuance_by_remaining_supply,
     epoch_issuance_subsidy_atomic,
@@ -485,12 +488,8 @@ def schedule_block_rewards_system_txs(
     # Only the protocol-designated fee pool may contribute to this epoch.
     # The production/public-testnet path remains disabled above until the
     # complete accepted-work / public-goods / reserve policy is implemented.
-    params = state.get("params")
-    configured_fee_sink = ""
-    if isinstance(params, dict):
-        configured_fee_sink = _as_str(params.get("fee_sink_account")).strip()
     fee_total = 0
-    if configured_fee_sink == FEE_REWARD_POOL_ACCOUNT_ID:
+    if fee_reward_pool_contract_enabled(state):
         try:
             fee_total = validated_fee_reward_pool_balance(state)
         except ValueError as exc:
