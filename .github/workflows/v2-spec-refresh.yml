@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 A04 bootstrap final refresh
 
 on:
   workflow_dispatch:
