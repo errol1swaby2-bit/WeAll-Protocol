@@ -48,8 +48,8 @@ Run this command separately on each external machine from a clean checkout:
 cd WeAll-Protocol
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.lock
-pip install -e .
+python -m pip install --require-hashes -r requirements-dev.lock
+python -m pip install -e . --no-deps
 
 bash scripts/capture_external_cross_machine_replay_transcript_v1_5.sh \
   --machine-id <external-machine-id> \
