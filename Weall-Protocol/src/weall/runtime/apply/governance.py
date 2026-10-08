@@ -1540,6 +1540,46 @@ def _assert_governance_actions_allowed(state: Json, actions: list[dict[str, Any]
         _validate_governance_action_payload(tx_type, _d(action.get("payload")))
 
 
+# P0 containment: a group-member electorate may approve only effects that are
+# independently revalidated against that SAME group when applied. Protocol-wide
+# changes (including consensus/validator, rules, economics, treasury policy and
+# upgrades) must be authorized by a protocol-level electorate instead.
+# This is deliberately an explicit allowlist, not a name/prefix heuristic.
+_GROUP_SCOPED_GOVERNANCE_ACTIONS = frozenset({"GROUP_TREASURY_SPEND_EXECUTE"})
+
+
+def _assert_governance_action_electorate_scope(
+    state: Json,
+    proposal: dict[str, Any],
+    actions: list[dict[str, Any]],
+) -> None:
+    """Reject cross-scope executable authority even for previously tallied votes.
+
+    An approved vote does not confer authority beyond its electorate's scope.
+    This check must run at creation, edit, and execution because state imported
+    from older releases may contain an already approved scoped proposal.
+    """
+    if not actions or not strict_civic_governance_enabled(state):
+        return
+    electorate_scope = _normalized_or_default_electorate_scope(state, proposal)
+    if electorate_scope != "group_members":
+        return
+    group_id = _proposal_group_id(proposal)
+    for action in actions:
+        tx_type = _s(action.get("tx_type")).strip().upper()
+        if tx_type not in _GROUP_SCOPED_GOVERNANCE_ACTIONS:
+            raise ApplyError(
+                "forbidden",
+                "governance_action_scope_mismatch",
+                {
+                    "electorate_scope": electorate_scope,
+                    "group_id": group_id,
+                    "tx_type": tx_type,
+                    "required_electorate_scope": "protocol_tier2",
+                },
+            )
+
+
 def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
@@ -1596,6 +1636,7 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     electorate_scope = _normalized_or_default_electorate_scope(state, proposal_scope_seed)
     proposal_scope_seed["electorate_scope"] = electorate_scope
     _require_recognized_electorate_scope(state, proposal_scope_seed)
+    _assert_governance_action_electorate_scope(state, proposal_scope_seed, actions)
     proposal_electorate_seed = {
         "creator": str(env.signer),
         "actions": actions,
@@ -1733,6 +1774,17 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
         raise ApplyError(
             "forbidden", "proposal_not_editable", {"proposal_id": proposal_id, "stage": stg}
         )
+
+    # Validate the COMPLETE next version before modifying a draft or revision.
+    # Changing only its rules must not silently authorize existing actions.
+    if "actions" in p or "rules" in p:
+        proposed = dict(pr)
+        if "rules" in p:
+            proposed["rules"] = _d(p.get("rules"))
+        next_actions = _extract_actions(p) if "actions" in p else [
+            a for a in _l(pr.get("actions")) if isinstance(a, dict)
+        ]
+        _assert_governance_action_electorate_scope(state, proposed, next_actions)
 
     # Apply optional fields
     if "rules" in p:
@@ -2343,6 +2395,7 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
         actions = supplied_actions or approved_actions
 
     _assert_governance_actions_allowed(state, actions)
+    _assert_governance_action_electorate_scope(state, pr, actions)
 
     parent_ref = env.parent or _s(p.get("_parent_ref")).strip() or None
     emitted_actions: list[dict[str, Any]] = []
