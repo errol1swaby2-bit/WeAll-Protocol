@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "91f06712c5d0eed4758bc67ebb63e9fdfc21a810195c6bde1dec10487cb00a33",
+      "sha256": "d9ff8089322667a6d57c56f1e1ec7c94620091efae665f5ac6acb730c0abd99b",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -23162,7 +23162,7 @@
       ],
       "path": "tests/test_p2_a11_genesis_relative_issuance.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2e3ef7ca15f0b5d3f5a915ca02a75aef5352086afe413f1cbe57698d1792983b",
+      "sha256": "94199c7e9e1178ac41096e32597d82137f2c35cf34704a3a308105f8271e0c0f",
       "source_id": "SRC-5DE4F3B08C3505CB"
     },
     {

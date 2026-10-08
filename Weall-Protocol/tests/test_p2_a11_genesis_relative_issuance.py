@@ -236,4 +236,3 @@ def test_a11_f003_restart_and_state_sync_preserve_genesis_relative_origin(
     mint = _mint_payload(source_queue)
     assert mint["issuance_epoch"] == epoch
     assert mint["amount"] == INITIAL_ISSUANCE_PER_EPOCH // 2
-
