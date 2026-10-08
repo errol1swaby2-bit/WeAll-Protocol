@@ -76,14 +76,8 @@ jobs:
           fi
 
           printf 'Checking %s\n' "${PY_FILES[@]}"
-          ruff format --diff "${PY_FILES[@]}" || true
           ruff format --check "${PY_FILES[@]}"
-          ruff check --diff --select I "${PY_FILES[@]}" || true
           ruff check "${PY_FILES[@]}"
-
-      - name: Temporary genesis/replay fee funding tests
-        run: |
-          pytest -q tests/test_fee_backed_reward_epochs.py tests/test_v15_epoch_issuance_scheduler.py tests/test_reward_issuance_invariants.py tests/test_p1_a10_reward_scheduler_scope.py
 
       - name: Dependency audit
         run: |
