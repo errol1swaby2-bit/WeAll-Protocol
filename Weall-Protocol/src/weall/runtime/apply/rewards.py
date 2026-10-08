@@ -563,6 +563,81 @@ def _apply_transfers_and_debits(
                         {"direction": "debit"},
                     )
 
+    # Activated v1 contract: secondary reward allocations must be atomic,
+    # source-backed and unable to spend incoming credits as pre-existing funds.
+    # Legacy, unactivated histories continue through the original path below.
+    if fee_reward_pool_contract_enabled(state):
+        accounts = state.get("accounts")
+        if not isinstance(accounts, dict):
+            raise RewardsApplyError("invalid_state", "missing_accounts", {})
+
+        credits_by_account: dict[str, int] = {}
+        debits_by_account: dict[str, int] = {}
+
+        for rows, direction, totals in (
+            (transfers, "credit", credits_by_account),
+            (debits, "debit", debits_by_account),
+        ):
+            for row in rows:
+                if not isinstance(row, dict):
+                    raise RewardsApplyError(
+                        "invalid_payload", "reward_allocation_row_not_object", {"direction": direction}
+                    )
+                if direction == "credit":
+                    raw_account = row.get("to") or row.get("account") or row.get("account_id")
+                else:
+                    raw_account = row.get("from") or row.get("account") or row.get("account_id")
+                account_id = raw_account if isinstance(raw_account, str) else ""
+                amount = row.get("amount")
+                if not account_id or type(amount) is not int or amount <= 0:
+                    raise RewardsApplyError(
+                        "invalid_payload",
+                        "reward_allocation_invalid_entry",
+                        {"direction": direction},
+                    )
+                account = accounts.get(account_id)
+                if not isinstance(account, dict):
+                    raise RewardsApplyError(
+                        "invalid_payload",
+                        "reward_allocation_account_missing",
+                        {"direction": direction, "account_id": account_id},
+                    )
+                balance = account.get("balance")
+                if type(balance) is not int or balance < 0:
+                    raise RewardsApplyError(
+                        "invalid_state",
+                        "reward_allocation_invalid_balance",
+                        {"account_id": account_id},
+                    )
+                totals[account_id] = totals.get(account_id, 0) + amount
+
+        credited_total = sum(credits_by_account.values())
+        debited_total = sum(debits_by_account.values())
+        if credited_total != debited_total:
+            raise RewardsApplyError(
+                "invalid_payload",
+                "credits_must_equal_debits",
+                {"credited_total": credited_total, "debited_total": debited_total},
+            )
+
+        for account_id, amount in debits_by_account.items():
+            if accounts[account_id]["balance"] < amount:
+                raise RewardsApplyError(
+                    "forbidden",
+                    "insufficient_funds_for_debit",
+                    {
+                        "account_id": account_id,
+                        "balance": accounts[account_id]["balance"],
+                        "debit": amount,
+                    },
+                )
+
+        for account_id in sorted(set(credits_by_account) | set(debits_by_account)):
+            accounts[account_id]["balance"] += (
+                credits_by_account.get(account_id, 0) - debits_by_account.get(account_id, 0)
+            )
+        return credited_total, debited_total
+
     credited_total = 0
     debited_total = 0
 
