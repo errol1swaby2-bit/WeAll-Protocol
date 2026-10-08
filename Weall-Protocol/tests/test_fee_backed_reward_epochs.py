@@ -364,6 +364,7 @@ def test_legacy_unactivated_reward_replay_preserves_old_debit_contract() -> None
     assert result["distributed_total"] == 30
     assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
 
+
 def test_new_genesis_fee_pool_is_opt_in_and_state_committed(monkeypatch) -> None:
     monkeypatch.setattr(genesis_bootstrap, "_mode", lambda: "dev")
     stub = SimpleNamespace(
@@ -390,11 +391,14 @@ def test_new_genesis_fee_pool_is_opt_in_and_state_committed(monkeypatch) -> None
     }
 
 
-@pytest.mark.parametrize("mode,chain_id", [
-    ("prod", "local-fee-reward-fixture"),
-    ("dev", "weall-prod"),
-    ("dev", "weall-testnet-v1"),
-])
+@pytest.mark.parametrize(
+    "mode,chain_id",
+    [
+        ("prod", "local-fee-reward-fixture"),
+        ("dev", "weall-prod"),
+        ("dev", "weall-testnet-v1"),
+    ],
+)
 def test_pool_genesis_rejects_nonlocal_or_nondev_activation(monkeypatch, mode, chain_id) -> None:
     monkeypatch.setattr(genesis_bootstrap, "_mode", lambda: mode)
     monkeypatch.setenv("WEALL_LOCAL_FEE_REWARD_POOL_GENESIS", "1")
