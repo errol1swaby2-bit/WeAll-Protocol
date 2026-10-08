@@ -78,6 +78,7 @@ jobs:
           printf 'Checking %s\n' "${PY_FILES[@]}"
           ruff format --diff "${PY_FILES[@]}" || true
           ruff format --check "${PY_FILES[@]}"
+          ruff check --diff --select I "${PY_FILES[@]}" || true
           ruff check "${PY_FILES[@]}"
 
       - name: Temporary genesis/replay fee funding tests
