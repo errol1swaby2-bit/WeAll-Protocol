@@ -1,0 +1,233 @@
+from __future__ import annotations
+
+from copy import deepcopy
+
+import pytest
+
+from weall.ledger.constants import (
+    FEE_REWARD_POOL_ACCOUNT_ID,
+    INITIAL_ISSUANCE_PER_EPOCH,
+    ISSUANCE_EPOCH_BLOCKS,
+    MAX_SUPPLY,
+    MINT_POOL_ACCOUNT_ID,
+)
+from weall.runtime.apply.economics import EconomicsApplyError, apply_economics
+from weall.runtime.apply.rewards import RewardsApplyError, apply_rewards
+from weall.runtime.system_tx_engine import (
+    SystemSchedulerError,
+    schedule_block_rewards_system_txs,
+)
+from weall.runtime.tx_admission_types import TxEnvelope
+
+
+def _state(*, issued: int = MAX_SUPPLY, fee_balance: int = 0, configured: bool = True) -> dict:
+    params = {
+        "genesis_time": 0,
+        "economic_unlock_time": 0,
+        "economics_enabled": True,
+    }
+    if configured:
+        params["fee_sink_account"] = FEE_REWARD_POOL_ACCOUNT_ID
+    return {
+        "height": 0,
+        "time": 1,
+        "chain_id": "local-fee-reward-fixture",
+        "params": params,
+        "accounts": {
+            MINT_POOL_ACCOUNT_ID: {"balance": 0},
+            FEE_REWARD_POOL_ACCOUNT_ID: {"balance": fee_balance},
+            "@payer": {"balance": 100},
+            "@validator": {"balance": 0},
+            "@recipient": {"balance": 0},
+            "TREASURY": {"balance": 0},
+        },
+        "roles": {
+            "node_operators": {"active_set": []},
+            "jurors": {"active_set": []},
+            "creators": {"active_set": []},
+        },
+        "economics": {"monetary_policy": {"issued": issued, "max_supply": MAX_SUPPLY}},
+        "system_queue": [],
+    }
+
+
+def _schedule(state: dict) -> dict[str, dict]:
+    schedule_block_rewards_system_txs(
+        state, next_height=ISSUANCE_EPOCH_BLOCKS, proposer="@validator", phase="post"
+    )
+    return {row["tx_type"]: row["payload"] for row in state["system_queue"]}
+
+
+def _sys(tx_type: str, payload: dict, nonce: int) -> TxEnvelope:
+    return TxEnvelope(tx_type=tx_type, signer="SYSTEM", nonce=nonce, payload=payload, system=True)
+
+
+def test_fee_only_epoch_mints_zero_and_pays_from_existing_supply() -> None:
+    st = _state(fee_balance=17)
+    before_total = sum(account["balance"] for account in st["accounts"].values())
+    payloads = _schedule(st)
+    mint = payloads["BLOCK_REWARD_MINT"]
+    dist = payloads["BLOCK_REWARD_DISTRIBUTE"]
+
+    assert mint["amount"] == 0
+    assert dist["subsidy"] == 0
+    assert dist["fees"] == 17
+    assert dist["total"] == 17
+    assert dist["debits"] == [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 17}]
+    assert sum(row["amount"] for row in dist["transfers"]) == 17
+
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", mint, 1))
+    first = apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", dist, 2))
+    again = apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", dist, 3))
+
+    assert first["distributed_total"] == 17
+    assert again["deduped"] is True
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
+    assert st["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
+    assert sum(account["balance"] for account in st["accounts"].values()) == before_total
+
+
+def test_mixed_epoch_funds_subsidy_and_fees_from_separate_sources() -> None:
+    st = _state(issued=0, fee_balance=19)
+    payloads = _schedule(st)
+    mint = payloads["BLOCK_REWARD_MINT"]
+    dist = payloads["BLOCK_REWARD_DISTRIBUTE"]
+
+    assert mint["amount"] == INITIAL_ISSUANCE_PER_EPOCH
+    assert dist["total"] == INITIAL_ISSUANCE_PER_EPOCH + 19
+    assert dist["debits"] == [
+        {"from": MINT_POOL_ACCOUNT_ID, "amount": INITIAL_ISSUANCE_PER_EPOCH},
+        {"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 19},
+    ]
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", mint, 1))
+    apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", dist, 2))
+    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
+    assert st["economics"]["monetary_policy"]["issued"] == INITIAL_ISSUANCE_PER_EPOCH
+
+
+def test_real_fee_payment_funds_fee_only_reward_without_issuance() -> None:
+    st = _state(fee_balance=0)
+    fee = TxEnvelope(
+        tx_type="FEE_PAY", signer="@payer", nonce=1, system=False, payload={"amount": 17}
+    )
+    receipt = apply_economics(st, fee)
+    assert receipt == {
+        "applied": "FEE_PAY",
+        "from": "@payer",
+        "to": FEE_REWARD_POOL_ACCOUNT_ID,
+        "amount": 17,
+    }
+    assert st["accounts"]["@payer"]["balance"] == 83
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 17
+
+    payloads = _schedule(st)
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", payloads["BLOCK_REWARD_MINT"], 2))
+    apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", payloads["BLOCK_REWARD_DISTRIBUTE"], 3))
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
+    assert st["accounts"]["@payer"]["balance"] == 83
+    assert st["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
+    assert sum(row["balance"] for row in st["accounts"].values()) == 100
+
+
+def test_fee_pool_cannot_be_swept_without_canonical_configuration() -> None:
+    st = _state(issued=0, fee_balance=23, configured=False)
+    payloads = _schedule(st)
+    assert payloads["BLOCK_REWARD_DISTRIBUTE"]["fees"] == 0
+    assert payloads["BLOCK_REWARD_DISTRIBUTE"]["debits"] == [
+        {"from": MINT_POOL_ACCOUNT_ID, "amount": INITIAL_ISSUANCE_PER_EPOCH}
+    ]
+
+
+def test_empty_fee_only_epoch_does_not_create_a_reward() -> None:
+    st = _state()
+    assert _schedule(st) == {}
+
+
+def test_duplicate_scheduling_does_not_double_reserve_fee_pool() -> None:
+    st = _state(fee_balance=31)
+    first = _schedule(st)
+    second = _schedule(st)
+    assert first == second
+    assert len(st["system_queue"]) == 2
+
+
+def test_reward_planning_is_deterministic_for_identical_states() -> None:
+    a = _state(fee_balance=13)
+    b = deepcopy(a)
+    assert _schedule(a) == _schedule(b)
+    assert a["system_queue"] == b["system_queue"]
+
+
+def test_fee_only_rewards_remain_subject_to_economics_lock() -> None:
+    st = _state(fee_balance=99)
+    st["params"]["economics_enabled"] = False
+    assert _schedule(st) == {}
+
+
+def test_invalid_canonical_fee_pool_fails_closed() -> None:
+    st = _state(fee_balance=8)
+    del st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]
+    with pytest.raises(SystemSchedulerError, match="canonical_fee_pool_missing"):
+        _schedule(st)
+
+
+def test_user_cannot_spend_from_or_transfer_into_fee_reward_pool() -> None:
+    st = _state(fee_balance=50)
+    for signer, recipient in (
+        (FEE_REWARD_POOL_ACCOUNT_ID, "@recipient"),
+        ("@payer", FEE_REWARD_POOL_ACCOUNT_ID),
+    ):
+        with pytest.raises(EconomicsApplyError, match="reserved_fee_pool_transfer_forbidden"):
+            apply_economics(
+                st,
+                TxEnvelope(
+                    tx_type="BALANCE_TRANSFER",
+                    signer=signer,
+                    nonce=1,
+                    system=False,
+                    payload={"to_account_id": recipient, "amount": 1},
+                ),
+            )
+    with pytest.raises(EconomicsApplyError, match="reserved_fee_pool_cannot_pay_fees"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="FEE_PAY",
+                signer=FEE_REWARD_POOL_ACCOUNT_ID,
+                nonce=1,
+                system=False,
+                payload={"amount": 1},
+            ),
+        )
+
+
+def test_fee_pool_payment_requires_configured_fee_sink() -> None:
+    st = _state(configured=False)
+    with pytest.raises(EconomicsApplyError, match="reward_fee_pool_not_configured"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="FEE_PAY",
+                signer="@payer",
+                nonce=1,
+                system=False,
+                payload={"amount": 1, "to_account_id": FEE_REWARD_POOL_ACCOUNT_ID},
+            ),
+        )
+
+
+def test_reward_distribution_rejects_unaccounted_excess_debit_without_mutation() -> None:
+    st = _state(fee_balance=20)
+    payload = {
+        "block_id": "issuance_epoch:excess",
+        "transfers": [{"to": "@validator", "amount": 10}],
+        "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 20}],
+    }
+    with pytest.raises(RewardsApplyError, match="distribution_debits_exceed_credits"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", payload, 1))
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 20
+    assert st["accounts"]["@validator"]["balance"] == 0
+    assert "issuance_epoch:excess" not in st.get("rewards", {}).get(
+        "block_reward_distributions_by_id", {}
+    )
