@@ -12,6 +12,8 @@ from weall.crypto.account_keys import (
     has_canonical_mldsa_authority,
     validate_account_key_record,
 )
+from weall.ledger.constants import FEE_REWARD_POOL_ACCOUNT_ID
+
 from weall.crypto.signature_profiles import (
     PQ_MLDSA_V1,
     default_signature_profile_for_mode,
@@ -417,6 +419,8 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
     signer = _as_str(env.signer)
     if not signer:
         raise ApplyError("invalid_tx", "missing_signer", {})
+    if signer == FEE_REWARD_POOL_ACCOUNT_ID:
+        raise ApplyError("invalid_tx", "reserved_system_account_id", {"account_id": signer})
 
     if signer in accounts:
         raise ApplyError("invalid_tx", "account_exists", {"account_id": signer})
