@@ -971,9 +971,7 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
     frm = _as_str(env.signer).strip()
     # This protocol reserve must never become a normal user-controlled wallet.
     if frm == FEE_REWARD_POOL_ACCOUNT_ID or to == FEE_REWARD_POOL_ACCOUNT_ID:
-        raise EconomicsApplyError(
-            "forbidden", "reserved_fee_pool_transfer_forbidden", {}
-        )
+        raise EconomicsApplyError("forbidden", "reserved_fee_pool_transfer_forbidden", {})
     if to == frm:
         raise EconomicsApplyError(
             "invalid_payload",
