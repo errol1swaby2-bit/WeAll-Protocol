@@ -41,6 +41,11 @@ jobs:
           python scripts/gen_api_contract_map.py
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
+          # These completion proofs hash the full src/weall Python tree and
+          # therefore must be regenerated whenever protocol source changes.
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
           python scripts/gen_release_evidence_manifest_v1_5.py
 
