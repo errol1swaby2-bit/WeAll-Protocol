@@ -11,6 +11,11 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 
 from weall.crypto.account_keys import account_key_id_for_pubkey
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
+from weall.ledger.constants import FEE_REWARD_POOL_ACCOUNT_ID
+from weall.ledger.fee_reward_pool import (
+    FEE_REWARD_POOL_CONTRACT_VERSION,
+    new_fee_reward_pool_genesis_account,
+)
 from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE
 from weall.runtime.executor import (
     CLOCK_SKEW_WARN_MS,
@@ -119,6 +124,18 @@ def _initial_state(self) -> Json:
             else "optional_local_fixture"
         ),
     }
+
+    # Local-only, genesis-committed test fixture for existing-supply reward
+    # funding. No existing chain is migrated or updated on process restart.
+    fee_pool_genesis_enabled = _env_bool("WEALL_LOCAL_FEE_REWARD_POOL_GENESIS", False)
+    if fee_pool_genesis_enabled:
+        if _mode() != "dev" or self.chain_id in {"weall-prod", "weall-testnet-v1"}:
+            raise ExecutorError(
+                "genesis_config_error: fee reward pool local genesis requires "
+                "WEALL_MODE=dev and an unpinned local chain identity"
+            )
+        params["fee_sink_account"] = FEE_REWARD_POOL_ACCOUNT_ID
+        params["fee_reward_pool_contract_version"] = FEE_REWARD_POOL_CONTRACT_VERSION
 
     # M3 controlled-testnet ballot closure is an explicit genesis choice.  It
     # must never become active merely because a node happens to run in a dev or
@@ -229,7 +246,11 @@ def _initial_state(self) -> Json:
                 genesis_bootstrap_profile
             ),
         },
-        "accounts": {},
+        "accounts": (
+            {FEE_REWARD_POOL_ACCOUNT_ID: new_fee_reward_pool_genesis_account()}
+            if fee_pool_genesis_enabled
+            else {}
+        ),
         "roles": {},
         "params": params,
         "poh": {},
