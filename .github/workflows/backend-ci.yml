@@ -79,10 +79,6 @@ jobs:
           ruff format --check "${PY_FILES[@]}"
           ruff check "${PY_FILES[@]}"
 
-      - name: Temporary fee reward replay and semantic diagnostics
-        run: |
-          pytest -q tests/test_pending_tx_semantic_review_report.py tests/test_fee_backed_reward_epochs.py tests/test_v15_epoch_issuance_scheduler.py tests/test_reward_issuance_invariants.py tests/test_p1_a10_reward_scheduler_scope.py
-
       - name: Dependency audit
         run: |
           # Audit the reproducible dependency graphs rather than the mutable
