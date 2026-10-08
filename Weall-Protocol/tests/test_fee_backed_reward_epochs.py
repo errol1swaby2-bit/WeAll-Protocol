@@ -586,3 +586,97 @@ def test_unactivated_secondary_allocation_retains_legacy_fee_pool_behavior() -> 
     assert result["credited_total"] == 3
     assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 14
     assert st["accounts"]["@recipient"]["balance"] == 3
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+def test_activated_secondary_allocation_is_atomic_on_aggregate_insufficiency(
+    tx_type: str,
+) -> None:
+    st = _state(fee_balance=23)
+    original_accounts = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="insufficient_funds_for_debit"):
+        apply_rewards(
+            st,
+            _sys(
+                tx_type,
+                {
+                    "block_id": "aggregate-overdraw",
+                    "transfers": [{"to": "@recipient", "amount": 120}],
+                    "debits": [
+                        {"from": "@payer", "amount": 60},
+                        {"from": "@payer", "amount": 60},
+                    ],
+                },
+                14,
+            ),
+        )
+    assert st["accounts"] == original_accounts
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+def test_activated_secondary_allocation_rejects_unequal_totals_before_writes(
+    tx_type: str,
+) -> None:
+    st = _state(fee_balance=23)
+    original_accounts = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="credits_must_equal_debits"):
+        apply_rewards(
+            st,
+            _sys(
+                tx_type,
+                {
+                    "block_id": "imbalance",
+                    "transfers": [{"to": "@recipient", "amount": 5}],
+                    "debits": [{"from": "@payer", "amount": 4}],
+                },
+                15,
+            ),
+        )
+    assert st["accounts"] == original_accounts
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+def test_activated_secondary_allocation_settles_exact_existing_supply(
+    tx_type: str,
+) -> None:
+    st = _state(fee_balance=23)
+    original_total = sum(record["balance"] for record in st["accounts"].values())
+    result = apply_rewards(
+        st,
+        _sys(
+            tx_type,
+            {
+                "block_id": "valid-secondary",
+                "transfers": [{"to": "@recipient", "amount": 13}],
+                "debits": [{"from": "@payer", "amount": 13}],
+            },
+            16,
+        ),
+    )
+    assert result["credited_total"] == 13
+    assert st["accounts"]["@recipient"]["balance"] == 13
+    assert st["accounts"]["@payer"]["balance"] == 87
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 23
+    assert sum(record["balance"] for record in st["accounts"].values()) == original_total
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+def test_activated_secondary_allocation_rejects_bool_amount_without_mutation(
+    tx_type: str,
+) -> None:
+    st = _state(fee_balance=23)
+    original_accounts = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="reward_allocation_invalid_entry"):
+        apply_rewards(
+            st,
+            _sys(
+                tx_type,
+                {
+                    "block_id": "bool-amount",
+                    "transfers": [{"to": "@recipient", "amount": True}],
+                    "debits": [{"from": "@payer", "amount": 1}],
+                },
+                17,
+            ),
+        )
+    assert st["accounts"] == original_accounts
