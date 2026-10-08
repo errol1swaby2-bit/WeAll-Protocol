@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "a69d8c5297b6cb4d7e27160e4d6147596251b52944165adaa9ef44b78cc567a6",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -12879,7 +12879,7 @@
       ],
       "path": "tests/prod/test_external_cross_machine_replay_transcript_capture.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "3b065bc83eb5e2a1402bc50cb4927540fc9854bc76794a11fca65f14473f70a4",
+      "sha256": "2044af6d9d160951615b671ead2c4f52912f46e3b779d6cb5dc5d602bf5ad5ac",
       "source_id": "SRC-11003648BBDC3903"
     },
     {
