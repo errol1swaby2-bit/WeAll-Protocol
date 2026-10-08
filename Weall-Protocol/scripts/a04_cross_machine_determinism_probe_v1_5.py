@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
 import os
 import subprocess
@@ -74,18 +73,18 @@ def _projection(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _render_digest_for_seed(seed: str) -> str:
-    code = """
+    code = f"""
 import hashlib
 import importlib.util
 from pathlib import Path
-path = Path(r'%s')
+path = Path(r'{GENERATOR}')
 spec = importlib.util.spec_from_file_location('_a04_lifecycle_generator', path)
 if spec is None or spec.loader is None:
     raise SystemExit('generator_import_failed')
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 print(hashlib.sha256(module.render_manifest().encode('utf-8')).hexdigest())
-""" % str(GENERATOR)
+"""
     env = os.environ.copy()
     env["PYTHONHASHSEED"] = str(seed)
     proc = subprocess.run(
