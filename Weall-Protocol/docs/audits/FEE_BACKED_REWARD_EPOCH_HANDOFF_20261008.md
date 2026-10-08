@@ -42,6 +42,19 @@ Initial phase: **33 passed** on Backend CI #37846555276. After the fee-pool auth
 
 The v2 spec compiler rejects stale semantic-review digests. After the reserved-identity change, the earliest rejected binding is `ACCOUNT_REGISTER`; the previously established `BLOCK_REWARD_DISTRIBUTE` change and touched `FEE_PAY`/`BALANCE_TRANSFER` behaviors also require fresh contract review. The compiler checks rows in order. This is a **required semantic evidence reconciliation**, not a reason to relax the validator. No review digest was silently changed, no maintainer approval was impersonated, and `independent_review` was not represented as true.
 
+## Epoch funding and replay focused verification
+
+The four additional cases in `tests/test_fee_backed_reward_epochs.py` cover:
+
+- A genuine fee-bearing `BALANCE_TRANSFER` deposits its fee into the state-committed internal pool without changing issuance or losing total balance.
+- A user fee receipt sent to an arbitrary noncanonical account does not become reward revenue merely by being labeled a fee.
+- A fee arriving after an epoch's payout has been queued remains available for the next issuance epoch rather than silently altering the prior reward commitment.
+- Two independently copied ledger states process identical fee-only mint and distribution transitions to equal resulting states, balances, and monetary-policy records.
+
+[Backend CI run #37858947707](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37858947707) verified **56 focused tests passed in 10.80 seconds**, Ruff checks passed, and canonical lint passed. The temporary CI testing step was removed afterward. The unchanged v2 compiler correctly rejects the still-unapproved `ACCOUNT_REGISTER` semantic digest, so this is not a green full-backend CI result.
+
+These fixtures are a *single-process deterministic dual-state replay check*, **not** a full network, BFT, crash/restart, reorganization, or archival-history replay proof. An exact-commit multi-node test and a formal review of every value-moving path remain required before activation.
+
 ## Pending transaction-semantic adjudication
 
 Use the read-only compiler-derived candidate inventory:
