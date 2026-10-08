@@ -2,7 +2,7 @@
 
 Status: **DRAFT; LOCAL/DEV COMPATIBILITY PATH ONLY; NOT PRODUCTION-READY**.
 
-Related: [PR #48](https://github.com/errol1swaby2-bit/WeAll-Protocol/pull/48), [Issue #47](https://github.com/errol1swaby2-bit/WeAll-Protocol/issues/47).
+Related: [PR #48](https://github.com/errol1swaby2-bit/WeAll-Protocol/pull/48). Issue #47 concerns a separate group-scope governance architecture and is **not** fee-reward issue closure.
 
 Base: `main` at `111066c475a7f4b60317419bbfa30f9122cd7932`. This document describes the draft PR implementation; it is **not** a change to the full-scope v2 normative specification or an independent audit.
 
@@ -90,6 +90,33 @@ was reviewed. Do not carry forward the prior `reviewer`, `reviewed_at`, or
 An independent review remains a separate unfulfilled launch gate. If a candidate
 is rejected or requires changes, keep the compiler rejection and revise the
 code or specification; do not adjust the digest to force a green check.
+
+## Secondary reward-path reserve containment (additional draft remediation)
+
+Source review identified other balance-changing reward transaction handlers that
+could move the activated `FEE_REWARD_POOL` without the canonical
+`BLOCK_REWARD_DISTRIBUTE` source checks:
+
+- `CREATOR_REWARD_ALLOCATE` and `TREASURY_REWARD_ALLOCATE` use the
+  shared `_apply_transfers_and_debits` path, which formerly allowed
+  fee-reserve credits or debits.
+- `FORFEITURE_APPLY` could debit the same reserve without distributing
+  the proceeds through the fee-backed epoch mechanism.
+
+These paths now fail closed for the reserved account **only when the exact
+state-committed v1 contract is enabled**. The shared allocation path checks
+both directions before any account-balance changes. Unactivated legacy
+histories retain the prior behavior. Six new focused test cases cover the
+secondary paths and the historical compatibility behavior.
+
+**Additional semantic-review obligations:** This source change affects
+`CREATOR_REWARD_ALLOCATE`, `TREASURY_REWARD_ALLOCATE`, and
+`FORFEITURE_APPLY`, in addition to the four previously enumerated contract
+candidates. Their accepted semantic-review digests must be re-evaluated using
+the read-only compiler-derived scanner. This is **not** an acceptance or
+independent sign-off. The earlier four-candidate diagnostic and 56-test run
+predate this additional change; they cannot be cited as validation of it.
+The full runtime and multi-node checks remain pending.
 
 ## Explicit future requirements / risk register
 
