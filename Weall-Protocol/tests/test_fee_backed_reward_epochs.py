@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from types import SimpleNamespace
 
 import pytest
 
+from weall.ledger.fee_reward_pool import (
+    FEE_REWARD_POOL_CONTRACT_VERSION,
+    validated_fee_reward_pool_balance,
+)
+from weall.runtime import genesis_bootstrap
 from weall.ledger.constants import (
     FEE_REWARD_POOL_ACCOUNT_ID,
     INITIAL_ISSUANCE_PER_EPOCH,
@@ -30,6 +36,7 @@ def _state(*, issued: int = MAX_SUPPLY, fee_balance: int = 0, configured: bool =
     }
     if configured:
         params["fee_sink_account"] = FEE_REWARD_POOL_ACCOUNT_ID
+        params["fee_reward_pool_contract_version"] = FEE_REWARD_POOL_CONTRACT_VERSION
     return {
         "height": 0,
         "time": 1,
@@ -208,19 +215,21 @@ def test_user_cannot_spend_from_or_transfer_into_fee_reward_pool() -> None:
         )
 
 
-def test_fee_pool_payment_requires_configured_fee_sink() -> None:
+def test_legacy_unactivated_fee_destination_preserves_historical_behavior() -> None:
     st = _state(configured=False)
-    with pytest.raises(EconomicsApplyError, match="reward_fee_pool_not_configured"):
-        apply_economics(
-            st,
-            TxEnvelope(
-                tx_type="FEE_PAY",
-                signer="@payer",
-                nonce=1,
-                system=False,
-                payload={"amount": 1, "to_account_id": FEE_REWARD_POOL_ACCOUNT_ID},
-            ),
-        )
+    receipt = apply_economics(
+        st,
+        TxEnvelope(
+            tx_type="FEE_PAY",
+            signer="@payer",
+            nonce=1,
+            system=False,
+            payload={"amount": 1, "to_account_id": FEE_REWARD_POOL_ACCOUNT_ID},
+        ),
+    )
+    assert receipt["amount"] == 1
+    assert st["accounts"]["@payer"]["balance"] == 99
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 1
 
 
 def test_reward_distribution_rejects_unaccounted_excess_debit_without_mutation() -> None:
@@ -338,19 +347,75 @@ def test_internal_pool_cannot_be_reward_recipient(destination: str) -> None:
     assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 50
 
 
-def test_unconfigured_pool_cannot_be_reward_debit_source() -> None:
+def test_legacy_unactivated_reward_replay_preserves_old_debit_contract() -> None:
     st = _state(fee_balance=30, configured=False)
-    with pytest.raises(RewardsApplyError, match="reward_fee_pool_not_configured"):
-        apply_rewards(
-            st,
-            _sys(
-                "BLOCK_REWARD_DISTRIBUTE",
-                {
-                    "block_id": "disabled-fee-pool",
-                    "transfers": [{"to": "@validator", "amount": 30}],
-                    "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 30}],
-                },
-                1,
-            ),
-        )
-    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 30
+    result = apply_rewards(
+        st,
+        _sys(
+            "BLOCK_REWARD_DISTRIBUTE",
+            {
+                "block_id": "legacy-unactivated",
+                "transfers": [{"to": "@validator", "amount": 30}],
+                "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 30}],
+            },
+            1,
+        ),
+    )
+    assert result["distributed_total"] == 30
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
+
+def test_new_genesis_fee_pool_is_opt_in_and_state_committed(monkeypatch) -> None:
+    monkeypatch.setattr(genesis_bootstrap, "_mode", lambda: "dev")
+    stub = SimpleNamespace(
+        chain_id="local-fee-reward-fixture",
+        _current_genesis_bootstrap_profile=lambda: {"enabled": False},
+        _requested_helper_execution_profile=lambda: {},
+    )
+    monkeypatch.delenv("WEALL_LOCAL_FEE_REWARD_POOL_GENESIS", raising=False)
+    legacy = genesis_bootstrap._initial_state(stub)
+    assert FEE_REWARD_POOL_ACCOUNT_ID not in legacy["accounts"]
+    assert "fee_reward_pool_contract_version" not in legacy["params"]
+
+    monkeypatch.setenv("WEALL_LOCAL_FEE_REWARD_POOL_GENESIS", "1")
+    a = genesis_bootstrap._initial_state(stub)
+    b = genesis_bootstrap._initial_state(stub)
+    assert a == b
+    assert a["params"]["fee_reward_pool_contract_version"] == 1
+    assert a["params"]["fee_sink_account"] == FEE_REWARD_POOL_ACCOUNT_ID
+    assert validated_fee_reward_pool_balance(a) == 0
+    assert a["accounts"][FEE_REWARD_POOL_ACCOUNT_ID] == {
+        "account_type": "system",
+        "system_role": "fee_reward_pool",
+        "balance": 0,
+    }
+
+
+@pytest.mark.parametrize("mode,chain_id", [
+    ("prod", "local-fee-reward-fixture"),
+    ("dev", "weall-prod"),
+    ("dev", "weall-testnet-v1"),
+])
+def test_pool_genesis_rejects_nonlocal_or_nondev_activation(monkeypatch, mode, chain_id) -> None:
+    monkeypatch.setattr(genesis_bootstrap, "_mode", lambda: mode)
+    monkeypatch.setenv("WEALL_LOCAL_FEE_REWARD_POOL_GENESIS", "1")
+    stub = SimpleNamespace(
+        chain_id=chain_id,
+        _current_genesis_bootstrap_profile=lambda: {"enabled": False},
+        _requested_helper_execution_profile=lambda: {},
+    )
+    with pytest.raises(genesis_bootstrap.ExecutorError, match="fee reward pool local genesis"):
+        genesis_bootstrap._initial_state(stub)
+
+
+def test_legacy_ledger_with_uncommitted_pool_version_does_not_activate() -> None:
+    st = _state(fee_balance=29)
+    del st["params"]["fee_reward_pool_contract_version"]
+    assert "BLOCK_REWARD_DISTRIBUTE" not in _schedule(st)
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 29
+
+
+def test_fee_pool_profile_rejects_even_empty_key_fields() -> None:
+    st = _state(fee_balance=5)
+    st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["keys"] = {}
+    with pytest.raises(ValueError, match="fee_reward_pool_has_user_authority"):
+        validated_fee_reward_pool_balance(st)
