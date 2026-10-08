@@ -430,3 +430,96 @@ def test_fee_pool_profile_rejects_even_empty_key_fields() -> None:
     st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["keys"] = {}
     with pytest.raises(ValueError, match="fee_reward_pool_has_user_authority"):
         validated_fee_reward_pool_balance(st)
+
+
+
+def test_fee_bearing_transfer_funds_pool_without_extra_issuance() -> None:
+    st = _state(fee_balance=0)
+    st["economics"]["fee_policy"] = {"transfer_fee_int": 3}
+    before_total = sum(account["balance"] for account in st["accounts"].values())
+    receipt = apply_economics(
+        st,
+        TxEnvelope(
+            tx_type="BALANCE_TRANSFER",
+            signer="@payer",
+            nonce=1,
+            system=False,
+            payload={"to_account_id": "@recipient", "amount": 10},
+        ),
+    )
+    assert receipt["amount"] == 10
+    assert receipt["fee_amount"] == 3
+    assert st["accounts"]["@payer"]["balance"] == 87
+    assert st["accounts"]["@recipient"]["balance"] == 10
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 3
+    assert sum(account["balance"] for account in st["accounts"].values()) == before_total
+    dist = _schedule(st)["BLOCK_REWARD_DISTRIBUTE"]
+    assert dist["fees"] == 3
+    assert dist["debits"] == [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 3}]
+
+
+def test_other_fee_destination_does_not_enter_canonical_reward_budget() -> None:
+    st = _state(fee_balance=0)
+    apply_economics(
+        st,
+        TxEnvelope(
+            tx_type="FEE_PAY",
+            signer="@payer",
+            nonce=1,
+            system=False,
+            payload={"amount": 7, "to_account_id": "@recipient"},
+        ),
+    )
+    assert st["accounts"]["@recipient"]["balance"] == 7
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
+    assert _schedule(st) == {}
+    assert st["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
+
+
+def test_late_fee_is_not_swept_by_earlier_queued_epoch() -> None:
+    st = _state(fee_balance=11)
+    first = _schedule(st)
+    assert first["BLOCK_REWARD_DISTRIBUTE"]["fees"] == 11
+
+    apply_economics(
+        st,
+        TxEnvelope(
+            tx_type="FEE_PAY", signer="@payer", nonce=1,
+            system=False, payload={"amount": 5},
+        ),
+    )
+    # Queue is already fixed to the snapshot at the epoch boundary.
+    assert _schedule(st) == first
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", first["BLOCK_REWARD_MINT"], 2))
+    apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", first["BLOCK_REWARD_DISTRIBUTE"], 3))
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 5
+
+    schedule_block_rewards_system_txs(
+        st, next_height=2 * ISSUANCE_EPOCH_BLOCKS, proposer="@validator", phase="post"
+    )
+    second = [
+        row["payload"] for row in st["system_queue"]
+        if row["tx_type"] == "BLOCK_REWARD_DISTRIBUTE"
+        and row["payload"]["epoch_id"] == "issuance_epoch:1"
+    ]
+    assert len(second) == 1
+    assert second[0]["fees"] == 5
+    assert second[0]["debits"] == [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 5}]
+
+
+def test_two_nodes_replay_fee_only_epoch_to_identical_state() -> None:
+    original = _state(fee_balance=29)
+    a = deepcopy(original)
+    b = deepcopy(original)
+    queued_a = _schedule(a)
+    queued_b = _schedule(b)
+    assert queued_a == queued_b
+    for node, queued in ((a, queued_a), (b, queued_b)):
+        apply_rewards(node, _sys("BLOCK_REWARD_MINT", queued["BLOCK_REWARD_MINT"], 1))
+        apply_rewards(
+            node,
+            _sys("BLOCK_REWARD_DISTRIBUTE", queued["BLOCK_REWARD_DISTRIBUTE"], 2),
+        )
+    assert a == b
+    assert a["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
+    assert a["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
