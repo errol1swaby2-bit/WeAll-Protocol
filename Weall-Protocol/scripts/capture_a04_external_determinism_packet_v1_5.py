@@ -33,8 +33,7 @@ def _git(*args: str) -> str:
         ["git", *args],
         cwd=ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     if proc.returncode != 0:
@@ -54,8 +53,7 @@ def _run(
         cwd=ROOT,
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     stdout_path.write_text(proc.stdout, encoding="utf-8")
