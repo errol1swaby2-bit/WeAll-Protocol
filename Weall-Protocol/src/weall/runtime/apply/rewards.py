@@ -581,7 +581,9 @@ def _apply_transfers_and_debits(
             for row in rows:
                 if not isinstance(row, dict):
                     raise RewardsApplyError(
-                        "invalid_payload", "reward_allocation_row_not_object", {"direction": direction}
+                        "invalid_payload",
+                        "reward_allocation_row_not_object",
+                        {"direction": direction},
                     )
                 if direction == "credit":
                     raw_account = row.get("to") or row.get("account") or row.get("account_id")
@@ -633,9 +635,9 @@ def _apply_transfers_and_debits(
                 )
 
         for account_id in sorted(set(credits_by_account) | set(debits_by_account)):
-            accounts[account_id]["balance"] += (
-                credits_by_account.get(account_id, 0) - debits_by_account.get(account_id, 0)
-            )
+            accounts[account_id]["balance"] += credits_by_account.get(
+                account_id, 0
+            ) - debits_by_account.get(account_id, 0)
         return credited_total, debited_total
 
     credited_total = 0
