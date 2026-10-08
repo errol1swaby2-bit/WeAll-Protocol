@@ -526,3 +526,63 @@ def test_two_nodes_replay_fee_only_epoch_to_identical_state() -> None:
     assert a == b
     assert a["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
     assert a["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+@pytest.mark.parametrize("direction", ["credit", "debit"])
+def test_secondary_reward_allocators_cannot_move_activated_fee_pool(
+    tx_type: str, direction: str
+) -> None:
+    st = _state(fee_balance=17)
+    original_accounts = deepcopy(st["accounts"])
+    if direction == "credit":
+        transfers = [{"to": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 3}]
+        debits = [{"from": "@payer", "amount": 3}]
+    else:
+        transfers = [{"to": "@recipient", "amount": 3}]
+        debits = [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 3}]
+
+    with pytest.raises(RewardsApplyError, match="reserved_fee_pool_allocation_forbidden"):
+        apply_rewards(
+            st,
+            _sys(
+                tx_type,
+                {"block_id": "other-reward", "transfers": transfers, "debits": debits},
+                11,
+            ),
+        )
+    assert st["accounts"] == original_accounts
+
+
+def test_forfeiture_cannot_burn_activated_fee_pool() -> None:
+    st = _state(fee_balance=17)
+    original_accounts = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="reserved_fee_pool_forfeiture_forbidden"):
+        apply_rewards(
+            st,
+            _sys(
+                "FORFEITURE_APPLY",
+                {"account_id": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 3},
+                12,
+            ),
+        )
+    assert st["accounts"] == original_accounts
+
+
+def test_unactivated_secondary_allocation_retains_legacy_fee_pool_behavior() -> None:
+    st = _state(configured=False, fee_balance=17)
+    result = apply_rewards(
+        st,
+        _sys(
+            "CREATOR_REWARD_ALLOCATE",
+            {
+                "block_id": "legacy-other-reward",
+                "transfers": [{"to": "@recipient", "amount": 3}],
+                "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 3}],
+            },
+            13,
+        ),
+    )
+    assert result["credited_total"] == 3
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 14
+    assert st["accounts"]["@recipient"]["balance"] == 3
