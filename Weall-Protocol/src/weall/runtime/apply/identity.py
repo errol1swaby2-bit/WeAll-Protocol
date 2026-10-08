@@ -12,12 +12,11 @@ from weall.crypto.account_keys import (
     has_canonical_mldsa_authority,
     validate_account_key_record,
 )
-from weall.ledger.constants import FEE_REWARD_POOL_ACCOUNT_ID
-
 from weall.crypto.signature_profiles import (
     PQ_MLDSA_V1,
     default_signature_profile_for_mode,
 )
+from weall.ledger.constants import FEE_REWARD_POOL_ACCOUNT_ID
 
 from ..account_recovery_policy import (
     RECOVERY_FAILED_WINDOW_BLOCKS,
