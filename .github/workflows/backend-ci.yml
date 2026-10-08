@@ -51,6 +51,11 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      # TEMPORARY read-only formatting diagnostic.
+      - name: Temporary Ruff expected source diff
+        run: |
+          ruff format --diff src/weall/runtime/apply/rewards.py || true
+
       - name: Ruff changed Python files
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
