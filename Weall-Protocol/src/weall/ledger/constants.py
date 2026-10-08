@@ -57,3 +57,8 @@ TREASURY_ACCOUNT_ID: str = "TREASURY"
 # - BLOCK_REWARD_DISTRIBUTE and other reward allocations must debit from this
 #   pool (and later fee pools) so that reward credits cannot inflate supply.
 MINT_POOL_ACCOUNT_ID: str = "MINT_POOL"
+
+# Protocol-controlled, existing-supply revenue source for reward epochs.
+# The fee sink must be explicitly configured to this ID for the legacy/dev
+# reward scheduler to consume balances. Production allocation stays gated.
+FEE_REWARD_POOL_ACCOUNT_ID: str = "FEE_REWARD_POOL"
