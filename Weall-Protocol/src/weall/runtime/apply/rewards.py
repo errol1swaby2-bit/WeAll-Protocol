@@ -452,6 +452,19 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
             },
         )
 
+    # Unallocated value must remain in an explicit recipient or reserve account,
+    # never disappear as excess debits during a reward settlement.
+    if debited_total > distributed_total:
+        raise RewardsApplyError(
+            "forbidden",
+            "distribution_debits_exceed_credits",
+            {
+                "block_id": block_id,
+                "distributed_total": int(distributed_total),
+                "debited_total": int(debited_total),
+            },
+        )
+
     for debit in normalized_debits:
         src = str(debit["from"])
         amt = int(debit["amount"])
