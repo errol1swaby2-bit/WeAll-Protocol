@@ -130,6 +130,61 @@ independent sign-off. The earlier four-candidate diagnostic and 56-test run
 predate this additional change; they cannot be cited as validation of it.
 The full runtime and multi-node checks remain pending.
 
+## Activated secondary allocation atomicity and seven-contract review inventory
+
+An additional source audit found that the shared `_apply_transfers_and_debits`
+handler credited recipients before completing debit/funding checks, allowing
+partially changed account balances on failed direct handler invocation. Both
+`CREATOR_REWARD_ALLOCATE` and `TREASURY_REWARD_ALLOCATE` use this handler.
+The new **activated v1 only** branch now:
+
+- Validates recipient/source account existence, positive exact-integer
+  amounts, and nonnegative integer account balances before any account write.
+- Aggregates repeated debits per source so they cannot overdraw the same
+  pre-existing balance in parts.
+- Requires sum of recipient credits to equal sum of funding debits.
+- Refuses to use incoming credits in the same allocation as available
+  pre-existing debit funding.
+- Applies only the resulting deterministic net balances after all checks pass;
+  the internal fee reserve remains excluded by the prior two-way guard.
+- Leaves the legacy unactivated processing path unchanged.
+
+Eight parameterized tests cover the two allocation types against aggregate
+insufficiency, unequal funding, valid conserved transfers, and boolean amounts.
+These are direct-handler state tests, not a network consensus proof; source
+review and further execution/rollback tests remain necessary.
+
+The **read-only** `report_pending_tx_semantic_reviews.py` now includes all
+seven affected transaction contracts, with deterministic/non-mutation testing:
+
+`ACCOUNT_REGISTER`, `BALANCE_TRANSFER`, `BLOCK_REWARD_DISTRIBUTE`,
+`CREATOR_REWARD_ALLOCATE`, `FEE_PAY`, `FORFEITURE_APPLY`,
+`TREASURY_REWARD_ALLOCATE`.
+
+GitHub Actions [Backend CI diagnostic #37861729728](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37861729728)
+at exact source/test diagnostic commit
+`909892e7bdca4a782f79a5b367e94eade364ed78` reported:
+
+- **70 focused tests passed in 8.21 seconds**, including the eight new
+  parameterized atomicity and strict-amount cases.
+- Changed-file Ruff, dependency audit, and canonical lint passed.
+- Compiler-derived candidates **differ from accepted digests for all seven
+  transaction types** and remain `PENDING_MAINTAINER_REVIEW`.
+- The generated-artifact phase still correctly rejects the existing
+  `ACCOUNT_REGISTER` stale accepted digest. Backend CI is **not green**.
+
+The temporary CI step was removed in commit
+`5730e5f119de0a960e51c6c7f9e05b61d490a575`; the checked-in backend CI
+workflow returned to its exact original blob
+`e1090406588e1ecf148382f227263f5fdd43573c`.
+
+The candidate inventory is diagnostic only. **None of these seven changes
+has been accepted, signed off independently, or promoted to the normative
+production activation contract.** Do not alter accepted hashes just to pass
+CI. Remaining release blockers include full backend and multi-node validation,
+formal conservation review, final reward allocation policy, and governed
+migration/replay planning.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
