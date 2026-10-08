@@ -19,10 +19,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.ledger.constants import (
+    FEE_REWARD_POOL_ACCOUNT_ID,
     HALVING_INTERVAL_ISSUANCE_EPOCHS,
     INITIAL_ISSUANCE_PER_EPOCH,
     ISSUANCE_EPOCH_BLOCKS,
-    FEE_REWARD_POOL_ACCOUNT_ID,
     MAX_SUPPLY,
     MINT_POOL_ACCOUNT_ID,
 )
