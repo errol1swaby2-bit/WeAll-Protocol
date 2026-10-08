@@ -42,6 +42,40 @@ Initial phase: **33 passed** on Backend CI #37846555276. After the fee-pool auth
 
 The v2 spec compiler rejects stale semantic-review digests. After the reserved-identity change, the earliest rejected binding is `ACCOUNT_REGISTER`; the previously established `BLOCK_REWARD_DISTRIBUTE` change and touched `FEE_PAY`/`BALANCE_TRANSFER` behaviors also require fresh contract review. The compiler checks rows in order. This is a **required semantic evidence reconciliation**, not a reason to relax the validator. No review digest was silently changed, no maintainer approval was impersonated, and `independent_review` was not represented as true.
 
+## Pending transaction-semantic adjudication
+
+Use the read-only compiler-derived candidate inventory:
+
+```bash
+cd Weall-Protocol
+python scripts/report_pending_tx_semantic_reviews.py --output /tmp/weall-semantic-review-candidates.json
+```
+
+The command uses the *same source scanners, review material, and digest algorithm*
+as the v2 compiler. It does not change the accepted review inventory or assert
+that a maintainer has approved any candidate. The test
+`tests/test_pending_tx_semantic_review_report.py` checks deterministic output
+and non-mutation of `semantic_reviews.json`.
+
+The four transaction contracts requiring a new explicit adjudication are:
+
+| Transaction | Change to review | Security and compatibility evidence required |
+| --- | --- | --- |
+| `ACCOUNT_REGISTER` | New activated-chain restriction on a reserved protocol revenue account ID | Prove identity collision is impossible under a valid local genesis, and pre-activation history remains replayable |
+| `BALANCE_TRANSFER` | Activated-chain block on ordinary incoming/outgoing transfers for the internal revenue pool | Verify current fee transfer paths and unactivated replay, including all fee aliases and economic-lock states |
+| `FEE_PAY` | Activated-chain prohibition on fee-pool spending and validation of internal destination ownership | Verify actual debit/credit conservation and transaction attribution, not mere receipt labels |
+| `BLOCK_REWARD_DISTRIBUTE` | Source whitelist, internal-recipient prohibition, exact debit accounting after activation, pool-identity checks | Verify no arbitrary user debits, no fee double spend, parent lineage, proposer/follower deterministic replay and source reserve accounting |
+
+**Adjudication process:** The maintainer should review each material row, related
+runtime change, targeted regression evidence, and full scope implications.
+If accepted, update the corresponding review entry with a newly derived
+digest, a truthful reviewer and timestamp, and an explicit description of what
+was reviewed. Do not carry forward the prior `reviewer`, `reviewed_at`, or
+`disposition` as an assertion that the new material has already been accepted.
+An independent review remains a separate unfulfilled launch gate. If a candidate
+is rejected or requires changes, keep the compiler rejection and revise the
+code or specification; do not adjust the digest to force a green check.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
