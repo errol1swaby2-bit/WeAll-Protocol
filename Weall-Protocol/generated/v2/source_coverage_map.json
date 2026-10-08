@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2045,
+  "file_count": 2046,
   "files": [
     {
       "affected_registers": [
@@ -3106,7 +3106,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5c46e2f01db51c6e4f3dc07ccec5dac78343efec029fa8a825bed289ab7751f0",
+      "sha256": "6506cc8f07df88dbd6a7a0dc529168b7131c21bb69e7277ec7783bc0c13ae416",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3120,7 +3120,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "e4b20851b2fc7b7174eeadd5e44512e63cc056f1c979b4023e42b7b140b2207e",
+      "sha256": "74ed837e07178a6b2c6914db564e2eec37b039c02e07334008ddf90da7fbad19",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3204,7 +3204,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8d05c2dde64e4f631af6164d6197125debb3bf8fc6b41dc607168749def3a9c8",
+      "sha256": "48778bff62543822991902d65bcad15082e23cd76deda379fccb1b10c32d6be4",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3301,7 +3301,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a43feb92eb178cd613fefaf6c8c0e7643e7e14c905cd4309ed2fc89b7399da09",
+      "sha256": "0041bc51f8300ad8fba225ca869329e05895cc11a2148dee00998db3fccc791f",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3329,7 +3329,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "fe4e1bbae9f1dfcc5051a2394d5bdca7b0e6729fbc966fa0ebe149f91dc0083c",
+      "sha256": "c81f86da501de662c71422337242dc7f18facac852d291f1e2c0224c4f1b820d",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3427,7 +3427,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5bd2f8c34c7ed207ab49a19b4f7c6d72dd29ec3728f4010cb5fee3e398803d7c",
+      "sha256": "795bee25b59c9a9b9df763a94d0018e725699eb74a2b395dc14adea402b2e847",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3609,7 +3609,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "d3053291018bc047087905dc9c80b395761402dccde280830f3120a34ec57d2c",
+      "sha256": "85bbf6800e0c816a43043b2987342eb2547309f7e0a42e2f2c3765314ba3f308",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -8986,7 +8986,7 @@
       ],
       "path": "src/weall/runtime/apply/governance.py",
       "primary_mechanism_id": "M-049",
-      "sha256": "cc47ebd9f9ad9bd0a947f4ffe6ead3d825f04cdc8030757c2af3ab6cedc300d4",
+      "sha256": "d4f64ea066b23e12b38ffabaf7d0ce940ff34aa200ce73d56e44873804d54e31",
       "source_id": "SRC-A6C282C450952C4C"
     },
     {
@@ -22439,6 +22439,30 @@
       "primary_mechanism_id": "M-076",
       "sha256": "bdfc2c8a43db8015e8e2b95ae32afffeb1fdf4571c5d3699b6b8ce91643d27e2",
       "source_id": "SRC-06F4ADFDE58A100D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0400",
+        "TX-0401",
+        "TX-0406",
+        "TX-0407",
+        "TX-0408",
+        "TX-0410",
+        "TX-0508",
+        "TX-0605",
+        "TX-1713"
+      ],
+      "path": "tests/test_p0_group_protocol_action_containment.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "ba3591bb116744ee96328664deee68b736173c86ab30cc49e221d2699987b6aa",
+      "source_id": "SRC-720FF042E46F349F"
     },
     {
       "affected_registers": [

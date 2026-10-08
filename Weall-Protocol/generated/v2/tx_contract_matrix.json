@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "415c4b8888c4a49b1aa51ae4312345131480591e899d413c3d56c96cfbb82a2c"
+    "source_tree_digest": "5be9b520e179c5c92a23816278acd66636ee69cbdbf367ade9196607bf2474e9"
   },
   "required_fields": [
     "stable_id",
@@ -10129,7 +10129,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10198,6 +10198,7 @@
         "tests/test_m3_electorate_round_policy.py",
         "tests/test_p0_07_constitutional_scope_closure.py",
         "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_poh_v2_two_tier_migration.py",
@@ -10251,7 +10252,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10298,6 +10299,7 @@
         "tests/test_constitutional_procedure_clock.py",
         "tests/test_governance_no_creator_fallback_for_executable_prod.py",
         "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
@@ -10343,7 +10345,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10431,7 +10433,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10530,7 +10532,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10638,7 +10640,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10727,7 +10729,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10779,6 +10781,7 @@
         "tests/test_governance_runtime_surface.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_protocol_blocker_safety.py",
@@ -10827,7 +10830,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10876,6 +10879,7 @@
         "tests/test_governance_followups.py",
         "tests/test_governance_runtime_surface.py",
         "tests/test_governance_system_queue_autoprogress.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p2_policy_enforcement.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
@@ -10919,7 +10923,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11015,6 +11019,7 @@
         "tests/test_lineage_witness_contract.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_p0_07_constitutional_scope_closure.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_policy_enforcement.py",
@@ -11066,7 +11071,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11243,6 +11248,7 @@
         "tests/prod/test_protocol_upgrade_execution_hardening_plan.py",
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_launch_gate_proof_surfaces.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_protocol_upgrade_height_scheduled_lifecycle.py",
         "tests/test_protocol_upgrade_record_only_boundary.py",
@@ -12753,6 +12759,7 @@
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_p0_a10_a12_generated_contract_closure.py",
         "tests/test_p0_a10_treasury_restart_replay.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_system_queue_lifecycle_integrity.py",
@@ -13926,6 +13933,7 @@
         "tests/test_governance_no_creator_fallback_for_executable_prod.py",
         "tests/test_governance_runtime_surface.py",
         "tests/test_helper_conflict_matrix.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_tx_conflicts.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
@@ -21616,7 +21624,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21705,7 +21713,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21800,7 +21808,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21896,7 +21904,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21989,7 +21997,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2793,
+        "line": 2848,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23577,6 +23585,7 @@
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_p0_a10_a12_generated_contract_closure.py",
         "tests/test_p0_a10_treasury_restart_replay.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_system_queue_lifecycle_integrity.py",
