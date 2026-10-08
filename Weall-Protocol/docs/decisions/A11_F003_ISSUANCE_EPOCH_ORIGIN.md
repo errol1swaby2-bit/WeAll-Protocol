@@ -1,10 +1,10 @@
 # A11-F003 Issuance Epoch Origin Decision Record
 
-Status: **AWAITING PROTOCOL AUTHORITY**
+Status: **SELECTED — GENESIS_RELATIVE**
 
 Audit finding: A11-F003 — halving clock advances while issuance is locked, creating an unresolved delayed-activation monetary-policy interpretation.
 
-This record is deliberately non-normative until the protocol authority selects one of the two rules below. It must not be cited as changing WeAll monetary policy.
+Protocol authority has selected the Genesis-relative rule for the v1.5 monetary baseline. This selection makes the already-executable absolute-height behavior normative; it does not activate economics, enable live rewards, or weaken any launch gate.
 
 ## Current executable behavior
 
@@ -19,7 +19,7 @@ The current v1.5 implementation derives the issuance epoch from absolute chain h
 
 Consequently, chain age continues to advance the halving schedule while economics is disabled. If economics first activates after the first halving boundary, the first live subsidy is already halved.
 
-This behavior is deterministic and does not create inflation above the cap. The unresolved issue is whether it matches the intended monetary policy.
+This behavior is deterministic, does not create inflation above the cap, and is now the selected v1.5 monetary-policy interpretation.
 
 ## Decision A — Genesis-relative emission schedule
 
@@ -35,7 +35,7 @@ Consequences:
 - governance cannot recover skipped issuance without a separate explicit monetary-policy change;
 - no new issuance-era origin state is required.
 
-If selected, the implementation work is primarily normative documentation plus delayed-activation regression evidence.
+Selected for v1.5. The implementation remains unchanged; closure work is normative documentation plus delayed-activation, restart/state-sync, replay, and cap regression evidence.
 
 ## Decision B — Activation-relative issuance era
 
@@ -52,7 +52,7 @@ Consequences:
 - activation and any future pause/resume semantics must explicitly define whether the issuance clock pauses or continues;
 - cap enforcement remains authoritative.
 
-This option requires protocol/runtime implementation changes before activation.
+This option is not selected for v1.5. Any future move to activation-relative issuance is a separate monetary-policy change requiring explicit protocol authority and migration/state-origin design.
 
 ## Required closure evidence after either decision
 
@@ -71,11 +71,11 @@ A11-F003 is not closed merely by selecting a paragraph. The selected rule must b
 
 ## Decision field
 
-Protocol authority selection: **UNSET**
+Protocol authority selection: **GENESIS_RELATIVE**
 
 Allowed values:
 
 - `GENESIS_RELATIVE`
 - `ACTIVATION_RELATIVE`
 
-Until this field is normatively selected and the corresponding implementation/tests are merged, A11-F003 remains a design blocker and no stronger monetary-policy claim should be made.
+The selected rule is bound to `tests/test_p2_a11_genesis_relative_issuance.py`. A11-F003 may be promoted from pending proof to closed only after the exact-head backend and reviewer-readiness gates are green.

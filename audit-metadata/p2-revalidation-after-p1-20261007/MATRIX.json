@@ -82,9 +82,9 @@
       "id": "A11-F003",
       "severity": "LOW",
       "track": "P2-05",
-      "status": "design_blocker",
+      "status": "patched_pending_proof",
       "summary": "Halving clock advances while issuance is locked, creating an unresolved delayed-activation monetary-policy interpretation",
-      "evidence": "Current issuance/halving behavior is deterministic and absolute-height/Genesis-relative, but the authoritative audit/specification material does not choose whether delayed activation should be Genesis-relative or activation-relative. docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md records both rules, their consequences, and the required boundary/restart/state-sync/replay/cap evidence while keeping the protocol-authority selection UNSET. No monetary-policy change is made until that authority selects GENESIS_RELATIVE or ACTIVATION_RELATIVE."
+      "evidence": "Protocol authority selected GENESIS_RELATIVE for the v1.5 issuance epoch origin. The selected rule preserves the existing absolute-height implementation: 30-block issuance epochs and the 105,120-epoch halving clock advance from Genesis regardless of whether economics is enabled; locked epochs emit nothing and are never backfilled. docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md and docs/REAL_TOKENOMICS_IMPLEMENTATION.md now state this normatively. tests/test_p2_a11_genesis_relative_issuance.py covers pre-halving, exact-halving and post-halving activation, locked skipped epochs, deterministic two-node replay, restart/state-sync equivalence, and cap behavior. Promotion to patched_and_proven awaits exact-head backend and reviewer-readiness CI."
     },
     {
       "id": "A12-F004",
@@ -169,13 +169,11 @@
   ],
   "summary": {
     "proven_dispositions": 14,
-    "patched_pending_proof": 0,
+    "patched_pending_proof": 1,
     "external_evidence_blockers": [
       "A04-F002"
     ],
-    "design_blockers": [
-      "A11-F003"
-    ],
+    "design_blockers": [],
     "open_or_blocked_findings": [
       "A04-F002",
       "A11-F003"
