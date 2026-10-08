@@ -1781,9 +1781,11 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
         proposed = dict(pr)
         if "rules" in p:
             proposed["rules"] = _d(p.get("rules"))
-        next_actions = _extract_actions(p) if "actions" in p else [
-            a for a in _l(pr.get("actions")) if isinstance(a, dict)
-        ]
+        next_actions = (
+            _extract_actions(p)
+            if "actions" in p
+            else [a for a in _l(pr.get("actions")) if isinstance(a, dict)]
+        )
         _assert_governance_action_electorate_scope(state, proposed, next_actions)
 
     # Apply optional fields

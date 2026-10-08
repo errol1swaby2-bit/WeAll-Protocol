@@ -5,6 +5,7 @@ approved-actions execution stage. Production launch gating is not a substitute
 for an authorization boundary: use an active, strict controlled-testnet profile
 to test the mature-network behavior.
 """
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -15,7 +16,6 @@ from weall.runtime.apply.governance import _apply_gov_execute
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
-
 
 GLOBAL_ACTIONS = [
     {"tx_type": "GOV_QUORUM_SET", "payload": {"quorum_bps": 5_000}},
@@ -35,7 +35,9 @@ GROUP_ACTION = {
 }
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False) -> TxEnvelope:
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,

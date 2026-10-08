@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "415c4b8888c4a49b1aa51ae4312345131480591e899d413c3d56c96cfbb82a2c"
+    "source_tree_digest": "cf84282cea561eeac5d4c673b7c03e168044a3ac5e29236d3a65236e4fb0fc04"
   },
   "required_fields": [
     "stable_id",
@@ -7396,6 +7396,7 @@
         "tests/test_p0_a12_generated_vector_runtime_truth.py",
         "tests/test_p0_claim_audit_binding.py",
         "tests/test_p0_governance_economics_closure.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_p0_p2_observer_media_safety.py",
@@ -8330,6 +8331,7 @@
         "tests/test_p0_a10_treasury_restart_replay.py",
         "tests/test_p0_a12_generated_vector_runtime_truth.py",
         "tests/test_p0_claim_audit_binding.py",
+        "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_p0_property_invariants.py",
