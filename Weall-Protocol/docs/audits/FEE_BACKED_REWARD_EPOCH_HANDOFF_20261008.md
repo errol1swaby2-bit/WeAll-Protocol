@@ -109,6 +109,18 @@ both directions before any account-balance changes. Unactivated legacy
 histories retain the prior behavior. Six new focused test cases cover the
 secondary paths and the historical compatibility behavior.
 
+**Exact-commit diagnostic:** [Backend CI run #37860903825](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37860903825)
+on diagnostic commit `a2a08d43cbfc337fe47aa850375e1b342ff71e45`
+passed **62 focused tests in 8.36 seconds**, including the six new
+cases. The run also passed changed-file Ruff, dependency audit, and
+canonical lint. Its unchanged generated-artifact phase rejected
+`ACCOUNT_REGISTER` because the old transaction-semantic review digest
+is stale. This does not validate the full backend suite, prove network
+replay, or approve contract semantics. Both temporary CI diagnostic steps
+were removed in commit `b36de3c2d3aa729951b8ead388a9314ea9e9858d`;
+the permanent `.github/workflows/backend-ci.yml` blob was restored
+bit-for-bit to its prediagnostic SHA `e1090406588e1ecf148382f227263f5fdd43573c`.
+
 **Additional semantic-review obligations:** This source change affects
 `CREATOR_REWARD_ALLOCATE`, `TREASURY_REWARD_ALLOCATE`, and
 `FORFEITURE_APPLY`, in addition to the four previously enumerated contract
