@@ -35,6 +35,13 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      # Temporary audit-branch CI repair. Remove after the generated artifacts land.
+      - name: Format capture-resistance security files
+        working-directory: Weall-Protocol
+        run: |
+          ruff format src/weall/runtime/apply/governance.py tests/test_p0_group_protocol_action_containment.py
+          ruff check --fix src/weall/runtime/apply/governance.py tests/test_p0_group_protocol_action_containment.py
+
       - name: Refresh reviewer-facing v1.5 derivatives
         working-directory: Weall-Protocol
         run: |
@@ -69,12 +76,12 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          if git diff --quiet -- Weall-Protocol/generated web/src/generated/protocolStatus.ts; then
+          if git diff --quiet -- Weall-Protocol/src/weall/runtime/apply/governance.py Weall-Protocol/tests/test_p0_group_protocol_action_containment.py Weall-Protocol/generated web/src/generated/protocolStatus.ts; then
             echo "Reviewer artifacts already current."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts
+          git add -u Weall-Protocol/src/weall/runtime/apply/governance.py Weall-Protocol/tests/test_p0_group_protocol_action_containment.py Weall-Protocol/generated web/src/generated/protocolStatus.ts
           git commit -m 'audit: refresh reviewer-facing generated artifacts'
           git push origin HEAD:"${GITHUB_REF_NAME}"
