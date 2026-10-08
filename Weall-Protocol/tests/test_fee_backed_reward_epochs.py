@@ -414,6 +414,13 @@ def test_legacy_ledger_with_uncommitted_pool_version_does_not_activate() -> None
     assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 29
 
 
+def test_boolean_contract_version_cannot_activate_fee_pool() -> None:
+    st = _state(fee_balance=14)
+    st["params"]["fee_reward_pool_contract_version"] = True
+    assert "BLOCK_REWARD_DISTRIBUTE" not in _schedule(st)
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 14
+
+
 def test_fee_pool_profile_rejects_even_empty_key_fields() -> None:
     st = _state(fee_balance=5)
     st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["keys"] = {}
