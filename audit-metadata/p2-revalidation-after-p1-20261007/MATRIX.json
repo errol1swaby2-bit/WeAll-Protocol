@@ -82,9 +82,9 @@
       "id": "A11-F003",
       "severity": "LOW",
       "track": "P2-05",
-      "status": "patched_pending_proof",
+      "status": "patched_and_proven",
       "summary": "Halving clock advances while issuance is locked, creating an unresolved delayed-activation monetary-policy interpretation",
-      "evidence": "Protocol authority selected GENESIS_RELATIVE for the v1.5 issuance epoch origin. The selected rule preserves the existing absolute-height implementation: 30-block issuance epochs and the 105,120-epoch halving clock advance from Genesis regardless of whether economics is enabled; locked epochs emit nothing and are never backfilled. docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md and docs/REAL_TOKENOMICS_IMPLEMENTATION.md now state this normatively. tests/test_p2_a11_genesis_relative_issuance.py covers pre-halving, exact-halving and post-halving activation, locked skipped epochs, deterministic two-node replay, restart/state-sync equivalence, and cap behavior. Promotion to patched_and_proven awaits exact-head backend and reviewer-readiness CI."
+      "evidence": "Protocol authority selected GENESIS_RELATIVE for the v1.5 issuance epoch origin. The selected rule preserves the existing absolute-height implementation: 30-block issuance epochs and the 105,120-epoch halving clock advance from Genesis regardless of whether economics is enabled; locked epochs emit nothing and are never backfilled. docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md and docs/REAL_TOKENOMICS_IMPLEMENTATION.md state this normatively. tests/test_p2_a11_genesis_relative_issuance.py covers pre-halving, exact-halving and post-halving activation, locked skipped epochs, deterministic two-node replay, restart/state-sync equivalence, and cap behavior. Exact implementation tree 7c0b0db3fa2e19056f1743a8e450c19a48e87133 completed Backend CI with 5166 passed, 1 skipped, and Reviewer Readiness, focused P1, Web, and Secrets were all green."
     },
     {
       "id": "A12-F004",
@@ -168,15 +168,14 @@
     }
   ],
   "summary": {
-    "proven_dispositions": 14,
-    "patched_pending_proof": 1,
+    "proven_dispositions": 15,
+    "patched_pending_proof": 0,
     "external_evidence_blockers": [
       "A04-F002"
     ],
     "design_blockers": [],
     "open_or_blocked_findings": [
-      "A04-F002",
-      "A11-F003"
+      "A04-F002"
     ],
     "adjudicated_findings": 16,
     "closure_complete": false
