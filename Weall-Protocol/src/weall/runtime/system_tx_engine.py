@@ -16,6 +16,7 @@ from weall.ledger.constants import (
     MINT_POOL_ACCOUNT_ID,
     TREASURY_ACCOUNT_ID,
 )
+from weall.ledger.fee_reward_pool import validated_fee_reward_pool_balance
 from weall.ledger.issuance import (
     cap_issuance_by_remaining_supply,
     epoch_issuance_subsidy_atomic,
@@ -490,18 +491,10 @@ def schedule_block_rewards_system_txs(
         configured_fee_sink = _as_str(params.get("fee_sink_account")).strip()
     fee_total = 0
     if configured_fee_sink == FEE_REWARD_POOL_ACCOUNT_ID:
-        accounts = state.get("accounts")
-        if not isinstance(accounts, dict):
-            raise SystemSchedulerError("canonical_fee_pool_missing")
-        fee_pool = accounts.get(FEE_REWARD_POOL_ACCOUNT_ID)
-        if not isinstance(fee_pool, dict):
-            raise SystemSchedulerError("canonical_fee_pool_missing")
-        fee_balance = fee_pool.get("balance", 0)
-        if isinstance(fee_balance, bool) or not isinstance(fee_balance, int):
-            raise SystemSchedulerError("canonical_fee_pool_invalid_balance")
-        if fee_balance < 0:
-            raise SystemSchedulerError("canonical_fee_pool_invalid_balance")
-        fee_total = fee_balance
+        try:
+            fee_total = validated_fee_reward_pool_balance(state)
+        except ValueError as exc:
+            raise SystemSchedulerError(f"canonical_{exc}") from exc
 
     total_reward = int(subsidy) + int(fee_total)
     if total_reward <= 0:
