@@ -13,6 +13,8 @@ from weall.ledger.issuance import (
     issuance_epoch_index_for_due_height,
     issuance_height_for_epoch,
 )
+from weall.net.messages import MsgType, StateSyncResponseMsg, WireHeader
+from weall.net.state_sync import build_snapshot_anchor
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.system_tx_engine import schedule_block_rewards_system_txs
 
@@ -124,58 +126,114 @@ def test_a11_f003_two_node_replay_and_cap_are_deterministic() -> None:
     assert capped_mint["amount"] == 7
 
 
+def _enable_local_economics(state: dict) -> None:
+    params = state.setdefault("params", {})
+    params["genesis_time"] = 0
+    params["economic_unlock_time"] = 0
+    params["economics_enabled"] = True
+    state.setdefault("accounts", {}).setdefault("@validator", {"balance": 0})
+    state["accounts"].setdefault("TREASURY", {"balance": 0})
+    roles = state.setdefault("roles", {})
+    roles.setdefault("node_operators", {"active_set": []})
+    roles.setdefault("jurors", {"active_set": []})
+    roles.setdefault("creators", {"active_set": []})
+    state.setdefault("economics", {}).setdefault(
+        "monetary_policy", {"issued": 0, "max_supply": MAX_SUPPLY}
+    )
+    state["system_queue"] = []
+
+
 def test_a11_f003_restart_and_state_sync_preserve_genesis_relative_origin(
     tmp_path: Path,
 ) -> None:
     epoch = HALVING_INTERVAL_ISSUANCE_EPOCHS + 3
-    committed_height = issuance_height_for_epoch(epoch) - 1
     tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
+    chain_id = "a11-genesis-relative-sync"
 
     source_db = str(tmp_path / "source.db")
     source = WeAllExecutor(
         db_path=source_db,
-        node_id="@validator",
-        chain_id="a11-genesis-relative-local",
+        node_id="@source",
+        chain_id=chain_id,
         tx_index_path=tx_index_path,
     )
-    state = source.read_state()
-    state.update(_state(enabled=True))
-    state["height"] = committed_height
-    source.state = state
-    source._ledger_store.write(source.state)
+    submitted = source.submit_tx(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@u1",
+            "nonce": 1,
+            "payload": {"pubkey": "k:@u1"},
+        }
+    )
+    assert submitted["ok"] is True
+    assert source.produce_block(max_txs=1).ok is True
+    assert int(source.state.get("height") or 0) == 1
 
-    restarted = WeAllExecutor(
+    block = source.get_block_by_height(1)
+    assert isinstance(block, dict)
+    synced_block = dict(block)
+    synced_block["parent_block_id"] = str(synced_block.get("prev_block_id") or "")
+
+    lagger_db = str(tmp_path / "lagger.db")
+    lagger = WeAllExecutor(
+        db_path=lagger_db,
+        node_id="@lagger",
+        chain_id=chain_id,
+        tx_index_path=tx_index_path,
+    )
+    response = StateSyncResponseMsg(
+        header=WireHeader(
+            type=MsgType.STATE_SYNC_RESPONSE,
+            chain_id=chain_id,
+            schema_version="1",
+            tx_index_hash=source._tx_index_hash,
+            sent_ts_ms=0,
+            corr_id="a11-f003",
+        ),
+        ok=True,
+        reason=None,
+        height=1,
+        snapshot=None,
+        blocks=(synced_block,),
+        snapshot_hash=None,
+        snapshot_anchor=build_snapshot_anchor(source.state),
+    )
+    metas = lagger.apply_state_sync_response(
+        response,
+        trusted_anchor=build_snapshot_anchor(source.state),
+    )
+    assert [meta.ok for meta in metas] == [True]
+    assert int(lagger.state.get("height") or 0) == 1
+
+    restarted_source = WeAllExecutor(
         db_path=source_db,
-        node_id="@validator",
-        chain_id="a11-genesis-relative-local",
+        node_id="@source",
+        chain_id=chain_id,
         tx_index_path=tx_index_path,
     )
-    restarted_state = restarted.read_state()
-    assert restarted_state["height"] == committed_height
-
-    synced_db = str(tmp_path / "synced.db")
-    synced = WeAllExecutor(
-        db_path=synced_db,
-        node_id="@validator",
-        chain_id="a11-genesis-relative-local",
+    restarted_lagger = WeAllExecutor(
+        db_path=lagger_db,
+        node_id="@lagger",
+        chain_id=chain_id,
         tx_index_path=tx_index_path,
     )
-    synced.state = copy.deepcopy(restarted_state)
-    synced._ledger_store.write(synced.state)
+    source_state = restarted_source.read_state()
+    lagger_state = restarted_lagger.read_state()
 
-    reopened_sync = WeAllExecutor(
-        db_path=synced_db,
-        node_id="@validator",
-        chain_id="a11-genesis-relative-local",
-        tx_index_path=tx_index_path,
-    )
-    synced_state = reopened_sync.read_state()
-    assert synced_state["height"] == committed_height
+    assert int(source_state.get("height") or 0) == 1
+    assert int(lagger_state.get("height") or 0) == 1
+    assert str(source_state.get("tip") or "") == str(lagger_state.get("tip") or "")
 
-    source_queue = _schedule(restarted_state, epoch)
-    synced_queue = _schedule(synced_state, epoch)
-    assert source_queue == synced_queue
+    # Genesis-relative epoch origin is not mutable activation state. After a
+    # real restart and real state-sync replay, the same future canonical height
+    # therefore derives the same epoch/subsidy on both nodes.
+    _enable_local_economics(source_state)
+    _enable_local_economics(lagger_state)
+    source_queue = _schedule(source_state, epoch)
+    lagger_queue = _schedule(lagger_state, epoch)
+    assert source_queue == lagger_queue
 
     mint = _mint_payload(source_queue)
     assert mint["issuance_epoch"] == epoch
     assert mint["amount"] == INITIAL_ISSUANCE_PER_EPOCH // 2
+
