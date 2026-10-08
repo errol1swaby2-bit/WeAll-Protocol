@@ -199,6 +199,8 @@ def test_external_cross_machine_replay_docs_and_template_keep_blocker_open() -> 
     assert "requirements-dev.lock" in runbook
     assert "--require-hashes" in runbook
     assert "pip install -e . --no-deps" in runbook
+    assert "git checkout --detach <exact-review-commit>" in runbook
+    assert "cd Weall-Protocol" in runbook
 
 
 def test_external_cross_machine_replay_schema_and_validator_accept_real_shape(
