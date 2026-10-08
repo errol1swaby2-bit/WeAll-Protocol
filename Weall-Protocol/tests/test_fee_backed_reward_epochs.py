@@ -282,14 +282,19 @@ def test_squatted_or_malformed_pool_cannot_fund_rewards(fake_pool: dict) -> None
 def test_untrusted_fee_pool_cannot_receive_fees() -> None:
     st = _state()
     st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID] = {
-        "account_type": "human", "balance": 0, "keys": ["attacker"]
+        "account_type": "human",
+        "balance": 0,
+        "keys": ["attacker"],
     }
     with pytest.raises(EconomicsApplyError, match="fee_reward_pool_not_system_owned"):
         apply_economics(
             st,
             TxEnvelope(
-                tx_type="FEE_PAY", signer="@payer", nonce=1,
-                payload={"amount": 7}, system=False,
+                tx_type="FEE_PAY",
+                signer="@payer",
+                nonce=1,
+                payload={"amount": 7},
+                system=False,
             ),
         )
     assert st["accounts"]["@payer"]["balance"] == 100
@@ -299,11 +304,16 @@ def test_arbitrary_user_account_cannot_be_reward_debit_source() -> None:
     st = _state(fee_balance=0)
     with pytest.raises(RewardsApplyError, match="reward_funding_source_not_allowed"):
         apply_rewards(
-            st, _sys("BLOCK_REWARD_DISTRIBUTE", {
-                "block_id": "unsupported-source",
-                "transfers": [{"to": "@validator", "amount": 10}],
-                "debits": [{"from": "@payer", "amount": 10}],
-            }, 1),
+            st,
+            _sys(
+                "BLOCK_REWARD_DISTRIBUTE",
+                {
+                    "block_id": "unsupported-source",
+                    "transfers": [{"to": "@validator", "amount": 10}],
+                    "debits": [{"from": "@payer", "amount": 10}],
+                },
+                1,
+            ),
         )
     assert st["accounts"]["@payer"]["balance"] == 100
     assert st["accounts"]["@validator"]["balance"] == 0
@@ -314,11 +324,16 @@ def test_internal_pool_cannot_be_reward_recipient(destination: str) -> None:
     st = _state(fee_balance=50)
     with pytest.raises(RewardsApplyError, match="reward_internal_pool_recipient_forbidden"):
         apply_rewards(
-            st, _sys("BLOCK_REWARD_DISTRIBUTE", {
-                "block_id": "bad-internal-recipient",
-                "transfers": [{"to": destination, "amount": 10}],
-                "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 10}],
-            }, 1),
+            st,
+            _sys(
+                "BLOCK_REWARD_DISTRIBUTE",
+                {
+                    "block_id": "bad-internal-recipient",
+                    "transfers": [{"to": destination, "amount": 10}],
+                    "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 10}],
+                },
+                1,
+            ),
         )
     assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 50
 
@@ -327,10 +342,15 @@ def test_unconfigured_pool_cannot_be_reward_debit_source() -> None:
     st = _state(fee_balance=30, configured=False)
     with pytest.raises(RewardsApplyError, match="reward_fee_pool_not_configured"):
         apply_rewards(
-            st, _sys("BLOCK_REWARD_DISTRIBUTE", {
-                "block_id": "disabled-fee-pool",
-                "transfers": [{"to": "@validator", "amount": 30}],
-                "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 30}],
-            }, 1),
+            st,
+            _sys(
+                "BLOCK_REWARD_DISTRIBUTE",
+                {
+                    "block_id": "disabled-fee-pool",
+                    "transfers": [{"to": "@validator", "amount": 30}],
+                    "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 30}],
+                },
+                1,
+            ),
         )
     assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 30
