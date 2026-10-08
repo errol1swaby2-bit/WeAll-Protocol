@@ -17,6 +17,7 @@ from weall.crypto.signature_profiles import (
     default_signature_profile_for_mode,
 )
 from weall.ledger.constants import FEE_REWARD_POOL_ACCOUNT_ID
+from weall.ledger.fee_reward_pool import fee_reward_pool_contract_enabled
 
 from ..account_recovery_policy import (
     RECOVERY_FAILED_WINDOW_BLOCKS,
@@ -418,7 +419,7 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
     signer = _as_str(env.signer)
     if not signer:
         raise ApplyError("invalid_tx", "missing_signer", {})
-    if signer == FEE_REWARD_POOL_ACCOUNT_ID:
+    if signer == FEE_REWARD_POOL_ACCOUNT_ID and fee_reward_pool_contract_enabled(state):
         raise ApplyError("invalid_tx", "reserved_system_account_id", {"account_id": signer})
 
     if signer in accounts:
