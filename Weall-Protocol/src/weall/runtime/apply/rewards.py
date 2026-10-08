@@ -405,7 +405,8 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
             continue
         # Reward system transactions cannot sweep arbitrary user accounts.
         if fee_reward_pool_contract_enabled(state) and src not in {
-            MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID
+            MINT_POOL_ACCOUNT_ID,
+            FEE_REWARD_POOL_ACCOUNT_ID,
         }:
             raise RewardsApplyError(
                 "forbidden", "reward_funding_source_not_allowed", {"account": src}
@@ -432,7 +433,8 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         if not to or amt <= 0:
             continue
         if fee_reward_pool_contract_enabled(state) and to in {
-            MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID
+            MINT_POOL_ACCOUNT_ID,
+            FEE_REWARD_POOL_ACCOUNT_ID,
         }:
             raise RewardsApplyError(
                 "forbidden", "reward_internal_pool_recipient_forbidden", {"account": to}
