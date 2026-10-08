@@ -35,12 +35,15 @@ def test_pending_semantic_report_is_review_only_and_deterministic(tmp_path: Path
     report = json.loads(first)
     assert report["authority"] == "diagnostic_only_not_a_review_attestation"
     assert report["changes_accepted"] is False
-    assert len(report["transactions"]) == 4
+    assert len(report["transactions"]) == 7
     assert {row["tx_type"] for row in report["transactions"]} == {
         "ACCOUNT_REGISTER",
         "BALANCE_TRANSFER",
         "BLOCK_REWARD_DISTRIBUTE",
+        "CREATOR_REWARD_ALLOCATE",
         "FEE_PAY",
+        "FORFEITURE_APPLY",
+        "TREASURY_REWARD_ALLOCATE",
     }
     for row in report["transactions"]:
         assert re.fullmatch(r"[0-9a-f]{64}", row["candidate_digest"])
