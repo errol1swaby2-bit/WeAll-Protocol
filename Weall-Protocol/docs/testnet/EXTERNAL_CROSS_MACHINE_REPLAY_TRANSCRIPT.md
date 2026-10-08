@@ -42,11 +42,16 @@ prove:
 
 ## Local packet capture command
 
-Run this command separately on each external machine from a clean checkout:
+Run this sequence separately on each external/physical machine from a fresh shell. Both machines must check out the **same exact review commit** before capture:
 
 ```bash
+git clone https://github.com/errol1swaby2-bit/WeAll-Protocol.git WeAll-Protocol
 cd WeAll-Protocol
-python -m venv .venv
+git checkout --detach <exact-review-commit>
+git status --short --branch
+
+cd Weall-Protocol
+python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --require-hashes -r requirements-dev.lock
 python -m pip install -e . --no-deps
@@ -56,6 +61,8 @@ bash scripts/capture_external_cross_machine_replay_transcript_v1_5.sh \
   --operator-id <external-operator-id> \
   --out-dir docs/proofs/external-cross-machine-replay/<yyyy-mm-dd>/<operator-or-host>/<machine-id>/
 ```
+
+The capture command itself rejects a dirty checkout and records the exact commit and Git tree in the local packet.
 
 The script writes one machine packet only. It does not close `AUD-618-P1-003`.
 
