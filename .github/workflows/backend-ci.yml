@@ -76,6 +76,7 @@ jobs:
           fi
 
           printf 'Checking %s\n' "${PY_FILES[@]}"
+          ruff format --diff "${PY_FILES[@]}" || true
           ruff format --check "${PY_FILES[@]}"
           ruff check "${PY_FILES[@]}"
 
