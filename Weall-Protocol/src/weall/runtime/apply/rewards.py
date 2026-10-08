@@ -26,7 +26,10 @@ from weall.ledger.constants import (
     MAX_SUPPLY,
     MINT_POOL_ACCOUNT_ID,
 )
-from weall.ledger.fee_reward_pool import validated_fee_reward_pool_balance
+from weall.ledger.fee_reward_pool import (
+    fee_reward_pool_contract_enabled,
+    validated_fee_reward_pool_balance,
+)
 from weall.ledger.issuance import issuance_epoch_index_for_height
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.tx_admission import TxEnvelope
@@ -401,14 +404,13 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         if not src or amt <= 0:
             continue
         # Reward system transactions cannot sweep arbitrary user accounts.
-        if src not in {MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID}:
+        if fee_reward_pool_contract_enabled(state) and src not in {
+            MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID
+        }:
             raise RewardsApplyError(
                 "forbidden", "reward_funding_source_not_allowed", {"account": src}
             )
-        if src == FEE_REWARD_POOL_ACCOUNT_ID:
-            params = _as_dict(state.get("params"))
-            if _as_str(params.get("fee_sink_account")).strip() != FEE_REWARD_POOL_ACCOUNT_ID:
-                raise RewardsApplyError("forbidden", "reward_fee_pool_not_configured", {})
+        if src == FEE_REWARD_POOL_ACCOUNT_ID and fee_reward_pool_contract_enabled(state):
             try:
                 validated_fee_reward_pool_balance(state)
             except ValueError as exc:
@@ -429,7 +431,9 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         amt = _as_int(t.get("amount"), 0)
         if not to or amt <= 0:
             continue
-        if to in {MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID}:
+        if fee_reward_pool_contract_enabled(state) and to in {
+            MINT_POOL_ACCOUNT_ID, FEE_REWARD_POOL_ACCOUNT_ID
+        }:
             raise RewardsApplyError(
                 "forbidden", "reward_internal_pool_recipient_forbidden", {"account": to}
             )
