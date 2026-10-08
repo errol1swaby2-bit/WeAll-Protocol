@@ -13,8 +13,8 @@ from weall.ledger.constants import (
 )
 from weall.runtime.apply.economics import EconomicsApplyError, apply_economics
 from weall.runtime.apply.identity import apply_identity
-from weall.runtime.errors import ApplyError
 from weall.runtime.apply.rewards import RewardsApplyError, apply_rewards
+from weall.runtime.errors import ApplyError
 from weall.runtime.system_tx_engine import (
     SystemSchedulerError,
     schedule_block_rewards_system_txs,
