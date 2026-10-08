@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 A04 exact-checkout final refresh
 
 on:
   workflow_dispatch:
