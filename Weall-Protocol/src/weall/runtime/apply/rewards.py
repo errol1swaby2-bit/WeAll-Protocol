@@ -546,11 +546,7 @@ def _apply_transfers_and_debits(
     if fee_reward_pool_contract_enabled(state):
         for transfer in transfers:
             if isinstance(transfer, dict):
-                target = (
-                    transfer.get("to")
-                    or transfer.get("account")
-                    or transfer.get("account_id")
-                )
+                target = transfer.get("to") or transfer.get("account") or transfer.get("account_id")
                 if target == FEE_REWARD_POOL_ACCOUNT_ID:
                     raise RewardsApplyError(
                         "forbidden",
@@ -559,11 +555,7 @@ def _apply_transfers_and_debits(
                     )
         for debit in debits:
             if isinstance(debit, dict):
-                source = (
-                    debit.get("from")
-                    or debit.get("account")
-                    or debit.get("account_id")
-                )
+                source = debit.get("from") or debit.get("account") or debit.get("account_id")
                 if source == FEE_REWARD_POOL_ACCOUNT_ID:
                     raise RewardsApplyError(
                         "forbidden",
