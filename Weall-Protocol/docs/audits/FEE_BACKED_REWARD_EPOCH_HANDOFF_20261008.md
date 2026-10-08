@@ -57,6 +57,8 @@ that a maintainer has approved any candidate. The test
 `tests/test_pending_tx_semantic_review_report.py` checks deterministic output
 and non-mutation of `semantic_reviews.json`.
 
+CI evidence: [Backend CI run #37857805624](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37857805624) passed **52 focused tests in 10.62 seconds**, including the deterministic diagnostic and the fee-reward tests. Ruff and canonical lint passed. The report confirmed **four candidate digests differ from the accepted records** (`ACCOUNT_REGISTER`, `BALANCE_TRANSFER`, `BLOCK_REWARD_DISTRIBUTE`, `FEE_PAY`). The unchanged compiler correctly failed on the first stale accepted record, `ACCOUNT_REGISTER`. The temporary diagnostic CI step was removed afterward. No new maintainer review acceptance or independent attestation was asserted.
+
 The four transaction contracts requiring a new explicit adjudication are:
 
 | Transaction | Change to review | Security and compatibility evidence required |
