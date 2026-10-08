@@ -9,6 +9,8 @@ from typing import Any
 
 from weall.crypto.sig import sign_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
+from weall.net.messages import BftProposalMsg, MsgType, WireHeader
+from weall.net.net_loop import NetLoopConfig, NetMeshLoop
 from weall.runtime.bft_hotstuff import (
     CONSENSUS_PHASE_BFT_ACTIVE,
     canonical_proposal_message,
@@ -627,3 +629,65 @@ def test_four_validator_prod_three_chain_restart_delayed_qc_and_wrong_parent_rej
         for vid, node in nodes.items()
     }
     assert after == before
+
+
+def test_prod_bft_proposal_ingress_routes_real_signed_proposal_to_follower(
+    tmp_path: Path,
+) -> None:
+    """A05-F004: exercise the real P2P proposal ingress adapter in prod mode."""
+
+    pubs, privs = _key_material()
+    nodes, boundary_id, _boundary_hash = _install_prod_boundary(
+        tmp_path,
+        pubs=pubs,
+        privs=privs,
+    )
+    _prepare_transition_qc(
+        nodes,
+        boundary_id=boundary_id,
+        pubs=pubs,
+        privs=privs,
+    )
+
+    leader, proposal = _propose(nodes, view=1, pubs=pubs, privs=privs)
+    follower_id = next(vid for vid in VALIDATORS if vid != leader)
+    follower = nodes[follower_id]
+
+    with _env(_prod_env(follower_id, pub=pubs[follower_id], priv=privs[follower_id])):
+        loop = NetMeshLoop(
+            executor=follower,
+            mempool=object(),
+            cfg=NetLoopConfig(
+                enabled=False,
+                bind_host="127.0.0.1",
+                bind_port=30303,
+                tick_ms=25,
+                schema_version="1",
+            ),
+        )
+        loop.node = None
+        loop._bft_enabled = True
+        msg = BftProposalMsg(
+            header=WireHeader(
+                type=MsgType.BFT_PROPOSAL,
+                chain_id=CHAIN_ID,
+                schema_version="1",
+                tx_index_hash=follower.tx_index_hash(),
+            ),
+            view=int(proposal["view"]),
+            proposer=leader,
+            block=copy.deepcopy(proposal),
+            justify_qc=copy.deepcopy(proposal["justify_qc"]),
+        )
+
+        assert loop._on_bft_proposal(leader, msg) is True
+
+    assert follower.bft_artifact_was_accepted(
+        "proposal",
+        {
+            "view": int(proposal["view"]),
+            "proposer": leader,
+            "block": proposal,
+            "justify_qc": proposal["justify_qc"],
+        },
+    )

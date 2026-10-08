@@ -28,6 +28,9 @@ WeCoin issuance is epoch-based, not per-block.
 - Maximum supply: 21,000,000 WCN
 - Issuance is capped by remaining unissued supply and stops exactly at the cap
 - Duplicate issuance for the same issuance epoch is invalid
+- Issuance epoch origin is **Genesis-relative canonical block height**: epoch 0 is blocks 1–30 and the epoch/halving clock advances with canonical chain height even while economics is locked
+- Economics-disabled issuance epochs are permanently skipped; they are never accumulated or backfilled after activation
+- Activation after a halving boundary begins at the subsidy for the then-current Genesis-relative epoch rather than resetting to the initial 100 WCN epoch subsidy
 
 The legacy system transaction names `BLOCK_REWARD_MINT` and `BLOCK_REWARD_DISTRIBUTE` are retained for wire/contract compatibility, but their v1.5 payloads represent a single issuance epoch rather than a per-block reward.
 

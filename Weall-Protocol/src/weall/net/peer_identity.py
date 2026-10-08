@@ -456,20 +456,20 @@ def verify_peer_hello_identity(
     pubkey = _as_str(identity.get("pubkey")).strip()
     sig = _as_str(identity.get("sig")).strip()
     sig_profile = _as_str(identity.get("sig_profile")).strip()
-    if not sig_profile:
-        sig_profile = PQ_MLDSA_V1
 
     if not pubkey:
         return (False, "missing_pubkey", peer_id, "")
     if not sig:
         return (False, "missing_sig", peer_id, pubkey)
+    if not sig_profile:
+        return (False, "missing_signature_profile", peer_id, pubkey)
+    if sig_profile != PQ_MLDSA_V1:
+        return (False, "unsupported_signature_profile", peer_id, pubkey)
 
     if strict:
         sent_ts_ms = getattr(hello.header, "sent_ts_ms", None)
         corr_id = _as_str(getattr(hello.header, "corr_id", "")).strip()
         nonce = _as_str(getattr(hello, "nonce", "")).strip()
-        if sig_profile != PQ_MLDSA_V1:
-            return (False, "unsupported_signature_profile", peer_id, pubkey)
         if not isinstance(sent_ts_ms, int) or isinstance(sent_ts_ms, bool) or sent_ts_ms <= 0:
             return (False, "sent_ts_ms_missing", peer_id, pubkey)
         if not corr_id:

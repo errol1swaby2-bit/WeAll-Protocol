@@ -53,7 +53,7 @@ def _hello(
         agent="test-agent",
         nonce="n1",
         caps=(),
-        identity={"pubkey": pubkey, "sig": sig},
+        identity={"pubkey": pubkey, "sig_profile": "pq-mldsa-v1", "sig": sig},
     )
 
 

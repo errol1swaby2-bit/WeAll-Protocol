@@ -2,9 +2,12 @@ from __future__ import annotations
 
 """Pure deterministic WeCoin issuance helpers.
 
-The v1.5 monetary model is epoch-based.  Blocks have a 20-second target
-interval, but issuance is evaluated only once per 10-minute issuance epoch.
-At the target interval, one issuance epoch is exactly 30 blocks.
+The v1.5 monetary model is epoch-based and Genesis-relative. Blocks have a
+20-second target interval, but issuance is evaluated only once per 10-minute
+issuance epoch. At the target interval, one issuance epoch is exactly 30
+blocks. Epoch numbering is derived only from canonical block height: economic
+activation does not pause, reset, or rebase the halving clock. Locked epochs
+emit nothing and are never accumulated for later minting.
 """
 
 from typing import Any

@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2024,
+  "file_count": 2045,
   "files": [
     {
       "affected_registers": [
@@ -56,7 +56,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "cf5796181f856bb1c54e14f30e28a943a37a98bd6f383cbb3ecea980bc8904af",
+      "sha256": "ebe435e4eb057c52b58b51feed1e45ee2ad23560f6356d5874f26dc5f51f3fb9",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "8f0b775ff428b5789b8770bccf9c58dd47ab5f9441d6b63c32b4645ebc780cbf",
+      "sha256": "ce1700e1d58e7b355917a94ec2933b8ec196c1b5dc673da96c6af9d1284c4531",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "3e7b77635146b0435321f5015726f8ed5e38b14a211f9004deef9d6399f39171",
+      "sha256": "6ca60669fc78e57ef94d6c4d27d4ddafa6621180ac8d885494eed5a7b1de5e62",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -370,6 +370,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "0e59a92f2787c4e4dec89cb49d808cd49ff559e629ffaf07f2c386dd2670254f",
       "source_id": "SRC-7E705E891C456233"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/ARCHITECTURE.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "a384472fd9efab5a33de1a3ae74571ecd194bb0d0f6a38988c5dcfaac873fc23",
+      "source_id": "SRC-FF21B6B9A3A33E9D"
     },
     {
       "affected_registers": [
@@ -1140,7 +1153,7 @@
       ],
       "path": "docs/REAL_TOKENOMICS_IMPLEMENTATION.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "6e7048973ca7c319ec5b6b5452d1055f6ff3dcb9fda0a55601a80c780422f0ae",
+      "sha256": "86b22aff1413db5b27a43d395192d31a17bff6abb0c74cb0d06ce406132c09da",
       "source_id": "SRC-444CCF08FC4013C8"
     },
     {
@@ -1365,7 +1378,7 @@
       ],
       "path": "docs/V2_SPEC_COMPILER.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "baa6dc3ba16520d9ff9ffe36c42ccd57c07c9d2b1fae04a1d94b1020e3ff535f",
+      "sha256": "4b5a4e73daeb6d54e6ba3fde56a3c527044d50cb20052ed2ef8a2fa5ef9e463d",
       "source_id": "SRC-A8946DAF268912DC"
     },
     {
@@ -1658,6 +1671,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
       "source_id": "SRC-6D33FA3F6E2D84D1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "80e5291aa94c0c83110ab7f42ed1acd0ed193b7e17cf015e664663fea6e3b357",
+      "source_id": "SRC-179659FD968784AE"
     },
     {
       "affected_registers": [
@@ -2190,7 +2216,7 @@
       ],
       "path": "docs/proofs/external-cross-machine-replay/2026-07-05/README.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "facdd1890e33251f176b05ffb0fa35dd1ff9311cdbafb997a86dff477bedd128",
+      "sha256": "9ca02a3010de8831f8dee654f003f9ae14295acdebfdbdffc9217b904bcffe68",
       "source_id": "SRC-DB3B509BC290393A"
     },
     {
@@ -2203,7 +2229,7 @@
       ],
       "path": "docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "13f4a5ef399d6d93330e055fa5f56c01e0e59f8e80ae69cc4e133cf121c7c447",
+      "sha256": "b5d0f7f4ea1d81de7f88686bbd57d213ec0ec756de1ea2584f47da50b18e783a",
       "source_id": "SRC-68680C4D2004BC6C"
     },
     {
@@ -2650,7 +2676,7 @@
       ],
       "path": "docs/testnet/EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "48e645099d99dab3a10499cb0e1f51ca4278e55fe79a1eb499eac1d54e8bbee1",
+      "sha256": "0145a6d46e2bcc152c4cc4603ce7d4e11b93cd7dfce2b83dcca5195d595d38d1",
       "source_id": "SRC-CFB03315F15D4B08"
     },
     {
@@ -2982,7 +3008,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "62973c0c4efa96ea25b6f2eda25859a6d7e76a741997148d7c06e3b387243ade",
+      "sha256": "1ca2e31ce55e1fc1e7be76c09e17cc232d028684e0ea5b1ff1d44da3d1ab97e0",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -2996,7 +3022,7 @@
       ],
       "path": "generated/api_response_vectors_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "93b58a4aceb7b7b405ff2f55b0b6f90f934386ea816f15ccacbedac8b482f268",
+      "sha256": "4e006f66aae4ebaff99438a8808d408dc41571556d310492cea3898d9922e932",
       "source_id": "SRC-591B66996A764EBD"
     },
     {
@@ -3080,7 +3106,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "55a755bce739ed8c78bb6ffda2d72f87e13a695904b9fb28d1bcecda21159105",
+      "sha256": "5c46e2f01db51c6e4f3dc07ccec5dac78343efec029fa8a825bed289ab7751f0",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3094,7 +3120,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a01e8fa65c0dee4fa9e4479621bc466fe8634cfd2bee09338044a8dc2c65df8e",
+      "sha256": "e4b20851b2fc7b7174eeadd5e44512e63cc056f1c979b4023e42b7b140b2207e",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3178,7 +3204,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "30d81e2425af26a2dff8ed0be3f46b2513b51b74dfa8ffddfab02b227fb23a9c",
+      "sha256": "8d05c2dde64e4f631af6164d6197125debb3bf8fc6b41dc607168749def3a9c8",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3220,7 +3246,7 @@
       ],
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "7986a4416f0e1d019cf59712012984fe9222339f64663f9bf39ee6ff367e2329",
+      "sha256": "5755c1b9f9089e3c434b4b897ad2f6fa38bdfd3e1fa37e199d64d3dc96130684",
       "source_id": "SRC-6A445811DBAE2762"
     },
     {
@@ -3234,7 +3260,7 @@
       ],
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "f7028fab7bf3cb7192c80d2cfbe0707f4d2c9d53ba79c230f5b776d552453e63",
+      "sha256": "030d49e1048ebc5b2f53a465bf28997b48c88a110bd79b5ab280f00607c5b9f0",
       "source_id": "SRC-393D07EE5EBE3C20"
     },
     {
@@ -3275,7 +3301,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "44ae443b1509b1d6e54c4b0f420ba76cf90ebba6b42f768532bb375b92a8ca93",
+      "sha256": "a43feb92eb178cd613fefaf6c8c0e7643e7e14c905cd4309ed2fc89b7399da09",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3289,7 +3315,7 @@
       ],
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "fb83744d3ea27e170946f2eab1e5225537fe07593e2f160011ea6fd860dcd524",
+      "sha256": "59f655bd42b7f18758031fd2daae7a084fad82b11fe19b12f72e988357c1e68a",
       "source_id": "SRC-595995DEFD5B7D6A"
     },
     {
@@ -3303,7 +3329,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "d29fddf9d19bdcc0243fa6c27db01dc0fa1d02e9ffe803ec3543eddff82ea72e",
+      "sha256": "fe4e1bbae9f1dfcc5051a2394d5bdca7b0e6729fbc966fa0ebe149f91dc0083c",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3401,7 +3427,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "56d002be2add684a7026a34e38f9cbc051eb9646dff43fe8ca9589929ce2da2a",
+      "sha256": "5bd2f8c34c7ed207ab49a19b4f7c6d72dd29ec3728f4010cb5fee3e398803d7c",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3583,7 +3609,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "935ed85dfbad52839bbb6b178a5ed1c384122dab85c2dc61e6279d1b63002ade",
+      "sha256": "d3053291018bc047087905dc9c80b395761402dccde280830f3120a34ec57d2c",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -3734,9 +3760,22 @@
       "mappings": [
         "M-076"
       ],
+      "path": "generated/tx_lifecycle_assurance_v1_5.json",
+      "primary_mechanism_id": "M-076",
+      "sha256": "e3185fd7e4c3f36c1cba560abe7933e33ced547def545d917040b06eceef0104",
+      "source_id": "SRC-6FB7A2F5900CA009"
+    },
+    {
+      "affected_registers": [
+        "evidence"
+      ],
+      "classification": "generated_compatibility_evidence",
+      "mappings": [
+        "M-076"
+      ],
       "path": "generated/tx_semantic_assurance_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5e11a08445921f3dddf95740aa1a6d39045d7312489e3728eebb9e3657bff3a2",
+      "sha256": "75a748a095d7a8c8b0c14a0799e0e108aba9d9806cc6d32514f3691c70a32b30",
       "source_id": "SRC-922B78A5A8FEA57E"
     },
     {
@@ -3832,6 +3871,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "source_id": "SRC-64EDD7FC2BE5076D"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/a04_cross_machine_determinism_probe_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "8a294724178bae84f0d93eb3f3ee2a7311e40d251871c8e71c945caebce03e01",
+      "source_id": "SRC-4DB07C970B582587"
     },
     {
       "affected_registers": [
@@ -3940,6 +3993,20 @@
       "mappings": [
         "M-076"
       ],
+      "path": "scripts/build_external_cross_machine_replay_transcript_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "675e8833a73306e51a12bbfdf0011ee029ba09791111682d1b57aff8960d500b",
+      "source_id": "SRC-06F9DC6DA77DFB2B"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
       "path": "scripts/build_external_observer_bundle.py",
       "primary_mechanism_id": "M-076",
       "sha256": "05d205cf0c56a9cbc1b63270da3a54bfdb02abfcb20b874d041af1b4b53006d1",
@@ -4028,6 +4095,20 @@
       "primary_mechanism_id": "M-075",
       "sha256": "12a04993cdf0207fc9513d99ae87725e690cf58988f4a890677741fcf7542b24",
       "source_id": "SRC-2A3BCA96DB68091F"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/capture_a04_external_determinism_packet_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "0ded6fa8164454bb03a8b5f69be3039f51cbe4790d65ee0f1f9b84cd8e8cac06",
+      "source_id": "SRC-D5A25636496F68AE"
     },
     {
       "affected_registers": [
@@ -4223,7 +4304,7 @@
       ],
       "path": "scripts/compile_v2_spec.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "67599d2c6574545bac0723f905e3eecf2c56c258037c499f9f9a348f314fde80",
+      "sha256": "3d239ff1bdde6fcb6efa502003ea3572b4e7e82a0bfb19507c955ec64772252c",
       "source_id": "SRC-D27D2764E0E5A007"
     },
     {
@@ -4419,7 +4500,7 @@
       ],
       "path": "scripts/gen_api_response_vectors_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8528a40c561953597f4088623ee3ba5e6999f9d8fa3f1a2ebd8c73e71937413e",
+      "sha256": "8039f17483f55e4d9a73e40945b4932a4db962eb3ee779414e49918454aeda71",
       "source_id": "SRC-B36B907AEE547D60"
     },
     {
@@ -4727,7 +4808,7 @@
       ],
       "path": "scripts/gen_external_operator_transcript_requirements_v1_5.py",
       "primary_mechanism_id": "M-075",
-      "sha256": "0c8785f0144e9a254705fed7e71bf5eef26b75f2b0aaec9b09b52fe5101d96cd",
+      "sha256": "99fd68f0e0e1b7b32bbfa7dabb65225503dc4deccc483431fcbb48462934b9df",
       "source_id": "SRC-842B0D49D405700C"
     },
     {
@@ -5007,7 +5088,7 @@
       ],
       "path": "scripts/gen_release_evidence_manifest_v1_5.py",
       "primary_mechanism_id": "M-075",
-      "sha256": "b2992e0a2ef68aedc837134df1dd9ff880d054a67d392506f2a7b072116ccf5e",
+      "sha256": "ef3fe2e666e49b5089de8e6e6cb3d866e2875923d91ca6d29d97aebb82c706e2",
       "source_id": "SRC-86E1133DA6CADB5E"
     },
     {
@@ -5121,6 +5202,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d59369c798236c7865b05d4fef23f948c4aa6541c3169b3292efbcc2f9c4ce48",
       "source_id": "SRC-DB083B9704C1BFDF"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/gen_tx_lifecycle_assurance_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "ae8eb72a07e64766fb0d23dba3090075a4305298f9220004151b594f48ae0194",
+      "source_id": "SRC-501FC7C3305C2320"
     },
     {
       "affected_registers": [
@@ -6511,7 +6606,7 @@
       ],
       "path": "scripts/validate_external_operator_transcript_v1_5.py",
       "primary_mechanism_id": "M-075",
-      "sha256": "113fc7df20d879a344e8662981c4457ea3fd6111577c17e8126cae5f985372eb",
+      "sha256": "0d2955b1558a9b9084adc091cbd0aade7591c5fe9790f7275bfd8e38a10c6dc4",
       "source_id": "SRC-AEEE3E2C71089E78"
     },
     {
@@ -6838,7 +6933,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "2fd229b01015c8cbf31669c4666189aab94512612ce317caff65bc53b490ac2a",
+      "sha256": "18de11fd01ff8ff95da63a8e7512eac40cf66b1c0cfc174ca37d4efe894e4808",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -7534,7 +7629,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/poh.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "1f7d0818b440dbe5f5ba58d53bf997a2807b404613f7f0533be041dfac0597c1",
+      "sha256": "900ecbad14eb8a8adb889eb2eb6c0daa5dad0ed2036b3e2e6a5376a190c0a1ef",
       "source_id": "SRC-F65A78E0416B9DB6"
     },
     {
@@ -7653,7 +7748,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/status.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "2c2a272a039ad43a028447ee831163d7c1ce6498739bc559e262f6f247140ddc",
+      "sha256": "84a059731c22e512ab24914172650f99bd6db831d852cb5d36d8f55577a9a701",
       "source_id": "SRC-803ED155183DB81D"
     },
     {
@@ -7863,7 +7958,7 @@
       ],
       "path": "src/weall/ledger/issuance.py",
       "primary_mechanism_id": "M-060",
-      "sha256": "796d7ddeb5328ce9a8f85dd9b1b18baef29f65caf9af3275710c2f4a36780a7e",
+      "sha256": "3f3d3a2c4caed603d835c29cd0a9317cbc2b3981664ad66208e479783b23f1ef",
       "source_id": "SRC-FCBE5B64556891B3"
     },
     {
@@ -8097,7 +8192,7 @@
       ],
       "path": "src/weall/net/peer_identity.py",
       "primary_mechanism_id": "M-024",
-      "sha256": "cf9ef88cd76612614d62da365f0db6622facea1909b3c64acf426218e5667c1f",
+      "sha256": "95ce000d4a590bcaf2854d7a9c7326963de679b67fc977c6a8f2d2cfdf3ef1e8",
       "source_id": "SRC-0EC3F8758C6201FC"
     },
     {
@@ -10363,7 +10458,7 @@
       ],
       "path": "src/weall/runtime/block_loop.py",
       "primary_mechanism_id": "M-018",
-      "sha256": "bb806291d61823467f260e7944128c8e31d60883c4b3fe91da24d49974a23670",
+      "sha256": "794d3fc2db591a29a6abf65342a5a6fda346e0be0735136a2a1705a7200764a6",
       "source_id": "SRC-E980A85E6BB98065"
     },
     {
@@ -10539,7 +10634,7 @@
       ],
       "path": "src/weall/runtime/diagnostics.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "d01cb269f9356db4fcb63cbbcc836c3a2d5366b94d3ae6bd51e84014aa05726a",
+      "sha256": "66758a07f28dfd088b73727960f0908f489cf32458564a7e939d62dc9f33fa09",
       "source_id": "SRC-5BCE457D3BA7BF4F"
     },
     {
@@ -10932,7 +11027,7 @@
       ],
       "path": "src/weall/runtime/helper_certificates.py",
       "primary_mechanism_id": "M-065",
-      "sha256": "1a50837db0f533b7588b88672b53163f49f498e275d5d7d993507992887bfdf1",
+      "sha256": "c49b67bddfd888cdc8adfc2d4b6b37bb4086d205a9185c2d890173f268a5d944",
       "source_id": "SRC-F313F5299184DD8B"
     },
     {
@@ -11126,7 +11221,7 @@
       ],
       "path": "src/weall/runtime/helper_receipts.py",
       "primary_mechanism_id": "M-065",
-      "sha256": "ef7ce02828eaeb37613d6d05d967ecb887c5bc19990597487331296376a292a3",
+      "sha256": "6339637938213ed299c9767d30bd2645325b3267e14c74d2a48d673711fe253e",
       "source_id": "SRC-C5B02BB326630CF2"
     },
     {
@@ -12112,7 +12207,7 @@
       ],
       "path": "src/weall/runtime/tx_admission.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "510f8f35ffb969924182511458839e07cc172fc9c762b1ef29688e10ecb3052d",
+      "sha256": "82b1588e8c0adcdd195825c53c729d3fab4b0676902424dfa988d8b6083eaa9a",
       "source_id": "SRC-11E78DF740EB2865"
     },
     {
@@ -12209,7 +12304,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "493f2dc13cf0de9401356b1b133292de237707ae28812d9d681ada454229afea",
+      "sha256": "d454481d050cf4df38cbce2e7559e313fc8b8f135d576b8d2fcbd890ac1df530",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -12784,7 +12879,7 @@
       ],
       "path": "tests/prod/test_external_cross_machine_replay_transcript_capture.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "f86f42a16d0acf4b8e5ced18fdf116cf2fee6f50626a042abf55ecdb7a3264a2",
+      "sha256": "68986fbad5de88aa2f4ea7010cede018a487bf1db6d80c06bdb8b8354cf1a020",
       "source_id": "SRC-11003648BBDC3903"
     },
     {
@@ -13012,6 +13107,21 @@
       "primary_mechanism_id": "M-076",
       "sha256": "1e0b090f7c5ba2cbb1a18096d3c122bbabdde8316b6c8fd9248b09eb0fb82f81",
       "source_id": "SRC-E9A4E7A1C57DFFC1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/prod/test_p2_a04_external_determinism_packet.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "506e234e361f669157a774b4e430ffdeb3cb3ec174d058a93d42680f7299fd51",
+      "source_id": "SRC-1B36A02C0357A65F"
     },
     {
       "affected_registers": [
@@ -21900,7 +22010,7 @@
       ],
       "path": "tests/test_one_node_per_user.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "449e4abb7fb9ebffd9411f76a41f71bb1c2971855a274f226a4c394a16f077b6",
+      "sha256": "9e5ad68cac4a48da3647347bb4831f5c17511669c2280e1af9936ecb3d69b28c",
       "source_id": "SRC-00D7DE4495DF2C8D"
     },
     {
@@ -21917,7 +22027,7 @@
       ],
       "path": "tests/test_one_node_per_user_revocation.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "37a74d7db9a16b78952cdea8e752fdd4d15f5d714591f5990ee05e663d31d277",
+      "sha256": "4bafcefe0e6b2a5d16cded3bed3f30e6d643d3af6cbd752115ecd9d595de9470",
       "source_id": "SRC-0FDFFA7DFD721A45"
     },
     {
@@ -22101,7 +22211,7 @@
       ],
       "path": "tests/test_p0_03_production_composition.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "6f7d3dbbd8db03791b9d706af97ca1fdda3ddcbea140c7d72a4a826a7b61fbbc",
+      "sha256": "7131bb0f4ca9f53d858d3567baf0ef4c00467e3f29d9eb22153b9072ee35429e",
       "source_id": "SRC-DF1D27D330664F95"
     },
     {
@@ -22812,6 +22922,357 @@
       "primary_mechanism_id": "M-076",
       "sha256": "42758bcfe6d8f70d3cd56b5da4ceb0a44ea95b4cbbbb44130601195cab2d7667",
       "source_id": "SRC-68F5913977F48E3C"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p2_a01_release_tree_identity.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "feaa5632f276514528d7d1b335b60f66fc4458c8e1efd0a614e48ff70f618667",
+      "source_id": "SRC-F702DC9BE4C38041"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-1200"
+      ],
+      "path": "tests/test_p2_a02_lifecycle_manifest.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "f2bd4dd0ada33d90009850be74c37bc1f2cbdc2803b2662790d11c3024a492b7",
+      "source_id": "SRC-D41152D5BF142043"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0001",
+        "TX-0002",
+        "TX-0003",
+        "TX-0004",
+        "TX-0005",
+        "TX-0006",
+        "TX-0007",
+        "TX-0009",
+        "TX-0010",
+        "TX-0101",
+        "TX-0102",
+        "TX-0103",
+        "TX-0104",
+        "TX-0110",
+        "TX-0111",
+        "TX-0112",
+        "TX-0113",
+        "TX-0114",
+        "TX-0115",
+        "TX-0117",
+        "TX-0120",
+        "TX-0121",
+        "TX-0122",
+        "TX-0123",
+        "TX-0124",
+        "TX-0125",
+        "TX-0126",
+        "TX-0128",
+        "TX-0129",
+        "TX-0200",
+        "TX-0201",
+        "TX-0202",
+        "TX-0203",
+        "TX-0204",
+        "TX-0205",
+        "TX-0206",
+        "TX-0207",
+        "TX-0208",
+        "TX-0209",
+        "TX-0210",
+        "TX-0211",
+        "TX-0300",
+        "TX-0301",
+        "TX-0302",
+        "TX-0303",
+        "TX-0304",
+        "TX-0320",
+        "TX-0321",
+        "TX-0322",
+        "TX-0323",
+        "TX-0400",
+        "TX-0401",
+        "TX-0402",
+        "TX-0403",
+        "TX-0404",
+        "TX-0405",
+        "TX-0408",
+        "TX-0410",
+        "TX-0411",
+        "TX-0412",
+        "TX-0413",
+        "TX-0500",
+        "TX-0501",
+        "TX-0502",
+        "TX-0503",
+        "TX-0504",
+        "TX-0505",
+        "TX-0506",
+        "TX-0507",
+        "TX-0508",
+        "TX-0512",
+        "TX-0600",
+        "TX-0602",
+        "TX-0603",
+        "TX-0604",
+        "TX-0606",
+        "TX-0607",
+        "TX-0608",
+        "TX-0610",
+        "TX-0612",
+        "TX-0700",
+        "TX-0701",
+        "TX-0800",
+        "TX-0801",
+        "TX-0802",
+        "TX-0803",
+        "TX-0804",
+        "TX-0805",
+        "TX-0806",
+        "TX-0807",
+        "TX-0808",
+        "TX-0809",
+        "TX-1001",
+        "TX-1002",
+        "TX-1003",
+        "TX-1004",
+        "TX-1100",
+        "TX-1101",
+        "TX-1102",
+        "TX-1103",
+        "TX-1104",
+        "TX-1106",
+        "TX-1107",
+        "TX-1108",
+        "TX-1109",
+        "TX-1110",
+        "TX-1301",
+        "TX-1600",
+        "TX-1601",
+        "TX-1602",
+        "TX-1603",
+        "TX-1700",
+        "TX-1702",
+        "TX-1703",
+        "TX-1704",
+        "TX-1705",
+        "TX-1706",
+        "TX-1707",
+        "TX-1708",
+        "TX-1709",
+        "TX-1710",
+        "TX-1711",
+        "TX-1712",
+        "TX-1713",
+        "TX-1714",
+        "TX-1715",
+        "TX-1716",
+        "TX-1717",
+        "TX-1800",
+        "TX-1801",
+        "TX-2000",
+        "TX-2100",
+        "TX-2101",
+        "TX-2102",
+        "TX-2103",
+        "TX-2104",
+        "TX-2105",
+        "TX-2106",
+        "TX-2107",
+        "TX-2200",
+        "TX-2201",
+        "TX-2202",
+        "TX-2203",
+        "TX-2503",
+        "TX-2504",
+        "TX-2505",
+        "TX-2506",
+        "TX-2600",
+        "TX-2601",
+        "TX-2608",
+        "TX-2609",
+        "TX-2610",
+        "TX-2611",
+        "TX-2612",
+        "TX-2613",
+        "TX-2614",
+        "TX-2615",
+        "TX-2617",
+        "TX-2618",
+        "TX-2619",
+        "TX-2620",
+        "TX-2621",
+        "TX-2622",
+        "TX-2623",
+        "TX-2624",
+        "TX-2625",
+        "TX-2626"
+      ],
+      "path": "tests/test_p2_a02_success_lifecycle_baseline.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "c526d8cd1ce23034c399ebc369e6cdd1d578507fdc9a900d0f9b98715bb10e61",
+      "source_id": "SRC-26CE7F495F144D60"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p2_a05_bft_evidence_scope.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "4f78c55109c445996e4a67c6b8fbc8c2d9dde4923a71733a142293f8d05bead9",
+      "source_id": "SRC-A97DA781C1AF70DC"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "ROUTE-EE2EFB47FA6F30A2",
+        "TX-0001",
+        "TX-0701"
+      ],
+      "path": "tests/test_p2_a11_genesis_relative_issuance.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "94199c7e9e1178ac41096e32597d82137f2c35cf34704a3a308105f8271e0c0f",
+      "source_id": "SRC-5DE4F3B08C3505CB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-4D50FAF4F66D0CCD",
+        "ROUTE-B0DFBDB7B4066104",
+        "ROUTE-F693A62493C1AC49"
+      ],
+      "path": "tests/test_p2_a12_consensus_forensics_auth.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "6f4b31eba4f1425aa9166dca0777ebd0150db3423b5100b3e5901e02c0d6ec84",
+      "source_id": "SRC-B8C3363438AFEEF8"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-0001",
+        "TX-0004"
+      ],
+      "path": "tests/test_p2_a13_signature_authority.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "0805eeaef1d8e6e962e907d8f25140bb5995cb3c53956f9372bd5db77073dd5d",
+      "source_id": "SRC-CFD3BC87F98AFDE1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-A3D2344F33C6912D",
+        "ROUTE-B0DFBDB7B4066104",
+        "TX-0001"
+      ],
+      "path": "tests/test_p2_a14_concurrency_closure.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "393f956a3252c25b418828dbd51519c6d68a6328426449caa315ee0b461834fc",
+      "source_id": "SRC-83FD960261E36869"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p2_a17_fresh_checkout_docs.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "0523b6826d221e205af5119598f89f42e31e15dd478b3828677d96f13442a993",
+      "source_id": "SRC-0A30C9AB4214BF92"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p2_a18_v2_provenance_label.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "1d2a40a33c33610217bef3bde20ceac0e44584cafe23a741aec4ac39c5f1aa5d",
+      "source_id": "SRC-7F565BBA7A3AEBE7"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p2_a19_architecture_front_door.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "e1e5a9d31268c0e0f998db62a5ba0e23dd6a393a18fbc208d8672d867ff8a2de",
+      "source_id": "SRC-072D88EA4769F833"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_p2_a20_deployment_csp.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "136f6c494e844f93f06bbd627ccf9c3a144b64d3b15e3b41a354ee83b646dab2",
+      "source_id": "SRC-84DA20117C0C8165"
     },
     {
       "affected_registers": [
@@ -25647,7 +26108,7 @@
       ],
       "path": "tests/test_priority3_operator_forensics.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ef316086740d1887ed836f7c474778688c6f83b8642c3f8a02d46c9d73db6854",
+      "sha256": "2e7f14a492be0fad2c8f4e75f8240e1a426bc23ba12851dbfbf52a1e92c9733b",
       "source_id": "SRC-B7CF79EF96A88B8C"
     },
     {
@@ -27674,7 +28135,7 @@
       ],
       "path": "tests/test_startup_posture_status_surface.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ed50e6c16437ab9d7f58a7b68676582dbe8b6e1e51e29765d28690687ed7beab",
+      "sha256": "34bd635c69b5409c8226920321b47f2fae6b1d5c8601b8315abb96535cb562a1",
       "source_id": "SRC-2436951F129067EB"
     },
     {
@@ -27864,7 +28325,7 @@
       ],
       "path": "tests/test_status_consensus_diagnostics.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8619cc0c06ab61da712f426fcacccc09d0669b56cc53c9d639cfeb998f287cc4",
+      "sha256": "d1066cab5e2d4f090690dbb7fdc8d8e670ce118d320d2bdc1047fc14a6976894",
       "source_id": "SRC-C8E2B5268DBA7A4C"
     },
     {
@@ -27882,7 +28343,7 @@
       ],
       "path": "tests/test_status_consensus_forensics_profile_compatibility.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e9fed07edd0b254f315d0af6db8bbf16c21f510b82126a7f44a5468ff7720351",
+      "sha256": "8cdd8d636be7fa472b7cd036b1a12a93f6b1e5a9baf182181df13d6c5912638f",
       "source_id": "SRC-7437A0AA7A8971A7"
     },
     {
@@ -28662,7 +29123,6 @@
         "M-076",
         "ROUTE-150316944D629C32",
         "TX-0209",
-        "TX-0304",
         "TX-0904",
         "TX-2603"
       ],
@@ -28918,7 +29378,7 @@
       ],
       "path": "tests/test_tx_schema_remaining_canon_cleanup.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d44b53a1004e367e5d7713d16056fdd89cabcf22ace128c48e2d96760fab0cc3",
+      "sha256": "d4db1eb386337cb4eae0894bb99fc2165e22460e1cea48f53183ae7b50f859fb",
       "source_id": "SRC-F50D877F54040588"
     },
     {
@@ -29281,7 +29741,6 @@
         "ROUTE-EE1C3B1D0627E5ED",
         "ROUTE-F7F0C1CB377A8E1A",
         "ROUTE-FC8DE2E056DFA6A3",
-        "TX-0304",
         "TX-2603"
       ],
       "path": "tests/test_v2_spec_compiler.py",
@@ -32450,6 +32909,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "ec9ca7a43764dac7f794b547e106cf311585e93ecf53226b095119666104c687",
       "source_id": "SRC-3ABB044E07B9C013"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/tests/e2e/production_deployment_csp.spec.ts",
+      "primary_mechanism_id": "M-076",
+      "sha256": "b4f0a435f6561186e2a084d14642cef65da0332019b1c7b07cb34f3a21660161",
+      "source_id": "SRC-942ED1D5D3E3ACE8"
     },
     {
       "affected_registers": [

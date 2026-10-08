@@ -104,3 +104,52 @@ jobs:
       - name: Build
         run: |
           npm run build
+
+      - name: Install production deployment test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
+          npx playwright install --with-deps chromium
+
+      - name: Start tested production Nginx deployment
+        run: |
+          sudo rm -rf /tmp/weall-web-dist
+          sudo cp -a "$PWD/dist" /tmp/weall-web-dist
+          sudo chmod -R a+rX /tmp/weall-web-dist
+          sed "s|__DIST_ROOT__|/tmp/weall-web-dist|g" deploy/nginx.conf.template > /tmp/weall-web-nginx.conf
+          sudo nginx -t -c /tmp/weall-web-nginx.conf
+          sudo nginx -c /tmp/weall-web-nginx.conf
+
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8088/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS -D /tmp/weall-web-index.headers -o /tmp/weall-web-index.html http://127.0.0.1:8088/
+          grep -i '^Content-Security-Policy:' /tmp/weall-web-index.headers > /tmp/weall-web-csp.header
+          grep -F "script-src 'self'" /tmp/weall-web-csp.header
+          grep -F "object-src 'none'" /tmp/weall-web-csp.header
+          if grep -F "script-src 'self' 'unsafe-inline'" /tmp/weall-web-csp.header; then
+            echo "production CSP unexpectedly permits inline scripts" >&2
+            exit 1
+          fi
+          if grep -F "script-src 'self' 'unsafe-eval'" /tmp/weall-web-csp.header; then
+            echo "production CSP unexpectedly permits eval" >&2
+            exit 1
+          fi
+
+          curl -fsS http://127.0.0.1:8088/v1/readyz | python -c 'import json,sys; body=json.load(sys.stdin); assert body.get("ok") is True'
+
+      - name: Production deployment Chromium smoke
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npm run test:production-deployment-csp
+
+      - name: Stop production Nginx deployment
+        if: always()
+        run: |
+          sudo nginx -c /tmp/weall-web-nginx.conf -s quit || true
+          test ! -f /tmp/weall-web-nginx-error.log || cat /tmp/weall-web-nginx-error.log

@@ -18,6 +18,7 @@ def test_status_surfaces_persisted_startup_posture_after_unclean_restart(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_CONSENSUS_FORENSICS_OPERATOR_TOKEN", "forensics-token")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)
     monkeypatch.delenv("WEALL_VALIDATOR_SIGNING_ENABLED", raising=False)
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@v1")
@@ -70,7 +71,10 @@ def test_status_surfaces_persisted_startup_posture_after_unclean_restart(
     assert consensus_body["node_lifecycle"]["effective_state"] == "bootstrap_registration"
     assert consensus_body["startup_posture"]["signing_block_reason"] == "unclean_shutdown"
 
-    forensics = client.get("/v1/status/consensus/forensics")
+    forensics = client.get(
+        "/v1/status/consensus/forensics",
+        headers={"X-WeAll-Consensus-Forensics-Token": "forensics-token"},
+    )
     assert forensics.status_code == 200
     forensics_body = forensics.json()
     assert forensics_body["startup_posture"]["last_shutdown_clean"] is False

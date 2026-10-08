@@ -445,7 +445,7 @@
       "http_status": 400,
       "sample_reason": "missing account",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 632
+      "source_lineno": 634
     },
     {
       "code": "bad_request",
@@ -697,7 +697,7 @@
       "http_status": 403,
       "sample_reason": "live_room_participant_required",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1369
+      "source_lineno": 1371
     },
     {
       "code": "forbidden",
@@ -967,7 +967,7 @@
       "http_status": 400,
       "sample_reason": "client_side_aes_256_gcm_required",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 181
+      "source_lineno": 183
     },
     {
       "code": "invalid_payload",
@@ -1345,7 +1345,7 @@
       "http_status": 400,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 224
+      "source_lineno": 226
     },
     {
       "code": "issued_at_ms_required",
@@ -1390,7 +1390,7 @@
       "http_status": null,
       "sample_reason": "/v1/poh/live/juror-cases has been removed; use /v1/poh/live/assigned",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1144
+      "source_lineno": 1146
     },
     {
       "code": "locked",
@@ -1525,7 +1525,7 @@
       "http_status": 400,
       "sample_reason": "WEALL_OPERATOR_TOKEN must be set when operator endpoints are enabled",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2829
+      "source_lineno": 2854
     },
     {
       "code": "missing_live_session_commitment",
@@ -1534,7 +1534,7 @@
       "http_status": 400,
       "sample_reason": "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3282
+      "source_lineno": 3307
     },
     {
       "code": "missing_sig",
@@ -1606,7 +1606,7 @@
       "http_status": 404,
       "sample_reason": "endpoint_disabled",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 168
+      "source_lineno": 170
     },
     {
       "code": "not_found",
@@ -1894,7 +1894,7 @@
       "http_status": 403,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 549
+      "source_lineno": 551
     },
     {
       "code": "session_not_ready",
@@ -1903,7 +1903,7 @@
       "http_status": 400,
       "sample_reason": "Live session not initialized yet (missing session_commitment)",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3363
+      "source_lineno": 3388
     },
     {
       "code": "session_required",
@@ -1912,7 +1912,7 @@
       "http_status": 403,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 532
+      "source_lineno": 534
     },
     {
       "code": "sig_profile_required",

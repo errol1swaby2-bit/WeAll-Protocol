@@ -442,6 +442,42 @@ def _min_reputation_units(spec: Json) -> int | None:
     return max(0, threshold_to_units(str(normalized), default=0))
 
 
+def _locked_legacy_recovery_cancel_allowed(env: TxEnvelope, account: Json) -> bool:
+    """Allow only the owner of an existing legacy-guardian request to cancel it.
+
+    Recovery requests deliberately lock the subject. Without this narrow
+    exception ACCOUNT_RECOVERY_CANCEL is unreachable through canonical
+    admission even though the domain handler supports requester cancellation.
+    Independent offline-key/continuity/reversal recovery remains non-cancellable.
+    """
+
+    if str(env.tx_type or "").strip().upper() != "ACCOUNT_RECOVERY_CANCEL":
+        return False
+    payload = env.payload if isinstance(env.payload, dict) else {}
+    request_id = str(payload.get("request_id") or "").strip()
+    if not request_id:
+        return False
+
+    recovery = account.get("recovery") if isinstance(account, dict) else None
+    requests = recovery.get("requests") if isinstance(recovery, dict) else None
+    request = requests.get(request_id) if isinstance(requests, dict) else None
+    if not isinstance(request, dict):
+        return False
+
+    method = str(request.get("method") or "legacy_guardian").strip().lower()
+    if method != "legacy_guardian":
+        return False
+
+    signer = str(env.signer or "").strip()
+    requester = str(request.get("requester") or "").strip()
+    target = str(request.get("target") or signer).strip()
+    if signer not in {requester, target}:
+        return False
+
+    status = str(request.get("status") or "open").strip().lower()
+    return status not in {"cancelled", "finalized", "receipt_recorded"}
+
+
 def _reputation_and_flags_ok(
     env: TxEnvelope, ledger: LedgerView, spec: Json
 ) -> AdmissionVerdict | None:
@@ -455,16 +491,16 @@ def _reputation_and_flags_ok(
         return _rej("gate_denied", "banned")
 
     if acct.get("locked") is True:
-        # The only subject-signed transaction allowed while an independent
-        # recovery is locked is the case-scoped encrypted-evidence bind. Its
-        # signature is verified exclusively against the proposed replacement
-        # authority, never against the displaced active key. Merely using the
-        # ACCOUNT_RECOVERY_APPROVE type is insufficient: reviewer votes and
-        # legacy approvals must remain locked out at admission.
+        # Independent recovery remains fail-closed except for the case-scoped
+        # encrypted-evidence bind. Legacy guardian recovery is different: the
+        # canonical requester-cancel transaction is valid only for the owner of
+        # an already-open legacy request and is checked narrowly below.
         tx_type = str(env.tx_type or "").strip().upper()
         payload = env.payload if isinstance(env.payload, dict) else {}
         decision = str(payload.get("decision") or "").strip().lower()
-        if tx_type != "ACCOUNT_RECOVERY_APPROVE" or decision != "evidence_bind":
+        evidence_bind = tx_type == "ACCOUNT_RECOVERY_APPROVE" and decision == "evidence_bind"
+        legacy_cancel = _locked_legacy_recovery_cancel_allowed(env, acct)
+        if not evidence_bind and not legacy_cancel:
             return _rej("gate_denied", "locked")
 
     min_rep_units = _min_reputation_units(spec)

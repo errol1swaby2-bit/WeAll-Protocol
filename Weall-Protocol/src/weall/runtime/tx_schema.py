@@ -2054,6 +2054,7 @@ class ReputationThresholdCrossPayload(_StrictModel):
 
 
 class ValidatorRegisterPayload(_StrictModel):
+    account: str = Field(..., min_length=1)
     endpoint: str = Field(..., min_length=1)
     pubkey: str | None = Field(default=None, min_length=1)
     node_id: str | None = Field(default=None, min_length=1)

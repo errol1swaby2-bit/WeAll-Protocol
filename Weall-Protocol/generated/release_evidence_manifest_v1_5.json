@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "883d563e4c6bae2b5bb5a4e397830e1a24d2a68c1959566bc7e1ef1513acc07a",
+  "artifact_digest": "4c57b0f386e2a24600f3f64a4e202579c687753bb42809c35323dadbce57561b",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -148,7 +148,7 @@
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "62973c0c4efa96ea25b6f2eda25859a6d7e76a741997148d7c06e3b387243ade",
+      "file_sha256": "1ca2e31ce55e1fc1e7be76c09e17cc232d028684e0ea5b1ff1d44da3d1ab97e0",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -157,7 +157,7 @@
     },
     "generated/api_response_vectors_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "93b58a4aceb7b7b405ff2f55b0b6f90f934386ea816f15ccacbedac8b482f268",
+      "file_sha256": "4e006f66aae4ebaff99438a8808d408dc41571556d310492cea3898d9922e932",
       "ok": true,
       "path": "generated/api_response_vectors_v1_5.json",
       "present": true,
@@ -166,7 +166,7 @@
     },
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "7986a4416f0e1d019cf59712012984fe9222339f64663f9bf39ee6ff367e2329",
+      "file_sha256": "5755c1b9f9089e3c434b4b897ad2f6fa38bdfd3e1fa37e199d64d3dc96130684",
       "ok": true,
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "present": true,
@@ -175,7 +175,7 @@
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "f7028fab7bf3cb7192c80d2cfbe0707f4d2c9d53ba79c230f5b776d552453e63",
+      "file_sha256": "030d49e1048ebc5b2f53a465bf28997b48c88a110bd79b5ab280f00607c5b9f0",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -193,7 +193,7 @@
     },
     "generated/external_operator_transcript_requirements_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "fb83744d3ea27e170946f2eab1e5225537fe07593e2f160011ea6fd860dcd524",
+      "file_sha256": "59f655bd42b7f18758031fd2daae7a084fad82b11fe19b12f72e988357c1e68a",
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,
@@ -202,7 +202,7 @@
     },
     "generated/failure_code_registry_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "d29fddf9d19bdcc0243fa6c27db01dc0fa1d02e9ffe803ec3543eddff82ea72e",
+      "file_sha256": "fe4e1bbae9f1dfcc5051a2394d5bdca7b0e6729fbc966fa0ebe149f91dc0083c",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,

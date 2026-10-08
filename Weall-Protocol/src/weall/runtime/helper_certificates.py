@@ -85,12 +85,14 @@ class HelperCertificate:
     manifest_hash: str = ""
     plan_id: str = ""
     sig_profile: str = PQ_MLDSA_V1
+    domain: str = CERTIFICATE_DOMAIN
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "tx_ids", tuple(str(x) for x in self.tx_ids))
 
     def to_json(self) -> dict[str, Any]:
         return {
+            "domain": self.domain,
             "chain_id": self.chain_id,
             "block_height": int(self.block_height),
             "view": int(self.view),
@@ -136,6 +138,8 @@ class HelperCertificate:
         )
         if not all(required_fields):
             return False
+        if str(self.domain or "").strip() != CERTIFICATE_DOMAIN:
+            return False
         if int(self.block_height) < 0 or int(self.view) < 0 or int(self.validator_epoch) < 0:
             return False
         if tuple(str(x) for x in self.tx_ids) != tuple(self.tx_ids):
@@ -164,6 +168,7 @@ class HelperExecutionCertificate:
     manifest_hash: str = ""
     plan_id: str = ""
     sig_profile: str = PQ_MLDSA_V1
+    domain: str = CERTIFICATE_DOMAIN
 
     def __init__(self, **kwargs: Any) -> None:
         tx_ids = kwargs.get("tx_ids", ())
@@ -171,6 +176,7 @@ class HelperExecutionCertificate:
             tx_ids = tuple(tx_ids)
         helper_signature = kwargs.get("helper_signature", kwargs.get("signature", ""))
         lane_delta_hash = kwargs.get("lane_delta_hash", kwargs.get("state_delta_hash", ""))
+        object.__setattr__(self, "domain", str(kwargs.get("domain", CERTIFICATE_DOMAIN)))
         object.__setattr__(self, "chain_id", str(kwargs.get("chain_id", "")))
         object.__setattr__(
             self, "block_height", int(kwargs.get("block_height", kwargs.get("height", 0)))
@@ -207,6 +213,7 @@ class HelperExecutionCertificate:
 
     def to_json(self) -> dict[str, Any]:
         return {
+            "domain": self.domain,
             "chain_id": self.chain_id,
             "block_height": int(self.block_height),
             "view": int(self.view),
@@ -252,6 +259,8 @@ class HelperExecutionCertificate:
         )
         if not all(required_fields):
             return False
+        if str(self.domain or "").strip() != CERTIFICATE_DOMAIN:
+            return False
         if int(self.block_height) < 0 or int(self.view) < 0 or int(self.validator_epoch) < 0:
             return False
         if tuple(str(x) for x in self.tx_ids) != tuple(self.tx_ids):
@@ -278,6 +287,8 @@ class HelperExecutionCertificate:
             manifest_hash=self.manifest_hash,
             plan_id=self.plan_id,
             signature=self.helper_signature,
+            sig_profile=self.sig_profile,
+            domain=self.domain,
         )
 
     @classmethod
@@ -415,11 +426,18 @@ def verify_helper_certificate_signature(
     secret: str | None = None,
     sig_profile: str | None = None,
 ) -> bool:
+    if isinstance(cert, Mapping):
+        if str(cert.get("domain") or "").strip() != CERTIFICATE_DOMAIN:
+            return False
+        if not normalize_signature_profile_id(cert.get("sig_profile")):
+            return False
+
     normalized = ensure_helper_execution_certificate(cert)
-    profile = (
-        normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", ""))
-        or PQ_MLDSA_V1
-    )
+    if str(getattr(normalized, "domain", "") or "").strip() != CERTIFICATE_DOMAIN:
+        return False
+    profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", ""))
+    if not profile:
+        return False
 
     if secret is not None:
         return False

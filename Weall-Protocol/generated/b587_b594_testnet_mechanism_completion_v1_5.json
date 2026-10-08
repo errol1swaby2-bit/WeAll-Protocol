@@ -355,10 +355,13 @@
         "route_present": true
       },
       {
-        "auth_case": "public_read_redacted_snapshot",
+        "auth_case": "public_consensus_health_operator_token_for_full_forensics",
         "contract_auth": "public_read_redacted_snapshot",
         "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
-        "error_codes": [],
+        "error_codes": [
+          "forbidden",
+          "consensus_forensics_operator_token_required"
+        ],
         "expected_http_statuses": [
           200
         ],
@@ -369,7 +372,7 @@
         "metadata_source": "static_generator_heuristic",
         "method": "GET",
         "path": "/v1/status/consensus/forensics",
-        "privacy_boundary": "forensics are bounded diagnostics and not peer secrets",
+        "privacy_boundary": "anonymous production callers receive a strict chain-health projection; full bounded forensics require an operator token",
         "route_key": "GET /v1/status/consensus/forensics",
         "route_present": true
       },

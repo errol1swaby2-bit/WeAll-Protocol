@@ -1288,6 +1288,15 @@
         "evidence"
       ],
       "classification": "generated_compatibility_evidence",
+      "path": "generated/tx_lifecycle_assurance_v1_5.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "evidence"
+      ],
+      "classification": "generated_compatibility_evidence",
       "path": "generated/tx_semantic_assurance_v1_5.json",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
@@ -1299,6 +1308,16 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "scripts/__init__.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/a04_cross_machine_determinism_probe_v1_5.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
     },
@@ -1378,6 +1397,16 @@
         "evidence"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "scripts/build_external_cross_machine_replay_transcript_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "scripts/build_external_observer_bundle.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
@@ -1440,6 +1469,16 @@
       "classification": "authoritative_or_launch_critical",
       "path": "scripts/build_validator_bootstrap_bundle.py",
       "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/capture_a04_external_determinism_packet_v1_5.py",
+      "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
     },
     {
@@ -2219,6 +2258,16 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "scripts/gen_tx_index.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_tx_lifecycle_assurance_v1_5.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
     },

@@ -74,7 +74,10 @@ Run these checks from this directory before relying on verification-facing backe
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol
+python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --require-hashes -r requirements-dev.lock
+python -m pip install -e . --no-deps
 
 PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
 PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check

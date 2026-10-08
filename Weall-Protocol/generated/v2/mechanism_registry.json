@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "8a219c0e137a4cda1b6d8b0570fa5fa5ca6815b5f0d923c49b49012559b0ca4e"
+    "source_tree_digest": "415c4b8888c4a49b1aa51ae4312345131480591e899d413c3d56c96cfbb82a2c"
   },
   "rows": [
     {
@@ -3610,8 +3610,10 @@
         "generated/governance_execution_vectors_v1_5.json",
         "generated/launch_disabled_matrix_v1_5.json",
         "generated/public_beta_blocker_report_v1_5.json",
+        "generated/tx_lifecycle_assurance_v1_5.json",
         "generated/tx_semantic_assurance_v1_5.json",
         "scripts/__init__.py",
+        "scripts/a04_cross_machine_determinism_probe_v1_5.py",
         "scripts/assert_production_genesis_artifacts.py",
         "scripts/audit_frontend_backend_congruity.py",
         "scripts/audit_test_names.py",
@@ -3619,10 +3621,12 @@
         "scripts/bft_adversarial_matrix.py",
         "scripts/bft_consensus_resilience_matrix.py",
         "scripts/bft_fault_injection_soak.py",
+        "scripts/build_external_cross_machine_replay_transcript_v1_5.py",
         "scripts/build_external_observer_bundle.py",
         "scripts/build_m2_browser_actor_manifest.py",
         "scripts/build_production_genesis_manifest.py",
         "scripts/build_reviewer_lan_genesis.py",
+        "scripts/capture_a04_external_determinism_packet_v1_5.py",
         "scripts/check_backend_test_dependencies.py",
         "scripts/check_generated.py",
         "scripts/check_m2_requirement_traceability.py",
@@ -3691,6 +3695,7 @@
         "scripts/gen_state_root_vectors_v1_5.py",
         "scripts/gen_tokenomics_simulation_v1_5.py",
         "scripts/gen_tx_index.py",
+        "scripts/gen_tx_lifecycle_assurance_v1_5.py",
         "scripts/gen_tx_semantic_assurance_v1_5.py",
         "scripts/generate_tx_coverage_report.py",
         "scripts/genesis_generate_node_key.py",

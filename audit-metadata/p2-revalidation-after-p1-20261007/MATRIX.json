@@ -1,0 +1,183 @@
+{
+  "schema": "weall.a01_a20.p2_closure_matrix.v1",
+  "source_audit": {
+    "date": "2026-09-30",
+    "base_commit": "cd7f10a8b62e9f5a3711f4263d04e3fd62f0d351",
+    "base_tree": "36a5868c72022f11a61bca8f48816852acccb1c9",
+    "inventory_total": 77,
+    "high_p0_count": 27,
+    "medium_p1_count": 34,
+    "low_p2_count": 16
+  },
+  "closure_baseline": {
+    "branch": "main",
+    "commit": "c62624936300eb1c22250fb5b1390b63bf8c5db5",
+    "tree": "94ca0785e6b4b4636588cee084492dc5e1961b56",
+    "meaning": "merged PR #42 A01-A20 MEDIUM/P1 closure"
+  },
+  "p2_definition": "All LOW findings in the 2026-09-30 A01-A20 master audit inventory.",
+  "allowed_statuses": [
+    "pending_revalidation",
+    "patched_pending_proof",
+    "already_closed_and_proven",
+    "patched_and_proven",
+    "scope_closed_and_proven",
+    "external_evidence_blocker",
+    "design_blocker",
+    "open"
+  ],
+  "tracks": {
+    "P2-01": "Release fingerprint scope, reviewer reproducibility, provenance labeling and architecture/front-door documentation",
+    "P2-02": "All-canon executable lifecycle assurance",
+    "P2-03": "Cross-machine and broad determinism evidence",
+    "P2-04": "Production BFT rehearsal validity",
+    "P2-05": "Delayed economics activation and issuance/halving semantics",
+    "P2-06": "Consensus forensics privacy and operator authorization",
+    "P2-07": "Explicit signature-profile coverage and helper-certificate domain separation",
+    "P2-08": "Shutdown, durable queue and transaction-status concurrency linearization",
+    "P2-09": "Production CSP deployment consistency"
+  },
+  "findings": [
+    {
+      "id": "A01-F004",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "patched_and_proven",
+      "summary": "V2 source_tree_digest is a partial protocol-source digest, not a full release-tree behavior digest",
+      "evidence": "Runtime release evidence now records exact git_head and git_tree, while docs/V2_SPEC_COMPILER.md explicitly distinguishes the whole tracked release-tree identity from the narrower V2 semantic source_tree_digest. tests/test_p2_a01_release_tree_identity.py proves a tracked build-only mutation changes Git tree identity and the runtime manifest binds the exact current tree."
+    },
+    {
+      "id": "A01-F005",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "already_closed_and_proven",
+      "summary": "Exact reviewer procedure is Git-history-dependent and not reproducible from a plain HEAD source archive",
+      "evidence": "The merged P1 reviewer-reproducibility work already distinguishes full-history verification from historyless source archives, fails explicitly when required historical Git objects are unavailable, and provides the exact restoration/verification path. The P2 baseline inherited that proven closure."
+    },
+    {
+      "id": "A02-F003",
+      "severity": "LOW",
+      "track": "P2-02",
+      "status": "patched_and_proven",
+      "summary": "All-canon coverage gates do not prove an executable lifecycle for every canonical type",
+      "evidence": "A generated tx_lifecycle_assurance_v1_5.json now contains exactly 236 unique canonical lifecycle rows with 236 successful admissions, 236 successful applies, 236 failure-stage vectors, 236 exact success-receipt expectations, 236 duplicate/replay expectations, and persistence/restart requirements for every state-writing row. tests/test_p2_a02_lifecycle_manifest.py rebuilds the manifest exactly, verifies signatures/tx IDs/receipts, reopens every state-writing vector through SQLite with identical state root, and proves an intentionally broken registered handler fails the matrix. Backend and focused revalidation both run gen_tx_lifecycle_assurance_v1_5.py --check."
+    },
+    {
+      "id": "A04-F002",
+      "severity": "LOW",
+      "track": "P2-03",
+      "status": "external_evidence_blocker",
+      "summary": "Determinism validation remains incomplete across machines and protocol breadth",
+      "evidence": "Repository-side closure preparation is now comprehensive but the original external-evidence requirement remains authoritative. scripts/capture_a04_external_determinism_packet_v1_5.py captures exact commit/tree, narrow per-block replay, DB-backed and fresh-node replay/state-sync, the all-236 lifecycle corpus, scheduler/order permutations, helper serial equivalence, failed-receipt replay, and seeded determinism regressions. scripts/a04_cross_machine_determinism_probe_v1_5.py additionally proves all-236 lifecycle regeneration under PYTHONHASHSEED=0,1,7,42 plus insertion-order-invariant canonical projection. scripts/build_external_cross_machine_replay_transcript_v1_5.py rejects cross-machine mismatches, and strict transcript validation independently checks per-machine digest equality. Closure still requires two real external/physical-machine packets for the same exact commit plus attestation, aggregate transcript, and review; hosted CI is not a substitute."
+    },
+    {
+      "id": "A05-F004",
+      "severity": "LOW",
+      "track": "P2-04",
+      "status": "patched_and_proven",
+      "summary": "Existing production BFT rehearsal does not exercise production BFT consensus validity",
+      "evidence": "The production-composition suite exercises WEALL_MODE=prod, QC-less blocks disabled, signature verification enabled, real follower proposal handling/voting, chained QC progression, restart, wrong-parent rejection, and finality; P2 additionally exercises proposal ingress through NetMeshLoop. These tests passed on the P2 branch in the full backend suite."
+    },
+    {
+      "id": "A11-F003",
+      "severity": "LOW",
+      "track": "P2-05",
+      "status": "patched_and_proven",
+      "summary": "Halving clock advances while issuance is locked, creating an unresolved delayed-activation monetary-policy interpretation",
+      "evidence": "Protocol authority selected GENESIS_RELATIVE for the v1.5 issuance epoch origin. The selected rule preserves the existing absolute-height implementation: 30-block issuance epochs and the 105,120-epoch halving clock advance from Genesis regardless of whether economics is enabled; locked epochs emit nothing and are never backfilled. docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md and docs/REAL_TOKENOMICS_IMPLEMENTATION.md state this normatively. tests/test_p2_a11_genesis_relative_issuance.py covers pre-halving, exact-halving and post-halving activation, locked skipped epochs, deterministic two-node replay, restart/state-sync equivalence, and cap behavior. Exact implementation tree 7c0b0db3fa2e19056f1743a8e450c19a48e87133 completed Backend CI with 5166 passed, 1 skipped, and Reviewer Readiness, focused P1, Web, and Secrets were all green."
+    },
+    {
+      "id": "A12-F004",
+      "severity": "LOW",
+      "track": "P2-06",
+      "status": "patched_and_proven",
+      "summary": "Consensus forensics exposes operator/BFT internals anonymously in production",
+      "evidence": "Production anonymous consensus-forensics now returns only a public consensus-health projection. Wrong presented credentials fail closed and an explicitly configured operator token unlocks bounded forensic detail. tests/test_p2_a12_consensus_forensics_auth.py covers anonymous, wrong-token, and authorized-operator behavior and passes in the P2 backend suite."
+    },
+    {
+      "id": "A13-F003",
+      "severity": "LOW",
+      "track": "P2-07",
+      "status": "patched_and_proven",
+      "summary": "Explicit signature profile required is not consistently enforced outside transaction signing",
+      "evidence": "Received peer identities and helper receipts no longer gain authority through verifier-side signature-profile defaults; missing and unsupported profiles fail closed. tests/test_p2_a13_signature_authority.py covers profile stripping/substitution and passes in the P2 backend suite."
+    },
+    {
+      "id": "A13-F004",
+      "severity": "LOW",
+      "track": "P2-07",
+      "status": "patched_and_proven",
+      "summary": "Mainline helper-certificate signatures omit the explicit certificate domain used by the newer hardening path",
+      "evidence": "Mainline helper certificates bind the explicit certificate domain and signature profile into the signed object; receive-side verification rejects domain/profile stripping, substitution, and cross-object receipt-signature reuse. Adversarial P2 signature-authority tests pass."
+    },
+    {
+      "id": "A14-F002",
+      "severity": "LOW",
+      "track": "P2-08",
+      "status": "patched_and_proven",
+      "summary": "Timed block-loop shutdown can hand ownership to a new generation while the old worker is still alive",
+      "evidence": "BlockProducerLoop lifecycle ownership is serialized; a timed-out stop retains ownership until the worker exits, replacement generation start is refused while the prior worker lives, and finalizer cleanup is generation-sensitive. tests/test_p2_a14_concurrency_closure.py deterministically exercises the stop-timeout/restart/lock-contention interleaving."
+    },
+    {
+      "id": "A14-F003",
+      "severity": "LOW",
+      "track": "P2-08",
+      "status": "patched_and_proven",
+      "summary": "The WebRTC durable signal queue can lose updates because its lock is not a single inter-process RMW lock",
+      "evidence": "The WebRTC durable signal queue now uses one path-scoped POSIX inter-process flock around the entire read/modify/write transaction plus durable atomic replacement. tests/test_p2_a14_concurrency_closure.py drives two OS processes through the same queue and proves no lost rows."
+    },
+    {
+      "id": "A14-F004",
+      "severity": "LOW",
+      "track": "P2-08",
+      "status": "patched_and_proven",
+      "summary": "Transaction status can transiently report unknown while a transaction atomically moves from mempool to confirmed index",
+      "evidence": "Transaction status now resolves tx_index and mempool state from one explicit SQLite read snapshot. The P2 concurrency test forces a commit between the logical lifecycle lookups and proves the response remains pending/confirmed rather than synthesizing unknown."
+    },
+    {
+      "id": "A17-F004",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "patched_and_proven",
+      "summary": "Primary fresh checkout verification instructions assume an already-created virtual environment",
+      "evidence": "The primary root/backend fresh-checkout reviewer paths now create a venv, activate it, install hash-locked development dependencies, and install the package before verification. tests/test_p2_a17_fresh_checkout_docs.py enforces the bootstrap ordering."
+    },
+    {
+      "id": "A18-F005",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "patched_and_proven",
+      "summary": "Frontend repositorySnapshot is a historical V2 specification snapshot, not the current implementation commit",
+      "evidence": "Frontend provenance no longer labels the historical V2 specification snapshot as repositorySnapshot; the generated field is v2SpecificationSnapshot and tests/test_p2_a18_v2_provenance_label.py enforces the unambiguous name. Generated protocolStatus.ts is regenerated by the reviewer-artifact workflow."
+    },
+    {
+      "id": "A19-F005",
+      "severity": "LOW",
+      "track": "P2-01",
+      "status": "patched_and_proven",
+      "summary": "Current whole-system architecture and source-authority map is not obvious from the repository front door",
+      "evidence": "Weall-Protocol/docs/ARCHITECTURE.md now maps the current runtime/control plane, authority hierarchy, transaction lifecycle, consensus/persistence/PoH/governance/helper/P2P/frontend boundaries, current-vs-target hierarchy, disabled surfaces, and legacy/shadow material; the repository front door links to it and a P2 regression enforces the sections."
+    },
+    {
+      "id": "A20-F003",
+      "severity": "LOW",
+      "track": "P2-09",
+      "status": "patched_and_proven",
+      "summary": "Documented production static deployment does not mechanically deliver the repository CSP posture",
+      "evidence": "The repository ships web/deploy/nginx.conf.template as the tested production Nginx path. Web CI run 37683086740 / job 113003857844 built the production Vite bundle, copied it to an Nginx-readable deployment directory, validated and started the shipped config, asserted the actual HTTP Content-Security-Policy contains script-src 'self' and object-src 'none' without unsafe-inline/unsafe-eval script execution, verified /v1/readyz through the same-origin production proxy, and passed a Chromium browser smoke that rendered the app, loaded same-origin JS assets, exercised the proxied API, and loaded permitted data-image content. The Nginx test and browser smoke both completed success."
+    }
+  ],
+  "summary": {
+    "proven_dispositions": 15,
+    "patched_pending_proof": 0,
+    "external_evidence_blockers": [
+      "A04-F002"
+    ],
+    "design_blockers": [],
+    "open_or_blocked_findings": [
+      "A04-F002"
+    ],
+    "adjudicated_findings": 16,
+    "closure_complete": false
+  }
+}

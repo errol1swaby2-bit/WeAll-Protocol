@@ -26,6 +26,14 @@ npm run build
 
 Output is in dist/.
 
+## Shipped and tested Nginx production configuration
+
+The repository ships `web/deploy/nginx.conf.template` as the mechanically tested Nginx production path. It serves the built `dist/` SPA, proxies `/v1/` to the local node API, and emits the production security headers including CSP.
+
+The template contains a single `__DIST_ROOT__` placeholder. Replace it with the absolute path to the built `web/dist` directory before starting Nginx. Web CI performs that substitution, starts Nginx with this exact template, requests the real HTTP response headers, verifies the CSP boundary, verifies `/v1/readyz` through the proxy, and runs a Chromium smoke against the built app.
+
+The Nginx block below mirrors that shipped template for reviewer readability. The checked-in template is the deployment/test authority.
+
 Reverse proxy examples
 Nginx (UI + API under one origin)
 server {
@@ -41,6 +49,7 @@ server {
   add_header Referrer-Policy "no-referrer" always;
   add_header X-Frame-Options "DENY" always;
   add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+  add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http://127.0.0.1:* http://localhost:*;" always;
 
   # SPA: send any unknown path to index.html
   location / {
@@ -72,6 +81,7 @@ weall.example.com {
     Referrer-Policy "no-referrer"
     X-Frame-Options "DENY"
     Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http://127.0.0.1:* http://localhost:*;"
   }
 
   # API proxy
@@ -86,4 +96,4 @@ native PoH verification
 
 Tier 1 native async verification routes through the active WeAll API target and protocol-native PoH surfaces. The frontend does not load a third-party challenge widget or external identity-provider endpoint for the primary PoH path.
 
-The CSP permits only the app itself plus normal API/media connections configured by deployment headers.
+The production examples above mechanically emit the same script-execution boundary used by Vite preview: `script-src 'self'` and `object-src 'none'`. Operators that change API/media origins must deliberately adjust `connect-src`, `img-src`, or `media-src` without weakening the script policy.

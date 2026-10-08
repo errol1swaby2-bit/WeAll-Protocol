@@ -19,8 +19,12 @@ Capture the following from each external machine:
 6. `scripts/replay_consistency_audit.py --json` output.
 7. `scripts/rehearse_fresh_node_replay_sync_v1_5.py --json` output.
 8. `scripts/check_tx_canon_artifacts.py` output.
-9. A local `LOCAL_MACHINE_REPLAY_EVIDENCE.json` packet and manifest.
-10. Operator signature or controlled external attestation.
+9. `generated/tx_lifecycle_assurance_v1_5.json` SHA-256, covering all 236 canonical transaction lifecycle vectors.
+10. `scripts/a04_cross_machine_determinism_probe_v1_5.py --json` output proving lifecycle-render equality under `PYTHONHASHSEED=0,1,7,42` and insertion-order-invariant canonical projection.
+11. Seeded determinism regressions under `PYTHONHASHSEED=1,7,31337`, including scheduler/order permutation, helper serial equivalence, failed-receipt replay, and the all-236 lifecycle matrix.
+12. DB-backed and ordinary fresh-node replay/state-sync evidence.
+13. A local `LOCAL_MACHINE_REPLAY_EVIDENCE.json` packet and manifest.
+14. Operator signature or controlled external attestation.
 
 The final aggregate transcript must include at least two machine packets and must
 prove:
@@ -30,18 +34,27 @@ prove:
 - identical replay state roots;
 - identical fresh-node replay roots;
 - identical tx-index hash;
-- explicit public beta/mainnet/public validator non-claims.
+- explicit public beta/mainnet/public validator non-claims;
+- identical all-236 lifecycle manifest and live lifecycle digests;
+- identical broad lifecycle projection digest, including reversed mapping-insertion projection;
+- identical seeded lifecycle regeneration across the required hash seeds;
+- passing scheduler/order-permutation, helper-equivalence, failed-receipt, DB-backed replay, and fresh-node state-sync gates.
 
 ## Local packet capture command
 
-Run this command separately on each external machine from a clean checkout:
+Run this sequence separately on each external/physical machine from a fresh shell. Both machines must check out the **same exact review commit** before capture:
 
 ```bash
+git clone https://github.com/errol1swaby2-bit/WeAll-Protocol.git WeAll-Protocol
 cd WeAll-Protocol
-python -m venv .venv
+git checkout --detach <exact-review-commit>
+git status --short --branch
+
+cd Weall-Protocol
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.lock
-pip install -e .
+python -m pip install --require-hashes -r requirements-dev.lock
+python -m pip install -e . --no-deps
 
 bash scripts/capture_external_cross_machine_replay_transcript_v1_5.sh \
   --machine-id <external-machine-id> \
@@ -49,12 +62,29 @@ bash scripts/capture_external_cross_machine_replay_transcript_v1_5.sh \
   --out-dir docs/proofs/external-cross-machine-replay/<yyyy-mm-dd>/<operator-or-host>/<machine-id>/
 ```
 
+The capture command itself rejects a dirty checkout and records the exact commit and Git tree in the local packet.
+
 The script writes one machine packet only. It does not close `AUD-618-P1-003`.
 
-## Aggregate transcript validation
+## Aggregate transcript construction and validation
 
-After at least two packets are collected, combine them into the aggregate
-`TRANSCRIPT.json` template and run:
+After at least two packets are collected, build the aggregate transcript with:
+
+```bash
+python scripts/build_external_cross_machine_replay_transcript_v1_5.py \
+  --packet <machine-a>/LOCAL_MACHINE_REPLAY_EVIDENCE.json \
+  --packet <machine-b>/LOCAL_MACHINE_REPLAY_EVIDENCE.json \
+  --machine-isolation two_physical_machines \
+  --operator-attestation external_replay_operator_signed \
+  --operator-signature '<controlled external signature/reference>' \
+  --out docs/proofs/external-cross-machine-replay/<yyyy-mm-dd>/<operator-or-host>/TRANSCRIPT.json
+```
+
+The builder independently rejects mismatched commit/tree, lifecycle/vector hashes,
+per-block replay digests, DB-backed replay digests, fresh-node replay digests,
+hash-seed matrices, or missing broad determinism gates.
+
+Then run:
 
 ```bash
 cd WeAll-Protocol

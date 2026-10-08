@@ -252,9 +252,11 @@ class BlockProducerLoop:
         self._cfg = requested_cfg
 
         self._lock = _FileLock(self._cfg.lock_path)
+        self._lifecycle_lock = threading.RLock()
         self._t: threading.Thread | None = None
         self._stop = threading.Event()
         self._started = False
+        self._stopping = False
 
         self._last_bft_timeout_check_ms = int(time.time() * 1000)
 
@@ -272,51 +274,87 @@ class BlockProducerLoop:
 
     @property
     def started(self) -> bool:
-        return self._started
+        with self._lifecycle_lock:
+            return bool(self._started)
 
     def start(self) -> bool:
-        if self._started:
-            return True
-        if not self._cfg.enabled:
-            return False
-        if not self._lock.acquire():
-            return False
-        self._stop.clear()
-        self._t = threading.Thread(target=self._thread_main, name="weall-block-loop", daemon=True)
-        self._started = True
-        try:
-            self._executor.block_loop_running = True
-        except Exception:
-            pass
-        try:
-            self._t.start()
-        except Exception:
-            self._started = False
-            self._t = None
-            self._lock.release()
+        # A14-F002: lifecycle ownership is generation-sensitive. A timed-out
+        # stop must not permit a replacement generation while the old worker
+        # can still execute or finalize.
+        with self._lifecycle_lock:
+            if self._stopping:
+                return False
+            if self._started:
+                return bool(self._t is not None and self._t.is_alive())
+            if not self._cfg.enabled:
+                return False
+            if not self._lock.acquire():
+                return False
+
+            self._stop.clear()
+            thread = threading.Thread(
+                target=self._thread_main,
+                name="weall-block-loop",
+                daemon=True,
+            )
+            self._t = thread
+            self._started = True
             try:
-                self._executor.block_loop_running = False
+                self._executor.block_loop_running = True
             except Exception:
                 pass
-            raise
+            try:
+                thread.start()
+            except Exception:
+                self._started = False
+                self._t = None
+                self._lock.release()
+                try:
+                    self._executor.block_loop_running = False
+                except Exception:
+                    pass
+                raise
+
         inc_counter("block_loop_start_total", 1)
         return True
 
     def stop(self) -> None:
-        self._stop.set()
-        t = self._t
-        if t is not None:
+        with self._lifecycle_lock:
+            self._stopping = True
+            self._stop.set()
+            thread = self._t
+
+        if thread is not None and thread is not threading.current_thread():
             try:
-                t.join(timeout=2.0)
+                thread.join(timeout=2.0)
             except Exception:
                 pass
-        self._lock.release()
-        self._started = False
-        self._t = None
-        try:
-            self._executor.block_loop_running = False
-        except Exception:
-            pass
+
+        with self._lifecycle_lock:
+            # Fail closed on timeout. The worker generation retains the file
+            # lock, started state, and thread identity until its own finalizer
+            # runs. start() therefore refuses a replacement generation.
+            if thread is not None and thread.is_alive():
+                try:
+                    self._executor.block_loop_shutdown_timeout = True
+                    self._executor.block_loop_running = True
+                except Exception:
+                    pass
+                inc_counter("block_loop_stop_timeout_total", 1)
+                return
+
+            # No worker was ever started. In that degenerate case this caller
+            # owns any remaining lock cleanup.
+            if thread is None:
+                self._lock.release()
+                self._started = False
+                self._t = None
+                self._stopping = False
+                try:
+                    self._executor.block_loop_running = False
+                except Exception:
+                    pass
+
         inc_counter("block_loop_stop_total", 1)
 
     def _mark_error(self, *, where: str, err: Exception) -> None:
@@ -374,15 +412,25 @@ class BlockProducerLoop:
         self._stop.set()
 
     def _thread_main(self) -> None:
+        current = threading.current_thread()
         try:
             self._run()
         finally:
-            try:
-                self._executor.block_loop_running = False
-            except Exception:
-                pass
-            self._lock.release()
-            self._started = False
+            with self._lifecycle_lock:
+                # A stale generation may never release/clear a successor's
+                # ownership. This identity check is redundant with the
+                # no-overlap rule above, but preserves the invariant if future
+                # lifecycle code changes.
+                if self._t is current:
+                    try:
+                        self._executor.block_loop_running = False
+                        self._executor.block_loop_shutdown_timeout = False
+                    except Exception:
+                        pass
+                    self._lock.release()
+                    self._started = False
+                    self._t = None
+                    self._stopping = False
 
     def _run(self) -> None:
         interval_s = float(self._cfg.interval_ms) / 1000.0
