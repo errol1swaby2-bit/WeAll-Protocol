@@ -914,7 +914,11 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
         )
     # The reserved ID had no authority before explicit v1 activation.
     # Retain legacy replay semantics for historical unactivated ledgers.
-    if amount > 0 and fee_reward_pool_contract_enabled(state) and to_account == FEE_REWARD_POOL_ACCOUNT_ID:
+    if (
+        amount > 0
+        and fee_reward_pool_contract_enabled(state)
+        and to_account == FEE_REWARD_POOL_ACCOUNT_ID
+    ):
         try:
             validated_fee_reward_pool_balance(state)
         except ValueError as exc:
