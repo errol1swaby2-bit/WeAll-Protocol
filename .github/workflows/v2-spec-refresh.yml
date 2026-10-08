@@ -1,5 +1,4 @@
 name: Reviewer Artifact Refresh
-# P2 final transcript-fixture refresh
 
 on:
   workflow_dispatch:
