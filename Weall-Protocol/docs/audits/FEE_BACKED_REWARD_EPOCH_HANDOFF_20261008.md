@@ -20,6 +20,8 @@ This draft only demonstrates source-backed **fee-only and mixed subsidy/fee rewa
 4. With both sources present, minted subsidy is debited from `MINT_POOL` and fee revenue from `FEE_REWARD_POOL`, without treating fee receipts themselves as spendable funding.
 5. Ordinary `BALANCE_TRANSFER` into or out of the reserved pool and `FEE_PAY` originating there are rejected. Direct `FEE_PAY` into the reserved pool requires explicit canonical fee-sink configuration.
 6. `BLOCK_REWARD_DISTRIBUTE` rejects debits exceeding explicit payout credits. The existing opposite-direction check and atomic preflight remain in place.
+7. `ACCOUNT_REGISTER` refuses the reserved fee-pool ID; fee collection and reward scheduling require an account marked `account_type=system` and `system_role=fee_reward_pool` with no human key/recovery/session authority and a nonnegative integer balance.
+8. `BLOCK_REWARD_DISTRIBUTE` allows funding debits only from explicitly recognized internal reward sources, verifies canonical fee-pool configuration and authority, and prevents credits back into internal funding pools.
 
 The reserved pool must be *provisioned and authority-protected* by an independently reviewed activation/genesis procedure before any production deployment. This draft intentionally does **not** invent a production migration, reserve key policy, or new economic-governance authority.
 
@@ -34,14 +36,14 @@ pytest -q tests/test_fee_backed_reward_epochs.py \
   tests/test_p1_a10_reward_scheduler_scope.py
 ```
 
-Result: **33 passed**, Ruff changed-file checks passed, and canonical lint passed. The temporary workflow diagnostic was removed afterward. This does **not** establish full backend-suite, multi-node replay, or production readiness.
+Initial phase: **33 passed** on Backend CI #37846555276. After the fee-pool authority hardening and additional adversarial tests, [Backend CI #37849761283](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37849761283) confirmed **44 passed** in the same focused matrix; Ruff changed-file checks and canonical lint also passed. The temporary workflow diagnostic was removed afterward. This does **not** establish full backend-suite, multi-node replay, or production readiness.
 
-The v2 spec compiler fails with `transaction semantic-review digest is stale: BLOCK_REWARD_DISTRIBUTE`. This is a **required semantic evidence reconciliation**, not a reason to relax the validator. The compiler checks rows in order; other touched transaction handlers (`FEE_PAY`, `BALANCE_TRANSFER`) may also require semantic-review reconciliation after the first failure is resolved. No review digest was silently changed, no maintainer approval was impersonated, and `independent_review` was not represented as true.
+The v2 spec compiler rejects stale semantic-review digests. After the reserved-identity change, the earliest rejected binding is `ACCOUNT_REGISTER`; the previously established `BLOCK_REWARD_DISTRIBUTE` change and touched `FEE_PAY`/`BALANCE_TRANSFER` behaviors also require fresh contract review. The compiler checks rows in order. This is a **required semantic evidence reconciliation**, not a reason to relax the validator. No review digest was silently changed, no maintainer approval was impersonated, and `independent_review` was not represented as true.
 
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
-- Prove the canonical internal fee pool is provisioned, account-ID-squatting-resistant, inaccessible to human-key authority, and exclusively debited by versioned authorized reward settlement. Audit **all** balance-changing transaction types, not just `FEE_PAY` and `BALANCE_TRANSFER`.
+- The draft now rejects direct registration of the fee-pool ID, refuses key-bearing/mistyped pools, limits reward debit sources, and prohibits internal-pool payout recipients. **Still pending:** prove deterministic genesis/migration provisioning, activation-height-gated historical replay compatibility for the reserved-ID change, and that every other account/balance mutation path preserves internal-account authority. Audit **all** balance-changing transaction types, not just `FEE_PAY` and `BALANCE_TRANSFER`.
 - Bind distributable fees to settled sources, a deterministic epoch cutoff, deduplication, and exact conservation. Handle queued distributions, process restart, competing block proposals, and proposer/follower replay.
 - Implement automatic last-member voluntary group dissolution, liability and claim settlement, claim-window finality, and once-only routing of **unencumbered** proceeds into the canonical fee-equivalent revenue pool.
 - Reconcile `GRP-206`, `ECO-102`, `ECO-113`, and `ECO-114` with the decided unified subsidy/fee distribution architecture through the appropriate normative and governance process.
