@@ -432,7 +432,6 @@ def test_fee_pool_profile_rejects_even_empty_key_fields() -> None:
         validated_fee_reward_pool_balance(st)
 
 
-
 def test_fee_bearing_transfer_funds_pool_without_extra_issuance() -> None:
     st = _state(fee_balance=0)
     st["economics"]["fee_policy"] = {"transfer_fee_int": 3}
@@ -484,8 +483,11 @@ def test_late_fee_is_not_swept_by_earlier_queued_epoch() -> None:
     apply_economics(
         st,
         TxEnvelope(
-            tx_type="FEE_PAY", signer="@payer", nonce=1,
-            system=False, payload={"amount": 5},
+            tx_type="FEE_PAY",
+            signer="@payer",
+            nonce=1,
+            system=False,
+            payload={"amount": 5},
         ),
     )
     # Queue is already fixed to the snapshot at the epoch boundary.
@@ -498,7 +500,8 @@ def test_late_fee_is_not_swept_by_earlier_queued_epoch() -> None:
         st, next_height=2 * ISSUANCE_EPOCH_BLOCKS, proposer="@validator", phase="post"
     )
     second = [
-        row["payload"] for row in st["system_queue"]
+        row["payload"]
+        for row in st["system_queue"]
         if row["tx_type"] == "BLOCK_REWARD_DISTRIBUTE"
         and row["payload"]["epoch_id"] == "issuance_epoch:1"
     ]
