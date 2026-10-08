@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.ledger.constants import FEE_REWARD_POOL_ACCOUNT_ID
+from weall.ledger.fee_reward_pool import validated_fee_reward_pool_balance
 from weall.runtime.ballot_policy import chain_mode
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.errors import ApplyError
@@ -915,6 +916,12 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
         if configured_fee_sink != FEE_REWARD_POOL_ACCOUNT_ID:
             raise EconomicsApplyError("forbidden", "reward_fee_pool_not_configured", {})
 
+    if amount > 0 and to_account == FEE_REWARD_POOL_ACCOUNT_ID:
+        try:
+            validated_fee_reward_pool_balance(state)
+        except ValueError as exc:
+            raise EconomicsApplyError("forbidden", str(exc), {}) from exc
+
     if amount > 0:
         payer = _require_existing_account(state, from_account, field="from")
         balance = _as_int(payer.get("balance"), 0)
@@ -1033,6 +1040,12 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
                 "fee_destination_required",
                 {"amount": int(transfer_fee), "tx_type": env.tx_type},
             )
+
+    if transfer_fee > 0 and fee_to == FEE_REWARD_POOL_ACCOUNT_ID:
+        try:
+            validated_fee_reward_pool_balance(state)
+        except ValueError as exc:
+            raise EconomicsApplyError("forbidden", str(exc), {}) from exc
 
     fa = _require_existing_account(state, frm, field="from")
     ta = _require_existing_account(state, to, field="to")
