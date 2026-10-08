@@ -19,9 +19,12 @@ FEE_REWARD_POOL_CONTRACT_VERSION = 1
 def fee_reward_pool_contract_enabled(state: Mapping[str, Any]) -> bool:
     """Only state-committed v1 activation permits restricted pool semantics."""
     params = state.get("params")
+    if not isinstance(params, dict):
+        return False
+    version = params.get("fee_reward_pool_contract_version")
     return (
-        isinstance(params, dict)
-        and params.get("fee_reward_pool_contract_version") == FEE_REWARD_POOL_CONTRACT_VERSION
+        type(version) is int
+        and version == FEE_REWARD_POOL_CONTRACT_VERSION
         and params.get("fee_sink_account") == FEE_REWARD_POOL_ACCOUNT_ID
     )
 
