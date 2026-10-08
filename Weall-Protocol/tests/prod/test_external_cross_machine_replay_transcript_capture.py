@@ -42,6 +42,7 @@ def _sample_transcript() -> dict[str, Any]:
         "schema": "weall.v1_5.external_cross_machine_replay_transcript",
         "blocker": "AUD-618-P1-003",
         "commit": "0123456789abcdef0123456789abcdef01234567",
+        "git_tree": "a" * 40,
         "branch": "refactor/executor-module-split",
         "operator_ids": ["external-replay-operator-20260705"],
         "machine_ids": ["external-replay-machine-a-20260705", "external-replay-machine-b-20260705"],
