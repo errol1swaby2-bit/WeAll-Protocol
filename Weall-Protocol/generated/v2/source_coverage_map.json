@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2044,
+  "file_count": 2045,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "44bdb7d736d1c8c989396aa78833d5782f40efc90beb89a4521e258f57bb6eb1",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1153,7 +1153,7 @@
       ],
       "path": "docs/REAL_TOKENOMICS_IMPLEMENTATION.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "6e7048973ca7c319ec5b6b5452d1055f6ff3dcb9fda0a55601a80c780422f0ae",
+      "sha256": "86b22aff1413db5b27a43d395192d31a17bff6abb0c74cb0d06ce406132c09da",
       "source_id": "SRC-444CCF08FC4013C8"
     },
     {
@@ -1682,7 +1682,7 @@
       ],
       "path": "docs/decisions/A11_F003_ISSUANCE_EPOCH_ORIGIN.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "fe52f0c9f48f7de5fd7d4d6430901534c4c85898f00bb39efab6d118741def00",
+      "sha256": "80e5291aa94c0c83110ab7f42ed1acd0ed193b7e17cf015e664663fea6e3b357",
       "source_id": "SRC-179659FD968784AE"
     },
     {
@@ -7958,7 +7958,7 @@
       ],
       "path": "src/weall/ledger/issuance.py",
       "primary_mechanism_id": "M-060",
-      "sha256": "796d7ddeb5328ce9a8f85dd9b1b18baef29f65caf9af3275710c2f4a36780a7e",
+      "sha256": "3f3d3a2c4caed603d835c29cd0a9317cbc2b3981664ad66208e479783b23f1ef",
       "source_id": "SRC-FCBE5B64556891B3"
     },
     {
@@ -23147,6 +23147,21 @@
       "primary_mechanism_id": "M-076",
       "sha256": "4f78c55109c445996e4a67c6b8fbc8c2d9dde4923a71733a142293f8d05bead9",
       "source_id": "SRC-A97DA781C1AF70DC"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-0701"
+      ],
+      "path": "tests/test_p2_a11_genesis_relative_issuance.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "dd561a120dad21f71201789a339c3414b0b55e719ea4bbbe3bde991544334e80",
+      "source_id": "SRC-5DE4F3B08C3505CB"
     },
     {
       "affected_registers": [

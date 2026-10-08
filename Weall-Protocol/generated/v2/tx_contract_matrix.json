@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c2e5a6ae21b4d468890b21b982fe35b2bad15c03a4b489db37bf7f01fa312b13"
+    "source_tree_digest": "b29f3061e6762b341ec6fdabc1c3749bb137dcee9163fd175a1446570b9ccdbc"
   },
   "required_fields": [
     "stable_id",
@@ -15242,6 +15242,7 @@
         "tests/test_four_gate_safety.py",
         "tests/test_p1_a10_reward_scheduler_scope.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_p2_a11_genesis_relative_issuance.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",

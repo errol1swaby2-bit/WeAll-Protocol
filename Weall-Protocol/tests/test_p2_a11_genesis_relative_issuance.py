@@ -86,13 +86,11 @@ def test_a11_f003_genesis_relative_activation_boundaries() -> None:
     assert later_mint["issuance_epoch"] == first_halved_epoch + 17
     assert later_mint["amount"] == INITIAL_ISSUANCE_PER_EPOCH // 2
 
-    assert issuance_epoch_index_for_due_height(
-        issuance_height_for_epoch(first_halved_epoch)
-    ) == first_halved_epoch
     assert (
-        epoch_issuance_subsidy_atomic(first_halved_epoch)
-        == INITIAL_ISSUANCE_PER_EPOCH // 2
+        issuance_epoch_index_for_due_height(issuance_height_for_epoch(first_halved_epoch))
+        == first_halved_epoch
     )
+    assert epoch_issuance_subsidy_atomic(first_halved_epoch) == INITIAL_ISSUANCE_PER_EPOCH // 2
 
 
 def test_a11_f003_locked_epochs_are_skipped_not_backfilled() -> None:
