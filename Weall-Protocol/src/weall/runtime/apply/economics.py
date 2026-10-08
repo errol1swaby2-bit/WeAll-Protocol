@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.ledger.constants import FEE_REWARD_POOL_ACCOUNT_ID
-from weall.ledger.fee_reward_pool import validated_fee_reward_pool_balance
+from weall.ledger.fee_reward_pool import (
+    fee_reward_pool_contract_enabled,
+    validated_fee_reward_pool_balance,
+)
 from weall.runtime.ballot_policy import chain_mode
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.errors import ApplyError
@@ -886,7 +889,7 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
         raise EconomicsApplyError(
             "invalid_payload", "missing_from_account", {"tx_type": env.tx_type}
         )
-    if from_account == FEE_REWARD_POOL_ACCOUNT_ID:
+    if fee_reward_pool_contract_enabled(state) and from_account == FEE_REWARD_POOL_ACCOUNT_ID:
         raise EconomicsApplyError("forbidden", "reserved_fee_pool_cannot_pay_fees", {})
 
     amount = _as_int(payload.get("amount"), 0)
@@ -909,14 +912,9 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
             "fee_destination_required",
             {"amount": int(amount)},
         )
-    # Only the configured canonical fee sink may receive protocol reward fees.
-    if to_account == FEE_REWARD_POOL_ACCOUNT_ID:
-        params = _as_dict(state.get("params"))
-        configured_fee_sink = _as_str(params.get("fee_sink_account")).strip()
-        if configured_fee_sink != FEE_REWARD_POOL_ACCOUNT_ID:
-            raise EconomicsApplyError("forbidden", "reward_fee_pool_not_configured", {})
-
-    if amount > 0 and to_account == FEE_REWARD_POOL_ACCOUNT_ID:
+    # The reserved ID had no authority before explicit v1 activation.
+    # Retain legacy replay semantics for historical unactivated ledgers.
+    if amount > 0 and fee_reward_pool_contract_enabled(state) and to_account == FEE_REWARD_POOL_ACCOUNT_ID:
         try:
             validated_fee_reward_pool_balance(state)
         except ValueError as exc:
@@ -977,7 +975,9 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
 
     frm = _as_str(env.signer).strip()
     # This protocol reserve must never become a normal user-controlled wallet.
-    if frm == FEE_REWARD_POOL_ACCOUNT_ID or to == FEE_REWARD_POOL_ACCOUNT_ID:
+    if fee_reward_pool_contract_enabled(state) and (
+        frm == FEE_REWARD_POOL_ACCOUNT_ID or to == FEE_REWARD_POOL_ACCOUNT_ID
+    ):
         raise EconomicsApplyError("forbidden", "reserved_fee_pool_transfer_forbidden", {})
     if to == frm:
         raise EconomicsApplyError(
@@ -1041,7 +1041,11 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
                 {"amount": int(transfer_fee), "tx_type": env.tx_type},
             )
 
-    if transfer_fee > 0 and fee_to == FEE_REWARD_POOL_ACCOUNT_ID:
+    if (
+        transfer_fee > 0
+        and fee_reward_pool_contract_enabled(state)
+        and fee_to == FEE_REWARD_POOL_ACCOUNT_ID
+    ):
         try:
             validated_fee_reward_pool_balance(state)
         except ValueError as exc:
