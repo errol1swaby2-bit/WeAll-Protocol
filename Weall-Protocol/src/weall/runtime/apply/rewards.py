@@ -539,6 +539,26 @@ def _apply_transfers_and_debits(
     if not isinstance(debits, list):
         debits = []
 
+    # On activated chains, the canonical fee-revenue reserve may only be
+    # settled by BLOCK_REWARD_DISTRIBUTE. Preflight *both* directions before
+    # this legacy allocator mutates any account, including when a malformed
+    # row would otherwise be skipped later by its permissive parsing.
+    if fee_reward_pool_contract_enabled(state):
+        for transfer in transfers:
+            if isinstance(transfer, dict) and (
+                transfer.get("to") or transfer.get("account") or transfer.get("account_id")
+            ) == FEE_REWARD_POOL_ACCOUNT_ID:
+                raise RewardsApplyError(
+                    "forbidden", "reserved_fee_pool_allocation_forbidden", {"direction": "credit"}
+                )
+        for debit in debits:
+            if isinstance(debit, dict) and (
+                debit.get("from") or debit.get("account") or debit.get("account_id")
+            ) == FEE_REWARD_POOL_ACCOUNT_ID:
+                raise RewardsApplyError(
+                    "forbidden", "reserved_fee_pool_allocation_forbidden", {"direction": "debit"}
+                )
+
     credited_total = 0
     debited_total = 0
 
@@ -706,6 +726,10 @@ def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
     account_id = _pick(payload, "account_id", "target", "account", "user")
     if not account_id:
         raise RewardsApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    if fee_reward_pool_contract_enabled(state) and account_id == FEE_REWARD_POOL_ACCOUNT_ID:
+        raise RewardsApplyError(
+            "forbidden", "reserved_fee_pool_forfeiture_forbidden", {"account_id": account_id}
+        )
 
     amount = _as_int(payload.get("amount"), 0)
     if amount < 0:
