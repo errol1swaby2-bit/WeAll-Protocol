@@ -35,6 +35,17 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      # TEMPORARY audit-branch revalidation; remove after generated JSON is committed.
+      - name: Rebuild three full-suite evidence proofs against changed governance source
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+
       - name: Refresh reviewer-facing v1.5 derivatives
         working-directory: Weall-Protocol
         run: |
