@@ -545,19 +545,23 @@ def _apply_transfers_and_debits(
     # row would otherwise be skipped later by its permissive parsing.
     if fee_reward_pool_contract_enabled(state):
         for transfer in transfers:
-            if isinstance(transfer, dict) and (
-                transfer.get("to") or transfer.get("account") or transfer.get("account_id")
-            ) == FEE_REWARD_POOL_ACCOUNT_ID:
-                raise RewardsApplyError(
-                    "forbidden", "reserved_fee_pool_allocation_forbidden", {"direction": "credit"}
-                )
+            if isinstance(transfer, dict):
+                target = transfer.get("to") or transfer.get("account") or transfer.get("account_id")
+                if target == FEE_REWARD_POOL_ACCOUNT_ID:
+                    raise RewardsApplyError(
+                        "forbidden",
+                        "reserved_fee_pool_allocation_forbidden",
+                        {"direction": "credit"},
+                    )
         for debit in debits:
-            if isinstance(debit, dict) and (
-                debit.get("from") or debit.get("account") or debit.get("account_id")
-            ) == FEE_REWARD_POOL_ACCOUNT_ID:
-                raise RewardsApplyError(
-                    "forbidden", "reserved_fee_pool_allocation_forbidden", {"direction": "debit"}
-                )
+            if isinstance(debit, dict):
+                source = debit.get("from") or debit.get("account") or debit.get("account_id")
+                if source == FEE_REWARD_POOL_ACCOUNT_ID:
+                    raise RewardsApplyError(
+                        "forbidden",
+                        "reserved_fee_pool_allocation_forbidden",
+                        {"direction": "debit"},
+                    )
 
     credited_total = 0
     debited_total = 0
