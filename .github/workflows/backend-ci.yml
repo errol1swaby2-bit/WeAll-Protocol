@@ -79,12 +79,6 @@ jobs:
           ruff format --check "${PY_FILES[@]}"
           ruff check "${PY_FILES[@]}"
 
-      - name: Temporary semantic-review candidate diagnostic
-        run: |
-          pytest -q tests/test_pending_tx_semantic_review_report.py tests/test_fee_backed_reward_epochs.py tests/test_v15_epoch_issuance_scheduler.py tests/test_reward_issuance_invariants.py tests/test_p1_a10_reward_scheduler_scope.py
-          python scripts/report_pending_tx_semantic_reviews.py --output /tmp/weall-semantic-candidates.json
-          python -c 'import json; o=json.load(open("/tmp/weall-semantic-candidates.json")); print([(r["tx_type"], r["candidate_differs_from_accepted"]) for r in o["transactions"]])'
-
       - name: Dependency audit
         run: |
           # Audit the reproducible dependency graphs rather than the mutable
