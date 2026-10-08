@@ -61,8 +61,7 @@ def build_report() -> dict[str, Any]:
     )
     current = {row["tx_type"]: row for row in tx_rows}
     accepted = {
-        row["tx_type"]: row
-        for row in sources["semantic_reviews"].get("transactions") or []
+        row["tx_type"]: row for row in sources["semantic_reviews"].get("transactions") or []
     }
     entries = []
     for tx_type in TARGET_TX_TYPES:
