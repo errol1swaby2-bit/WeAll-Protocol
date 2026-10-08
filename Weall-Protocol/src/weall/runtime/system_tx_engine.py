@@ -10,7 +10,12 @@ from typing import Any
 # Rewards scheduling (Genesis v1.5): leaders enqueue deterministic epoch-issuance
 # system txs inside the block. Followers never run the scheduler; they replay the
 # included txs.
-from weall.ledger.constants import MAX_SUPPLY, MINT_POOL_ACCOUNT_ID, TREASURY_ACCOUNT_ID
+from weall.ledger.constants import (
+    FEE_REWARD_POOL_ACCOUNT_ID,
+    MAX_SUPPLY,
+    MINT_POOL_ACCOUNT_ID,
+    TREASURY_ACCOUNT_ID,
+)
 from weall.ledger.issuance import (
     cap_issuance_by_remaining_supply,
     epoch_issuance_subsidy_atomic,
@@ -439,7 +444,9 @@ def schedule_block_rewards_system_txs(
         accepted-work, public-goods, reserve, rotating-remainder contract is
         implemented and reviewed.
 
-    NOTE: Fees are not yet wired into the fee engine in this build, so fees default to 0.
+    Scoped compatibility: finalized existing-supply revenue may fund rewards
+    only when the chain explicitly routes its fee sink to FEE_REWARD_POOL.
+    Production/public-testnet reward allocation remains gated above.
     """
 
     phase_n = _as_str(phase).strip().lower() or "post"
@@ -472,7 +479,28 @@ def schedule_block_rewards_system_txs(
         issued, raw_subsidy, max_supply=int(MAX_SUPPLY)
     )
 
+    # Fee revenue is existing supply: do not infer funds from fee-payment
+    # receipts (which can name arbitrary destinations) or mint these coins.
+    # Only the protocol-designated fee pool may contribute to this epoch.
+    # The production/public-testnet path remains disabled above until the
+    # complete accepted-work / public-goods / reserve policy is implemented.
+    params = state.get("params")
+    configured_fee_sink = (
+        _as_str(params.get("fee_sink_account")).strip()
+        if isinstance(params, dict)
+        else ""
+    )
     fee_total = 0
+    if configured_fee_sink == FEE_REWARD_POOL_ACCOUNT_ID:
+        accounts = state.get("accounts")
+        fee_pool = accounts.get(FEE_REWARD_POOL_ACCOUNT_ID) if isinstance(accounts, dict) else None
+        if not isinstance(fee_pool, dict):
+            raise SystemSchedulerError("canonical_fee_pool_missing")
+        fee_balance = fee_pool.get("balance", 0)
+        if not isinstance(fee_balance, int) or isinstance(fee_balance, bool) or fee_balance < 0:
+            raise SystemSchedulerError("canonical_fee_pool_invalid_balance")
+        fee_total = fee_balance
+
     total_reward = int(subsidy) + int(fee_total)
     if total_reward <= 0:
         return
@@ -511,13 +539,13 @@ def schedule_block_rewards_system_txs(
 
     # Conservation: reward credits must be funded from a debit source.
     #
-    # Today (Genesis lock build): fee_total is 0, so the full reward pool is
-    # funded by newly minted subsidy.
-    #
-    # Future: when fees are wired, include fee pool debits as well.
+    # The minted portion and the existing-supply fee portion MUST be funded
+    # independently; a fee-backed payout never debits the mint pool.
     debits: list[Json] = []
-    if total_reward > 0:
-        debits.append({"from": MINT_POOL_ACCOUNT_ID, "amount": int(total_reward)})
+    if subsidy > 0:
+        debits.append({"from": MINT_POOL_ACCOUNT_ID, "amount": int(subsidy)})
+    if fee_total > 0:
+        debits.append({"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": int(fee_total)})
 
     _enqueue_reward_system_tx_once(
         state,
