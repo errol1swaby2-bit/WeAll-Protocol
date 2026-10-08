@@ -5,11 +5,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from weall.ledger.fee_reward_pool import (
-    FEE_REWARD_POOL_CONTRACT_VERSION,
-    validated_fee_reward_pool_balance,
-)
-from weall.runtime import genesis_bootstrap
 from weall.ledger.constants import (
     FEE_REWARD_POOL_ACCOUNT_ID,
     INITIAL_ISSUANCE_PER_EPOCH,
@@ -17,6 +12,11 @@ from weall.ledger.constants import (
     MAX_SUPPLY,
     MINT_POOL_ACCOUNT_ID,
 )
+from weall.ledger.fee_reward_pool import (
+    FEE_REWARD_POOL_CONTRACT_VERSION,
+    validated_fee_reward_pool_balance,
+)
+from weall.runtime import genesis_bootstrap
 from weall.runtime.apply.economics import EconomicsApplyError, apply_economics
 from weall.runtime.apply.identity import apply_identity
 from weall.runtime.apply.rewards import RewardsApplyError, apply_rewards
