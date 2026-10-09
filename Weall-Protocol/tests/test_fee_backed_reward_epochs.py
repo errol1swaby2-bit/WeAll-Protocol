@@ -1153,9 +1153,7 @@ def test_activated_reward_mint_rejects_noninteger_or_negative_amount(
         apply_rewards(st, _sys("BLOCK_REWARD_MINT", payload, 81))
     assert st["accounts"] == before_accounts
     assert st["economics"]["monetary_policy"] == before_policy
-    assert "invalid-mint-amount" not in st.get("rewards", {}).get(
-        "block_rewards_by_id", {}
-    )
+    assert "invalid-mint-amount" not in st.get("rewards", {}).get("block_rewards_by_id", {})
 
 
 @pytest.mark.parametrize("issued", [True, "0", 0.1, -1, MAX_SUPPLY + 1])
@@ -1199,9 +1197,7 @@ def test_activated_reward_mint_rejects_invalid_pool_balance_before_writes(
         )
     assert st["accounts"] == before_accounts
     assert st["economics"]["monetary_policy"] == before_policy
-    assert "bad-mint-funding" not in st.get("rewards", {}).get(
-        "block_rewards_by_id", {}
-    )
+    assert "bad-mint-funding" not in st.get("rewards", {}).get("block_rewards_by_id", {})
 
 
 def test_activated_reward_mint_requires_existing_pool_for_positive_issuance() -> None:
