@@ -392,6 +392,40 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(debits, list):
         debits = []
 
+    # Activated fee-funded epochs must never silently discard malformed
+    # funding/credit rows or coerce floats, booleans, or strings into coins.
+    # Preserve the original permissive decoding for unactivated chain replay.
+    activated_fee_rewards = fee_reward_pool_contract_enabled(state)
+    if activated_fee_rewards:
+        if not transfers or not debits:
+            raise RewardsApplyError(
+                "invalid_payload", "reward_distribution_funding_rows_required", {}
+            )
+        for direction, rows in (("credit", transfers), ("debit", debits)):
+            for row in rows:
+                if not isinstance(row, dict):
+                    raise RewardsApplyError(
+                        "invalid_payload",
+                        "reward_distribution_invalid_row",
+                        {"direction": direction},
+                    )
+                if direction == "credit":
+                    account_id = row.get("to") or row.get("account") or row.get("target")
+                else:
+                    account_id = row.get("from") or row.get("account") or row.get("source")
+                amount = row.get("amount")
+                if (
+                    not isinstance(account_id, str)
+                    or not account_id.strip()
+                    or type(amount) is not int
+                    or amount <= 0
+                ):
+                    raise RewardsApplyError(
+                        "invalid_payload",
+                        "reward_distribution_invalid_row",
+                        {"direction": direction},
+                    )
+
     # Batch 486 repair: reward distribution must be atomic.
     # Preflight all debit funding and all transfer targets before mutating any
     # account balance. A failed debit must not partially credit recipients.
@@ -421,6 +455,8 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
 
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
+        if activated_fee_rewards:
+            raise RewardsApplyError("invalid_state", "reward_accounts_missing", {})
         accounts = {}
         state["accounts"] = accounts
 
@@ -455,8 +491,21 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
     debited_total = sum(int(v) for v in debit_totals.values())
 
     for src, amt in debit_totals.items():
-        acct = _ensure_account(state, src)
-        bal = _as_int(acct.get("balance"), 0)
+        if activated_fee_rewards:
+            acct = accounts.get(src)
+            if not isinstance(acct, dict):
+                raise RewardsApplyError(
+                    "invalid_state", "reward_funding_account_missing", {"account": src}
+                )
+            balance = acct.get("balance")
+            if type(balance) is not int or balance < 0:
+                raise RewardsApplyError(
+                    "invalid_state", "reward_funding_balance_invalid", {"account": src}
+                )
+            bal = balance
+        else:
+            acct = _ensure_account(state, src)
+            bal = _as_int(acct.get("balance"), 0)
         if bal < amt:
             raise RewardsApplyError(
                 "forbidden",
