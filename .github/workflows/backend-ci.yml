@@ -51,11 +51,6 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      # Temporary: capture exact required Ruff formatting deltas.
-      - name: PR48 formatter diff (temporary)
-        run: |
-          ruff format --diff src/weall/runtime/apply/economics.py tests/test_fee_backed_reward_epochs.py || true
-
       - name: Ruff changed Python files
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -94,11 +89,6 @@ jobs:
       - name: Canon lint
         run: |
           python -m tooling.canon_lint
-
-      # Temporary diagnostic only. Remove after recording exact-run results.
-      - name: PR48 transfer replay focused diagnostic (temporary)
-        run: |
-          pytest -q tests/test_fee_backed_reward_epochs.py
 
       - name: Check generated artifacts
         id: generated_artifacts
