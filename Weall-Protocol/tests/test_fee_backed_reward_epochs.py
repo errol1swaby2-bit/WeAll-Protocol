@@ -1355,7 +1355,8 @@ def test_unactivated_reward_replay_keeps_prior_duplicate_payload_behavior() -> N
     ],
 )
 def test_activated_mint_duplicate_rejects_json_numeric_type_spoof(
-    field: str, spoof: object,
+    field: str,
+    spoof: object,
 ) -> None:
     st = _state(issued=0)
     mint = {
@@ -1399,8 +1400,6 @@ def test_activated_distribution_duplicate_rejects_json_numeric_type_spoof(
         forged["transfers"][0]["amount"] = float(forged["transfers"][0]["amount"])
     else:
         forged["debits"][0]["amount"] = float(forged["debits"][0]["amount"])
-    with pytest.raises(
-        RewardsApplyError, match="reward_distribution_duplicate_payload_mismatch"
-    ):
+    with pytest.raises(RewardsApplyError, match="reward_distribution_duplicate_payload_mismatch"):
         apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", forged, 114))
     assert st == before
