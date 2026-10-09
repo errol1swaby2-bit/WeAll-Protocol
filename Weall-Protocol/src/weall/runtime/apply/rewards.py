@@ -639,9 +639,7 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         # re-distribute that same epoch.
         raw_epoch = payload.get("issuance_epoch")
         if type(raw_epoch) is not int or raw_epoch < 0:
-            raise RewardsApplyError(
-                "invalid_payload", "reward_distribution_epoch_invalid", {}
-            )
+            raise RewardsApplyError("invalid_payload", "reward_distribution_epoch_invalid", {})
         expected_epoch_id = _issuance_epoch_id(raw_epoch)
         if block_id != expected_epoch_id or payload.get("epoch_id") != expected_epoch_id:
             raise RewardsApplyError(
@@ -666,14 +664,10 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
             or type(epoch_mint.get("issuance_epoch")) is not int
             or epoch_mint["issuance_epoch"] != raw_epoch
         ):
-            raise RewardsApplyError(
-                "forbidden", "reward_distribution_parent_mint_missing", {}
-            )
+            raise RewardsApplyError("forbidden", "reward_distribution_parent_mint_missing", {})
         mint_payload = mint.get("payload")
         if not isinstance(mint_payload, dict):
-            raise RewardsApplyError(
-                "invalid_state", "reward_distribution_parent_mint_invalid", {}
-            )
+            raise RewardsApplyError("invalid_state", "reward_distribution_parent_mint_invalid", {})
         subsidy = payload.get("subsidy")
         fees = payload.get("fees")
         total = payload.get("total")
@@ -699,18 +693,14 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
                 )
             )
         ):
-            raise RewardsApplyError(
-                "forbidden", "reward_distribution_parent_amount_mismatch", {}
-            )
+            raise RewardsApplyError("forbidden", "reward_distribution_parent_amount_mismatch", {})
         if (
             debit_totals.get(MINT_POOL_ACCOUNT_ID, 0) != subsidy
             or debit_totals.get(FEE_REWARD_POOL_ACCOUNT_ID, 0) != fees
             or debited_total != total
             or distributed_total != total
         ):
-            raise RewardsApplyError(
-                "forbidden", "reward_distribution_parent_funding_mismatch", {}
-            )
+            raise RewardsApplyError("forbidden", "reward_distribution_parent_funding_mismatch", {})
 
     if activated_fee_rewards:
         r["block_reward_distributions_by_id"] = distributions
