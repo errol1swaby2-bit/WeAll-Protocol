@@ -185,6 +185,50 @@ CI. Remaining release blockers include full backend and multi-node validation,
 formal conservation review, final reward allocation policy, and governed
 migration/replay planning.
 
+## Activated distribution strict decoding and seven-contract review packet
+
+Further source audit found that `BLOCK_REWARD_DISTRIBUTE` previously used
+permissive row parsing: malformed or non-positive rows could be discarded, and
+booleans/floats/number strings could be coerced to integer coin amounts.
+Those rules do not provide an unambiguous amount contract for an activated
+fee-backed epoch.
+
+With the exact state-committed v1 fee-pool contract enabled, the applier now
+requires explicit nonempty debit and credit row lists, string account IDs,
+**positive exact-integer** amounts, and existing, valid nonnegative-integer
+funding balances. An absent funding account is rejected before mutation,
+instead of being implicitly created during failed preflight. The normalized
+funding whitelist, strict fee-reserve identity, and equal-debits/credits
+checks continue to apply. Unactivated chain replay retains the old decoding.
+
+Thirteen additional focused tests cover malformed credits/debits, fractions,
+booleans, string amounts, empty/missing lists, missing mint funding,
+malformed mint balance and a specific legacy fractional-row case.
+
+**Exact diagnostic evidence:** [Backend CI #37868004651](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37868004651)
+on source/test/temporary-workflow commit
+`68313a582aeccda6c215ef58a02580a927c2d92c` recorded
+**83 focused tests passed in 11.27 seconds**, with successful
+changed-file Ruff, dependency audit and canonical lint. The same run
+printed all seven compiler-derived semantic candidates as
+`PENDING_MAINTAINER_REVIEW` with changed digests.
+
+The workflow's final status was **cancelled/superseded** by subsequent PR
+documentation changes; its generated-artifact phase log still recorded the
+existing stale `ACCOUNT_REGISTER` digest failure. This is **not** a
+green full backend job, full suite, or network consensus test. The temporary
+diagnostic step was removed in commit
+`82c302b48846ed94a76bb05c7cb636f0a6790cd4`, restoring the
+original CI workflow blob `e1090406588e1ecf148382f227263f5fdd43573c`.
+
+The separate
+[seven-contract review matrix](FEE_REWARD_SEVEN_CONTRACT_REVIEW_MATRIX_20261008.md)
+maps every changed transaction to the tested boundary and the outstanding
+authority, conservation and replay questions. Its contents are diagnostic
+review preparation, **not** maintainer acceptance or independent sign-off.
+Full end-to-end validation, governed activation-height migrations, and
+final production reward allocation remain unclosed.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
