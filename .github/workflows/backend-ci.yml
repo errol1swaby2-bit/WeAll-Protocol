@@ -51,21 +51,6 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      # TEMPORARY JSON-typed reward replay diagnostic; restore workflow after evidence.
-      - name: Temporary typed reward replay audit
-        run: |
-          ruff format --diff src/weall/runtime/apply/rewards.py tests/test_fee_backed_reward_epochs.py || true
-          pytest -q tests/test_fee_backed_reward_epochs.py tests/test_pending_tx_semantic_review_report.py tests/test_v15_epoch_issuance_scheduler.py tests/test_reward_issuance_invariants.py tests/test_p1_a10_reward_scheduler_scope.py tests/test_system_tx_scheduler_binding.py tests/test_system_queue_lifecycle_integrity.py
-          python scripts/report_pending_tx_semantic_reviews.py --output /tmp/weall-typed-reward-review.json
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          r = json.loads(Path("/tmp/weall-typed-reward-review.json").read_text())
-          print("TYPED_REVIEW_CANDIDATES:", len(r["transactions"]))
-          for x in r["transactions"]:
-              print("TYPED_REVIEW:", x["tx_type"], x["candidate_differs_from_accepted"])
-          PY
-
       - name: Ruff changed Python files
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
