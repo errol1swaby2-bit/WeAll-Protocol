@@ -913,6 +913,22 @@ def _apply_creator_reward_allocate(state: Json, env: TxEnvelope) -> Json:
     allocs = r["creator_allocations_by_id"]
     existing = allocs.get(alloc_id)
     already = isinstance(existing, dict)
+    if fee_reward_pool_contract_enabled(state):
+        if alloc_id in allocs and not already:
+            raise RewardsApplyError(
+                "invalid_state",
+                "creator_allocation_duplicate_record_invalid",
+                {"alloc_id": alloc_id},
+            )
+        if already and (
+            not _same_reward_payload(existing.get("payload"), payload)
+            or not _same_reward_payload(existing.get("block_id"), block_id)
+        ):
+            raise RewardsApplyError(
+                "forbidden",
+                "creator_allocation_duplicate_payload_mismatch",
+                {"alloc_id": alloc_id},
+            )
 
     credited_total, debited_total = (0, 0)
     if not already:
@@ -972,6 +988,22 @@ def _apply_treasury_reward_allocate(state: Json, env: TxEnvelope) -> Json:
     allocs = r["treasury_allocations_by_id"]
     existing = allocs.get(alloc_id)
     already = isinstance(existing, dict)
+    if fee_reward_pool_contract_enabled(state):
+        if alloc_id in allocs and not already:
+            raise RewardsApplyError(
+                "invalid_state",
+                "treasury_allocation_duplicate_record_invalid",
+                {"alloc_id": alloc_id},
+            )
+        if already and (
+            not _same_reward_payload(existing.get("payload"), payload)
+            or not _same_reward_payload(existing.get("block_id"), block_id)
+        ):
+            raise RewardsApplyError(
+                "forbidden",
+                "treasury_allocation_duplicate_payload_mismatch",
+                {"alloc_id": alloc_id},
+            )
 
     credited_total, debited_total = (0, 0)
     if not already:
@@ -1024,7 +1056,15 @@ def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
     account_id = _pick(payload, "account_id", "target", "account", "user")
     if not account_id:
         raise RewardsApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
-    if fee_reward_pool_contract_enabled(state) and account_id == FEE_REWARD_POOL_ACCOUNT_ID:
+    activated_fee_rewards = fee_reward_pool_contract_enabled(state)
+    if activated_fee_rewards:
+        if not isinstance(account_id, str) or not account_id.strip():
+            raise RewardsApplyError("invalid_payload", "forfeiture_account_id_invalid", {})
+        if type(payload.get("amount")) is not int or payload["amount"] < 0:
+            raise RewardsApplyError(
+                "invalid_payload", "forfeiture_amount_must_be_nonnegative_integer", {}
+            )
+    if activated_fee_rewards and account_id == FEE_REWARD_POOL_ACCOUNT_ID:
         raise RewardsApplyError(
             "forbidden", "reserved_fee_pool_forfeiture_forbidden", {"account_id": account_id}
         )
@@ -1037,10 +1077,31 @@ def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
     forfeits = r["forfeitures_by_id"]
     existing = forfeits.get(forfeit_id)
     already = isinstance(existing, dict)
+    if activated_fee_rewards:
+        if forfeit_id in forfeits and not already:
+            raise RewardsApplyError(
+                "invalid_state", "forfeiture_duplicate_record_invalid", {"forfeit_id": forfeit_id}
+            )
+        if already and (
+            not _same_reward_payload(existing.get("payload"), payload)
+            or not _same_reward_payload(existing.get("account_id"), account_id)
+            or not _same_reward_payload(existing.get("amount"), amount)
+        ):
+            raise RewardsApplyError(
+                "forbidden", "forfeiture_duplicate_payload_mismatch", {"forfeit_id": forfeit_id}
+            )
 
     if not already:
         acct = _require_account(state, account_id, field="account")
-        bal = _as_int(acct.get("balance"), 0)
+        if activated_fee_rewards:
+            balance = acct.get("balance")
+            if type(balance) is not int or balance < 0:
+                raise RewardsApplyError(
+                    "invalid_state", "forfeiture_account_balance_invalid", {"account_id": account_id}
+                )
+            bal = balance
+        else:
+            bal = _as_int(acct.get("balance"), 0)
         if bal < int(amount):
             raise RewardsApplyError(
                 "forbidden",
