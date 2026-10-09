@@ -1036,14 +1036,13 @@ def test_activated_balance_transfer_rejects_coerced_amount(
 @pytest.mark.parametrize("account_id", ["@payer", "@recipient"])
 @pytest.mark.parametrize("balance", [True, "12", 12.5, -1, None])
 def test_activated_balance_transfer_rejects_invalid_account_balance(
-    account_id: str, balance: object,
+    account_id: str,
+    balance: object,
 ) -> None:
     st = _state()
     st["accounts"][account_id]["balance"] = balance
     before = deepcopy(st["accounts"])
-    with pytest.raises(
-        EconomicsApplyError, match="balance_transfer_account_balance_invalid"
-    ):
+    with pytest.raises(EconomicsApplyError, match="balance_transfer_account_balance_invalid"):
         apply_economics(
             st,
             TxEnvelope(
