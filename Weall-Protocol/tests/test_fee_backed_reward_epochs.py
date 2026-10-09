@@ -1344,3 +1344,63 @@ def test_unactivated_reward_replay_keeps_prior_duplicate_payload_behavior() -> N
     replay = apply_rewards(st, _sys("BLOCK_REWARD_MINT", conflicting, 101))
     assert replay["deduped"] is True
     assert st["economics"]["monetary_policy"]["issued"] == 7
+
+
+@pytest.mark.parametrize(
+    ("field", "spoof"),
+    [
+        ("height", float(ISSUANCE_EPOCH_BLOCKS)),
+        ("fees", False),
+        ("issuance_epoch", 0.0),
+    ],
+)
+def test_activated_mint_duplicate_rejects_json_numeric_type_spoof(
+    field: str, spoof: object,
+) -> None:
+    st = _state(issued=0)
+    mint = {
+        "block_id": "mint-json-type-spoof",
+        "issuance_epoch": 0,
+        "height": ISSUANCE_EPOCH_BLOCKS,
+        "fees": 0,
+        "amount": 7,
+    }
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(mint), 110))
+    before = deepcopy(st)
+    forged = deepcopy(mint)
+    forged[field] = spoof
+    with pytest.raises(RewardsApplyError, match="reward_mint_duplicate_payload_mismatch"):
+        apply_rewards(st, _sys("BLOCK_REWARD_MINT", forged, 111))
+    assert st == before
+
+
+@pytest.mark.parametrize(
+    "spoof",
+    ["fees_float", "height_float", "subsidy_float", "transfer_float", "debit_float"],
+)
+def test_activated_distribution_duplicate_rejects_json_numeric_type_spoof(
+    spoof: str,
+) -> None:
+    st = _state(fee_balance=17)
+    queued = _schedule(st)
+    mint = queued["BLOCK_REWARD_MINT"]
+    dist = queued["BLOCK_REWARD_DISTRIBUTE"]
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(mint), 112))
+    apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", deepcopy(dist), 113))
+    before = deepcopy(st)
+    forged = deepcopy(dist)
+    if spoof == "fees_float":
+        forged["fees"] = float(forged["fees"])
+    elif spoof == "height_float":
+        forged["height"] = float(forged["height"])
+    elif spoof == "subsidy_float":
+        forged["subsidy"] = 0.0
+    elif spoof == "transfer_float":
+        forged["transfers"][0]["amount"] = float(forged["transfers"][0]["amount"])
+    else:
+        forged["debits"][0]["amount"] = float(forged["debits"][0]["amount"])
+    with pytest.raises(
+        RewardsApplyError, match="reward_distribution_duplicate_payload_mismatch"
+    ):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", forged, 114))
+    assert st == before
