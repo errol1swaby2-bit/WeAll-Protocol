@@ -30,7 +30,10 @@ def _executor(root: Path, name: str) -> WeAllExecutor:
 
 
 def _seed_activated_epoch_boundary(
-    leader: WeAllExecutor, follower: WeAllExecutor, *, height: int = ISSUANCE_EPOCH_BLOCKS - 1
+    leader: WeAllExecutor,
+    follower: WeAllExecutor,
+    *,
+    height: int = ISSUANCE_EPOCH_BLOCKS - 1,
 ) -> dict:
     state = deepcopy(leader.state)
     state["height"] = height
