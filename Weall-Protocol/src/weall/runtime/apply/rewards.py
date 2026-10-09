@@ -259,6 +259,14 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
     r = _ensure_rewards(state)
     payload = _as_dict(env.payload)
 
+    activated_fee_rewards = fee_reward_pool_contract_enabled(state)
+    if activated_fee_rewards and (
+        type(payload.get("amount")) is not int or payload["amount"] < 0
+    ):
+        raise RewardsApplyError(
+            "invalid_payload", "reward_mint_amount_must_be_nonnegative_integer", {}
+        )
+
     block_id = _pick(payload, "block_id", "id")
     amount = _as_int(payload.get("amount"), 0)
     if not block_id:
@@ -288,6 +296,33 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
         )
 
     if not already:
+        if activated_fee_rewards:
+            # Preflight monetary policy and mint funding before any issuance
+            # record or supply write. No implicit mint-pool account creation
+            # or lossy coercion may supply newly issued coins.
+            econ = state.get("economics")
+            existing_mp = econ.get("monetary_policy") if isinstance(econ, dict) else None
+            if not isinstance(existing_mp, dict):
+                raise RewardsApplyError("invalid_state", "reward_mint_policy_missing", {})
+            prior_issued = existing_mp.get("issued")
+            supply_limit = existing_mp.get("max_supply")
+            if (
+                type(prior_issued) is not int
+                or type(supply_limit) is not int
+                or supply_limit != MAX_SUPPLY
+                or prior_issued < 0
+                or prior_issued > supply_limit
+            ):
+                raise RewardsApplyError("invalid_state", "reward_mint_policy_invalid", {})
+            if amount > 0:
+                accounts = state.get("accounts")
+                mint_pool = accounts.get(MINT_POOL_ACCOUNT_ID) if isinstance(accounts, dict) else None
+                if not isinstance(mint_pool, dict):
+                    raise RewardsApplyError("invalid_state", "reward_mint_pool_missing", {})
+                pool_balance = mint_pool.get("balance")
+                if type(pool_balance) is not int or pool_balance < 0:
+                    raise RewardsApplyError("invalid_state", "reward_mint_pool_balance_invalid", {})
+
         # Validate supply cap before mutating reward/mint state.  The scheduler
         # caps the final epoch issuance to the remaining supply; direct apply
         # rejects overflow so issuance stops exactly at MAX_SUPPLY.
