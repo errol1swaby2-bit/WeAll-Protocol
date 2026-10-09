@@ -1097,7 +1097,9 @@ def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
             balance = acct.get("balance")
             if type(balance) is not int or balance < 0:
                 raise RewardsApplyError(
-                    "invalid_state", "forfeiture_account_balance_invalid", {"account_id": account_id}
+                    "invalid_state",
+                    "forfeiture_account_balance_invalid",
+                    {"account_id": account_id},
                 )
             bal = balance
         else:
