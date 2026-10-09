@@ -229,6 +229,57 @@ review preparation, **not** maintainer acceptance or independent sign-off.
 Full end-to-end validation, governed activation-height migrations, and
 final production reward allocation remain unclosed.
 
+## Payout recipient integrity and queue-bound snapshot replay
+
+A further source review found a remaining strictness mismatch on the
+**activated** `BLOCK_REWARD_DISTRIBUTE` path: debit-account balances
+had exact nonnegative-integer validation, but the existing recipient balance
+was still converted via `_as_int`. A malformed recipient balance could thus
+be truncated or defaulted, undermining total-supply conservation even when
+the explicitly listed funding debits equal new payout credits.
+
+The activated v1 handler now preflights recipient account balances as
+exact nonnegative integers **before** mutating any funding account. Existing
+unactivated-chain semantics remain unchanged. Five parameterized tests cover
+boolean, string, fractional, negative and missing recipient balances; they
+assert failure with no account-balance writes.
+
+Three additional tests exercise the **actual system queue and binding helpers**
+rather than only direct-applier synthetic reward envelopes:
+
+- A fee-only issuance-boundary emission creates the zero-subsidy mint and
+  fee-backed distribution, passes canonical queue binding, and can be
+  applied identically to two independently copied ledger snapshots without
+  changing issued supply or losing existing-supply fees.
+- An attempt to change the emitted fee amount without matching the queued
+  payload is rejected by the system queue binding check.
+- Persisted un-emitted reward queue items already due at committed height
+  fail the queue recovery integrity check, rather than silently skipping
+  the reward epoch.
+
+**Verified diagnostic run:** [Backend CI #37868678896](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37868678896)
+at exact code/test/temporary-workflow commit
+`7119d87ebfe565a988daa47da69d53b3da060834` recorded
+**103 focused tests passed in 10.44 seconds**, including the eight new
+cases and existing queue-security test modules. Changed-file Ruff,
+dependency audit, and canonical lint passed. The read-only compiler-derived
+report confirmed all seven changed semantic candidates still differ from
+accepted records. The backend job **failed at the existing stale
+`ACCOUNT_REGISTER` semantic-review digest**, not at these focused tests.
+
+The temporary diagnostic workflow step was removed in
+`3dcf3fcd7c68fe831aadf011430177a74128467c`;
+the permanent workflow was restored bit-for-bit to original blob
+`e1090406588e1ecf148382f227263f5fdd43573c`.
+
+**Limits:** These are in-process queued-envelope validation and
+deterministic copied-snapshot replay tests. They do *not* prove a real
+network of independently starting BFT validators, proposer/follower
+historical-chain sync, archival replay across an activation-height
+migration, crash/journal rollback under process failure, or a normative
+production reward allocation. None of the seven changed semantic
+contracts has been accepted or independently audited.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
