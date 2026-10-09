@@ -18,6 +18,7 @@ from weall.ledger.constants import (
 )
 from weall.ledger.fee_reward_pool import FEE_REWARD_POOL_CONTRACT_VERSION
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
 
 
 def _executor(root: Path, name: str) -> WeAllExecutor:
@@ -175,8 +176,24 @@ def test_sequential_30_block_fee_epoch_survives_follower_restart(
     # not an in-memory state copy.
     leader_restarted = _executor(tmp_path, "history-leader")
     follower_restarted = _executor(tmp_path, "history-follower")
-    assert leader_restarted.read_state() == post_epoch
-    assert follower_restarted.read_state() == post_epoch
+    # Startup updates one node-local lifecycle bit that is explicitly excluded
+    # from the consensus state-root projection. All other stored ledger fields
+    # must remain exactly equal to the pre-restart committed snapshot.
+    def without_local_shutdown_flag(snapshot: dict) -> dict:
+        copied = deepcopy(snapshot)
+        copied.get("meta", {}).pop("last_shutdown_clean", None)
+        return copied
+
+    for restarted in (leader_restarted, follower_restarted):
+        recovered = restarted.read_state()
+        assert without_local_shutdown_flag(recovered) == without_local_shutdown_flag(
+            post_epoch
+        )
+        assert consensus_state_root_view(recovered) == consensus_state_root_view(
+            post_epoch
+        )
+        assert compute_state_root(recovered) == compute_state_root(post_epoch)
+    assert leader_restarted.read_state() == follower_restarted.read_state()
 
     # A subsequent empty block must not reward the same settled epoch.
     block, state_after, applied_ids, invalid_ids, err = leader_restarted.build_block_candidate(
