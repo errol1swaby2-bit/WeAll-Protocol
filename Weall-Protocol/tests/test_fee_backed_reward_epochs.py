@@ -1628,3 +1628,189 @@ def test_unactivated_transfer_id_replay_preserves_prior_compatibility() -> None:
     assert first["deduped"] is False
     assert replay["deduped"] is True
     assert st == before
+
+
+def _secondary_reward_replay_payload() -> dict:
+    return {
+        "block_id": "secondary-replay-block",
+        "alloc_id": "secondary-replay-id",
+        "transfers": [{"to": "@recipient", "amount": 7}],
+        "debits": [{"from": "@payer", "amount": 7}],
+        "metadata": {"count": 1},
+    }
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+def test_activated_secondary_allocation_exact_replay_is_idempotent(tx_type: str) -> None:
+    st = _state()
+    payload = _secondary_reward_replay_payload()
+    first = apply_rewards(st, _sys(tx_type, deepcopy(payload), 140))
+    accounts = deepcopy(st["accounts"])
+    replay = apply_rewards(st, _sys(tx_type, deepcopy(payload), 141))
+    assert first["deduped"] is False
+    assert replay["deduped"] is True
+    assert st["accounts"] == accounts
+    assert st["accounts"]["@payer"]["balance"] == 93
+    assert st["accounts"]["@recipient"]["balance"] == 7
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+@pytest.mark.parametrize(
+    "tamper",
+    ["block_id", "amount", "recipient", "source", "metadata", "numeric_type"],
+)
+def test_activated_secondary_allocation_rejects_conflicting_duplicate_id(
+    tx_type: str, tamper: str
+) -> None:
+    st = _state()
+    payload = _secondary_reward_replay_payload()
+    apply_rewards(st, _sys(tx_type, deepcopy(payload), 142))
+    before = deepcopy(st)
+    forged = deepcopy(payload)
+    if tamper == "block_id":
+        forged["block_id"] = "different-block"
+    elif tamper == "amount":
+        forged["transfers"][0]["amount"] = 8
+    elif tamper == "recipient":
+        forged["transfers"][0]["to"] = "@validator"
+    elif tamper == "source":
+        forged["debits"][0]["from"] = "@validator"
+    elif tamper == "metadata":
+        forged["metadata"]["count"] = 2
+    else:
+        forged["metadata"]["count"] = True
+    reason = (
+        "creator_allocation_duplicate_payload_mismatch"
+        if tx_type == "CREATOR_REWARD_ALLOCATE"
+        else "treasury_allocation_duplicate_payload_mismatch"
+    )
+    with pytest.raises(RewardsApplyError, match=reason):
+        apply_rewards(st, _sys(tx_type, forged, 143))
+    assert st == before
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+def test_activated_secondary_allocation_rejects_invalid_duplicate_record(tx_type: str) -> None:
+    st = _state()
+    payload = _secondary_reward_replay_payload()
+    apply_rewards(st, _sys(tx_type, deepcopy(payload), 144))
+    index_key = (
+        "creator_allocations_by_id"
+        if tx_type == "CREATOR_REWARD_ALLOCATE"
+        else "treasury_allocations_by_id"
+    )
+    st["rewards"][index_key][payload["alloc_id"]] = "corrupted"
+    before = deepcopy(st)
+    with pytest.raises(RewardsApplyError, match="allocation_duplicate_record_invalid"):
+        apply_rewards(st, _sys(tx_type, deepcopy(payload), 145))
+    assert st == before
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+def test_unactivated_secondary_allocation_preserves_duplicate_replay(tx_type: str) -> None:
+    st = _state(configured=False)
+    payload = _secondary_reward_replay_payload()
+    apply_rewards(st, _sys(tx_type, deepcopy(payload), 146))
+    accounts = deepcopy(st["accounts"])
+    changed = deepcopy(payload)
+    changed["transfers"][0]["amount"] = 8
+    receipt = apply_rewards(st, _sys(tx_type, changed, 147))
+    assert receipt["deduped"] is True
+    assert st["accounts"] == accounts
+
+
+def _forfeiture_replay_payload() -> dict:
+    return {
+        "forfeit_id": "forfeit-replay-id",
+        "account_id": "@payer",
+        "amount": 7,
+        "metadata": {"count": 1},
+    }
+
+
+def test_activated_forfeiture_exact_replay_is_idempotent() -> None:
+    st = _state()
+    payload = _forfeiture_replay_payload()
+    first = apply_rewards(st, _sys("FORFEITURE_APPLY", deepcopy(payload), 148))
+    accounts = deepcopy(st["accounts"])
+    replay = apply_rewards(st, _sys("FORFEITURE_APPLY", deepcopy(payload), 149))
+    assert first["deduped"] is False
+    assert replay["deduped"] is True
+    assert st["accounts"] == accounts
+    assert st["accounts"]["@payer"]["balance"] == 93
+
+
+@pytest.mark.parametrize("tamper", ["target", "amount", "metadata", "numeric_type"])
+def test_activated_forfeiture_rejects_conflicting_duplicate_id(tamper: str) -> None:
+    st = _state()
+    payload = _forfeiture_replay_payload()
+    apply_rewards(st, _sys("FORFEITURE_APPLY", deepcopy(payload), 150))
+    before = deepcopy(st)
+    forged = deepcopy(payload)
+    if tamper == "target":
+        forged["account_id"] = "@recipient"
+    elif tamper == "amount":
+        forged["amount"] = 8
+    elif tamper == "metadata":
+        forged["metadata"]["count"] = 2
+    else:
+        forged["metadata"]["count"] = True
+    with pytest.raises(RewardsApplyError, match="forfeiture_duplicate_payload_mismatch"):
+        apply_rewards(st, _sys("FORFEITURE_APPLY", forged, 151))
+    assert st == before
+
+
+def test_activated_forfeiture_rejects_invalid_duplicate_record() -> None:
+    st = _state()
+    payload = _forfeiture_replay_payload()
+    apply_rewards(st, _sys("FORFEITURE_APPLY", deepcopy(payload), 152))
+    st["rewards"]["forfeitures_by_id"][payload["forfeit_id"]] = "corrupted"
+    before = deepcopy(st)
+    with pytest.raises(RewardsApplyError, match="forfeiture_duplicate_record_invalid"):
+        apply_rewards(st, _sys("FORFEITURE_APPLY", deepcopy(payload), 153))
+    assert st == before
+
+
+@pytest.mark.parametrize("amount", [True, 7.5, "7", -1, None])
+def test_activated_forfeiture_rejects_noncanonical_amount_without_debit(amount: object) -> None:
+    st = _state()
+    payload = _forfeiture_replay_payload()
+    payload["amount"] = amount
+    before = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="forfeiture_amount_must_be_nonnegative_integer"):
+        apply_rewards(st, _sys("FORFEITURE_APPLY", payload, 154))
+    assert st["accounts"] == before
+
+
+@pytest.mark.parametrize("balance", [True, 93.5, "100", -1, None])
+def test_activated_forfeiture_rejects_invalid_existing_balance(balance: object) -> None:
+    st = _state()
+    st["accounts"]["@payer"]["balance"] = balance
+    before = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="forfeiture_account_balance_invalid"):
+        apply_rewards(st, _sys("FORFEITURE_APPLY", _forfeiture_replay_payload(), 155))
+    assert st["accounts"] == before
+
+
+def test_activated_forfeiture_rejects_nonstring_account_id() -> None:
+    st = _state()
+    payload = _forfeiture_replay_payload()
+    payload["account_id"] = ["@payer"]
+    before = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="forfeiture_account_id_invalid"):
+        apply_rewards(st, _sys("FORFEITURE_APPLY", payload, 156))
+    assert st["accounts"] == before
+
+
+def test_unactivated_forfeiture_preserves_legacy_amount_and_duplicate_behavior() -> None:
+    st = _state(configured=False)
+    payload = _forfeiture_replay_payload()
+    payload["amount"] = "7"
+    first = apply_rewards(st, _sys("FORFEITURE_APPLY", deepcopy(payload), 157))
+    accounts = deepcopy(st["accounts"])
+    replay_payload = {**payload, "amount": 12}
+    replay = apply_rewards(st, _sys("FORFEITURE_APPLY", replay_payload, 158))
+    assert first["deduped"] is False
+    assert replay["deduped"] is True
+    assert st["accounts"] == accounts
+    assert st["accounts"]["@payer"]["balance"] == 93
