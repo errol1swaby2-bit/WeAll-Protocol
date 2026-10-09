@@ -1053,9 +1053,7 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         transfer_id = f"transfer:{frm}:{int(env.nonce)}"
 
     existing = transfers_by_id.get(transfer_id)
-    if activated_fee_rewards and transfer_id in transfers_by_id and not isinstance(
-        existing, dict
-    ):
+    if activated_fee_rewards and transfer_id in transfers_by_id and not isinstance(existing, dict):
         raise EconomicsApplyError(
             "invalid_state",
             "balance_transfer_duplicate_record_invalid",
