@@ -91,6 +91,7 @@ jobs:
           python -m tooling.canon_lint
 
       - name: Check generated artifacts
+        id: generated_artifacts
         run: |
           python scripts/check_generated.py
           python scripts/gen_tx_semantic_assurance_v1_5.py --check
@@ -100,6 +101,24 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
+
+      # A semantic acceptance failure must stay red. This read-only report
+      # gives reviewers every changed contract's candidate material without
+      # updating any accepted digest or claiming a sign-off.
+      - name: Report pending semantic review candidates
+        id: pending_semantic_reviews
+        if: ${{ failure() && steps.generated_artifacts.outcome == 'failure' }}
+        run: |
+          python scripts/report_pending_tx_semantic_reviews.py \
+            --output artifacts/semantic-review/pending_tx_review_candidates.json
+
+      - name: Upload pending semantic review candidates
+        if: ${{ always() && steps.pending_semantic_reviews.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pending-tx-semantic-review-candidates
+          path: Weall-Protocol/artifacts/semantic-review/pending_tx_review_candidates.json
+          if-no-files-found: error
 
       - name: Restore historical M2/M3 closure evidence
         working-directory: .
