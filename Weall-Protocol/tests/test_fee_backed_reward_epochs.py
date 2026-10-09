@@ -1403,3 +1403,129 @@ def test_activated_distribution_duplicate_rejects_json_numeric_type_spoof(
     with pytest.raises(RewardsApplyError, match="reward_distribution_duplicate_payload_mismatch"):
         apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", forged, 114))
     assert st == before
+
+
+def test_activated_distribution_cannot_resettle_epoch_under_new_id_after_fee_refill() -> None:
+    st = _state(fee_balance=17)
+    queued = _schedule(st)
+    mint = queued["BLOCK_REWARD_MINT"]
+    dist = queued["BLOCK_REWARD_DISTRIBUTE"]
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(mint), 120))
+    apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", deepcopy(dist), 121))
+    apply_economics(
+        st,
+        TxEnvelope(
+            tx_type="FEE_PAY",
+            signer="@payer",
+            nonce=122,
+            payload={"amount": 5},
+            system=False,
+        ),
+    )
+    before = deepcopy(st)
+    forged = {
+        **deepcopy(dist),
+        "block_id": "issuance_epoch:alias-zero",
+        "total": 5,
+        "fees": 5,
+        "transfers": [{"to": "@validator", "amount": 5}],
+        "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 5}],
+    }
+    with pytest.raises(RewardsApplyError, match="reward_distribution_epoch_id_mismatch"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", forged, 123))
+    assert st == before
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 5
+
+
+def test_activated_distribution_requires_recorded_parent_mint() -> None:
+    st = _state(fee_balance=17)
+    dist = _schedule(st)["BLOCK_REWARD_DISTRIBUTE"]
+    before_balances = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="reward_distribution_parent_mint_missing"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", dist, 124))
+    assert st["accounts"] == before_balances
+    assert not st.get("rewards", {}).get("block_reward_distributions_by_id", {})
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["subsidy", "fees", "total", "height", "proposer", "issuance_epoch"],
+)
+def test_activated_distribution_rejects_conflicting_parent_declaration(
+    field: str,
+) -> None:
+    st = _state(fee_balance=17)
+    scheduled = _schedule(st)
+    mint = scheduled["BLOCK_REWARD_MINT"]
+    dist = scheduled["BLOCK_REWARD_DISTRIBUTE"]
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", mint, 125))
+    before = deepcopy(st)
+    forged = deepcopy(dist)
+    if field in ("subsidy", "fees", "total"):
+        forged[field] += 1
+    elif field == "issuance_epoch":
+        forged[field] = 1
+    elif field == "height":
+        forged[field] = float(forged[field])
+    else:
+        forged[field] = "@recipient"
+    reason = (
+        "reward_distribution_epoch_id_mismatch"
+        if field == "issuance_epoch"
+        else "reward_distribution_parent_amount_mismatch"
+    )
+    with pytest.raises(RewardsApplyError, match=reason):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", forged, 126))
+    assert st == before
+
+
+def test_activated_distribution_rejects_cross_source_funding_substitution() -> None:
+    st = _state(issued=0, fee_balance=19)
+    scheduled = _schedule(st)
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", scheduled["BLOCK_REWARD_MINT"], 127))
+    # Fee income arriving after scheduling cannot replace mint-pool funding.
+    apply_economics(
+        st,
+        TxEnvelope(
+            tx_type="FEE_PAY",
+            signer="@payer",
+            nonce=128,
+            payload={"amount": 1},
+            system=False,
+        ),
+    )
+    before = deepcopy(st)
+    forged = deepcopy(scheduled["BLOCK_REWARD_DISTRIBUTE"])
+    forged["debits"][0]["amount"] -= 1
+    forged["debits"][1]["amount"] += 1
+    with pytest.raises(RewardsApplyError, match="reward_distribution_parent_funding_mismatch"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", forged, 129))
+    assert st == before
+
+
+@pytest.mark.parametrize("field", ["subsidy", "fees", "total"])
+def test_activated_distribution_rejects_noninteger_parent_monetary_metadata(
+    field: str,
+) -> None:
+    st = _state(fee_balance=17)
+    queued = _schedule(st)
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", queued["BLOCK_REWARD_MINT"], 130))
+    before = deepcopy(st)
+    forged = deepcopy(queued["BLOCK_REWARD_DISTRIBUTE"])
+    forged[field] = float(forged[field])
+    with pytest.raises(RewardsApplyError, match="reward_distribution_parent_amount_mismatch"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", forged, 131))
+    assert st == before
+
+
+def test_activated_distribution_rejects_epoch_record_missing_before_payout() -> None:
+    st = _state(fee_balance=17)
+    queued = _schedule(st)
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", queued["BLOCK_REWARD_MINT"], 132))
+    del st["rewards"]["issuance_epochs_by_id"]["issuance_epoch:0"]
+    before = deepcopy(st)
+    with pytest.raises(RewardsApplyError, match="reward_distribution_parent_mint_missing"):
+        apply_rewards(
+            st, _sys("BLOCK_REWARD_DISTRIBUTE", queued["BLOCK_REWARD_DISTRIBUTE"], 133)
+        )
+    assert st == before
