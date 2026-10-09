@@ -800,9 +800,7 @@ def test_activated_reward_distribution_rejects_invalid_recipient_balances(
                 {
                     "block_id": "bad-recipient-state",
                     "transfers": [{"to": "@validator", "amount": 12}],
-                    "debits": [
-                        {"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 12}
-                    ],
+                    "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 12}],
                 },
                 61,
             ),
@@ -913,8 +911,6 @@ def test_fee_reward_queue_recovery_rejects_overdue_unemitted_distribution() -> N
         phase="post",
     )
     with pytest.raises(SystemQueueCorruptionError, match="system_queue_item_past_due_at_recovery"):
-        validate_system_queue_recovery_state(
-            st, committed_height=ISSUANCE_EPOCH_BLOCKS
-        )
+        validate_system_queue_recovery_state(st, committed_height=ISSUANCE_EPOCH_BLOCKS)
     assert len(st["system_queue"]) == 2
     assert all(item.get("emitted_height") is None for item in st["system_queue"])
