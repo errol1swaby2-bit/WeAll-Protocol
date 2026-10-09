@@ -268,7 +268,7 @@ def _same_reward_payload(left: Any, right: Any) -> bool:
         )
     if isinstance(left, list):
         return len(left) == len(right) and all(
-            _same_reward_payload(a, b) for a, b in zip(left, right)
+            _same_reward_payload(a, b) for a, b in zip(left, right, strict=True)
         )
     if type(left) not in (str, int, float, bool, type(None)):
         return False
