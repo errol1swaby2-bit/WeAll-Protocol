@@ -371,11 +371,30 @@ def _even_split(amount: int, recipients: list[str]) -> tuple[dict[str, int], int
 
 def _monetary_policy_snapshot(state: Json) -> dict[str, int]:
     econ = state.get("economics")
+    activated = fee_reward_pool_contract_enabled(state)
     if not isinstance(econ, dict):
+        if activated:
+            raise SystemSchedulerError("fee_reward_issuance_policy_missing")
         return {"issued": 0}
     mp = econ.get("monetary_policy")
     if not isinstance(mp, dict):
+        if activated:
+            raise SystemSchedulerError("fee_reward_issuance_policy_missing")
         return {"issued": 0}
+    if activated:
+        # The activated fee epoch must not silently treat a malformed issued
+        # counter as zero and schedule new subsidy against a spent supply.
+        issued = mp.get("issued")
+        limit = mp.get("max_supply")
+        if (
+            type(issued) is not int
+            or type(limit) is not int
+            or limit != MAX_SUPPLY
+            or issued < 0
+            or issued > limit
+        ):
+            raise SystemSchedulerError("fee_reward_issuance_policy_invalid")
+        return {"issued": issued}
     return {"issued": _as_int(mp.get("issued"), 0)}
 
 
