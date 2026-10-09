@@ -1525,7 +1525,5 @@ def test_activated_distribution_rejects_epoch_record_missing_before_payout() -> 
     del st["rewards"]["issuance_epochs_by_id"]["issuance_epoch:0"]
     before = deepcopy(st)
     with pytest.raises(RewardsApplyError, match="reward_distribution_parent_mint_missing"):
-        apply_rewards(
-            st, _sys("BLOCK_REWARD_DISTRIBUTE", queued["BLOCK_REWARD_DISTRIBUTE"], 133)
-        )
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", queued["BLOCK_REWARD_DISTRIBUTE"], 133))
     assert st == before
