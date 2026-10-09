@@ -70,7 +70,8 @@ def test_real_candidate_and_follower_apply_agree_on_fee_only_epoch(
     assert isinstance(block, dict)
     assert isinstance(new_state, dict)
     rewards = [
-        tx for tx in block["txs"]
+        tx
+        for tx in block["txs"]
         if tx.get("tx_type") in {"BLOCK_REWARD_MINT", "BLOCK_REWARD_DISTRIBUTE"}
     ]
     assert [tx["tx_type"] for tx in rewards] == [
@@ -93,6 +94,14 @@ def test_real_candidate_and_follower_apply_agree_on_fee_only_epoch(
     resulting = follower.read_state()
     assert resulting["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
     assert resulting["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
-    assert sum(x["balance"] for x in resulting["accounts"].values() if isinstance(x.get("balance"), int)) == sum(
-        x["balance"] for x in original["accounts"].values() if isinstance(x.get("balance"), int)
+    starting_balance = sum(
+        account["balance"]
+        for account in original["accounts"].values()
+        if type(account.get("balance")) is int
     )
+    ending_balance = sum(
+        account["balance"]
+        for account in resulting["accounts"].values()
+        if type(account.get("balance")) is int
+    )
+    assert ending_balance == starting_balance
