@@ -253,6 +253,28 @@ def _apply_reward_pool_opt_in_set(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "REWARD_POOL_OPT_IN_SET", "account": env.signer, "enabled": enabled}
 
 
+def _same_reward_payload(left: Any, right: Any) -> bool:
+    """Compare decoded JSON payloads without Python's numeric type coercion.
+
+    In Python, True == 1 == 1.0. Such values are *not* equivalent JSON
+    transaction payloads when deciding whether an activated reward has
+    already been minted or distributed under a reused block ID.
+    """
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(
+            _same_reward_payload(value, right[key]) for key, value in left.items()
+        )
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            _same_reward_payload(a, b) for a, b in zip(left, right)
+        )
+    if type(left) not in (str, int, float, bool, type(None)):
+        return False
+    return left == right
+
+
 def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     _wrap_econ_gate(state, env.tx_type)
@@ -284,7 +306,7 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
         # A recorded mint is idempotent only for the same transaction.
         # An unrelated epoch/amount with a reused ID cannot be reported as
         # a successful replay of the original issuance.
-        if existing.get("payload") != payload:
+        if not _same_reward_payload(existing.get("payload"), payload):
             raise RewardsApplyError(
                 "forbidden", "reward_mint_duplicate_payload_mismatch", {"block_id": block_id}
             )
@@ -418,7 +440,9 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
     if already:
         # Duplicate settlement receipts must refer to the exact committed
         # payout, not a different transfer/debit payload with a reused ID.
-        if fee_reward_pool_contract_enabled(state) and existing.get("payload") != payload:
+        if fee_reward_pool_contract_enabled(state) and not _same_reward_payload(
+            existing.get("payload"), payload
+        ):
             raise RewardsApplyError(
                 "forbidden",
                 "reward_distribution_duplicate_payload_mismatch",
