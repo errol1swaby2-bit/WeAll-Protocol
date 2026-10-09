@@ -90,6 +90,11 @@ jobs:
         run: |
           python -m tooling.canon_lint
 
+      # Temporary diagnostic only. Remove after recording exact-run results.
+      - name: PR48 transfer replay focused diagnostic (temporary)
+        run: |
+          pytest -q tests/test_fee_backed_reward_epochs.py
+
       - name: Check generated artifacts
         id: generated_artifacts
         run: |
