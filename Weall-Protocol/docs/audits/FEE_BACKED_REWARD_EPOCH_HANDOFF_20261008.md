@@ -280,6 +280,61 @@ migration, crash/journal rollback under process failure, or a normative
 production reward allocation. None of the seven changed semantic
 contracts has been accepted or independently audited.
 
+## Strict activated fee/transfer monetary inputs and balances
+
+Source review found that `FEE_PAY` and `BALANCE_TRANSFER` still relied on
+permissive `_as_int` conversions in activated v1 fee-pool states. These can
+silently truncate fractional amounts, turn booleans into coin amounts, or
+coerce malformed payer/recipient balances. `FEE_PAY` also permitted a
+positive self-directed payment: it left the source balance unchanged while
+recording a positive fee receipt. Without an explicit signer, direct fee
+handling could use a payload-provided source account.
+
+The new **activated v1 only** checks:
+
+- `FEE_PAY`: require a nonempty signer; require an exact integer amount
+  (zero remains permitted for preexisting zero-fee receipt compatibility);
+  reject positive self-destination payments; require existing payer and
+  recipient balances to be exact nonnegative integers **before** writing
+  either balance. The already-enforced canonical pool identity remains
+  required when fees are deposited into that pool.
+- `BALANCE_TRANSFER`: require an exact positive integer amount; if
+  `transfer_fee_int` is configured, require a nonnegative exact integer
+  policy value; validate existing payer/recipient/fee-sink balances before
+  debit/credit writes. The activated fee-pool destination/source ban and
+  separate sink ownership checks remain enforced.
+- **Unactivated chains retain their historical amount conversion behavior.**
+  This PR does not retroactively change legacy replay semantics.
+
+34 additional focused cases in `tests/test_fee_backed_reward_epochs.py`
+cover coerced amount types, malformed payer/sink balances, invalid policy
+fees, a forged self-pay fee receipt, missing signer and unactivated replay
+compatibility. This is still a bounded direct-handler check, **not** a proof
+that every consensus path or wallet schema enforces the same input boundary.
+
+[Backend CI diagnostic #37869370863](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37869370863)
+on exact source/test/temporary-workflow commit
+`404019cb5eb566736b8dcafbb06caf0da6bdb141` reported
+**137 focused tests passed in 9.28 seconds**, with changed-file Ruff,
+dependency audit and canon lint successful. The read-only compiler-derived
+inventory still reported **all seven** transaction semantic review digests
+stale. The full backend job remains **red** at the unchanged
+`ACCOUNT_REGISTER` review acceptance gate, not because the focused tests
+failed. No semantic-review digest or review approval was changed.
+
+Temporary CI instrumentation was removed in commit
+`81ef02f29ea1ec75acaa9604716e6fbec455ac4a`. The committed
+`.github/workflows/backend-ci.yml` blob returned to the exact baseline
+`e1090406588e1ecf148382f227263f5fdd43573c`.
+
+**Still open:** Positive `FEE_PAY` with an explicitly chosen alternate
+noncanonical recipient is accepted by the current contract, but those
+receipts do *not* fund the fee pool. Whether such use should be prohibited
+or be differentiated in canonical admission/accounting is a normative
+policy question and has not been silently changed here. Full value-moving
+path review, independently witnessed supply accounting, historical
+activation-height replay, and final production allocation remain pending.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
