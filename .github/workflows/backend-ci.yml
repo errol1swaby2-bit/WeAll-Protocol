@@ -51,6 +51,21 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      # TEMPORARY read-only inventory diagnostic — remove after capture.
+      - name: Temporary eight-contract semantic candidate audit
+        run: |
+          pytest -q tests/test_pending_tx_semantic_review_report.py tests/test_fee_backed_reward_epochs.py
+          python scripts/report_pending_tx_semantic_reviews.py --output /tmp/weall-eight-review-candidates.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("/tmp/weall-eight-review-candidates.json").read_text())
+          rows = report["transactions"]
+          print("REVIEW_CANDIDATE_COUNT:", len(rows))
+          for row in rows:
+              print(f"REVIEW_CANDIDATE: {row['tx_type']} differs={row['candidate_differs_from_accepted']} status={row['acceptance_status']}")
+          PY
+
       - name: Ruff changed Python files
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
