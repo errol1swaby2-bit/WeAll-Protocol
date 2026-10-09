@@ -176,6 +176,7 @@ def test_sequential_30_block_fee_epoch_survives_follower_restart(
     # not an in-memory state copy.
     leader_restarted = _executor(tmp_path, "history-leader")
     follower_restarted = _executor(tmp_path, "history-follower")
+
     # Startup updates one node-local lifecycle bit that is explicitly excluded
     # from the consensus state-root projection. All other stored ledger fields
     # must remain exactly equal to the pre-restart committed snapshot.
@@ -186,12 +187,8 @@ def test_sequential_30_block_fee_epoch_survives_follower_restart(
 
     for restarted in (leader_restarted, follower_restarted):
         recovered = restarted.read_state()
-        assert without_local_shutdown_flag(recovered) == without_local_shutdown_flag(
-            post_epoch
-        )
-        assert consensus_state_root_view(recovered) == consensus_state_root_view(
-            post_epoch
-        )
+        assert without_local_shutdown_flag(recovered) == without_local_shutdown_flag(post_epoch)
+        assert consensus_state_root_view(recovered) == consensus_state_root_view(post_epoch)
         assert compute_state_root(recovered) == compute_state_root(post_epoch)
     assert leader_restarted.read_state() == follower_restarted.read_state()
 
