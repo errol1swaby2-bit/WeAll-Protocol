@@ -51,6 +51,20 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      # TEMPORARY diagnostic: restore original workflow after capturing evidence.
+      - name: Temporary fee reward strict distribution diagnostics
+        run: |
+          ruff format --diff src/weall/runtime/apply/rewards.py tests/test_fee_backed_reward_epochs.py || true
+          pytest -q tests/test_fee_backed_reward_epochs.py tests/test_pending_tx_semantic_review_report.py tests/test_v15_epoch_issuance_scheduler.py tests/test_reward_issuance_invariants.py tests/test_p1_a10_reward_scheduler_scope.py
+          python scripts/report_pending_tx_semantic_reviews.py --output /tmp/weall-fee-contract-review-candidates.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows = json.loads(Path("/tmp/weall-fee-contract-review-candidates.json").read_text())["transactions"]
+          for row in rows:
+              print(f"SEMANTIC_CANDIDATE: {row['tx_type']} differs={row['candidate_differs_from_accepted']} status={row['acceptance_status']}")
+          PY
+
       - name: Ruff changed Python files
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
