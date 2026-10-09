@@ -389,6 +389,40 @@ See the [current eight-contract review matrix](FEE_REWARD_EIGHT_CONTRACT_REVIEW_
 No candidate has been accepted or independently signed off. Do not cosmetically
 update accepted digests or merge/activate this draft.
 
+## Activated duplicate reward replay identity
+
+A replay audit found that an existing `block_id` caused
+`BLOCK_REWARD_MINT` or `BLOCK_REWARD_DISTRIBUTE` to return a successful
+deduplication receipt without comparing the new payload against the original
+committed transaction. On activated fee-pool states, this could present a
+misleading receipt for a different amount, epoch, or recipient/funding plan
+despite no additional balance movement.
+
+The activated mint and distribution handlers now reject a reused ID with a
+different recorded payload using
+`reward_mint_duplicate_payload_mismatch` or
+`reward_distribution_duplicate_payload_mismatch`. Exact duplicate payloads
+still dedupe without re-minting/re-distributing; unactivated historical
+ledgers retain their existing behavior.
+
+At the formatted diagnostic source/test commit
+`b4a787cdde154ad583e42b7f7c675fcadf34c0c6`,
+[Backend CI #37871383594](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37871383594)
+reported **176 focused tests passed in 11.54 seconds**, including 11 new
+parameterized/individual duplicate-replay cases. Changed-file Ruff,
+dependency audit and canon lint passed. The eight compiler-derived semantic
+candidates **still differ** from accepted records; full backend CI remains
+red on the deliberately unchanged first `ACCOUNT_REGISTER` accepted
+review digest. The temporary workflow diagnostic was removed in
+`951f50215074522e60773313d95b559828a4d42c`, restoring the exact
+permanent workflow blob
+`e1090406588e1ecf148382f227263f5fdd43573c`.
+
+**Still pending:** transaction queue authentication, complete BFT historical
+replay, restart/reorg behavior, per-epoch unique settlement authority and
+cross-contract source/finality review. These direct-applier checks alone
+do not certify those properties.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
