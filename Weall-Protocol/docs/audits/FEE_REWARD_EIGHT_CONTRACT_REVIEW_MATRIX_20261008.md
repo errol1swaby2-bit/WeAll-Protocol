@@ -35,6 +35,8 @@ Review the current source and per-transaction candidate material, then independe
 
 - Activated reward replay ID diagnostic [Backend CI #37871383594](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37871383594) on exact formatted source/test commit `b4a787cdde154ad583e42b7f7c675fcadf34c0c6`: **176 focused tests passed in 11.54 seconds**, including new adversarial mint and distribution duplicate-ID payload mismatch tests and unactivated replay compatibility. Ruff, dependency audit and canon lint passed. Mint/distribution handlers on activated states reject a reused `block_id` with a conflicting recorded payload, rather than reporting a false deduplication success. All eight semantic candidate digests remain stale; full Backend CI remains blocked at `ACCOUNT_REGISTER`. The exact permanent workflow was restored after diagnostics.
 
+- **Type-exact replay closure:** [Backend CI #37872068381](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37872068381), exact test/source diagnostic head `0bbd67fdebf2a363849c2e8937e2a9402e420cce`: **184 focused tests passed in 11.51 seconds**, including eight adversarial boolean/float-vs-integer duplicate payload cases. Ruff format/check, dependency audit and canonical lint passed. Activated mint/distribution duplicate-ID comparisons now preserve JSON scalar types; historical unactivated decoding is unchanged. The eight candidate review digests remain stale and no approvals were recorded. Temporary CI was removed, restoring original workflow.
+
 ## Required decision procedure for each of eight entries
 
 1. Examine compiler-derived `material_for_review`, the exact code diff, existing canonical specification, activation constraints, all callers and cross-domain value mutation paths.
