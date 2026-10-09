@@ -459,6 +459,59 @@ This remains bounded direct-applier evidence, not proof of full BFT
 multi-node execution, fork handling, or uniqueness of settlement across
 different valid block IDs.
 
+## Canonical epoch settlement and cross-ID fee replay closure
+
+The prior activated distribution applier prevented repeat transfer effects
+for **the same** `block_id` but did not require the distribution ID to be
+the scheduler's canonical issuance-epoch ID or to match the recorded mint
+declaration. An attacker or corrupted system queue proposing a second,
+different distribution ID could spend fee-pool coins deposited **after** the
+first settlement and falsely attribute them to the already-settled epoch.
+Available account balances alone did not establish the right funding epoch.
+
+For the explicitly activated v1 fee-reward contract only, a newly applied
+`BLOCK_REWARD_DISTRIBUTE` must now, before touching any balances:
+
+- carry an exact nonnegative integer `issuance_epoch` and matching
+  canonical `block_id == epoch_id == "issuance_epoch:<index>"`;
+- be backed by the matching `block_rewards_by_id` mint record **and**
+  `issuance_epochs_by_id` epoch record, with the same epoch and mint amount;
+- agree with the parent's declared subsidy, fees, total, height and proposer,
+  comparing typed JSON fields without lossy conversions;
+- settle **exactly** the subsidy and fees declared by the mint: source debits
+  from `MINT_POOL` and `FEE_REWARD_POOL` must equal their separate parent
+  funding amounts; the total debit and recipient credits must equal the
+  authorized total;
+- avoid writing compatibility distribution aliases when an activated
+  preflight is rejected. The initial test run exposed this otherwise
+  unintended state mutation despite correct rejection of the forged payout.
+
+The prior same-ID type-exact dedupe remains. The unactivated historical
+reward distribution logic remains compatible. Fee-only epochs still have a
+zero-subsidy mint parent, which is necessary for the accepted fee-funded
+settlement lineage.
+
+[Backend CI diagnostic #37872902506](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37872902506)
+at exact formatted source/test/temporary-CI commit
+`e4ff511284ca154dee9c680106640cb66760bcf5`
+reported **197 focused tests passed in 11.31 seconds**, covering 13
+new cross-ID, missing-parent, malformed metadata and source-substitution
+cases. Ruff formatting and checks, dependency audit and canonical lint
+passed. The read-only source compiler continued reporting **eight**
+unapproved semantic candidates. Full backend CI deliberately remains
+blocked at the unchanged first stale `ACCOUNT_REGISTER` digest.
+
+The temporary CI diagnostic was removed in
+`00b15fcc609f31d7bc178e6d94f83443f3cbeb49`, restoring the
+byte-for-byte permanent workflow blob
+`e1090406588e1ecf148382f227263f5fdd43573c`.
+
+**Remaining:** This is a local-apply and deterministic queue-focused proof,
+not an actual full validator-network/reorganization proof. End-to-end
+authenticated system queue lineage, historical activation replay,
+independent review and final production economic allocation still need
+validation before merging or activation.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
