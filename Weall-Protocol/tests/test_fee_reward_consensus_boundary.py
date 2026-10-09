@@ -29,9 +29,11 @@ def _executor(root: Path, name: str) -> WeAllExecutor:
     )
 
 
-def _seed_activated_epoch_boundary(leader: WeAllExecutor, follower: WeAllExecutor) -> dict:
+def _seed_activated_epoch_boundary(
+    leader: WeAllExecutor, follower: WeAllExecutor, *, height: int = ISSUANCE_EPOCH_BLOCKS - 1
+) -> dict:
     state = deepcopy(leader.state)
-    state["height"] = ISSUANCE_EPOCH_BLOCKS - 1
+    state["height"] = height
     state["time"] = 1
     state["params"]["genesis_time"] = 0
     state["params"]["economic_unlock_time"] = 0
@@ -54,7 +56,8 @@ def _seed_activated_epoch_boundary(leader: WeAllExecutor, follower: WeAllExecuto
 
 
 def test_real_candidate_and_follower_apply_agree_on_fee_only_epoch(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_LOCAL_FEE_REWARD_POOL_GENESIS", "1")
@@ -105,3 +108,91 @@ def test_real_candidate_and_follower_apply_agree_on_fee_only_epoch(
         if type(account.get("balance")) is int
     )
     assert ending_balance == starting_balance
+
+
+def test_sequential_30_block_fee_epoch_survives_follower_restart(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Real 30-block candidate, durable commit, follower apply and restart.
+
+    Starting issuance/fee balances are explicitly seeded at genesis; this is
+    a local activated-chain fixture, not governed migration replay.
+    """
+    monkeypatch.setenv("WEALL_MODE", "dev")
+    monkeypatch.setenv("WEALL_LOCAL_FEE_REWARD_POOL_GENESIS", "1")
+    leader = _executor(tmp_path, "history-leader")
+    follower = _executor(tmp_path, "history-follower")
+    starting = _seed_activated_epoch_boundary(leader, follower, height=0)
+
+    for height in range(1, ISSUANCE_EPOCH_BLOCKS + 1):
+        block, state_after, applied_ids, invalid_ids, err = leader.build_block_candidate(
+            max_txs=0,
+            allow_empty=True,
+        )
+        assert err == "", (height, err)
+        assert isinstance(block, dict)
+        assert isinstance(state_after, dict)
+        reward_types = [
+            tx["tx_type"]
+            for tx in block["txs"]
+            if tx.get("tx_type") in {"BLOCK_REWARD_MINT", "BLOCK_REWARD_DISTRIBUTE"}
+        ]
+        if height == ISSUANCE_EPOCH_BLOCKS:
+            assert reward_types == ["BLOCK_REWARD_MINT", "BLOCK_REWARD_DISTRIBUTE"]
+        else:
+            assert reward_types == []
+
+        committed = leader.commit_block_candidate(
+            block=block,
+            new_state=state_after,
+            applied_ids=applied_ids,
+            invalid_ids=invalid_ids,
+        )
+        assert committed.ok is True, (height, committed.error)
+        replayed = follower.apply_block(deepcopy(block))
+        assert replayed.ok is True, (height, replayed.error)
+        assert leader.read_state() == follower.read_state(), height
+
+    post_epoch = leader.read_state()
+    assert post_epoch["height"] == ISSUANCE_EPOCH_BLOCKS
+    assert post_epoch["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
+    assert post_epoch["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
+    assert sum(
+        account["balance"]
+        for account in post_epoch["accounts"].values()
+        if type(account.get("balance")) is int
+    ) == sum(
+        account["balance"]
+        for account in starting["accounts"].values()
+        if type(account.get("balance")) is int
+    )
+
+    # Re-opening each committed database is the durable recovery boundary,
+    # not an in-memory state copy.
+    leader_restarted = _executor(tmp_path, "history-leader")
+    follower_restarted = _executor(tmp_path, "history-follower")
+    assert leader_restarted.read_state() == post_epoch
+    assert follower_restarted.read_state() == post_epoch
+
+    # A subsequent empty block must not reward the same settled epoch.
+    block, state_after, applied_ids, invalid_ids, err = leader_restarted.build_block_candidate(
+        max_txs=0,
+        allow_empty=True,
+    )
+    assert err == "", err
+    assert isinstance(block, dict)
+    assert all(
+        tx.get("tx_type") not in {"BLOCK_REWARD_MINT", "BLOCK_REWARD_DISTRIBUTE"}
+        for tx in block["txs"]
+    )
+    committed = leader_restarted.commit_block_candidate(
+        block=block,
+        new_state=state_after,
+        applied_ids=applied_ids,
+        invalid_ids=invalid_ids,
+    )
+    assert committed.ok is True, committed.error
+    replayed = follower_restarted.apply_block(deepcopy(block))
+    assert replayed.ok is True, replayed.error
+    assert leader_restarted.read_state() == follower_restarted.read_state()
