@@ -1247,3 +1247,102 @@ def test_unactivated_reward_mint_preserves_legacy_numeric_coercion() -> None:
     assert result["amount"] == 7
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 7
     assert st["economics"]["monetary_policy"]["issued"] == 7
+
+
+def test_activated_mint_exact_duplicate_is_idempotent() -> None:
+    st = _state(issued=0)
+    payload = {
+        "block_id": "same-mint-payload",
+        "issuance_epoch": 0,
+        "height": ISSUANCE_EPOCH_BLOCKS,
+        "amount": 7,
+    }
+    first = apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(payload), 90))
+    after_first = deepcopy(st)
+    replay = apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(payload), 91))
+    assert first["deduped"] is False
+    assert replay["deduped"] is True
+    assert st["accounts"] == after_first["accounts"]
+    assert st["economics"] == after_first["economics"]
+    assert st["rewards"]["block_rewards_by_id"] == after_first["rewards"]["block_rewards_by_id"]
+    assert st["economics"]["monetary_policy"]["issued"] == 7
+
+
+@pytest.mark.parametrize("tamper", ["amount", "epoch", "height", "fees"])
+def test_activated_mint_duplicate_rejects_conflicting_payload(
+    tamper: str,
+) -> None:
+    st = _state(issued=0)
+    payload = {
+        "block_id": "duplicate-mint",
+        "issuance_epoch": 0,
+        "height": ISSUANCE_EPOCH_BLOCKS,
+        "amount": 7,
+        "fees": 0,
+    }
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(payload), 92))
+    before = deepcopy(st)
+    forged = deepcopy(payload)
+    if tamper == "amount":
+        forged["amount"] = 8
+    elif tamper == "epoch":
+        forged["issuance_epoch"] = 1
+    elif tamper == "height":
+        forged["height"] = 2 * ISSUANCE_EPOCH_BLOCKS
+    else:
+        forged["fees"] = 1
+
+    with pytest.raises(RewardsApplyError, match="reward_mint_duplicate_payload_mismatch"):
+        apply_rewards(st, _sys("BLOCK_REWARD_MINT", forged, 93))
+    assert st == before
+
+
+def test_activated_distribution_exact_duplicate_is_idempotent() -> None:
+    st = _state(fee_balance=17)
+    payloads = _schedule(st)
+    mint = payloads["BLOCK_REWARD_MINT"]
+    distribution = payloads["BLOCK_REWARD_DISTRIBUTE"]
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(mint), 94))
+    apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", deepcopy(distribution), 95))
+    before = deepcopy(st)
+    duplicate = apply_rewards(
+        st, _sys("BLOCK_REWARD_DISTRIBUTE", deepcopy(distribution), 96)
+    )
+    assert duplicate["deduped"] is True
+    assert st == before
+
+
+@pytest.mark.parametrize("tamper", ["fee", "recipient", "funding", "height"])
+def test_activated_distribution_duplicate_rejects_conflicting_payload(
+    tamper: str,
+) -> None:
+    st = _state(fee_balance=17)
+    payloads = _schedule(st)
+    mint = payloads["BLOCK_REWARD_MINT"]
+    distribution = payloads["BLOCK_REWARD_DISTRIBUTE"]
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(mint), 97))
+    apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", deepcopy(distribution), 98))
+    before = deepcopy(st)
+    forged = deepcopy(distribution)
+    if tamper == "fee":
+        forged["fees"] = 18
+    elif tamper == "recipient":
+        forged["transfers"][0]["amount"] += 1
+    elif tamper == "funding":
+        forged["debits"][0]["amount"] = 16
+    else:
+        forged["height"] = 2 * ISSUANCE_EPOCH_BLOCKS
+
+    with pytest.raises(RewardsApplyError, match="reward_distribution_duplicate_payload_mismatch"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", forged, 99))
+    assert st == before
+
+
+def test_unactivated_reward_replay_keeps_prior_duplicate_payload_behavior() -> None:
+    st = _state(issued=0, configured=False)
+    original = {"block_id": "legacy-duplicate-id", "issuance_epoch": 0, "amount": 7}
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(original), 100))
+    conflicting = {**original, "amount": 9}
+    replay = apply_rewards(st, _sys("BLOCK_REWARD_MINT", conflicting, 101))
+    assert replay["deduped"] is True
+    assert st["economics"]["monetary_policy"]["issued"] == 7
