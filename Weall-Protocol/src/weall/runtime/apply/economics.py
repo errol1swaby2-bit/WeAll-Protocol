@@ -896,9 +896,7 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
         raise EconomicsApplyError("forbidden", "reserved_fee_pool_cannot_pay_fees", {})
 
     if activated_fee_rewards and type(payload.get("amount")) is not int:
-        raise EconomicsApplyError(
-            "invalid_payload", "fee_pay_amount_must_be_integer", {}
-        )
+        raise EconomicsApplyError("invalid_payload", "fee_pay_amount_must_be_integer", {})
     amount = _as_int(payload.get("amount"), 0)
     if amount < 0:
         raise EconomicsApplyError(
@@ -933,16 +931,12 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
 
     if amount > 0:
         if activated_fee_rewards and to_account == from_account:
-            raise EconomicsApplyError(
-                "invalid_payload", "fee_pay_self_destination_forbidden", {}
-            )
+            raise EconomicsApplyError("invalid_payload", "fee_pay_self_destination_forbidden", {})
         payer = _require_existing_account(state, from_account, field="from")
         if activated_fee_rewards and (
             type(payer.get("balance")) is not int or payer["balance"] < 0
         ):
-            raise EconomicsApplyError(
-                "invalid_state", "fee_pay_payer_balance_invalid", {}
-            )
+            raise EconomicsApplyError("invalid_state", "fee_pay_payer_balance_invalid", {})
         balance = _as_int(payer.get("balance"), 0)
         if balance < amount:
             raise EconomicsApplyError(
@@ -954,9 +948,7 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
             if activated_fee_rewards and (
                 type(sink.get("balance")) is not int or sink["balance"] < 0
             ):
-                raise EconomicsApplyError(
-                    "invalid_state", "fee_pay_sink_balance_invalid", {}
-                )
+                raise EconomicsApplyError("invalid_state", "fee_pay_sink_balance_invalid", {})
         payer["balance"] = balance - amount
         if sink is not None:
             sink["balance"] = _as_int(sink.get("balance"), 0) + amount
@@ -998,9 +990,7 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
 
     activated_fee_rewards = fee_reward_pool_contract_enabled(state)
     if activated_fee_rewards and type(amount) is not int:
-        raise EconomicsApplyError(
-            "invalid_payload", "balance_transfer_amount_must_be_integer", {}
-        )
+        raise EconomicsApplyError("invalid_payload", "balance_transfer_amount_must_be_integer", {})
     amt = _as_int(amount, 0)
     if amt <= 0:
         raise EconomicsApplyError("invalid_payload", "bad_amount", {"amount": amount})
@@ -1065,9 +1055,7 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
     if activated_fee_rewards and "transfer_fee_int" in fee_policy:
         fee_value = fee_policy["transfer_fee_int"]
         if type(fee_value) is not int or fee_value < 0:
-            raise EconomicsApplyError(
-                "invalid_state", "balance_transfer_fee_policy_invalid", {}
-            )
+            raise EconomicsApplyError("invalid_state", "balance_transfer_fee_policy_invalid", {})
     transfer_fee = max(0, _as_int(fee_policy.get("transfer_fee_int"), 0))
     fee_to = ""
     if transfer_fee > 0:
