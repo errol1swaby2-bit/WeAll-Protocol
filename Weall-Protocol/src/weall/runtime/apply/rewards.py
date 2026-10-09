@@ -280,6 +280,15 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
     existing = mints.get(block_id)
     already = isinstance(existing, dict)
 
+    if already and activated_fee_rewards:
+        # A recorded mint is idempotent only for the same transaction.
+        # An unrelated epoch/amount with a reused ID cannot be reported as
+        # a successful replay of the original issuance.
+        if existing.get("payload") != payload:
+            raise RewardsApplyError(
+                "forbidden", "reward_mint_duplicate_payload_mismatch", {"block_id": block_id}
+            )
+
     existing_epoch = epoch_mints.get(epoch_id)
     if isinstance(existing_epoch, dict) and not already:
         raise RewardsApplyError(
@@ -407,6 +416,14 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
     existing = distributions.get(block_id)
     already = isinstance(existing, dict)
     if already:
+        # Duplicate settlement receipts must refer to the exact committed
+        # payout, not a different transfer/debit payload with a reused ID.
+        if fee_reward_pool_contract_enabled(state) and existing.get("payload") != payload:
+            raise RewardsApplyError(
+                "forbidden",
+                "reward_distribution_duplicate_payload_mismatch",
+                {"block_id": block_id},
+            )
         return {
             "applied": "BLOCK_REWARD_DISTRIBUTE",
             "block_id": block_id,
