@@ -484,6 +484,16 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
                 "to_account_missing",
                 {"account": to, "block_id": block_id},
             )
+        if activated_fee_rewards:
+            # Debit/credit totals alone cannot prove conservation when an
+            # existing recipient balance would be truncated by _as_int().
+            recipient_balance = accounts[to].get("balance")
+            if type(recipient_balance) is not int or recipient_balance < 0:
+                raise RewardsApplyError(
+                    "invalid_state",
+                    "reward_recipient_balance_invalid",
+                    {"account": to},
+                )
 
         normalized_transfers.append({"to": to, "amount": int(amt)})
         distributed_total += int(amt)
