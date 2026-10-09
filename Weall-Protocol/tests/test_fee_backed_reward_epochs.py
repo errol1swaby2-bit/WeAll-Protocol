@@ -1814,3 +1814,29 @@ def test_unactivated_forfeiture_preserves_legacy_amount_and_duplicate_behavior()
     assert replay["deduped"] is True
     assert st["accounts"] == accounts
     assert st["accounts"]["@payer"]["balance"] == 93
+
+
+@pytest.mark.parametrize("tx_type", ["CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE"])
+@pytest.mark.parametrize("direction", ["credit", "debit"])
+def test_activated_secondary_allocation_cannot_redirect_mint_pool(
+    tx_type: str, direction: str
+) -> None:
+    st = _state(issued=0)
+    st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] = 25
+    before = deepcopy(st["accounts"])
+    if direction == "credit":
+        transfers = [{"to": MINT_POOL_ACCOUNT_ID, "amount": 5}]
+        debits = [{"from": "@payer", "amount": 5}]
+    else:
+        transfers = [{"to": "@recipient", "amount": 5}]
+        debits = [{"from": MINT_POOL_ACCOUNT_ID, "amount": 5}]
+    with pytest.raises(RewardsApplyError, match="reserved_mint_pool_allocation_forbidden"):
+        apply_rewards(
+            st,
+            _sys(
+                tx_type,
+                {"block_id": "mint-reserve-guard", "transfers": transfers, "debits": debits},
+                999,
+            ),
+        )
+    assert st["accounts"] == before
