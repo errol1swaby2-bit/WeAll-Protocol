@@ -914,3 +914,191 @@ def test_fee_reward_queue_recovery_rejects_overdue_unemitted_distribution() -> N
         validate_system_queue_recovery_state(st, committed_height=ISSUANCE_EPOCH_BLOCKS)
     assert len(st["system_queue"]) == 2
     assert all(item.get("emitted_height") is None for item in st["system_queue"])
+
+
+@pytest.mark.parametrize("amount", [True, 7.9, "7", None])
+def test_activated_fee_payment_rejects_coerced_amount_without_account_changes(
+    amount: object,
+) -> None:
+    st = _state()
+    before = deepcopy(st["accounts"])
+    with pytest.raises(EconomicsApplyError, match="fee_pay_amount_must_be_integer"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="FEE_PAY",
+                signer="@payer",
+                nonce=70,
+                system=False,
+                payload={"amount": amount},
+            ),
+        )
+    assert st["accounts"] == before
+
+
+@pytest.mark.parametrize("balance", [True, "100", 100.9, -1, None])
+def test_activated_fee_payment_rejects_invalid_payer_balance(
+    balance: object,
+) -> None:
+    st = _state()
+    st["accounts"]["@payer"]["balance"] = balance
+    before = deepcopy(st["accounts"])
+    with pytest.raises(EconomicsApplyError, match="fee_pay_payer_balance_invalid"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="FEE_PAY",
+                signer="@payer",
+                nonce=71,
+                system=False,
+                payload={"amount": 7},
+            ),
+        )
+    assert st["accounts"] == before
+
+
+@pytest.mark.parametrize("balance", [True, "0", 1.2, -1, None])
+def test_activated_fee_payment_rejects_invalid_alternate_sink_balance(
+    balance: object,
+) -> None:
+    st = _state()
+    st["accounts"]["@recipient"]["balance"] = balance
+    before = deepcopy(st["accounts"])
+    with pytest.raises(EconomicsApplyError, match="fee_pay_sink_balance_invalid"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="FEE_PAY",
+                signer="@payer",
+                nonce=72,
+                system=False,
+                payload={"amount": 7, "to_account_id": "@recipient"},
+            ),
+        )
+    assert st["accounts"] == before
+
+
+def test_activated_fee_payment_rejects_self_destination_without_fake_receipt() -> None:
+    st = _state()
+    before = deepcopy(st["accounts"])
+    with pytest.raises(EconomicsApplyError, match="fee_pay_self_destination_forbidden"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="FEE_PAY",
+                signer="@payer",
+                nonce=73,
+                system=False,
+                payload={"amount": 7, "to_account_id": "@payer"},
+            ),
+        )
+    assert st["accounts"] == before
+    assert st.get("economics", {}).get("fee_payments", []) == []
+
+
+def test_activated_fee_payment_requires_signer_to_authorize_origin() -> None:
+    st = _state()
+    before = deepcopy(st["accounts"])
+    with pytest.raises(EconomicsApplyError, match="fee_pay_signer_required"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="FEE_PAY",
+                signer="",
+                nonce=74,
+                system=False,
+                payload={"amount": 7, "from_account_id": "@payer"},
+            ),
+        )
+    assert st["accounts"] == before
+
+
+@pytest.mark.parametrize("amount", [True, 8.9, "8"])
+def test_activated_balance_transfer_rejects_coerced_amount(
+    amount: object,
+) -> None:
+    st = _state()
+    before = deepcopy(st["accounts"])
+    with pytest.raises(EconomicsApplyError, match="balance_transfer_amount_must_be_integer"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="BALANCE_TRANSFER",
+                signer="@payer",
+                nonce=75,
+                system=False,
+                payload={"to_account_id": "@recipient", "amount": amount},
+            ),
+        )
+    assert st["accounts"] == before
+
+
+@pytest.mark.parametrize("account_id", ["@payer", "@recipient"])
+@pytest.mark.parametrize("balance", [True, "12", 12.5, -1, None])
+def test_activated_balance_transfer_rejects_invalid_account_balance(
+    account_id: str, balance: object,
+) -> None:
+    st = _state()
+    st["accounts"][account_id]["balance"] = balance
+    before = deepcopy(st["accounts"])
+    with pytest.raises(
+        EconomicsApplyError, match="balance_transfer_account_balance_invalid"
+    ):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="BALANCE_TRANSFER",
+                signer="@payer",
+                nonce=76,
+                system=False,
+                payload={"to_account_id": "@recipient", "amount": 4},
+            ),
+        )
+    assert st["accounts"] == before
+
+
+@pytest.mark.parametrize("fee", [True, "3", 3.3, -1])
+def test_activated_balance_transfer_rejects_invalid_fee_policy(fee: object) -> None:
+    st = _state()
+    st["economics"]["fee_policy"] = {"transfer_fee_int": fee}
+    before = deepcopy(st["accounts"])
+    with pytest.raises(EconomicsApplyError, match="balance_transfer_fee_policy_invalid"):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="BALANCE_TRANSFER",
+                signer="@payer",
+                nonce=77,
+                system=False,
+                payload={"to_account_id": "@recipient", "amount": 8},
+            ),
+        )
+    assert st["accounts"] == before
+
+
+def test_unactivated_fee_payment_and_balance_transfer_keep_legacy_amount_coercion() -> None:
+    st = _state(configured=False)
+    fee = apply_economics(
+        st,
+        TxEnvelope(
+            tx_type="FEE_PAY",
+            signer="@payer",
+            nonce=78,
+            system=False,
+            payload={"amount": 7.9, "to_account_id": "@recipient"},
+        ),
+    )
+    transfer = apply_economics(
+        st,
+        TxEnvelope(
+            tx_type="BALANCE_TRANSFER",
+            signer="@payer",
+            nonce=79,
+            system=False,
+            payload={"amount": "5", "to_account_id": "@recipient"},
+        ),
+    )
+    assert fee["amount"] == 7
+    assert transfer["amount"] == 5
+    assert st["accounts"]["@payer"]["balance"] == 88
+    assert st["accounts"]["@recipient"]["balance"] == 12
