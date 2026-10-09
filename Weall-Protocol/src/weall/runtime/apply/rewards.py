@@ -625,6 +625,85 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
             },
         )
 
+    if activated_fee_rewards:
+        # One issuance epoch has one canonical settlement identifier. Distinct
+        # block IDs cannot spend fees collected after the first settlement to
+        # re-distribute that same epoch.
+        raw_epoch = payload.get("issuance_epoch")
+        if type(raw_epoch) is not int or raw_epoch < 0:
+            raise RewardsApplyError(
+                "invalid_payload", "reward_distribution_epoch_invalid", {}
+            )
+        expected_epoch_id = _issuance_epoch_id(raw_epoch)
+        if block_id != expected_epoch_id or payload.get("epoch_id") != expected_epoch_id:
+            raise RewardsApplyError(
+                "forbidden",
+                "reward_distribution_epoch_id_mismatch",
+                {"epoch_id": expected_epoch_id, "block_id": block_id},
+            )
+
+        # The canonical mint record is the parent funding declaration even
+        # during a zero-subsidy fee-only epoch. An unrelated system-attributed
+        # distribution may not invent the source totals or borrow another
+        # issuance epoch's mint pool credits.
+        mint = r["block_rewards_by_id"].get(expected_epoch_id)
+        epoch_mint = r["issuance_epochs_by_id"].get(expected_epoch_id)
+        if (
+            not isinstance(mint, dict)
+            or not isinstance(epoch_mint, dict)
+            or mint.get("block_id") != expected_epoch_id
+            or epoch_mint.get("block_id") != expected_epoch_id
+            or type(mint.get("issuance_epoch")) is not int
+            or mint["issuance_epoch"] != raw_epoch
+            or type(epoch_mint.get("issuance_epoch")) is not int
+            or epoch_mint["issuance_epoch"] != raw_epoch
+        ):
+            raise RewardsApplyError(
+                "forbidden", "reward_distribution_parent_mint_missing", {}
+            )
+        mint_payload = mint.get("payload")
+        if not isinstance(mint_payload, dict):
+            raise RewardsApplyError(
+                "invalid_state", "reward_distribution_parent_mint_invalid", {}
+            )
+        subsidy = payload.get("subsidy")
+        fees = payload.get("fees")
+        total = payload.get("total")
+        if (
+            any(type(x) is not int or x < 0 for x in (subsidy, fees, total))
+            or total <= 0
+            or total != subsidy + fees
+            or type(mint.get("amount")) is not int
+            or mint["amount"] != subsidy
+            or type(epoch_mint.get("amount")) is not int
+            or epoch_mint["amount"] != subsidy
+            or any(
+                not _same_reward_payload(mint_payload.get(key), value)
+                for key, value in (
+                    ("block_id", expected_epoch_id),
+                    ("issuance_epoch", raw_epoch),
+                    ("epoch_id", expected_epoch_id),
+                    ("amount", subsidy),
+                    ("fees", fees),
+                    ("total", total),
+                    ("height", payload.get("height")),
+                    ("proposer", payload.get("proposer")),
+                )
+            )
+        ):
+            raise RewardsApplyError(
+                "forbidden", "reward_distribution_parent_amount_mismatch", {}
+            )
+        if (
+            debit_totals.get(MINT_POOL_ACCOUNT_ID, 0) != subsidy
+            or debit_totals.get(FEE_REWARD_POOL_ACCOUNT_ID, 0) != fees
+            or debited_total != total
+            or distributed_total != total
+        ):
+            raise RewardsApplyError(
+                "forbidden", "reward_distribution_parent_funding_mismatch", {}
+            )
+
     for debit in normalized_debits:
         src = str(debit["from"])
         amt = int(debit["amount"])
