@@ -1527,3 +1527,108 @@ def test_activated_distribution_rejects_epoch_record_missing_before_payout() -> 
     with pytest.raises(RewardsApplyError, match="reward_distribution_parent_mint_missing"):
         apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", queued["BLOCK_REWARD_DISTRIBUTE"], 133))
     assert st == before
+
+
+def _transfer_replay_env(
+    payload: dict, *, signer: str = "@payer", nonce: int = 1, parent: str | None = None
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type="BALANCE_TRANSFER",
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        parent=parent,
+        system=False,
+    )
+
+
+def test_activated_transfer_id_exact_replay_is_idempotent_without_moving_funds() -> None:
+    st = _state()
+    payload = {
+        "transfer_id": "unique-fee-transfer-replay",
+        "to_account_id": "@recipient",
+        "amount": 9,
+        "memo": "same transfer",
+        "extra": {"version": 1},
+    }
+    first = apply_economics(st, _transfer_replay_env(deepcopy(payload)))
+    before = deepcopy(st)
+    replay = apply_economics(
+        st, _transfer_replay_env(deepcopy(payload), nonce=2)
+    )
+    assert first["deduped"] is False
+    assert replay["deduped"] is True
+    assert st == before
+    assert st["accounts"]["@payer"]["balance"] == 91
+    assert st["accounts"]["@recipient"]["balance"] == 9
+    assert len(st["economics"]["transfers"]) == 1
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    ["recipient", "amount", "memo", "nested_number_type", "signer", "parent"],
+)
+def test_activated_transfer_id_replay_rejects_conflicting_identity_or_payload(
+    tamper: str,
+) -> None:
+    st = _state()
+    payload = {
+        "transfer_id": "id-bound-to-first-transfer",
+        "to_account_id": "@recipient",
+        "amount": 9,
+        "memo": "original",
+        "extra": {"count": 1},
+    }
+    apply_economics(st, _transfer_replay_env(deepcopy(payload)))
+    before = deepcopy(st)
+    forged = deepcopy(payload)
+    signer = "@payer"
+    parent = None
+    if tamper == "recipient":
+        forged["to_account_id"] = "@validator"
+    elif tamper == "amount":
+        forged["amount"] = 10
+    elif tamper == "memo":
+        forged["memo"] = "altered"
+    elif tamper == "nested_number_type":
+        forged["extra"]["count"] = True
+    elif tamper == "signer":
+        signer = "@validator"
+    else:
+        parent = "unexpected-parent"
+    with pytest.raises(EconomicsApplyError, match="balance_transfer_duplicate_payload_mismatch"):
+        apply_economics(
+            st, _transfer_replay_env(forged, signer=signer, nonce=2, parent=parent)
+        )
+    assert st == before
+
+
+def test_activated_transfer_id_replay_rejects_invalid_record_without_replacement() -> None:
+    st = _state()
+    payload = {
+        "transfer_id": "invalid-existing-record",
+        "to_account_id": "@recipient",
+        "amount": 9,
+    }
+    apply_economics(st, _transfer_replay_env(deepcopy(payload)))
+    st["economics"]["transfers_by_id"][payload["transfer_id"]] = "corrupted"
+    before = deepcopy(st)
+    with pytest.raises(EconomicsApplyError, match="balance_transfer_duplicate_record_invalid"):
+        apply_economics(st, _transfer_replay_env(deepcopy(payload), nonce=2))
+    assert st == before
+
+
+def test_unactivated_transfer_id_replay_preserves_prior_compatibility() -> None:
+    st = _state(configured=False)
+    original = {
+        "transfer_id": "legacy-transfer-id",
+        "to_account_id": "@recipient",
+        "amount": 9,
+    }
+    first = apply_economics(st, _transfer_replay_env(deepcopy(original)))
+    before = deepcopy(st)
+    incompatible = {**original, "amount": 10}
+    replay = apply_economics(st, _transfer_replay_env(incompatible, nonce=2))
+    assert first["deduped"] is False
+    assert replay["deduped"] is True
+    assert st == before
