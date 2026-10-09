@@ -55,7 +55,7 @@ jobs:
       - name: Temporary fee epoch consensus boundary evidence
         run: |
           ruff format --diff tests/test_fee_reward_consensus_boundary.py || true
-          pytest -q tests/test_fee_reward_consensus_boundary.py tests/test_fee_backed_reward_epochs.py tests/test_pending_tx_semantic_review_report.py tests/test_system_tx_scheduler_binding.py tests/test_system_queue_lifecycle_integrity.py
+          pytest -q tests/test_fee_reward_consensus_boundary.py tests/test_fee_backed_reward_epochs.py tests/test_pending_tx_semantic_review_report.py tests/test_v15_epoch_issuance_scheduler.py tests/test_reward_issuance_invariants.py tests/test_p1_a10_reward_scheduler_scope.py tests/test_system_tx_scheduler_binding.py tests/test_system_queue_lifecycle_integrity.py
 
       - name: Ruff changed Python files
         env:
