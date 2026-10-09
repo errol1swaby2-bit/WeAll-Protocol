@@ -1101,3 +1101,153 @@ def test_unactivated_fee_payment_and_balance_transfer_keep_legacy_amount_coercio
     assert transfer["amount"] == 5
     assert st["accounts"]["@payer"]["balance"] == 88
     assert st["accounts"]["@recipient"]["balance"] == 12
+
+
+@pytest.mark.parametrize("issued", [True, "0", 0.75, -1, MAX_SUPPLY + 1])
+def test_activated_issuance_scheduler_rejects_invalid_supply_counter(
+    issued: object,
+) -> None:
+    st = _state(issued=0, fee_balance=8)
+    st["economics"]["monetary_policy"]["issued"] = issued
+    before = deepcopy(st)
+    with pytest.raises(SystemSchedulerError, match="fee_reward_issuance_policy_invalid"):
+        _schedule(st)
+    assert st == before
+
+
+@pytest.mark.parametrize("max_supply", [True, str(MAX_SUPPLY), 0, MAX_SUPPLY + 1])
+def test_activated_issuance_scheduler_rejects_invalid_supply_cap(
+    max_supply: object,
+) -> None:
+    st = _state(issued=0, fee_balance=8)
+    st["economics"]["monetary_policy"]["max_supply"] = max_supply
+    before = deepcopy(st)
+    with pytest.raises(SystemSchedulerError, match="fee_reward_issuance_policy_invalid"):
+        _schedule(st)
+    assert st == before
+
+
+def test_activated_issuance_scheduler_rejects_missing_monetary_policy() -> None:
+    st = _state(issued=0, fee_balance=8)
+    del st["economics"]["monetary_policy"]
+    before = deepcopy(st)
+    with pytest.raises(SystemSchedulerError, match="fee_reward_issuance_policy_missing"):
+        _schedule(st)
+    assert st == before
+
+
+@pytest.mark.parametrize("amount", [True, 7.9, "7", None, -1])
+def test_activated_reward_mint_rejects_noninteger_or_negative_amount(
+    amount: object,
+) -> None:
+    st = _state(issued=0)
+    before_accounts = deepcopy(st["accounts"])
+    before_policy = deepcopy(st["economics"]["monetary_policy"])
+    payload = {
+        "block_id": "invalid-mint-amount",
+        "issuance_epoch": 0,
+        "height": ISSUANCE_EPOCH_BLOCKS,
+        "amount": amount,
+    }
+    with pytest.raises(RewardsApplyError, match="reward_mint_amount_must_be_nonnegative_integer"):
+        apply_rewards(st, _sys("BLOCK_REWARD_MINT", payload, 81))
+    assert st["accounts"] == before_accounts
+    assert st["economics"]["monetary_policy"] == before_policy
+    assert "invalid-mint-amount" not in st.get("rewards", {}).get(
+        "block_rewards_by_id", {}
+    )
+
+
+@pytest.mark.parametrize("issued", [True, "0", 0.1, -1, MAX_SUPPLY + 1])
+def test_activated_reward_mint_rejects_invalid_issued_before_writes(
+    issued: object,
+) -> None:
+    st = _state(issued=0)
+    st["economics"]["monetary_policy"]["issued"] = issued
+    before_accounts = deepcopy(st["accounts"])
+    before_policy = deepcopy(st["economics"]["monetary_policy"])
+    with pytest.raises(RewardsApplyError, match="reward_mint_policy_invalid"):
+        apply_rewards(
+            st,
+            _sys(
+                "BLOCK_REWARD_MINT",
+                {"block_id": "bad-issued", "issuance_epoch": 0, "amount": 7},
+                82,
+            ),
+        )
+    assert st["accounts"] == before_accounts
+    assert st["economics"]["monetary_policy"] == before_policy
+    assert "bad-issued" not in st.get("rewards", {}).get("block_rewards_by_id", {})
+
+
+@pytest.mark.parametrize("balance", [True, "0", 1.5, -1, None])
+def test_activated_reward_mint_rejects_invalid_pool_balance_before_writes(
+    balance: object,
+) -> None:
+    st = _state(issued=0)
+    st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] = balance
+    before_accounts = deepcopy(st["accounts"])
+    before_policy = deepcopy(st["economics"]["monetary_policy"])
+    with pytest.raises(RewardsApplyError, match="reward_mint_pool_balance_invalid"):
+        apply_rewards(
+            st,
+            _sys(
+                "BLOCK_REWARD_MINT",
+                {"block_id": "bad-mint-funding", "issuance_epoch": 0, "amount": 7},
+                83,
+            ),
+        )
+    assert st["accounts"] == before_accounts
+    assert st["economics"]["monetary_policy"] == before_policy
+    assert "bad-mint-funding" not in st.get("rewards", {}).get(
+        "block_rewards_by_id", {}
+    )
+
+
+def test_activated_reward_mint_requires_existing_pool_for_positive_issuance() -> None:
+    st = _state(issued=0)
+    del st["accounts"][MINT_POOL_ACCOUNT_ID]
+    before = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="reward_mint_pool_missing"):
+        apply_rewards(
+            st,
+            _sys(
+                "BLOCK_REWARD_MINT",
+                {"block_id": "missing-mint-funding", "issuance_epoch": 0, "amount": 7},
+                84,
+            ),
+        )
+    assert st["accounts"] == before
+    assert st["economics"]["monetary_policy"]["issued"] == 0
+
+
+def test_activated_reward_mint_rejects_missing_policy_before_issuance() -> None:
+    st = _state(issued=0)
+    del st["economics"]["monetary_policy"]
+    before = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="reward_mint_policy_missing"):
+        apply_rewards(
+            st,
+            _sys(
+                "BLOCK_REWARD_MINT",
+                {"block_id": "missing-mint-policy", "issuance_epoch": 0, "amount": 7},
+                85,
+            ),
+        )
+    assert st["accounts"] == before
+    assert "monetary_policy" not in st["economics"]
+
+
+def test_unactivated_reward_mint_preserves_legacy_numeric_coercion() -> None:
+    st = _state(issued=0, configured=False)
+    result = apply_rewards(
+        st,
+        _sys(
+            "BLOCK_REWARD_MINT",
+            {"block_id": "legacy-fractional-mint", "issuance_epoch": 0, "amount": 7.9},
+            86,
+        ),
+    )
+    assert result["amount"] == 7
+    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 7
+    assert st["economics"]["monetary_policy"]["issued"] == 7
