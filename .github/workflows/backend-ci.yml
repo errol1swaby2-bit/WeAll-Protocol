@@ -107,6 +107,7 @@ jobs:
           bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
 
       - name: A15-F003 permanent-state scarcity evidence
+        id: a15_evidence
         run: |
           mkdir -p artifacts/p0-assurance
           python scripts/bench_a15_f003_account_cardinality.py --accounts 10000 \
@@ -120,13 +121,18 @@ jobs:
           cat artifacts/p0-assurance/a15-f003-registration-attack.json
 
       - name: P0 property and mutation assurance
+        id: p0_assurance
         run: |
           python tests/p0_assurance.py gate \
             --report artifacts/p0-assurance/p0_assurance_report.json \
             --timeout-seconds 120
 
       - name: Upload P0 closure assurance evidence
-        if: always()
+        # Retain fail-closed artifact verification whenever a producer runs.
+        # If an earlier required gate fails, both producers are skipped; in
+        # that case a missing artifact is expected and must not masquerade as
+        # an independent P0 assurance failure.
+        if: ${{ always() && (steps.a15_evidence.outcome != 'skipped' || steps.p0_assurance.outcome != 'skipped') }}
         uses: actions/upload-artifact@v4
         with:
           name: p0-closure-assurance-evidence
