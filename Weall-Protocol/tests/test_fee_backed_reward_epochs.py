@@ -680,3 +680,99 @@ def test_activated_secondary_allocation_rejects_bool_amount_without_mutation(
             ),
         )
     assert st["accounts"] == original_accounts
+
+
+@pytest.mark.parametrize(
+    ("direction", "row"),
+    [
+        ("credit", {"to": "@validator", "amount": 10.9}),
+        ("debit", {"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 10.9}),
+        ("credit", {"to": "@validator", "amount": "10"}),
+        ("debit", {"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": True}),
+        ("credit", {"to": "@validator", "amount": 0}),
+        ("debit", {"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": -2}),
+        ("credit", {"to": "@validator"}),
+        ("debit", None),
+    ],
+)
+def test_activated_reward_distribution_rejects_invalid_rows_without_account_writes(
+    direction: str, row: object
+) -> None:
+    st = _state(fee_balance=25)
+    before = deepcopy(st["accounts"])
+    payload = {
+        "block_id": "malformed-distribution",
+        "transfers": [{"to": "@validator", "amount": 10}],
+        "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 10}],
+    }
+    payload["transfers" if direction == "credit" else "debits"] = [row]
+    with pytest.raises(RewardsApplyError, match="reward_distribution_invalid_row"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", payload, 50))
+    assert st["accounts"] == before
+    assert "malformed-distribution" not in st.get("rewards", {}).get(
+        "block_reward_distributions_by_id", {}
+    )
+
+
+@pytest.mark.parametrize("field", ["transfers", "debits"])
+def test_activated_reward_distribution_requires_explicit_funding_rows(
+    field: str,
+) -> None:
+    st = _state(fee_balance=25)
+    before = deepcopy(st["accounts"])
+    payload = {
+        "block_id": "missing-funding-rows",
+        "transfers": [{"to": "@validator", "amount": 10}],
+        "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 10}],
+    }
+    del payload[field]
+    with pytest.raises(RewardsApplyError, match="reward_distribution_funding_rows_required"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", payload, 51))
+    assert st["accounts"] == before
+
+
+def test_activated_reward_distribution_missing_mint_pool_never_creates_account() -> None:
+    st = _state(fee_balance=0)
+    del st["accounts"][MINT_POOL_ACCOUNT_ID]
+    before = deepcopy(st["accounts"])
+    payload = {
+        "block_id": "missing-mint-funding",
+        "transfers": [{"to": "@validator", "amount": 10}],
+        "debits": [{"from": MINT_POOL_ACCOUNT_ID, "amount": 10}],
+    }
+    with pytest.raises(RewardsApplyError, match="reward_funding_account_missing"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", payload, 52))
+    assert st["accounts"] == before
+
+
+def test_activated_reward_distribution_rejects_noninteger_mint_balance() -> None:
+    st = _state(fee_balance=0)
+    st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] = True
+    before = deepcopy(st["accounts"])
+    payload = {
+        "block_id": "invalid-mint-balance",
+        "transfers": [{"to": "@validator", "amount": 1}],
+        "debits": [{"from": MINT_POOL_ACCOUNT_ID, "amount": 1}],
+    }
+    with pytest.raises(RewardsApplyError, match="reward_funding_balance_invalid"):
+        apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", payload, 53))
+    assert st["accounts"] == before
+
+
+def test_unactivated_reward_distribution_keeps_legacy_fractional_row_parsing() -> None:
+    st = _state(fee_balance=20, configured=False)
+    receipt = apply_rewards(
+        st,
+        _sys(
+            "BLOCK_REWARD_DISTRIBUTE",
+            {
+                "block_id": "legacy-fractional-rows",
+                "transfers": [{"to": "@validator", "amount": 7.9}],
+                "debits": [{"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 7.9}],
+            },
+            54,
+        ),
+    )
+    assert receipt["distributed_total"] == 7
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 13
+    assert st["accounts"]["@validator"]["balance"] == 7
