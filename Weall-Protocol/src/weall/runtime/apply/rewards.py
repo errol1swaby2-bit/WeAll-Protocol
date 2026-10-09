@@ -260,9 +260,7 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
 
     activated_fee_rewards = fee_reward_pool_contract_enabled(state)
-    if activated_fee_rewards and (
-        type(payload.get("amount")) is not int or payload["amount"] < 0
-    ):
+    if activated_fee_rewards and (type(payload.get("amount")) is not int or payload["amount"] < 0):
         raise RewardsApplyError(
             "invalid_payload", "reward_mint_amount_must_be_nonnegative_integer", {}
         )
@@ -316,7 +314,9 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
                 raise RewardsApplyError("invalid_state", "reward_mint_policy_invalid", {})
             if amount > 0:
                 accounts = state.get("accounts")
-                mint_pool = accounts.get(MINT_POOL_ACCOUNT_ID) if isinstance(accounts, dict) else None
+                mint_pool = (
+                    accounts.get(MINT_POOL_ACCOUNT_ID) if isinstance(accounts, dict) else None
+                )
                 if not isinstance(mint_pool, dict):
                     raise RewardsApplyError("invalid_state", "reward_mint_pool_missing", {})
                 pool_balance = mint_pool.get("balance")
