@@ -788,6 +788,23 @@ def _apply_transfers_and_debits(
         if not isinstance(accounts, dict):
             raise RewardsApplyError("invalid_state", "missing_accounts", {})
 
+        # Minted subsidy is reserved for canonical epoch distribution. A
+        # secondary allocation must not redirect issuance-backed reserves.
+        for rows, direction in ((transfers, "credit"), (debits, "debit")):
+            for row in rows:
+                if isinstance(row, dict):
+                    raw_account = (
+                        row.get("to") or row.get("account") or row.get("account_id")
+                        if direction == "credit"
+                        else row.get("from") or row.get("account") or row.get("account_id")
+                    )
+                    if raw_account == MINT_POOL_ACCOUNT_ID:
+                        raise RewardsApplyError(
+                            "forbidden",
+                            "reserved_mint_pool_allocation_forbidden",
+                            {"direction": direction},
+                        )
+
         credits_by_account: dict[str, int] = {}
         debits_by_account: dict[str, int] = {}
 
