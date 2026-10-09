@@ -1553,9 +1553,7 @@ def test_activated_transfer_id_exact_replay_is_idempotent_without_moving_funds()
     }
     first = apply_economics(st, _transfer_replay_env(deepcopy(payload)))
     before = deepcopy(st)
-    replay = apply_economics(
-        st, _transfer_replay_env(deepcopy(payload), nonce=2)
-    )
+    replay = apply_economics(st, _transfer_replay_env(deepcopy(payload), nonce=2))
     assert first["deduped"] is False
     assert replay["deduped"] is True
     assert st == before
@@ -1597,9 +1595,7 @@ def test_activated_transfer_id_replay_rejects_conflicting_identity_or_payload(
     else:
         parent = "unexpected-parent"
     with pytest.raises(EconomicsApplyError, match="balance_transfer_duplicate_payload_mismatch"):
-        apply_economics(
-            st, _transfer_replay_env(forged, signer=signer, nonce=2, parent=parent)
-        )
+        apply_economics(st, _transfer_replay_env(forged, signer=signer, nonce=2, parent=parent))
     assert st == before
 
 
