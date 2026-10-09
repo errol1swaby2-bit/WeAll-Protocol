@@ -512,6 +512,58 @@ authenticated system queue lineage, historical activation replay,
 independent review and final production economic allocation still need
 validation before merging or activation.
 
+## Full issuance-epoch local executor replay and durable restart proof
+
+The earlier queue-emitter tests and duplicate-payload tests did not call
+`WeAllExecutor.build_block_candidate`, `commit_block_candidate` and
+`apply_block` across a real persisted block series. A new focused
+`tests/test_fee_reward_consensus_boundary.py` covers these actual
+runtime boundaries using **two independent SQLite-backed executors**:
+
+1. An explicit *synthetic local activated-chain* fixture sets up the fee
+   pool, the `issued = MAX_SUPPLY` monetary counter, and 17 existing
+   fee-pool units. This fixture is not a historically bootstrapped
+   economic system or a migrated production ledger.
+2. Candidate creation, durable leader commit and independent follower
+   `apply_block` succeed and agree for every height 1 through 30, with
+   zero rewards during heights 1-29.
+3. The sole issuance-epoch reward at height 30 is a **zero-subsidy mint**
+   plus an existing-fee-funded distribution. Total account balances are
+   conserved, the fee pool ends at zero, and `issued` remains at cap.
+4. Each SQLite database is independently reopened. Apart from the one
+   documented node-local `meta.last_shutdown_clean` lifecycle flag,
+   restart yields the exact pre-restart ledger snapshot. The entire
+   consensus state-root projection and the computed state-root hash
+   match before and after restart.
+5. The restarted proposer/follower execute height 31 and still agree;
+   the closed epoch is not settled a second time.
+
+A separate boundary case verifies the reward pair through actual block
+construction, commit and follower replay from a synthetic pre-epoch
+height-29 snapshot. Neither case mocks block validation or
+`validate_system_tx_queue_binding`.
+
+**Exact verification:** [Backend CI run #37874182358](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37874182358)
+at source/test/temporary-diagnostic commit
+`7d5831d93a5d25c8da3155a3e3af81b89fb00827`:
+**199 focused tests passed in 12.87 seconds**, with changed-file Ruff
+format/check, dependency audit and canon lint passing. Full backend CI
+continues to stop at the unchanged first unaccepted transaction
+semantic-review digest `ACCOUNT_REGISTER`. The temporary diagnostic
+step was removed in `fa9a47afefd576185a8162e76912ce2a73f96244`,
+restoring the original workflow blob
+`e1090406588e1ecf148382f227263f5fdd43573c`.
+
+**Important limits:** This evidence tests deterministic same-process
+independent leader/follower executors backed by real persisted SQLite
+files, **not** a networked BFT validator quorum, signed QC/finality,
+failing peers, competing forks, actual activation-height migration
+from an old chain, or a complete circulating-supply audit. The
+synthetic `issued = MAX_SUPPLY` fixture explicitly does not prove
+that all historical issuance balances are present. No semantic-review
+digest was changed or approved. Production chain reward allocation
+is still blocked by its existing gate.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
