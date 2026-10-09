@@ -55,6 +55,27 @@ def _as_dict(v: Any) -> Json:
     return v if isinstance(v, dict) else {}
 
 
+def _same_json_value_type_exact(left: Any, right: Any) -> bool:
+    """Compare JSON values without equating booleans, integers, or floats.
+
+    Activated transfer replay must use the original payload's types, not
+    Python's permissive True == 1 == 1.0 equality.
+    """
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(
+            _same_json_value_type_exact(value, right[key]) for key, value in left.items()
+        )
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            _same_json_value_type_exact(a, b) for a, b in zip(left, right, strict=True)
+        )
+    if type(left) not in (str, int, float, bool, type(None)):
+        return False
+    return left == right
+
+
 def _accounts_root(state: Json) -> Json:
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
@@ -1032,7 +1053,33 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         transfer_id = f"transfer:{frm}:{int(env.nonce)}"
 
     existing = transfers_by_id.get(transfer_id)
+    if activated_fee_rewards and transfer_id in transfers_by_id and not isinstance(
+        existing, dict
+    ):
+        raise EconomicsApplyError(
+            "invalid_state",
+            "balance_transfer_duplicate_record_invalid",
+            {"transfer_id": transfer_id},
+        )
     if isinstance(existing, dict):
+        # A caller-supplied ID identifies an already committed transfer only
+        # when its signer, destination, amount, parent, and complete typed
+        # payload match. Otherwise return a rejection, not a false success
+        # receipt for another transfer. Historical unactivated replay is
+        # intentionally unchanged.
+        if activated_fee_rewards and (
+            existing.get("from") != frm
+            or existing.get("to") != to
+            or type(existing.get("amount")) is not int
+            or existing["amount"] != amt
+            or not _same_json_value_type_exact(existing.get("payload"), payload)
+            or not _same_json_value_type_exact(existing.get("parent"), env.parent)
+        ):
+            raise EconomicsApplyError(
+                "forbidden",
+                "balance_transfer_duplicate_payload_mismatch",
+                {"transfer_id": transfer_id},
+            )
         receipt = {
             "applied": "BALANCE_TRANSFER",
             "from": existing.get("from", frm),
