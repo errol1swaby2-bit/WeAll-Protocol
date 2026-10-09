@@ -1305,9 +1305,7 @@ def test_activated_distribution_exact_duplicate_is_idempotent() -> None:
     apply_rewards(st, _sys("BLOCK_REWARD_MINT", deepcopy(mint), 94))
     apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", deepcopy(distribution), 95))
     before = deepcopy(st)
-    duplicate = apply_rewards(
-        st, _sys("BLOCK_REWARD_DISTRIBUTE", deepcopy(distribution), 96)
-    )
+    duplicate = apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", deepcopy(distribution), 96))
     assert duplicate["deduped"] is True
     assert st == before
 
