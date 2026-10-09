@@ -51,6 +51,15 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      # Temporary bounded diagnostic for PR #48. Restore original blob after recording.
+      - name: PR48 secondary reward formatting diagnostic (temporary)
+        run: |
+          ruff format --diff src/weall/runtime/apply/rewards.py tests/test_fee_backed_reward_epochs.py || true
+
+      - name: PR48 secondary reward focused diagnostic (temporary)
+        run: |
+          pytest -q tests/test_fee_backed_reward_epochs.py
+
       - name: Ruff changed Python files
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
