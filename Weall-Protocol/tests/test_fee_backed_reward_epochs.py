@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -22,10 +23,16 @@ from weall.runtime.apply.identity import apply_identity
 from weall.runtime.apply.rewards import RewardsApplyError, apply_rewards
 from weall.runtime.errors import ApplyError
 from weall.runtime.system_tx_engine import (
+    SystemQueueCorruptionError,
     SystemSchedulerError,
+    build_system_queue_lookup,
     schedule_block_rewards_system_txs,
+    system_tx_emitter,
+    validate_system_queue_recovery_state,
+    validate_system_tx_queue_binding,
 )
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.tx.canon import TxIndex
 
 
 def _state(*, issued: int = MAX_SUPPLY, fee_balance: int = 0, configured: bool = True) -> dict:
@@ -776,3 +783,138 @@ def test_unactivated_reward_distribution_keeps_legacy_fractional_row_parsing() -
     assert receipt["distributed_total"] == 7
     assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 13
     assert st["accounts"]["@validator"]["balance"] == 7
+
+
+@pytest.mark.parametrize("balance", [True, "12", 12.5, -1, None])
+def test_activated_reward_distribution_rejects_invalid_recipient_balances(
+    balance: object,
+) -> None:
+    st = _state(fee_balance=30)
+    st["accounts"]["@validator"]["balance"] = balance
+    before = deepcopy(st["accounts"])
+    with pytest.raises(RewardsApplyError, match="reward_recipient_balance_invalid"):
+        apply_rewards(
+            st,
+            _sys(
+                "BLOCK_REWARD_DISTRIBUTE",
+                {
+                    "block_id": "bad-recipient-state",
+                    "transfers": [{"to": "@validator", "amount": 12}],
+                    "debits": [
+                        {"from": FEE_REWARD_POOL_ACCOUNT_ID, "amount": 12}
+                    ],
+                },
+                61,
+            ),
+        )
+    assert st["accounts"] == before
+    assert "bad-recipient-state" not in st.get("rewards", {}).get(
+        "block_reward_distributions_by_id", {}
+    )
+
+
+def test_fee_only_reward_queue_emission_and_binding_survive_snapshot_replay() -> None:
+    st = _state(fee_balance=29)
+    st["height"] = ISSUANCE_EPOCH_BLOCKS - 1
+    canon = TxIndex.load_from_file(
+        str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    )
+    proposed = system_tx_emitter(
+        st,
+        canon,
+        next_height=ISSUANCE_EPOCH_BLOCKS,
+        phase="post",
+        proposer="@validator",
+    )
+    assert [tx.tx_type for tx in proposed] == [
+        "BLOCK_REWARD_MINT",
+        "BLOCK_REWARD_DISTRIBUTE",
+    ]
+    assert proposed[0].payload["amount"] == 0
+    assert proposed[1].payload["fees"] == 29
+
+    lookup = build_system_queue_lookup(st)
+    for tx in proposed:
+        ok, reason = validate_system_tx_queue_binding(
+            st,
+            canon,
+            tx,
+            next_height=ISSUANCE_EPOCH_BLOCKS,
+            phase="post",
+            queue_objects_by_id=lookup,
+        )
+        assert (ok, reason) == (True, "")
+
+    # Two independently reloaded snapshots apply exactly the emitted system
+    # envelopes, not a fabricated direct-applier-only reward payload.
+    reloaded_a = deepcopy(st)
+    reloaded_b = deepcopy(st)
+    for tx in proposed:
+        assert apply_rewards(reloaded_a, tx) == apply_rewards(reloaded_b, tx)
+    assert reloaded_a == reloaded_b
+    assert reloaded_a["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 0
+    assert reloaded_a["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
+    assert sum(acct["balance"] for acct in reloaded_a["accounts"].values()) == 129
+
+    reemitted = system_tx_emitter(
+        st,
+        canon,
+        next_height=ISSUANCE_EPOCH_BLOCKS,
+        phase="post",
+        proposer="@validator",
+    )
+    assert reemitted == []
+
+
+def test_queued_fee_reward_payload_tampering_is_rejected_before_replay() -> None:
+    st = _state(fee_balance=19)
+    st["height"] = ISSUANCE_EPOCH_BLOCKS - 1
+    canon = TxIndex.load_from_file(
+        str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    )
+    proposed = system_tx_emitter(
+        st,
+        canon,
+        next_height=ISSUANCE_EPOCH_BLOCKS,
+        phase="post",
+        proposer="@validator",
+    )
+    dist = next(tx for tx in proposed if tx.tx_type == "BLOCK_REWARD_DISTRIBUTE")
+    forged_payload = deepcopy(dist.payload)
+    forged_payload["fees"] = 20
+    forged = TxEnvelope(
+        tx_type=dist.tx_type,
+        signer=dist.signer,
+        nonce=dist.nonce,
+        payload=forged_payload,
+        sig=dist.sig,
+        parent=dist.parent,
+        system=True,
+    )
+    ok, reason = validate_system_tx_queue_binding(
+        st,
+        canon,
+        forged,
+        next_height=ISSUANCE_EPOCH_BLOCKS,
+        phase="post",
+        queue_objects_by_id=build_system_queue_lookup(st),
+    )
+    assert (ok, reason) == (False, "system_queue_payload_mismatch")
+    assert st["accounts"][FEE_REWARD_POOL_ACCOUNT_ID]["balance"] == 19
+
+
+def test_fee_reward_queue_recovery_rejects_overdue_unemitted_distribution() -> None:
+    st = _state(fee_balance=13)
+    st["height"] = ISSUANCE_EPOCH_BLOCKS - 1
+    schedule_block_rewards_system_txs(
+        st,
+        next_height=ISSUANCE_EPOCH_BLOCKS,
+        proposer="@validator",
+        phase="post",
+    )
+    with pytest.raises(SystemQueueCorruptionError, match="system_queue_item_past_due_at_recovery"):
+        validate_system_queue_recovery_state(
+            st, committed_height=ISSUANCE_EPOCH_BLOCKS
+        )
+    assert len(st["system_queue"]) == 2
+    assert all(item.get("emitted_height") is None for item in st["system_queue"])
