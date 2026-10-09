@@ -90,12 +90,6 @@ jobs:
         run: |
           python -m tooling.canon_lint
 
-      # TEMPORARY full-backend regression diagnostic, not release approval.
-      # Restore after capturing exact-head results; the semantic review gate
-      # below remains untouched and must still reject pending contracts.
-      - name: Temporary full backend pytest diagnostic
-        run: pytest -q
-
       - name: Check generated artifacts
         id: generated_artifacts
         run: |
