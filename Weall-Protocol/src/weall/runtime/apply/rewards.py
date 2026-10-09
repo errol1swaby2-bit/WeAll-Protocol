@@ -431,9 +431,13 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         distributions = r.get("distributions_by_id")
     if not isinstance(distributions, dict):
         distributions = {}
-    r["block_reward_distributions_by_id"] = distributions
-    r["block_distributions_by_id"] = distributions
-    r["distributions_by_id"] = distributions
+    # On activated chains these compatibility aliases must not be written
+    # until every payout and funding preflight has succeeded. A rejected
+    # transaction must leave the replicated state unchanged.
+    if not fee_reward_pool_contract_enabled(state):
+        r["block_reward_distributions_by_id"] = distributions
+        r["block_distributions_by_id"] = distributions
+        r["distributions_by_id"] = distributions
 
     existing = distributions.get(block_id)
     already = isinstance(existing, dict)
@@ -448,6 +452,10 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
                 "reward_distribution_duplicate_payload_mismatch",
                 {"block_id": block_id},
             )
+        if fee_reward_pool_contract_enabled(state):
+            r["block_reward_distributions_by_id"] = distributions
+            r["block_distributions_by_id"] = distributions
+            r["distributions_by_id"] = distributions
         return {
             "applied": "BLOCK_REWARD_DISTRIBUTE",
             "block_id": block_id,
@@ -703,6 +711,11 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
             raise RewardsApplyError(
                 "forbidden", "reward_distribution_parent_funding_mismatch", {}
             )
+
+    if activated_fee_rewards:
+        r["block_reward_distributions_by_id"] = distributions
+        r["block_distributions_by_id"] = distributions
+        r["distributions_by_id"] = distributions
 
     for debit in normalized_debits:
         src = str(debit["from"])
