@@ -222,7 +222,7 @@ diagnostic step was removed in commit
 original CI workflow blob `e1090406588e1ecf148382f227263f5fdd43573c`.
 
 The separate
-[seven-contract review matrix](FEE_REWARD_SEVEN_CONTRACT_REVIEW_MATRIX_20261008.md)
+[seven-contract review matrix](FEE_REWARD_EIGHT_CONTRACT_REVIEW_MATRIX_20261008.md)
 maps every changed transaction to the tested boundary and the outstanding
 authority, conservation and replay questions. Its contents are diagnostic
 review preparation, **not** maintainer acceptance or independent sign-off.
@@ -334,6 +334,60 @@ or be differentiated in canonical admission/accounting is a normative
 policy question and has not been silently changed here. Full value-moving
 path review, independently witnessed supply accounting, historical
 activation-height replay, and final production allocation remain pending.
+
+## Activated mint integrity and corrected eight-contract review scope
+
+The minted-supply code path also needed explicit activated-contract controls.
+Previously, the scheduler used permissive integer coercion of `issued`, allowing
+a malformed counter to be interpreted as zero. The `BLOCK_REWARD_MINT`
+applier could also normalize malformed `amount` and issuance-policy fields,
+or implicitly create/coerce the mint funding pool after already recording
+issuance. These are independent risks to recorded monetary conservation.
+
+The new **activated v1 only** behavior:
+
+- The scheduler refuses missing monetary-policy records, invalid exact-integer
+  `issued` counters, out-of-range counters, and noncanonical `max_supply`
+  fields **before** enqueueing reward-mint or reward-distribution work.
+- The mint applier requires an exact nonnegative-integer amount; for a new
+  positive mint it validates the existing exact-integer monetary-policy
+  counter/cap and the pre-existing mint-pool account/balance before writing
+  issuance records or adding supply.
+- Zero-subsidy fee-only epochs remain valid without a positive mint-pool
+  credit, and historical unactivated chains retain prior amount coercion.
+- Direct-handler checks are not substitute evidence for authenticated
+  consensus queue ancestry, reorg handling, rollback safety, final governed
+  production reward allocation, or independent economic review.
+
+[Backend CI diagnostic #37870208267](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37870208267)
+at exact source/test/temporary-CI head
+`59863c1d62c458f1549a7ad40f8d7c68fbf5f947` reported
+**165 focused tests passed in 11.24 seconds**, including 28 additional
+malformed-issuance/policy/mint-pool and legacy-replay cases. Changed-file
+Ruff, dependency audit, and canon lint passed. The main Backend CI job still
+fails the deliberately unchanged first stale semantic-review acceptance
+digest `ACCOUNT_REGISTER`. The temporary diagnostic step was removed in
+commit `792997c0d8ecf5e7e127c800491f7940c4cea782` and baseline workflow
+blob `e1090406588e1ecf148382f227263f5fdd43573c` was restored.
+
+**Review inventory correction:** The previous chronological evidence sections
+reported seven changed transaction contracts. Explicit activated
+`BLOCK_REWARD_MINT` behavior also requires semantic adjudication. We added
+it to the *read-only* compiler-derived candidate reporter, without changing
+accepted review records. [Backend CI inventory #37870513713](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37870513713)
+at `b6385ed7cc1e3a971e41025ba5e2965054db79ab` recorded
+**132 focused tests passed in 9.86 seconds** and **eight** differing
+candidate digests, all `PENDING_MAINTAINER_REVIEW`.
+The original workflow was again restored in
+`455b0b7ffe54935c273f99cb2d97a720a133d956`.
+The corrected current review scope is **eight**:
+`ACCOUNT_REGISTER`, `BALANCE_TRANSFER`, `BLOCK_REWARD_DISTRIBUTE`,
+`BLOCK_REWARD_MINT`, `CREATOR_REWARD_ALLOCATE`, `FEE_PAY`,
+`FORFEITURE_APPLY`, and `TREASURY_REWARD_ALLOCATE`.
+
+See the [current eight-contract review matrix](FEE_REWARD_EIGHT_CONTRACT_REVIEW_MATRIX_20261008.md).
+No candidate has been accepted or independently signed off. Do not cosmetically
+update accepted digests or merge/activate this draft.
 
 ## Explicit future requirements / risk register
 
