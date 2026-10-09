@@ -423,6 +423,42 @@ replay, restart/reorg behavior, per-epoch unique settlement authority and
 cross-contract source/finality review. These direct-applier checks alone
 do not certify those properties.
 
+## Type-exact JSON duplicate replay closure
+
+A further audit found that Python's structural dictionary equality treats
+`True == 1 == 1.0`. The first activated duplicate-ID guard therefore
+still treated some different JSON numeric/boolean values as equivalent
+in non-amount reward fields such as height, issuance epoch and fee
+metadata (and nested transfer/debit amounts). These fields are part of the
+committed payload identity and must not be silently coerced.
+
+The activated `BLOCK_REWARD_MINT` and `BLOCK_REWARD_DISTRIBUTE`
+duplicate checks now use `_same_reward_payload`: a deterministic,
+recursive, **type-exact** comparison of decoded JSON dictionaries,
+lists and scalar values. Field ordering is irrelevant, but booleans,
+integers and floats are distinct. Equal payloads remain idempotent;
+value- or type-conflicting duplicate IDs fail closed. Unactivated
+historical duplicate replay remains unchanged.
+
+Eight additional adversarial parameterized cases cover type-spoofed
+issuance epoch, height, fees, subsidy, recipient payout and funding debit.
+[Backend CI #37872068381](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37872068381)
+at exact formatted/lint-corrected source/test/temporary-CI head
+`0bbd67fdebf2a363849c2e8937e2a9402e420cce`
+reported **184 focused tests passed in 11.51 seconds**. Changed-file
+Ruff format/check, dependency audit and canon lint passed. The read-only
+semantic report still found **eight** candidate digests differing from
+accepted records. Full backend CI stopped at the deliberately unchanged
+`ACCOUNT_REGISTER` semantic-review acceptance gate.
+
+Temporary CI instrumentation was removed in
+`da71bb4520803a112cbc6e32f7157fbac3fd3a71` and the permanent workflow
+blob returned to exact baseline `e1090406588e1ecf148382f227263f5fdd43573c`.
+
+This remains bounded direct-applier evidence, not proof of full BFT
+multi-node execution, fork handling, or uniqueness of settlement across
+different valid block IDs.
+
 ## Explicit future requirements / risk register
 
 - Replace legacy local 20% bucket fallback with the full accepted-work, public-goods, active-group, common-control, reserve, and rotating-remainder contracts before production activation.
