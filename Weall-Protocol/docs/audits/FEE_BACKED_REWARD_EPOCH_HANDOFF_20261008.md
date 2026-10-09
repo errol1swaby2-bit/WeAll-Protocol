@@ -578,3 +578,35 @@ is still blocked by its existing gate.
 ## Reviewer decision
 
 **Do not merge or activate** on the basis of the current draft alone. The review must explicitly approve (or reject) the transaction-semantic changes, reconcile v2 contract evidence, and prove the final reward recipient/economic activation gates.
+
+
+## Activated BALANCE_TRANSFER replay-ID identity and immutable receipt boundary
+
+The activated v1 `BALANCE_TRANSFER` handler previously returned a successful
+`deduped=True` receipt whenever a supplied `transfer_id` was already present,
+even if the new signer, recipient, amount, parent or typed payload differed.
+That permitted a misleading successful receipt for a different transaction
+without executing that transaction. An existing non-dict record could also be
+silently replaced when an ID was reused.
+
+The activated handler now rejects conflicting duplicate IDs with
+`balance_transfer_duplicate_payload_mismatch`. It compares the original
+signer, destination, exact integer amount, parent and recursively type-exact
+JSON payload, including nested booleans versus integer/float aliases.
+A malformed duplicate index record is rejected rather than overwritten.
+A replay with the same original identity and payload remains idempotent.
+Historical **unactivated** transaction decoding and replay are unchanged.
+
+Nine regression cases exercise exact idempotency, six mismatched
+identity/payload shapes, malformed index records, and unactivated legacy
+compatibility. After applying the formatter's exact changes, the temporary
+pre-semantic-gate diagnostic [Backend CI #37877167596](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/37877167596)
+at code/test/temporary-workflow commit
+`d4997f1220a00e5b7e15b800a4ae746d9d3b3c8d` reported
+**172 tests passed in 1.20s** for
+`tests/test_fee_backed_reward_epochs.py`. Ruff format/check, dependency
+audit and canonical lint also passed. The Backend CI job still correctly
+failed at the unchanged first pending `ACCOUNT_REGISTER` semantic-review
+digest. The diagnostic steps were temporary and must be removed from the
+permanent workflow; these focused tests are not a full suite, human
+semantic acceptance, historical cutover, or network BFT replay proof.
