@@ -1,6 +1,6 @@
 {
   "by_domain": {
-    "api": 107,
+    "api": 108,
     "launch_readiness": 32,
     "runtime": 8,
     "runtime_apply": 75
@@ -238,7 +238,7 @@
       "http_status": 502,
       "sample_reason": "public observer has no verified tx upstream for required propagation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1939
+      "source_lineno": 1958
     },
     {
       "code": "SIGNATURE_PROFILE_MISSING",
@@ -346,7 +346,7 @@
       "http_status": 400,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 181
+      "source_lineno": 191
     },
     {
       "code": "account_required",
@@ -365,6 +365,15 @@
       "sample_reason": "group_exists",
       "source": "src/weall/runtime/apply/groups.py",
       "source_lineno": 529
+    },
+    {
+      "code": "already_finalized_rejected",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "This transaction was already included with a failed apply receipt. Correct the cause and sign a new transaction.",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1928
     },
     {
       "code": "bad_payload",
@@ -670,7 +679,7 @@
       "http_status": null,
       "sample_reason": "Executor not available",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 521
+      "source_lineno": 531
     },
     {
       "code": "executor_read_state_required",
@@ -922,7 +931,7 @@
       "http_status": 400,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 374
+      "source_lineno": 384
     },
     {
       "code": "internal_error",
@@ -1138,7 +1147,7 @@
       "http_status": 400,
       "sample_reason": "accounts root missing",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 178
+      "source_lineno": 188
     },
     {
       "code": "invalid_state",
@@ -1147,7 +1156,7 @@
       "http_status": null,
       "sample_reason": "roles root missing",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 230
+      "source_lineno": 240
     },
     {
       "code": "invalid_state",
@@ -1840,7 +1849,7 @@
       "http_status": 400,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 381
+      "source_lineno": 391
     },
     {
       "code": "pubkey_not_authorized",
@@ -2005,7 +2014,7 @@
       "source_lineno": 128
     }
   ],
-  "entry_count": 222,
+  "entry_count": 223,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
@@ -2043,6 +2052,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 106,
+  "unique_code_count": 107,
   "version": "2026-06-batch10a"
 }

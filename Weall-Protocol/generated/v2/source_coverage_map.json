@@ -3008,7 +3008,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "1ca2e31ce55e1fc1e7be76c09e17cc232d028684e0ea5b1ff1d44da3d1ab97e0",
+      "sha256": "8932a150b4dd540fd3d3c56758d50ea0a560f89a230ad6e8dcba24a37239322b",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -3329,7 +3329,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c81f86da501de662c71422337242dc7f18facac852d291f1e2c0224c4f1b820d",
+      "sha256": "deec3dabd576eb538f9c0d753e7389ee36427e19951e8f84fadc8fd9eb4647a7",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
