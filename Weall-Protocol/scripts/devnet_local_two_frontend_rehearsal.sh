@@ -548,6 +548,7 @@ Path(secret_file).write_text(json.dumps({
     'session_ttl_seconds': 24 * 60 * 60,
     'warning': 'local controlled-devnet browser bootstrap secret; never commit or use in production',
 }, indent=2) + '\n', encoding='utf-8')
+Path(secret_file).chmod(0o600)
 Path(manifest_file).parent.mkdir(parents=True, exist_ok=True)
 Path(manifest_file).write_text(json.dumps({
     'profile': profile,
@@ -938,6 +939,29 @@ if [[ -n "${OBSERVER_REGISTER_TX_ID}" ]]; then
   fi
 fi
 _wait_account_nonce "${NODE2_API}" "${OBSERVER_ACCOUNT}" 1 75
+
+# Every newly registered applicant must have the ML-KEM authority that its
+# browser will use for applicant and reviewer evidence envelopes. A stale
+# previous devnet with no ML-KEM record must not silently proceed to upload.
+python3 - "${NODE1_API}" "${NODE2_API}" "${OBSERVER_ACCOUNT}" "${OBSERVER_KEYFILE}" <<'PY_KEM_PREFLIGHT'
+import json, sys, urllib.parse, urllib.request
+api1, api2, account, keyfile = sys.argv[1:]
+expected = str(json.load(open(keyfile, encoding='utf-8')).get('evidence_kem_public_key_b64') or '').strip()
+if not expected:
+    raise SystemExit('rehearsal_applicant_keyfile_missing_mlkem')
+for api in (api1, api2):
+    url = api.rstrip('/') + '/v1/accounts/' + urllib.parse.quote(account, safe='')
+    with urllib.request.urlopen(url, timeout=15) as response:
+        payload = json.load(response)
+    state = payload.get('state') if isinstance(payload, dict) else {}
+    actual = str(((state or {}).get('evidence_encryption') or {}).get('public_key') or '').strip()
+    if actual != expected:
+        raise SystemExit(
+            f'rehearsal_applicant_mlkem_not_registered_or_mismatched: {api} {account}; '
+            'preserve state and register the original matching evidence key before retrying'
+        )
+print('==> Applicant ML-KEM evidence authority confirmed on genesis and observer')
+PY_KEM_PREFLIGHT
 
 if [[ ! -d "${WEB_ROOT}/node_modules" ]]; then
   if _bool_true "${NPM_INSTALL}"; then
