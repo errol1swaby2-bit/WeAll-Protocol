@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4971f30a7363dd07578b32e318d848cbc1104455367a46809369ec1033c4b21b"
+    "source_tree_digest": "634e6f833b3e7856bd5623a9cda25e1b5661bceae511c00c05fd0e9b20229cdc"
   },
   "required_fields": [
     "stable_id",
@@ -10486,6 +10486,7 @@
         "tests/test_lineage_witness_contract.py",
         "tests/test_m3_electorate_round_policy.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py",
         "tests/test_system_tx_completeness.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_governance_activation.py"
