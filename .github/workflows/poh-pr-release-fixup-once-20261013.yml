@@ -1,0 +1,50 @@
+name: PoH PR one-time release evidence and claims synchronization
+
+on:
+  push:
+    branches:
+      - fix/poh-two-node-reviewer-readiness-20261013
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend compiler environment
+        run: |
+          python -m pip install -r Weall-Protocol/requirements-dev.lock
+          python -m pip install -e Weall-Protocol
+      - name: Remove the one-time workflow before fingerprint compilation
+        run: git rm -- .github/workflows/poh-pr-release-fixup-once-20261013.yml
+      - name: Regenerate release evidence, blocker claims, and specification derivatives
+        run: |
+          cd Weall-Protocol
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/compile_v2_spec.py
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/compile_v2_spec.py --check
+      - name: Commit synchronized artifacts to the draft PR
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- Weall-Protocol/generated/release_evidence_manifest_v1_5.json Weall-Protocol/generated/public_beta_blocker_report_v1_5.json Weall-Protocol/generated/current_verified_claims.json Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          git diff --cached --check
+          git commit -m 'chore(poh): synchronize release evidence, blockers, current claims and v2 derivatives'
+          git push origin HEAD:fix/poh-two-node-reviewer-readiness-20261013
+      - name: Validate the committed clean-checkout source digest
+        run: |
+          cd Weall-Protocol
+          python scripts/check_v2_spec_clean_checkout.py
