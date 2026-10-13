@@ -12,7 +12,7 @@ export const WEALL_PROTOCOL_STATUS = {
   "publicBetaReady": false,
   "publicMultiValidatorBft": false,
   "publicStorageProviderMarket": false,
-  "sourceTreeDigest": "826ae76f2962cb4684fa3bdf359d74dfd96e873b63326523d78592b52bd2aa46",
+  "sourceTreeDigest": "4971f30a7363dd07578b32e318d848cbc1104455367a46809369ec1033c4b21b",
   "specCandidate": "2.0 Candidate 3.11R3",
   "v2SpecificationSnapshot": "63629d71a2447abf314f8914a808b565c7c75d70"
 } as const;
