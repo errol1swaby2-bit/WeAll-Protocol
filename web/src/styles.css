@@ -921,6 +921,35 @@ code {
   opacity: 0.7;
 }
 
+/* On desktop, only the menu scrolls; header and footer stay visible. */
+@media (min-width: 961px) {
+  .appShellSidebarBody > .sidebarNavFrame {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .sidebarNavFrame > .sidebarAccountChip,
+  .sidebarNavFrame .sidebarNavSection {
+    flex-shrink: 0;
+  }
+
+  .sidebarNavFrame > .sidebarNav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .sidebarNavFrame > .sidebarNav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .sidebarNav {
   flex: 1;
   min-height: 0;
