@@ -113,7 +113,14 @@ export function friendlyActionError(message: string): string {
   if (lower.includes("nonce") || lower.includes("stale") || lower.includes("already used")) {
     return "Something changed. Refresh and try again.";
   }
-  if (lower.includes("tier") || lower.includes("poh") || lower.includes("not eligible") || lower.includes("gated")) {
+  if (lower.includes("async_reviewer_key_envelope_required")) {
+    return "Encrypted evidence is not yet bound to this reviewer. The applicant must finish sharing the case-scoped evidence key before acceptance.";
+  }
+  if (lower.includes("already_finalized_rejected")) {
+    return "This transaction was rejected on-chain. Correct the underlying issue before submitting a new transaction.";
+  }
+  // A PoH URL or transaction name is not evidence of a verification-tier gate.
+  if (lower.includes("tier") || lower.includes("not eligible") || lower.includes("capability_gated")) {
     return "You need to verify your account before using this action.";
   }
   if (lower.includes("juror") || lower.includes("reviewer") || lower.includes("not assigned")) {
