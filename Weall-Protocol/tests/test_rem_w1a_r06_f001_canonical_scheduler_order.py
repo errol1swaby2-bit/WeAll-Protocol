@@ -174,7 +174,14 @@ def test_clean_database_two_block_governance_replay_and_tamper_rejection(
     template = WeAllExecutor(
         db_path=str(template_path), node_id="@node", chain_id=chain_id, tx_index_path=index_path
     )
-    seed["meta"] = copy.deepcopy(template.state["meta"])
+    # Use the complete initialized genesis as the source of truth. Supplying
+    # only an artificial minimal state misses consensus-bound default fields
+    # that the executor validates at restart.
+    pending_proposals = copy.deepcopy(seed["gov_proposals_by_id"])
+    seed = copy.deepcopy(template.state)
+    assert seed.get("height") == 0
+    seed["gov_proposals_by_id"] = pending_proposals
+    seed["system_queue"] = []
 
     def node(label: str, *, fresh: bool) -> WeAllExecutor:
         path = tmp_path / label / "node.db"
