@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4971f30a7363dd07578b32e318d848cbc1104455367a46809369ec1033c4b21b"
+    "source_tree_digest": "b466d6c969a7553a41cf1514774a712880af4edb1adf55bf0af86b3c318ac806"
   },
   "required_fields": [
     "stable_id",
@@ -3796,6 +3796,7 @@
         "tests/test_priority1_deterministic_execution.py",
         "tests/test_priority2_state_sync_transport_safety.py",
         "tests/test_process_validator_soak_ipfs_panel_locked_economics.py",
+        "tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py",
         "tests/test_tx_payload_profile_pinning.py",
         "tests/test_validator_generation_network_authority.py",
         "tests/test_validator_lifecycle_multinode.py",
@@ -8062,6 +8063,7 @@
         "tests/test_recent_block_anchor.py",
         "tests/test_recursive_production_readiness_closure.py",
         "tests/test_recursive_production_readiness_helper_crypto.py",
+        "tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py",
         "tests/test_scoped_observer_read_paths.py",
         "tests/test_state_media_surface_safety.py",
         "tests/test_status_consensus_forensics_profile_compatibility.py",
