@@ -216,7 +216,9 @@ def test_clean_database_two_block_governance_replay_and_tamper_rejection(
     untouched = copy.deepcopy(adversary.state)
     rejected = adversary.apply_block(swapped)
     assert rejected.ok is False
-    assert rejected.error == "bad_block:required_system_pre_missing_or_reordered"
+    # A raw reorder must first fail the committed tx-ID header binding. The
+    # separate SYSTEM-completeness regression exercises the scheduler-order gate.
+    assert rejected.error == "bad_block:header_tx_ids_mismatch"
     assert adversary.state == untouched
 
     second_replay = follower.apply_block(second)
