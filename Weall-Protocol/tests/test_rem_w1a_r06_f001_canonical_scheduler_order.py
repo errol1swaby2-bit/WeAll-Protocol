@@ -167,6 +167,14 @@ def test_clean_database_two_block_governance_replay_and_tamper_rejection(
         },
     }
     index_path = str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    # Derive the exact current genesis metadata from a real freshly initialized
+    # executor. Never fake or bypass the persisted state-root-version guard.
+    template_path = tmp_path / "template" / "node.db"
+    template_path.parent.mkdir(parents=True, exist_ok=True)
+    template = WeAllExecutor(
+        db_path=str(template_path), node_id="@node", chain_id=chain_id, tx_index_path=index_path
+    )
+    seed["meta"] = copy.deepcopy(template.state["meta"])
 
     def node(label: str, *, fresh: bool) -> WeAllExecutor:
         path = tmp_path / label / "node.db"
@@ -229,8 +237,10 @@ def test_clean_database_two_block_governance_replay_and_tamper_rejection(
     )
     assert len(leader.state.get("gov_stage_set_receipts") or []) >= 2
 
+    committed_root = compute_state_root(leader.state)
     leader_restart = node("leader", fresh=False)
     follower_restart = node("follower", fresh=False)
+    assert compute_state_root(leader_restart.state) == committed_root
     assert compute_state_root(leader_restart.state) == compute_state_root(
         follower_restart.state
     )
