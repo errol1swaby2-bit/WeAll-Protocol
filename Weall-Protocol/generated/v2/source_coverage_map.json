@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2046,
+  "file_count": 2048,
   "files": [
     {
       "affected_registers": [
@@ -110,6 +110,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
       "source_id": "SRC-4DF17321F27735E9"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/w1a-r06-f001-regression.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "65587b02a2dc579025b61b6c78de945be26b2a1c05e41ae50f7c342912edd1d7",
+      "source_id": "SRC-7956584832E0C8A2"
     },
     {
       "affected_registers": [
@@ -10650,7 +10663,7 @@
       ],
       "path": "src/weall/runtime/dispute_engine.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "91b75e25fdd9d3395a8a4f4320c798100cdf4174608628bdbfe659f0b43cad8e",
+      "sha256": "ddad48e4bbb689190630f0bdef1d34f730c497b4a82b3786d80debd820d05dc8",
       "source_id": "SRC-54BD7334E96CF0CA"
     },
     {
@@ -10899,7 +10912,7 @@
       ],
       "path": "src/weall/runtime/gov_engine.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "6a574f04fd927e7df462bb830e2533e37ef554ae325b44a2658f1f3eb279517c",
+      "sha256": "15854a3ba0283f032d7a6421403ecec78b08d2e4aa481c1143463b31b1933ab2",
       "source_id": "SRC-A07193FDBCB87884"
     },
     {
@@ -27357,6 +27370,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "e390c364a660fdc1b7fbd9eba5a8362a294a21bf7e203a0fd14a23ca5c75f901",
       "source_id": "SRC-6E47B02805968F57"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "0ee5bb697e419cb3ed81c7e6651bd1db36e4870a3f147feaa0a1fbc2fde66855",
+      "source_id": "SRC-8885AA8B97293C19"
     },
     {
       "affected_registers": [
