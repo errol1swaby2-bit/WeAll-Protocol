@@ -857,6 +857,12 @@ export default function AccountVerificationPage(): JSX.Element {
         task: async () => {
           const caseId = `pohasync:${String(acct).replace(/^@/, "")}:${challenge.challengeId}`;
           const evidenceContext = `weall:poh-evidence:v1:${caseId}:${acct}`;
+          const subjectKem = ensureEvidenceKemKeypair(acct);
+          const accountView = await weall.account(acct, base);
+          const registeredKem = String(asRecord(accountView?.state).evidence_encryption?.public_key || "").trim();
+          if (!registeredKem || registeredKem !== subjectKem.publicKeyB64) {
+            throw new Error("Your account has no matching registered ML-KEM evidence key. Complete account setup or restore the original recovery file before uploading identity evidence.");
+          }
           const encryptedEvidence = await encryptEvidenceBlob({
             blob: asyncRecordedBlob,
             filename: `${challenge.challengeId}.webm`,
@@ -922,7 +928,6 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          const subjectKem = ensureEvidenceKemKeypair(acct);
           const subjectEnvelope = await wrapEvidenceKeyForRecipient({
             contentKey: encryptedEvidence.contentKey,
             recipientPublicKeyB64: subjectKem.publicKeyB64,
@@ -988,6 +993,18 @@ export default function AccountVerificationPage(): JSX.Element {
             });
           }
 
+          // A successful local evidence bind does not mean the assigned reviewer
+          // has access. Wait for the *second* bind to be applied and reconciled.
+          if (accessBind) {
+            const accessTxId = String(accessBind?.result?.tx_id || "").trim();
+            if (!accessTxId || !(await waitForSubmittedTxVisible(base, accessTxId, {
+              maxWaitMs: 90_000,
+              intervalMs: 1000,
+              requireLocalStateSynced: true,
+            }))) {
+              throw new Error("Reviewer evidence binding is submitted but not yet confirmed and synchronized. Open verification history to complete access; do not upload the video again.");
+            }
+          }
           const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 120000, intervalMs: 1000 });
           let reviewability = await waitForAsyncCaseReviewable(acct, caseId, base, headers, { maxWaitMs: 1000, intervalMs: 500 });
           let bindStatusVisible = true;
