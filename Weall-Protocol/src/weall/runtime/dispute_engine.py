@@ -90,7 +90,7 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
     if not isinstance(disputes, dict) or not disputes:
         return 0
     enq = 0
-    for did, dispute in list(disputes.items()):
+    for did, dispute in sorted(disputes.items(), key=lambda item: str(item[0])):
         if not isinstance(dispute, dict):
             continue
         jurors = dispute.get("jurors")

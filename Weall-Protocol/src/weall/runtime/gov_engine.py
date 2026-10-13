@@ -208,7 +208,7 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
 
     enq = 0
 
-    for pid, pr in list(props.items()):
+    for pid, pr in sorted(props.items(), key=lambda item: str(item[0])):
         if not isinstance(pr, dict):
             continue
         if not _is_auto(pr):
