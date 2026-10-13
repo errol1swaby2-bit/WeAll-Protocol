@@ -151,13 +151,23 @@ def _load_dev_bootstrap_secret(account: str) -> Json:
         raise ApiError.server_error(
             "dev_bootstrap_secret_invalid", "Dev bootstrap secret file is missing the private key"
         )
-    return {
+    result = {
         "account": secret_account or account,
         "secretKeyB64": secret_key_b64,
         "secret_key_b64": secret_key_b64,
         "pubkeyB64": str(payload.get("pubkey_b64") or "").strip(),
         "sessionTtlSeconds": int(payload.get("session_ttl_seconds") or 3600),
     }
+    # Keep evidence decapsulation secrets inside the same explicitly enabled,
+    # non-production controlled-devnet-only bootstrap boundary as signing seeds.
+    # Never return them from the generic seeded-demo secret route.
+    if _controlled_devnet_bootstrap_secret_enabled():
+        kem_public = str(payload.get("evidence_kem_public_key_b64") or "").strip()
+        kem_secret = str(payload.get("evidence_kem_secret_key_b64") or "").strip()
+        if kem_public and kem_secret:
+            result["evidenceKemPublicKeyB64"] = kem_public
+            result["evidenceKemSecretKeyB64"] = kem_secret
+    return result
 
 
 def _slug(value: str) -> str:
