@@ -78,4 +78,3 @@ jobs:
           git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts
           git commit -m 'audit: refresh reviewer-facing generated artifacts'
           git push origin HEAD:"${GITHUB_REF_NAME}"
-# W1-A preview workflow trigger; restore this exact file before consuming generated artifacts.
