@@ -127,3 +127,111 @@ def test_sqlite_restart_reorders_map_but_not_mandatory_dispute_queue(tmp_path: P
     assert _queue_ids(in_memory) == _queue_ids(restarted)
     assert _emitted_pre(in_memory) == _emitted_pre(restarted)
     assert compute_state_root(in_memory) == compute_state_root(restarted)
+
+
+def test_clean_database_two_block_governance_replay_and_tamper_rejection(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Exercise real block construction/replay from separately seeded clean SQLite nodes.
+
+    The only supported history is the one constructed within this test. There
+    is no import of previous devnet snapshots or old insertion-order blocks.
+    """
+    import weall.runtime.block_builder as block_builder
+    import weall.runtime.block_replay as block_replay
+    from weall.runtime.executor import WeAllExecutor
+
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
+    monkeypatch.setenv("WEALL_REQUIRE_VRF", "0")
+    monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
+    monkeypatch.setattr(block_replay, "runtime_vrf_required", lambda: False)
+
+    chain_id = "rem-w1a-isolated-clean-genesis-v1"
+    seed = {
+        "chain_id": chain_id,
+        "height": 0,
+        "tip": "",
+        "tip_hash": "",
+        "accounts": {},
+        "system_queue": [],
+        "consensus": {"epochs": {"current": 0, "events": []}},
+        "gov_proposals_by_id": {
+            pid: {
+                "proposal_id": pid,
+                "stage": "draft",
+                "created_at_height": 1,
+                "rules": {"auto_lifecycle": True, "draft_period_blocks": 0},
+            }
+            for pid in ("z", "a")
+        },
+    }
+    index_path = str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+
+    def node(label: str, *, fresh: bool) -> WeAllExecutor:
+        path = tmp_path / label / "node.db"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        executor = WeAllExecutor(
+            db_path=str(path), node_id="@node", chain_id=chain_id, tx_index_path=index_path
+        )
+        if fresh:
+            executor._ledger_store.write_state_snapshot(copy.deepcopy(seed))
+            executor.state = executor._ledger_store.read()
+        return executor
+
+    leader = node("leader", fresh=True)
+    follower = node("follower", fresh=True)
+    adversary = node("tampered-follower", fresh=True)
+    assert compute_state_root(leader.state) == compute_state_root(follower.state)
+
+    def candidate_and_commit(*, height: int) -> dict:
+        block, new_state, applied, invalid, err = leader.build_block_candidate(
+            max_txs=0, allow_empty=True, force_ts_ms=height * 1000
+        )
+        assert err == ""
+        assert isinstance(block, dict)
+        assert isinstance(new_state, dict)
+        outcome = leader.commit_block_candidate(
+            block=block, new_state=new_state, applied_ids=applied, invalid_ids=invalid
+        )
+        assert outcome.ok, outcome.error
+        return block
+
+    first = candidate_and_commit(height=1)
+    first_replay = follower.apply_block(first)
+    assert first_replay.ok, first_replay.error
+    assert adversary.apply_block(first).ok
+    assert compute_state_root(leader.state) == compute_state_root(follower.state)
+
+    second = candidate_and_commit(height=2)
+    queue_prefix = [
+        tx for tx in second["txs"] if isinstance(tx, dict) and tx.get("system") is True
+    ]
+    assert [tx["tx_type"] for tx in queue_prefix] == ["GOV_STAGE_SET", "GOV_STAGE_SET"]
+    assert [tx["payload"]["proposal_id"] for tx in queue_prefix] == ["a", "z"]
+    assert all(tx["payload"].get("_system_queue_id") for tx in queue_prefix)
+
+    swapped = copy.deepcopy(second)
+    swapped["txs"][0], swapped["txs"][1] = swapped["txs"][1], swapped["txs"][0]
+    untouched = copy.deepcopy(adversary.state)
+    rejected = adversary.apply_block(swapped)
+    assert rejected.ok is False
+    assert rejected.error == "bad_block:required_system_pre_missing_or_reordered"
+    assert adversary.state == untouched
+
+    second_replay = follower.apply_block(second)
+    assert second_replay.ok, second_replay.error
+    assert compute_state_root(leader.state) == compute_state_root(follower.state)
+    assert leader.state.get("gov_stage_set_receipts") == follower.state.get(
+        "gov_stage_set_receipts"
+    )
+    assert len(leader.state.get("gov_stage_set_receipts") or []) >= 2
+
+    leader_restart = node("leader", fresh=False)
+    follower_restart = node("follower", fresh=False)
+    assert compute_state_root(leader_restart.state) == compute_state_root(
+        follower_restart.state
+    )
+    assert leader_restart.state.get("gov_stage_set_receipts") == follower_restart.state.get(
+        "gov_stage_set_receipts"
+    )
