@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2046,
+  "file_count": 2047,
   "files": [
     {
       "affected_registers": [
@@ -4402,7 +4402,7 @@
       ],
       "path": "scripts/devnet_tx.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "9e0528afc56c6a3b0e0f0a8a327088cf68426e55743ed43b49cf91142c026fe4",
+      "sha256": "be39d33e213e7e73a0edd1987eff332deb8e5369bdd0c2e387f30e60b63b21cf",
       "source_id": "SRC-C8797BF4314DF1A8"
     },
     {
@@ -7337,7 +7337,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/demo_seed.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "17b791462213fff5fe9744522d92b0164bb650a5c104d523d18dc304ca4502c2",
+      "sha256": "ce18e9ec9c7bb2c14f8ec44e782613c7221721e848a20b1a31e571de61fe897c",
       "source_id": "SRC-5EB76E776CECCFD5"
     },
     {
@@ -7784,7 +7784,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/tx.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "c6f678d4ef954a151e8839dd838ae5446aa97ee0bb78f5f5fe9982355dc75b47",
+      "sha256": "fc57f798d5a1c8a80ca64717de1296f4e7dab088ed26de21cece4c1ec9dbde18",
       "source_id": "SRC-79B044250C61E965"
     },
     {
@@ -20324,6 +20324,21 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_local_two_node_review_rehearsal_regression.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "9159a7241099d4e20f434f1022b26e1732aecbf52d0164b2399b5d0a924c268f",
+      "source_id": "SRC-B11FCB2BB3E17DDC"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
         "ROUTE-150316944D629C32",
         "TX-0004",
         "TX-0006"
@@ -31129,7 +31144,7 @@
       ],
       "path": "../web/src/api/weall.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "52a6091fc9fd5e9a006ff6b25f0cb35a3117e4c85fbb13ae4a089e81317c5b00",
+      "sha256": "6806c3d33dd2db6b5ec6cb7a863ebf416467aeb09b2378495dd7b01fa4abb9f9",
       "source_id": "SRC-79BC4F6206422C07"
     },
     {
@@ -31827,7 +31842,7 @@
       ],
       "path": "../web/src/lib/devBootstrap.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "ab4865a2b288c001759b965f6166bf6c782c765b9bde3a9d3fcda345a30f9fde",
+      "sha256": "96f8ac6bd6b271a4630ef7025908242496337003df41aa76d52d2280453f37af",
       "source_id": "SRC-DB414711E8950C1F"
     },
     {
@@ -32217,7 +32232,7 @@
       ],
       "path": "../web/src/lib/userLanguage.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "fa55109d878c7d44b0e9a10fc52ad5770c400e342c8174b6338b01f86e8f979f",
+      "sha256": "fcc93e553db649dc223cb1888e0de995cd9069cbe00b000b5dfe3ec3b4b95764",
       "source_id": "SRC-D0A3E153BAA005B5"
     },
     {
@@ -32330,7 +32345,7 @@
       ],
       "path": "../web/src/pages/AccountVerificationPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "23965657edd5d8c09b3b534bf5b5f754e7d233db3633082fe99f63b13c2317c1",
+      "sha256": "41caff626b9b17fe752787b9e99f7b7b63934ed8186b0cf881b0660c7ac6c8f7",
       "source_id": "SRC-6E72AE85995D2D5D"
     },
     {
@@ -32557,7 +32572,7 @@
       ],
       "path": "../web/src/pages/JurorDashboard.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "fe5d18334a20f543d34444f90a1048b9b83d47ddfe8beddf0c911c1c95b49109",
+      "sha256": "82ceb7e4e05c98fe5c505ea30bbc0fcb0f15aff79aa3fd2f4fcfcaa062feeb2f",
       "source_id": "SRC-E8DF3D4744F7ED19"
     },
     {
@@ -32588,7 +32603,7 @@
       ],
       "path": "../web/src/pages/LoginPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "832b2b047c2df8eb9e21c6222302fa07049edbf6b821faed5f2a6a66067ed456",
+      "sha256": "567a60d7e574b6e0b7d1f48d39ff58c446113d664f343fb68d2230ffa2ffaae5",
       "source_id": "SRC-4C266797B87139C6"
     },
     {
