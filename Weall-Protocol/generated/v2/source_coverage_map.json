@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "3fdb1dacfd8f8e5f68f84934c6eeb3e1775ef2528c84a307133c7f895fe6e2d1",
+      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -27385,7 +27385,7 @@
       ],
       "path": "tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "bb17aa06d1488feee8e56b940833b6afc6c6a38d87fc8f87ce0e64be5a95cfcc",
+      "sha256": "9f623ad24e389364a804fecd0c086a2014f9960919cca045d641fac5bd505f18",
       "source_id": "SRC-8885AA8B97293C19"
     },
     {
