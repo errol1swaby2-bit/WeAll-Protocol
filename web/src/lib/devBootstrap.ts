@@ -1,6 +1,7 @@
 import { setAccount, setApiBase, weall } from "../api/weall";
 import { clearNonceReservation, clearSession, ensureBackendSession, getKeypair, getSession, issueSessionFromSecretKey, submitSignedTx, syncNonceReservation } from "../auth/session";
 import type { AppConfig } from "./config";
+import { loadEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto";
 
 export type DevBootstrapStep = {
   label?: string;
@@ -73,6 +74,8 @@ type DevBootstrapSecretResponse = {
   secretKeyB64?: string;
   secret_key_b64?: string;
   sessionTtlSeconds?: number;
+  evidenceKemPublicKeyB64?: string;
+  evidenceKemSecretKeyB64?: string;
 };
 
 function manifestSessionTtlSeconds(manifest: DevBootstrapManifest | DevBootstrapSecretResponse): number {
@@ -188,6 +191,16 @@ async function applyManifest(config: AppConfig, manifest: DevBootstrapManifest):
   const marker = buildMarker(manifest);
   const normalizedBase = manifestApiBase(config, manifest);
   const ttlSeconds = manifestSessionTtlSeconds(secret || manifest);
+  const evidenceKemPublicKey = String(secret?.evidenceKemPublicKeyB64 || "").trim();
+  const evidenceKemSecretKey = String(secret?.evidenceKemSecretKeyB64 || "").trim();
+  if (Boolean(evidenceKemPublicKey) !== Boolean(evidenceKemSecretKey)) {
+    throw new Error("incomplete_dev_bootstrap_evidence_authority");
+  }
+  if (evidenceKemPublicKey && evidenceKemSecretKey) {
+    // Only the dev-bootstrap secret response (never the public manifest) may
+    // hydrate the reviewer decapsulation key into session-scoped browser storage.
+    saveEvidenceKemKeypair(account, { publicKeyB64: evidenceKemPublicKey, secretKeyB64: evidenceKemSecretKey });
+  }
 
   setApiBase(normalizedBase);
   setAccount(account);
@@ -228,7 +241,12 @@ export async function maybeApplyDevBootstrap(config: AppConfig): Promise<boolean
   const session = getSession();
   const existing = account ? getKeypair(account) : null;
   if (session?.account === account && existing?.secretKeyB64 && readMarker() === marker) {
-    return false;
+    const secret = await fetchSecret(config, manifest);
+    const expectedKem = String(secret?.evidenceKemPublicKeyB64 || "").trim();
+    const browserKem = loadEvidenceKemKeypair(account);
+    if (!expectedKem || browserKem?.publicKeyB64 === expectedKem) return false;
+    // Session storage can be cleared independently of the signing session.
+    // Rehydrate from the explicit local-only bootstrap route.
   }
 
   return applyManifest(config, manifest);
@@ -254,7 +272,10 @@ export async function maybeRepairDevBootstrapSession(config: AppConfig): Promise
   const hasExpectedSecret = String(existing?.secretKeyB64 || "").trim() == secretKeyB64;
   const hasExpectedPubkey = !pubkeyB64 || String(existing?.pubkeyB64 || "").trim() == pubkeyB64;
 
-  if (hasSameMarker && hasExpectedAccount && hasExpectedSecret && hasExpectedPubkey) {
+  const expectedKem = String(secret?.evidenceKemPublicKeyB64 || "").trim();
+  const browserKem = loadEvidenceKemKeypair(account);
+  const hasExpectedEvidenceKem = !expectedKem || browserKem?.publicKeyB64 === expectedKem;
+  if (hasSameMarker && hasExpectedAccount && hasExpectedSecret && hasExpectedPubkey && hasExpectedEvidenceKem) {
     return false;
   }
 
