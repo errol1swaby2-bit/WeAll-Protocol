@@ -219,9 +219,7 @@ def test_clean_database_two_block_governance_replay_and_tamper_rejection(
     assert compute_state_root(leader.state) == compute_state_root(follower.state)
 
     second = candidate_and_commit(height=2)
-    queue_prefix = [
-        tx for tx in second["txs"] if isinstance(tx, dict) and tx.get("system") is True
-    ]
+    queue_prefix = [tx for tx in second["txs"] if isinstance(tx, dict) and tx.get("system") is True]
     assert [tx["tx_type"] for tx in queue_prefix] == ["GOV_STAGE_SET", "GOV_STAGE_SET"]
     assert [tx["payload"]["proposal_id"] for tx in queue_prefix] == ["a", "z"]
     assert all(tx["payload"].get("_system_queue_id") for tx in queue_prefix)
@@ -248,9 +246,7 @@ def test_clean_database_two_block_governance_replay_and_tamper_rejection(
     leader_restart = node("leader", fresh=False)
     follower_restart = node("follower", fresh=False)
     assert compute_state_root(leader_restart.state) == committed_root
-    assert compute_state_root(leader_restart.state) == compute_state_root(
-        follower_restart.state
-    )
+    assert compute_state_root(leader_restart.state) == compute_state_root(follower_restart.state)
     assert leader_restart.state.get("gov_stage_set_receipts") == follower_restart.state.get(
         "gov_stage_set_receipts"
     )
