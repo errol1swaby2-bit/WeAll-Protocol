@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2050,
+  "file_count": 2052,
   "files": [
     {
       "affected_registers": [
@@ -97,6 +97,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "02b8b65a3b88e84940e1218a9a8ab280d12a819bbe41bfcb6e2e99d3275e8714",
       "source_id": "SRC-EFC50317C3E5E615"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/temp-fresh-clone-derivative-refresh-20261014.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "c779e457d1fe1c0f0c9d36f3ed9ef2cc1962c077fa4a082c6684143a11262ede",
+      "source_id": "SRC-8A6DA105F45C44A3"
     },
     {
       "affected_registers": [
@@ -916,7 +929,7 @@
       ],
       "path": "docs/NEW_NODE_OPERATOR_QUICKSTART.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "dabc54c722a779f9009d5c284bc1d513cfaf1a8a226d3c214479609c12b6e461",
+      "sha256": "770d770fa693f6e01c22c44a93cefe0beedce03a8bea8f0d22ebd0758aa40b70",
       "source_id": "SRC-84ED8B8BD252D4C1"
     },
     {
@@ -17423,6 +17436,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "219c83fbadd4e13bf2f3db872a9bbcc32fdb175a23c0c793d069a8299fb0f097",
       "source_id": "SRC-504F353121B4CCFB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_fresh_clone_onboarding_guide.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "954d07142f7d0ff309297ea51ee8cab6f44e86d7ca3019f2ca76dc542eec5ee2",
+      "source_id": "SRC-75CA9C9010EEDE45"
     },
     {
       "affected_registers": [
