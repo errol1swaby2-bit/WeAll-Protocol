@@ -92,6 +92,10 @@ def test_dispute_scheduler_orders_outer_ids_regardless_of_insertion_order() -> N
     assert tick_dispute_lifecycle(left, next_height=2) == 2
     assert tick_dispute_lifecycle(right, next_height=2) == 2
     assert [x["payload"]["dispute_id"] for x in left["system_queue"]] == ["a", "z"]
+    assert [x["payload"]["receipt_id"] for x in left["system_queue"]] == [
+        "receipt:dispute:a:appeal-panel-finalize:1",
+        "receipt:dispute:z:appeal-panel-finalize:1",
+    ]
     assert _queue_ids(left) == _queue_ids(right)
     assert compute_state_root(left) == compute_state_root(right)
 
@@ -249,4 +253,136 @@ def test_clean_database_two_block_governance_replay_and_tamper_rejection(
     assert compute_state_root(leader_restart.state) == compute_state_root(follower_restart.state)
     assert leader_restart.state.get("gov_stage_set_receipts") == follower_restart.state.get(
         "gov_stage_set_receipts"
+    )
+
+
+def test_clean_database_two_block_dispute_replay_omission_reorder_and_restart(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Native dispute SYSTEM block proof on an isolated, never-imported genesis.
+
+    Exercises the canonical mandatory prefix through real leader construction,
+    two independent follower replay paths, raw tamper rejection, receipts and
+    independently restarted SQLite roots. It does not establish peer-authenticated
+    networking or independent external operator evidence.
+    """
+    import weall.runtime.block_builder as block_builder
+    import weall.runtime.block_replay as block_replay
+    from weall.runtime.executor import WeAllExecutor
+
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
+    monkeypatch.setenv("WEALL_REQUIRE_VRF", "0")
+    monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
+    monkeypatch.setattr(block_replay, "runtime_vrf_required", lambda: False)
+
+    chain_id = "rem-w1a-dispute-clean-genesis-v1"
+    index_path = str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+
+    template_path = tmp_path / "template" / "node.db"
+    template_path.parent.mkdir(parents=True, exist_ok=True)
+    template = WeAllExecutor(
+        db_path=str(template_path), node_id="@node", chain_id=chain_id, tx_index_path=index_path
+    )
+    seed = copy.deepcopy(template.state)
+    assert seed.get("height") == 0
+    seed["meta"] = dict(seed.get("meta") or {})
+    seed["meta"]["constitutional_clock"] = {
+        "enabled": True,
+        "genesis_time_ms": 0,
+    }
+    seed["system_queue"] = []
+    seed["disputes_by_id"] = {
+        did: {
+            "dispute_id": did,
+            "stage": "appeal_window",
+            "appeal_deadline_height": 1,
+            "resolution": {"outcome": "no_action", "actions": []},
+            "jurors": {},
+        }
+        for did in ("z", "a")
+    }
+
+    def node(label: str, *, fresh: bool, reverse: bool = False) -> WeAllExecutor:
+        path = tmp_path / label / "node.db"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        executor = WeAllExecutor(
+            db_path=str(path), node_id="@node", chain_id=chain_id, tx_index_path=index_path
+        )
+        if fresh:
+            state = copy.deepcopy(seed)
+            if reverse:
+                disputes = state["disputes_by_id"]
+                state["disputes_by_id"] = {did: disputes[did] for did in ("a", "z")}
+            executor._ledger_store.write_state_snapshot(state)
+            executor.state = executor._ledger_store.read()
+        return executor
+
+    leader = node("leader", fresh=True)
+    follower = node("follower", fresh=True, reverse=True)
+    adversary = node("adversary", fresh=True, reverse=True)
+    assert compute_state_root(leader.state) == compute_state_root(follower.state)
+    assert compute_state_root(leader.state) == compute_state_root(adversary.state)
+
+    def candidate_and_commit() -> dict:
+        block, new_state, applied, invalid, error = leader.build_block_candidate(
+            max_txs=0, allow_empty=True
+        )
+        assert error == ""
+        assert isinstance(block, dict)
+        assert isinstance(new_state, dict)
+        outcome = leader.commit_block_candidate(
+            block=block, new_state=new_state, applied_ids=applied, invalid_ids=invalid
+        )
+        assert outcome.ok, outcome.error
+        return block
+
+    first = candidate_and_commit()
+    assert follower.apply_block(first).ok
+    assert adversary.apply_block(first).ok
+    assert compute_state_root(leader.state) == compute_state_root(follower.state)
+
+    second = candidate_and_commit()
+    system_txs = [tx for tx in second["txs"] if isinstance(tx, dict) and tx.get("system") is True]
+    assert [tx["tx_type"] for tx in system_txs] == [
+        "DISPUTE_FINAL_RECEIPT",
+        "DISPUTE_FINAL_RECEIPT",
+    ]
+    assert [tx["payload"]["dispute_id"] for tx in system_txs] == ["a", "z"]
+    assert all(tx["payload"].get("_system_queue_id") for tx in system_txs)
+    assert all(tx["payload"].get("appeal_window_closed") is True for tx in system_txs)
+
+    pre_attack_root = compute_state_root(adversary.state)
+    reordered = copy.deepcopy(second)
+    reordered["txs"][0], reordered["txs"][1] = (
+        reordered["txs"][1],
+        reordered["txs"][0],
+    )
+    reorder_outcome = adversary.apply_block(reordered)
+    assert not reorder_outcome.ok
+    assert reorder_outcome.error == "bad_block:header_tx_ids_mismatch"
+    assert compute_state_root(adversary.state) == pre_attack_root
+
+    omitted = copy.deepcopy(second)
+    omitted["txs"].pop(0)
+    omission_outcome = adversary.apply_block(omitted)
+    assert not omission_outcome.ok
+    assert omission_outcome.error == "bad_block:header_tx_ids_mismatch"
+    assert compute_state_root(adversary.state) == pre_attack_root
+
+    accepted = follower.apply_block(second)
+    assert accepted.ok, accepted.error
+    assert compute_state_root(leader.state) == compute_state_root(follower.state)
+    assert leader.state.get("dispute_receipts") == follower.state.get("dispute_receipts")
+    assert len(leader.state.get("dispute_receipts") or {}) >= 2
+    for did in ("a", "z"):
+        assert leader.state["disputes_by_id"][did]["stage"] == "finalized"
+
+    committed_root = compute_state_root(leader.state)
+    restarted_leader = node("leader", fresh=False)
+    restarted_follower = node("follower", fresh=False)
+    assert compute_state_root(restarted_leader.state) == committed_root
+    assert compute_state_root(restarted_follower.state) == committed_root
+    assert restarted_leader.state.get("dispute_receipts") == (
+        restarted_follower.state.get("dispute_receipts")
     )
