@@ -939,9 +939,14 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   </div>
                   <p className="helpText">Use the single live-room control above to accept the assignment, record chain attendance, and enter the room lobby. Media starts when peer connection and browser permissions are ready. Verdict controls appear here only after that chain-recorded check-in is visible.</p>
                   {canVote ? (
-                    <div className="buttonRow">
-                      <button data-testid="live-review-approve" className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
-                      <button data-testid="live-review-reject" className="btn" disabled={!!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
+                    <div className="formStack" aria-live="polite">
+                      <div className="buttonRow">
+                        <button type="button" data-testid="live-review-approve" className="btn btnPrimary" disabled={!!busy} onClick={() => void submitVerdict("pass")}>{busy === "Submitting approval…" ? "Submitting approval…" : "Approve live verification"}</button>
+                        <button type="button" data-testid="live-review-reject" className="btn" disabled={!!busy} onClick={() => void submitVerdict("fail")}>{busy === "Submitting rejection…" ? "Submitting rejection…" : "Reject live verification"}</button>
+                      </div>
+                      {busy ? <div className="actionStatus" role="status">{busy} — waiting for the signed transaction and on-chain reviewer state.</div> : null}
+                      {error ? <div className="errorBanner" role="alert">{error}</div> : null}
+                      {notice ? <div className="successBanner" role="status">{notice}</div> : null}
                     </div>
                   ) : null}
                   {!canVote && !isFinal ? <p className="helpText">Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain for an assigned interacting reviewer.</p> : null}
