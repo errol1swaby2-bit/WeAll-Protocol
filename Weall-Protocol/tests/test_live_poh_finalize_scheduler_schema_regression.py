@@ -4,6 +4,7 @@ Regression: a live vote at height 55 triggered a post-phase FINALIZE with
 ts_ms=0; the old PohLiveFinalizePayload prohibited ts_ms, causing block
 production to fail-fast before any pending reviewer votes could be included.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -56,9 +57,7 @@ def test_live_finalize_scheduler_payload_matches_strict_block_schema() -> None:
     # fields; receipt queue binding itself is separately checked in replay.
     schema_envelope = dict(envelope)
     schema_envelope["payload"] = {
-        key: val
-        for key, val in envelope["payload"].items()
-        if not key.startswith("_")
+        key: val for key, val in envelope["payload"].items() if not key.startswith("_")
     }
     _tx, payload = validate_tx_envelope(schema_envelope)
     assert isinstance(payload, PohLiveFinalizePayload)

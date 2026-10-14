@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2047,
+  "file_count": 2048,
   "files": [
     {
       "affected_registers": [
@@ -3106,7 +3106,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "30146cf393aced6e52afaf710565fbd103ed498229d93b86cba5d05b7c330323",
+      "sha256": "5ee45740976374dc6525392a4b446b44476497dbf88c1ce587763b3eb3e27a94",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3120,7 +3120,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "110d06275899022d2a4e1aedadd752b2e15d8dfb8fa3d0d3bb4749f49976d046",
+      "sha256": "d21333ed0a4971877213ade3f0ba33414b3744197b31df84aee2fd257b4cd6cc",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3204,7 +3204,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0f5a247ad0f3918fb57807b78c0d62c5fdb814bedbb1bba3b15058e3cbab5aca",
+      "sha256": "b9f165fcf210cbf5ff5377e99f81820563b363ae670b067bc5ca387c550f6bc1",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -12304,7 +12304,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "d454481d050cf4df38cbce2e7559e313fc8b8f135d576b8d2fcbd890ac1df530",
+      "sha256": "376f36ec5df76d20baf6bf9eb2675bcd8e0ef193eeb33215e2ca9af40bcc2a2f",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -19941,6 +19941,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "da7bf8470808414d522448cc51903ec598d1d346a02b94526133606b50dc5b6d",
       "source_id": "SRC-9C0ECB677A86136D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0126"
+      ],
+      "path": "tests/test_live_poh_finalize_scheduler_schema_regression.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "473ffea0227a995e6cb8577bd7add0cf6794e58ed84b8fdc790a1c0d36357b2e",
+      "source_id": "SRC-0C8264D594A646DC"
     },
     {
       "affected_registers": [
@@ -32587,7 +32603,7 @@
       ],
       "path": "../web/src/pages/LiveVerificationRoom.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "9d692cdb8921c68f9b4cdcdb62e39946c7f7189f135e16945f4005b560dd93ff",
+      "sha256": "ca59bbb598d63eba917b26efb2f3d0b578324228e261dbf875814ec0378b8910",
       "source_id": "SRC-8A9FA9F3177A64C9"
     },
     {
