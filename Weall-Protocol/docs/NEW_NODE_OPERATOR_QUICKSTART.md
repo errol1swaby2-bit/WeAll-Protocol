@@ -11,63 +11,127 @@ A new user should start with onboarding mode. Do not try to start production ser
 
 ---
 
-## 1. Clone the repository
+## 1. Clone the repository and install dependencies
+
+Choose the network path **before** attempting to start an observer. The
+production-oriented `boot_onboarding_node.sh` is not a Genesis producer and
+must not be used to manufacture a network or bypass observer preflight.
+
+For Ubuntu / WSL, from a clean clone:
 
 ```bash
 cd ~
 git clone https://github.com/errol1swaby2-bit/WeAll-Protocol.git
 cd WeAll-Protocol/Weall-Protocol
+python3 --version
+node --version
+npm --version
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --require-hashes -r requirements-dev.lock
+python -m pip install -e . --no-deps
+python -c 'import weall; print("WeAll backend installed")'
 ```
 
-Install the normal project dependencies described in the main README for your environment.
+Use the **exact commit or branch under review** when conducting an
+acceptance test; the moving default branch is not interchangeable with an
+unmerged PR or integration preview. Keep any existing node keys or chain
+databases separate from this clean-clone test. On Windows, use a fresh browser
+profile to avoid carrying over app-local sessions.
 
----
+## 2. Choose the network path and start the node
 
-## 2. Start the safe onboarding node
+### Path A — Disposable local two-node rehearsal (Ubuntu / WSL)
 
-Use the onboarding boot wrapper first:
+Use this path if you **do not yet have a reachable Genesis operator and a
+matching public observer bundle**, or if your goal is to test the local
+frontend, PoH and two-node transaction flow.
+
+Requirements: Node.js/npm, Python dependencies above, a running Docker daemon
+with Docker Compose (or a compatible separately configured Kubo IPFS daemon).
+The local launcher starts IPFS, the Genesis backend, the observer-edge backend,
+two frontends, and the operator reconcile/state-sync workers:
 
 ```bash
-./scripts/boot_onboarding_node.sh
+cd ~/WeAll-Protocol/Weall-Protocol
+source .venv/bin/activate
+docker info --format '{{.ServerVersion}}'
+bash scripts/devnet_local_two_frontend_rehearsal.sh
 ```
 
-This starts WeAll in a safe observer/onboarding posture. It is designed for first-time users and node-operator candidates.
+Expected final output includes `Local two-frontend rehearsal ready`,
+`observer_ui=http://127.0.0.1:5173/#/verification` and
+`genesis_ui=http://127.0.0.1:5174/#/reviews` (ports can be overridden).
+Leave the launcher running in its terminal. The observer API normally uses
+port 8002 and Genesis API uses 8001.
 
-Allowed in this mode:
+**Truth boundary:** This is a **disposable, single-machine controlled devnet**,
+not production onboarding, an externally operated two-machine proof, or a
+public-testnet launch. The launcher automatically creates `@errol` and a
+special local Genesis reviewer `@devnet-genesis` (Tier 2). Their provisioned
+keys and development bootstrap manifests are NOT evidence that a stranger
+completed self-service account creation or PoH. To evaluate an ordinary new
+participant, explicitly test creation and recovery of an additional account
+using a clean browser profile; record which steps are actually possible.
 
-- read and sync finalized chain state
-- serve the local onboarding UI
-- create an account
-- save a recovery key
-- submit account registration transactions
-- submit async and live Proof-of-Humanity verification transactions
-- generate and register a separate node key
-- submit node-operator enrollment
+The launcher may encounter a Docker Desktop/WSL IPFS port-forward error at
+5001/8080, retry and use 15001/18080. The run is successful only if the
+final readiness checks pass. An intermediate observer account-registration
+`upstream_not_confirmed` / `local_state_synced=false` warning is **not** an
+upstream confirmation proof; the current rehearsal can recover using account
+state on both nodes. Report it separately rather than marking transaction
+status convergence as proven.
 
-Blocked in this mode:
+### Path B — Join an existing operator-run network
 
-- validator signing
-- block proposal
-- validator voting
-- helper authority
-- storage-provider service authority
-- production service rewards
-- role activation
-- Proof-of-Humanity grants
+This path needs **two externally supplied, matching public artifacts** from
+the chosen network's trusted operator: an observer/onboarding bundle JSON and
+its chain manifest. It also needs a reachable Genesis API advertised or
+confirmed by the operator. No publicly available Genesis/bundle is asserted by
+this guide; until these exist, new users cannot complete this path.
 
-Onboarding mode does not make you a node operator. It only gives you a safe way to complete the steps required to become eligible.
+Use the tester wrapper rather than executing a bare production boot command:
+it verifies/installs the bundle, prepares observer-only runtime settings,
+starts the local frontend, and runs the preflight before boot.
 
----
+```bash
+cd ~/WeAll-Protocol/Weall-Protocol
+source .venv/bin/activate
 
-## 3. Open the local app
-
-Open the local frontend shown by the boot output. In a local development install this is usually:
-
-```text
-http://localhost:5173
+bash scripts/weall_tester_node.sh \
+  --bundle "/path/from/operator/public-observer-bundle.json" \
+  --manifest "/path/from/operator/matching-chain-manifest.json" \
+  --genesis-api-base "https://operator-supplied-genesis.example"
 ```
 
-Use the app to continue the onboarding flow.
+**Replace all three placeholders with real operator-provided values** before
+running. Do not generate a fake production bundle, change its trust anchors,
+disable signature/manifest checks, or set `WEALL_OBSERVER_PREFLIGHT_ALREADY_PASSED=1`
+to make an unverified join appear successful. Production observer preflight
+must remain fail-closed.
+
+Advanced/operator-only: if the bundle was already validated and the exact
+observer environment provisioned separately, `./scripts/boot_onboarding_node.sh`
+is the low-level wrapper. Calling it **without** a bundle/preflight is an
+expected rejection, not a working first-run procedure. The wrapper is not
+itself a frontend launcher.
+
+For an actual **two-machine** disposable Genesis-plus-observer reviewer proof,
+use `docs/REVIEWER_LAN_REHEARSAL_QUICKSTART.md` instead. It is different
+from Path A's two local processes.
+
+## 3. Open the app appropriate to your path
+
+- **Local Path A:** observer app at `http://127.0.0.1:5173/#/verification`;
+  Genesis reviewer app at `http://127.0.0.1:5174/#/reviews`.
+  The two UIs deliberately use different bootstrap identities.
+- **Network Path B:** use the `frontend` URL printed by
+  `weall_tester_node.sh` (normally `http://127.0.0.1:5173`).
+
+Continue with the account/recovery steps below, but do not treat
+pre-provisioned local rehearsal accounts as fresh-user account creation.
+When a network operator or a human reviewer is required, record that
+dependency rather than manufacturing authority in the browser.
 
 ---
 
@@ -213,6 +277,35 @@ The executable mode stops at **node-operator candidate / eligibility activation*
 ---
 
 ## 11. Troubleshooting
+
+### `./scripts/boot_onboarding_node.sh: Permission denied`
+
+A released clone should store the launcher as executable (`100755`).
+Check with `git ls-files --stage Weall-Protocol/scripts/boot_onboarding_node.sh`
+from the repository root. On a historyless/archive checkout that lost modes,
+`bash scripts/boot_onboarding_node.sh` avoids relying on the executable bit;
+it **does not** remove the bundle/preflight requirement.
+
+### `WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE` not set
+
+You selected the production-oriented low-level wrapper without a validated
+bundle. Follow Path B with operator-provided anchors, or Path A for a disposable
+local network. Do not bypass the preflight.
+
+### IPFS WSL Docker ports are unavailable
+
+For Path A, watch for automatic fallback from API/gateway ports 5001/8080
+to 15001/18080. A transient bind failure is not proof of total boot failure;
+the final `Local two-frontend rehearsal ready` line establishes launcher
+readiness. If fallback also fails, report the Docker/WSL forwarding error.
+
+### Observer registration reports `upstream_not_confirmed`
+
+The controlled launcher can fall back to account-state proof on both nodes;
+this **does not** establish upstream transaction-status reconciliation.
+Record the reported `tx_id`, chain height and both node status responses
+(without secrets) as a separate synchronization/evidence issue.
+
 
 ### “Account is not Live Verified”
 
