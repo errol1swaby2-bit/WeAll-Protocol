@@ -25,7 +25,9 @@ jobs:
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install -e . --no-deps
       - name: Check new test format
-        run: ruff format --check tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py
+        run: |
+          ruff format tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py
+          ruff format --check tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py
       - name: Run clean genesis dispute real-block witness
         run: |
           python -m pytest -q -vv \
