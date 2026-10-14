@@ -343,9 +343,7 @@ def test_clean_database_two_block_dispute_replay_omission_reorder_and_restart(
     assert compute_state_root(leader.state) == compute_state_root(follower.state)
 
     second = candidate_and_commit()
-    system_txs = [
-        tx for tx in second["txs"] if isinstance(tx, dict) and tx.get("system") is True
-    ]
+    system_txs = [tx for tx in second["txs"] if isinstance(tx, dict) and tx.get("system") is True]
     assert [tx["tx_type"] for tx in system_txs] == [
         "DISPUTE_FINAL_RECEIPT",
         "DISPUTE_FINAL_RECEIPT",
