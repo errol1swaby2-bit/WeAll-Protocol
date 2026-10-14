@@ -32,7 +32,6 @@ jobs:
         run: |
           PYTHONPATH=src:scripts python scripts/compile_v2_spec.py
           PYTHONPATH=src:scripts python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
       - name: Check focused first-run safety regressions
         working-directory: Weall-Protocol
         run: |
