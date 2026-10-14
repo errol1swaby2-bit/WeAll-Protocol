@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "42b85a166032d0f0c029a9f778fab2891ed484364d21dd25aefe2a05dd6ee2db"
+    "source_tree_digest": "7ed0f8d201d738a28c31aa42de1d9956712eff9926cf019d91fdbef3874dfd68"
   },
   "required_fields": [
     "stable_id",
@@ -295,7 +295,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "account_nonce_status",
-        "line": 2039,
+        "line": 2058,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1146,7 +1146,7 @@
       ],
       "implementation_source": {
         "function": "v1_dev_bootstrap_secret",
-        "line": 505,
+        "line": 515,
         "path": "src/weall/api/routes_public_parts/demo_seed.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1192,7 +1192,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_demo_seed",
-        "line": 515,
+        "line": 525,
         "path": "src/weall/api/routes_public_parts/demo_seed.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3979,7 +3979,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_reconcile_tx",
-        "line": 2090,
+        "line": 2109,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4028,7 +4028,7 @@
       ],
       "implementation_source": {
         "function": "observer_edge_status",
-        "line": 2052,
+        "line": 2071,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4078,7 +4078,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_tx_queue_drain",
-        "line": 2078,
+        "line": 2097,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7253,6 +7253,7 @@
         "tests/test_live_case_id_alignment.py",
         "tests/test_live_media_group_post_message_refresh.py",
         "tests/test_live_netloop_api_ipfs_poh_claim_boundaries.py",
+        "tests/test_live_poh_finalize_scheduler_schema_regression.py",
         "tests/test_live_poh_production_quorum_lock.py",
         "tests/test_live_request_sync_and_dispute_bootstrap.py",
         "tests/test_live_request_sync_and_dispute_bootstrap_repair.py",
@@ -7271,6 +7272,7 @@
         "tests/test_local_rehearsal_rate_limit_and_reviewer_status.py",
         "tests/test_local_rehearsal_read_model_and_layout.py",
         "tests/test_local_two_frontend_rehearsal_automation.py",
+        "tests/test_local_two_node_review_rehearsal_regression.py",
         "tests/test_login_recovery_passkey_ux.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
         "tests/test_m2_chain_manifest_closure_gates.py",
@@ -8271,11 +8273,13 @@
         "tests/test_ipfs_replication_assignment.py",
         "tests/test_launch_disabled_matrix_v15.py",
         "tests/test_live_netloop_api_ipfs_poh_claim_boundaries.py",
+        "tests/test_live_poh_finalize_scheduler_schema_regression.py",
         "tests/test_live_room_and_dispute_assignment_regression.py",
         "tests/test_local_observer_tx_propagation.py",
         "tests/test_local_rehearsal_account_register_state_fallback.py",
         "tests/test_local_rehearsal_qol_regressions.py",
         "tests/test_local_rehearsal_rate_limit_and_reviewer_status.py",
+        "tests/test_local_two_node_review_rehearsal_regression.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
         "tests/test_m2_chain_manifest_closure_gates.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
@@ -9194,7 +9198,7 @@
       ],
       "implementation_source": {
         "function": "tx_catalog",
-        "line": 2321,
+        "line": 2340,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9243,7 +9247,7 @@
       ],
       "implementation_source": {
         "function": "tx_status",
-        "line": 2103,
+        "line": 2122,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",

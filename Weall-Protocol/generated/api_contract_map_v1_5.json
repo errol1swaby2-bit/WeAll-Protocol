@@ -166,7 +166,7 @@
       "route_id": "db3e7abe13b2eeaa",
       "route_path_without_v1_prefix": "/accounts/{account}/nonce",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2039,
+      "source_lineno": 2058,
       "summary": "",
       "tags": [
         "tx"
@@ -540,7 +540,7 @@
       "route_id": "08c3c9dbee8877d9",
       "route_path_without_v1_prefix": "/dev/bootstrap-secret",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 505,
+      "source_lineno": 515,
       "summary": "",
       "tags": [
         "demo_seed"
@@ -562,7 +562,7 @@
       "route_id": "f07ef71c619c3251",
       "route_path_without_v1_prefix": "/dev/demo-seed",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 515,
+      "source_lineno": 525,
       "summary": "",
       "tags": [
         "demo_seed"
@@ -1772,7 +1772,7 @@
       "route_id": "b0187fa58e1688ae",
       "route_path_without_v1_prefix": "/observer/edge/reconcile/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2090,
+      "source_lineno": 2109,
       "summary": "",
       "tags": [
         "tx"
@@ -1794,7 +1794,7 @@
       "route_id": "04995dd6136e4668",
       "route_path_without_v1_prefix": "/observer/edge/status",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2052,
+      "source_lineno": 2071,
       "summary": "",
       "tags": [
         "tx"
@@ -1816,7 +1816,7 @@
       "route_id": "b2fe3cc719b867ce",
       "route_path_without_v1_prefix": "/observer/edge/tx-queue/drain",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2078,
+      "source_lineno": 2097,
       "summary": "",
       "tags": [
         "tx"
@@ -3466,7 +3466,7 @@
       "route_id": "d2201e5bc7a4e9b1",
       "route_path_without_v1_prefix": "/tx/catalog",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2321,
+      "source_lineno": 2340,
       "summary": "",
       "tags": [
         "tx"
@@ -3488,7 +3488,7 @@
       "route_id": "229010cafa55f7fb",
       "route_path_without_v1_prefix": "/tx/status/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2103,
+      "source_lineno": 2122,
       "summary": "",
       "tags": [
         "tx"
