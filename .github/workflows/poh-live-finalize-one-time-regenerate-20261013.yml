@@ -1,0 +1,64 @@
+name: PoH live-finalize one-time proof refresh
+
+on:
+  push:
+    branches:
+      - fix/poh-two-node-reviewer-readiness-20261013
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install reproducible backend dependencies
+        run: |
+          cd Weall-Protocol
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Remove ephemeral workflow before deriving source fingerprints
+        run: git rm -- .github/workflows/poh-live-finalize-one-time-regenerate-20261013.yml
+      - name: Format and execute new post-phase regression
+        run: |
+          cd Weall-Protocol
+          ruff format tests/test_live_poh_finalize_scheduler_schema_regression.py
+          ruff format --check tests/test_live_poh_finalize_scheduler_schema_regression.py
+          pytest -q tests/test_live_poh_finalize_scheduler_schema_regression.py
+      - name: Regenerate source-bound proof and release artifacts
+        run: |
+          cd Weall-Protocol
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_api_contract_map.py
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/compile_v2_spec.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/compile_v2_spec.py --check
+      - name: Commit refreshed exact-source proofs to PR 50
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- Weall-Protocol/tests/test_live_poh_finalize_scheduler_schema_regression.py Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md
+          git diff --cached --check
+          git commit -m 'chore(poh): regenerate live finalize proof and strict-schema source derivatives'
+          git push origin HEAD:fix/poh-two-node-reviewer-readiness-20261013
+      - name: Verify clean-checkout source-bound catalog
+        run: |
+          cd Weall-Protocol
+          python scripts/check_v2_spec_clean_checkout.py
