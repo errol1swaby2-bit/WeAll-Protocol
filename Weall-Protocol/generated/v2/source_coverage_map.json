@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2052,
+  "file_count": 2051,
   "files": [
     {
       "affected_registers": [
@@ -97,19 +97,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "02b8b65a3b88e84940e1218a9a8ab280d12a819bbe41bfcb6e2e99d3275e8714",
       "source_id": "SRC-EFC50317C3E5E615"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/temp-fresh-clone-derivative-refresh-20261014.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "c779e457d1fe1c0f0c9d36f3ed9ef2cc1962c077fa4a082c6684143a11262ede",
-      "source_id": "SRC-8A6DA105F45C44A3"
     },
     {
       "affected_registers": [
