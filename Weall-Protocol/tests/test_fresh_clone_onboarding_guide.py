@@ -13,10 +13,17 @@ TESTER = ROOT / "scripts" / "weall_tester_node.sh"
 
 
 def test_documented_low_level_onboarding_launcher_is_executable() -> None:
-    assert stat.S_IMODE(ONBOARDING.stat().st_mode) & stat.S_IXUSR, (
-        "FCO-001: documented ./scripts/boot_onboarding_node.sh "
-        "must be executable in a fresh Git checkout"
-    )
+    for script_name in (
+        "boot_onboarding_node.sh",
+        "boot_node_operator.sh",
+        "fresh_node_operator_candidate_demo.sh",
+        "fresh_node_to_service_e2e.sh",
+    ):
+        entry = ROOT / "scripts" / script_name
+        assert stat.S_IMODE(entry.stat().st_mode) & stat.S_IXUSR, (
+            f"FCO-001: documented ./scripts/{script_name} "
+            "must be executable in a fresh Git checkout"
+        )
 
 
 def test_fresh_clone_quickstart_describes_both_real_boot_paths() -> None:
