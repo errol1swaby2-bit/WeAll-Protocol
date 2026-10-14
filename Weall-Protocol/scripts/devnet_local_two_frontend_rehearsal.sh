@@ -41,7 +41,7 @@ SYNC_TOKEN="${WEALL_STATE_SYNC_OPERATOR_TOKEN:-local-rehearsal-sync-token}"
 LIVE_ROOM_TRANSPORT_MODE="${VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE:-p2p}"
 LIVE_ROOM_BASE_URL="${VITE_WEALL_LIVE_ROOM_BASE_URL:-}"
 LIVE_ROOM_EMBED="${VITE_WEALL_LIVE_ROOM_EMBED:-0}"
-RESET="${WEALL_LOCAL_REHEARSAL_RESET:-1}"
+RESET="${WEALL_LOCAL_REHEARSAL_RESET:-0}"
 KEEP_RUNNING="${WEALL_LOCAL_REHEARSAL_KEEP_RUNNING:-1}"
 NPM_INSTALL="${WEALL_LOCAL_REHEARSAL_NPM_INSTALL:-1}"
 STOP_OLD="${WEALL_LOCAL_REHEARSAL_STOP_OLD:-1}"
@@ -528,18 +528,27 @@ account, keyfile, secret_file, manifest_file, profile, create_account = sys.argv
 key = json.loads(Path(keyfile).read_text(encoding='utf-8'))
 seed = bytes.fromhex(str(key.get('private_key_hex') or ''))
 pub = bytes.fromhex(str(key.get('public_key_hex') or ''))
-if len(seed) != 32 or len(pub) != 32:
-    raise SystemExit(f'invalid keyfile for {account}: {keyfile}')
-secret_b64 = base64.b64encode(seed + pub).decode('ascii')
+if len(seed) != 32 or len(pub) != 1952:
+    raise SystemExit(f'invalid ML-DSA-65 keyfile for {account}: {keyfile}')
+kem_pub_b64 = str(key.get('evidence_kem_public_key_b64') or '').strip()
+kem_secret_b64 = str(key.get('evidence_kem_secret_key_b64') or '').strip()
+if not kem_pub_b64 or not kem_secret_b64:
+    raise SystemExit(f'missing controlled-devnet ML-KEM evidence authority for {account}')
+if len(base64.b64decode(kem_pub_b64, validate=True)) != 1184:
+    raise SystemExit(f'invalid ML-KEM-768 public key for {account}')
+secret_b64 = base64.b64encode(seed).decode('ascii')
 pub_b64 = base64.b64encode(pub).decode('ascii')
 Path(secret_file).parent.mkdir(parents=True, exist_ok=True)
 Path(secret_file).write_text(json.dumps({
     'account': account,
     'pubkey_b64': pub_b64,
     'secret_key_b64': secret_b64,
+    'evidence_kem_public_key_b64': kem_pub_b64,
+    'evidence_kem_secret_key_b64': kem_secret_b64,
     'session_ttl_seconds': 24 * 60 * 60,
     'warning': 'local controlled-devnet browser bootstrap secret; never commit or use in production',
 }, indent=2) + '\n', encoding='utf-8')
+Path(secret_file).chmod(0o600)
 Path(manifest_file).parent.mkdir(parents=True, exist_ok=True)
 Path(manifest_file).write_text(json.dumps({
     'profile': profile,
@@ -662,6 +671,17 @@ PY
 activate_repo_venv
 mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public" "${RUNTIME_DIR}"
 
+# Browser and backend PoH review must share persistent, independently generated
+# ML-KEM authorities before account registration or reviewer assignment.
+if [[ ! -d "${WEB_ROOT}/node_modules" ]]; then
+  if _bool_true "${NPM_INSTALL}"; then
+    (cd "${WEB_ROOT}" && npm ci)
+  else
+    echo "ERROR: frontend dependencies are required for ML-KEM key preparation." >&2
+    exit 2
+  fi
+fi
+
 if _bool_true "${STOP_OLD}"; then
   _stop_existing_rehearsal_processes
 fi
@@ -678,6 +698,8 @@ _start_local_ipfs_daemon
 
 python3 scripts/devnet_tx.py ensure-keyfile --account "${GENESIS_ACCOUNT}" --keyfile "${GENESIS_KEYFILE}" >/dev/null
 python3 scripts/devnet_tx.py ensure-keyfile --account "${OBSERVER_ACCOUNT}" --keyfile "${OBSERVER_KEYFILE}" >/dev/null
+node "${WEB_ROOT}/scripts/generate_m2_actor_keys.mjs" "${GENESIS_KEYFILE}" >/dev/null
+node "${WEB_ROOT}/scripts/generate_m2_actor_keys.mjs" "${OBSERVER_KEYFILE}" >/dev/null
 
 GENESIS_SECRET="${GENERATED_DIR}/dev-bootstrap-genesis-secret.json"
 OBSERVER_SECRET="${GENERATED_DIR}/dev-bootstrap-observer-secret.json"
@@ -702,7 +724,7 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
     export WEALL_RUNTIME_DIR="${RUNTIME_DIR}"
     export WEALL_TX_QUEUE_PATH="${TX_QUEUE_PATH}"
-    export WEALL_MODE=devnet
+    export WEALL_MODE=controlled_devnet
     export WEALL_RUNTIME_PROFILE=controlled_devnet
     export WEALL_CHAIN_ID=weall-controlled-devnet
     export WEALL_NODE_ID="${GENESIS_ACCOUNT}"
@@ -757,6 +779,14 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
 fi
 _wait_http "${NODE1_API}/v1/status" 90 "${GENESIS_LOG}"
 
+# The deterministic genesis reviewer predates ordinary ACCOUNT_REGISTER.
+# Its ML-KEM authority must be confirmed on-chain BEFORE the applicant uploads
+# encrypted evidence. Never silently offer a reviewer who cannot decrypt it.
+WEALL_API="${NODE1_API}" WEALL_DEVNET_DIR="${DEVNET_DIR}" \
+  WEALL_GENESIS_REVIEWER_KEYFILE="${GENESIS_KEYFILE}" \
+  bash scripts/devnet_prepare_live_jurors.sh
+_write_secret_and_manifest "${GENESIS_ACCOUNT}" "${GENESIS_KEYFILE}" "${GENESIS_SECRET}" "${GENESIS_MANIFEST}" "local-controlled-devnet-genesis" "0"
+
 if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
   echo "==> Booting observer backend ${NODE2_API}"
   (
@@ -764,7 +794,7 @@ if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_RUNTIME_DIR="${RUNTIME_DIR}"
     export WEALL_TX_QUEUE_PATH="${TX_QUEUE_PATH}"
     export NODE1_API="${NODE1_API}"
-    export WEALL_MODE=devnet
+    export WEALL_MODE=controlled_devnet
     export WEALL_RUNTIME_PROFILE=controlled_devnet
     export WEALL_CHAIN_ID=weall-controlled-devnet
     export WEALL_NODE_ID="@local-observer"
@@ -909,6 +939,29 @@ if [[ -n "${OBSERVER_REGISTER_TX_ID}" ]]; then
   fi
 fi
 _wait_account_nonce "${NODE2_API}" "${OBSERVER_ACCOUNT}" 1 75
+
+# Every newly registered applicant must have the ML-KEM authority that its
+# browser will use for applicant and reviewer evidence envelopes. A stale
+# previous devnet with no ML-KEM record must not silently proceed to upload.
+python3 - "${NODE1_API}" "${NODE2_API}" "${OBSERVER_ACCOUNT}" "${OBSERVER_KEYFILE}" <<'PY_KEM_PREFLIGHT'
+import json, sys, urllib.parse, urllib.request
+api1, api2, account, keyfile = sys.argv[1:]
+expected = str(json.load(open(keyfile, encoding='utf-8')).get('evidence_kem_public_key_b64') or '').strip()
+if not expected:
+    raise SystemExit('rehearsal_applicant_keyfile_missing_mlkem')
+for api in (api1, api2):
+    url = api.rstrip('/') + '/v1/accounts/' + urllib.parse.quote(account, safe='')
+    with urllib.request.urlopen(url, timeout=15) as response:
+        payload = json.load(response)
+    state = payload.get('state') if isinstance(payload, dict) else {}
+    actual = str(((state or {}).get('evidence_encryption') or {}).get('public_key') or '').strip()
+    if actual != expected:
+        raise SystemExit(
+            f'rehearsal_applicant_mlkem_not_registered_or_mismatched: {api} {account}; '
+            'preserve state and register the original matching evidence key before retrying'
+        )
+print('==> Applicant ML-KEM evidence authority confirmed on genesis and observer')
+PY_KEM_PREFLIGHT
 
 if [[ ! -d "${WEB_ROOT}/node_modules" ]]; then
   if _bool_true "${NPM_INSTALL}"; then

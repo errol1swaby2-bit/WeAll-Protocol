@@ -15,7 +15,9 @@ import {
 import { ensureRecoveryAuthorityKeypair, normalizeAccount } from "../auth/keys";
 import {
   ensureEvidenceKemKeypair,
+  loadEvidenceKemKeypair,
   encryptEvidenceBlob,
+  unwrapEvidenceKeyForRecipient,
   wrapEvidenceKeyForRecipient,
 } from "../auth/evidenceCrypto";
 import { useAccount } from "../context/AccountContext";
@@ -117,10 +119,28 @@ function StatusCard({ eyebrow, title, status, description, children }: StatusCar
   );
 }
 
-function CaseCard({ item }: { item: any }): JSX.Element {
+function missingAsyncReviewerEnvelopes(item: any): string[] {
+  const jurors = Array.isArray(item?.assigned_jurors) ? item.assigned_jurors.map(String).filter(Boolean) : [];
+  if (!jurors.length) return [];
+  const currentRound = Number(item?.followup_round || 0);
+  const encrypted = Object.entries(asRecord(item?.evidence_commitments))
+    .filter(([, value]) => {
+      const record = asRecord(value);
+      return String(record.storage_mode || "").toLowerCase() === "encrypted_blob" && Number(record.followup_round || 0) === currentRound;
+    })
+    .map(([id]) => id);
+  const binds = Object.values(asRecord(item?.evidence_binds)).map(asRecord);
+  return jurors.filter((juror: string) => encrypted.some((id) => !binds.some((bind) =>
+    String(bind.evidence_id || "") === id &&
+    Array.isArray(bind.key_envelope_principals) && bind.key_envelope_principals.includes(juror),
+  )));
+}
+
+function CaseCard({ item, onFinishReviewerAccess, working = false }: { item: any; onFinishReviewerAccess?: (caseId: string) => void; working?: boolean }): JSX.Element {
   const created = item?.created_at_ms ? new Date(item.created_at_ms).toLocaleString() : "—";
   const tone = statusTone(String(item?.status || ""));
   const reviewability = asyncCaseReviewability(item);
+  const missingReviewerAccess = missingAsyncReviewerEnvelopes(item);
   const reason = String(item?.reviewer_queue_reason || "").trim();
   const humanReason = reason === "finalized" || ["approved", "rejected", "finalized"].includes(String(item?.status || "").toLowerCase())
     ? "This verification case has been finalized on-chain."
@@ -129,17 +149,25 @@ function CaseCard({ item }: { item: any }): JSX.Element {
       : reason === "case_reviewable_not_assigned"
         ? "Evidence is reviewable. Waiting for juror assignment."
         : reason === "assigned"
-          ? "Assigned reviewers can now see this case."
+          ? (missingReviewerAccess.length ? "Reviewer assigned. Encrypted video access must be finished before acceptance." : "Reviewer assigned and encrypted evidence access prepared.")
           : "Waiting for the next verification step.";
   return (
     <div className="infoCard compact">
       <div className="infoCardHeader">
         <strong>{String(item?.case_id || "Review case")}</strong>
-        <span className={`statusPill ${tone === "done" || reviewability.reviewable ? "ok" : ""}`}>{reviewability.reviewable ? "Reviewable" : String(item?.status || "unknown")}</span>
+        <span className={`statusPill ${(tone === "done" || reviewability.reviewable) && !missingReviewerAccess.length ? "ok" : ""}`}>{missingReviewerAccess.length ? "Reviewer access pending" : reviewability.reviewable ? "Reviewable" : String(item?.status || "unknown")}</span>
       </div>
       <div className="infoCardText">Opened {created}</div>
       <div className="infoCardText">{humanReason}</div>
       {reviewability.missingSteps.length ? <div className="miniMuted">Missing: {reviewability.missingSteps.join(", ")}</div> : null}
+      {missingReviewerAccess.length && onFinishReviewerAccess ? (
+        <div className="formStack">
+          <div className="miniMuted">Evidence access missing for: {missingReviewerAccess.join(", ")}</div>
+          <button className="btn" disabled={working} onClick={() => onFinishReviewerAccess(String(item.case_id || ""))}>
+            {working ? "Binding reviewer evidence…" : "Complete reviewer evidence access"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -829,6 +857,12 @@ export default function AccountVerificationPage(): JSX.Element {
         task: async () => {
           const caseId = `pohasync:${String(acct).replace(/^@/, "")}:${challenge.challengeId}`;
           const evidenceContext = `weall:poh-evidence:v1:${caseId}:${acct}`;
+          const subjectKem = ensureEvidenceKemKeypair(acct);
+          const accountView = await weall.account(acct, base);
+          const registeredKem = String(asRecord(accountView?.state).evidence_encryption?.public_key || "").trim();
+          if (!registeredKem || registeredKem !== subjectKem.publicKeyB64) {
+            throw new Error("Your account has no matching registered ML-KEM evidence key. Complete account setup or restore the original recovery file before uploading identity evidence.");
+          }
           const encryptedEvidence = await encryptEvidenceBlob({
             blob: asyncRecordedBlob,
             filename: `${challenge.challengeId}.webm`,
@@ -894,7 +928,6 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          const subjectKem = ensureEvidenceKemKeypair(acct);
           const subjectEnvelope = await wrapEvidenceKeyForRecipient({
             contentKey: encryptedEvidence.contentKey,
             recipientPublicKeyB64: subjectKem.publicKeyB64,
@@ -960,6 +993,18 @@ export default function AccountVerificationPage(): JSX.Element {
             });
           }
 
+          // A successful local evidence bind does not mean the assigned reviewer
+          // has access. Wait for the *second* bind to be applied and reconciled.
+          if (accessBind) {
+            const accessTxId = String(accessBind?.result?.tx_id || "").trim();
+            if (!accessTxId || !(await waitForSubmittedTxVisible(base, accessTxId, {
+              maxWaitMs: 90_000,
+              intervalMs: 1000,
+              requireLocalStateSynced: true,
+            }))) {
+              throw new Error("Reviewer evidence binding is submitted but not yet confirmed and synchronized. Open verification history to complete access; do not upload the video again.");
+            }
+          }
           const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 120000, intervalMs: 1000 });
           let reviewability = await waitForAsyncCaseReviewable(acct, caseId, base, headers, { maxWaitMs: 1000, intervalMs: 500 });
           let bindStatusVisible = true;
@@ -998,6 +1043,90 @@ export default function AccountVerificationPage(): JSX.Element {
     } catch (e: any) {
       setErr(prettyErr(e));
       setResult(e?.body || e?.data || null);
+    } finally {
+      setAsyncEvidenceBusy(false);
+    }
+  }
+
+  async function finishAsyncReviewerAccess(caseId: string): Promise<void> {
+    if (!acct || !caseId) return;
+    setAsyncEvidenceBusy(true);
+    setErr(null);
+    try {
+      const headers = getAuthHeaders(acct);
+      const detail = await weall.pohAsyncCase(caseId, base, headers);
+      const item = asRecord(detail?.case ?? detail);
+      const reviewerIds = missingAsyncReviewerEnvelopes(item);
+      if (!reviewerIds.length) {
+        await loadVerificationData();
+        return;
+      }
+      const applicantKeys = loadEvidenceKemKeypair(acct);
+      if (!applicantKeys?.secretKeyB64) {
+        throw new Error("The original applicant evidence-encryption key is not in this browser. Restore the original recovery file before finishing reviewer access; do not record a new video.");
+      }
+      const context = `weall:poh-evidence:v1:${caseId}:${acct}`;
+      const reviewers: Record<string, string> = {};
+      for (const reviewer of reviewerIds) {
+        const accountView = await weall.account(reviewer, base);
+        const publicKey = String(asRecord(accountView?.state).evidence_encryption?.public_key || "").trim();
+        if (!publicKey) throw new Error(`Assigned reviewer ${reviewer} must register an ML-KEM evidence key before review can continue.`);
+        reviewers[reviewer] = publicKey;
+      }
+      const sequence = await beginNonceSequence(acct, base);
+      const txIds: string[] = [];
+      const currentRound = Number(item.followup_round || 0);
+      const binds = Object.values(asRecord(item.evidence_binds)).map(asRecord);
+      for (const [evidenceId, evidenceUnknown] of Object.entries(asRecord(item.evidence_commitments))) {
+        const evidence = asRecord(evidenceUnknown);
+        if (String(evidence.storage_mode || "").toLowerCase() !== "encrypted_blob" || Number(evidence.followup_round || 0) !== currentRound) continue;
+        const bind = binds.find((row) => String(row.evidence_id || "") === evidenceId);
+        const envelopes = asRecord(bind?.key_envelope_commitments);
+        const subjectEnvelope = asRecord(envelopes[acct]);
+        if (!Object.keys(subjectEnvelope).length) throw new Error("Original applicant evidence envelope is unavailable. Sign in with the original recovery key before continuing.");
+        const contentKey = await unwrapEvidenceKeyForRecipient({
+          envelope: subjectEnvelope,
+          recipientSecretKeyB64: applicantKeys.secretKeyB64,
+          context: `${context}:${acct}`,
+        });
+        const amendedEnvelopes: Record<string, any> = { ...envelopes };
+        for (const [reviewer, publicKey] of Object.entries(reviewers)) {
+          amendedEnvelopes[reviewer] = await wrapEvidenceKeyForRecipient({
+            contentKey,
+            recipientPublicKeyB64: publicKey,
+            context: `${context}:${reviewer}`,
+          });
+        }
+        const committed = String(evidence.encrypted_blob_commitment || evidence.evidence_commitment || "").trim();
+        if (!committed) throw new Error("Missing canonical encrypted evidence commitment.");
+        const res = await submitSignedTxInSequence({
+          sequence,
+          tx_type: "POH_ASYNC_EVIDENCE_BIND",
+          payloadFactory: () => ({
+            case_id: caseId,
+            evidence_id: evidenceId,
+            target_id: caseId,
+            key_envelope_commitments: amendedEnvelopes,
+            evidence_root_commitment: committed,
+            followup_round: currentRound,
+            ts_ms: Date.now(),
+          }),
+          parent: null,
+          base,
+        });
+        txIds.push(String(res?.result?.tx_id || ""));
+      }
+      if (!txIds.length) throw new Error("No encrypted evidence was available for reviewer access.");
+      for (const txId of txIds) {
+        if (!txId || !(await waitForSubmittedTxVisible(base, txId, { maxWaitMs: 90_000, requireLocalStateSynced: true }))) {
+          throw new Error("Reviewer evidence binding is not yet confirmed and synced. Refresh this case before attempting another submission.");
+        }
+      }
+      await loadVerificationData();
+      await refresh();
+      setResult({ case_id: caseId, evidence_access: "submitted_and_locally_confirmed", tx_ids: txIds });
+    } catch (error: any) {
+      setErr(prettyErr(error));
     } finally {
       setAsyncEvidenceBusy(false);
     }
@@ -1515,7 +1644,14 @@ export default function AccountVerificationPage(): JSX.Element {
                 })}
               </div>
             ) : null}
-            {asyncCases.length ? <div className="infoGrid">{asyncCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
+            {asyncCases.length ? <div className="infoGrid">{asyncCases.map((it: any, idx: number) => (
+              <CaseCard
+                key={String(it?.case_id || idx)}
+                item={it}
+                onFinishReviewerAccess={(caseId) => void finishAsyncReviewerAccess(caseId)}
+                working={asyncEvidenceBusy || signerSubmission.busy}
+              />
+            ))}</div> : null}
             {!liveCases.length && !asyncCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No verification history is visible yet.</div></div> : null}
             {liveSessions.length ? <JsonDetails title="Advanced: live session payloads" value={liveSessions} /> : null}
           </div>

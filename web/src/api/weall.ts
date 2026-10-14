@@ -217,14 +217,16 @@ async function request<T = any>(
   init: RequestInit & { method?: HttpMethod } = {},
   base?: string,
 ): Promise<T> {
-  const res = await fetch(`${resolveBase(base)}${path}`, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init.body && !(init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
-      ...(init.headers || {}),
-    },
-  });
+  // HeadersInit can be a Headers object, tuple list, or plain object.
+  // Object spreading a Headers instance silently discards session/auth and
+  // evidence-encryption headers, causing misleading PoH 403 responses.
+  const headers = new Headers(init.headers);
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  // Never set Content-Type for FormData: fetch must supply the multipart boundary.
+  const res = await fetch(`${resolveBase(base)}${path}`, { ...init, headers });
 
   const text = await res.text();
   const payload = text ? safeJsonParse(text) : null;

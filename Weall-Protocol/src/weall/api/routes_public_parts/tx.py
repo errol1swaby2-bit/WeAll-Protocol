@@ -1919,6 +1919,25 @@ async def tx_submit(request: Request) -> Json:
     # Compute deterministic id for idempotency (chain_id-aware).
     tx_id = compute_tx_id(body, chain_id=str(getattr(ex, "chain_id", "") or "").strip() or None)
 
+    # A tx already included in a canonical block (including a rejected tx)
+    # must never be placed back into the mempool. Re-admitting a rejected tx
+    # can indefinitely occupy the signer's unconsumed nonce and prevent recovery.
+    indexed = _tx_index_lookup(request, tx_id)
+    if isinstance(indexed, dict):
+        if indexed.get("apply_ok") is False:
+            raise ApiError.forbidden(
+                "already_finalized_rejected",
+                "This transaction was already included with a failed apply receipt. Correct the cause and sign a new transaction.",
+                {"tx_id": tx_id, "height": indexed.get("height"), "tx_type": tx_type},
+            )
+        return {
+            "ok": True,
+            "tx_id": tx_id,
+            "status": "already_known",
+            "finality": "confirmed",
+            "height": indexed.get("height"),
+        }
+
     # Public observer mode must not create a local-only mempool trap. If no
     # verified public upstream can be derived from explicit config or the seed
     # registry, fail before local admission mutates the observer mempool.

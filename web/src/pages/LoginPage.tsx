@@ -86,6 +86,8 @@ type DevBootstrapSecretResponse = {
   secretKeyB64?: string
   secret_key_b64?: string
   sessionTtlSeconds?: number
+  evidenceKemPublicKeyB64?: string
+  evidenceKemSecretKeyB64?: string
 }
 
 async function fetchDevBootstrapSecret(account: string, apiBase: string): Promise<DevBootstrapSecretResponse | null> {
@@ -525,6 +527,15 @@ export default function LoginPage() {
       const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim()
       if (!secretKeyB64) throw new Error("Demo recovery key is unavailable from the local backend.")
       const ttlSeconds = Number(secret?.sessionTtlSeconds || devManifest.sessionTtlSeconds || 24 * 60 * 60)
+      const kemPub = String(secret?.evidenceKemPublicKeyB64 || "").trim()
+      const kemSecret = String(secret?.evidenceKemSecretKeyB64 || "").trim()
+      if (Boolean(kemPub) !== Boolean(kemSecret)) throw new Error("incomplete_dev_bootstrap_evidence_authority")
+      if (kemPub && kemSecret) {
+        saveEvidenceKemKeypair(normalizeAccount(devManifest.account), {
+          publicKeyB64: kemPub,
+          secretKeyB64: kemSecret,
+        })
+      }
       setApiBase(apiBase)
       setApiBaseInput(apiBase)
       await restoreAccountAndLoginOnThisDevice({

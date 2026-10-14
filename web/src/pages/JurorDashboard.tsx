@@ -5,6 +5,7 @@ import ErrorBanner from "../components/ErrorBanner";
 import RequirementList from "../components/RequirementList";
 import MediaGallery from "../components/MediaGallery";
 import EncryptedEvidenceViewer from "../components/EncryptedEvidenceViewer";
+import { loadEvidenceKemKeypair } from "../auth/evidenceCrypto";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
@@ -405,8 +406,9 @@ export default function JurorDashboard(): JSX.Element {
     const r = await tx.runTx({
       title,
       pendingMessage: "Saving review action…",
-      successMessage,
+      successMessage: "Review transaction submitted. Waiting for an on-chain receipt.",
       errorMessage: (e) => prettyErr(e).msg,
+      finality: { base: apiBase, timeoutMs: 30_000 },
       getTxId: (res: any) => res?.result?.tx_id,
       task: async () => {
         const txSkel = skel.tx;
@@ -435,9 +437,42 @@ export default function JurorDashboard(): JSX.Element {
   }
 
   async function asyncAccept(caseId: string): Promise<void> {
-    const headers = getAuthHeaders(account);
-    const skel = await weall.pohAsyncTxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept async verification case", "Async verification case accepted.");
+    try {
+      // Reviewers may see case metadata at assignment, but must not submit an
+      // acceptance until the applicant's encrypted evidence key is actually bound.
+      const headers = getAuthHeaders(account);
+      const [caseResponse, reviewerAccount] = await Promise.all([
+        weall.pohAsyncCase(caseId, apiBase, headers),
+        weall.account(account, apiBase),
+      ]);
+      const reviewerState = asRecord(reviewerAccount?.state);
+      const registeredKem = String(asRecord(reviewerState.evidence_encryption).public_key || "").trim();
+      if (!registeredKem) throw new Error("Your reviewer account has no registered ML-KEM evidence key. Complete reviewer setup before accepting.");
+      const localKem = loadEvidenceKemKeypair(account);
+      if (!localKem || localKem.publicKeyB64 !== registeredKem) {
+        throw new Error("This browser has no matching ML-KEM reviewer secret. Restore your account recovery file before accepting.");
+      }
+      const caseState = asRecord(caseResponse?.case ?? caseResponse);
+      const binds = Object.values(asRecord(caseState.evidence_binds)).map(asRecord);
+      const round = Number(caseState.followup_round || 0);
+      const encryptedEvidenceIds = Object.entries(asRecord(caseState.evidence_commitments))
+        .filter(([, item]) => {
+          const record = asRecord(item);
+          return Number(record.followup_round || 0) === round && String(record.storage_mode || "").toLowerCase() === "encrypted_blob";
+        })
+        .map(([evidenceId]) => evidenceId);
+      const missing = encryptedEvidenceIds.filter((evidenceId) => !binds.some((bind) =>
+        String(bind.evidence_id || "") === evidenceId &&
+        Array.isArray(bind.key_envelope_principals) && bind.key_envelope_principals.includes(account),
+      ));
+      if (missing.length) {
+        throw new Error("Reviewer evidence access is not ready. The applicant must complete the reviewer-specific encrypted evidence binding before you can accept.");
+      }
+      const skel = await weall.pohAsyncTxJurorAccept({ case_id: caseId }, apiBase, headers);
+      await submitSkeletonTx(skel, "Accept async verification case", "Async verification case accepted.");
+    } catch (error: any) {
+      setErr(prettyErr(error));
+    }
   }
 
   async function asyncDecline(caseId: string): Promise<void> {
