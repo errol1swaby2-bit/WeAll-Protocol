@@ -92,6 +92,10 @@ def test_dispute_scheduler_orders_outer_ids_regardless_of_insertion_order() -> N
     assert tick_dispute_lifecycle(left, next_height=2) == 2
     assert tick_dispute_lifecycle(right, next_height=2) == 2
     assert [x["payload"]["dispute_id"] for x in left["system_queue"]] == ["a", "z"]
+    assert [x["payload"]["receipt_id"] for x in left["system_queue"]] == [
+        "receipt:dispute:a:appeal-panel-finalize:1",
+        "receipt:dispute:z:appeal-panel-finalize:1",
+    ]
     assert _queue_ids(left) == _queue_ids(right)
     assert compute_state_root(left) == compute_state_root(right)
 
