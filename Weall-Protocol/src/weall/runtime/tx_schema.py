@@ -468,6 +468,9 @@ class PohLiveVerdictSubmitPayload(_StrictModel):
 
 class PohLiveFinalizePayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
+    # The deterministic Live PoH scheduler emits ts_ms=0 for SYSTEM finalize.
+    # Strict block admission must recognize that canonical scheduler payload.
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohLiveReceiptPayload(_StrictModel):
