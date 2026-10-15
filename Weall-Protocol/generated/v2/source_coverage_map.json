@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "d30654bd00ca5e6f3879e01a32b969fb18cc12362fd8a4dad41c4bc1a5f94ffd",
+      "sha256": "db04165cc107b0aed641a0a96cba08151346f3a80f0ec3a4fde6b3165648f13e",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -30420,7 +30420,7 @@
       ],
       "path": "tests/test_webrtc_page_surfaces_live_voting.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "bf8ad2bc1b67a9e7db83715ca9faba06277d17c8fccffc234853304716ff22a3",
+      "sha256": "28873b2eb5418098dbb9b69f4d870c7603fea1fe439303a7a5cc6a37633b45b5",
       "source_id": "SRC-75820C80106C42E5"
     },
     {
