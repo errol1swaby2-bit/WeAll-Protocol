@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "05d16561dc84c0c7c26a05c4380f66237462b869658604d2d74e0064ada33e54",
+      "sha256": "d8a9456198e0950220de1ff5a77665e0a9e6657692d23ab7eeb15d4ff097a358",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -30428,11 +30428,12 @@
       ],
       "classification": "test",
       "mappings": [
-        "M-076"
+        "M-076",
+        "ROUTE-150316944D629C32"
       ],
       "path": "tests/test_wsl_frontend_bind_host.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "601e728a7a76adede7503ff182ef26324857f9cfa70a02129fa64cbfa0c97753",
+      "sha256": "a7b6df71b3b42c05fa2eddd9eeedb24fa49e703e2ce56cf4871da3b1e90d4d11",
       "source_id": "SRC-529DB5DBC127EA99"
     },
     {
