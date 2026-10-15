@@ -109,6 +109,10 @@ jobs:
         run: |
           npm run test:live-room-join-truth
 
+      - name: Reporter vs juror review lane truth
+        run: |
+          npm run test:reporter-vs-juror-lanes
+
       - name: Contract check
         run: |
           API_BASE=http://127.0.0.1:8000 npm run contract-check

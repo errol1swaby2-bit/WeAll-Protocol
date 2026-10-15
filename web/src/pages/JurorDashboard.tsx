@@ -258,6 +258,8 @@ export default function JurorDashboard(): JSX.Element {
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [contentReports, setContentReports] = useState<any[]>([]);
+  const [reportsSubmittedByViewer, setReportsSubmittedByViewer] = useState<any[]>([]);
+  const [reportListUnavailable, setReportListUnavailable] = useState(false);
   const [reportContent, setReportContent] = useState<Record<string, any>>({});
   const [expanded, setExpanded] = useState<Record<string, any>>({});
   const [participants, setParticipants] = useState<Record<string, any[]>>({});
@@ -299,7 +301,7 @@ export default function JurorDashboard(): JSX.Element {
         weall.pohLiveAssigned(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(apiBase, headers).catch(() => ({ sessions: [] })),
         weall.disputesCurrent(apiBase, headers).catch(() => ({ items: [] })),
-        weall.disputes({ limit: 200, includeSummary: true } as any, apiBase, headers).catch(() => ({ items: [] })),
+        weall.disputes({ limit: 200, includeSummary: true } as any, apiBase, headers).catch(() => ({ items: [], unavailable: true })),
         weall.accountReviewerStatus(account, apiBase, headers).catch(() => ({ reviewer: null })),
         refreshAccount(),
       ]);
@@ -311,8 +313,25 @@ export default function JurorDashboard(): JSX.Element {
 
       const backendCurrentReports = Array.isArray(currentDisputesRes?.items) ? currentDisputesRes.items : [];
       const fallbackReports = Array.isArray(fallbackDisputesRes?.items) ? fallbackDisputesRes.items : [];
-      const assignedReports = (backendCurrentReports.length > 0 ? backendCurrentReports : fallbackReports)
-        .filter((item: any) => reportNeedsCurrentReviewer(item, account));
+      setReportListUnavailable(fallbackDisputesRes?.unavailable === true);
+      // Filing a report does not assign its reporter to the review panel.
+      // Preserve a read-only reporter view, including unassigned cases, so an
+      // accepted flag does not misleadingly disappear from the Review Center.
+      setReportsSubmittedByViewer(fallbackReports.filter((item: any) => {
+        const type = String(item?.target_type || "content").trim().toLowerCase();
+        if (!["content", "post", "comment", "media"].includes(type)) return false;
+        const reporter = String(item?.reported_by || item?.flagged_by || item?.reporter || item?.opened_by || "").trim();
+        return !!reporter && normalizeAccount(reporter) === account;
+      }));
+      // A populated /current read can omit newly available fallback cases;
+      // never use its nonzero length to suppress a separately returned report.
+      const reportsById = new Map<string, any>();
+      for (const item of [...fallbackReports, ...backendCurrentReports]) {
+        if (!reportNeedsCurrentReviewer(item, account)) continue;
+        const id = String(item?.id || item?.dispute_id || "").trim();
+        if (id) reportsById.set(id, item);
+      }
+      const assignedReports = Array.from(reportsById.values());
       setContentReports(assignedReports);
 
       const previews: Record<string, any> = {};
@@ -737,6 +756,60 @@ export default function JurorDashboard(): JSX.Element {
                       <button className="btn btnPrimary" onClick={() => nav(`/reviews/${encodeURIComponent(reportId)}`)} disabled={!reportId}>Open review workspace</button>
                       <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(reportId)}`)} disabled={!reportId}>Open report detail</button>
                       {targetId ? <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(targetId)}`)}>Open content</button> : null}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        eyebrow="Report tracking"
+        title="Reports you submitted"
+        right={<span className="statusPill">{reportsSubmittedByViewer.length} visible</span>}
+      >
+        <p className="cardDesc">
+          Submitting a flag and receiving authority to review it are separate. This read-only list tracks disputes
+          that identify your account as their reporter, including cases waiting for an unconflicted reviewer.
+          Reporting does not assign you to the juror panel or unlock voting.
+        </p>
+        {reportListUnavailable ? (
+          <div className="calloutInfo" role="status">
+            The public reports endpoint could not be read. An empty list is not evidence that the report was lost.
+            Check the signed flag transaction and retry Refresh.
+          </div>
+        ) : reportsSubmittedByViewer.length === 0 ? (
+          <div className="cardDesc" role="status">
+            No escalated report submitted by this account is visible in this node's current disputes state.
+            Check the flag transaction's finality and the following SYSTEM escalation; a flag does not become a
+            review assignment until a canonical dispute exists and an eligible panel is selected.
+          </div>
+        ) : (
+          <div className="pageStack">
+            {reportsSubmittedByViewer.map((item: any) => {
+              const reportId = String(item?.id || item?.dispute_id || "").trim();
+              const targetId = String(item?.target_id || "").trim();
+              const stage = String(item?.stage || item?.status || "open").trim();
+              const blocked = String(item?.assignment_blocked_reason || "").trim();
+              return (
+                <article key={reportId || targetId} className="card">
+                  <div className="cardBody formStack">
+                    <div className="sectionHead">
+                      <div>
+                        <div className="eyebrow">Submitted flag → canonical report</div>
+                        <h3 className="cardTitle">{String(item?.reason || "Flagged content")}</h3>
+                        <div className="cardDesc mono">{reportId || "(dispute identifier pending)"}</div>
+                      </div>
+                      <span className="statusPill">{reportStageLabel(stage)}</span>
+                    </div>
+                    <div className="cardDesc mono">Target: {targetId || "Unknown"}</div>
+                    {blocked ? <div className="calloutInfo">Reviewer assignment pending: {blocked}</div> : null}
+                    <p className="cardDesc">This is report tracking, not juror assignment. An eligible, nonconflicted reviewer must receive the work separately.</p>
+                    <div className="buttonRow">
+                      <button className="btn btnPrimary" disabled={!reportId} onClick={() => nav(`/reports/${encodeURIComponent(reportId)}`)}>Open report detail</button>
+                      {targetId ? <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(targetId)}`)}>Open flagged content</button> : null}
                     </div>
                   </div>
                 </article>
