@@ -56,7 +56,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "7ca6391de63af95a12dfaeb223c74fddc39e74ccd6bc3b1d88c6990950c5b837",
+      "sha256": "9f928229d2232fb2eee7d80e239aa8f0795c3d0da31be25bd7cfe84fa0501dd5",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "f49330952fc1e0730ca0ebf1ac3cec0d7d1aad2eed087dbff416a9d95328751f",
+      "sha256": "d30654bd00ca5e6f3879e01a32b969fb18cc12362fd8a4dad41c4bc1a5f94ffd",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
