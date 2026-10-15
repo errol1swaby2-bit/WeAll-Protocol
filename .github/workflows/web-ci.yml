@@ -101,6 +101,10 @@ jobs:
         run: |
           npm run test:focused-shell-source
 
+      - name: Controlled-devnet secret route network isolation
+        run: |
+          npm run test:dev-bootstrap-loopback-guard
+
       - name: Contract check
         run: |
           API_BASE=http://127.0.0.1:8000 npm run contract-check

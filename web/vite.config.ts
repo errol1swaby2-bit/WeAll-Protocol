@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import path from "node:path";
+// Node-tested development-only guard. The module intentionally has no frontend bundle import.
+// @ts-ignore -- plain ESM middleware loaded by the Vite development server
+import { protectDevBootstrapSecrets } from "./scripts/devBootstrapLoopbackGuard.mjs";
 
 // Dev CSP must allow Vite's inline preamble (and sometimes eval for tooling).
 // Production/preview should remain strict and should ideally be enforced by deployment headers.
@@ -52,7 +55,17 @@ const DEV_PROXY_TARGET = process.env.VITE_WEALL_DEV_PROXY_TARGET || "http://127.
 // - Serve UI and API behind the same origin (recommended), OR
 // - Allow CORS and keep connect-src open as above.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: "weall-local-only-dev-bootstrap",
+      configureServer(server) {
+        // Installed before Vite's /v1 proxy. A loopback backend alone is not
+        // sufficient if the dev frontend accepts external connections.
+        server.middlewares.use(protectDevBootstrapSecrets);
+      },
+    },
+  ],
   define: {
     __WEALL_WEB_VERSION__: JSON.stringify(PKG_VERSION),
     __WEALL_WEB_GIT_SHA__: JSON.stringify(GIT_SHA),
@@ -61,7 +74,7 @@ export default defineConfig({
     entries: ["index.html"],
   },
   server: {
-    host: true,
+    host: "127.0.0.1",
     port: 5173,
     headers: {
       "X-Content-Type-Options": "nosniff",

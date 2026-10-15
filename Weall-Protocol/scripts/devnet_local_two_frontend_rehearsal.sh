@@ -29,9 +29,25 @@ OBSERVER_BIND="${OBSERVER_BIND:-127.0.0.1:8002}"
 OBSERVER_FRONTEND_PORT="${OBSERVER_FRONTEND_PORT:-5173}"
 GENESIS_FRONTEND_PORT="${GENESIS_FRONTEND_PORT:-5174}"
 
-# Bind Vite to all WSL interfaces by default so Windows browsers can reach it.
-FRONTEND_BIND_HOST="${WEALL_LOCAL_REHEARSAL_FRONTEND_BIND_HOST:-0.0.0.0}"
+# Browser bootstrap serves signing and evidence-decapsulation secrets. The
+# development proxy must not be bound to LAN interfaces. Windows-to-WSL
+# localhost forwarding can use the loopback listener.
+FRONTEND_BIND_HOST="${WEALL_LOCAL_REHEARSAL_FRONTEND_BIND_HOST:-127.0.0.1}"
 FRONTEND_PUBLIC_HOST="${WEALL_LOCAL_REHEARSAL_FRONTEND_PUBLIC_HOST:-127.0.0.1}"
+case "${FRONTEND_BIND_HOST}" in
+  127.0.0.1|localhost|::1) ;;
+  *)
+    echo "ERROR: controlled-devnet bootstrap requires a loopback-only frontend bind; refusing ${FRONTEND_BIND_HOST}" >&2
+    exit 2
+    ;;
+esac
+case "${FRONTEND_PUBLIC_HOST}" in
+  127.0.0.1|localhost|::1) ;;
+  *)
+    echo "ERROR: controlled-devnet bootstrap requires a loopback-only frontend URL; refusing ${FRONTEND_PUBLIC_HOST}" >&2
+    exit 2
+    ;;
+esac
 OBSERVER_ACCOUNT="${WEALL_OBSERVER_TEST_ACCOUNT:-@errol}"
 GENESIS_ACCOUNT="${WEALL_GENESIS_BOOTSTRAP_ACCOUNT:-@devnet-genesis}"
 OBSERVER_KEYFILE="${WEALL_OBSERVER_TEST_KEYFILE:-${DEVNET_DIR}/accounts/errol.json}"

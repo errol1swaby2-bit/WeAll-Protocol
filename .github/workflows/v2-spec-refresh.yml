@@ -1,3 +1,5 @@
+# Exact-tree integration refresh requested after local bootstrap exposure remediation.
+# Keep the canonical refresh and clean-check behavior unchanged.
 name: Reviewer Artifact Refresh
 
 on:
