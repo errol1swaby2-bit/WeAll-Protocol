@@ -76,6 +76,8 @@ jobs:
           fi
 
           printf 'Checking %s\n' "${PY_FILES[@]}"
+          # Print actionable formatting diffs before enforcing the unchanged Ruff check.
+          ruff format --diff "${PY_FILES[@]}"
           ruff format --check "${PY_FILES[@]}"
           ruff check "${PY_FILES[@]}"
 
