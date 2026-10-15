@@ -43,4 +43,11 @@ for (const token of [
 ]) {
   if (!css.includes(token)) throw new Error(`Focused shell styles missing: ${token}`);
 }
-console.log("OK: focused navigation tunnel and context drawer source contract");
+// A full-height sticky header can obscure the live PoH video and verdict controls.
+// Keep it in normal document flow so it disappears as the user scrolls.
+const headerRule = css.match(/\.appShell--focus \.appShellHeader\s*\{([^}]*)\}/);
+if (!headerRule || !/position:\s*relative\s*;/.test(headerRule[1]) || !/top:\s*auto\s*;/.test(headerRule[1])) {
+  throw new Error("Focused shell header must scroll away with the page, not remain sticky");
+}
+
+console.log("OK: focused navigation, scroll-away header and context drawer source contract");
