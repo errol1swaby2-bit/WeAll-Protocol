@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "47ab761885795e4a51709f44011aa959cc3766c6ccf39416a065c6e20258b7cd",
+      "sha256": "07afdacf777f58a7c7498e7c0368906e27f2cc548e14b70063912bc2dce68a3c",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -30710,7 +30710,7 @@
       ],
       "path": "../web/scripts/test_focused_shell_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "ec0c6ca6b316bfab60ffc35f85977d77a5278547354d2511db1bb93798a60fdd",
+      "sha256": "b9ecc009215d6f52327f5f5ec633cd499446b75503ac611b15a30b25cce8944f",
       "source_id": "SRC-4126BEAC370FDF73"
     },
     {
