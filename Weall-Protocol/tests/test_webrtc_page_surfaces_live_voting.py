@@ -11,8 +11,7 @@ def test_webrtc_page_surfaces_live_voting_inside_video_room() -> None:
     assert "In-call chain voting" in src
     assert "Reviewer vote inside the WebRTC room" in src
     expected_join_copy = (
-        "The join action submits review acceptance and attendance "
-        "as separate on-chain steps"
+        "The join action submits review acceptance and attendance as separate on-chain steps"
     )
     assert expected_join_copy in src
     assert "Approve live verification" in src
@@ -45,8 +44,7 @@ def test_webrtc_join_action_accepts_attendance_and_waits_for_state() -> None:
     assert ">Accept review<" not in src
     assert ">Record attendance<" not in src
     expected_attendance_copy = (
-        "Accept and check-in transactions must be visible in chain state "
-        "before voting unlocks"
+        "Accept and check-in transactions must be visible in chain state before voting unlocks"
     )
     assert expected_attendance_copy in src
 
