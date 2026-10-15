@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "03de0d978a8235e6e19bb7e737f83292ed838c52354c9d3cff5620a850611d55",
+      "sha256": "90cc8d07043646c62fb140e9c4d0f6bf021fbc30950ac232452e44a0096eb60d",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -24389,7 +24389,7 @@
       ],
       "path": "tests/test_poh_reviewer_action_gating_frontend.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7a96d90e78686bfbfe1a056c7a4b2d76cd9aa825a3527b665b5dbd1252ce5b79",
+      "sha256": "cfe78a48326a026927777eeb4040f91960364ee90b0f46284689de8056dd7c71",
       "source_id": "SRC-B23B021EF20EC623"
     },
     {
@@ -30420,7 +30420,7 @@
       ],
       "path": "tests/test_webrtc_page_surfaces_live_voting.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "445f8407600706d4d76970e90273d1d7ffe569358a79d5dc471768380cbb3075",
+      "sha256": "89900b9a435e5c66433296c32ab6f6a47604303edf6a8dc45a20bc0d06fd2cdd",
       "source_id": "SRC-75820C80106C42E5"
     },
     {
