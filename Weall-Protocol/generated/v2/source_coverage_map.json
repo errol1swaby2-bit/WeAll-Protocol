@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2055,
+  "file_count": 2056,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "07afdacf777f58a7c7498e7c0368906e27f2cc548e14b70063912bc2dce68a3c",
+      "sha256": "8dbe85031ae676910cdc2e706aa9d834873f4e911d64392cc20456906ba8ef62",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "d2bcd20e14cba9d3f2668489e74adc4f1c5f7988d2710913a6865fe3a6df00cf",
+      "sha256": "f91eb8615ed8acae619c3b1933b568853a4ebab06a6f8089ccf649587e7eec6a",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -31046,6 +31046,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_reporter_vs_juror_lanes.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "af2cbc12d3b6954c4d1ac35706267a3a0257fb33864a87355d5485ab13f800e7",
+      "source_id": "SRC-3AE51F451CF86E95"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_responsibility_control_surface_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "7324222c429037e5bac69d9fef4f2d252fae41aa29065fb79c472fbb02508c12",
@@ -32686,7 +32699,7 @@
       ],
       "path": "../web/src/pages/JurorDashboard.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "82ceb7e4e05c98fe5c505ea30bbc0fcb0f15aff79aa3fd2f4fcfcaa062feeb2f",
+      "sha256": "04d4c9138ccba424827c085c83f0a549e796d94d103b91b2fdd6936b3cf4fb07",
       "source_id": "SRC-E8DF3D4744F7ED19"
     },
     {
