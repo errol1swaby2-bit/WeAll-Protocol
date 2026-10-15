@@ -1,5 +1,6 @@
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
+# Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
 name: Reviewer Artifact Refresh
 
 on:
