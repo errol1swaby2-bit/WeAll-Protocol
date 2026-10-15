@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2054,
+  "file_count": 2055,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "d8a9456198e0950220de1ff5a77665e0a9e6657692d23ab7eeb15d4ff097a358",
+      "sha256": "47ab761885795e4a51709f44011aa959cc3766c6ccf39416a065c6e20258b7cd",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "2a1b79bc3d36df1984238b849b050224c718e8bb869020c5d71ba119149acab7",
+      "sha256": "d2bcd20e14cba9d3f2668489e74adc4f1c5f7988d2710913a6865fe3a6df00cf",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -30825,6 +30825,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_live_room_join_truth.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "31874b75a8918e7591195cd3f7d9aba8df2c8fdbf4bc9d861e6dbdc1fb9d8d9b",
+      "source_id": "SRC-A04F1C14121F40D1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_live_room_media_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "19f6625f9ea9e1ed262168fd5d8e40f3a651b55f365c3b601b5d83626e39db84",
@@ -32688,7 +32701,7 @@
       ],
       "path": "../web/src/pages/LiveVerificationRoom.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "ca59bbb598d63eba917b26efb2f3d0b578324228e261dbf875814ec0378b8910",
+      "sha256": "59023dc65e13852c9842bf09bf88a1f10d592d9a52f2ea28368ac5a944715625",
       "source_id": "SRC-8A9FA9F3177A64C9"
     },
     {
