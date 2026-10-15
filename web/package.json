@@ -19,6 +19,7 @@
     "test:accessibility-source": "node scripts/test_accessibility_source.mjs",
     "test:focused-shell-source": "node scripts/test_focused_shell_source.mjs",
     "test:dev-bootstrap-loopback-guard": "node scripts/test_dev_bootstrap_loopback_guard.mjs",
+    "test:live-room-join-truth": "node scripts/test_live_room_join_truth.mjs",
     "test:responsibility-control-surface": "node scripts/test_responsibility_control_surface_source.mjs",
     "test:operator-journey-source": "node scripts/test_operator_journey_and_accent_source.mjs",
     "test:rendered-operator-journey": "playwright test tests/e2e/operator_journey_rendered.spec.ts",

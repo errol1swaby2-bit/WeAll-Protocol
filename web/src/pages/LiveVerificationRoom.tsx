@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { getApiBaseUrl, weall } from "../api/weall";
 import { liveRoomDescriptorText, liveRoomEmbedEnabled, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
+import { getLiveRoomJoinPresentation } from "../lib/liveRoomJoinPresentation";
 import { createWeAllPeerConnection, getWeAllLocalMedia, iceServerDiagnostics, loadWeAllIceServersJson, normalizeWeAllIceServers, saveWeAllIceServersJson, shouldCreateOffer, stopWeAllMediaStream, WeAllWebRTCSignal } from "../lib/webrtcLiveRoom";
 import { nav } from "../lib/router";
 import { REVIEW_CENTER_LABEL } from "../lib/reviewLanes";
@@ -213,6 +214,21 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     return p2pRemoteAccounts.filter((peer) => !seen.has(normalizeAccount(peer)));
   }, [p2pRemoteAccounts, remoteStreamEntries]);
   const iceDiag = useMemo(() => iceServerDiagnostics(iceServers), [iceServers]);
+  // Chain-recorded attendance, local capture and remote WebRTC connection
+  // are independent states. Never call a local-only capture "room ready".
+  const activeLocalMedia = Boolean(localStream?.getTracks().some((track) => track.readyState === "live"));
+  const connectedPeerCount = p2pRemoteAccounts.filter((peer) => peerStates[peer] === "connected").length;
+  const joinPresentation = getLiveRoomJoinPresentation({
+    canJoinReview,
+    busy,
+    isReviewer: Boolean(myJuror),
+    acceptedOnChain: myJuror?.accepted === true,
+    attendedOnChain: myJuror?.attended === true,
+    p2pRunning,
+    activeLocalMedia,
+    expectedPeerCount: p2pRemoteAccounts.length,
+    connectedPeerCount,
+  });
 
   function saveIceConfig(): void {
     try {
@@ -615,14 +631,15 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       setP2pStatus("room presence recorded; local media unavailable");
       throw e;
     }
-    setP2pRunning(true);
-    setP2pStatus("live media signaling active");
+    setP2pStatus("local media captured; negotiating peer connections");
     await sendWebRTCSignal({ type: "hello" });
     for (const peer of p2pRemoteAccounts) {
       await sendWebRTCSignal({ type: "hello", to_account: peer });
       if (account && shouldCreateOffer(account, peer)) await createOfferForPeer(peer, { force: true, reason: "room start" });
     }
     await pollWebRTCSignals();
+    setP2pRunning(true);
+    setP2pStatus("local media captured; signaling started; remote connection not yet confirmed");
     window.setTimeout(() => void pollWebRTCSignals(), 750);
     window.setTimeout(() => void pollWebRTCSignals(), 1750);
     window.setTimeout(() => void recoverMissingPeerMedia("startup recovery"), 3000);
@@ -747,7 +764,9 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       if (!roomUrl) {
         try {
           await ensureP2PRoomStarted();
-          setNotice(reviewerState ? "Live review joined, attendance recorded, and live media started. Voting unlocks from the refreshed on-chain attendance state." : "Live room presence recorded and live media started. Keep this page open while the other participant joins.");
+          setNotice(reviewerState
+            ? "Review acceptance and attendance are recorded on-chain; local media and peer signaling started. Remote connection is not yet confirmed."
+            : "Local room presence, media capture, and peer signaling started. Waiting for another participant to connect.");
         } catch (mediaError) {
           setP2pError(prettyError(mediaError));
           setNotice(reviewerAttendanceReady ? "Live review acceptance and attendance are recorded on-chain. Live media did not start; use Retry live media when camera/microphone access is ready." : "Live room check-in did not fully start. Verification authority still requires signed juror attendance and verdicts.");
@@ -907,7 +926,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
                 </div>
                 <div className="buttonRow">
-                  <button data-testid="live-room-join" className="btn btnPrimary" disabled={!canJoinReview || !!busy || (!!myJuror && myJuror.attended === true && p2pRunning)} onClick={checkIntoRoom}>{myJuror ? (myJuror.attended ? (p2pRunning ? "Live room ready" : "Re-enter live room") : (myJuror.accepted ? "Check in and enter live room" : "Accept review, check in, and enter live room")) : "Enter live room"}</button>
+                  <button data-testid="live-room-join" className="btn btnPrimary" disabled={joinPresentation.disabled} onClick={checkIntoRoom}>{joinPresentation.buttonLabel}</button>
                   {canAcceptDecline ? <button className="btn" disabled={!!busy} onClick={declineCase}>Decline review</button> : null}
                   {!roomUrl && !p2pRunning && p2pError ? <button className="btn" disabled={!canPresenceCheckIn || !!busy} onClick={startP2PRoom}>Retry live media</button> : null}
                   <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling live-media signals…", pollWebRTCSignals)}>Poll live media</button>
@@ -915,6 +934,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>
                   <button className="btn" disabled={!sessionId || !!busy} onClick={() => loadRoomSidecars(sessionId)}>Refresh room</button>
                 </div>
+                <p className="helpText" role="status" data-testid="live-room-join-status">{joinPresentation.mediaStatus}</p>
               </>
             ) : null}
             {!readOnlyStatusView ? <details className="advancedDetails">
@@ -931,13 +951,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                 <p className="cardDesc">Voting controls appear here for assigned reviewers. The video room remains transport only.</p>
               ) : (
                 <>
-                  <p className="cardDesc">Use these controls without leaving the WebRTC page. Joining the live room accepts the review assignment, records on-chain attendance, and starts media in one reviewer action.</p>
+                  <p className="cardDesc">The join action submits review acceptance and attendance as separate on-chain steps, then starts local media and WebRTC signaling. Neither accepted attendance nor local capture proves a remote participant is connected.</p>
                   <div className="statusGrid">
                     <div className="statusCard"><span>Your assignment</span><strong>{myJuror.accepted ? "Accepted" : "Pending"}</strong></div>
                     <div className="statusCard"><span>Your attendance</span><strong>{myJuror.attended ? "Recorded" : "Needed"}</strong></div>
                     <div className="statusCard"><span>Your vote</span><strong>{myJuror.verdict ? statusLabel(myJuror.verdict) : "Not cast"}</strong></div>
                   </div>
-                  <p className="helpText">Use the single live-room control above to accept the assignment, record chain attendance, and enter the room lobby. Media starts when peer connection and browser permissions are ready. Verdict controls appear here only after that chain-recorded check-in is visible.</p>
+                  <p className="helpText">Accept and check-in transactions must be visible in chain state before voting unlocks. Local media capture and peer connectivity are shown separately above; remote video is not implied by the attendance state.</p>
                   {canVote ? (
                     <div className="formStack" aria-live="polite">
                       <div className="buttonRow">

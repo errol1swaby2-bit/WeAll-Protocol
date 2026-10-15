@@ -105,6 +105,10 @@ jobs:
         run: |
           npm run test:dev-bootstrap-loopback-guard
 
+      - name: Live-room join truth regression
+        run: |
+          npm run test:live-room-join-truth
+
       - name: Contract check
         run: |
           API_BASE=http://127.0.0.1:8000 npm run contract-check
