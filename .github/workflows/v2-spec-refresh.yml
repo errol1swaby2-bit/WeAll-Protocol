@@ -1,7 +1,7 @@
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
-# PR53 Ruff-format PoH chain-attendance frontend tests; rerender source-bound artifacts.
+# PR53 avoid overlong assertion literals in WebRTC source tests; refresh derivatives.
 name: Reviewer Artifact Refresh
 
 on:
