@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2051,
+  "file_count": 2052,
   "files": [
     {
       "affected_registers": [
@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "6ca60669fc78e57ef94d6c4d27d4ddafa6621180ac8d885494eed5a7b1de5e62",
+      "sha256": "96e9caf46d40cc8e3a62fe45e94fb48f75863d57b3e91a7fcf92e3341693f7d0",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -30681,6 +30681,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_focused_shell_source.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "ec0c6ca6b316bfab60ffc35f85977d77a5278547354d2511db1bb93798a60fdd",
+      "source_id": "SRC-4126BEAC370FDF73"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_frontend_api_truth_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "cc79ae93d9f6a962288b905d7f0f837453018c15efcfbc4f355d6137a1ad184f",
@@ -31359,7 +31372,7 @@
       ],
       "path": "../web/src/components/AppShell.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "3f0a0316581a2df64fcf4181f58b881ca47c326c5ce042a1606ef8da5a251cf8",
+      "sha256": "4f5af02aa65f50fe36e5169bf817b9e0ee75ad95c3b423998cb36e7bc44b33e2",
       "source_id": "SRC-D78A14AE7C5FA9F1"
     },
     {
@@ -31628,7 +31641,7 @@
       ],
       "path": "../web/src/components/SidebarNav.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "1769930e581121b264d7d662a6699b7d35364b5f538462cef17e05aa46a34a58",
+      "sha256": "28e189424fd3751b694748351b61def5badc8bd334bd42dd0ad7ecaf697e504f",
       "source_id": "SRC-C266C3930991986C"
     },
     {
