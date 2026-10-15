@@ -5,7 +5,11 @@ import { dirname, resolve } from "node:path";
 import ts from "typescript";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const source = readFileSync(resolve(here, "../src/lib/liveRoomJoinPresentation.ts"), "utf8");
+const page = readFileSync(resolve(here, "../src/pages/LiveVerificationRoom.tsx"), "utf8");
+const start = page.indexOf("export type LiveRoomJoinInputs");
+const end = page.indexOf("export default function LiveVerificationRoom");
+assert(start >= 0 && end > start, "live-room presentation contract must be defined in the mapped source module");
+const source = page.slice(start, end);
 const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
@@ -40,11 +44,10 @@ assert.match(status({ acceptedOnChain: true, attendedOnChain: true, p2pRunning: 
 assert.equal(status({ busy: "Recording on-chain attendance…" }).buttonLabel, "Recording on-chain attendance…");
 assert.equal(status({ canJoinReview: false }).disabled, true);
 
-const page = readFileSync(resolve(here, "../src/pages/LiveVerificationRoom.tsx"), "utf8");
 assert.match(page, /disabled={joinPresentation\.disabled}/);
 assert.match(page, /joinPresentation\.buttonLabel/);
 assert.match(page, /data-testid="live-room-join-status"/);
-assert.match(page, /peerStates\[peer\] === "connected"/);
+assert.match(page, /peerConnectionsRef\.current\.get\(peer\)\?\.connectionState === "connected"/);
 assert.doesNotMatch(page, /"Live room ready"/);
 assert.match(page, /await pollWebRTCSignals\(\);\s+setP2pRunning\(true\)/);
 console.log("PASS: reviewer attendance, local capture and connected peers reported independently");
