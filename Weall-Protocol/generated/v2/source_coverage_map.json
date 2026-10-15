@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2052,
+  "file_count": 2054,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "05d16561dc84c0c7c26a05c4380f66237462b869658604d2d74e0064ada33e54",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "96e9caf46d40cc8e3a62fe45e94fb48f75863d57b3e91a7fcf92e3341693f7d0",
+      "sha256": "2a1b79bc3d36df1984238b849b050224c718e8bb869020c5d71ba119149acab7",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -30512,6 +30512,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/devBootstrapLoopbackGuard.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "430bb4fd0b7f085b626fc3815c0acbfddb079b374088bf9d0a47b8d1b8e5bfa8",
+      "source_id": "SRC-21EC0DDB8CBA0863"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/generate_m2_actor_keys.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "7d7f07ea198910cc6883a94813db106282f57d3b1d475ef756904c1d707d4862",
@@ -30607,6 +30620,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "109563214eb6d5d895cf082acd700a160afe8668410a29f244357df0fd20b5e9",
       "source_id": "SRC-87F1069F1D99254B"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_dev_bootstrap_loopback_guard.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "95718e3c453689fc71baf20ced4b7f99786439793d70a2ac6bed224839dcd236",
+      "source_id": "SRC-178A64F41C6A750E"
     },
     {
       "affected_registers": [
