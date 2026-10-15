@@ -56,7 +56,12 @@ def test_p2p_room_presence_is_recorded_before_local_media_but_running_requires_m
     running_idx = body.index("setP2pRunning(true)")
     hello_idx = body.index('sendWebRTCSignal({ type: "hello" })')
 
-    assert presence_idx < media_idx < running_idx < hello_idx
+    # Media capture starts signaling, but it is not marked running until
+    # signaling and the initial poll have succeeded. This does not prove the
+    # remote peer is connected.
+    assert presence_idx < media_idx < hello_idx < running_idx
+    assert body.index("await pollWebRTCSignals()") < running_idx
+    assert "remote connection not yet confirmed" in body
     assert "room presence recorded; local media unavailable" in body
 
 

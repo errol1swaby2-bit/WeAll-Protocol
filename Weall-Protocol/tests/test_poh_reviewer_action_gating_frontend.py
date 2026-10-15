@@ -50,7 +50,7 @@ def test_live_room_hides_verdict_buttons_until_can_vote() -> None:
         "Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain"
         in page
     )
-    assert "Use the single live-room control above" in page
+    assert "Accept and check-in transactions must be visible in chain state before voting unlocks" in page
     assert page.count("{canVote ? (") == 1
     assert "Reviewer action" not in page
     assert "disabled={!canVote || !!busy}" not in page
