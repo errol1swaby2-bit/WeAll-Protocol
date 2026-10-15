@@ -3425,3 +3425,23 @@ summary:focus-visible {
     transition: none;
   }
 }
+
+/* Verification is a sequential trust journey, not three narrow cards side by side. */
+.appShell--focus .accountVerificationPage > .grid2,
+.appShell--focus .accountVerificationPage > .grid3 {
+  grid-template-columns: minmax(0, 1fr);
+}
+.appShell--focus .accountVerificationPage > .grid3 > *,
+.appShell--focus .accountVerificationPage > .grid2 > * {
+  min-width: 0;
+}
+.appShell--focus .accountVerificationPage video {
+  display: block;
+  width: 100%;
+  max-width: 740px !important;
+  max-height: 70dvh;
+  object-fit: contain;
+}
+.appShell--focus .appShellContent :is(.infoCardText, .statValue, .mono, .cardTitle) {
+  overflow-wrap: anywhere;
+}
