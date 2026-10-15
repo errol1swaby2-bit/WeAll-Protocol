@@ -97,6 +97,10 @@ jobs:
         run: |
           npm run test:account-custody-crypto-source
 
+      - name: Focused shell navigation and drawer source gate
+        run: |
+          npm run test:focused-shell-source
+
       - name: Contract check
         run: |
           API_BASE=http://127.0.0.1:8000 npm run contract-check

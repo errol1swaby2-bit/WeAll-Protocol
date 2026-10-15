@@ -3118,3 +3118,310 @@ summary:focus-visible {
   display: grid;
   gap: 8px;
 }
+
+
+/* Focused one-task-at-a-time shell (2026-10-15): compact nav, no persistent right rail. */
+.appShell.appShell--focus {
+  display: block;
+}
+.appShell--focus .appShellMain {
+  min-height: 100dvh;
+  width: 100%;
+}
+.appShell--focus .appShellHeader {
+  position: sticky;
+  top: 0;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 12px clamp(16px, 3vw, 36px);
+  gap: 8px;
+}
+.appShellHeaderBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.appShellMenuAnchor {
+  position: relative;
+  flex: 0 0 auto;
+}
+.appShellMenuToggle, .appShellInfoToggle, .appShellBrandCompact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  font: inherit;
+}
+.appShellMenuToggle[aria-expanded="true"], .appShellInfoToggle[aria-expanded="true"] {
+  border-color: var(--accent-border);
+  background: rgba(var(--accent-2-rgb), 0.12);
+}
+.appShellBrandCompact {
+  border: 0;
+  padding: 0 6px;
+  background: none;
+  font-weight: 800;
+  font-size: 17px;
+}
+.appShellBrandCompact .appShellBrandMark {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.appShellInfoToggle {
+  margin-left: auto;
+}
+.appShellMenuPopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(370px, calc(100vw - 32px));
+  max-height: min(74dvh, 750px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 80;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  background: rgba(12, 22, 36, 0.98);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  animation: weallDropdownIn 150ms ease-out;
+}
+.appShellMenuPopover .sidebarNavFrame,
+.appShellMenuPopover .sidebarNav,
+.appShellMenuPopover .sidebarNavSection {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: visible;
+}
+.appShellMenuPopover .sidebarNav {
+  padding: 0;
+  gap: 10px;
+}
+.appShellMenuPopover .sidebarNavSectionHead {
+  display: flex;
+}
+.appShellMenuPopover .sidebarNavItems {
+  display: grid;
+  gap: 2px;
+}
+.appShellMenuPopover .sidebarNavItem {
+  width: 100%;
+  padding: 9px 10px;
+}
+.appShellMenuPopover .sidebarNavHint {
+  display: none;
+}
+.appShellMenuPopover .sidebarAccountChip {
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.appShellMenuFooter {
+  display: grid;
+  gap: 8px;
+  padding: 12px 2px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+}
+.appShellMenuQuickLinks {
+  display: flex;
+  gap: 8px;
+}
+.appShellMenuQuickLinks button {
+  flex: 1;
+}
+.appShell--focus .appShellHeaderText {
+  display: grid;
+  gap: 2px;
+}
+.appShell--focus .appShellTitle {
+  font-size: clamp(21px, 2.4vw, 29px);
+  overflow-wrap: anywhere;
+}
+.appShell--focus .appShellSubtitle {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 2px 0 0;
+  max-width: 850px;
+}
+.appShell--focus .appShellHeaderMeta {
+  display: none;
+}
+.appShell--focus .appShellRouteStrip {
+  padding: 8px clamp(16px, 3vw, 36px) 0;
+  align-items: center;
+}
+.appShell--focus .appShellRouteStripText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.appShell--focus .appShellRouteStripSummary {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.appShell--focus .appShellRouteStripActions {
+  flex-shrink: 0;
+}
+.appShell--focus .appShellBody {
+  display: block;
+  width: min(100%, 1360px);
+  max-width: 100%;
+  margin: 0 auto;
+}
+.appShell--focus.appShell--action .appShellBody,
+.appShell--focus.appShell--detail .appShellBody {
+  width: min(100%, 1100px);
+}
+.appShell--focus .appShellContent {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: clamp(16px, 2.6vw, 32px);
+  animation: weallRouteFocusIn 180ms ease-out;
+}
+.appShell--focus .appShellContent :is(pre, code, input, textarea, video) {
+  max-width: 100%;
+}
+.appShell--focus .appShellContent :is(.mono, .codePanel, .railSupportText) {
+  overflow-wrap: anywhere;
+}
+.appShellDrawerLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear 220ms;
+}
+.appShellDrawerLayer.isOpen {
+  visibility: visible;
+  pointer-events: auto;
+  transition: visibility 0s;
+}
+.appShellDrawerBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.58);
+  opacity: 0;
+  transition: opacity 210ms ease-out;
+}
+.appShellDrawerLayer.isOpen .appShellDrawerBackdrop {
+  opacity: 1;
+}
+.appShellContextDrawer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(440px, 100vw);
+  background: #0e1c2a;
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -18px 0 60px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transform: translateX(102%);
+  transition: transform 210ms ease-out;
+}
+.appShellDrawerLayer.isOpen .appShellContextDrawer {
+  transform: translateX(0);
+}
+.appShellDrawerHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.appShellDrawerHeader strong {
+  font-size: 18px;
+}
+.appShellDrawerHeader p {
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.72;
+  margin: 4px 0 0;
+}
+.appShellDrawerClose {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  min-width: 42px;
+  min-height: 42px;
+  border-radius: 12px;
+}
+.appShellDrawerContents {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+}
+.appShellDrawerContents .appShellRightRail {
+  display: grid;
+  position: static;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+@keyframes weallRouteFocusIn {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes weallDropdownIn {
+  from { opacity: 0; transform: translateY(-7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 760px) {
+  .appShell--focus .appShellHeader {
+    position: relative;
+    padding: 10px 14px;
+  }
+  .appShell--focus .appShellRouteStrip {
+    padding: 8px 14px 0;
+    gap: 8px;
+  }
+  .appShell--focus .appShellRouteStripText {
+    display: none;
+  }
+  .appShell--focus .appShellRouteStripActions {
+    width: auto;
+    display: flex;
+  }
+  .appShell--focus .appShellRouteStripAction {
+    width: auto;
+  }
+  .appShell--focus .appShellContent {
+    padding: 14px;
+  }
+  .appShellBrandCompact {
+    font-size: 14px;
+  }
+  .appShellMenuToggle, .appShellInfoToggle {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .appShell--focus .appShellContent, .appShellMenuPopover {
+    animation: none;
+  }
+  .appShellContextDrawer, .appShellDrawerBackdrop {
+    transition: none;
+  }
+  .appShellDrawerLayer {
+    transition: none;
+  }
+}
