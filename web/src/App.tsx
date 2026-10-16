@@ -217,18 +217,26 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     let cancelled = false;
+    let bootstrapInFlight = false;
 
     const runBootstrapSync = async () => {
-      if (!config.enableDevBootstrap) {
+      // Focus and visibilitychange can fire together: do not race session issuance.
+      if (bootstrapInFlight || cancelled) return;
+      bootstrapInFlight = true;
+      try {
+        if (!config.enableDevBootstrap) return;
+        const applied = await maybeApplyDevBootstrap(config);
+        if (applied && !cancelled) {
+          setAuthVersion((v: number) => v + 1);
+          setPath(currentHashPath());
+        }
+      } catch (error) {
+        // Never hold the browser indefinitely on a bootstrap hydration screen.
+        console.warn("Local demo bootstrap is waiting for backend reconciliation:", error);
+      } finally {
+        bootstrapInFlight = false;
         if (!cancelled) setAuthHydrated(true);
-        return;
       }
-      const applied = await maybeApplyDevBootstrap(config);
-      if (applied && !cancelled) {
-        setAuthVersion((v: number) => v + 1);
-        setPath(currentHashPath());
-      }
-      if (!cancelled) setAuthHydrated(true);
     };
 
     void runBootstrapSync();

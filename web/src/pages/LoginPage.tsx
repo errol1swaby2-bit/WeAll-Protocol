@@ -120,11 +120,11 @@ function DevBootstrapCard({
       <p className="eyebrow">Developer demo login</p>
       <h3>Load the local demo account</h3>
       <p className="muted">
-        This appears only in developer/demo builds. Normal users should create an account or sign in with a recovery key.
+        This appears only in developer/demo builds. Normal users should create an account or sign in with a recovery key. After a clean two-node rehearsal starts, account registration and device-session reconciliation can take 1–2 minutes. Keep both backends and reconcile workers running; wait instead of repeatedly signing in.
       </p>
       <div className="row gap-sm wrap">
         <button type="button" data-testid="load-demo-tester-session" onClick={onLoad} disabled={busy}>
-          {busy ? "Loading demo account…" : "Load demo account"}
+          {busy ? "Loading demo account and confirming network session…" : "Load demo account"}
         </button>
         <button type="button" className="secondary" onClick={onCopy}>
           Copy demo recovery key

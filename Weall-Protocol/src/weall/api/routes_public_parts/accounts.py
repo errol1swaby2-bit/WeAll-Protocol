@@ -16,7 +16,9 @@ from weall.api.routes_public_parts.common import (
 )
 from weall.api.routes_public_parts.content import (
     _content_target_hidden_by_review,
+    _reaction_counts_by_target,
     _with_media_summaries,
+    _with_reaction_counts,
 )
 from weall.api.security import require_account_session
 from weall.ledger.state import LedgerView
@@ -41,6 +43,7 @@ def _iter_posts_by_author(st: dict[str, Any], *, author: str) -> list[dict[str, 
         return []
 
     out: list[dict[str, Any]] = []
+    reaction_counts = _reaction_counts_by_target(st)
     for pid, obj in posts.items():
         if not isinstance(obj, dict):
             continue
@@ -52,7 +55,7 @@ def _iter_posts_by_author(st: dict[str, Any], *, author: str) -> list[dict[str, 
         if _str_param(obj.get("author")).strip() != author:
             continue
 
-        row = dict(obj)
+        row = _with_reaction_counts(obj, reaction_counts)
         row.setdefault("id", post_id)
         row.setdefault("created_at_nonce", int(row.get("created_nonce", 0) or 0))
         row.setdefault("visibility", "public")

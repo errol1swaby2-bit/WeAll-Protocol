@@ -253,3 +253,27 @@ def test_media_proxy_rejects_and_does_not_cache_hash_mismatch(tmp_path: Path, mo
         assert res.json().get("error", {}).get("code") == "media_provider_unavailable"
 
     assert not list((tmp_path / "cache").rglob("*.bin"))
+
+
+def test_account_feed_reactions_match_public_feed_after_cross_account_like() -> None:
+    state = _state()
+    state["content"]["reactions"] = {
+        "reaction:bob": {"target_id": "post:g-public", "reaction": "like", "by": "@alice"},
+        "reaction:eve": {"target_id": "post:g-public", "reaction": "like", "by": "@eve"},
+    }
+    with _client(state) as client:
+        public_res = client.get("/v1/feed")
+        owner_res = client.get("/v1/accounts/%40bob/feed")
+        assert public_res.status_code == 200, public_res.text
+        assert owner_res.status_code == 200, owner_res.text
+        public_post = next(
+            item for item in public_res.json()["items"]
+            if item.get("post_id") == "post:g-public"
+        )
+        owner_post = next(
+            item for item in owner_res.json()["items"]
+            if item.get("post_id") == "post:g-public"
+        )
+        assert public_post["reactions"]["like"] == 2
+        assert owner_post["reactions"]["like"] == 2
+        assert owner_post["reaction_total"] == public_post["reaction_total"]
