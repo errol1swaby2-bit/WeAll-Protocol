@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "860bdc699c76df7742778dcfcc0f4988c427f9b9ee6cc94251c814c5088bc81f"
+    "source_tree_digest": "400ff1a565ceeb0ede1b4199dfc351fe02c8e509b95e1981f74e948f478b97d8"
   },
   "required_fields": [
     "stable_id",
@@ -52,7 +52,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_registration_work_policy",
-        "line": 320,
+        "line": 323,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -102,7 +102,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_tx_profile_update",
-        "line": 334,
+        "line": 337,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -150,7 +150,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_account_tx_register",
-        "line": 262,
+        "line": 265,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -200,7 +200,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_get",
-        "line": 397,
+        "line": 400,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -249,7 +249,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_feed",
-        "line": 535,
+        "line": 538,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -341,7 +341,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_account_operator_status",
-        "line": 519,
+        "line": 522,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -389,7 +389,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_account_profile",
-        "line": 359,
+        "line": 362,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -435,7 +435,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_account_registered",
-        "line": 427,
+        "line": 430,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -483,7 +483,7 @@
       ],
       "implementation_source": {
         "function": "v1_account_reviewer_status",
-        "line": 455,
+        "line": 458,
         "path": "src/weall/api/routes_public_parts/accounts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1849,6 +1849,7 @@
         "tests/test_release_docs_truth_sync.py",
         "tests/test_restart_feed_persistence.py",
         "tests/test_review_coverage_read_models.py",
+        "tests/test_scoped_content_media_providers.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
         "tests/test_validator_follower_catchup_storage_anti_sybil_locked_economics.py",
         "tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py",
