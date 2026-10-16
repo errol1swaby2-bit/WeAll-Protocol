@@ -440,6 +440,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(acct);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingPreviewRef = useRef<HTMLVideoElement | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
@@ -545,6 +546,21 @@ export default function AccountVerificationPage(): JSX.Element {
       cleanupAsyncRecording();
     };
   }, []);
+
+  // Camera preview is rendered only after React enters "recording".
+  // Attach the captured local stream to the mounted video element.
+  useEffect(() => {
+    const preview = recordingPreviewRef.current;
+    const stream = recordingStreamRef.current;
+    if (asyncRecordingState !== "recording" || !preview || !stream) return;
+    preview.srcObject = stream;
+    void preview.play().catch(() => {
+      // Browser autoplay policy may require user interaction; capture continues.
+    });
+    return () => {
+      if (preview.srcObject === stream) preview.srcObject = null;
+    };
+  }, [asyncRecordingState]);
 
   const snapshot = resolveOnboardingSnapshot({
     account: acct,
@@ -842,6 +858,10 @@ export default function AccountVerificationPage(): JSX.Element {
 
     setAsyncEvidenceBusy(true);
     setErr(null);
+    // HTTP evidence storage and chain declaration are distinct operations.
+    // This marker survives errors after a successful encrypted upload.
+    let acceptedUpload: UploadState | null = null;
+    let caseTransactionsSubmitted = false;
     try {
       const headers = getAuthHeaders(acct);
       const r = await tx.runTx({
@@ -873,6 +893,10 @@ export default function AccountVerificationPage(): JSX.Element {
           uploadHeaders.set("X-WeAll-Evidence-Context-Commitment", encryptedEvidence.encryptionContextCommitment);
           uploadHeaders.set("X-WeAll-Evidence-Ciphertext-Commitment", encryptedEvidence.ciphertextCommitment);
           const upload: UploadState = await weall.pohAsyncVideoUpload(encryptedEvidence.file, base, uploadHeaders);
+          if (!String(upload?.cid || "").trim()) {
+            throw new Error("The media endpoint returned no ciphertext CID; the signed case was not submitted.");
+          }
+          acceptedUpload = upload;
           setAsyncUpload(upload);
 
           const challengeCommitment = await sha256HexText(`weall:poh_async_challenge_v1:${acct}:${challenge.challengeId}:${challenge.phrase}`);
@@ -1032,6 +1056,7 @@ export default function AccountVerificationPage(): JSX.Element {
             console.info(`Async verification txs were submitted, but the case is not reviewable yet. Missing: ${missing}. Wait for observer/genesis sync and refresh.`);
           }
 
+          caseTransactionsSubmitted = true;
           return { challenge, case_id: caseId, reviewability, pending_reviewability: pendingReviewability, missing_steps: reviewability.missingSteps, upload, open, declare, bind, access_bind: accessBind };
         },
       });
@@ -1041,7 +1066,17 @@ export default function AccountVerificationPage(): JSX.Element {
       await loadVerificationData();
       await refreshAccountContext();
     } catch (e: any) {
-      setErr(prettyErr(e));
+      const original = prettyErr(e);
+      if (acceptedUpload) {
+        setErr({
+          msg: caseTransactionsSubmitted
+            ? "Verification transactions were submitted, but refreshing their status failed. Check verification history before retrying."
+            : "Encrypted video upload succeeded, but a later signed verification or reviewer-access step failed. Check transaction status before retrying; do not re-upload the recording.",
+          details: { stage: caseTransactionsSubmitted ? "post_submission_refresh" : "post_upload_chain_steps", original_error: original.msg },
+        });
+      } else {
+        setErr(original);
+      }
       setResult(e?.body || e?.data || null);
     } finally {
       setAsyncEvidenceBusy(false);
@@ -1471,6 +1506,16 @@ export default function AccountVerificationPage(): JSX.Element {
                 Reset video
               </button>
             </div>
+            {asyncRecordingState === "recording" ? (
+              <div className="infoCard compact" data-testid="async-evidence-live-preview">
+                <div className="infoCardHeader">
+                  <strong>Live camera preview — recording locally</strong>
+                  <span className="statusPill">Camera and microphone active</span>
+                </div>
+                <video ref={recordingPreviewRef} autoPlay muted playsInline style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
+                <p className="miniMuted">Live camera preview is local. Nothing is uploaded until you submit encrypted evidence.</p>
+              </div>
+            ) : null}
             <div className="infoCard compact">
               <div className="infoCardHeader">
                 <strong>Recorded duration</strong>
@@ -1478,7 +1523,13 @@ export default function AccountVerificationPage(): JSX.Element {
               </div>
               <div className="infoCardText">Required length: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</div>
               {asyncRecordedBlob && asyncDurationError ? <div className="calloutDanger">{asyncDurationError}</div> : null}
-              {asyncRecordedUrl ? <video controls src={asyncRecordedUrl} style={{ width: "100%", marginTop: 10, borderRadius: 12 }} /> : null}
+              {asyncRecordedUrl ? (
+                <div data-testid="async-evidence-playback-review">
+                  <strong>Review your recorded video before submitting</strong>
+                  <p className="miniMuted">Video playback is preloaded locally. Reviewer decryption remains gated by on-chain acceptance.</p>
+                  <video controls playsInline preload="auto" src={asyncRecordedUrl} style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
+                </div>
+              ) : null}
             </div>
             <label className="checkRow">
               <input
@@ -1489,6 +1540,12 @@ export default function AccountVerificationPage(): JSX.Element {
               />
               <span>Assigned reviewers may view this evidence only for account verification. Public chain state should store commitments and receipts, not raw video.</span>
             </label>
+            {asyncUpload ? (
+              <div className="calloutInfo" data-testid="async-upload-accepted">
+                Encrypted evidence storage accepted the upload. The signed case, reviewer access, and finality remain separate checks.
+                If a later step fails, check verification history before re-uploading.
+              </div>
+            ) : null}
             {asyncUpload ? <JsonDetails title="Latest async evidence upload payload" value={asyncUpload} /> : null}
             <button
               className="btn btnPrimary"

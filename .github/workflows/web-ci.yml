@@ -113,6 +113,10 @@ jobs:
         run: |
           npm run test:reporter-vs-juror-lanes
 
+      - name: Async evidence preview and stage truth
+        run: |
+          npm run test:async-evidence-preview
+
       - name: Contract check
         run: |
           API_BASE=http://127.0.0.1:8000 npm run contract-check
