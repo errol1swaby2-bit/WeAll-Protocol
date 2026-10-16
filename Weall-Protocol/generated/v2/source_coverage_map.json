@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "79bfb31ea7a902f082f83ac4e6bc977c84d6123adbc27f331f102ebb9a5fd29e",
+      "sha256": "3d9d93bdadc314715c23a0d832ebedec170bfa4110cedc17cba68c74c9374e87",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -28008,7 +28008,7 @@
       ],
       "path": "tests/test_scoped_content_media_providers.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "abc862e7eb944cc2885eabd37e4f2a069882711d066e722044f33c5d4872b7ba",
+      "sha256": "389cc5f51a3112c913477fbfc2a28ff3667ab44c10325e675d87bf856c78150d",
       "source_id": "SRC-A3158088AEDB2FD7"
     },
     {
