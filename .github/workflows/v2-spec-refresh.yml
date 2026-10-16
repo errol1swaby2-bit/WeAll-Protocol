@@ -1,7 +1,7 @@
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
-# PR53 Ruff-fix canonical account-feed reaction parity test; refresh source-bound artifacts.
+# PR53 regenerate fresh-rehearsal source-bound artifacts from the stable integration tip.
 name: Reviewer Artifact Refresh
 
 on:
