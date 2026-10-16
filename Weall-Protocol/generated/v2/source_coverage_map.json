@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2057,
+  "file_count": 2058,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "557906a5f6f4481553bb37a7086b49cef1bf7dece36ee170b0fa4cd4c2f4699b",
+      "sha256": "525b884c4b88406703a3c90c9b5524ad0a01b3f9f8526a96a96477a81877e7e4",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "2b622bb2eb24c3f28cf1a9faff1f28b29ee5d92470812671251d6e738480391d",
+      "sha256": "41b33bf528f17b142643a30c615eb46940f70865dd6799f9de90e73748ec544f",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -15679,7 +15679,7 @@
       ],
       "path": "tests/test_content_review_conflict_enforcement.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "f0129fdcb79f4a661e654f78fce5b6db8644bab2da70438cb48708af98bc67fc",
+      "sha256": "ac289b745246c230cfe7b857e9cb10d5cb3d5b68dbb2695852df2e9f6e80916b",
       "source_id": "SRC-715211FA7BB042CB"
     },
     {
@@ -30645,6 +30645,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_content_flag_report_truth.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "4686b4ddb57158f498d03d323deb12be80610218ebef904ce8b77a388029c4cb",
+      "source_id": "SRC-9F6B702D2BB8DF83"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_dev_bootstrap_loopback_guard.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "95718e3c453689fc71baf20ced4b7f99786439793d70a2ac6bed224839dcd236",
@@ -32591,7 +32604,7 @@
       ],
       "path": "../web/src/pages/Disputes.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "07fb22ea3bcaff74953cd550e99367043407dba9640b221ea6ac1a5c64ccb9cb",
+      "sha256": "9f57ec05d7cae7adcbb83081737b460b03127a4e92fde55632e5dd88a2555e66",
       "source_id": "SRC-92394B1213B8FEEF"
     },
     {
@@ -32935,7 +32948,7 @@
       ],
       "path": "../web/src/pages/Thread.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "43bcca366d63317267414c70281e0d4dc5c4814b2f551f9afefde9455628c2e9",
+      "sha256": "80cffaa8ea9185a2d95f04788ae5e22a7b46ea634f98452d8685f3e03aa3083c",
       "source_id": "SRC-6652A43E94E2DC70"
     },
     {
