@@ -47,6 +47,11 @@ jobs:
           python scripts/gen_api_response_vectors_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
           python scripts/gen_release_evidence_manifest_v1_5.py
+          # These are source-bound P1 completion proofs; preserve their strict
+          # clean-check gates by regenerating them after source changes.
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
 
       - name: Verify v1.5 public-readiness derivatives
         working-directory: Weall-Protocol
