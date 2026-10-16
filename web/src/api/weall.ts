@@ -793,7 +793,7 @@ export const weall = {
   },
 
   disputes(
-    a?: { limit?: number; targetId?: string } | string,
+    a?: { limit?: number; targetId?: string; stage?: string; activeOnly?: boolean; includeSummary?: boolean } | string,
     b?: string | HeadersInit,
     c?: HeadersInit,
   ): Promise<any> {

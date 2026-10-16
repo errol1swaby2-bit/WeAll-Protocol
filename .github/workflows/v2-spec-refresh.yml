@@ -1,7 +1,7 @@
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
-# PR53 reporter-facing content flag case visibility; regenerate current source-bound evidence.
+# PR53 type-safe disputes filtering params for reporter view, and regenerate exact reviewer artifacts.
 name: Reviewer Artifact Refresh
 
 on:
