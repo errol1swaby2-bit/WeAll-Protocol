@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "525b884c4b88406703a3c90c9b5524ad0a01b3f9f8526a96a96477a81877e7e4",
+      "sha256": "3f1024272f6ef0c2750c0e9bf1acaea9a5015349ffac70a49e69b3584afd2cfc",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -31299,7 +31299,7 @@
       ],
       "path": "../web/src/api/weall.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "6806c3d33dd2db6b5ec6cb7a863ebf416467aeb09b2378495dd7b01fa4abb9f9",
+      "sha256": "9dd93398ed863969a7aa9ac9c83fb950ffaa8d8ce68e21f3e8f58f3f9a27d054",
       "source_id": "SRC-79BC4F6206422C07"
     },
     {
