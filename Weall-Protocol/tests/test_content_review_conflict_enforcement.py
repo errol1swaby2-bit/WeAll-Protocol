@@ -266,3 +266,37 @@ def test_unconflicted_remove_vote_applies_content_removal() -> None:
     assert post["visibility"] == "hidden"
     assert post.get("deleted") is not True
     assert post["locked"] is True
+
+
+def test_flag_escalation_with_only_reporter_and_author_is_visible_unassigned() -> None:
+    idx = _load_index()
+    state = _base_state()
+    # The reporter and author are distinct parties, not impartial jurors.
+    # Removing the independent reviewer must not erase the canonical report.
+    state["roles"]["jurors"]["active_set"] = []
+    state["roles"]["jurors"]["by_id"] = {}
+    state["accounts"].pop("@reviewer")
+    flagged = apply_tx(
+        state,
+        _env(
+            "CONTENT_FLAG",
+            "@errol",
+            1,
+            {"target_id": "post:@genesis:1", "reason": "two-party-report"},
+        ),
+    )
+    assert flagged["escalation_status"] == "queued"
+    emitted = system_tx_emitter(state, canon=idx, next_height=1, phase="post")
+    assert [envelope.tx_type for envelope in emitted] == ["CONTENT_ESCALATE_TO_DISPUTE"]
+    for envelope in emitted:
+        apply_tx(state, envelope)
+    assert len(state["disputes_by_id"]) == 1
+    dispute = next(iter(state["disputes_by_id"].values()))
+    assert dispute["target_id"] == "post:@genesis:1"
+    assert dispute["reported_by"] == "@errol"
+    assert dispute["opened_by"] == "SYSTEM"
+    assert dispute["stage"] == "unassigned"
+    assert dispute["assigned_jurors"] == []
+    assert dispute["assignment_blocked_reason"]
+    target = state["content"]["moderation"]["targets"]["post:@genesis:1"]
+    assert target["dispute_id"] == dispute["id"]

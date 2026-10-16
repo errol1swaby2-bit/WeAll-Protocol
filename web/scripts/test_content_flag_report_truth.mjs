@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const read = (p) => readFileSync(resolve(here, "../src", p), "utf8");
+const reports = read("pages/Disputes.tsx");
+const thread = read("pages/Thread.tsx");
+const feed = read("components/FeedView.tsx");
+assert.match(reports, /item\?\.reported_by \|\| item\?\.flagged_by/);
+assert.match(reports, /openedBy !== acct && reportedBy !== acct/);
+assert.match(reports, /submitted \/ opened by me/);
+assert.match(reports, /On-chain opener/);
+assert.match(reports, /Reported by:/);
+assert.match(reports, /no eligible impartial reviewer panel has been selected/);
+assert.match(reports, /includeSummary: true/);
+assert.match(thread, /weall\.disputes\(\{ targetId, limit: 5 \}, base\)/);
+assert.match(feed, /weall\.disputes\(\{ targetId, limit: 5 \}, base\)/);
+assert.match(feed, /tx_type: "CONTENT_FLAG"/);
+console.log("PASS: reporter filter distinguishes SYSTEM opener from content flag signer");

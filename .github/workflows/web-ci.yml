@@ -117,6 +117,10 @@ jobs:
         run: |
           npm run test:async-evidence-preview
 
+      - name: Flag reporter review and target lookup regression
+        run: |
+          npm run test:content-flag-report-truth
+
       - name: Contract check
         run: |
           API_BASE=http://127.0.0.1:8000 npm run contract-check
