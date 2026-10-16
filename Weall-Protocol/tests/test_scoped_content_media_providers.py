@@ -267,12 +267,10 @@ def test_account_feed_reactions_match_public_feed_after_cross_account_like() -> 
         assert public_res.status_code == 200, public_res.text
         assert owner_res.status_code == 200, owner_res.text
         public_post = next(
-            item for item in public_res.json()["items"]
-            if item.get("post_id") == "post:g-public"
+            item for item in public_res.json()["items"] if item.get("post_id") == "post:g-public"
         )
         owner_post = next(
-            item for item in owner_res.json()["items"]
-            if item.get("post_id") == "post:g-public"
+            item for item in owner_res.json()["items"] if item.get("post_id") == "post:g-public"
         )
         assert public_post["reactions"]["like"] == 2
         assert owner_post["reactions"]["like"] == 2
