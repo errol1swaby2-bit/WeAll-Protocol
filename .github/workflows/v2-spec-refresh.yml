@@ -1,7 +1,7 @@
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
-# PR53 sustained-load included-failure nonce parity repair, strict flag escalation closure, and exact source-bound artifacts.
+# PR53 final Ruff-formatted parity and nonce-consumption regression evidence; regenerate all exact source-bound artifacts.
 name: Reviewer Artifact Refresh
 
 on:
