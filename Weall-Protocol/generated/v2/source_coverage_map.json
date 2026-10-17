@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "7585cfc85572aa5045b093b4a15f86faa274bfb0afea19cd1ad00897b72cf56a",
+      "sha256": "064f7290f35ce26b4a544b9883dbba3b18188709babb9f2aac5b1a944b48796f",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -14931,7 +14931,7 @@
       ],
       "path": "tests/test_block_schedule_survivability_harness.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e2279657ca4c9916fbac4dfa01449b855c11d2857d0967a997be6175fa5172ed",
+      "sha256": "7a64f2ae933c96937298d4fdbc8d3cb034cda3aa6b78beb902b4d3e4ff29fba3",
       "source_id": "SRC-153524EF6F7AD2AE"
     },
     {
