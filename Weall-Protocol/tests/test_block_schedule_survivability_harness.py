@@ -590,7 +590,7 @@ def _consensus_state_difference_paths(left, right, *, limit: int = 28) -> list[s
                 if len(differences) >= limit:
                     return
         else:
-            differences.append(f"{path}:different")
+            differences.append(f"{path}:leader={a!r},follower={b!r}" if path.endswith("/nonce") else f"{path}:different")
 
     visit(left, right, "")
     return differences
