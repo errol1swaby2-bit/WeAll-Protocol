@@ -77,7 +77,6 @@ def _base_state() -> dict:
     }
 
 
-
 def test_flag_escalation_is_admitted_by_strict_block_schema() -> None:
     """A real CONTENT_FLAG child must pass block-context admission, not only apply_tx."""
     idx = _load_index()
