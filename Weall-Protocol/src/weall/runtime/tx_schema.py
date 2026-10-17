@@ -1833,6 +1833,11 @@ class ContentEscalateToDisputePayload(_StrictModel):
     target_id: str = Field(..., min_length=1)
     reason: str | None = None
     dispute_id: str | None = Field(default=None, min_length=1)
+    # Canonical provenance from the signed CONTENT_FLAG. A strict block
+    # validator must accept these two scheduler-emitted fields; unknown extras
+    # remain forbidden and SYSTEM authority is still checked independently.
+    flag_id: str | None = Field(default=None, min_length=1)
+    flagged_by: str | None = Field(default=None, min_length=1)
 
 
 class NotificationEmitReceiptPayload(_StrictModel):
