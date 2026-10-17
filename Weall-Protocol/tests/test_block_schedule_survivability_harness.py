@@ -567,6 +567,94 @@ def _sustained_liveness_failure_report(result: dict) -> dict:
     }
 
 
+def _consensus_state_difference_paths(left, right, *, limit: int = 28) -> list[str]:
+    """Bounded, content-free paths of first consensus-commitment differences."""
+    differences: list[str] = []
+
+    def visit(a, b, path):
+        if len(differences) >= limit or a == b:
+            return
+        if isinstance(a, dict) and isinstance(b, dict):
+            for key in sorted(set(a) | set(b), key=str):
+                if key not in a or key not in b:
+                    differences.append(f"{path}/{key}:missing_on_{'leader' if key not in a else 'follower'}")
+                else:
+                    visit(a[key], b[key], f"{path}/{key}")
+                if len(differences) >= limit:
+                    return
+        elif isinstance(a, list) and isinstance(b, list):
+            if len(a) != len(b):
+                differences.append(f"{path}:list_lengths_{len(a)}_vs_{len(b)}")
+            for i in range(min(len(a), len(b))):
+                visit(a[i], b[i], f"{path}/{i}")
+                if len(differences) >= limit:
+                    return
+        else:
+            differences.append(f"{path}:different")
+
+    visit(left, right, "")
+    return differences
+
+
+def test_sustained_flag_escalation_leader_follower_state_root_parity(monkeypatch) -> None:
+    """Preserve exact replay safety when a full block schedules many flag escalations."""
+    import weall.runtime.block_builder as block_builder
+    import weall.runtime.block_replay as block_replay
+    from weall.runtime.state_hash import consensus_state_root_view
+
+    captured: dict[str, list[dict]] = {"leader": [], "follower": []}
+    original_leader_root = block_builder.compute_state_root
+    original_follower_root = block_replay.compute_state_root
+
+    def capture_leader_root(state):
+        if int(state.get("height") or 0) == 1:
+            captured["leader"].append(consensus_state_root_view(state))
+        return original_leader_root(state)
+
+    def capture_follower_root(state):
+        if int(state.get("height") or 0) == 1:
+            captured["follower"].append(consensus_state_root_view(state))
+        return original_follower_root(state)
+
+    harness = _load_harness_module()
+    with monkeypatch.context() as scoped:
+        scoped.setattr(block_builder, "compute_state_root", capture_leader_root)
+        scoped.setattr(block_replay, "compute_state_root", capture_follower_root)
+        result = harness.run_profile(
+            "active",
+            users_n=30,
+            blocks_n=1,
+            max_txs_per_block=120,
+            txs_per_block_feed=40,
+            target_block_ms=20_000,
+            helper_fast_path=False,
+            restart_during_load=False,
+            execution_model="bounded_rollback",
+            chain_id_override="block-schedule-flag-system-replay-parity",
+            sustain_load=True,
+        )
+
+    views = captured
+    differences = (
+        _consensus_state_difference_paths(views["leader"][-1], views["follower"][-1])
+        if views["leader"] and views["follower"]
+        else ["missing_root_capture"]
+    )
+    assert result["convergence"]["all_nodes_converged"] is True, {
+        "differences": differences,
+        "leader_capture_count": len(views["leader"]),
+        "follower_capture_count": len(views["follower"]),
+        "block": [
+            (block.get("height"), block.get("ok"), block.get("error"))
+            for block in result.get("block_measurements", [])
+        ],
+        "follower_results": [
+            (item.get("ok"), item.get("error"))
+            for item in result.get("follower_apply_results", [])
+        ],
+    }
+
+
 def test_deterministic_top_up_generation_does_not_reuse_signer_nonce_pairs() -> None:
     harness = _load_harness_module()
     result = harness.run_profile(
