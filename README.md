@@ -84,6 +84,32 @@ If README or verification docs changed in the commit being reviewed, also run:
 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 ```
 
+### Hands-on two-node Proof-of-Humanity rehearsal (local-only)
+
+After the verification checks above, reviewers who want to exercise the **interactive two-node flow** should use the controlled-devnet launcher, **not** the public-observer boot command below. This flow starts one block-producing Genesis backend and one non-validator observer-edge backend, with separate frontend origins and an operator-managed observer transaction reconcile/state-sync loop. It is **not** a two-validator BFT test or external/public observer proof.
+
+Prerequisites: the backend virtual environment from the verification steps above, Node.js/npm for the frontend, and Docker with Compose or a working local Kubo/IPFS daemon for encrypted PoH video-evidence uploads. Use a disposable fresh checkout and keep the dev-bootstrap frontends on **loopback only**; the local-only bootstrap path exposes development signing/evidence key material to its local browser clients.
+
+From the repository's `Weall-Protocol/` directory:
+
+```bash
+source .venv/bin/activate
+bash scripts/devnet_local_two_frontend_rehearsal.sh
+```
+
+When the launcher reports **Local two-frontend rehearsal ready**, open the following in **separate browser profiles on the same host** (including Windows-to-WSL localhost forwarding on that host). Do not expose these endpoints to other devices or a LAN:
+
+| Role | Frontend | Backend |
+|---|---|---|
+| Applicant (observer account) | `http://127.0.0.1:5173/#/verification` | `http://127.0.0.1:8002` |
+| Assigned reviewer (Genesis account) | `http://127.0.0.1:5174/#/reviews` | `http://127.0.0.1:8001` |
+
+The launcher prepares the controlled-devnet test accounts and local bootstrap manifests; do **not** import recovery files, inject browser session state, or bypass the signed transaction path to force a successful demo. Follow [async Tier 1 review](Weall-Protocol/docs/testnet/M2_ASYNC_REVIEWER_RUNBOOK.md) and [live Tier 2 review](Weall-Protocol/docs/testnet/M2_LIVE_REVIEWER_RUNBOOK.md) for the applicable applicant/reviewer interactions. Record transaction IDs, backend confirmation/rejection, reviewer assignment, encrypted evidence handling, and observer reconciliation instead of treating a browser success message as protocol finality.
+
+The launcher preserves the local rehearsal ledger by default (`WEALL_LOCAL_REHEARSAL_RESET=0`), but by default it **stops existing local rehearsal processes** on its node/frontend ports and may manage local IPFS processes/containers. Do not run it over another active session without checking those effects. Do **not** enable `WEALL_LOCAL_REHEARSAL_RESET=1` when preserving evidence or pending cases. Keep `.weall-devnet/`, generated key material, dev-bootstrap secrets, and private media out of public evidence packages and commits. For troubleshooting, consult the script's logs under `.weall-devnet/logs/`.
+
+**Evidence boundary:** a successful same-machine rehearsal can support bounded local PoH onboarding and node-reconciliation observations only. It does not prove globally unique humans, public PoH authority, production key distribution, public multi-validator BFT, cross-machine replay, or public beta readiness; the external reviewer/observer, cryptographic, and launch gates remain open.
+
 For the bounded public-observer boot rehearsal, the operator path remains:
 
 ```bash
