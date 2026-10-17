@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "3f1024272f6ef0c2750c0e9bf1acaea9a5015349ffac70a49e69b3584afd2cfc",
+      "sha256": "5f24f23f03f9ef0dd1369feb30f2d561ef6d032719036ac06ec1e71e29eaa3dd",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3119,7 +3119,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a7278a09d9bd78fd5116045ba4cbdd01e8c4f69319bf1952fd3e7e1284cd50db",
+      "sha256": "21c749320b5ac4629da30ea3eb33e3e5c0d2eb1a5418d9b1051014b549386dd7",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3133,7 +3133,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "e8b8ae0f6eda838e6d04951bd19d1025028c95a2cacf88ab133db348f743cfbb",
+      "sha256": "98675b3fd71d16e42c15ef1c6f34dc6d401805590afd10ebecc76c26f7a45321",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3217,7 +3217,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "7028abe2028b1627356bf8f0637542fb11cb2f9b47d9b9198e4e218fb74538e4",
+      "sha256": "20f8a750bfb6c371de25ac4aa4dde47914b25772ca0191f5f6c918f1e62e85b8",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -12317,7 +12317,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "376f36ec5df76d20baf6bf9eb2675bcd8e0ef193eeb33215e2ca9af40bcc2a2f",
+      "sha256": "cc7ac5e9013798c7cd8a322d1b24eb27106c38af8c9d288e55bebc44fac00817",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -15679,7 +15679,7 @@
       ],
       "path": "tests/test_content_review_conflict_enforcement.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ac289b745246c230cfe7b857e9cb10d5cb3d5b68dbb2695852df2e9f6e80916b",
+      "sha256": "df8ac9fded6651a5f71819f7537e4b11bc24ace3bb95e7b1b755c4d9941b4ec1",
       "source_id": "SRC-715211FA7BB042CB"
     },
     {
