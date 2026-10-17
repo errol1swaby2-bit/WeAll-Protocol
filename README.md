@@ -97,7 +97,7 @@ source .venv/bin/activate
 bash scripts/devnet_local_two_frontend_rehearsal.sh
 ```
 
-When the launcher reports **Local two-frontend rehearsal ready**, open the following in **separate browser profiles or devices accessing the same machine's localhost**:
+When the launcher reports **Local two-frontend rehearsal ready**, open the following in **separate browser profiles on the same host** (including Windows-to-WSL localhost forwarding on that host). Do not expose these endpoints to other devices or a LAN:
 
 | Role | Frontend | Backend |
 |---|---|---|
