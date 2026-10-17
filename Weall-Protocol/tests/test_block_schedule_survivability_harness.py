@@ -590,7 +590,11 @@ def _consensus_state_difference_paths(left, right, *, limit: int = 28) -> list[s
                 if len(differences) >= limit:
                     return
         else:
-            differences.append(f"{path}:leader={a!r},follower={b!r}" if path.endswith("/nonce") else f"{path}:different")
+            differences.append(
+                f"{path}:leader={a!r},follower={b!r}"
+                if path.endswith("/nonce")
+                else f"{path}:different"
+            )
 
     visit(left, right, "")
     return differences
@@ -663,10 +667,14 @@ def test_sustained_flag_escalation_leader_follower_state_root_parity(monkeypatch
                 },
             }
             for tx in block_body.get("txs", [])
-            if isinstance(tx, dict)
-            and tx.get("signer") in {"@load008", "@load018", "@load028"}
+            if isinstance(tx, dict) and tx.get("signer") in {"@load008", "@load018", "@load028"}
         ]
-        print("ROOT_PARITY_FORENSIC", json.dumps({"difference_paths": differences, "transactions": nonce_rows}, sort_keys=True))
+        print(
+            "ROOT_PARITY_FORENSIC",
+            json.dumps(
+                {"difference_paths": differences, "transactions": nonce_rows}, sort_keys=True
+            ),
+        )
 
     assert result["convergence"]["all_nodes_converged"] is True, {
         "differences": differences,
@@ -677,8 +685,7 @@ def test_sustained_flag_escalation_leader_follower_state_root_parity(monkeypatch
             for block in result.get("block_measurements", [])
         ],
         "follower_results": [
-            (item.get("ok"), item.get("error"))
-            for item in result.get("follower_apply_results", [])
+            (item.get("ok"), item.get("error")) for item in result.get("follower_apply_results", [])
         ],
     }
 
@@ -699,7 +706,9 @@ def test_deterministic_top_up_generation_does_not_reuse_signer_nonce_pairs() -> 
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(result)
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(
+        result
+    )
     assert len(result["block_measurements"]) == 2
     for block in result["block_measurements"]:
         assert block["per_block_target_met"] is True, block
@@ -753,7 +762,9 @@ def test_refill_does_not_repeat_bad_nonce_retry_storms() -> None:
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(result)
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(
+        result
+    )
     for block in result["block_measurements"]:
         bad_nonce_total = (
             int(block["refill_bad_nonce_stale_count"])
@@ -782,7 +793,9 @@ def test_block_one_and_two_fill_requested_target_when_valid_nonce_lanes_exist() 
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(result)
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(
+        result
+    )
     for block in result["block_measurements"]:
         assert block["per_block_target_met"] is True, block
         assert block["valid_candidate_count"] == block["requested_mempool_candidate_limit"]
