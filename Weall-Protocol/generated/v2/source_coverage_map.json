@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "5f24f23f03f9ef0dd1369feb30f2d561ef6d032719036ac06ec1e71e29eaa3dd",
+      "sha256": "78de74eab5c66e7e6f4535cfc2a69b4d7457a228669b51f78feda90548b491c9",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -15679,7 +15679,7 @@
       ],
       "path": "tests/test_content_review_conflict_enforcement.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "df8ac9fded6651a5f71819f7537e4b11bc24ace3bb95e7b1b755c4d9941b4ec1",
+      "sha256": "e058d87d7d481d784ee0bdeeae2670a5dca640b11c2b76e95f569ef10ff1cd62",
       "source_id": "SRC-715211FA7BB042CB"
     },
     {
