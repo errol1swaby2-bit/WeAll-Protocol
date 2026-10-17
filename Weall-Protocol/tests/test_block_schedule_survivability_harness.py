@@ -577,7 +577,9 @@ def _consensus_state_difference_paths(left, right, *, limit: int = 28) -> list[s
         if isinstance(a, dict) and isinstance(b, dict):
             for key in sorted(set(a) | set(b), key=str):
                 if key not in a or key not in b:
-                    differences.append(f"{path}/{key}:missing_on_{'leader' if key not in a else 'follower'}")
+                    differences.append(
+                        f"{path}/{key}:missing_on_{'leader' if key not in a else 'follower'}"
+                    )
                 else:
                     visit(a[key], b[key], f"{path}/{key}")
                 if len(differences) >= limit:
