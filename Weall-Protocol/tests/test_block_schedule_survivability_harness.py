@@ -640,6 +640,34 @@ def test_sustained_flag_escalation_leader_follower_state_root_parity(monkeypatch
         if views["leader"] and views["follower"]
         else ["missing_root_capture"]
     )
+    if not result["convergence"]["all_nodes_converged"]:
+        import sqlite3
+
+        with sqlite3.connect(str(Path(result["tempdir"]) / "leader.db")) as conn:
+            row = conn.execute("SELECT block_json FROM blocks WHERE height=1").fetchone()
+        block_body = json.loads(row[0]) if row else {}
+        receipts = {
+            str(rec.get("tx_id") or ""): rec
+            for rec in block_body.get("receipts", [])
+            if isinstance(rec, dict)
+        }
+        nonce_rows = [
+            {
+                "signer": tx.get("signer"),
+                "nonce": tx.get("nonce"),
+                "tx_type": tx.get("tx_type"),
+                "receipt": {
+                    key: value
+                    for key, value in receipts.get(str(tx.get("tx_id") or ""), {}).items()
+                    if key in {"ok", "code", "reason"}
+                },
+            }
+            for tx in block_body.get("txs", [])
+            if isinstance(tx, dict)
+            and tx.get("signer") in {"@load008", "@load018", "@load028"}
+        ]
+        print("ROOT_PARITY_FORENSIC", json.dumps({"difference_paths": differences, "transactions": nonce_rows}, sort_keys=True))
+
     assert result["convergence"]["all_nodes_converged"] is True, {
         "differences": differences,
         "leader_capture_count": len(views["leader"]),
