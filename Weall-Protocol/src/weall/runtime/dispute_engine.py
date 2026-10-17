@@ -90,7 +90,7 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
     if not isinstance(disputes, dict) or not disputes:
         return 0
     enq = 0
-    for did, dispute in list(disputes.items()):
+    for did, dispute in sorted(disputes.items(), key=lambda item: str(item[0])):
         if not isinstance(dispute, dict):
             continue
         jurors = dispute.get("jurors")
@@ -120,6 +120,10 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
                 tx_type="DISPUTE_FINAL_RECEIPT",
                 payload={
                     "dispute_id": str(did),
+                    # SYSTEM envelopes share signer/nonce; an explicit per-queue
+                    # receipt identity prevents silent deduplication of separate
+                    # disputes finalized in the same block.
+                    "receipt_id": f"receipt:{parent_ref}",
                     "appeal_resolution": dict(resolution),
                     "_parent_ref": parent_ref,
                 },
@@ -148,6 +152,9 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
                 tx_type="DISPUTE_FINAL_RECEIPT",
                 payload={
                     "dispute_id": str(did),
+                    # Identical for leader and follower; unique per dispute
+                    # and appeal-window closure attempt.
+                    "receipt_id": f"receipt:{parent_ref}",
                     "resolution": dispute.get("resolution") or {},
                     "appeal_window_closed": True,
                     "appeal_deadline_height": int(deadline),

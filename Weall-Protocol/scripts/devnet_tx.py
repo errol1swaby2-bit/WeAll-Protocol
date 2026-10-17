@@ -197,11 +197,16 @@ def _account_state(api: str, account: str) -> Json:
 
 
 def _next_nonce(api: str, account: str) -> int:
-    state = _account_state(api, account)
+    """Reserve the backend's pending-aware nonce, not only confirmed state."""
+    quoted = urllib.parse.quote(str(account or "").strip(), safe="")
+    summary = _http_json("GET", api, f"/v1/accounts/{quoted}/nonce")
     try:
-        return int(state.get("nonce") or 0) + 1
-    except Exception:
-        return 1
+        next_nonce = int(summary["next_nonce"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise SystemExit("nonce_endpoint_missing_next_nonce") from exc
+    if next_nonce < 1:
+        raise SystemExit("nonce_endpoint_invalid_next_nonce")
+    return next_nonce
 
 
 def _sign_tx(
@@ -234,7 +239,7 @@ def _wait_tx(api: str, tx_id: str, *, timeout_s: float, poll_s: float) -> Json:
             "GET", api, f"/v1/tx/status/{urllib.parse.quote(str(tx_id or ''), safe='')}"
         )
         status = str(last.get("status") or "").strip().lower()
-        if status == "confirmed":
+        if status in {"confirmed", "rejected"}:
             return last
         if time.time() >= deadline:
             out = dict(last)

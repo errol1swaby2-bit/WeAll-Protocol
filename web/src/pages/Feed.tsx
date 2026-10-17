@@ -32,7 +32,7 @@ export default function Feed(): JSX.Element {
   const acct = session?.account || "";
   const kp = acct ? getKeypair(acct) : null;
 
-  const [tab, setTab] = useState<FeedTab>(acct ? "mine" : "global");
+  const [tab, setTab] = useState<FeedTab>("global");
   const [accountView, setAccountView] = useState<any | null>(null);
   const [registrationView, setRegistrationView] = useState<any | null>(null);
 

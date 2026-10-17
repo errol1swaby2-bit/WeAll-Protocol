@@ -5,6 +5,7 @@ import ErrorBanner from "../components/ErrorBanner";
 import RequirementList from "../components/RequirementList";
 import MediaGallery from "../components/MediaGallery";
 import EncryptedEvidenceViewer from "../components/EncryptedEvidenceViewer";
+import { loadEvidenceKemKeypair } from "../auth/evidenceCrypto";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
@@ -257,6 +258,8 @@ export default function JurorDashboard(): JSX.Element {
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [contentReports, setContentReports] = useState<any[]>([]);
+  const [reportsSubmittedByViewer, setReportsSubmittedByViewer] = useState<any[]>([]);
+  const [reportListUnavailable, setReportListUnavailable] = useState(false);
   const [reportContent, setReportContent] = useState<Record<string, any>>({});
   const [expanded, setExpanded] = useState<Record<string, any>>({});
   const [participants, setParticipants] = useState<Record<string, any[]>>({});
@@ -298,7 +301,7 @@ export default function JurorDashboard(): JSX.Element {
         weall.pohLiveAssigned(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(apiBase, headers).catch(() => ({ sessions: [] })),
         weall.disputesCurrent(apiBase, headers).catch(() => ({ items: [] })),
-        weall.disputes({ limit: 200, includeSummary: true } as any, apiBase, headers).catch(() => ({ items: [] })),
+        weall.disputes({ limit: 200, includeSummary: true } as any, apiBase, headers).catch(() => ({ items: [], unavailable: true })),
         weall.accountReviewerStatus(account, apiBase, headers).catch(() => ({ reviewer: null })),
         refreshAccount(),
       ]);
@@ -310,8 +313,25 @@ export default function JurorDashboard(): JSX.Element {
 
       const backendCurrentReports = Array.isArray(currentDisputesRes?.items) ? currentDisputesRes.items : [];
       const fallbackReports = Array.isArray(fallbackDisputesRes?.items) ? fallbackDisputesRes.items : [];
-      const assignedReports = (backendCurrentReports.length > 0 ? backendCurrentReports : fallbackReports)
-        .filter((item: any) => reportNeedsCurrentReviewer(item, account));
+      setReportListUnavailable(fallbackDisputesRes?.unavailable === true);
+      // Filing a report does not assign its reporter to the review panel.
+      // Preserve a read-only reporter view, including unassigned cases, so an
+      // accepted flag does not misleadingly disappear from the Review Center.
+      setReportsSubmittedByViewer(fallbackReports.filter((item: any) => {
+        const type = String(item?.target_type || "content").trim().toLowerCase();
+        if (!["content", "post", "comment", "media"].includes(type)) return false;
+        const reporter = String(item?.reported_by || item?.flagged_by || item?.reporter || item?.opened_by || "").trim();
+        return !!reporter && normalizeAccount(reporter) === account;
+      }));
+      // A populated /current read can omit newly available fallback cases;
+      // never use its nonzero length to suppress a separately returned report.
+      const reportsById = new Map<string, any>();
+      for (const item of [...fallbackReports, ...backendCurrentReports]) {
+        if (!reportNeedsCurrentReviewer(item, account)) continue;
+        const id = String(item?.id || item?.dispute_id || "").trim();
+        if (id) reportsById.set(id, item);
+      }
+      const assignedReports = Array.from(reportsById.values());
       setContentReports(assignedReports);
 
       const previews: Record<string, any> = {};
@@ -405,8 +425,9 @@ export default function JurorDashboard(): JSX.Element {
     const r = await tx.runTx({
       title,
       pendingMessage: "Saving review action…",
-      successMessage,
+      successMessage: "Review transaction submitted. Waiting for an on-chain receipt.",
       errorMessage: (e) => prettyErr(e).msg,
+      finality: { base: apiBase, timeoutMs: 30_000 },
       getTxId: (res: any) => res?.result?.tx_id,
       task: async () => {
         const txSkel = skel.tx;
@@ -435,9 +456,42 @@ export default function JurorDashboard(): JSX.Element {
   }
 
   async function asyncAccept(caseId: string): Promise<void> {
-    const headers = getAuthHeaders(account);
-    const skel = await weall.pohAsyncTxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept async verification case", "Async verification case accepted.");
+    try {
+      // Reviewers may see case metadata at assignment, but must not submit an
+      // acceptance until the applicant's encrypted evidence key is actually bound.
+      const headers = getAuthHeaders(account);
+      const [caseResponse, reviewerAccount] = await Promise.all([
+        weall.pohAsyncCase(caseId, apiBase, headers),
+        weall.account(account, apiBase),
+      ]);
+      const reviewerState = asRecord(reviewerAccount?.state);
+      const registeredKem = String(asRecord(reviewerState.evidence_encryption).public_key || "").trim();
+      if (!registeredKem) throw new Error("Your reviewer account has no registered ML-KEM evidence key. Complete reviewer setup before accepting.");
+      const localKem = loadEvidenceKemKeypair(account);
+      if (!localKem || localKem.publicKeyB64 !== registeredKem) {
+        throw new Error("This browser has no matching ML-KEM reviewer secret. Restore your account recovery file before accepting.");
+      }
+      const caseState = asRecord(caseResponse?.case ?? caseResponse);
+      const binds = Object.values(asRecord(caseState.evidence_binds)).map(asRecord);
+      const round = Number(caseState.followup_round || 0);
+      const encryptedEvidenceIds = Object.entries(asRecord(caseState.evidence_commitments))
+        .filter(([, item]) => {
+          const record = asRecord(item);
+          return Number(record.followup_round || 0) === round && String(record.storage_mode || "").toLowerCase() === "encrypted_blob";
+        })
+        .map(([evidenceId]) => evidenceId);
+      const missing = encryptedEvidenceIds.filter((evidenceId) => !binds.some((bind) =>
+        String(bind.evidence_id || "") === evidenceId &&
+        Array.isArray(bind.key_envelope_principals) && bind.key_envelope_principals.includes(account),
+      ));
+      if (missing.length) {
+        throw new Error("Reviewer evidence access is not ready. The applicant must complete the reviewer-specific encrypted evidence binding before you can accept.");
+      }
+      const skel = await weall.pohAsyncTxJurorAccept({ case_id: caseId }, apiBase, headers);
+      await submitSkeletonTx(skel, "Accept async verification case", "Async verification case accepted.");
+    } catch (error: any) {
+      setErr(prettyErr(error));
+    }
   }
 
   async function asyncDecline(caseId: string): Promise<void> {
@@ -702,6 +756,60 @@ export default function JurorDashboard(): JSX.Element {
                       <button className="btn btnPrimary" onClick={() => nav(`/reviews/${encodeURIComponent(reportId)}`)} disabled={!reportId}>Open review workspace</button>
                       <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(reportId)}`)} disabled={!reportId}>Open report detail</button>
                       {targetId ? <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(targetId)}`)}>Open content</button> : null}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        eyebrow="Report tracking"
+        title="Reports you submitted"
+        right={<span className="statusPill">{reportsSubmittedByViewer.length} visible</span>}
+      >
+        <p className="cardDesc">
+          Submitting a flag and receiving authority to review it are separate. This read-only list tracks disputes
+          that identify your account as their reporter, including cases waiting for an unconflicted reviewer.
+          Reporting does not assign you to the juror panel or unlock voting.
+        </p>
+        {reportListUnavailable ? (
+          <div className="calloutInfo" role="status">
+            The public reports endpoint could not be read. An empty list is not evidence that the report was lost.
+            Check the signed flag transaction and retry Refresh.
+          </div>
+        ) : reportsSubmittedByViewer.length === 0 ? (
+          <div className="cardDesc" role="status">
+            No escalated report submitted by this account is visible in this node's current disputes state.
+            Check the flag transaction's finality and the following SYSTEM escalation; a flag does not become a
+            review assignment until a canonical dispute exists and an eligible panel is selected.
+          </div>
+        ) : (
+          <div className="pageStack">
+            {reportsSubmittedByViewer.map((item: any) => {
+              const reportId = String(item?.id || item?.dispute_id || "").trim();
+              const targetId = String(item?.target_id || "").trim();
+              const stage = String(item?.stage || item?.status || "open").trim();
+              const blocked = String(item?.assignment_blocked_reason || "").trim();
+              return (
+                <article key={reportId || targetId} className="card">
+                  <div className="cardBody formStack">
+                    <div className="sectionHead">
+                      <div>
+                        <div className="eyebrow">Submitted flag → canonical report</div>
+                        <h3 className="cardTitle">{String(item?.reason || "Flagged content")}</h3>
+                        <div className="cardDesc mono">{reportId || "(dispute identifier pending)"}</div>
+                      </div>
+                      <span className="statusPill">{reportStageLabel(stage)}</span>
+                    </div>
+                    <div className="cardDesc mono">Target: {targetId || "Unknown"}</div>
+                    {blocked ? <div className="calloutInfo">Reviewer assignment pending: {blocked}</div> : null}
+                    <p className="cardDesc">This is report tracking, not juror assignment. An eligible, nonconflicted reviewer must receive the work separately.</p>
+                    <div className="buttonRow">
+                      <button className="btn btnPrimary" disabled={!reportId} onClick={() => nav(`/reports/${encodeURIComponent(reportId)}`)}>Open report detail</button>
+                      {targetId ? <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(targetId)}`)}>Open flagged content</button> : null}
                     </div>
                   </div>
                 </article>

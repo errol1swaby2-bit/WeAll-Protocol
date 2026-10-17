@@ -542,6 +542,156 @@ class _AcceptingExecutor:
         return [{"ok": True, "tx_id": f"accepted-{idx}"} for idx, _tx in enumerate(txs)]
 
 
+def _sustained_liveness_failure_report(result: dict) -> dict:
+    """Expose the first real block/candidate error, not only a root mismatch."""
+    return {
+        "convergence": result["convergence"],
+        "block_failures": [
+            {
+                "block_index": block.get("block_index"),
+                "ok": block.get("ok"),
+                "error": block.get("error"),
+                "height": block.get("height"),
+                "txs_included": block.get("txs_included"),
+                "valid_candidate_count": block.get("valid_candidate_count"),
+                "pre_block_mempool_size": block.get("pre_block_mempool_size"),
+                "rejected_by_code_this_round": block.get("rejected_by_code_this_round"),
+                "included_by_type": block.get("included_by_type"),
+            }
+            for block in result.get("block_measurements", [])
+        ],
+        "follower_apply_results": [
+            {"ok": item.get("ok"), "error": item.get("error"), "height": item.get("height")}
+            for item in result.get("follower_apply_results", [])
+        ],
+    }
+
+
+def _consensus_state_difference_paths(left, right, *, limit: int = 28) -> list[str]:
+    """Bounded, content-free paths of first consensus-commitment differences."""
+    differences: list[str] = []
+
+    def visit(a, b, path):
+        if len(differences) >= limit or a == b:
+            return
+        if isinstance(a, dict) and isinstance(b, dict):
+            for key in sorted(set(a) | set(b), key=str):
+                if key not in a or key not in b:
+                    differences.append(
+                        f"{path}/{key}:missing_on_{'leader' if key not in a else 'follower'}"
+                    )
+                else:
+                    visit(a[key], b[key], f"{path}/{key}")
+                if len(differences) >= limit:
+                    return
+        elif isinstance(a, list) and isinstance(b, list):
+            if len(a) != len(b):
+                differences.append(f"{path}:list_lengths_{len(a)}_vs_{len(b)}")
+            for i in range(min(len(a), len(b))):
+                visit(a[i], b[i], f"{path}/{i}")
+                if len(differences) >= limit:
+                    return
+        else:
+            differences.append(
+                f"{path}:leader={a!r},follower={b!r}"
+                if path.endswith("/nonce")
+                else f"{path}:different"
+            )
+
+    visit(left, right, "")
+    return differences
+
+
+def test_sustained_flag_escalation_leader_follower_state_root_parity(monkeypatch) -> None:
+    """Preserve exact replay safety when a full block schedules many flag escalations."""
+    import weall.runtime.block_builder as block_builder
+    import weall.runtime.block_replay as block_replay
+    from weall.runtime.state_hash import consensus_state_root_view
+
+    captured: dict[str, list[dict]] = {"leader": [], "follower": []}
+    original_leader_root = block_builder.compute_state_root
+    original_follower_root = block_replay.compute_state_root
+
+    def capture_leader_root(state):
+        if int(state.get("height") or 0) == 1:
+            captured["leader"].append(consensus_state_root_view(state))
+        return original_leader_root(state)
+
+    def capture_follower_root(state):
+        if int(state.get("height") or 0) == 1:
+            captured["follower"].append(consensus_state_root_view(state))
+        return original_follower_root(state)
+
+    harness = _load_harness_module()
+    with monkeypatch.context() as scoped:
+        scoped.setattr(block_builder, "compute_state_root", capture_leader_root)
+        scoped.setattr(block_replay, "compute_state_root", capture_follower_root)
+        result = harness.run_profile(
+            "active",
+            users_n=30,
+            blocks_n=1,
+            max_txs_per_block=120,
+            txs_per_block_feed=40,
+            target_block_ms=20_000,
+            helper_fast_path=False,
+            restart_during_load=False,
+            execution_model="bounded_rollback",
+            chain_id_override="block-schedule-flag-system-replay-parity",
+            sustain_load=True,
+        )
+
+    views = captured
+    differences = (
+        _consensus_state_difference_paths(views["leader"][-1], views["follower"][-1])
+        if views["leader"] and views["follower"]
+        else ["missing_root_capture"]
+    )
+    if not result["convergence"]["all_nodes_converged"]:
+        import sqlite3
+
+        with sqlite3.connect(str(Path(result["tempdir"]) / "leader.db")) as conn:
+            row = conn.execute("SELECT block_json FROM blocks WHERE height=1").fetchone()
+        block_body = json.loads(row[0]) if row else {}
+        receipts = {
+            str(rec.get("tx_id") or ""): rec
+            for rec in block_body.get("receipts", [])
+            if isinstance(rec, dict)
+        }
+        nonce_rows = [
+            {
+                "signer": tx.get("signer"),
+                "nonce": tx.get("nonce"),
+                "tx_type": tx.get("tx_type"),
+                "receipt": {
+                    key: value
+                    for key, value in receipts.get(str(tx.get("tx_id") or ""), {}).items()
+                    if key in {"ok", "code", "reason"}
+                },
+            }
+            for tx in block_body.get("txs", [])
+            if isinstance(tx, dict) and tx.get("signer") in {"@load008", "@load018", "@load028"}
+        ]
+        print(
+            "ROOT_PARITY_FORENSIC",
+            json.dumps(
+                {"difference_paths": differences, "transactions": nonce_rows}, sort_keys=True
+            ),
+        )
+
+    assert result["convergence"]["all_nodes_converged"] is True, {
+        "differences": differences,
+        "leader_capture_count": len(views["leader"]),
+        "follower_capture_count": len(views["follower"]),
+        "block": [
+            (block.get("height"), block.get("ok"), block.get("error"))
+            for block in result.get("block_measurements", [])
+        ],
+        "follower_results": [
+            (item.get("ok"), item.get("error")) for item in result.get("follower_apply_results", [])
+        ],
+    }
+
+
 def test_deterministic_top_up_generation_does_not_reuse_signer_nonce_pairs() -> None:
     harness = _load_harness_module()
     result = harness.run_profile(
@@ -558,7 +708,9 @@ def test_deterministic_top_up_generation_does_not_reuse_signer_nonce_pairs() -> 
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(
+        result
+    )
     assert len(result["block_measurements"]) == 2
     for block in result["block_measurements"]:
         assert block["per_block_target_met"] is True, block
@@ -612,7 +764,9 @@ def test_refill_does_not_repeat_bad_nonce_retry_storms() -> None:
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(
+        result
+    )
     for block in result["block_measurements"]:
         bad_nonce_total = (
             int(block["refill_bad_nonce_stale_count"])
@@ -641,7 +795,9 @@ def test_block_one_and_two_fill_requested_target_when_valid_nonce_lanes_exist() 
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(
+        result
+    )
     for block in result["block_measurements"]:
         assert block["per_block_target_met"] is True, block
         assert block["valid_candidate_count"] == block["requested_mempool_candidate_limit"]

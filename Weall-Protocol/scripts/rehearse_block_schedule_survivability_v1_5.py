@@ -691,11 +691,17 @@ def _patched_block_builder_timing(
             apply_tx_atomic_meta_bounded_rollback,
             apply_tx_atomic_meta_deepcopy,
         )
+        from weall.runtime.runtime_context import _included_tx_apply
 
+        # Preserve the exact canonical included-tx nonce contract: a
+        # committed failed receipt still consumes its signer nonce. Measuring
+        # the raw domain helpers previously bypassed RuntimeContext's wrapper
+        # for bounded/deepcopy modes. Leader and follower then diverged on
+        # failed GOVERNANCE votes while their receipt roots still matched.
         if str(execution_model) == "deepcopy":
-            selected_apply = apply_tx_atomic_meta_deepcopy
+            selected_apply = _included_tx_apply(apply_tx_atomic_meta_deepcopy)
         elif str(execution_model) == "bounded_rollback":
-            selected_apply = apply_tx_atomic_meta_bounded_rollback
+            selected_apply = _included_tx_apply(apply_tx_atomic_meta_bounded_rollback)
         else:
             selected_apply = ctx.tx_execution_set.apply_tx_atomic_meta
 

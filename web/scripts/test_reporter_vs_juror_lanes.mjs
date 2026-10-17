@@ -1,0 +1,32 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const page = readFileSync(resolve(here, "../src/pages/JurorDashboard.tsx"), "utf8");
+const lanes = readFileSync(resolve(here, "../src/lib/reviewLanes.ts"), "utf8");
+
+assert.match(page, /title="Assigned content reviews"/);
+assert.match(page, /title="Reports you submitted"/);
+assert.match(page, /setReportsSubmittedByViewer\(fallbackReports\.filter/);
+assert.match(page, /item\?\.reported_by\s*\|\|\s*item\?\.flagged_by/);
+assert.match(page, /normalizeAccount\(reporter\) === account/);
+assert.match(page, /const assignedReports = Array\.from\(reportsById\.values\(\)\)/);
+assert.match(page, /for \(const item of \[\.\.\.fallbackReports, \.\.\.backendCurrentReports\]\)/);
+assert.match(page, /if \(!reportNeedsCurrentReviewer\(item, account\)\) continue/);
+assert.match(page, /reportListUnavailable/);
+assert.match(page, /An empty list is not evidence that the report was lost/);
+assert.match(page, /No escalated report submitted by this account is visible/);
+assert.match(page, /assignment_blocked_reason/);
+assert.match(page, /Reporting does not assign you to the juror panel or unlock voting/);
+const reporterStart = page.indexOf('title="Reports you submitted"');
+const reporterEnd = page.indexOf('\n      </SectionCard>', reporterStart);
+assert(reporterStart >= 0 && reporterEnd > reporterStart);
+const reporterSection = page.slice(reporterStart, reporterEnd);
+assert(!reporterSection.includes("submitSignedTx("));
+assert(!reporterSection.includes("DISPUTE_VOTE_SUBMIT"));
+assert(!reporterSection.includes("Open review workspace"));
+assert.match(reporterSection, /Open report detail/);
+assert.match(lanes, /content_review can surface context but does not grant dispute juror accept\/vote authority/);
+console.log("PASS: reported content tracking cannot be confused with assigned reviewer authority");

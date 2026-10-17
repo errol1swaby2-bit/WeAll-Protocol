@@ -6,7 +6,7 @@ import { prefetchRouteChunk } from "../lib/routePrefetch";
 import { currentHashPath, getNavSections, isActiveNavPath, nav } from "../lib/router";
 import { verificationLabel } from "../lib/userLanguage";
 
-export default function SidebarNav({ showAdvancedMode = false }: { showAdvancedMode?: boolean }): JSX.Element {
+export default function SidebarNav({ showAdvancedMode = false, onNavigate }: { showAdvancedMode?: boolean; onNavigate?: () => void }): JSX.Element {
   const [currentPath, setCurrentPath] = useState<string>(currentHashPath());
   const session = getSession();
   const account = session?.account || "";
@@ -36,6 +36,7 @@ export default function SidebarNav({ showAdvancedMode = false }: { showAdvancedM
       <nav className="sidebarNav" aria-label="Primary routes">
         {sections.map((section) => (
           <section key={section.key} className="sidebarNavSection" aria-label={section.label}>
+            <div className="sidebarNavSectionHead"><span className="sidebarNavSectionLabel">{section.label}</span></div>
             <div className="sidebarNavItems">
               {section.items.map((item) => {
                 const active = isActiveNavPath(currentPath, item.href);
@@ -44,7 +45,7 @@ export default function SidebarNav({ showAdvancedMode = false }: { showAdvancedM
                   <button
                     key={`${section.key}:${item.href}`}
                     className={`sidebarNavItem ${active ? "active" : ""}`}
-                    onClick={() => nav(item.href)}
+                    onClick={() => { onNavigate?.(); nav(item.href); }}
                     onMouseEnter={warmRoute}
                     onFocus={warmRoute}
                     onTouchStart={warmRoute}

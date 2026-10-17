@@ -35,7 +35,7 @@ function sleep(ms: number): Promise<void> {
 async function waitForDisputeForTarget(base: string, targetId: string, attempts = 8, delayMs = 300): Promise<any | null> {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      const disputesRes: any = await weall.disputes(base);
+      const disputesRes: any = await weall.disputes({ targetId, limit: 5 }, base);
       const items = asArray<any>(disputesRes?.items);
       const found = items.find((item) => String(item?.target_id || "") === String(targetId));
       if (found) return found;

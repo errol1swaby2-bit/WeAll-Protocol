@@ -86,6 +86,8 @@ type DevBootstrapSecretResponse = {
   secretKeyB64?: string
   secret_key_b64?: string
   sessionTtlSeconds?: number
+  evidenceKemPublicKeyB64?: string
+  evidenceKemSecretKeyB64?: string
 }
 
 async function fetchDevBootstrapSecret(account: string, apiBase: string): Promise<DevBootstrapSecretResponse | null> {
@@ -118,11 +120,11 @@ function DevBootstrapCard({
       <p className="eyebrow">Developer demo login</p>
       <h3>Load the local demo account</h3>
       <p className="muted">
-        This appears only in developer/demo builds. Normal users should create an account or sign in with a recovery key.
+        This appears only in developer/demo builds. Normal users should create an account or sign in with a recovery key. After a clean two-node rehearsal starts, account registration and device-session reconciliation can take 1–2 minutes. Keep both backends and reconcile workers running; wait instead of repeatedly signing in.
       </p>
       <div className="row gap-sm wrap">
         <button type="button" data-testid="load-demo-tester-session" onClick={onLoad} disabled={busy}>
-          {busy ? "Loading demo account…" : "Load demo account"}
+          {busy ? "Loading demo account and confirming network session…" : "Load demo account"}
         </button>
         <button type="button" className="secondary" onClick={onCopy}>
           Copy demo recovery key
@@ -525,6 +527,15 @@ export default function LoginPage() {
       const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim()
       if (!secretKeyB64) throw new Error("Demo recovery key is unavailable from the local backend.")
       const ttlSeconds = Number(secret?.sessionTtlSeconds || devManifest.sessionTtlSeconds || 24 * 60 * 60)
+      const kemPub = String(secret?.evidenceKemPublicKeyB64 || "").trim()
+      const kemSecret = String(secret?.evidenceKemSecretKeyB64 || "").trim()
+      if (Boolean(kemPub) !== Boolean(kemSecret)) throw new Error("incomplete_dev_bootstrap_evidence_authority")
+      if (kemPub && kemSecret) {
+        saveEvidenceKemKeypair(normalizeAccount(devManifest.account), {
+          publicKeyB64: kemPub,
+          secretKeyB64: kemSecret,
+        })
+      }
       setApiBase(apiBase)
       setApiBaseInput(apiBase)
       await restoreAccountAndLoginOnThisDevice({

@@ -76,6 +76,15 @@ jobs:
         run: |
           pytest -q tests/test_current_verified_claims_p0_scope_closed_status.py
 
+      - name: Sustained block selection and replay liveness (early fail-fast gate)
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q \
+            tests/test_block_schedule_survivability_harness.py::test_sustained_flag_escalation_leader_follower_state_root_parity \
+            tests/test_block_schedule_survivability_harness.py::test_deterministic_top_up_generation_does_not_reuse_signer_nonce_pairs \
+            tests/test_block_schedule_survivability_harness.py::test_refill_does_not_repeat_bad_nonce_retry_storms \
+            tests/test_block_schedule_survivability_harness.py::test_block_one_and_two_fill_requested_target_when_valid_nonce_lanes_exist
+
       - name: Current A01-A20 P1 remediation regressions
         working-directory: Weall-Protocol
         run: |

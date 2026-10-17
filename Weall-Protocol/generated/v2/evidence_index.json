@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "5be9b520e179c5c92a23816278acd66636ee69cbdbf367ade9196607bf2474e9"
+    "source_tree_digest": "6c6d63df436da218ee6de897dc413f7af2ae5d9b13dc34e5988eba67ce13ba64"
   },
   "rows": [
     {
@@ -27,7 +27,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "48778bff62543822991902d65bcad15082e23cd76deda379fccb1b10c32d6be4",
+      "sha256": "20f8a750bfb6c371de25ac4aa4dde47914b25772ca0191f5f6c918f1e62e85b8",
       "stable_id": "EVD-014AE7A3258C314F",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -167,7 +167,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "795bee25b59c9a9b9df763a94d0018e725699eb74a2b395dc14adea402b2e847",
+      "sha256": "df4173b8e32c3ef142ceb137b15a2a31599003d304bda2c21d4f5ed04048d2b6",
       "stable_id": "EVD-224E96B1E6D9984E",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -279,7 +279,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "74ed837e07178a6b2c6914db564e2eec37b039c02e07334008ddf90da7fbad19",
+      "sha256": "98675b3fd71d16e42c15ef1c6f34dc6d401805590afd10ebecc76c26f7a45321",
       "stable_id": "EVD-3D6DB963CB2B1ECB",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -321,7 +321,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "85bbf6800e0c816a43043b2987342eb2547309f7e0a42e2f2c3765314ba3f308",
+      "sha256": "caed25ead0260671cd65c684aca3cbcf5f9baef297825256ef50f5e2d03e5fb4",
       "stable_id": "EVD-4F9C5188B5C90E01",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -629,7 +629,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "1ca2e31ce55e1fc1e7be76c09e17cc232d028684e0ea5b1ff1d44da3d1ab97e0",
+      "sha256": "f81b9295288a73037b591bababe101446c4341f27a4de2c0c09fe4f1bcbbe580",
       "stable_id": "EVD-8A89C04D6D2FE32D",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -867,7 +867,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "6506cc8f07df88dbd6a7a0dc529168b7131c21bb69e7277ec7783bc0c13ae416",
+      "sha256": "21c749320b5ac4629da30ea3eb33e3e5c0d2eb1a5418d9b1051014b549386dd7",
       "stable_id": "EVD-D01357C7600DACB4",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -1091,7 +1091,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "c81f86da501de662c71422337242dc7f18facac852d291f1e2c0224c4f1b820d",
+      "sha256": "499fcd07fdae95f856a2784bbd5e6527fe9d1b6bff7136789100a73390a86b92",
       "stable_id": "EVD-F47E2373CB956305",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."

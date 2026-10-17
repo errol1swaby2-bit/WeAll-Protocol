@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2046,
+  "file_count": 2058,
   "files": [
     {
       "affected_registers": [
@@ -56,7 +56,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ebe435e4eb057c52b58b51feed1e45ee2ad23560f6356d5874f26dc5f51f3fb9",
+      "sha256": "9f928229d2232fb2eee7d80e239aa8f0795c3d0da31be25bd7cfe84fa0501dd5",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ce1700e1d58e7b355917a94ec2933b8ec196c1b5dc673da96c6af9d1284c4531",
+      "sha256": "2aa38306fd730583b11c1d32a26ebfbdabc9818120fe003e92b4a6c21e8b519b",
       "source_id": "SRC-2CE1BEE9A904E55D"
     },
     {
@@ -108,8 +108,21 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ff7d5c89de5f81f9793475418fa724c129a89fa9a834874a0784ecff1899c566",
+      "sha256": "064f7290f35ce26b4a544b9883dbba3b18188709babb9f2aac5b1a944b48796f",
       "source_id": "SRC-4DF17321F27735E9"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/w1a-r06-f001-regression.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "65587b02a2dc579025b61b6c78de945be26b2a1c05e41ae50f7c342912edd1d7",
+      "source_id": "SRC-7956584832E0C8A2"
     },
     {
       "affected_registers": [
@@ -121,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "6ca60669fc78e57ef94d6c4d27d4ddafa6621180ac8d885494eed5a7b1de5e62",
+      "sha256": "41b33bf528f17b142643a30c615eb46940f70865dd6799f9de90e73748ec544f",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -903,7 +916,7 @@
       ],
       "path": "docs/NEW_NODE_OPERATOR_QUICKSTART.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "dabc54c722a779f9009d5c284bc1d513cfaf1a8a226d3c214479609c12b6e461",
+      "sha256": "770d770fa693f6e01c22c44a93cefe0beedce03a8bea8f0d22ebd0758aa40b70",
       "source_id": "SRC-84ED8B8BD252D4C1"
     },
     {
@@ -3008,7 +3021,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "1ca2e31ce55e1fc1e7be76c09e17cc232d028684e0ea5b1ff1d44da3d1ab97e0",
+      "sha256": "f81b9295288a73037b591bababe101446c4341f27a4de2c0c09fe4f1bcbbe580",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -3106,7 +3119,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "6506cc8f07df88dbd6a7a0dc529168b7131c21bb69e7277ec7783bc0c13ae416",
+      "sha256": "21c749320b5ac4629da30ea3eb33e3e5c0d2eb1a5418d9b1051014b549386dd7",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3120,7 +3133,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "74ed837e07178a6b2c6914db564e2eec37b039c02e07334008ddf90da7fbad19",
+      "sha256": "98675b3fd71d16e42c15ef1c6f34dc6d401805590afd10ebecc76c26f7a45321",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3204,7 +3217,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "48778bff62543822991902d65bcad15082e23cd76deda379fccb1b10c32d6be4",
+      "sha256": "20f8a750bfb6c371de25ac4aa4dde47914b25772ca0191f5f6c918f1e62e85b8",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3301,7 +3314,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0041bc51f8300ad8fba225ca869329e05895cc11a2148dee00998db3fccc791f",
+      "sha256": "0bd0d4e92744920f8796f89392a972cde230822b65b3245e7d664810f0722784",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3329,7 +3342,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c81f86da501de662c71422337242dc7f18facac852d291f1e2c0224c4f1b820d",
+      "sha256": "499fcd07fdae95f856a2784bbd5e6527fe9d1b6bff7136789100a73390a86b92",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3427,7 +3440,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "795bee25b59c9a9b9df763a94d0018e725699eb74a2b395dc14adea402b2e847",
+      "sha256": "df4173b8e32c3ef142ceb137b15a2a31599003d304bda2c21d4f5ed04048d2b6",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3609,7 +3622,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "85bbf6800e0c816a43043b2987342eb2547309f7e0a42e2f2c3765314ba3f308",
+      "sha256": "caed25ead0260671cd65c684aca3cbcf5f9baef297825256ef50f5e2d03e5fb4",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -4402,7 +4415,7 @@
       ],
       "path": "scripts/devnet_tx.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "9e0528afc56c6a3b0e0f0a8a327088cf68426e55743ed43b49cf91142c026fe4",
+      "sha256": "be39d33e213e7e73a0edd1987eff332deb8e5369bdd0c2e387f30e60b63b21cf",
       "source_id": "SRC-C8797BF4314DF1A8"
     },
     {
@@ -5664,7 +5677,7 @@
       ],
       "path": "scripts/rehearse_block_schedule_survivability_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d7d1f695e640e7f24874de20c5abd3eefd0c967e683091436d62e27d81b3ac25",
+      "sha256": "41036b80e05ba04a935a0b6cdd754b7d3eeca30f66852008165ffc24113bedee",
       "source_id": "SRC-7315B976E453DBC1"
     },
     {
@@ -7256,7 +7269,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/accounts.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "1c7c19885a05b14770313a774faceb82f02c10577a652fa96b20f95c7f0db53c",
+      "sha256": "cb5f65bf579f04e03ec050b453aa8a0da6e7b4f295075c5cdabfaf3d6f68f602",
       "source_id": "SRC-503DAA17F5960FE2"
     },
     {
@@ -7337,7 +7350,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/demo_seed.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "17b791462213fff5fe9744522d92b0164bb650a5c104d523d18dc304ca4502c2",
+      "sha256": "ce18e9ec9c7bb2c14f8ec44e782613c7221721e848a20b1a31e571de61fe897c",
       "source_id": "SRC-5EB76E776CECCFD5"
     },
     {
@@ -7784,7 +7797,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/tx.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "c6f678d4ef954a151e8839dd838ae5446aa97ee0bb78f5f5fe9982355dc75b47",
+      "sha256": "fc57f798d5a1c8a80ca64717de1296f4e7dab088ed26de21cece4c1ec9dbde18",
       "source_id": "SRC-79B044250C61E965"
     },
     {
@@ -10650,7 +10663,7 @@
       ],
       "path": "src/weall/runtime/dispute_engine.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "91b75e25fdd9d3395a8a4f4320c798100cdf4174608628bdbfe659f0b43cad8e",
+      "sha256": "364330ccd168303a686a36508b1631ff8efbae04105b1ca0be952ea2c7527e48",
       "source_id": "SRC-54BD7334E96CF0CA"
     },
     {
@@ -10899,7 +10912,7 @@
       ],
       "path": "src/weall/runtime/gov_engine.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "6a574f04fd927e7df462bb830e2533e37ef554ae325b44a2658f1f3eb279517c",
+      "sha256": "15854a3ba0283f032d7a6421403ecec78b08d2e4aa481c1143463b31b1933ab2",
       "source_id": "SRC-A07193FDBCB87884"
     },
     {
@@ -12304,7 +12317,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "d454481d050cf4df38cbce2e7559e313fc8b8f135d576b8d2fcbd890ac1df530",
+      "sha256": "cc7ac5e9013798c7cd8a322d1b24eb27106c38af8c9d288e55bebc44fac00817",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -14918,7 +14931,7 @@
       ],
       "path": "tests/test_block_schedule_survivability_harness.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "869dcfd2f39b590cec0104e6e65f95e939cd6d455fd2bea279d0394fa2dbc816",
+      "sha256": "7a64f2ae933c96937298d4fdbc8d3cb034cda3aa6b78beb902b4d3e4ff29fba3",
       "source_id": "SRC-153524EF6F7AD2AE"
     },
     {
@@ -15666,7 +15679,7 @@
       ],
       "path": "tests/test_content_review_conflict_enforcement.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "f0129fdcb79f4a661e654f78fce5b6db8644bab2da70438cb48708af98bc67fc",
+      "sha256": "e058d87d7d481d784ee0bdeeae2670a5dca640b11c2b76e95f569ef10ff1cd62",
       "source_id": "SRC-715211FA7BB042CB"
     },
     {
@@ -17410,6 +17423,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "219c83fbadd4e13bf2f3db872a9bbcc32fdb175a23c0c793d069a8299fb0f097",
       "source_id": "SRC-504F353121B4CCFB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_fresh_clone_onboarding_guide.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "954d07142f7d0ff309297ea51ee8cab6f44e86d7ca3019f2ca76dc542eec5ee2",
+      "source_id": "SRC-75CA9C9010EEDE45"
     },
     {
       "affected_registers": [
@@ -19923,7 +19950,7 @@
       ],
       "path": "tests/test_live_media_group_post_message_refresh.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "91238f46ddd2d3671683078dd660906ee7c73eee34d12d56f8e24a8ed7c7b6d2",
+      "sha256": "e7cceebef199c01b6fb662175f7ff4e4e7bcc61c52650ac4149f551913975df2",
       "source_id": "SRC-4EB61DA52B08ADB9"
     },
     {
@@ -19941,6 +19968,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "da7bf8470808414d522448cc51903ec598d1d346a02b94526133606b50dc5b6d",
       "source_id": "SRC-9C0ECB677A86136D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0126"
+      ],
+      "path": "tests/test_live_poh_finalize_scheduler_schema_regression.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "473ffea0227a995e6cb8577bd7add0cf6794e58ed84b8fdc790a1c0d36357b2e",
+      "source_id": "SRC-0C8264D594A646DC"
     },
     {
       "affected_registers": [
@@ -20002,7 +20045,7 @@
       ],
       "path": "tests/test_live_review_room_production_checkin.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "6b5da6a8b74870f328d46a1a2a58b9feeb3c80bf8f95402782e995b0387f361a",
+      "sha256": "0f8d66952c4c00496f1ffc9962680074142cb1c5521ad6fd87e4195a9463bc7b",
       "source_id": "SRC-BF4352B5FC2EEE40"
     },
     {
@@ -20316,6 +20359,21 @@
       "primary_mechanism_id": "M-076",
       "sha256": "e32085066d3ec3187fcec95dfd5780379ea29b0f68ef623f26fa7d8285a8b3f6",
       "source_id": "SRC-54E0642F371A8699"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_local_two_node_review_rehearsal_regression.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "9159a7241099d4e20f434f1022b26e1732aecbf52d0164b2399b5d0a924c268f",
+      "source_id": "SRC-B11FCB2BB3E17DDC"
     },
     {
       "affected_registers": [
@@ -24331,7 +24389,7 @@
       ],
       "path": "tests/test_poh_reviewer_action_gating_frontend.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "f5d77aacad8fc26cc0965dc90dac6a8585139cf67d95b83bdd8534def3811ee9",
+      "sha256": "cfe78a48326a026927777eeb4040f91960364ee90b0f46284689de8056dd7c71",
       "source_id": "SRC-B23B021EF20EC623"
     },
     {
@@ -27366,6 +27424,24 @@
       "mappings": [
         "M-076",
         "ROUTE-150316944D629C32",
+        "ROUTE-A6A03246B904655F",
+        "ROUTE-EE2EFB47FA6F30A2",
+        "TX-0211",
+        "TX-0403"
+      ],
+      "path": "tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "9ef94894200f3452eb00d46e375cf9ea3afe85b59e3f926fff1e8a868f469a2c",
+      "source_id": "SRC-8885AA8B97293C19"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
         "TX-0606"
       ],
       "path": "tests/test_remaining_ai_closure_batch.py",
@@ -27927,11 +28003,12 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-83BE870730C38439"
+        "ROUTE-83BE870730C38439",
+        "ROUTE-9CF6C814B6638E9B"
       ],
       "path": "tests/test_scoped_content_media_providers.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "3b05b39f286675ea0c58660d12e94bd646ccb9fc00d7f697ebd34a2b4dbdff14",
+      "sha256": "389cc5f51a3112c913477fbfc2a28ff3667ab44c10325e675d87bf856c78150d",
       "source_id": "SRC-A3158088AEDB2FD7"
     },
     {
@@ -30339,11 +30416,12 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-150316944D629C32",
         "ROUTE-9CF6C814B6638E9B"
       ],
       "path": "tests/test_webrtc_page_surfaces_live_voting.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "9d72c5e2756a3c41c30e81b950029dd23aab02db55ed7641b6e4683ccc0259c1",
+      "sha256": "28873b2eb5418098dbb9b69f4d870c7603fea1fe439303a7a5cc6a37633b45b5",
       "source_id": "SRC-75820C80106C42E5"
     },
     {
@@ -30352,11 +30430,12 @@
       ],
       "classification": "test",
       "mappings": [
-        "M-076"
+        "M-076",
+        "ROUTE-150316944D629C32"
       ],
       "path": "tests/test_wsl_frontend_bind_host.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "601e728a7a76adede7503ff182ef26324857f9cfa70a02129fa64cbfa0c97753",
+      "sha256": "a7b6df71b3b42c05fa2eddd9eeedb24fa49e703e2ce56cf4871da3b1e90d4d11",
       "source_id": "SRC-529DB5DBC127EA99"
     },
     {
@@ -30427,6 +30506,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "087f522013ed65e8ba525ef50f41ec6fba3ac3f168c6f2bc34eebbff3e2c3cb1",
       "source_id": "SRC-4F745D2D0F2D0BB1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/devBootstrapLoopbackGuard.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "430bb4fd0b7f085b626fc3815c0acbfddb079b374088bf9d0a47b8d1b8e5bfa8",
+      "source_id": "SRC-21EC0DDB8CBA0863"
     },
     {
       "affected_registers": [
@@ -30527,10 +30619,49 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_async_evidence_preview.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "e0bb0805ebcd99bf56f7ceaf84d5e849c8bf407d17b5b8e2b297689b7004e110",
+      "source_id": "SRC-B467025251B14F3C"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_constitutional_procedure_ui_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "109563214eb6d5d895cf082acd700a160afe8668410a29f244357df0fd20b5e9",
       "source_id": "SRC-87F1069F1D99254B"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_content_flag_report_truth.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "4686b4ddb57158f498d03d323deb12be80610218ebef904ce8b77a388029c4cb",
+      "source_id": "SRC-9F6B702D2BB8DF83"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_dev_bootstrap_loopback_guard.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "95718e3c453689fc71baf20ced4b7f99786439793d70a2ac6bed224839dcd236",
+      "source_id": "SRC-178A64F41C6A750E"
     },
     {
       "affected_registers": [
@@ -30596,6 +30727,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "11ecfd80d18f0aa70b4a52dd88452d71d8034a56c92a59c6969bc9815a13d51c",
       "source_id": "SRC-C73460DCD1CBD050"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_focused_shell_source.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "b9ecc009215d6f52327f5f5ec633cd499446b75503ac611b15a30b25cce8944f",
+      "source_id": "SRC-4126BEAC370FDF73"
     },
     {
       "affected_registers": [
@@ -30700,6 +30844,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "9c20d6e6447e4eb76c6373bb20cff393bf3dd827d1e7503ed6a569d8738d29f2",
       "source_id": "SRC-C68155C0D2D1993E"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_live_room_join_truth.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "31874b75a8918e7591195cd3f7d9aba8df2c8fdbf4bc9d861e6dbdc1fb9d8d9b",
+      "source_id": "SRC-A04F1C14121F40D1"
     },
     {
       "affected_registers": [
@@ -30917,6 +31074,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_reporter_vs_juror_lanes.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "af2cbc12d3b6954c4d1ac35706267a3a0257fb33864a87355d5485ab13f800e7",
+      "source_id": "SRC-3AE51F451CF86E95"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_responsibility_control_surface_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "7324222c429037e5bac69d9fef4f2d252fae41aa29065fb79c472fbb02508c12",
@@ -31051,7 +31221,7 @@
       ],
       "path": "../web/src/App.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "1ad2be1ee8e11d9bfe1d62c29fddd56973deac96c083d70d1ce433e1b85a1d78",
+      "sha256": "1eec25a63a125490c1388e996bc5191c65e2315d7af259f35f15c7423cf226cf",
       "source_id": "SRC-0D8C1A8815689CC1"
     },
     {
@@ -31129,7 +31299,7 @@
       ],
       "path": "../web/src/api/weall.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "52a6091fc9fd5e9a006ff6b25f0cb35a3117e4c85fbb13ae4a089e81317c5b00",
+      "sha256": "9dd93398ed863969a7aa9ac9c83fb950ffaa8d8ce68e21f3e8f58f3f9a27d054",
       "source_id": "SRC-79BC4F6206422C07"
     },
     {
@@ -31283,7 +31453,7 @@
       ],
       "path": "../web/src/components/AppShell.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "3f0a0316581a2df64fcf4181f58b881ca47c326c5ce042a1606ef8da5a251cf8",
+      "sha256": "4f5af02aa65f50fe36e5169bf817b9e0ee75ad95c3b423998cb36e7bc44b33e2",
       "source_id": "SRC-D78A14AE7C5FA9F1"
     },
     {
@@ -31552,7 +31722,7 @@
       ],
       "path": "../web/src/components/SidebarNav.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "1769930e581121b264d7d662a6699b7d35364b5f538462cef17e05aa46a34a58",
+      "sha256": "28e189424fd3751b694748351b61def5badc8bd334bd42dd0ad7ecaf697e504f",
       "source_id": "SRC-C266C3930991986C"
     },
     {
@@ -31827,7 +31997,7 @@
       ],
       "path": "../web/src/lib/devBootstrap.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "ab4865a2b288c001759b965f6166bf6c782c765b9bde3a9d3fcda345a30f9fde",
+      "sha256": "96f8ac6bd6b271a4630ef7025908242496337003df41aa76d52d2280453f37af",
       "source_id": "SRC-DB414711E8950C1F"
     },
     {
@@ -32217,7 +32387,7 @@
       ],
       "path": "../web/src/lib/userLanguage.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "fa55109d878c7d44b0e9a10fc52ad5770c400e342c8174b6338b01f86e8f979f",
+      "sha256": "fcc93e553db649dc223cb1888e0de995cd9069cbe00b000b5dfe3ec3b4b95764",
       "source_id": "SRC-D0A3E153BAA005B5"
     },
     {
@@ -32330,7 +32500,7 @@
       ],
       "path": "../web/src/pages/AccountVerificationPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "23965657edd5d8c09b3b534bf5b5f754e7d233db3633082fe99f63b13c2317c1",
+      "sha256": "2cee05ab5f6ba3a54f903d80f4d496df96f29a8b3edab1cb17e86f1098727a17",
       "source_id": "SRC-6E72AE85995D2D5D"
     },
     {
@@ -32434,7 +32604,7 @@
       ],
       "path": "../web/src/pages/Disputes.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "07fb22ea3bcaff74953cd550e99367043407dba9640b221ea6ac1a5c64ccb9cb",
+      "sha256": "9f57ec05d7cae7adcbb83081737b460b03127a4e92fde55632e5dd88a2555e66",
       "source_id": "SRC-92394B1213B8FEEF"
     },
     {
@@ -32464,7 +32634,7 @@
       ],
       "path": "../web/src/pages/Feed.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "c9ab0d65324176392d8976d298da40859c7e5a4f689246647497496153c8e5c5",
+      "sha256": "b2e0c399e3608c0d1530b0f70e8ad905cdf6260e3d1c1ee5f9d4693c040519e1",
       "source_id": "SRC-2F7B7D3053403335"
     },
     {
@@ -32557,7 +32727,7 @@
       ],
       "path": "../web/src/pages/JurorDashboard.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "fe5d18334a20f543d34444f90a1048b9b83d47ddfe8beddf0c911c1c95b49109",
+      "sha256": "04d4c9138ccba424827c085c83f0a549e796d94d103b91b2fdd6936b3cf4fb07",
       "source_id": "SRC-E8DF3D4744F7ED19"
     },
     {
@@ -32572,7 +32742,7 @@
       ],
       "path": "../web/src/pages/LiveVerificationRoom.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "9d692cdb8921c68f9b4cdcdb62e39946c7f7189f135e16945f4005b560dd93ff",
+      "sha256": "59023dc65e13852c9842bf09bf88a1f10d592d9a52f2ea28368ac5a944715625",
       "source_id": "SRC-8A9FA9F3177A64C9"
     },
     {
@@ -32588,7 +32758,7 @@
       ],
       "path": "../web/src/pages/LoginPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "832b2b047c2df8eb9e21c6222302fa07049edbf6b821faed5f2a6a66067ed456",
+      "sha256": "4e6c3aa7273596d0205c40a634fec81936a427ae84acbeb2822b67f69f81ea08",
       "source_id": "SRC-4C266797B87139C6"
     },
     {
@@ -32778,7 +32948,7 @@
       ],
       "path": "../web/src/pages/Thread.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "43bcca366d63317267414c70281e0d4dc5c4814b2f551f9afefde9455628c2e9",
+      "sha256": "80cffaa8ea9185a2d95f04788ae5e22a7b46ea634f98452d8685f3e03aa3083c",
       "source_id": "SRC-6652A43E94E2DC70"
     },
     {

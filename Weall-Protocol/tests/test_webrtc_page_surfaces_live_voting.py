@@ -10,7 +10,10 @@ def test_webrtc_page_surfaces_live_voting_inside_video_room() -> None:
     assert 'data-testid="webrtc-live-voting"' in src
     assert "In-call chain voting" in src
     assert "Reviewer vote inside the WebRTC room" in src
-    assert "Use these controls without leaving the WebRTC page" in src
+    expected_join_copy = (
+        "The join action submits review acceptance and attendance as separate on-chain steps"
+    )
+    assert expected_join_copy in src
     assert "Approve live verification" in src
     assert "Reject live verification" in src
 
@@ -26,20 +29,24 @@ def test_webrtc_voting_copy_keeps_video_transport_non_authoritative() -> None:
 
     assert "The video room remains transport only" in src
     assert "join action is reflected as accepted attendance" in src
-    assert "on-chain attendance" in src
+    assert "on-chain steps" in src
+    assert "remote video is not implied by the attendance state" in src
 
 
 def test_webrtc_join_action_accepts_attendance_and_waits_for_state() -> None:
     src = (WEB / "src" / "pages" / "LiveVerificationRoom.tsx").read_text(encoding="utf-8")
 
     assert "waitForLiveJurorState" in src
-    assert "Accept review, check in, and enter live room" in src
+    assert "Accept review, check in, then start local media" in src
     assert "Review acceptance" in src
     assert "Live room attendance" in src
     assert "accepted attendance on-chain" in src
     assert ">Accept review<" not in src
     assert ">Record attendance<" not in src
-    assert "Use the single live-room control above" in src
+    expected_attendance_copy = (
+        "Accept and check-in transactions must be visible in chain state before voting unlocks"
+    )
+    assert expected_attendance_copy in src
 
     accept_idx = src.index("pohLiveTxJurorAccept")
     attendance_idx = src.index("pohLiveTxAttendance")

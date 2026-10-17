@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import ConnectionPill from "./ConnectionPill";
 import SessionPill from "./SessionPill";
@@ -106,64 +106,147 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
   const showFab = !!fabHref && meta.fab !== "none";
   const breadcrumbs = deriveBreadcrumbs(route, meta);
   const headerTitle = titleForRoute(route, meta);
+  const routeKey = JSON.stringify(route);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const menuAnchorRef = useRef<HTMLDivElement>(null);
+  const menuToggleRef = useRef<HTMLButtonElement>(null);
+  const infoDrawerRef = useRef<HTMLElement>(null);
+  const infoCloseRef = useRef<HTMLButtonElement>(null);
+
+  // Navigation should close temporary surfaces, leaving the next task in focus.
+  useEffect(() => {
+    setMenuOpen(false);
+    setInfoOpen(false);
+  }, [routeKey]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (menuAnchorRef.current && !menuAnchorRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setMenuOpen(false);
+      menuToggleRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    const drawer = infoDrawerRef.current;
+    if (!drawer) return;
+    if (!infoOpen) {
+      drawer.setAttribute("inert", "");
+      return;
+    }
+
+    drawer.removeAttribute("inert");
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    infoCloseRef.current?.focus();
+
+    const onDrawerKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setInfoOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = Array.from(
+        drawer.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+      ).filter((element) => element.getClientRects().length > 0);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && (document.activeElement === first || !drawer.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !drawer.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onDrawerKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onDrawerKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus && document.contains(previousFocus)) previousFocus.focus();
+    };
+  }, [infoOpen]);
 
   return (
-    <div className={`appShell ${writesLocked ? "writesLocked" : ""}`.trim()}>
+    <div className={`appShell appShell--focus appShell--${meta.mode} ${writesLocked ? "writesLocked" : ""}`.trim()}>
       <a className="appShellSkipLink" href="#app-shell-content">
         Skip to content
       </a>
-      <aside className="appShellSidebar">
-        <div className="appShellSidebarBody">
-          <div
-            className="appShellBrand"
-            onClick={() => handleBrandActivate(ready)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                handleBrandActivate(ready);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label={ready ? "Open home" : "Open login"}
-          >
-            <div className="appShellBrandMark">W</div>
-            <div className="appShellBrandText">
-              <strong>WeAll</strong>
-              <small>{ready ? "Social trust network" : "Sign in to continue"}</small>
-            </div>
-          </div>
-
-          <SidebarNav showAdvancedMode={showAdvancedMode} />
-        </div>
-
-        <div className="appShellSidebarFooter">
-          <ConnectionPill />
-          <SessionPill />
-          <div className="buttonRow buttonRowWide">
-            {ready ? (
-              <>
-                <button className="appShellAccountBtn" onClick={() => nav("/profile")}>
-                  Profile
-                </button>
-                <button className="appShellAccountBtn" onClick={() => nav("/session")}>
-                  Session
-                </button>
-              </>
-            ) : (
-              <button className="appShellAccountBtn" onClick={() => nav("/login")}>
-                Open login
-              </button>
-            )}
-            <button className="appShellAccountBtn" onClick={() => nav("/settings")}>
-              Settings
-            </button>
-          </div>
-        </div>
-      </aside>
 
       <div className="appShellMain">
         <header className="appShellHeader">
+          <div className="appShellHeaderBar">
+            <div className="appShellMenuAnchor" ref={menuAnchorRef}>
+              <button
+                type="button"
+                ref={menuToggleRef}
+                className="appShellMenuToggle"
+                aria-controls="app-shell-primary-menu"
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((current) => !current)}
+              >
+                <span aria-hidden="true">☰</span>
+                <span>Menu</span>
+                <span aria-hidden="true">▾</span>
+              </button>
+
+              {menuOpen ? (
+                <div id="app-shell-primary-menu" className="appShellMenuPopover">
+                  <SidebarNav showAdvancedMode={showAdvancedMode} onNavigate={() => setMenuOpen(false)} />
+                  <div className="appShellMenuFooter">
+                    <ConnectionPill />
+                    <SessionPill />
+                    <div className="appShellMenuQuickLinks">
+                      <button type="button" onClick={() => { setMenuOpen(false); nav(ready ? "/profile" : "/login"); }}>
+                        {ready ? "Profile" : "Sign in"}
+                      </button>
+                      <button type="button" onClick={() => { setMenuOpen(false); nav("/settings"); }}>Settings</button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <button className="appShellBrandCompact" type="button" onClick={() => handleBrandActivate(ready)}>
+              <span className="appShellBrandMark" aria-hidden="true">W</span>
+              <span>WeAll</span>
+            </button>
+
+            <button
+              className="appShellInfoToggle"
+              type="button"
+              onClick={() => { setMenuOpen(false); setInfoOpen(true); }}
+              aria-haspopup="dialog"
+              aria-controls="app-shell-context-drawer"
+              aria-expanded={infoOpen}
+            >
+              <span aria-hidden="true">☷</span> Context &amp; status
+            </button>
+          </div>
+
           <div className="appShellHeaderText">
             <div className="appShellEyebrow">{meta.section}</div>
             <h1 className="appShellTitle">{headerTitle}</h1>
@@ -193,17 +276,16 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
             <span className="appShellRouteStripText">{meta.dataContract.contextPanelData}</span>
             {showFab && fabHref ? <span className="appShellRouteStripPill appShellRouteStripPill-accent">{fabLabel(meta)}</span> : null}
           </div>
-
           <div className="appShellRouteStripActions">
             <button
               className="appShellRouteStripAction appShellRouteStripAction-secondary"
-              onClick={() => document.getElementById("protocol-awareness-rail")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              onClick={() => setInfoOpen(true)}
               type="button"
             >
-              Jump to helpful panel
+              Open context panel
             </button>
             {writesLocked ? (
-              <button className="appShellRouteStripAction" onClick={() => nav('/session')}>
+              <button className="appShellRouteStripAction" onClick={() => nav("/session")}>
                 Recover session
               </button>
             ) : null}
@@ -211,9 +293,35 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
         </section>
 
         <div className="appShellBody">
-          <main id="app-shell-content" className="appShellContent">{children}</main>
-          <AppRightRail route={route} meta={meta} sessionHealth={sessionHealth} showAdvancedMode={showAdvancedMode} />
+          <main key={routeKey} id="app-shell-content" className="appShellContent" tabIndex={-1}>
+            {children}
+          </main>
         </div>
+      </div>
+
+      <div className={`appShellDrawerLayer ${infoOpen ? "isOpen" : ""}`} aria-hidden={!infoOpen}>
+        <div className="appShellDrawerBackdrop" onClick={() => setInfoOpen(false)} aria-hidden="true" />
+        <section
+          id="app-shell-context-drawer"
+          className="appShellContextDrawer"
+          ref={infoDrawerRef}
+          role="dialog"
+          aria-modal={infoOpen}
+          aria-label="Context and status"
+        >
+          <div className="appShellDrawerHeader">
+            <div>
+              <strong>Context &amp; status</strong>
+              <p>Helpful information, pending work, and network posture.</p>
+            </div>
+            <button type="button" className="appShellDrawerClose" ref={infoCloseRef} onClick={() => setInfoOpen(false)} aria-label="Close context and status panel">
+              ✕
+            </button>
+          </div>
+          <div className="appShellDrawerContents">
+            <AppRightRail route={route} meta={meta} sessionHealth={sessionHealth} showAdvancedMode={showAdvancedMode} />
+          </div>
+        </section>
       </div>
 
       {showFab && fabHref ? <FabActionButton href={fabHref} label={fabLabel(meta)} /> : null}

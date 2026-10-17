@@ -38,7 +38,7 @@ function stageClass(stage: string): string {
 
 function disputeScopeText(filter: string): string {
   if (filter === "assigned") return "Only reports assigned to you for review are shown.";
-  if (filter === "mine") return "Only reports opened by this account are shown.";
+  if (filter === "mine") return "Reports submitted by you or opened directly by this account are shown. Flag-created cases may list SYSTEM as their on-chain opener.";
   return "This queue is for browsing reports and opening the right detail or review page.";
 }
 
@@ -111,7 +111,7 @@ export default function Disputes(): JSX.Element {
     setBusy(true);
     setErr(null);
     try {
-      const [disputesRes] = await Promise.all([weall.disputes(apiBase), refreshAccount()]);
+      const [disputesRes] = await Promise.all([weall.disputes({ limit: 200, includeSummary: true }, apiBase), refreshAccount()]);
       setItems(asArray(disputesRes?.items));
     } catch (e: any) {
       setErr(prettyErr(e));
@@ -137,9 +137,10 @@ export default function Disputes(): JSX.Element {
     const acct = String(account || "").trim();
     const needle = query.trim().toLowerCase();
     return items.filter((item) => {
-      const openedBy = String(item?.opened_by || "");
+      const openedBy = normalizeAccount(String(item?.opened_by || "")) || "";
+      const reportedBy = normalizeAccount(String(item?.reported_by || item?.flagged_by || item?.reporter || "")) || "";
       const jurorStatus = acct ? disputeJurorStatus(item, acct) : "unassigned";
-      if (filter === "mine" && (!acct || openedBy !== acct)) return false;
+      if (filter === "mine" && (!acct || (openedBy !== acct && reportedBy !== acct))) return false;
       if (filter === "assigned" && (!acct || jurorStatus === "unassigned")) return false;
       if (!needle) return true;
       return [
@@ -149,6 +150,7 @@ export default function Disputes(): JSX.Element {
         String(item?.stage || ""),
         String(item?.reason || ""),
         openedBy,
+        reportedBy,
         jurorStatus,
       ].some((value) => value.toLowerCase().includes(needle));
     });
@@ -236,7 +238,7 @@ export default function Disputes(): JSX.Element {
               <select value={filter} onChange={(e) => setFilter(e.target.value as "all" | "mine" | "assigned")}>
                 <option value="all">all visible reports</option>
                 <option value="assigned">assigned to me</option>
-                <option value="mine">opened by me</option>
+                <option value="mine">submitted / opened by me</option>
               </select>
             </label>
           </div>
@@ -280,9 +282,9 @@ export default function Disputes(): JSX.Element {
                     <div className="summaryCardText mono">{String(item?.target_id || "")}</div>
                   </article>
                   <article className="summaryCard">
-                    <div className="summaryCardLabel">Opened by</div>
+                    <div className="summaryCardLabel">On-chain opener</div>
                     <div className="summaryCardValue mono">{String(item?.opened_by || "—")}</div>
-                    <div className="summaryCardText">Queue surfaces should show who triggered the case without forcing detail navigation.</div>
+                    <div className="summaryCardText">Flag-created disputes may be opened by SYSTEM after a separate signed flag.</div>
                   </article>
                   <article className="summaryCard">
                     <div className="summaryCardLabel">Reviews</div>
@@ -301,6 +303,16 @@ export default function Disputes(): JSX.Element {
                   </article>
                 </div>
 
+                {item?.reported_by || item?.flagged_by ? (
+                  <div className="cardDesc">Reported by: <span className="mono">{String(item.reported_by || item.flagged_by)}</span></div>
+                ) : null}
+                {String(item?.stage || "").toLowerCase() === "unassigned" ? (
+                  <div className="calloutInfo" role="status">
+                    This report exists on-chain, but no eligible impartial reviewer panel has been selected.
+                    Reporter and content author conflicts cannot be bypassed by the two-account demo.
+                    {item?.assignment_blocked_reason ? ` Status: ${String(item.assignment_blocked_reason)}.` : ""}
+                  </div>
+                ) : null}
                 {item?.reason ? <div className="feedBodyText">{String(item.reason)}</div> : <div className="cardDesc">No report reason was recorded on this queue item.</div>}
 
                 <div className="calloutInfo">{next.hint}</div>

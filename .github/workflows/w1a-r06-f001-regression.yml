@@ -1,0 +1,91 @@
+name: W1-A R06-F001 Deterministic Scheduler Regression
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/w1a-r06-f001-regression.yml"
+      - "Weall-Protocol/src/weall/runtime/gov_engine.py"
+      - "Weall-Protocol/src/weall/runtime/dispute_engine.py"
+      - "Weall-Protocol/tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py"
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-scheduler:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install exact locked backend dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: W1-A regression and SQLite restart reproducers
+        run: |
+          python -m pytest -q tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py
+      - name: Adjacent SYSTEM queue, governance, dispute regressions
+        run: |
+          python -m pytest -q \
+            tests/test_system_tx_completeness.py \
+            tests/test_governance_followups.py \
+            tests/test_dispute_height_lifecycle_boundaries.py
+
+      - name: Historical protection regressions (merged PRs 32 and 46)
+        run: |
+          python -m pytest -q \
+            tests/test_post31_closure_pack.py \
+            tests/test_p0_group_protocol_action_containment.py \
+            tests/test_system_tx_post_phase_parity.py
+      - name: Independent single-loop mutation controls (disposable CI checkout)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          test_file = "tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py"
+          cases = (
+              (
+                  Path("src/weall/runtime/gov_engine.py"),
+                  "    for pid, pr in sorted(props.items(), key=lambda item: str(item[0])):",
+                  "    for pid, pr in list(props.items()):",
+                  "test_governance_scheduler_orders_outer_ids_regardless_of_insertion_order",
+              ),
+              (
+                  Path("src/weall/runtime/dispute_engine.py"),
+                  "    for did, dispute in sorted(disputes.items(), key=lambda item: str(item[0])):",
+                  "    for did, dispute in list(disputes.items()):",
+                  "test_dispute_scheduler_orders_outer_ids_regardless_of_insertion_order",
+              ),
+          )
+          for path, repaired_line, vulnerable_line, test_name in cases:
+              before = path.read_text(encoding="utf-8")
+              if before.count(repaired_line) != 1:
+                  raise SystemExit(f"unexpected patch precondition for {path}")
+              try:
+                  path.write_text(before.replace(repaired_line, vulnerable_line), encoding="utf-8")
+                  result = subprocess.run(
+                      [sys.executable, "-m", "pytest", "-q", f"{test_file}::{test_name}"],
+                      text=True,
+                      capture_output=True,
+                      check=False,
+                  )
+              finally:
+                  path.write_text(before, encoding="utf-8")
+              report = result.stdout + result.stderr
+              if (
+                  result.returncode == 0
+                  or "1 failed" not in report
+                  or "AssertionError" not in report
+              ):
+                  print(report[-6000:])
+                  raise SystemExit(f"mutation not killed as expected: {test_name}")
+              print(f"MUTANT KILLED: {path}::{test_name} (pytest exit {result.returncode})")
+          PY
+          git diff --exit-code -- src/weall/runtime/gov_engine.py src/weall/runtime/dispute_engine.py
