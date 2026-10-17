@@ -542,6 +542,31 @@ class _AcceptingExecutor:
         return [{"ok": True, "tx_id": f"accepted-{idx}"} for idx, _tx in enumerate(txs)]
 
 
+def _sustained_liveness_failure_report(result: dict) -> dict:
+    """Expose the first real block/candidate error, not only a root mismatch."""
+    return {
+        "convergence": result["convergence"],
+        "block_failures": [
+            {
+                "block_index": block.get("block_index"),
+                "ok": block.get("ok"),
+                "error": block.get("error"),
+                "height": block.get("height"),
+                "txs_included": block.get("txs_included"),
+                "valid_candidate_count": block.get("valid_candidate_count"),
+                "pre_block_mempool_size": block.get("pre_block_mempool_size"),
+                "rejected_by_code_this_round": block.get("rejected_by_code_this_round"),
+                "included_by_type": block.get("included_by_type"),
+            }
+            for block in result.get("block_measurements", [])
+        ],
+        "follower_apply_results": [
+            {"ok": item.get("ok"), "error": item.get("error"), "height": item.get("height")}
+            for item in result.get("follower_apply_results", [])
+        ],
+    }
+
+
 def test_deterministic_top_up_generation_does_not_reuse_signer_nonce_pairs() -> None:
     harness = _load_harness_module()
     result = harness.run_profile(
@@ -558,7 +583,7 @@ def test_deterministic_top_up_generation_does_not_reuse_signer_nonce_pairs() -> 
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(result)
     assert len(result["block_measurements"]) == 2
     for block in result["block_measurements"]:
         assert block["per_block_target_met"] is True, block
@@ -612,7 +637,7 @@ def test_refill_does_not_repeat_bad_nonce_retry_storms() -> None:
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(result)
     for block in result["block_measurements"]:
         bad_nonce_total = (
             int(block["refill_bad_nonce_stale_count"])
@@ -641,7 +666,7 @@ def test_block_one_and_two_fill_requested_target_when_valid_nonce_lanes_exist() 
         sustain_load=True,
     )
 
-    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    assert result["convergence"]["all_nodes_converged"] is True, _sustained_liveness_failure_report(result)
     for block in result["block_measurements"]:
         assert block["per_block_target_met"] is True, block
         assert block["valid_candidate_count"] == block["requested_mempool_candidate_limit"]
