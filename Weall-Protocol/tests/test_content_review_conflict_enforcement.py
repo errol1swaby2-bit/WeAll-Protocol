@@ -6,7 +6,7 @@ import pytest
 
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.system_tx_engine import system_tx_emitter
-from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.tx_admission import TxEnvelope, admit_tx
 from weall.tx.canon import load_tx_index_json
 
 
@@ -75,6 +75,61 @@ def _base_state() -> dict:
             "moderation": {"receipts": [], "targets": {}},
         },
     }
+
+
+
+def test_flag_escalation_is_admitted_by_strict_block_schema() -> None:
+    """A real CONTENT_FLAG child must pass block-context admission, not only apply_tx."""
+    idx = _load_index()
+    state = _base_state()
+    apply_tx(
+        state,
+        _env(
+            "CONTENT_FLAG",
+            "@errol",
+            1,
+            {"target_id": "post:@genesis:1", "reason": "report"},
+        ),
+    )
+    emitted = system_tx_emitter(state, canon=idx, next_height=1, phase="post")
+    assert len(emitted) == 1
+    escalation = emitted[0]
+    assert escalation.tx_type == "CONTENT_ESCALATE_TO_DISPUTE"
+    assert escalation.payload["flag_id"] == "flag:@errol:1"
+    assert escalation.payload["flagged_by"] == "@errol"
+    verdict = admit_tx(escalation, state, canon=idx, context="block")
+    assert verdict.ok, (verdict.code, verdict.reason, verdict.details)
+    apply_tx(state, escalation)
+    report = next(iter(state["disputes_by_id"].values()))
+    assert report["flagged_by"] == "@errol"
+    assert report["target_id"] == "post:@genesis:1"
+
+
+def test_flag_escalation_strict_block_schema_rejects_unknown_fields() -> None:
+    idx = _load_index()
+    state = _base_state()
+    apply_tx(
+        state,
+        _env(
+            "CONTENT_FLAG",
+            "@errol",
+            1,
+            {"target_id": "post:@genesis:1", "reason": "report"},
+        ),
+    )
+    escalation = system_tx_emitter(state, canon=idx, next_height=1, phase="post")[0]
+    tampered = _env(
+        escalation.tx_type,
+        escalation.signer,
+        escalation.nonce,
+        {**escalation.payload, "invented_authority": "bypass"},
+        system=True,
+        parent=escalation.parent,
+    )
+    verdict = admit_tx(tampered, state, canon=idx, context="block")
+    assert not verdict.ok
+    assert verdict.code == "invalid_payload"
+    assert verdict.reason == "schema_validation_failed"
 
 
 def test_content_flag_excludes_original_poster_from_assignment_and_uses_unconflicted_reviewer() -> (
