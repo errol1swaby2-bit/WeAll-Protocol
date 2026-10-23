@@ -1580,7 +1580,6 @@ def _assert_governance_action_electorate_scope(
             )
 
 
-
 def _require_group_governance_participation(
     state: Json, *, group_id: str, signer: str, permission: str
 ) -> None:
@@ -1595,19 +1594,26 @@ def _require_group_governance_participation(
 
     actor = _resolve_account_identity(state, signer)
     account = _alias_record(_d(state.get("accounts")), actor) if actor else None
-    if not isinstance(account, dict) or _i(account.get("poh_tier"), 0) < 2 or any(
-        bool(account.get(key)) for key in ("banned", "locked", "suspended")
+    if (
+        not isinstance(account, dict)
+        or _i(account.get("poh_tier"), 0) < 2
+        or any(bool(account.get(key)) for key in ("banned", "locked", "suspended"))
     ):
         raise ApplyError(
-            "forbidden", "group_governance_participant_not_eligible",
+            "forbidden",
+            "group_governance_participant_not_eligible",
             {"group_id": group_id, "permission": permission},
         )
 
     permissions = _d(group.get("permissions"))
     raw = _s(permissions.get(permission) or "members").strip().lower()
     policy = {
-        "anyone": "public", "all": "public", "open": "public",
-        "member": "members", "moderator": "moderators", "admin": "admins",
+        "anyone": "public",
+        "all": "public",
+        "open": "public",
+        "member": "members",
+        "moderator": "moderators",
+        "admin": "admins",
     }.get(raw, raw)
     if policy == "public":
         return
@@ -1628,7 +1634,8 @@ def _require_group_governance_participation(
     role_map = _d(group.get("roles"))
     signers = _identities(group.get("signers")) | _identities(role_map.get("signers"))
     moderators = (
-        signers | _identities(group.get("moderators"))
+        signers
+        | _identities(group.get("moderators"))
         | _identities(role_map.get("moderator"))
         | _identities(role_map.get("moderators"))
     )
@@ -1641,7 +1648,8 @@ def _require_group_governance_participation(
     }.get(policy)
     if authorized is None or actor not in authorized:
         raise ApplyError(
-            "forbidden", "group_governance_participation_required",
+            "forbidden",
+            "group_governance_participation_required",
             {"group_id": group_id, "permission": permission, "policy": policy},
         )
 
@@ -1693,12 +1701,18 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     group_ids = {
         _s(value).strip()
-        for value in (p.get("group_id"), p.get("scope_id"), rules.get("group_id"), rules.get("scope_id"))
+        for value in (
+            p.get("group_id"),
+            p.get("scope_id"),
+            rules.get("group_id"),
+            rules.get("scope_id"),
+        )
         if _s(value).strip()
     }
     if len(group_ids) > 1:
         raise ApplyError(
-            "invalid_payload", "proposal_group_scope_conflict",
+            "invalid_payload",
+            "proposal_group_scope_conflict",
             {"group_ids": sorted(group_ids)},
         )
     group_id = next(iter(group_ids), "")
@@ -1714,7 +1728,10 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     # proposals under its canonical group ID.
     if group_id:
         _require_group_governance_participation(
-            state, group_id=group_id, signer=str(env.signer), permission="post",
+            state,
+            group_id=group_id,
+            signer=str(env.signer),
+            permission="post",
         )
     proposal_scope_seed = {
         "rules": rules,
@@ -1726,7 +1743,8 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _require_recognized_electorate_scope(state, proposal_scope_seed)
     if strict_civic_governance_enabled(state) and group_id and electorate_scope != "group_members":
         raise ApplyError(
-            "forbidden", "group_proposal_requires_group_electorate",
+            "forbidden",
+            "group_proposal_requires_group_electorate",
             {"group_id": group_id, "electorate_scope": electorate_scope},
         )
     _assert_governance_action_electorate_scope(state, proposal_scope_seed, actions)
@@ -1855,7 +1873,10 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
     group_id = _proposal_group_id(pr)
     if group_id:
         _require_group_governance_participation(
-            state, group_id=group_id, signer=str(env.signer), permission="post",
+            state,
+            group_id=group_id,
+            signer=str(env.signer),
+            permission="post",
         )
     if "rules" in p:
         next_rules = _d(p.get("rules"))
@@ -1863,7 +1884,9 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
         proposed_scope = _s(next_rules.get("electorate_scope")).strip()
         if proposed_group and proposed_group != group_id:
             raise ApplyError("forbidden", "proposal_scope_immutable", {"proposal_id": proposal_id})
-        if proposed_scope and _proposal_electorate_scope({"electorate_scope": proposed_scope}) != _proposal_electorate_scope(pr):
+        if proposed_scope and _proposal_electorate_scope(
+            {"electorate_scope": proposed_scope}
+        ) != _proposal_electorate_scope(pr):
             raise ApplyError("forbidden", "proposal_scope_immutable", {"proposal_id": proposal_id})
 
     stg = _stage(pr)
@@ -1997,7 +2020,10 @@ def _apply_gov_proposal_comment(state: Json, env: TxEnvelope) -> dict[str, Any]:
     group_id = _proposal_group_id(pr)
     if group_id:
         _require_group_governance_participation(
-            state, group_id=group_id, signer=str(env.signer), permission="comment",
+            state,
+            group_id=group_id,
+            signer=str(env.signer),
+            permission="comment",
         )
     comments = pr.get("comments")
     if not isinstance(comments, list):

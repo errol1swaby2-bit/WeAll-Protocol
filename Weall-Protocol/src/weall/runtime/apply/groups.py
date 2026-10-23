@@ -1773,7 +1773,9 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
     # slate with no participating voter (and replace treasury signers).
     # Return a committed no-decision result without mutating group authority.
     valid_ballot_count = sum(
-        1 for ranking in ballots_by_voter.values() if any(choice in candidates for choice in ranking)
+        1
+        for ranking in ballots_by_voter.values()
+        if any(choice in candidates for choice in ranking)
     )
     if valid_ballot_count == 0:
         e["status"] = "no_decision"
