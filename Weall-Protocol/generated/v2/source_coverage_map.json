@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "97b8256c0dee1e84c789072da2e682f28783ef31c0551f2cf078f5a0d7538b75",
+      "sha256": "5416b736f20e419dd14e13b14905e88c5bc501bdec62ad06d46cb49aef585ce9",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -18206,7 +18206,7 @@
       ],
       "path": "tests/test_group_governance_scope_authority.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "68f0ecc692446d9fb9e3aaea18d743005be754b8000116b51272b14378f401d2",
+      "sha256": "81bec7e4687ba6b84c726b8334c6d6233889396aa5a1cf8bd628460780ec42e5",
       "source_id": "SRC-9953D3463A666AC7"
     },
     {
