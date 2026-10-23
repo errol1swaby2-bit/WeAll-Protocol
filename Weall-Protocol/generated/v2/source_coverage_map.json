@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "a551c139adbf0d1e64cc70a39873f00a790bc9185dc36daf1f1d3c85cea135f9",
+      "sha256": "97b8256c0dee1e84c789072da2e682f28783ef31c0551f2cf078f5a0d7538b75",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "702ced0ef3cecfab9e26c4d25518a656afb387c5ff26fe7145c467fa5d32614c",
+      "sha256": "2593652f3425ce3f034091b1bdd5adb975685ce070c130128cea4d8c27ecd144",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
