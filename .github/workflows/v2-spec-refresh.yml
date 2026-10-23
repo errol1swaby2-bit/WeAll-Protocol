@@ -1,4 +1,6 @@
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
+# Refresh V2 source coverage and generated provenance for active deliberations frontend wiring.
+# Follow-up: incorporate strict TypeScript comparator for signed comment ordering.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
 # PR53 final Ruff-formatted parity and nonce-consumption regression evidence; regenerate all exact source-bound artifacts.
@@ -9,6 +11,8 @@ on:
   push:
     paths:
       - .github/workflows/v2-spec-refresh.yml
+      - Weall-Protocol/tests/test_frontend_dependency_audit.py
+      - .github/workflows/web-ci.yml
 
 permissions:
   contents: write
@@ -39,12 +43,38 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      - name: Setup Node for audited frontend lock update
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Update vulnerable Vite lock, retain exact npm reproducibility
+        working-directory: web
+        run: |
+          npm install --package-lock-only --save-dev --save-exact vite@8.3.5
+          npm ci
+          npm audit --audit-level=moderate
+          npm run typecheck
+          npm run build
+
+      - name: Update vulnerable certifi lock with reproducible hashes
+        working-directory: Weall-Protocol
+        run: |
+          pip-compile --resolver=backtracking --allow-unsafe --generate-hashes --no-emit-index-url --no-emit-trusted-host --upgrade-package certifi==2026.10.19 --output-file requirements-dev.lock requirements-dev.in
+          python -m pip install --require-hashes -r requirements-dev.lock
+          pip-audit -r requirements.lock
+          pip-audit -r requirements-dev.lock
+
       - name: Refresh reviewer-facing v1.5 derivatives
         working-directory: Weall-Protocol
         run: |
           python scripts/gen_api_contract_map.py
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
+          # Public-only audit is an input to the blocker/readiness inventory.
+          python scripts/gen_public_only_protocol_audit_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
           python scripts/gen_release_evidence_manifest_v1_5.py
           # These are source-bound P1 completion proofs; preserve their strict
@@ -78,12 +108,12 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          if git diff --quiet -- Weall-Protocol/generated web/src/generated/protocolStatus.ts; then
+          if git diff --quiet -- Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/requirements-dev.lock web/package.json web/package-lock.json; then
             echo "Reviewer artifacts already current."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts
-          git commit -m 'audit: refresh reviewer-facing generated artifacts'
+          git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/requirements-dev.lock web/package.json web/package-lock.json
+          git commit -m 'fix(ci): update vulnerable locked dependencies and regenerate evidence'
           git push origin HEAD:"${GITHUB_REF_NAME}"

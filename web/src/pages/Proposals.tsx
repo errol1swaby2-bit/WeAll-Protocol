@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import ActiveDeliberations from "../components/ActiveDeliberations";
 import RequirementList from "../components/RequirementList";
 import { getKeypair, getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -252,6 +253,8 @@ export default function Proposals(): JSX.Element {
           </div>
         </section>
       ) : null}
+
+      <ActiveDeliberations base={base} proposals={items} maxItems={6} />
 
           <section className="card">
             <div className="cardBody formStack">

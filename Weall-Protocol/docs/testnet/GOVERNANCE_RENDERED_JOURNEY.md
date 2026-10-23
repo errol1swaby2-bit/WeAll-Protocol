@@ -92,6 +92,21 @@ For upgrade-related records, the safe wording is:
 Protocol and constitution upgrade actions are public, governance-parent-bound records only. They do not fetch artifacts, execute migrations, restart nodes, auto-apply software, or activate economics in this bounded testnet.
 ```
 
+## Active deliberations discovery
+
+A tester must be able to find live governance conversations without knowing a proposal ID:
+
+- **Decisions** shows active discussion previews, including draft/poll/revision/validation (commentable) and voting-stage conversation history (read-only).
+- **Home** shows recent active discussion previews.
+- **Feed** displays separate public governance discussion cards when showing global activity. These are **not social posts** and are not injected into the social feed endpoint.
+- Each preview links to the canonical decision detail and shows up to two recent public, signed comments with their block heights.
+- Decision detail shows all returned public comments and proposal version history through the normalizer.
+- A failed comment submission keeps the text in the composer instead of silently discarding it.
+- Vote-stage comments remain readable but the comment composer is disabled by the authoritative stage.
+- The existing proposal list API is capped at 200; indexed or cursor-paginated governance activity is future scaling work, not a current claim.
+
+The rendered regression is \`web/tests/e2e/active_deliberations_rendered.spec.ts\`, executed with \`npm run test:active-deliberations-rendered\`. This mocked single-browser regression does **not** substitute for independent-browser, two-node signed submission, inclusion, replay, restart, and convergence proof.
+
 ## Transaction lifecycle expectations
 
 Governance mutation buttons may submit transactions, but the UI must not treat these as final confirmation:

@@ -204,6 +204,17 @@
         "presentation"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ActiveDeliberations.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "../web/src/components/AppRightRail.tsx",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
