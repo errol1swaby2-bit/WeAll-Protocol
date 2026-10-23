@@ -96,8 +96,13 @@ def test_departed_or_suspended_member_cannot_create() -> None:
     state = _state()
     member = state["roles"]["groups_by_id"]["g:town-a"]["members"]
     member["@alice"]["status"] = "removed"
-    # Revoking membership does not revoke independently granted signer authority.
-    state["roles"]["groups_by_id"]["g:town-a"]["signers"] = []
+    # The creator initially holds independent signer and moderator roles.
+    # Removing membership alone cannot revoke those separate authorities.
+    # Clear both to isolate the membership participation check.
+    group = state["roles"]["groups_by_id"]["g:town-a"]
+    assert "@alice" in group["moderators"]
+    group["signers"] = []
+    group["moderators"] = []
     with pytest.raises(ApplyError) as removed:
         apply_governance(state, _env("GOV_PROPOSAL_CREATE", "@alice", 2, _group_proposal()))
     assert removed.value.reason == "group_governance_participation_required"
