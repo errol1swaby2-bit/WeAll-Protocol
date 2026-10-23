@@ -348,7 +348,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     payload: any,
     toastTitle: string,
     successMessage: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     setAdminErr(null);
     setAdminRes(null);
 
@@ -384,9 +384,11 @@ export default function Proposal({ id }: Props): JSX.Element {
 
       setAdminRes(r);
       await refreshMutationSlices(load, loadAccountState, refreshAccountContext);
+      return true;
     } catch (e: any) {
       setAdminErr(prettyErr(e));
       setAdminRes(e?.data || e?.body || null);
+      return false;
     }
   }
 
@@ -462,13 +464,14 @@ export default function Proposal({ id }: Props): JSX.Element {
       setAdminErr({ msg: "Write a deliberation comment before submitting.", details: null });
       return;
     }
-    await doTx(
+    const submitted = await doTx(
       "GOV_PROPOSAL_COMMENT",
       { proposal_id: pid, body },
       "Add deliberation comment",
       "Deliberation comment submitted; confirm visibility through the decision lifecycle.",
     );
-    setCommentBody("");
+    // Retain the user's draft on a failed or rejected submission.
+    if (submitted) setCommentBody("");
   }
 
   const pollVotes = asVoteMap(proposalVotes?.poll_votes ?? proposal?.poll_votes);
@@ -667,6 +670,7 @@ export default function Proposal({ id }: Props): JSX.Element {
             Add deliberation comment
             <textarea
               rows={4}
+              maxLength={4000}
               value={commentBody}
               onChange={(e) => setCommentBody(e.target.value)}
               placeholder="Share a concern, suggested wording, or reason this decision should be revised before voting."
