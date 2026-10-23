@@ -1,4 +1,3 @@
-# PR56 exact evidence + patched setuptools >=84.1.0 lock refresh (GHSA-xmj3-9gf7-h52w).
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Refresh V2 source coverage and generated provenance for active deliberations frontend wiring.
 # Follow-up: incorporate strict TypeScript comparator for signed comment ordering.
