@@ -1,3 +1,4 @@
+# Explicit final-PR revalidation after audited Vite / certifi lock refresh.
 name: Web CI
 
 on:
