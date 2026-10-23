@@ -33,7 +33,7 @@ function commentsOf(proposal: GovernanceProposal): PublicComment[] {
   return comments
     .filter((item: unknown): item is PublicComment => !!item && typeof item === "object" && !Array.isArray(item))
     .slice()
-    .sort((a, b) =>
+    .sort((a: PublicComment, b: PublicComment) =>
       Number(a.height || 0) - Number(b.height || 0) ||
       String(a.comment_id || "").localeCompare(String(b.comment_id || "")),
     );
