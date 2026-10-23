@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2058,
+  "file_count": 2060,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "064f7290f35ce26b4a544b9883dbba3b18188709babb9f2aac5b1a944b48796f",
+      "sha256": "ffa340e5bd23a5f414b3b4b980c50f6cd613f4e1a0f196c40bc10a1bd04a1aa5",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "41b33bf528f17b142643a30c615eb46940f70865dd6799f9de90e73748ec544f",
+      "sha256": "9072e539b70139acbeb66c847402678f07a95ddef13710d43f0e6c496d338b3d",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -6946,7 +6946,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "18de11fd01ff8ff95da63a8e7512eac40cf66b1c0cfc174ca37d4efe894e4808",
+      "sha256": "b713d67d49652f8e2034743b80ee8aa120cf0cc416ea293976ad776cf46db88e",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -31436,6 +31436,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/components/ActiveDeliberations.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "501a6f9b070335749b3fdf32e41389c15e0ec406bbcef4157efe3c95ffe84e1f",
+      "source_id": "SRC-D92DC7ED1BC16C35"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/components/AppRightRail.tsx",
       "primary_mechanism_id": "M-069",
       "sha256": "ddf6db5a6a588d2d901a3c8e588190ed189e3953d1a8550d2e875ff80a6384ef",
@@ -32097,7 +32112,7 @@
       ],
       "path": "../web/src/lib/governance.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "d473b0a5881f1d256781a854f2a0e089328f635a76a6af857ba1327f130ecfe3",
+      "sha256": "be6aeeb5f13bac94143b35a62ecef59550ddd9cd1baf8225f8895ad674b254a5",
       "source_id": "SRC-7A41248BA6319FA6"
     },
     {
@@ -32634,7 +32649,7 @@
       ],
       "path": "../web/src/pages/Feed.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "b2e0c399e3608c0d1530b0f70e8ad905cdf6260e3d1c1ee5f9d4693c040519e1",
+      "sha256": "282e5084cf2440a8bdfdc784f44f20dd5049c0e7fa737deb514fa2e34d0d8c55",
       "source_id": "SRC-2F7B7D3053403335"
     },
     {
@@ -32697,7 +32712,7 @@
       ],
       "path": "../web/src/pages/Home.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "24537e736403510faf2d5d49dd917db8ce8a8eb76a368f440d00dcb7534efd8e",
+      "sha256": "27996e2d24134135570da17e4bdf6fdaaecc832514859629b8a85fd8dab18717",
       "source_id": "SRC-6A8D5788EF945F62"
     },
     {
@@ -32850,7 +32865,7 @@
       ],
       "path": "../web/src/pages/Proposal.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "b8a3cc56b48ce75480e61d2f3e71159ce21d000c9140ec0990d1485215c82b57",
+      "sha256": "3f53789c6b8989ac95c084a88f1a479b791465c1d54077af261ec7aa24c710d0",
       "source_id": "SRC-1CA80AD4A4352252"
     },
     {
@@ -32884,7 +32899,7 @@
       ],
       "path": "../web/src/pages/Proposals.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "dde9ada7e976cc836079ed70cadd5b91cc5f4f21573ab00efc58e48f5d70e7b4",
+      "sha256": "ac67f82c6746925574da91dac1c7d0d10308b0a3ee89f2f07721d8fc29691e30",
       "source_id": "SRC-632D4F981A9883A9"
     },
     {
@@ -33012,6 +33027,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "69e4b14fca5411ff9cebf24df9b98ba7c72f102f8446dab574ac2dc7bf7cf975",
       "source_id": "SRC-8044E08FEEC432D9"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/tests/e2e/active_deliberations_rendered.spec.ts",
+      "primary_mechanism_id": "M-076",
+      "sha256": "dbc1579e854c7c66566a9c1041eb44c3afced4e55c1d44608541a66a84ac7b82",
+      "source_id": "SRC-8E764C5708849501"
     },
     {
       "affected_registers": [
