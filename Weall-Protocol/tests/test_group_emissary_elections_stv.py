@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
+import pytest
+
 from weall.ledger.state import LedgerView
 from weall.runtime.apply.groups import apply_groups
 from weall.runtime.gates import resolve_signer_authz
@@ -180,3 +184,45 @@ def test_gate_emissary_accepts_group_emissary_after_election() -> None:
     )
     assert ok2 is False
     assert isinstance(meta2, dict)
+
+@pytest.mark.parametrize("strict", [False, True], ids=["legacy", "strict-ballot"])
+def test_zero_ballots_end_in_no_decision_without_transferring_group_authority(strict: bool) -> None:
+    state: dict = {"height": 100}
+    if strict:
+        state.update({
+            "chain_id": "weall-controlled-testnet",
+            "params": {"mode": "controlled-testnet"},
+            "ballot_profile": {"profile_id": "controlled-testnet-aggregate-v1", "active": True},
+        })
+    apply_groups(state, _mk_env("GROUP_CREATE", "@alice", 1, {"group_id": "g-empty"}))
+    group = state["roles"]["groups_by_id"]["g-empty"]
+    group["members"] = {name: {"joined_at_nonce": 1} for name in (
+        "@alice", "@bob", "@carl", "@dana", "@erin",
+    )}
+    apply_groups(state, _mk_env(
+        "GROUP_EMISSARY_ELECTION_CREATE", "@alice", 2,
+        {
+            "group_id": "g-empty",
+            "election_id": "e-empty",
+            "seats": 5,
+            "candidates": ["@alice", "@bob", "@carl", "@dana", "@erin"],
+            "start_height": 101,
+            "end_height": 105,
+        },
+    ))
+    treasury_id = group["treasury_id"]
+    old_group = deepcopy(group)
+    old_treasury = deepcopy(state["roles"]["treasuries_by_id"][treasury_id])
+    state["height"] = 104
+    payload = {"group_id": "g-empty", "election_id": "e-empty"}
+    result = apply_groups(state, _mk_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 3, payload))
+    assert result["status"] == "no_decision"
+    assert result["n_ballots"] == 0
+    assert state["group_emissary_elections"]["e-empty"]["status"] == "no_decision"
+    assert state["roles"]["groups_by_id"]["g-empty"] == old_group
+    assert state["roles"]["treasuries_by_id"][treasury_id] == old_treasury
+    replay = apply_groups(state, _mk_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 4, payload))
+    assert replay["deduped"] is True
+    assert replay["status"] == "no_decision"
+    assert state["roles"]["groups_by_id"]["g-empty"] == old_group
+    assert state["roles"]["treasuries_by_id"][treasury_id] == old_treasury
