@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "06a2952187b6b9a2545db5c511dbd0351833b31b64df0aff4530269167d82b9e"
+    "source_tree_digest": "21c415fd26daec499fafaf689ab0600bcff66052fd0d2422e0839561a35ed4c9"
   },
   "rows": [
     {
@@ -3670,7 +3670,9 @@
         "group_id",
         "n_ballots",
         "n_candidates",
+        "reason",
         "seats",
+        "status",
         "treasury_id",
         "winners"
       ],

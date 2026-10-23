@@ -553,7 +553,7 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1590
+      "source_lineno": 1664
     },
     {
       "code": "conflict",
