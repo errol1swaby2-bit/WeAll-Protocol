@@ -11,6 +11,7 @@ on:
   push:
     paths:
       - .github/workflows/v2-spec-refresh.yml
+      - Weall-Protocol/tests/test_frontend_dependency_audit.py
 
 permissions:
   contents: write
