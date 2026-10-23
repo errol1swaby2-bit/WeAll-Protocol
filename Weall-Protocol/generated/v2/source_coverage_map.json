@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "5416b736f20e419dd14e13b14905e88c5bc501bdec62ad06d46cb49aef585ce9",
+      "sha256": "b4ba0ee35cd938c557f551dbb9992584029a3027906a51359e719ab7cdadbed6",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3842,7 +3842,7 @@
       ],
       "path": "requirements-dev.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "94459651b0e4160bb85a73e325bcfe876dda0b547cac17889b5b982a067231f5",
+      "sha256": "bf344801e497f23d0e02c370f11f8726afea9a105ecf387a1947e027e8c0f387",
       "source_id": "SRC-76E5F5875EE0F8B7"
     },
     {
@@ -15032,6 +15032,7 @@
         "TX-1111",
         "TX-1112",
         "TX-1715",
+        "TX-1716",
         "TX-1717",
         "TX-2608",
         "TX-2609",
@@ -15042,7 +15043,7 @@
       ],
       "path": "tests/test_bootstrap_economics_emissary_treasury_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "661b3ede59400d7f5867a36f2f59e8a5b8ea89fb053f915dccd71cc471d183c0",
+      "sha256": "0bbce1088eccf4819d76e80067941f913940e2e90234d35dd7c147890064cd80",
       "source_id": "SRC-5E4142262D59EFD0"
     },
     {
@@ -18206,7 +18207,7 @@
       ],
       "path": "tests/test_group_governance_scope_authority.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "81bec7e4687ba6b84c726b8334c6d6233889396aa5a1cf8bd628460780ec42e5",
+      "sha256": "135ca3c49f55887658009801c2753ebf85f0b0cded57373ca5432a7f35f0dd88",
       "source_id": "SRC-9953D3463A666AC7"
     },
     {
