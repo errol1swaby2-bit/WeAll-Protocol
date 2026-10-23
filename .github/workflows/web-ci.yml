@@ -172,6 +172,10 @@ jobs:
         run: |
           npm run test:production-deployment-csp
 
+      - name: Active deliberations rendered journey
+        run: |
+          npm run test:active-deliberations-rendered
+
       - name: Stop production Nginx deployment
         if: always()
         run: |
