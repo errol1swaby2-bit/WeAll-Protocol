@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "b25db12fdcc8ab2e66cf3d6a6c5124018b9fa82b1968e2cfba620ac6e677a121",
+      "sha256": "ed1b992b53ce10aed2911a557ab8fc9235dba016b35faa74458df3bf87af85b6",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3842,7 +3842,7 @@
       ],
       "path": "requirements-dev.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "2adafd798d36eea474d59f72cd21199e9076ce14f6b865a3ec4ab91720815b98",
+      "sha256": "94459651b0e4160bb85a73e325bcfe876dda0b547cac17889b5b982a067231f5",
       "source_id": "SRC-76E5F5875EE0F8B7"
     },
     {
