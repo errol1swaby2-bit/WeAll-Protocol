@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ed1b992b53ce10aed2911a557ab8fc9235dba016b35faa74458df3bf87af85b6",
+      "sha256": "a551c139adbf0d1e64cc70a39873f00a790bc9185dc36daf1f1d3c85cea135f9",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -17513,7 +17513,7 @@
       ],
       "path": "tests/test_frontend_dependency_audit.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8818cbe63eaf75f2c1fc8a17a71dc736b64a894ef7473da97847cc5ef19a5342",
+      "sha256": "857a0630116c1ac19efaaa37be7a0ea27666082286912fcbfc1924bf814d69cb",
       "source_id": "SRC-8A077776FA8B7BDC"
     },
     {
