@@ -67,6 +67,28 @@ jobs:
           pip-audit -r requirements.lock
           pip-audit -r requirements-dev.lock
 
+      # PR #56 bounded one-shot provisional update. This does NOT assert
+      # independent acceptance. Remove after generated derivatives are committed.
+      - name: Rebind the four changed semantic contracts with explicit AI-assisted provenance
+        if: ${{ github.ref_name == 'fix/group-scope-election-deliberation-20261023' }}
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/refresh_v2_semantic_reviews.py \
+            --tx-type GROUP_EMISSARY_ELECTION_FINALIZE \
+            --tx-type GOV_PROPOSAL_CREATE \
+            --tx-type GOV_PROPOSAL_EDIT \
+            --tx-type GOV_PROPOSAL_COMMENT \
+            --register-failure 'invalid_payload:proposal_group_scope_conflict' \
+            --register-failure 'invalid_payload:proposal_electorate_scope_conflict' \
+            --register-failure 'not_found:governance_group_not_found' \
+            --register-failure 'forbidden:group_governance_participant_not_eligible' \
+            --register-failure 'forbidden:group_governance_participation_required' \
+            --register-failure 'forbidden:group_proposal_requires_group_electorate' \
+            --register-failure 'forbidden:proposal_scope_immutable' \
+            --reviewed-at 2026-10-23T21:38:00Z \
+            --reviewer 'AI-assisted scoped governance code review; independent review pending' \
+            --review-method 'provisional_ai_assisted_contract_review_pr56_independent_review_pending'
+
       - name: Refresh reviewer-facing v1.5 derivatives
         working-directory: Weall-Protocol
         run: |
@@ -108,12 +130,12 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          if git diff --quiet -- Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/requirements-dev.lock web/package.json web/package-lock.json; then
+          if git diff --quiet -- Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/specs/v2/source/stable_ids.json Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/requirements-dev.lock web/package.json web/package-lock.json; then
             echo "Reviewer artifacts already current."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/requirements-dev.lock web/package.json web/package-lock.json
+          git add -u Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/specs/v2/source/stable_ids.json Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/requirements-dev.lock web/package.json web/package-lock.json
           git commit -m 'fix(ci): update vulnerable locked dependencies and regenerate evidence'
           git push origin HEAD:"${GITHUB_REF_NAME}"
