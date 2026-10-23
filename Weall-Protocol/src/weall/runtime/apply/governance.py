@@ -16,6 +16,7 @@ from weall.runtime.bounded_rollback import materialize_journaled
 from weall.runtime.commitments import consensus_active_validator_ids
 from weall.runtime.econ_phase import is_econ_unlocked, is_economic_system_tx
 from weall.runtime.errors import ApplyError
+from weall.runtime.gate_expr import _authority_member_active, _record_blocked
 from weall.runtime.group_treasury_scheduler import (
     group_spend_plan_hash,
     maybe_enqueue_group_spend_execute,
@@ -1622,7 +1623,13 @@ def _require_group_governance_participation(
         if isinstance(value, list):
             values = value
         elif isinstance(value, dict):
-            values = list(value.keys())
+            values = [
+                key
+                for key, record in value.items()
+                if record is not False
+                and not _record_blocked(record)
+                and not (isinstance(record, dict) and record.get("active") is False)
+            ]
         else:
             values = []
         return {
@@ -1632,10 +1639,27 @@ def _require_group_governance_participation(
         }
 
     role_map = _d(group.get("roles"))
-    signers = _identities(group.get("signers")) | _identities(role_map.get("signers"))
+    signers = (
+        {actor}
+        if _authority_member_active(
+            group, actor, "signers", "signers_by_id", "signer_records", "signer_statuses"
+        )
+        else set()
+    )
     moderators = (
         signers
-        | _identities(group.get("moderators"))
+        | (
+            {actor}
+            if _authority_member_active(
+                group,
+                actor,
+                "moderators",
+                "moderators_by_id",
+                "moderator_records",
+                "moderator_statuses",
+            )
+            else set()
+        )
         | _identities(role_map.get("moderator"))
         | _identities(role_map.get("moderators"))
     )

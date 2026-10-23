@@ -173,3 +173,36 @@ def test_protocol_wide_proposals_remain_accessible_to_verified_users() -> None:
         )["applied"]
         is True
     )
+
+
+def test_revoked_group_roles_do_not_grant_governance_authorship() -> None:
+    state = _state()
+    group = state["roles"]["groups_by_id"]["g:town-a"]
+    group["permissions"]["post"] = "moderators"
+    group["signers"] = []
+    group["moderators"] = []
+    group["roles"] = {"moderators": {"@outsider": {"status": "revoked"}}}
+    with pytest.raises(ApplyError) as revoked:
+        apply_governance(
+            state,
+            _env("GOV_PROPOSAL_CREATE", "@outsider", 6, _group_proposal("revoked-author")),
+        )
+    assert revoked.value.reason == "group_governance_participation_required"
+
+    group["roles"] = {"moderators": ["@outsider"]}
+    assert apply_governance(
+        state, _env("GOV_PROPOSAL_CREATE", "@outsider", 7, _group_proposal("active-author"))
+    )["applied"] is True
+
+
+def test_revoked_group_signer_record_is_not_admin_permission() -> None:
+    state = _state()
+    group = state["roles"]["groups_by_id"]["g:town-a"]
+    group["permissions"]["post"] = "admins"
+    group["signers"] = ["@outsider"]
+    group["signer_statuses"] = {"@outsider": {"status": "revoked"}}
+    with pytest.raises(ApplyError) as revoked:
+        apply_governance(
+            state, _env("GOV_PROPOSAL_CREATE", "@outsider", 8, _group_proposal("revoked-signer"))
+        )
+    assert revoked.value.reason == "group_governance_participation_required"
