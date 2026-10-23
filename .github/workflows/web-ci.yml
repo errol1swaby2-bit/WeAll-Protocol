@@ -1,3 +1,4 @@
+# This workflow validates the exact reviewer-artifact-refresh commit after lockfile and test-pin changes.
 name: Web CI
 
 on:
