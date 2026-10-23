@@ -553,7 +553,7 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1664
+      "source_lineno": 1688
     },
     {
       "code": "conflict",
@@ -724,7 +724,7 @@
       "http_status": null,
       "sample_reason": "BALLOT_PROFILE_INACTIVE",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 67
+      "source_lineno": 68
     },
     {
       "code": "forbidden",
@@ -994,7 +994,7 @@
       "http_status": null,
       "sample_reason": "proposal_options_require_at_least_two",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 281
+      "source_lineno": 282
     },
     {
       "code": "invalid_payload",
@@ -1624,7 +1624,7 @@
       "http_status": null,
       "sample_reason": "proposal_not_found",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1259
+      "source_lineno": 1260
     },
     {
       "code": "not_found",

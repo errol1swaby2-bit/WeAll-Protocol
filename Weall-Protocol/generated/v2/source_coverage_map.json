@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "6b088b773aa429df682cfee1437ba2040ae9e732b7a3acb0420cea99724e2180",
+      "sha256": "91cc2adeae16d2b788ba4ad7fd091ce4d1b8900be8ad74425e146792db16523d",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3119,7 +3119,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "30a3ce191634238185afc42f8dcebc10b1deb8166fca57a42d9ffbd6e59a00ee",
+      "sha256": "5da2ae20477df205f3cddf7ea74b6d189334fbe716a9181f53cbd2e9765d3700",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3133,7 +3133,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "02d53f91dc96b1bb92f6096408439e209995c597248b67a6eeaceb057be6fb25",
+      "sha256": "b9773b660020827e831dfe0e45dd76028c116676768c6352f30a9af6161794f7",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3217,7 +3217,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "eec16f779d51b7f2017d4552ab8076df27376dc8d002326a1a2127efbadfa30d",
+      "sha256": "ca9baa36ecc4028670af6da51818f647b3eb1abeb35730735eb563212767161e",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3314,7 +3314,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5f7174811b7f101d8595b83f708417e8fa0f44543fafd93f11742d8f79321e31",
+      "sha256": "4a79fd430d430a44c368f4c7584ebd73354b99b1991ca4b02e64dda2f07ec23f",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3342,7 +3342,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "f93817df34602fdebf4615dedf68e7b3c5101dc6edd24cf47080345fa0e63b9b",
+      "sha256": "520f2d6461dcc11ceee22ae34a2d3421ff74df24dae131effb4ace352b031794",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3440,7 +3440,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "6a7648bb3960e29b8af858685bfcdd4c09cf7a75f8e9df741a2721b8114e8754",
+      "sha256": "b212f7fc42fca0706be608777b94f0a2d6457bdc7065fe3a9a7b099ce41517a7",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3622,7 +3622,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "cb607e368831195f1235abc26153d8d14edcd0d4757b2f050ec3b9ffddb6a548",
+      "sha256": "0cd3882ca78919eb89b3be2ca25622be939f1543b8b324137e6c85e88b3b472a",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -8999,7 +8999,7 @@
       ],
       "path": "src/weall/runtime/apply/governance.py",
       "primary_mechanism_id": "M-049",
-      "sha256": "64ad9a444c5d3226502218f64f2826eafd99ecf32b9bb9859c6c307bf3ab1769",
+      "sha256": "96473ab6c6aa7bb6d327301530b1a7af72758b4b341462216e1f4157bf8db4b5",
       "source_id": "SRC-A6C282C450952C4C"
     },
     {
@@ -18206,7 +18206,7 @@
       ],
       "path": "tests/test_group_governance_scope_authority.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "89fdfb5d883fd78664f9318b442c95dbed4ed95882a8f2967f69db36d3376629",
+      "sha256": "68f0ecc692446d9fb9e3aaea18d743005be754b8000116b51272b14378f401d2",
       "source_id": "SRC-9953D3463A666AC7"
     },
     {
