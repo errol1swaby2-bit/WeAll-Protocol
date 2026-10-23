@@ -1580,6 +1580,72 @@ def _assert_governance_action_electorate_scope(
             )
 
 
+
+def _require_group_governance_participation(
+    state: Json, *, group_id: str, signer: str, permission: str
+) -> None:
+    """Authorize a scoped civic write from canonical membership/roles.
+
+    Group names and charters never grant authority. Read visibility is public;
+    participation follows the target group's explicit post/comment policy.
+    """
+    group = _groups_by_id(state).get(group_id)
+    if not isinstance(group, dict):
+        raise ApplyError("not_found", "governance_group_not_found", {"group_id": group_id})
+
+    actor = _resolve_account_identity(state, signer)
+    account = _alias_record(_d(state.get("accounts")), actor) if actor else None
+    if not isinstance(account, dict) or _i(account.get("poh_tier"), 0) < 2 or any(
+        bool(account.get(key)) for key in ("banned", "locked", "suspended")
+    ):
+        raise ApplyError(
+            "forbidden", "group_governance_participant_not_eligible",
+            {"group_id": group_id, "permission": permission},
+        )
+
+    permissions = _d(group.get("permissions"))
+    raw = _s(permissions.get(permission) or "members").strip().lower()
+    policy = {
+        "anyone": "public", "all": "public", "open": "public",
+        "member": "members", "moderator": "moderators", "admin": "admins",
+    }.get(raw, raw)
+    if policy == "public":
+        return
+
+    def _identities(value: Any) -> set[str]:
+        if isinstance(value, list):
+            values = value
+        elif isinstance(value, dict):
+            values = list(value.keys())
+        else:
+            values = []
+        return {
+            _resolve_account_identity(state, value)
+            for value in values
+            if _resolve_account_identity(state, value)
+        }
+
+    role_map = _d(group.get("roles"))
+    signers = _identities(group.get("signers")) | _identities(role_map.get("signers"))
+    moderators = (
+        signers | _identities(group.get("moderators"))
+        | _identities(role_map.get("moderator"))
+        | _identities(role_map.get("moderators"))
+    )
+    admins = signers | _identities(role_map.get("admin")) | _identities(role_map.get("admins"))
+    members = set(_active_group_member_ids(state, {"group_id": group_id}))
+    authorized = {
+        "members": members | moderators | admins,
+        "moderators": moderators | admins,
+        "admins": admins,
+    }.get(policy)
+    if authorized is None or actor not in authorized:
+        raise ApplyError(
+            "forbidden", "group_governance_participation_required",
+            {"group_id": group_id, "permission": permission, "policy": policy},
+        )
+
+
 def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
@@ -1625,9 +1691,31 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
             {"proposal_id": proposal_id, "requested_stage": start_stage},
         )
 
-    group_id = _s(
-        p.get("group_id") or rules.get("group_id") or p.get("scope_id") or rules.get("scope_id")
-    ).strip()
+    group_ids = {
+        _s(value).strip()
+        for value in (p.get("group_id"), p.get("scope_id"), rules.get("group_id"), rules.get("scope_id"))
+        if _s(value).strip()
+    }
+    if len(group_ids) > 1:
+        raise ApplyError(
+            "invalid_payload", "proposal_group_scope_conflict",
+            {"group_ids": sorted(group_ids)},
+        )
+    group_id = next(iter(group_ids), "")
+    requested_electorate_scopes = {
+        _proposal_electorate_scope({"electorate_scope": value})
+        for value in (p.get("electorate_scope"), rules.get("electorate_scope"))
+        if _s(value).strip()
+    }
+    if len(requested_electorate_scopes) > 1:
+        raise ApplyError("invalid_payload", "proposal_electorate_scope_conflict", {})
+
+    # An independent group's chosen name never licenses outsiders to place
+    # proposals under its canonical group ID.
+    if group_id:
+        _require_group_governance_participation(
+            state, group_id=group_id, signer=str(env.signer), permission="post",
+        )
     proposal_scope_seed = {
         "rules": rules,
         "group_id": group_id,
@@ -1636,6 +1724,11 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     electorate_scope = _normalized_or_default_electorate_scope(state, proposal_scope_seed)
     proposal_scope_seed["electorate_scope"] = electorate_scope
     _require_recognized_electorate_scope(state, proposal_scope_seed)
+    if strict_civic_governance_enabled(state) and group_id and electorate_scope != "group_members":
+        raise ApplyError(
+            "forbidden", "group_proposal_requires_group_electorate",
+            {"group_id": group_id, "electorate_scope": electorate_scope},
+        )
     _assert_governance_action_electorate_scope(state, proposal_scope_seed, actions)
     proposal_electorate_seed = {
         "creator": str(env.signer),
@@ -1759,6 +1852,19 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     if str(pr.get("creator", "")) != str(env.signer):
         raise ApplyError("forbidden", "only_creator_can_edit", {"proposal_id": proposal_id})
+    group_id = _proposal_group_id(pr)
+    if group_id:
+        _require_group_governance_participation(
+            state, group_id=group_id, signer=str(env.signer), permission="post",
+        )
+    if "rules" in p:
+        next_rules = _d(p.get("rules"))
+        proposed_group = _s(next_rules.get("group_id") or next_rules.get("scope_id")).strip()
+        proposed_scope = _s(next_rules.get("electorate_scope")).strip()
+        if proposed_group and proposed_group != group_id:
+            raise ApplyError("forbidden", "proposal_scope_immutable", {"proposal_id": proposal_id})
+        if proposed_scope and _proposal_electorate_scope({"electorate_scope": proposed_scope}) != _proposal_electorate_scope(pr):
+            raise ApplyError("forbidden", "proposal_scope_immutable", {"proposal_id": proposal_id})
 
     stg = _stage(pr)
     # In strict/production civic governance, opening the ballot freezes the
@@ -1887,6 +1993,11 @@ def _apply_gov_proposal_comment(state: Json, env: TxEnvelope) -> dict[str, Any]:
             "forbidden",
             "proposal_comment_window_closed",
             {"proposal_id": proposal_id, "stage": stg},
+        )
+    group_id = _proposal_group_id(pr)
+    if group_id:
+        _require_group_governance_participation(
+            state, group_id=group_id, signer=str(env.signer), permission="comment",
         )
     comments = pr.get("comments")
     if not isinstance(comments, list):
