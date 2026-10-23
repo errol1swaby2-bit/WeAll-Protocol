@@ -181,3 +181,34 @@ jobs:
         run: |
           sudo nginx -c /tmp/weall-web-nginx.conf -s quit || true
           test ! -f /tmp/weall-web-nginx-error.log || cat /tmp/weall-web-nginx-error.log
+
+  governance-ui:
+    name: Governance frontend rendered regression
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frozen frontend dependencies
+        run: npm ci
+
+      - name: Typecheck governance UI
+        run: npm run typecheck
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Render active deliberation discussion journey
+        run: npm run test:active-deliberations-rendered
