@@ -103,10 +103,10 @@ export default function ActiveDeliberations({
       <div className="cardBody formStack">
         <div className="sectionHead">
           <div>
-            <div className="eyebrow">Governance conversations</div>
+            <div className="eyebrow">Decision discussions</div>
             <h2 className="cardTitle">{title}</h2>
             <div className="cardDesc">
-              Explore signed public comments on open proposals. Deliberation stays bound to the decision record;
+              Explore signed public comments on open decisions. Deliberation stays bound to the decision record;
               this preview is not an instant-message channel.
             </div>
           </div>
@@ -128,7 +128,7 @@ export default function ActiveDeliberations({
               ? "Loading public deliberations…"
               : loadError && !externalItems
                 ? "Discussion activity is unavailable right now."
-                : "No active proposal discussions or voting-stage conversations were returned."}
+                : "No active decision discussions or voting-stage conversations were returned."}
           </div>
         ) : (
           <div className="pageStack">
