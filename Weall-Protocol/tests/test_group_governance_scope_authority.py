@@ -190,9 +190,12 @@ def test_revoked_group_roles_do_not_grant_governance_authorship() -> None:
     assert revoked.value.reason == "group_governance_participation_required"
 
     group["roles"] = {"moderators": ["@outsider"]}
-    assert apply_governance(
-        state, _env("GOV_PROPOSAL_CREATE", "@outsider", 7, _group_proposal("active-author"))
-    )["applied"] is True
+    assert (
+        apply_governance(
+            state, _env("GOV_PROPOSAL_CREATE", "@outsider", 7, _group_proposal("active-author"))
+        )["applied"]
+        is True
+    )
 
 
 def test_revoked_group_signer_record_is_not_admin_permission() -> None:
