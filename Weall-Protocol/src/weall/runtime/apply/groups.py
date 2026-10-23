@@ -1709,6 +1709,16 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
         )
 
     status = _as_str(e.get("status")).strip().lower()
+    if status == "no_decision":
+        return {
+            "applied": "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "election_id": election_id,
+            "group_id": stored_group_id,
+            "status": "no_decision",
+            "reason": "no_valid_ballots",
+            "winners": [],
+            "deduped": True,
+        }
     if status == "finalized":
         return {
             "applied": "GROUP_EMISSARY_ELECTION_FINALIZE",
@@ -1758,6 +1768,29 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
         for voter, b in raw_ballots.items():
             if isinstance(b, dict) and isinstance(b.get("ranking"), list):
                 ballots_by_voter[str(voter)] = [str(x) for x in b.get("ranking")]
+
+    # A nomination is not a ballot. STV can otherwise seat an entire candidate
+    # slate with no participating voter (and replace treasury signers).
+    # Return a committed no-decision result without mutating group authority.
+    valid_ballot_count = sum(
+        1
+        for ranking in ballots_by_voter.values()
+        if any(choice in candidates for choice in ranking)
+    )
+    if valid_ballot_count == 0:
+        e["status"] = "no_decision"
+        e["finalized_at_height"] = int(now_h)
+        e["winners"] = []
+        elections[election_id] = e
+        return {
+            "applied": "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "election_id": election_id,
+            "group_id": group_id,
+            "status": "no_decision",
+            "reason": "no_valid_ballots",
+            "n_ballots": 0,
+            "winners": [],
+        }
 
     winners = _stv_winners(ballots_by_voter=ballots_by_voter, candidates=candidates, seats=seats)
 

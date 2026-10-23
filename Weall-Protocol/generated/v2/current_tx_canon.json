@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "06a2952187b6b9a2545db5c511dbd0351833b31b64df0aff4530269167d82b9e"
+    "source_tree_digest": "f8cbda3368df65b320327e1e060f29ed1d624e392c110491c87f590708fa2b97"
   },
   "rows": [
     {
@@ -10105,7 +10105,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10128,9 +10128,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "46c0d2b3e75169e76ddaa2cf1d97ca4054cc9a1bec85a371c2fe0ff512f870b8",
-        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-10-04T04:33:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "provisional_ai_assisted_contract_review_pr56_independent_review_pending",
+        "reviewed_at": "2026-10-23T21:38:00Z",
+        "reviewer": "AI-assisted scoped governance code review; independent review pending"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0400",
@@ -10169,6 +10169,7 @@
         "tests/test_governance_runtime_surface.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
+        "tests/test_group_governance_scope_authority.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_m3_electorate_round_policy.py",
@@ -10228,7 +10229,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10251,9 +10252,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "331b5b27d655ad5920a74fade1605fc04b1c97e68bd6e3b47d2df70d06fb9727",
-        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-10-04T04:33:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "provisional_ai_assisted_contract_review_pr56_independent_review_pending",
+        "reviewed_at": "2026-10-23T21:38:00Z",
+        "reviewer": "AI-assisted scoped governance code review; independent review pending"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0401",
@@ -10274,6 +10275,7 @@
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_constitutional_procedure_clock.py",
         "tests/test_governance_no_creator_fallback_for_executable_prod.py",
+        "tests/test_group_governance_scope_authority.py",
         "tests/test_p0_governance_economics_closure.py",
         "tests/test_p0_group_protocol_action_containment.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
@@ -10321,7 +10323,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10409,7 +10411,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10509,7 +10511,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10617,7 +10619,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10640,9 +10642,9 @@
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "62e919aa13704d910a9e244feca04fcb3c50dee217d34fa63c0cce16a0953cab",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-30T18:24:45Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "provisional_ai_assisted_contract_review_pr56_independent_review_pending",
+        "reviewed_at": "2026-10-23T21:38:00Z",
+        "reviewer": "AI-assisted scoped governance code review; independent review pending"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0405",
@@ -10662,6 +10664,7 @@
       "tests": [
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_constitutional_procedure_clock.py",
+        "tests/test_group_governance_scope_authority.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py"
       ],
       "tx_type": "GOV_PROPOSAL_COMMENT",
@@ -10706,7 +10709,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10807,7 +10810,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10900,7 +10903,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11048,7 +11051,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21601,7 +21604,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21690,7 +21693,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21785,7 +21788,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21881,7 +21884,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21974,7 +21977,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2848,
+        "line": 3009,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22125,6 +22128,7 @@
         "tests/test_devnet_permission_probe.py",
         "tests/test_group_emissary_election_windows.py",
         "tests/test_group_emissary_elections_stv.py",
+        "tests/test_group_governance_scope_authority.py",
         "tests/test_group_membership_approval_contract.py",
         "tests/test_group_policy_transition_safety.py",
         "tests/test_group_treasury_transition_safety.py",
@@ -23621,7 +23625,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_audit_anchor_set",
         "handler": "groups",
-        "line": 1821,
+        "line": 1854,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23936,6 +23940,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_group_emissary_election_windows.py",
         "tests/test_group_emissary_elections_stv.py",
         "tests/test_group_governance_contract.py",
@@ -24017,7 +24022,9 @@
           "group_id",
           "n_ballots",
           "n_candidates",
+          "reason",
           "seats",
+          "status",
           "treasury_id",
           "winners"
         ],
@@ -24031,10 +24038,10 @@
       "semantic_review": {
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "427902c61bef127ca7d74f0728e8348ebddfd7d2deb37e2b6af3b4ed949a1349",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T19:00:00Z",
-        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
+        "review_digest": "9906cf362f9494bd52b6068374f281101736fbe396c07c1ccf5008db483079a2",
+        "review_method": "provisional_ai_assisted_contract_review_pr56_independent_review_pending",
+        "reviewed_at": "2026-10-23T21:38:00Z",
+        "reviewer": "AI-assisted scoped governance code review; independent review pending"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1717",

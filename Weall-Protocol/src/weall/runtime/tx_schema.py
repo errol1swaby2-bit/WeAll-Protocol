@@ -1270,6 +1270,10 @@ class GovProposalCreatePayload(_StrictModel):
     # Optional human-friendly metadata (used by web UI / API responses)
     title: str | None = None
     body: str | None = None
+    # Canonical group IDs are explicit; a geographic-sounding name grants nothing.
+    group_id: str | None = Field(default=None, min_length=1)
+    scope_id: str | None = Field(default=None, min_length=1)
+    electorate_scope: str | None = Field(default=None, min_length=1)
 
     # Governance engine fields
     rules: Json | None = None
