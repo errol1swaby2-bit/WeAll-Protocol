@@ -1,4 +1,5 @@
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
+# Refresh V2 source coverage and generated provenance for active deliberations frontend wiring.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
 # PR53 final Ruff-formatted parity and nonce-consumption regression evidence; regenerate all exact source-bound artifacts.
