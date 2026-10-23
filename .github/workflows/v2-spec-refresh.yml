@@ -1,3 +1,4 @@
+# PR56 one-shot retry: rebind without introducing new Groups state-key stable IDs.
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Refresh V2 source coverage and generated provenance for active deliberations frontend wiring.
 # Follow-up: incorporate strict TypeScript comparator for signed comment ordering.

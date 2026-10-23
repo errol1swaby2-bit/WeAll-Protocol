@@ -1715,7 +1715,7 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
             "election_id": election_id,
             "group_id": stored_group_id,
             "status": "no_decision",
-            "reason": _as_str(e.get("no_decision_reason") or "no_valid_ballots"),
+            "reason": "no_valid_ballots",
             "winners": [],
             "deduped": True,
         }
@@ -1779,8 +1779,7 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
     )
     if valid_ballot_count == 0:
         e["status"] = "no_decision"
-        e["no_decision_reason"] = "no_valid_ballots"
-        e["closed_at_height"] = int(now_h)
+        e["finalized_at_height"] = int(now_h)
         e["winners"] = []
         elections[election_id] = e
         return {
