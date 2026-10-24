@@ -115,15 +115,20 @@ test("voting-stage proposals retain readable history but close commenting", asyn
 });
 
 
-test("guided creation defaults to deliberative draft and explains record-only authority", async ({ page }) => {
-  await page.route(/\/v1\/groups(?:\?.*)?$/, async (route) => {
-    await route.fulfill({ json: { ok: true, items: [{ group_id: "group:public-garden", name: "Public garden" }] } });
-  });
+test("anonymous accounts cannot open the protected proposal composer", async ({ page }) => {
   await page.goto("/#/decisions/create");
-  await expect(page.getByLabel("Starting status")).toHaveValue("draft");
-  await expect(page.getByLabel("Decision scope")).toContainText("Public garden");
-  await expect(page.getByText(/Recorded community decision: a vote can record collective support/)).toBeVisible();
-  await expect(page.getByText(/Stages advance only when the backend/)).toBeVisible();
+  await expect(page.getByLabel("Starting status")).toHaveCount(0);
+  await expect(page.getByText("Create a community decision")).toHaveCount(0);
+});
+
+test("guided composer source defaults to a deliberative draft and distinguishes outcomes", async () => {
+  // Authenticated rendered creation still requires a real signed session.
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync(new URL("../../src/pages/ProposalCreate.tsx", import.meta.url), "utf8");
+  expect(source).toContain('const [startStage, setStartStage] = useState("draft");');
+  expect(source).toContain("Recorded community decision: a vote can record collective support");
+  expect(source).toContain("Executable governance request");
+  expect(source).toContain("Stages advance only when the backend");
 });
 
 test("a record-only finalized proposal does not pretend to execute protocol actions", async ({ page }) => {
