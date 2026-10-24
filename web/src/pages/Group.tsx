@@ -59,7 +59,8 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const { refresh: refreshAccountContext } = useAccount();
 
   const membershipGate = useMemo(
-    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
+    // GROUP_MEMBERSHIP_REQUEST is canonically Tier1+; actual authority remains backend checked.
+    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 1 }),
     [acct, canSign, acctState],
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
