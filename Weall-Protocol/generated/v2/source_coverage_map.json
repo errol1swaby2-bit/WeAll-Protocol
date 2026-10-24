@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "97b8256c0dee1e84c789072da2e682f28783ef31c0551f2cf078f5a0d7538b75",
+      "sha256": "857f90d4fe7eee4ce5e3ba386264a297bbc011329749e3181c8a7456bf47b6ef",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -32933,7 +32933,7 @@
       ],
       "path": "../web/src/pages/Proposals.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "a79f52495ee23d1a6336eb60d325b7ebdf1337d8cd3dba477c8fb246cd9f244a",
+      "sha256": "4eed89f97c07dd0b89e5ba96a0ad89982ce9f3fbd3ea91b4ed301e7eb2475aad",
       "source_id": "SRC-632D4F981A9883A9"
     },
     {
