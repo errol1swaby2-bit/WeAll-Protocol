@@ -72,14 +72,14 @@ export default function ProposalCreate(): JSX.Element {
   const [proposalId, setProposalId] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [startStage, setStartStage] = useState("poll");
+  const [startStage, setStartStage] = useState("draft");
   const [groupId, setGroupId] = useState("");
   const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; label: string }>>([]);
   const [groupLoadError, setGroupLoadError] = useState("");
   const [actionTxType, setActionTxType] = useState("");
   const [actionPayloadJson, setActionPayloadJson] = useState("{}");
   const [useAdvancedPayload, setUseAdvancedPayload] = useState(false);
-  const [payloadJson, setPayloadJson] = useState(JSON.stringify({ proposal_id: "", title: "", body: "", rules: { start_stage: "poll" } }, null, 2));
+  const [payloadJson, setPayloadJson] = useState(JSON.stringify({ proposal_id: "", title: "", body: "", rules: { start_stage: "draft" } }, null, 2));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [createRes, setCreateRes] = useState<any>(null);
@@ -153,6 +153,11 @@ export default function ProposalCreate(): JSX.Element {
     }
     if (signerSubmission.busy) {
       setErr({ msg: "Another signed action is still settling for this account.", details: null });
+      return;
+    }
+
+    if (!useAdvancedPayload && (!title.trim() || !body.trim())) {
+      setErr({ msg: "Add a title and a description of what people are deciding.", details: null });
       return;
     }
 
@@ -333,12 +338,12 @@ export default function ProposalCreate(): JSX.Element {
 
               <label className="fieldLabel">
                 Title
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Decision title" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Decision title" required />
               </label>
 
               <label className="fieldLabel">
                 Description
-                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe what changes if this decision passes." />
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe the problem, proposed decision, and intended outcome." required />
               </label>
 
               <label className="fieldLabel">
@@ -360,13 +365,23 @@ export default function ProposalCreate(): JSX.Element {
               <label className="fieldLabel">
                 Starting status
                 <select value={startStage} onChange={(e) => setStartStage(e.target.value)}>
+                  <option value="draft">draft — deliberate before voting (recommended)</option>
                   <option value="poll">open for early input</option>
-                  <option value="voting">open for voting</option>
                   <option value="revision">being revised</option>
                   <option value="validation">being checked</option>
-                  <option value="draft">draft</option>
+                  <option value="voting">open for voting (restricted for constitutional actions)</option>
                 </select>
+                <span className="fieldHint">
+                  Stages advance only when the backend's constitutional clock or authorized protocol transactions permit them.
+                  Selecting a starting stage cannot bypass canonical lifecycle restrictions.
+                </span>
               </label>
+              <div className="calloutInfo" role="note">
+                {actionTxType.trim() && showAdvancedMode
+                  ? "Executable governance request: the specified action must pass the electorate, scope, and backend authorization checks. Creation does not execute it."
+                  : "Recorded community decision: a vote can record collective support, but this proposal has no executable protocol action and cannot bind third parties."}
+                {!showAdvancedMode ? " Executable actions require separately authorized advanced governance tooling." : ""}
+              </div>
 
               {showAdvancedMode ? (
                 <details className="detailsPanel">
