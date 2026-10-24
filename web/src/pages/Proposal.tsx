@@ -54,6 +54,39 @@ function countFromMap(votes: VoteMap): { yes: number; no: number; abstain: numbe
   return { yes, no, abstain, total: yes + no + abstain };
 }
 
+function countFromAggregates(raw: any, fallback: VoteMap): { yes: number; no: number; abstain: number; total: number } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw) || !Object.keys(raw).length) {
+    return countFromMap(fallback);
+  }
+  const values = Object.values(raw) as unknown[];
+  const total = values.reduce<number>((sum, count) => {
+    const n = Number(count);
+    return sum + (Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0);
+  }, 0);
+  const value = (key: string): number => {
+    const n = Number(raw[key] || 0);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+  };
+  return { yes: value("yes"), no: value("no"), abstain: value("abstain"), total };
+}
+
+function optionCountsFromAggregates(
+  raw: any,
+  fallback: VoteMap,
+  options: Array<{ option_id: string; label: string }>,
+): { optionCounts: Record<string, number>; abstain: number; total: number } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw) || !Object.keys(raw).length) {
+    return optionCountsFromMap(fallback, options);
+  }
+  const totals = countFromAggregates(raw, fallback);
+  const optionCounts: Record<string, number> = {};
+  for (const option of options) {
+    const n = Number(raw[option.option_id] || 0);
+    optionCounts[option.option_id] = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+  }
+  return { optionCounts, abstain: totals.abstain, total: totals.total };
+}
+
 function pct(part: number, whole: number): string {
   if (!whole) return "0%";
   return `${Math.round((part / whole) * 100)}%`;
@@ -485,17 +518,21 @@ export default function Proposal({ id }: Props): JSX.Element {
   const proposalResult = governanceProposalResultOf(proposal);
   const hasProposalOptions = proposalOptions.length > 0;
 
-  const pollCount = countFromMap(pollVotes);
-  const finalCount = countFromMap(finalVotes);
-  const displayedVoteMap = stage === "poll"
-    ? pollVotes
-    : finalCount.total > 0
-      ? finalVotes
-      : pollCount.total > 0
-        ? pollVotes
-        : finalVotes;
-  const activeCount = countFromMap(displayedVoteMap);
-  const activeOptionCounts = optionCountsFromMap(displayedVoteMap, proposalOptions);
+  // The canonical strict ballot profile publishes counts but deliberately
+  // does not expose signer-to-choice maps. Never infer zero turnout from a
+  // redacted vote map.
+  const pollAggregate = proposalVotes?.poll_counts ?? proposal?.poll_counts;
+  const finalAggregate = proposalVotes?.counts ?? proposal?.counts;
+  const pollCount = countFromAggregates(pollAggregate, pollVotes);
+  const finalCount = countFromAggregates(finalAggregate, finalVotes);
+  const displayPoll = stage === "poll" || (finalCount.total === 0 && pollCount.total > 0);
+  const displayedVoteMap = displayPoll ? pollVotes : finalVotes;
+  const activeCount = displayPoll ? pollCount : finalCount;
+  const activeOptionCounts = optionCountsFromAggregates(
+    displayPoll ? pollAggregate : finalAggregate,
+    displayedVoteMap,
+    proposalOptions,
+  );
   const selectedOptionId = String(proposalResult?.selected_option_id || "").trim();
 
   const yesPct = pct(activeCount.yes, activeCount.total);
