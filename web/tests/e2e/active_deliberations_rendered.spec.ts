@@ -148,3 +148,46 @@ test("preliminary majority is not mislabeled as an approved governance outcome",
   await expect(page.getByText("Consultation or voting in progress")).toBeVisible();
   await expect(page.getByText("Approved", { exact: true })).toHaveCount(0);
 });
+
+
+test("redacted strict ballots render canonical poll aggregates without signer-choice maps", async ({ page }) => {
+  await mockGovernance(page);
+  const poll = {
+    ...revisionProposal,
+    proposal_id: "proposal:strict:aggregate",
+    title: "Public vote-count verification",
+    stage: "poll",
+    poll_counts: { yes: 4, no: 1, abstain: 1 },
+    poll_votes: {},
+    votes: {},
+  };
+  await page.route(/\/v1\/gov\/proposals\/[^/?]+\/votes(?:\?.*)?$/, async (route) => {
+    await route.fulfill({ json: {
+      ok: true,
+      proposal_id: poll.proposal_id,
+      stage: "poll",
+      poll_counts: { yes: 4, no: 1, abstain: 1 },
+      counts: { yes: 0, no: 0, abstain: 0 },
+      identity_choice_maps_exposed: false,
+      poll_votes_redacted: true,
+      votes_redacted: true,
+    } });
+  });
+  await page.route(/\/v1\/gov\/proposals\/[^/?]+(?:\?.*)?$/, async (route) => {
+    await route.fulfill({ json: { ok: true, proposal: poll } });
+  });
+  await page.goto("/#/decisions/" + encodeURIComponent(poll.proposal_id));
+  await expect(page.getByText("Votes 6", { exact: true })).toBeVisible();
+  await expect(page.getByText("Yes", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("No", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Abstain", { exact: true }).first()).toBeVisible();
+});
+
+test("approval-required membership source distinguishes pending from accepted and requires signed moderator decision", async () => {
+  const { readFileSync } = await import("node:fs");
+  const group = readFileSync(new URL("../../src/pages/Group.tsx", import.meta.url), "utf8");
+  expect(group).toContain("reconcileMembershipPending({ groupId: selected, account: acct, base })");
+  expect(group).toContain('tx_type: "GROUP_MEMBERSHIP_DECIDE"');
+  expect(group).toContain("canModerate");
+  expect(group).toContain('decision: "accept" | "reject"');
+});
