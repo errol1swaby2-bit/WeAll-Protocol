@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "965f0c1342bacbdf6b0e0a03c5ecacbfb8f4290ac3ed0da4d15e238b8f689dd3"
+    "source_tree_digest": "0a9c5cbb5a6174629d585a56dfef75d7cf893bd8f564c72010d24eee52385d42"
   },
   "required_fields": [
     "stable_id",
@@ -22598,7 +22598,10 @@
           "reason": "membership_request_not_found"
         }
       ],
-      "frontend_surfaces": [],
+      "frontend_surfaces": [
+        "../web/src/lib/groupsRevalidation.ts",
+        "../web/src/pages/Group.tsx"
+      ],
       "implementation_source": {
         "function": "_apply_group_membership_decide",
         "handler": "groups",
