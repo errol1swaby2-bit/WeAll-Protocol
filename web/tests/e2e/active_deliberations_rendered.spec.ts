@@ -113,3 +113,22 @@ test("voting-stage proposals retain readable history but close commenting", asyn
   await expect(page.getByText("Comments closed", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Submit comment" })).toBeDisabled();
 });
+
+
+test("guided creation defaults to deliberative draft and explains record-only authority", async ({ page }) => {
+  await page.route(/\/v1\/groups(?:\?.*)?$/, async (route) => {
+    await route.fulfill({ json: { ok: true, items: [{ group_id: "group:public-garden", name: "Public garden" }] } });
+  });
+  await page.goto("/#/decisions/create");
+  await expect(page.getByLabel("Starting status")).toHaveValue("draft");
+  await expect(page.getByLabel("Decision scope")).toContainText("Public garden");
+  await expect(page.getByText(/Recorded community decision: a vote can record collective support/)).toBeVisible();
+  await expect(page.getByText(/Stages advance only when the backend/)).toBeVisible();
+});
+
+test("a record-only finalized proposal does not pretend to execute protocol actions", async ({ page }) => {
+  await mockGovernance(page);
+  await page.goto("/#/decisions/" + encodeURIComponent(finalProposal.proposal_id));
+  await expect(page.getByText(/Record-only decision: voting may record collective support/)).toBeVisible();
+  await expect(page.getByText(/No authoritative final tally published yet/)).toBeVisible();
+});
