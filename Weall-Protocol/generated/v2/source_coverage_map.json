@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2061,
+  "file_count": 2062,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "97b8256c0dee1e84c789072da2e682f28783ef31c0551f2cf078f5a0d7538b75",
+      "sha256": "153e27a0feb83020f6ed981b605665bc2d02f522dce8ed18606bad0058786796",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -578,7 +578,7 @@
       ],
       "path": "docs/CURRENT_DOCUMENT_REGISTRY.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "438d879bc3b0619ad5d2c65ae641bfb99272f664d1ac0ec061e0175b4bbdae27",
+      "sha256": "84da2237d68b18082940c7254fd3bb7acf64ebf48f476b6d8f48ee9cc88b6010",
       "source_id": "SRC-A51AC0876553B0DD"
     },
     {
@@ -2718,6 +2718,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "3c462327c9c71bc0b3b1e3cd33c3c9b4a820736daf1f94747aae937b43e31652",
       "source_id": "SRC-AA0E7126D7C4B3E8"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/testnet/GOVERNANCE_LIFECYCLE_COMPLETION_GAPS.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "3157000cb2e6292a2fed9a0e7d1fa5bd41552adf44736d6ded812beb79ed1c67",
+      "source_id": "SRC-1F0814A8A985011B"
     },
     {
       "affected_registers": [
@@ -32886,7 +32899,7 @@
       ],
       "path": "../web/src/pages/Proposal.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "3f53789c6b8989ac95c084a88f1a479b791465c1d54077af261ec7aa24c710d0",
+      "sha256": "8a01656eb39c0ec0c8116e37d9df7f08ab0e32f58905f6e04f5c5b74c94f77e4",
       "source_id": "SRC-1CA80AD4A4352252"
     },
     {
@@ -32905,7 +32918,7 @@
       ],
       "path": "../web/src/pages/ProposalCreate.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "ad6a06135a5d684dc9870199b7dcf9b07fee9652c46bd59d1543a0065001f9fd",
+      "sha256": "99eff38c66acbadb94905f59f109983e381fa24db668267bb24045d18282b76d",
       "source_id": "SRC-9C843242C0D212FF"
     },
     {
@@ -32920,7 +32933,7 @@
       ],
       "path": "../web/src/pages/Proposals.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "ac67f82c6746925574da91dac1c7d0d10308b0a3ee89f2f07721d8fc29691e30",
+      "sha256": "a79f52495ee23d1a6336eb60d325b7ebdf1337d8cd3dba477c8fb246cd9f244a",
       "source_id": "SRC-632D4F981A9883A9"
     },
     {
@@ -33059,7 +33072,7 @@
       ],
       "path": "../web/tests/e2e/active_deliberations_rendered.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "dbc1579e854c7c66566a9c1041eb44c3afced4e55c1d44608541a66a84ac7b82",
+      "sha256": "a307dc96d191a62bf9b149cd391a46d5229d17079d149a530fa2f37ecb431794",
       "source_id": "SRC-8E764C5708849501"
     },
     {
