@@ -107,8 +107,12 @@ export async function reconcileMembershipDecision(args: {
     const requestPending = Object.prototype.hasOwnProperty.call(requests, args.account);
     const isMember = Object.prototype.hasOwnProperty.call(members, args.account);
 
-    if (!requestPending && isMember === (args.decision === "accept")) {
-      return confirmed(`Membership ${args.decision} decision is reflected in canonical group state for ${args.account}.`);
+    // Absence alone does NOT prove a rejection: the request may never have
+    // existed or the observer may have loaded an old snapshot. Only the exact
+    // signed tx receipt may establish a rejection result.
+    if (args.decision === "reject") return null;
+    if (!requestPending && isMember) {
+      return confirmed(`Accepted membership is reflected in canonical group state for ${args.account}.`);
     }
   } catch {
     // Remain pending when the observer read model is behind genesis.
