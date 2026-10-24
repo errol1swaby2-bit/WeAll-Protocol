@@ -1,0 +1,58 @@
+# Temporary, branch-scoped one-time source-bound artifact regeneration.
+# Removes itself BEFORE compiling, so the committed derivatives reflect
+# the final tree without this privileged job file.
+name: PR60 Final Tree V2 Regeneration
+
+on:
+  push:
+    paths:
+      - ".github/workflows/pr60-v2-regenerate-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: ${{ github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref == 'refs/heads/fix/pr59-rehearsal-membership-ballot-20261024' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Prepare Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked compiler dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Remove transient workflow before source compilation
+        run: |
+          set -Eeuo pipefail
+          git rm -- .github/workflows/pr60-v2-regenerate-once.yml
+      - name: Compile and validate final-source-tree V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          git diff --check
+      - name: Commit transient-workflow removal with regenerated outputs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -A -- Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          if git diff --name-only --cached | grep -Ev '^(.github/workflows/pr60-v2-regenerate-once[.]yml$|Weall-Protocol/generated/v2/|web/src/generated/protocolStatus[.]ts$)'; then
+            echo "Unexpected staged path" >&2
+            exit 1
+          fi
+          test ! -e .github/workflows/pr60-v2-regenerate-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(v2): compile derivatives against final PR60 tree'
+          git push origin HEAD:"${GITHUB_REF_NAME}"
