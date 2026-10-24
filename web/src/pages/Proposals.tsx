@@ -375,7 +375,7 @@ export default function Proposals(): JSX.Element {
                       <option value="closed">voting closed</option>
                       <option value="tallied">results counted</option>
                       <option value="executed">approved changes applied</option>
-                      <option value="finalized">final result</option>
+                      <option value="finalized">Final result</option>
                       <option value="withdrawn">withdrawn</option>
                     </select>
                   </label>
