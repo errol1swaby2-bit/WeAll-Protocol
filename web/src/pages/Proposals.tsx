@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { getApiBaseUrl, weall } from "../api/weall";
+import { api, getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import ActiveDeliberations from "../components/ActiveDeliberations";
 import RequirementList from "../components/RequirementList";
@@ -45,15 +45,23 @@ function decisionIsOpenForVote(stageRaw: string): boolean {
 
 function decisionIsResultStage(stageRaw: string): boolean {
   const stage = String(stageRaw || "").trim().toLowerCase();
-  return ["closed", "tallied", "executed", "finalized"].includes(stage);
+  return ["tallied", "executed", "finalized"].includes(stage);
 }
 
-function decisionOutcomeLabel(stageRaw: string, counts: { yes: number; no: number; abstain: number }): string {
-  const total = counts.yes + counts.no + counts.abstain;
-  if (total <= 0) return decisionIsResultStage(stageRaw) ? "No votes recorded" : "Voting not complete";
-  if (counts.yes > counts.no) return "Approved";
-  if (counts.no > counts.yes) return "Not approved";
-  return "No clear majority";
+function decisionOutcomeLabel(proposal: GovernanceProposal): string {
+  const stage = governanceProposalStageOf(proposal);
+  if (!decisionIsResultStage(stage)) {
+    return stage === "closed" ? "Awaiting authoritative tally" : "Consultation or voting in progress";
+  }
+  const record = proposal.raw || {};
+  if (String(record.no_decision_reason || "").trim() || record.outcome === "expired_no_decision") {
+    return "No decision — electorate or quorum conditions unmet";
+  }
+  const result = record.result;
+  if (result && typeof result === "object" && typeof result.passed === "boolean") {
+    return result.passed ? "Approved by recorded tally" : "Not approved by recorded tally";
+  }
+  return "Result not yet verified";
 }
 
 function decisionOutcomeText(stageRaw: string, counts: { yes: number; no: number; abstain: number }): string {
@@ -79,8 +87,11 @@ export default function Proposals(): JSX.Element {
   const [acctState, setAcctState] = useState<any | null>(null);
   const [query, setQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState<"active" | "all">("all");
+  const [communityFilter, setCommunityFilter] = useState<"all" | "mine" | "protocol">("all");
+  const [groupDirectoryStatus, setGroupDirectoryStatus] = useState<"loading" | "ready" | "unavailable">("loading");
+  const [myGroupIds, setMyGroupIds] = useState<string[]>([]);
   const [stageFilter, setStageFilter] = useState("all");
-  const [sortMode, setSortMode] = useState("created_desc");
+  const [sortMode, setSortMode] = useState("relevant");
 
 
   const session = getSession();
@@ -131,6 +142,37 @@ export default function Proposals(): JSX.Element {
     void loadAccountState();
   }, [acct, base]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setGroupDirectoryStatus("loading");
+    setMyGroupIds([]);
+    if (!acct) {
+      setGroupDirectoryStatus("ready");
+      return () => { cancelled = true; };
+    }
+    void api.groups.list({ limit: 200 }, base).then((response: any) => {
+      if (cancelled) return;
+      const groups = Array.isArray(response?.items) ? response.items : [];
+      const memberOf = groups.filter((group: any) => {
+        const members = group?.members;
+        const membership = members && typeof members === "object" && !Array.isArray(members)
+          ? members[acct] : null;
+        if (!membership) return false;
+        if (typeof membership !== "object" || Array.isArray(membership)) return true;
+        const status = String(membership.status || membership.state || "active").toLowerCase();
+        return !["removed", "revoked", "inactive", "banned", "suspended", "rejected"].includes(status)
+          && membership.active !== false;
+      }).map((group: any) => String(group?.group_id || group?.id || "").trim()).filter(Boolean);
+      setMyGroupIds(Array.from(new Set(memberOf)));
+      setGroupDirectoryStatus("ready");
+    }).catch(() => {
+      if (cancelled) return;
+      setMyGroupIds([]);
+      setGroupDirectoryStatus("unavailable");
+    });
+    return () => { cancelled = true; };
+  }, [acct, base]);
+
   useMutationRefresh({
     entityTypes: ["proposal"],
     account: acct,
@@ -144,8 +186,14 @@ export default function Proposals(): JSX.Element {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const stageNeedle = stageFilter.trim().toLowerCase();
+    const ownGroups = new Set(myGroupIds);
+    const groupIdOf = (proposal: GovernanceProposal): string =>
+      String((proposal as any).group_id || proposal.raw?.group_id || "").trim();
     const subset = items.filter((p) => {
       const stage = governanceProposalStageOf(p);
+      const groupId = groupIdOf(p);
+      if (communityFilter === "mine" && (!acct || !ownGroups.has(groupId))) return false;
+      if (communityFilter === "protocol" && !!groupId) return false;
       if (scopeFilter === "active" && !decisionIsOpenForVote(stage)) return false;
       if (stageNeedle !== "all" && stage !== stageNeedle) return false;
       if (!q) return true;
@@ -153,10 +201,25 @@ export default function Proposals(): JSX.Element {
       const titleText = governanceProposalTitleOf(p).toLowerCase();
       const bodyText = governanceProposalBodyOf(p).toLowerCase();
       const creator = String((p as any)?.creator || "").toLowerCase();
-      return [id, titleText, bodyText, creator, stage].some((x) => x.includes(q));
+      return [id, titleText, bodyText, creator, stage, groupId].some((x) => x.includes(q));
     });
-    return sortGovernanceProposals(subset as GovernanceProposal[], sortMode);
-  }, [items, query, scopeFilter, stageFilter, sortMode]);
+    const ordered = sortGovernanceProposals(subset as GovernanceProposal[], sortMode === "relevant" ? "updated_desc" : sortMode);
+    if (sortMode === "relevant") {
+      ordered.sort((a, b) => {
+        const relevance = (p: GovernanceProposal): number => {
+          const groupId = groupIdOf(p);
+          // Discovery ranking is NOT jurisdiction, an electorate, or permission to vote.
+          const scope = groupId && ownGroups.has(groupId) ? 3 : !groupId ? 2 : 0;
+          const stage = governanceProposalStageOf(p);
+          return scope + (["poll", "voting", "vote"].includes(stage) ? 1 : 0);
+        };
+        return relevance(b) - relevance(a)
+          || b.updated_at_height - a.updated_at_height
+          || governanceProposalIdOf(a).localeCompare(governanceProposalIdOf(b));
+      });
+    }
+    return ordered;
+  }, [items, acct, myGroupIds, communityFilter, query, scopeFilter, stageFilter, sortMode]);
 
   const stageSummary = useMemo(() => summary?.by_stage || {}, [summary]);
   const totalOpenProposals = useMemo(() => items.filter((p) => decisionIsOpenForVote(governanceProposalStageOf(p))).length, [items]);
@@ -283,6 +346,24 @@ export default function Proposals(): JSX.Element {
                     </select>
                   </label>
                   <label className="fieldLabel">
+                    Community scope
+                    <select value={communityFilter} onChange={(e) => setCommunityFilter(e.target.value as "all" | "mine" | "protocol")}>
+                      <option value="all">Explore all public decisions</option>
+                      <option value="mine">Groups I belong to (visible directory)</option>
+                      <option value="protocol">Protocol-wide only</option>
+                    </select>
+                    <span className="fieldHint">
+                      This discovery filter checks up to 200 public group records, not full membership or voting eligibility.
+                      Group names confer no town or regional authority; signed actions are verified by the protocol.
+                    </span>
+                    {communityFilter === "mine" && groupDirectoryStatus !== "ready" ? (
+                      <span className="fieldHint" role="alert">
+                        {groupDirectoryStatus === "loading" ? "Loading public group memberships…" : "Group directory unavailable; membership filter may be incomplete."}
+                      </span>
+                    ) : null}
+                    {communityFilter === "mine" && !acct ? <span className="fieldHint">Sign in to view a membership-based subset.</span> : null}
+                  </label>
+                  <label className="fieldLabel">
                     Status filter
                     <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
                       <option value="all">all</option>
@@ -294,13 +375,14 @@ export default function Proposals(): JSX.Element {
                       <option value="closed">voting closed</option>
                       <option value="tallied">results counted</option>
                       <option value="executed">approved changes applied</option>
-                      <option value="finalized">final result</option>
+                      <option value="finalized">Final result</option>
                       <option value="withdrawn">withdrawn</option>
                     </select>
                   </label>
                   <label className="fieldLabel">
                     Sort
                     <select value={sortMode} onChange={(e) => setSortMode(e.target.value)}>
+                      <option value="relevant">relevant first — my groups and current discussions</option>
                       <option value="created_desc">newest created</option>
                       <option value="updated_desc">most recently updated</option>
                       <option value="votes_desc">most votes</option>
@@ -351,6 +433,7 @@ export default function Proposals(): JSX.Element {
                             </div>
                             <div className="statusSummary">
                               {showAdvancedMode && id ? <span className="statusPill mono">{id}</span> : null}
+                              <span className="statusPill mono">{String((p as any).group_id || p.raw?.group_id || "Protocol-wide")}</span>
                               <span className={stageBadgeClass(stage)}>{decisionStageLabel(stage)}</span>
                             </div>
                           </div>
@@ -358,7 +441,7 @@ export default function Proposals(): JSX.Element {
                             <article className="summaryCard"><div className="summaryCardLabel">Creator</div><div className="summaryCardValue mono">{String((p as any)?.creator || "(unknown)")}</div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Status note</div><div className="summaryCardValue">{decisionStageLabel(stage)}</div><div className="summaryCardText">{decisionStageHelp(stage)}</div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Vote tally</div><div className="summaryCardValue">{totalVotes}</div><div className="summaryCardText">Yes {counts.yes} · No {counts.no} · Abstain {counts.abstain}</div></article>
-                            <article className="summaryCard"><div className="summaryCardLabel">Outcome</div><div className="summaryCardValue">{decisionOutcomeLabel(stage, counts)}</div><div className="summaryCardText">{resultReady ? "Final result · " : "Current tally · "}{decisionOutcomeText(stage, counts)}</div></article>
+                            <article className="summaryCard"><div className="summaryCardLabel">Outcome</div><div className="summaryCardValue">{decisionOutcomeLabel(p)}</div><div className="summaryCardText">{resultReady ? "Canonical result (if recorded) · " : "Nonfinal totals · "}{decisionOutcomeText(stage, counts)}</div></article>
                           </div>
                           {bodyText ? <div className="feedBodyText">{bodyText}</div> : <div className="cardDesc">No description provided.</div>}
                           <div className="buttonRow">

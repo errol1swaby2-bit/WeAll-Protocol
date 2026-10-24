@@ -113,3 +113,38 @@ test("voting-stage proposals retain readable history but close commenting", asyn
   await expect(page.getByText("Comments closed", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Submit comment" })).toBeDisabled();
 });
+
+
+test("anonymous accounts cannot open the protected proposal composer", async ({ page }) => {
+  await page.goto("/#/decisions/create");
+  await expect(page.getByLabel("Starting status")).toHaveCount(0);
+  await expect(page.getByText("Create a community decision")).toHaveCount(0);
+});
+
+test("guided composer source defaults to a deliberative draft and distinguishes outcomes", async () => {
+  // Authenticated rendered creation still requires a real signed session.
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync(new URL("../../src/pages/ProposalCreate.tsx", import.meta.url), "utf8");
+  expect(source).toContain('const [startStage, setStartStage] = useState("draft");');
+  expect(source).toContain("Recorded community decision: a vote can record collective support");
+  expect(source).toContain("Executable governance request");
+  expect(source).toContain("Stages advance only when the backend");
+});
+
+test("a record-only finalized proposal does not pretend to execute protocol actions", async ({ page }) => {
+  await mockGovernance(page);
+  await page.goto("/#/decisions/" + encodeURIComponent(finalProposal.proposal_id));
+  await expect(page.getByText(/Record-only decision: voting may record collective support/)).toBeVisible();
+  await expect(page.getByText(/No authoritative final tally published yet/)).toBeVisible();
+});
+
+test("preliminary majority is not mislabeled as an approved governance outcome", async ({ page }) => {
+  const poll = { ...revisionProposal, proposal_id: "proposal:poll:test", stage: "poll",
+    poll_counts: { yes: 8, no: 1, abstain: 0 } };
+  await page.route(/\/v1\/gov\/proposals(?:\?.*)?$/, async (route) => {
+    await route.fulfill({ json: { ok: true, items: [poll], summary: { total: 1, active: 1, by_stage: { poll: 1 } } } });
+  });
+  await page.goto("/#/decisions");
+  await expect(page.getByText("Consultation or voting in progress")).toBeVisible();
+  await expect(page.getByText("Approved", { exact: true })).toHaveCount(0);
+});
