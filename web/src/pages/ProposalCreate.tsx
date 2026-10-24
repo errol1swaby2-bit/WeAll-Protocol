@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { getApiBaseUrl } from "../api/weall";
+import { api, getApiBaseUrl } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import RequirementList from "../components/RequirementList";
 import ActionLifecycleCard from "../components/ActionLifecycleCard";
@@ -38,6 +38,7 @@ function normalizeCreatePayload(input: {
   actionTxType: string;
   actionPayloadJson: string;
   startStage: string;
+  groupId: string;
   account: string | null;
 }): any {
   const proposal_id = input.proposalId.trim() || buildGeneratedProposalId(input.account, input.title, input.body);
@@ -49,6 +50,11 @@ function normalizeCreatePayload(input: {
 
   const startStage = input.startStage.trim().toLowerCase();
   if (startStage) payload.rules = { start_stage: startStage };
+  const groupId = input.groupId.trim();
+  if (groupId) {
+    payload.group_id = groupId;
+    payload.electorate_scope = "group_members";
+  }
 
   const actionTxType = input.actionTxType.trim().toUpperCase();
   if (actionTxType) {
@@ -66,11 +72,14 @@ export default function ProposalCreate(): JSX.Element {
   const [proposalId, setProposalId] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [startStage, setStartStage] = useState("poll");
+  const [startStage, setStartStage] = useState("draft");
+  const [groupId, setGroupId] = useState("");
+  const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; label: string }>>([]);
+  const [groupLoadError, setGroupLoadError] = useState("");
   const [actionTxType, setActionTxType] = useState("");
   const [actionPayloadJson, setActionPayloadJson] = useState("{}");
   const [useAdvancedPayload, setUseAdvancedPayload] = useState(false);
-  const [payloadJson, setPayloadJson] = useState(JSON.stringify({ proposal_id: "", title: "", body: "", rules: { start_stage: "poll" } }, null, 2));
+  const [payloadJson, setPayloadJson] = useState(JSON.stringify({ proposal_id: "", title: "", body: "", rules: { start_stage: "draft" } }, null, 2));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [createRes, setCreateRes] = useState<any>(null);
@@ -109,6 +118,24 @@ export default function ProposalCreate(): JSX.Element {
     void loadAccountState();
   }, [acct, base]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setGroupLoadError("");
+    void api.groups.list({ limit: 200 }, base).then((response: any) => {
+      if (cancelled) return;
+      const items = Array.isArray(response?.items) ? response.items : [];
+      setAvailableGroups(items.map((group: any) => {
+        const id = String(group?.group_id || group?.id || "").trim();
+        return { id, label: String(group?.name || group?.title || id) };
+      }).filter((group: { id: string }) => !!group.id));
+    }).catch(() => {
+      if (cancelled) return;
+      setAvailableGroups([]);
+      setGroupLoadError("The group directory is unavailable. Protocol-wide decisions are still accessible.");
+    });
+    return () => { cancelled = true; };
+  }, [base]);
+
   async function createProposal(): Promise<void> {
     setErr(null);
     setCreateRes(null);
@@ -129,11 +156,16 @@ export default function ProposalCreate(): JSX.Element {
       return;
     }
 
+    if (!useAdvancedPayload && (!title.trim() || !body.trim())) {
+      setErr({ msg: "Add a title and a description of what people are deciding.", details: null });
+      return;
+    }
+
     setBusy(true);
     try {
       const payload = useAdvancedPayload
         ? JSON.parse(payloadJson)
-        : normalizeCreatePayload({ proposalId, title, body, actionTxType, actionPayloadJson, startStage, account: acct });
+        : normalizeCreatePayload({ proposalId, title, body, actionTxType, actionPayloadJson, startStage, groupId, account: acct });
 
       await tx.runTx({
         title: "Create community decision",
@@ -306,24 +338,50 @@ export default function ProposalCreate(): JSX.Element {
 
               <label className="fieldLabel">
                 Title
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Decision title" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Decision title" required />
               </label>
 
               <label className="fieldLabel">
                 Description
-                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe what changes if this decision passes." />
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe the problem, proposed decision, and intended outcome." required />
+              </label>
+
+              <label className="fieldLabel">
+                Decision scope
+                <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+                  <option value="">Protocol-wide</option>
+                  {availableGroups.map((group) => (
+                    <option key={group.id} value={group.id}>{group.label} · {group.id}</option>
+                  ))}
+                </select>
+                <span className="fieldHint">
+                  A group name describes its purpose but does not confer authority over a town or another group.
+                  Group-scoped decisions use the selected group ID and the group's participation rules.
+                  Backend authorization is authoritative.
+                </span>
+                {groupLoadError ? <span className="fieldHint" role="alert">{groupLoadError}</span> : null}
               </label>
 
               <label className="fieldLabel">
                 Starting status
                 <select value={startStage} onChange={(e) => setStartStage(e.target.value)}>
+                  <option value="draft">draft — deliberate before voting (recommended)</option>
                   <option value="poll">open for early input</option>
-                  <option value="voting">open for voting</option>
                   <option value="revision">being revised</option>
                   <option value="validation">being checked</option>
-                  <option value="draft">draft</option>
+                  <option value="voting">open for voting (restricted for constitutional actions)</option>
                 </select>
+                <span className="fieldHint">
+                  Stages advance only when the backend's constitutional clock or authorized protocol transactions permit them.
+                  Selecting a starting stage cannot bypass canonical lifecycle restrictions.
+                </span>
               </label>
+              <div className="calloutInfo" role="note">
+                {actionTxType.trim() && showAdvancedMode
+                  ? "Executable governance request: the specified action must pass the electorate, scope, and backend authorization checks. Creation does not execute it."
+                  : "Recorded community decision: a vote can record collective support, but this proposal has no executable protocol action and cannot bind third parties."}
+                {!showAdvancedMode ? " Executable actions require separately authorized advanced governance tooling." : ""}
+              </div>
 
               {showAdvancedMode ? (
                 <details className="detailsPanel">
