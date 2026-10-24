@@ -45,15 +45,23 @@ function decisionIsOpenForVote(stageRaw: string): boolean {
 
 function decisionIsResultStage(stageRaw: string): boolean {
   const stage = String(stageRaw || "").trim().toLowerCase();
-  return ["closed", "tallied", "executed", "finalized"].includes(stage);
+  return ["tallied", "executed", "finalized"].includes(stage);
 }
 
-function decisionOutcomeLabel(stageRaw: string, counts: { yes: number; no: number; abstain: number }): string {
-  const total = counts.yes + counts.no + counts.abstain;
-  if (total <= 0) return decisionIsResultStage(stageRaw) ? "No votes recorded" : "Voting not complete";
-  if (counts.yes > counts.no) return "Approved";
-  if (counts.no > counts.yes) return "Not approved";
-  return "No clear majority";
+function decisionOutcomeLabel(proposal: GovernanceProposal): string {
+  const stage = governanceProposalStageOf(proposal);
+  if (!decisionIsResultStage(stage)) {
+    return stage === "closed" ? "Awaiting authoritative tally" : "Consultation or voting in progress";
+  }
+  const record = proposal.raw || {};
+  if (String(record.no_decision_reason || "").trim() || record.outcome === "expired_no_decision") {
+    return "No decision — electorate or quorum conditions unmet";
+  }
+  const result = record.result;
+  if (result && typeof result === "object" && typeof result.passed === "boolean") {
+    return result.passed ? "Approved by recorded tally" : "Not approved by recorded tally";
+  }
+  return "Result not yet verified";
 }
 
 function decisionOutcomeText(stageRaw: string, counts: { yes: number; no: number; abstain: number }): string {
@@ -425,6 +433,7 @@ export default function Proposals(): JSX.Element {
                             </div>
                             <div className="statusSummary">
                               {showAdvancedMode && id ? <span className="statusPill mono">{id}</span> : null}
+                              <span className="statusPill mono">{String((p as any).group_id || p.raw?.group_id || "Protocol-wide")}</span>
                               <span className={stageBadgeClass(stage)}>{decisionStageLabel(stage)}</span>
                             </div>
                           </div>
@@ -432,7 +441,7 @@ export default function Proposals(): JSX.Element {
                             <article className="summaryCard"><div className="summaryCardLabel">Creator</div><div className="summaryCardValue mono">{String((p as any)?.creator || "(unknown)")}</div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Status note</div><div className="summaryCardValue">{decisionStageLabel(stage)}</div><div className="summaryCardText">{decisionStageHelp(stage)}</div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Vote tally</div><div className="summaryCardValue">{totalVotes}</div><div className="summaryCardText">Yes {counts.yes} · No {counts.no} · Abstain {counts.abstain}</div></article>
-                            <article className="summaryCard"><div className="summaryCardLabel">Outcome</div><div className="summaryCardValue">{decisionOutcomeLabel(stage, counts)}</div><div className="summaryCardText">{resultReady ? "Final result · " : "Current tally · "}{decisionOutcomeText(stage, counts)}</div></article>
+                            <article className="summaryCard"><div className="summaryCardLabel">Outcome</div><div className="summaryCardValue">{decisionOutcomeLabel(p)}</div><div className="summaryCardText">{resultReady ? "Canonical result (if recorded) · " : "Nonfinal totals · "}{decisionOutcomeText(stage, counts)}</div></article>
                           </div>
                           {bodyText ? <div className="feedBodyText">{bodyText}</div> : <div className="cardDesc">No description provided.</div>}
                           <div className="buttonRow">
