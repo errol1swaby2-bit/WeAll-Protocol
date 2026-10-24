@@ -834,15 +834,23 @@ export default function Proposal({ id }: Props): JSX.Element {
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Eligibility</div>
-              <div className="summaryCardValue">{gate.ok ? "Eligible" : "Not ready"}</div>
+              <div className="summaryCardValue">{gate.ok ? "Tier2 ready — scope checked on submit" : "Not ready"}</div>
               <div className="summaryCardText">{accountSummary}</div>
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Your vote</div>
-              <div className="summaryCardValue">{choiceLabel(currentChoice, proposalOptions)}</div>
-              <div className="summaryCardText">Signer-keyed direct vote</div>
+              <div className="summaryCardValue">{immutableBallot ? "Not publicly disclosed" : choiceLabel(currentChoice, proposalOptions)}</div>
+              <div className="summaryCardText">{immutableBallot ? "Use transaction finality evidence, not a public signer-choice list." : "Signer-keyed direct vote"}</div>
             </article>
           </div>
+
+          {immutableBallot ? (
+            <div className="calloutInfo" role="note">
+              Final ballots are immutable on this network; revocation is not available. Personal choices may be redacted
+              from public aggregate results. Use Transactions to confirm submission. A preliminary poll vote is not
+              the later final ballot.
+            </div>
+          ) : null}
 
           {hasProposalOptions ? (
             <div className="pageStack">
@@ -870,13 +878,6 @@ export default function Proposal({ id }: Props): JSX.Element {
               </div>
             </div>
           ) : (
-            {immutableBallot ? (
-              <div className="calloutInfo" role="note">
-                Final ballots are immutable on this network; revocation is not available. Personal choices may be redacted
-                from public aggregate results. Use Transactions to confirm submission, and note that a preliminary poll vote
-                is not the later final ballot.
-              </div>
-            ) : null}
             <div className="buttonRow">
               <button className="btn btnPrimary" onClick={() => void castVote("yes")} disabled={!canVote || signerBusy}>
                 Vote yes
