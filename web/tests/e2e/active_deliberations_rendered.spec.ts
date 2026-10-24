@@ -132,3 +132,14 @@ test("a record-only finalized proposal does not pretend to execute protocol acti
   await expect(page.getByText(/Record-only decision: voting may record collective support/)).toBeVisible();
   await expect(page.getByText(/No authoritative final tally published yet/)).toBeVisible();
 });
+
+test("preliminary majority is not mislabeled as an approved governance outcome", async ({ page }) => {
+  const poll = { ...revisionProposal, proposal_id: "proposal:poll:test", stage: "poll",
+    poll_counts: { yes: 8, no: 1, abstain: 0 } };
+  await page.route(/\/v1\/gov\/proposals(?:\?.*)?$/, async (route) => {
+    await route.fulfill({ json: { ok: true, items: [poll], summary: { total: 1, active: 1, by_stage: { poll: 1 } } } });
+  });
+  await page.goto("/#/decisions");
+  await expect(page.getByText("Consultation or voting in progress")).toBeVisible();
+  await expect(page.getByText("Approved", { exact: true })).toHaveCount(0);
+});
