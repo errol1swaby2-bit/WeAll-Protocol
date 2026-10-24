@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2063,
+  "file_count": 2062,
   "files": [
     {
       "affected_registers": [
@@ -71,19 +71,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "2aa38306fd730583b11c1d32a26ebfbdabc9818120fe003e92b4a6c21e8b519b",
       "source_id": "SRC-2CE1BEE9A904E55D"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/pr60-v2-regenerate-once.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "f520175ef702ac04003dee354cea6fd0f24ad58be961bd5329d2864eec027ab4",
-      "source_id": "SRC-9BFFDAE326DCF3E8"
     },
     {
       "affected_registers": [
