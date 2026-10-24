@@ -51,7 +51,7 @@ jobs:
             exit 0
           fi
           # Do not commit changes outside the compiler's declared outputs.
-          if git diff --name-only --cached | grep -Ev '^(Weall-Protocol/generated/v2/|web/src/generated/protocolStatus\\.ts$)'; then
+          if git diff --name-only --cached | grep -Ev '^(Weall-Protocol/generated/v2/|web/src/generated/protocolStatus[.]ts$)'; then
             echo "Unexpected staged path" >&2
             exit 1
           fi
