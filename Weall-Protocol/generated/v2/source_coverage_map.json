@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "97b8256c0dee1e84c789072da2e682f28783ef31c0551f2cf078f5a0d7538b75",
+      "sha256": "6b86eb1f0cf31bd2adc83e8ff05a674edf5b7f0bf786a447dfe381ee81b1c2ce",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -33072,7 +33072,7 @@
       ],
       "path": "../web/tests/e2e/active_deliberations_rendered.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "a307dc96d191a62bf9b149cd391a46d5229d17079d149a530fa2f37ecb431794",
+      "sha256": "66fad0ffbb0e54db1460b7b15e71dce16081b939a1bd9f2ef5d86f5da288bf81",
       "source_id": "SRC-8E764C5708849501"
     },
     {
