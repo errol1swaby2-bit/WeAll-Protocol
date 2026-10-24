@@ -166,6 +166,12 @@
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "docs/testnet/GOVERNANCE_RENDERED_JOURNEY.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "docs/testnet/M2_ACCOUNT_RECOVERY_RUNBOOK.md"
     },
     {
@@ -510,7 +516,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 75,
+  "inventory_hit_count": 76,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",
