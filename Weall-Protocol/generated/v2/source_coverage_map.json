@@ -32157,11 +32157,12 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "mappings": [
-        "M-069"
+        "M-069",
+        "TX-1705"
       ],
       "path": "../web/src/lib/groupsRevalidation.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "439a696cc86817175e54c58b454649419852eeab918f7f7d10c49bb48abdb156",
+      "sha256": "5a3534c173cb03aa67d6a8f34d7ab38f3ce2b1a342c34e51901e4b51bf157157",
       "source_id": "SRC-E3E017718BC6DE22"
     },
     {
@@ -32696,11 +32697,12 @@
       "mappings": [
         "M-069",
         "TX-0306",
-        "TX-1704"
+        "TX-1704",
+        "TX-1705"
       ],
       "path": "../web/src/pages/Group.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "e4a2c1d99d150e1271d89d1790cf8a3d15eb9252ad6740a6926983746355dfa3",
+      "sha256": "d5bfd14a9ea31563bb21a57b40b3eb43ba1d75c3047b31269634ddda4ef2d1cc",
       "source_id": "SRC-CE56540318D490F3"
     },
     {
@@ -32899,7 +32901,7 @@
       ],
       "path": "../web/src/pages/Proposal.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "8a01656eb39c0ec0c8116e37d9df7f08ab0e32f58905f6e04f5c5b74c94f77e4",
+      "sha256": "90d714e83521e1f2d2941b87c6b38a045cdfe9401ac2f6f3c62bcaa8c1ec2557",
       "source_id": "SRC-1CA80AD4A4352252"
     },
     {
@@ -33072,7 +33074,7 @@
       ],
       "path": "../web/tests/e2e/active_deliberations_rendered.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "66fad0ffbb0e54db1460b7b15e71dce16081b939a1bd9f2ef5d86f5da288bf81",
+      "sha256": "7d82608ea96e96395f4cf443ed016279a68ac383b3b13ee47dd7c81775b8accd",
       "source_id": "SRC-8E764C5708849501"
     },
     {
