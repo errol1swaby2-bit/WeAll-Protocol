@@ -1,0 +1,67 @@
+# Temporary, branch-restricted normalization of schema-derived artifacts.
+# This file is deleted before generation and its deletion committed together
+# with artifacts, avoiding the extra git-tree fingerprint on the final source.
+name: PR61 Final Semantic and V2 Regeneration
+
+on:
+  push:
+    paths:
+      - ".github/workflows/pr61-semantic-regenerate-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  final-regeneration:
+    if: ${{ github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref == 'refs/heads/fix/pr60-content-dispute-system-schema-20261025' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Validate focused regression and formatting
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check src/weall/runtime/tx_schema.py tests/test_content_escalation_followup_restart_admission.py
+          python -m ruff format --check src/weall/runtime/tx_schema.py tests/test_content_escalation_followup_restart_admission.py
+          PYTHONPATH=src python -m pytest -q tests/test_content_escalation_followup_restart_admission.py
+      - name: Remove temporary workflow from source tree
+        run: |
+          set -Eeuo pipefail
+          git rm -- .github/workflows/pr61-semantic-regenerate-once.yml
+      - name: Regenerate semantic assurance then V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/gen_tx_semantic_assurance_v1_5.py
+          PYTHONPATH=src python scripts/gen_tx_semantic_assurance_v1_5.py --check
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          git diff --check
+      - name: Commit exact final source tree artifacts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -A -- Weall-Protocol/generated/tx_semantic_assurance_v1_5.json Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          if git diff --name-only --cached | grep -Ev '^(.github/workflows/pr61-semantic-regenerate-once[.]yml$|Weall-Protocol/generated/tx_semantic_assurance_v1_5[.]json$|Weall-Protocol/generated/v2/|web/src/generated/protocolStatus[.]ts$)'; then
+            echo "Unexpected staged path" >&2
+            exit 1
+          fi
+          test ! -e .github/workflows/pr61-semantic-regenerate-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(v2): regenerate semantic assurance and V2 against final PR61 source'
+          git push origin HEAD:"${GITHUB_REF_NAME}"
