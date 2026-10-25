@@ -3801,7 +3801,7 @@
       ],
       "path": "generated/tx_semantic_assurance_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "75a748a095d7a8c8b0c14a0799e0e108aba9d9806cc6d32514f3691c70a32b30",
+      "sha256": "a856fd0d0055c964ef660864e0a561d210fa035853b36771a9e1837d4ef47e9f",
       "source_id": "SRC-922B78A5A8FEA57E"
     },
     {
@@ -15671,7 +15671,7 @@
       ],
       "path": "tests/test_content_escalation_followup_restart_admission.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "1b05aab9d52c72603d38a846086246865a6380241a8580fb514a2b54e19096d6",
+      "sha256": "319ca0b8225a3ebec1cb3b4aeb1448f82d5a875a1ba90e29df3aff91ec1281a2",
       "source_id": "SRC-34BD4D3AC9D9BAA1"
     },
     {
