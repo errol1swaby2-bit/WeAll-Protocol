@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2062,
+  "file_count": 2063,
   "files": [
     {
       "affected_registers": [
@@ -12330,7 +12330,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "cb7e5b598e8a90af952f336194fb5f6e037abe85a34b34f86a517e57a4ac4726",
+      "sha256": "e3eeec70693785c0871c58e385f4b7a259ed49dccd6f727970414c4ff1c1c758",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -15656,6 +15656,23 @@
       "primary_mechanism_id": "M-076",
       "sha256": "ba1fe63d8c058920fb174bdc7d787b11a96430233031655316ad448db7a1cb6d",
       "source_id": "SRC-469D118E2CEDA406"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-0204",
+        "TX-0310",
+        "TX-1401"
+      ],
+      "path": "tests/test_content_escalation_followup_restart_admission.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "1b05aab9d52c72603d38a846086246865a6380241a8580fb514a2b54e19096d6",
+      "source_id": "SRC-34BD4D3AC9D9BAA1"
     },
     {
       "affected_registers": [
