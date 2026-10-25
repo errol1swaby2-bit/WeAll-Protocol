@@ -43,7 +43,8 @@ from weall.tx.canon import TxIndex
     ],
 )
 def test_persisted_content_escalation_followup_admitted_at_next_height(
-    tx_type: str, payload: dict,
+    tx_type: str,
+    payload: dict,
 ) -> None:
     state = {
         "chain_id": "weall-controlled-devnet",
@@ -78,9 +79,7 @@ def test_persisted_content_escalation_followup_admitted_at_next_height(
     verdict = admit_tx(env, LedgerView.from_ledger(state), canon=canon, context="block")
     assert verdict.ok, (verdict.code, verdict.reason)
 
-    bound, why = validate_system_tx_queue_binding(
-        state, canon, env, next_height=281, phase="post"
-    )
+    bound, why = validate_system_tx_queue_binding(state, canon, env, next_height=281, phase="post")
     assert bound, why
 
     # This compatibility is limited to block-authorized SYSTEM transactions;
