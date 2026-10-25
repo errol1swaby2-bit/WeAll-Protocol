@@ -46,7 +46,7 @@ jobs:
           PYTHONPATH=src python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          PYTHONPATH=src python scripts/check_v2_spec_clean_checkout.py
+          # Clean-checkout guard runs in standard CI after these artifacts are committed.
           PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
           PYTHONPATH=src python scripts/check_public_claim_freshness.py
           PYTHONPATH=src python scripts/gen_current_verified_claims.py --check
