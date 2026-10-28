@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import copy
-import json
 import sys
 import tempfile
 import unittest
@@ -10,9 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
-from test_change_gate import mk_repo
-import weall_change_gate as cg
 import reconcile_v2 as rv
+import weall_change_gate as cg
+from test_change_gate import mk_repo
 
 
 def fixture():

@@ -1,0 +1,56 @@
+name: PR62 one-shot V2 derivative refresh
+on:
+  push:
+    branches:
+      - draft/pr62-constitutional-change-impact-gate-v02-20261028
+permissions:
+  contents: write
+jobs:
+  regenerate-exact-source:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref == 'refs/heads/draft/pr62-constitutional-change-impact-gate-v02-20261028'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: true
+      - name: Pin source and remove one-shot workflow before compile
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD^)" = "e89af540b84806b106a4e1d95c963eaa30848f84"
+          test "$(git branch --show-current)" = "draft/pr62-constitutional-change-impact-gate-v02-20261028"
+          rm ".github/workflows/pr62-one-shot-v2-derivative-refresh.yml"
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked compiler dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Regenerate and check v2 derivatives from final source tree
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/compile_v2_spec.py --summary
+          python scripts/compile_v2_spec.py --check
+      - name: Validate exact changes and commit
+        run: |
+          set -Eeuo pipefail
+          git add -u ".github/workflows/pr62-one-shot-v2-derivative-refresh.yml"
+          git add Weall-Protocol/generated/v2/
+          git add web/src/generated/protocolStatus.ts
+          git diff --quiet
+          changed="$(git diff --cached --name-only)"
+          test -n "$changed"
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/pr62-one-shot-v2-derivative-refresh.yml|Weall-Protocol/generated/v2/*|web/src/generated/protocolStatus.ts) ;;
+              *) echo "unexpected regeneration path: $path" >&2; exit 1 ;;
+            esac
+          done <<< "$changed"
+          git -c user.name="weall-ci-derivative-refresh" -c user.email="weall-ci-derivative-refresh@users.noreply.github.com" commit -m "Regenerate v2 derivatives for PR62 explicit source mappings"
+          git push origin HEAD:refs/heads/draft/pr62-constitutional-change-impact-gate-v02-20261028

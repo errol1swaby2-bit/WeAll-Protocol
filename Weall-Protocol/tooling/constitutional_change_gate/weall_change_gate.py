@@ -96,7 +96,7 @@ class ASTResolver:
         if isinstance(node, ast.Dict):
             return {
                 self.val(k, module, seen): self.val(v, module, seen)
-                for k, v in zip(node.keys, node.values)
+                for k, v in zip(node.keys, node.values, strict=False)
             }
         if (
             isinstance(node, ast.Call)
@@ -132,7 +132,7 @@ class ASTResolver:
         if not isinstance(node, ast.Dict):
             raise ContractError("missing_TX_PAYLOADS_dict")
         out: dict[str, str] = {}
-        for k, v in zip(node.keys, node.values):
+        for k, v in zip(node.keys, node.values, strict=False):
             if (
                 not isinstance(k, ast.Constant)
                 or not isinstance(k.value, str)
