@@ -4,6 +4,7 @@
 No code, node state, or repository files are modified. Does not confer
 constitutional authority, approve a PR, or attest test/reviewer identity.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -29,16 +30,16 @@ def normalize_source_path(raw: str) -> str | None:
     """
     if not isinstance(raw, str) or not raw.strip():
         return None
-    s=raw.strip().replace("\\", "/").split("#", 1)[0]
-    if not s or s.startswith("/") or re.match(r"^[A-Za-z]:/",s):
+    s = raw.strip().replace("\\", "/").split("#", 1)[0]
+    if not s or s.startswith("/") or re.match(r"^[A-Za-z]:/", s):
         return None
     if s.startswith("../web/"):
-        s=s[3:]
+        s = s[3:]
     elif s.startswith("Weall-Protocol/") or s.startswith("web/") or s.startswith(".github/"):
         pass
     else:
-        s="Weall-Protocol/"+s
-    parts=PurePosixPath(s).parts
+        s = "Weall-Protocol/" + s
+    parts = PurePosixPath(s).parts
     if ".." in parts or "." in parts or not parts:
         return None
     return str(PurePosixPath(*parts))
@@ -55,150 +56,221 @@ def require(condition: bool, msg: str) -> None:
 
 
 def reconcile(
-    indexed: dict[str,Any],
-    static_rows: dict[str,dict[str,Any]],
-    v2_contract: dict[str,Any],
-    v2_requirements: dict[str,Any],
+    indexed: dict[str, Any],
+    static_rows: dict[str, dict[str, Any]],
+    v2_contract: dict[str, Any],
+    v2_requirements: dict[str, Any],
     changes: list[str],
     *,
     checkout_commit: str,
-) -> dict[str,Any]:
-    require(isinstance(v2_contract,dict) and v2_contract.get("schema") == "weall.v2.tx_contract_matrix", "v2_tx_schema_unknown")
-    require(isinstance(v2_requirements,dict) and v2_requirements.get("schema") == "weall.v2.requirement_traceability", "v2_requirement_schema_unknown")
-    txs=v2_contract.get("rows")
-    rs=v2_requirements.get("rows")
-    require(isinstance(txs,list) and isinstance(rs,list),"v2_missing_rows")
-    canon=indexed.get("tx_types")
-    require(isinstance(canon,list) and isinstance(indexed.get("by_id"),dict),"canonical_index_invalid")
-    require(v2_contract.get("transaction_count") == len(txs),"v2_tx_count_field_mismatch")
-    require(v2_requirements.get("count") == len(rs),"v2_requirement_count_field_mismatch")
-    require(len({x.get("tx_type") for x in txs if isinstance(x,dict)})==len(txs),"v2_tx_duplicate_or_invalid_names")
-    require(len({x.get("id") for x in rs if isinstance(x,dict)})==len(rs),"v2_requirement_duplicate_or_invalid_ids")
-    tx_by_name={x["tx_type"]:x for x in txs}
-    require(set(tx_by_name)==set(static_rows),"v2_to_code_tx_set_mismatch")
-    canonical_names={x["name"]:x for x in canon}
-    require(set(canonical_names)==set(tx_by_name),"v2_canonical_tx_set_mismatch")
+) -> dict[str, Any]:
+    require(
+        isinstance(v2_contract, dict)
+        and v2_contract.get("schema") == "weall.v2.tx_contract_matrix",
+        "v2_tx_schema_unknown",
+    )
+    require(
+        isinstance(v2_requirements, dict)
+        and v2_requirements.get("schema") == "weall.v2.requirement_traceability",
+        "v2_requirement_schema_unknown",
+    )
+    txs = v2_contract.get("rows")
+    rs = v2_requirements.get("rows")
+    require(isinstance(txs, list) and isinstance(rs, list), "v2_missing_rows")
+    canon = indexed.get("tx_types")
+    require(
+        isinstance(canon, list) and isinstance(indexed.get("by_id"), dict),
+        "canonical_index_invalid",
+    )
+    require(v2_contract.get("transaction_count") == len(txs), "v2_tx_count_field_mismatch")
+    require(v2_requirements.get("count") == len(rs), "v2_requirement_count_field_mismatch")
+    require(
+        len({x.get("tx_type") for x in txs if isinstance(x, dict)}) == len(txs),
+        "v2_tx_duplicate_or_invalid_names",
+    )
+    require(
+        len({x.get("id") for x in rs if isinstance(x, dict)}) == len(rs),
+        "v2_requirement_duplicate_or_invalid_ids",
+    )
+    tx_by_name = {x["tx_type"]: x for x in txs}
+    require(set(tx_by_name) == set(static_rows), "v2_to_code_tx_set_mismatch")
+    canonical_names = {x["name"]: x for x in canon}
+    require(set(canonical_names) == set(tx_by_name), "v2_canonical_tx_set_mismatch")
     # Numeric indexes live in by_id. The hex `tx_index.tx_types[].id` is a
     # separate identifier and MUST NOT be equated to `numeric_id`.
-    by_id=indexed["by_id"]
-    numeric_by_name={canon[pos]["name"]:int(k) for k,pos in by_id.items()}
-    require(len(numeric_by_name)==len(canon),"canonical_numeric_id_ambiguous")
-    v2_stable_ids=[x.get("stable_id") for x in txs]
-    require(all(isinstance(x,str) and x for x in v2_stable_ids) and len(set(v2_stable_ids))==len(txs),"v2_stable_id_invalid")
-    comparisons=[]
+    by_id = indexed["by_id"]
+    numeric_by_name = {canon[pos]["name"]: int(k) for k, pos in by_id.items()}
+    require(len(numeric_by_name) == len(canon), "canonical_numeric_id_ambiguous")
+    v2_stable_ids = [x.get("stable_id") for x in txs]
+    require(
+        all(isinstance(x, str) and x for x in v2_stable_ids)
+        and len(set(v2_stable_ids)) == len(txs),
+        "v2_stable_id_invalid",
+    )
+    comparisons = []
     for name in sorted(tx_by_name):
-        v=tx_by_name[name]
-        row=static_rows[name]
-        require(isinstance(v.get("numeric_id"), int) and v["numeric_id"]==numeric_by_name[name],"v2_numeric_id_mismatch:"+name)
-        require(v.get("domain")==row["domain"],"v2_domain_mismatch:"+name)
-        require(v.get("origin")==row["origin"],"v2_origin_mismatch:"+name)
-        require(v.get("context")==row["context"],"v2_context_mismatch:"+name)
-        impl=v.get("implementation_source") if isinstance(v.get("implementation_source"),dict) else {}
-        v2_path=normalize_source_path(impl.get("path", ""))
-        handler_path=row["source_path"]
-        if v2_path==handler_path:
-            route_relation="HANDLER_FILE_MATCH_STATIC_ONLY"
+        v = tx_by_name[name]
+        row = static_rows[name]
+        require(
+            isinstance(v.get("numeric_id"), int) and v["numeric_id"] == numeric_by_name[name],
+            "v2_numeric_id_mismatch:" + name,
+        )
+        require(v.get("domain") == row["domain"], "v2_domain_mismatch:" + name)
+        require(v.get("origin") == row["origin"], "v2_origin_mismatch:" + name)
+        require(v.get("context") == row["context"], "v2_context_mismatch:" + name)
+        impl = (
+            v.get("implementation_source")
+            if isinstance(v.get("implementation_source"), dict)
+            else {}
+        )
+        v2_path = normalize_source_path(impl.get("path", ""))
+        handler_path = row["source_path"]
+        if v2_path == handler_path:
+            route_relation = "HANDLER_FILE_MATCH_STATIC_ONLY"
         elif v2_path is None:
-            route_relation="UNRESOLVED_PATH"
+            route_relation = "UNRESOLVED_PATH"
         else:
-            route_relation="POSSIBLE_DELEGATE_OR_STALE_PATH_REQUIRES_REVIEW"
-        comparisons.append({
-            "tx_type":name,"canonical_hex_id":row["canonical_id"],"numeric_id":v["numeric_id"],
-            "v2_stable_id":v["stable_id"],"domain":row["domain"],
-            "registered_handler":row["handler"],"registered_handler_path":handler_path,
-            "v2_implementation_path":v2_path,"v2_implementation_function":impl.get("function"),
-            "route_relation":route_relation,
-            "v2_derivation":v.get("semantic_derivation"),
-            "v2_independent_review":bool((v.get("semantic_review") or {}).get("independent_review")),
-            "v2_semantic_verification":"NOT_CARRIED_FORWARD_WITHOUT_REPLAY_AND_REVIEW",
-            "v2_tests_listed":len(v.get("tests") or []),
-        })
-    stable_set=set(v2_stable_ids)
-    referenced_contract_ids=sorted({str(cid) for x in rs for cid in x.get("contract_ids",[])})
-    non_tx_refs=sorted(set(referenced_contract_ids)-stable_set)
-    req_with_actual_tx_id=sum(bool(set(r.get("contract_ids",[])) & stable_set) for r in rs)
-    normalized_changes=[]
+            route_relation = "POSSIBLE_DELEGATE_OR_STALE_PATH_REQUIRES_REVIEW"
+        comparisons.append(
+            {
+                "tx_type": name,
+                "canonical_hex_id": row["canonical_id"],
+                "numeric_id": v["numeric_id"],
+                "v2_stable_id": v["stable_id"],
+                "domain": row["domain"],
+                "registered_handler": row["handler"],
+                "registered_handler_path": handler_path,
+                "v2_implementation_path": v2_path,
+                "v2_implementation_function": impl.get("function"),
+                "route_relation": route_relation,
+                "v2_derivation": v.get("semantic_derivation"),
+                "v2_independent_review": bool(
+                    (v.get("semantic_review") or {}).get("independent_review")
+                ),
+                "v2_semantic_verification": "NOT_CARRIED_FORWARD_WITHOUT_REPLAY_AND_REVIEW",
+                "v2_tests_listed": len(v.get("tests") or []),
+            }
+        )
+    stable_set = set(v2_stable_ids)
+    referenced_contract_ids = sorted({str(cid) for x in rs for cid in x.get("contract_ids", [])})
+    non_tx_refs = sorted(set(referenced_contract_ids) - stable_set)
+    req_with_actual_tx_id = sum(bool(set(r.get("contract_ids", [])) & stable_set) for r in rs)
+    normalized_changes = []
     for p in changes:
-        if not isinstance(p,str):
+        if not isinstance(p, str):
             raise cg.ContractError("invalid_changed_path")
-        norm=normalize_source_path(p) if not p.startswith(("Weall-Protocol/","web/",".github/")) else p
+        norm = (
+            normalize_source_path(p)
+            if not p.startswith(("Weall-Protocol/", "web/", ".github/"))
+            else p
+        )
         if norm is None or PurePosixPath(norm).is_absolute() or ".." in PurePosixPath(norm).parts:
-            raise cg.ContractError("unsafe_changed_path:"+p)
+            raise cg.ContractError("unsafe_changed_path:" + p)
         normalized_changes.append(norm)
-    change_set=set(normalized_changes)
-    by_contract={v["stable_id"]:v["tx_type"] for v in txs}
-    requirement_candidates=[]
+    change_set = set(normalized_changes)
+    by_contract = {v["stable_id"]: v["tx_type"] for v in txs}
+    requirement_candidates = []
     for r in rs:
-        paths=[]
-        for raw in r.get("implementation_paths",[]):
-            norm=normalize_source_path(raw)
+        paths = []
+        for raw in r.get("implementation_paths", []):
+            norm = normalize_source_path(raw)
             if norm:
                 paths.append(norm)
-        direct_matches=sorted({p for p in change_set if any(path_matches(p, loc) for loc in paths)})
-        explicit_txs=sorted(set(by_contract[x] for x in r.get("contract_ids",[]) if x in by_contract))
+        direct_matches = sorted(
+            {p for p in change_set if any(path_matches(p, loc) for loc in paths)}
+        )
+        explicit_txs = sorted(
+            set(by_contract[x] for x in r.get("contract_ids", []) if x in by_contract)
+        )
         if direct_matches:
-            category="SOURCE_PATH_MATCH_REVIEW_CANDIDATE"
+            category = "SOURCE_PATH_MATCH_REVIEW_CANDIDATE"
         elif explicit_txs:
-            category="CONTRACT_ID_LINK_REVIEW_CANDIDATE"
+            category = "CONTRACT_ID_LINK_REVIEW_CANDIDATE"
         else:
-            category="UNLINKED_NOT_SAFE_TO_DISMISS"
-        requirement_candidates.append({
-            "id":r["id"],"title":r.get("title"),"section":r.get("section"),
-            "status":r.get("status"),"verification_result":r.get("verification_result"),
-            "reviewer":r.get("reviewer"),"implementation_commit":r.get("implementation_commit"),
-            "activation_receipt":r.get("activation_receipt"),"test_run_id":r.get("test_run_id"),
-            "v2_implementation_paths":paths,"matching_changed_paths":direct_matches,
-            "explicit_canonical_txs":explicit_txs,"contract_refs":r.get("contract_ids",[]),
-            "candidate_relation":category,
-            "link_authority":"UNVERIFIED_SOURCE_PATH_OR_CONTRACT_CANDIDATE_NOT_CONSTITUTIONAL_DECISION",
-        })
-    vc_commit=v2_contract.get("provenance",{}).get("implementation_commit")
-    vr_commit=v2_requirements.get("provenance",{}).get("implementation_commit")
-    require(vc_commit==vr_commit,"v2_derivative_provenance_mismatch")
-    v2_pdf=v2_contract.get("provenance",{}).get("normative_pdf_sha256")
-    require(v2_pdf==v2_requirements.get("provenance",{}).get("normative_pdf_sha256"),"v2_derivative_pdf_pin_mismatch")
-    status_counts=Counter(r.get("status") for r in rs)
-    semantic_counts=Counter(r.get("semantic_derivation") for r in txs)
-    src_matches=Counter(x["route_relation"] for x in comparisons)
-    candidates=Counter(x["candidate_relation"] for x in requirement_candidates)
+            category = "UNLINKED_NOT_SAFE_TO_DISMISS"
+        requirement_candidates.append(
+            {
+                "id": r["id"],
+                "title": r.get("title"),
+                "section": r.get("section"),
+                "status": r.get("status"),
+                "verification_result": r.get("verification_result"),
+                "reviewer": r.get("reviewer"),
+                "implementation_commit": r.get("implementation_commit"),
+                "activation_receipt": r.get("activation_receipt"),
+                "test_run_id": r.get("test_run_id"),
+                "v2_implementation_paths": paths,
+                "matching_changed_paths": direct_matches,
+                "explicit_canonical_txs": explicit_txs,
+                "contract_refs": r.get("contract_ids", []),
+                "candidate_relation": category,
+                "link_authority": "UNVERIFIED_SOURCE_PATH_OR_CONTRACT_CANDIDATE_NOT_CONSTITUTIONAL_DECISION",
+            }
+        )
+    vc_commit = v2_contract.get("provenance", {}).get("implementation_commit")
+    vr_commit = v2_requirements.get("provenance", {}).get("implementation_commit")
+    require(vc_commit == vr_commit, "v2_derivative_provenance_mismatch")
+    v2_pdf = v2_contract.get("provenance", {}).get("normative_pdf_sha256")
+    require(
+        v2_pdf == v2_requirements.get("provenance", {}).get("normative_pdf_sha256"),
+        "v2_derivative_pdf_pin_mismatch",
+    )
+    status_counts = Counter(r.get("status") for r in rs)
+    semantic_counts = Counter(r.get("semantic_derivation") for r in txs)
+    src_matches = Counter(x["route_relation"] for x in comparisons)
+    candidates = Counter(x["candidate_relation"] for x in requirement_candidates)
     return {
-        "schema":"weall.v2.change-impact-reconciliation.v0.2",
-        "reconciliation_status":"STRUCTURAL_JOIN_ONLY_NO_MERGE_AUTHORIZATION",
-        "target_checkout_commit":checkout_commit,
-        "v2_derivative_implementation_commit":vc_commit,
-        "v2_source_commit_matches_checkout":vc_commit==checkout_commit,
-        "v2_normative_pdf_sha256":v2_pdf,
-        "v2_normative_authority_status":v2_contract.get("provenance",{}).get("normative_authority_status"),
-        "canonical_tx_count":len(static_rows),"v2_tx_count":len(txs),"v2_requirement_count":len(rs),
-        "canonical_name_domain_origin_context_numeric_join":"MATCHED",
-        "tx_independent_review_count":sum(x["v2_independent_review"] for x in comparisons),
-        "tx_v2_semantic_derivation_counts":dict(sorted(semantic_counts.items())),
-        "tx_implementation_path_relation_counts":dict(sorted(src_matches.items())),
-        "requirement_status_counts":dict(sorted(status_counts.items())),
-        "requirements_with_realized_test_run":sum(r.get("test_run_id") not in (None,"NOT_RUN","") for r in rs),
-        "requirements_with_implementation_commit":sum(bool(r.get("implementation_commit")) for r in rs),
-        "requirements_with_activation_receipt":sum(bool(r.get("activation_receipt")) for r in rs),
-        "requirements_with_explicit_canonical_contract_link":req_with_actual_tx_id,
-        "requirements_with_non_tx_contract_refs":sum(bool(set(r.get("contract_ids",[]))-stable_set) for r in rs),
-        "non_tx_contract_identifiers_not_in_canon":non_tx_refs,
-        "requirement_candidate_relation_counts":dict(sorted(candidates.items())),
-        "changed_path_count":len(change_set),
-        "changed_paths":sorted(change_set),
-        "transactions":comparisons,"requirements":requirement_candidates,
-        "not_guaranteed":[
+        "schema": "weall.v2.change-impact-reconciliation.v0.2",
+        "reconciliation_status": "STRUCTURAL_JOIN_ONLY_NO_MERGE_AUTHORIZATION",
+        "target_checkout_commit": checkout_commit,
+        "v2_derivative_implementation_commit": vc_commit,
+        "v2_source_commit_matches_checkout": vc_commit == checkout_commit,
+        "v2_normative_pdf_sha256": v2_pdf,
+        "v2_normative_authority_status": v2_contract.get("provenance", {}).get(
+            "normative_authority_status"
+        ),
+        "canonical_tx_count": len(static_rows),
+        "v2_tx_count": len(txs),
+        "v2_requirement_count": len(rs),
+        "canonical_name_domain_origin_context_numeric_join": "MATCHED",
+        "tx_independent_review_count": sum(x["v2_independent_review"] for x in comparisons),
+        "tx_v2_semantic_derivation_counts": dict(sorted(semantic_counts.items())),
+        "tx_implementation_path_relation_counts": dict(sorted(src_matches.items())),
+        "requirement_status_counts": dict(sorted(status_counts.items())),
+        "requirements_with_realized_test_run": sum(
+            r.get("test_run_id") not in (None, "NOT_RUN", "") for r in rs
+        ),
+        "requirements_with_implementation_commit": sum(
+            bool(r.get("implementation_commit")) for r in rs
+        ),
+        "requirements_with_activation_receipt": sum(bool(r.get("activation_receipt")) for r in rs),
+        "requirements_with_explicit_canonical_contract_link": req_with_actual_tx_id,
+        "requirements_with_non_tx_contract_refs": sum(
+            bool(set(r.get("contract_ids", [])) - stable_set) for r in rs
+        ),
+        "non_tx_contract_identifiers_not_in_canon": non_tx_refs,
+        "requirement_candidate_relation_counts": dict(sorted(candidates.items())),
+        "changed_path_count": len(change_set),
+        "changed_paths": sorted(change_set),
+        "transactions": comparisons,
+        "requirements": requirement_candidates,
+        "not_guaranteed": [
             "Full semantic dependency closure; source paths are a review signal, not a proof",
             "A complete normative requirement-to-TX binding for 755 requirements",
             "Current implementation verified by stale v2 derivative snapshot",
             "Individual test runs, independent reviewer authenticity and activation receipts",
             "Existing persisted ledger replay, live multi-node safety or runtime authorization",
         ],
-        "gate":"BLOCKED_PENDING_AUTHORIZED_TRACEABILITY_AND_EXACT_COMMIT_EVIDENCE",
+        "gate": "BLOCKED_PENDING_AUTHORIZED_TRACEABILITY_AND_EXACT_COMMIT_EVIDENCE",
     }
 
 
-def render_md(out: dict[str,Any]) -> str:
-    lines=["# WeAll v2 Register Reconciliation — v0.2", "", 
-        f"**Verdict: {out['gate']}**", "",
+def render_md(out: dict[str, Any]) -> str:
+    lines = [
+        "# WeAll v2 Register Reconciliation — v0.2",
+        "",
+        f"**Verdict: {out['gate']}**",
+        "",
         f"- Target checkout: `{out['target_checkout_commit']}`",
         f"- v2 matrix implementation snapshot: `{out['v2_derivative_implementation_commit']}`",
         f"- Same commit? **{out['v2_source_commit_matches_checkout']}**",
@@ -208,78 +280,140 @@ def render_md(out: dict[str,Any]) -> str:
         f"- Requirements with recorded test runs: **{out['requirements_with_realized_test_run']}**",
         f"- Requirements with direct canonical TX contract references: **{out['requirements_with_explicit_canonical_contract_link']}**",
         f"- Non-canonical contract identifiers: **{', '.join(out['non_tx_contract_identifiers_not_in_canon'])}** (not necessarily invalid; these describe mechanisms/schedulers)",
-        "","## Requirement selection from actual changed paths", "",
-        "| Candidate relation | Requirements |", "| --- | ---: |",
+        "",
+        "## Requirement selection from actual changed paths",
+        "",
+        "| Candidate relation | Requirements |",
+        "| --- | ---: |",
     ]
-    for cat,n in sorted(out["requirement_candidate_relation_counts"].items()):
+    for cat, n in sorted(out["requirement_candidate_relation_counts"].items()):
         lines.append(f"| {cat} | {n} |")
-    lines += ["", "**Caution:** Path-match and identifier-match are evidence-review candidates only. The missing many-to-many authority binding remains unresolved; unlinked requirements cannot be deemed unaffected.",
-              "", "## Canonical TX source-path differences", "",
-              "| Relation | TX contracts |", "| --- | ---: |"]
-    for cat,n in sorted(out["tx_implementation_path_relation_counts"].items()):
+    lines += [
+        "",
+        "**Caution:** Path-match and identifier-match are evidence-review candidates only. The missing many-to-many authority binding remains unresolved; unlinked requirements cannot be deemed unaffected.",
+        "",
+        "## Canonical TX source-path differences",
+        "",
+        "| Relation | TX contracts |",
+        "| --- | ---: |",
+    ]
+    for cat, n in sorted(out["tx_implementation_path_relation_counts"].items()):
         lines.append(f"| {cat} | {n} |")
-    lines += ["", "## Mandatory blockers", "",
+    lines += [
+        "",
+        "## Mandatory blockers",
+        "",
         "- Normative v2 draft not independently activated as current authority.",
         "- v2 implementation pin is older than the PR #61 target; no evidence inherits automatically.",
         "- Zero recorded requirement test runs and zero independent TX-contract reviews in the parsed v2 matrices.",
         "- Direct contract IDs in v2 requirements currently describe scheduler/mechanism objects, not the 236 canonical TX stable IDs.",
         "- The change-impact matrix must not replace node runtime authorization, deterministic migration or protected-base CI.",
-        "- All other requirements remain subject to manual constitutional adjudication; automated inference may omit semantics.", ""]
+        "- All other requirements remain subject to manual constitutional adjudication; automated inference may omit semantics.",
+        "",
+    ]
     return "\n".join(lines)
 
 
-def write_results(doc: dict[str,Any], out:Path)->None:
-    out.mkdir(parents=True,exist_ok=True)
-    (out/"v2_reconciliation.json").write_bytes(cg.canonical_bytes(doc))
-    (out/"v2_reconciliation.md").write_text(render_md(doc),encoding="utf-8")
-    with (out/"v2_tx_join.csv").open("w",newline="",encoding="utf-8") as f:
-        keys=["tx_type","canonical_hex_id","numeric_id","v2_stable_id","domain","registered_handler","registered_handler_path","v2_implementation_path","v2_implementation_function","route_relation","v2_derivation","v2_independent_review","v2_semantic_verification","v2_tests_listed"]
-        w=csv.DictWriter(f,fieldnames=keys,extrasaction="ignore");w.writeheader();w.writerows(doc["transactions"])
-    with (out/"v2_requirement_impact_candidates.csv").open("w",newline="",encoding="utf-8") as f:
-        keys=["id","title","section","status","verification_result","reviewer","candidate_relation","matching_changed_paths","contract_refs","explicit_canonical_txs","implementation_commit","test_run_id","activation_receipt"]
-        w=csv.DictWriter(f,fieldnames=keys,extrasaction="ignore");w.writeheader()
+def write_results(doc: dict[str, Any], out: Path) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "v2_reconciliation.json").write_bytes(cg.canonical_bytes(doc))
+    (out / "v2_reconciliation.md").write_text(render_md(doc), encoding="utf-8")
+    with (out / "v2_tx_join.csv").open("w", newline="", encoding="utf-8") as f:
+        keys = [
+            "tx_type",
+            "canonical_hex_id",
+            "numeric_id",
+            "v2_stable_id",
+            "domain",
+            "registered_handler",
+            "registered_handler_path",
+            "v2_implementation_path",
+            "v2_implementation_function",
+            "route_relation",
+            "v2_derivation",
+            "v2_independent_review",
+            "v2_semantic_verification",
+            "v2_tests_listed",
+        ]
+        w = csv.DictWriter(f, fieldnames=keys, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(doc["transactions"])
+    with (out / "v2_requirement_impact_candidates.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as f:
+        keys = [
+            "id",
+            "title",
+            "section",
+            "status",
+            "verification_result",
+            "reviewer",
+            "candidate_relation",
+            "matching_changed_paths",
+            "contract_refs",
+            "explicit_canonical_txs",
+            "implementation_commit",
+            "test_run_id",
+            "activation_receipt",
+        ]
+        w = csv.DictWriter(f, fieldnames=keys, extrasaction="ignore")
+        w.writeheader()
         for row in doc["requirements"]:
-            item={**row}
-            for k in ("matching_changed_paths","contract_refs","explicit_canonical_txs"):
-                item[k]=";".join(item.get(k) or [])
+            item = {**row}
+            for k in ("matching_changed_paths", "contract_refs", "explicit_canonical_txs"):
+                item[k] = ";".join(item.get(k) or [])
             w.writerow(item)
 
 
-def main(argv:list[str]|None=None)->int:
-    parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo",type=Path,required=True)
-    parser.add_argument("--out",type=Path,required=True)
-    parser.add_argument("--changed-files-json",type=Path,default=Path(__file__).resolve().parent/"reference/PR61_changed_files.json")
-    parser.add_argument("--expected-head",default=REVIEWED_PR61)
-    opts=parser.parse_args(argv)
-    repo=opts.repo.resolve();out=opts.out.resolve()
-    if out==repo or repo in out.parents:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--changed-files-json",
+        type=Path,
+        default=Path(__file__).resolve().parent / "reference/PR61_changed_files.json",
+    )
+    parser.add_argument("--expected-head", default=REVIEWED_PR61)
+    opts = parser.parse_args(argv)
+    repo = opts.repo.resolve()
+    out = opts.out.resolve()
+    if out == repo or repo in out.parents:
         raise cg.ContractError("output_must_be_outside_repository")
-    changes_doc=cg.read_json(opts.changed_files_json)
-    require(changes_doc.get("head")==opts.expected_head,"PR_changed_file_manifest_head_mismatch")
-    changes=changes_doc.get("changed_files")
-    require(isinstance(changes,list) and len(changes)>0 and len(changes)==len(set(changes)),"invalid_changed_file_inventory")
-    commit=cg.repo_commit(repo)
-    require(commit==opts.expected_head,"checked_out_commit_does_not_match_expected_PR61_head:"+commit)
-    actual=cg.git_paths(repo,changes_doc["base"],opts.expected_head)
-    require(sorted(set(actual))==sorted(set(changes)),"GitHub_observed_PR_diff_and_local_git_diff_disagree")
-    rows=cg.extract_routes(repo)
-    canon=cg.read_json(repo/cg.INDEX)
-    tx=cg.read_json(repo/V2_TX)
-    req=cg.read_json(repo/V2_REQUIREMENTS)
-    result=reconcile(canon,rows,tx,req,changes,checkout_commit=commit)
+    changes_doc = cg.read_json(opts.changed_files_json)
+    require(changes_doc.get("head") == opts.expected_head, "PR_changed_file_manifest_head_mismatch")
+    changes = changes_doc.get("changed_files")
+    require(
+        isinstance(changes, list) and len(changes) > 0 and len(changes) == len(set(changes)),
+        "invalid_changed_file_inventory",
+    )
+    commit = cg.repo_commit(repo)
+    require(
+        commit == opts.expected_head,
+        "checked_out_commit_does_not_match_expected_PR61_head:" + commit,
+    )
+    actual = cg.git_paths(repo, changes_doc["base"], opts.expected_head)
+    require(
+        sorted(set(actual)) == sorted(set(changes)),
+        "GitHub_observed_PR_diff_and_local_git_diff_disagree",
+    )
+    rows = cg.extract_routes(repo)
+    canon = cg.read_json(repo / cg.INDEX)
+    tx = cg.read_json(repo / V2_TX)
+    req = cg.read_json(repo / V2_REQUIREMENTS)
+    result = reconcile(canon, rows, tx, req, changes, checkout_commit=commit)
     # This is a review report. Never offer an implicit PASS when v2 is stale
     # or normative requirements aren't linked; the underlying v0.1 gate
     # already requires separate independent review and evidence.
-    write_results(result,out)
+    write_results(result, out)
     print(f"REVIEW ONLY: {len(rows)} canonical transactions, {len(req['rows'])} v2 requirements")
     print(f"Output: {out}; {result['gate']}")
     return 2
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except (cg.ContractError,OSError,ValueError,KeyError,TypeError) as ex:
-        print("FAIL_CLOSED:",ex)
+    except (cg.ContractError, OSError, ValueError, KeyError, TypeError) as ex:
+        print("FAIL_CLOSED:", ex)
         raise SystemExit(2) from None

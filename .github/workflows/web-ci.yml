@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   web:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Prevent indefinite APT/browser setup waits from tying up a runner.
     timeout-minutes: 35
 
@@ -201,7 +201,7 @@ jobs:
 
   governance-ui:
     name: Governance frontend rendered regression
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
