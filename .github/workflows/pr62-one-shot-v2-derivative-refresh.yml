@@ -19,7 +19,7 @@ jobs:
       - name: Pin source and remove one-shot workflow before compile
         run: |
           set -Eeuo pipefail
-          test "$(git rev-parse HEAD^)" = "150e8db7748318ed2e15998892aeb5f4a12473e0"
+          test "$(git rev-parse HEAD^)" = "db748f8359eb7985181cc15ca69bfd863e57ad12"
           test "$(git branch --show-current)" = "draft/pr62-constitutional-change-impact-gate-v02-20261028"
           rm ".github/workflows/pr62-one-shot-v2-derivative-refresh.yml"
       - name: Setup Python 3.12
@@ -42,12 +42,13 @@ jobs:
           set -Eeuo pipefail
           git add -u ".github/workflows/pr62-one-shot-v2-derivative-refresh.yml"
           git add Weall-Protocol/generated/v2/
+          git add web/src/generated/protocolStatus.ts
           git diff --quiet
           changed="$(git diff --cached --name-only)"
           test -n "$changed"
           while IFS= read -r path; do
             case "$path" in
-              .github/workflows/pr62-one-shot-v2-derivative-refresh.yml|Weall-Protocol/generated/v2/*) ;;
+              .github/workflows/pr62-one-shot-v2-derivative-refresh.yml|Weall-Protocol/generated/v2/*|web/src/generated/protocolStatus.ts) ;;
               *) echo "unexpected regeneration path: $path" >&2; exit 1 ;;
             esac
           done <<< "$changed"
