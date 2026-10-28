@@ -1,0 +1,32 @@
+name: Constitutional change gate candidate tests
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/tooling/constitutional_change_gate/**'
+      - '.github/workflows/constitutional-change-gate-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR commit
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned artifact integrity
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: sha256sum -c SHA256SUMS.txt
+      - name: Run isolated change-gate unit tests
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: python -m unittest discover -s tests -v
+      - name: Compile Python source
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: python -m py_compile weall_change_gate.py reconcile_v2.py

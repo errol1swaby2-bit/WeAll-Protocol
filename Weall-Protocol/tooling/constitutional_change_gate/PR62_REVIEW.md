@@ -1,0 +1,44 @@
+# PR #62 — Constitutional change-impact gate v0.2 (draft)
+
+**Status: REVIEW CANDIDATE — NOT RELEASE/AUTHORITY APPROVED**
+
+This directory contains the exact source from the offline v0.2 package prepared on 2026-10-28 (see `SHA256SUMS.txt`). It is stacked on PR #61 at commit `d10674253b5fb3cc765ec66442f3eaf5558cb81b`. No consensus runtime code or ledger data is modified here.
+
+## Scope
+
+- One-to-one canonical 236-TX identity/index ↔ static schema/handler mapping.
+- Read-only reconciliation with existing v2 236-TX contract matrix and 755-requirement register.
+- Conservative domain and dependency impact selection, with fail-closed handling for unmapped files and incomplete evidence.
+- 31 standalone synthetic tests, a historical PR #61 changed-file snapshot, and read-only local isolated-checkout instructions.
+- Historical artifacts and observations remain pinned to PR #61; they are **not** current independent verification of PR #62.
+
+## Repository verification
+
+From the root of a checked-out PR #62 branch:
+
+```bash
+cd Weall-Protocol/tooling/constitutional_change_gate
+sha256sum -c SHA256SUMS.txt
+python3 -m unittest discover -s tests -v
+python3 -m py_compile weall_change_gate.py reconcile_v2.py
+```
+
+The v0.2 runner `validate_pr61_isolated.sh` is deliberately a **PR #61 archival checker**, not the active PR #62 acceptance gate. It checks the parent PR head and does not certify this PR. A future cross-PR gate must bind fresh evidence to each new commit and baseline, and run only against authorized normative requirements.
+
+## Findings / blockers
+
+- The v2 derivatives are from an older implementation commit and label the source draft as **not authorized**.
+- The requirements register has 755 rows, but only 20 list contract references, none mapping to one of the 236 canonical TX stable IDs; most requirements therefore remain unlinked by explicit transaction ID.
+- No independent review for the 236 TX contract rows, and no actual test run receipts for the 755 requirement rows, were recorded in the source registers as inspected.
+- Indirect cross-domain effects remain review candidates; source-path matching is *not proof of semantic dependency closure*.
+- Runtime authorization (including cross-domain dispute enforcement), consensus replay, and preserved two-node restart are separate release blockers; this PR does not fix them.
+
+Do **not** merge based solely on synthetic tests, a readable matrix, or a green candidate workflow. The workflow deliberately has no signing/approval authority. No existing protected branch or workflow requirements are weakened.
+
+## Prior commits
+
+- Parent PR #61: `d10674253b5fb3cc765ec66442f3eaf5558cb81b`.
+- Compared parent PR #60: `48cbc1cbf36fa3c573d0f5903c2afb80d6d93344`.
+- V2 generated derivatives declared implementation commit `1dedcaa5463f1fe230be35d90a610569a82c87dc`.
+
+See [README.md](README.md) for the exact offline package behavior and limitations.
