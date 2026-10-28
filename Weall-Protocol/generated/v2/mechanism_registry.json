@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "3f9d0e82687c9995ffb6366b9418b26225d525df2470e5882d5ad5727aba0af4"
+    "source_tree_digest": "a2dac515cf12caf40dc22ce0e36945fd6137b3801700c39b37f0f05c6fa2140c"
   },
   "rows": [
     {
@@ -3796,6 +3796,23 @@
         "src/weall/testing/prod_fixtures.py",
         "src/weall/testing/sigtools.py",
         "tooling/canon_lint.py",
+        "tooling/constitutional_change_gate/CANDIDATE_STATUS.json",
+        "tooling/constitutional_change_gate/PR62_REVIEW.md",
+        "tooling/constitutional_change_gate/README.md",
+        "tooling/constitutional_change_gate/SHA256SUMS.txt",
+        "tooling/constitutional_change_gate/policies/requirements.json",
+        "tooling/constitutional_change_gate/reconcile_v2.py",
+        "tooling/constitutional_change_gate/reference/LOCAL_TEST_RESULTS.txt",
+        "tooling/constitutional_change_gate/reference/PR61_changed_files.json",
+        "tooling/constitutional_change_gate/reference/REMOTE_PR61_RECONCILIATION.md",
+        "tooling/constitutional_change_gate/reference/REMOTE_RECONCILIATION_OBSERVATIONS.json",
+        "tooling/constitutional_change_gate/reference/pinned_domain_names.txt",
+        "tooling/constitutional_change_gate/reference/pinned_domain_requirement_preview.csv",
+        "tooling/constitutional_change_gate/tests/__init__.py",
+        "tooling/constitutional_change_gate/tests/test_change_gate.py",
+        "tooling/constitutional_change_gate/tests/test_v2_reconciliation.py",
+        "tooling/constitutional_change_gate/validate_pr61_isolated.sh",
+        "tooling/constitutional_change_gate/weall_change_gate.py",
         "tooling/gen_helper_contract_map.py",
         "tooling/gen_tx_contract_map.py"
       ],
