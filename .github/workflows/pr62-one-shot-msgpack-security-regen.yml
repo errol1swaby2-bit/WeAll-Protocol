@@ -1,0 +1,101 @@
+name: PR62 one-shot msgpack dev-lock security and v2 refresh
+on:
+  push:
+    branches:
+      - draft/pr62-constitutional-change-impact-gate-v02-20261028
+permissions:
+  contents: write
+jobs:
+  bounded-security-update:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref == 'refs/heads/draft/pr62-constitutional-change-impact-gate-v02-20261028'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Checkout pinned PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: true
+      - name: Verify pinned predecessor and remove transient workflow
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD^)" = "07e8c94c8bc3d879bc8cf95bf7397f7037a1290e"
+          test "$(git branch --show-current)" = "draft/pr62-constitutional-change-impact-gate-v02-20261028"
+          rm .github/workflows/pr62-one-shot-msgpack-security-regen.yml
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Retrieve official msgpack release hashes and update only its lock entry
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import urllib.request
+          p = pathlib.Path('requirements-dev.lock')
+          original = p.read_text(encoding='utf-8')
+          lines = original.splitlines(keepends=True)
+          matches = [i for i, line in enumerate(lines) if line.startswith('msgpack==1.2.1 ')]
+          if len(matches) != 1:
+              raise SystemExit('missing or non-unique pinned msgpack==1.2.1 stanza')
+          start = matches[0]
+          end = start + 1
+          while end < len(lines) and lines[end].startswith('    --hash=sha256:'):
+              end += 1
+          if end <= start + 1 or lines[start] != 'msgpack==1.2.1 \\' + '\n':
+              raise SystemExit('unexpected msgpack lock stanza shape')
+          with urllib.request.urlopen('https://pypi.org/pypi/msgpack/1.2.3/json', timeout=20) as response:
+              doc = json.load(response)
+          if doc.get('info', {}).get('version') != '1.2.3':
+              raise SystemExit('unexpected upstream package version')
+          releases = doc.get('urls') or []
+          hashes = sorted({item['digests']['sha256'] for item in releases
+                           if item.get('packagetype') in ('bdist_wheel','sdist')
+                           and item.get('digests', {}).get('sha256')})
+          if len(hashes) < 2 or any(len(x) != 64 for x in hashes):
+              raise SystemExit('missing upstream distribution hashes')
+          replacement = ['msgpack==1.2.3 \\' + '\n']
+          replacement += ['    --hash=sha256:' + digest
+                          + (' \\' + '\n' if i < len(hashes)-1 else '\n')
+                          for i, digest in enumerate(hashes)]
+          lines[start:end] = replacement
+          updated = ''.join(lines)
+          if updated == original or updated.count('msgpack==1.2.3') != 1:
+              raise SystemExit('dependency upgrade did not replace exactly one stanza')
+          p.write_text(updated, encoding='utf-8')
+          print('Replaced exactly one msgpack stanza; official release distribution hashes:',len(hashes))
+          PY
+      - name: Verify lock and vulnerability remediation with installed toolchain
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+          pip check
+          pip-audit -r requirements.lock
+          pip-audit -r requirements-dev.lock
+      - name: Regenerate and verify exact-source v2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/compile_v2_spec.py --summary
+          python scripts/compile_v2_spec.py --check
+      - name: Commit strictly bounded outputs only
+        run: |
+          set -Eeuo pipefail
+          git add -u .github/workflows/pr62-one-shot-msgpack-security-regen.yml
+          git add Weall-Protocol/requirements-dev.lock
+          git add Weall-Protocol/generated/v2/
+          git add web/src/generated/protocolStatus.ts
+          git diff --quiet
+          changed="$(git diff --cached --name-only)"
+          test -n "$changed"
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/pr62-one-shot-msgpack-security-regen.yml|Weall-Protocol/requirements-dev.lock|Weall-Protocol/generated/v2/*|web/src/generated/protocolStatus.ts) ;;
+              *) echo "unapproved file changed: $path" >&2; exit 1 ;;
+            esac
+          done <<< "$changed"
+          git -c user.name="weall-ci-security-lock-refresh" -c user.email="weall-ci-security-lock-refresh@users.noreply.github.com" commit -m "Upgrade hashed dev msgpack lock to 1.2.3 and regenerate v2 derivatives"
+          git push origin HEAD:refs/heads/draft/pr62-constitutional-change-impact-gate-v02-20261028
