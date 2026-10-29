@@ -6,10 +6,8 @@ on:
       - draft/pr62-constitutional-change-impact-gate-v02-20261028
     paths:
       - .github/workflows/pr62-candidate-derivative-refresh.yml
-      - Weall-Protocol/tooling/constitutional_change_gate/weall_change_gate.py
-      - Weall-Protocol/tooling/constitutional_change_gate/tests/test_change_gate.py
-      - Weall-Protocol/tooling/constitutional_change_gate/reconcile_v2.py
-      - Weall-Protocol/tooling/constitutional_change_gate/tests/test_v2_reconciliation.py
+      - .github/workflows/constitutional-change-gate-candidate.yml
+      - 'Weall-Protocol/tooling/constitutional_change_gate/**'
 
 permissions:
   contents: write
