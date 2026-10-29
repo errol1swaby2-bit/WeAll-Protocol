@@ -915,11 +915,23 @@ class V2ReconciliationTests(unittest.TestCase):
         ):
             rv.build_unmatched_review_triage(queue, updated_register)
 
+    def test_field_scan_requires_pinned_effect_inventory(self):
+        effects = self._review_queue_fixture()
+        with self.assertRaisesRegex(
+            cg.ContractError, "field_source_scan_requires_pinned_effects"
+        ):
+            rv.reconcile(
+                self.idx, self.rows, self.tx, self.req, [],
+                checkout_commit=cg.repo_commit(self.repo),
+                effects=effects,
+                field_source_repo=self.repo,
+            )
+
     def test_write_reports_external_only(self):
         a = self.check()
         output = Path(self.tmp.name) / "out"
         rv.write_results(a, output)
-        self.assertEqual(len(list(output.iterdir())), 10)
+        self.assertEqual(len(list(output.iterdir())), 12)
         self.assertIn(
             "DISPUTE_RESOLVE",
             (output / "v2_tx_requirement_candidates.csv").read_text(),

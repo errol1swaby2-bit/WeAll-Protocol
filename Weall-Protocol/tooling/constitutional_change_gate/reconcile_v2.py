@@ -16,6 +16,7 @@ from collections import Counter
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+import field_trace
 import weall_change_gate as cg
 
 V2_TX = cg.PREFIX / "generated/v2/tx_contract_matrix.json"
@@ -346,6 +347,7 @@ def reconcile(
     require_effect_pin: bool = False,
     review_submissions: dict[str, Any] | None = None,
     review_evidence_root: Path | None = None,
+    field_source_repo: Path | None = None,
 ) -> dict[str, Any]:
     require(
         isinstance(v2_contract, dict)
@@ -461,6 +463,8 @@ def reconcile(
         raise cg.ContractError("review_submissions_require_pinned_effects")
     if review_evidence_root is not None and review_submissions is None:
         raise cg.ContractError("review_evidence_root_without_submissions")
+    if field_source_repo is not None and not require_effect_pin:
+        raise cg.ContractError("field_source_scan_requires_pinned_effects")
     if effects is not None:
         effect_commit = effects.get("source_commit")
         if effect_commit is not None and effect_commit != checkout_commit:
@@ -692,6 +696,11 @@ def reconcile(
         observation["review_key"] = key
     authority_review_queue = [review_queue_by_key[key] for key in sorted(review_queue_by_key)]
     unmatched_review_triage = build_unmatched_review_triage(authority_review_queue, rs)
+    account_field_cues = (
+        field_trace.scan_account_field_review(field_source_repo, unmatched_review_triage)
+        if field_source_repo is not None
+        else []
+    )
     submissions_recorded = reconcile_review_submissions(
         authority_review_queue,
         review_submissions,
@@ -790,6 +799,14 @@ def reconcile(
             for q in authority_review_queue
         ),
         "unmatched_review_triage_count": len(unmatched_review_triage),
+        "unmatched_field_scan_status": (
+            "PINNED_BOUNDED_SOURCE_CUES_NOT_SEMANTIC_PROOF"
+            if field_source_repo is not None else "NOT_REQUESTED_NO_SOURCE_REPO"
+        ),
+        "unmatched_field_scan_entries": len(account_field_cues),
+        "unmatched_account_field_cue_count": sum(
+            x["field_write_candidate_count"] for x in account_field_cues
+        ),
         "unmatched_review_triage_priority_counts": dict(
             sorted(Counter(row["priority"] for row in unmatched_review_triage).items())
         ),
@@ -814,6 +831,7 @@ def reconcile(
         "authority_write_review_candidates": authority_review_rows,
         "authority_review_queue": authority_review_queue,
         "unmatched_review_triage": unmatched_review_triage,
+        "unmatched_account_field_cues": account_field_cues,
         "unmatched_triage_authority": "THEMATIC_READING_ONLY_NOT_CONSTITUTIONAL_ADJUDICATION",
         "review_submission_schema": "weall.v2.authority-review-submissions.v0.1",
         "not_guaranteed": [
@@ -846,6 +864,7 @@ def render_md(out: dict[str, Any]) -> str:
         f"- Candidate TX-to-requirement links: **{out['tx_requirement_candidate_link_count']}**",
         f"- Authority-write review queue: **{out['authority_review_queue_item_count']}** unique observations; **{out['authority_review_queue_unmatched_count']}** without declared requirement-source links",
         f"- Unmatched authority triage entries (ALL OPEN): **{out['unmatched_review_triage_count']}**; thematic reading suggestions are NOT requirement links",
+        f"- Bounded account-field source cues: **{out['unmatched_account_field_cue_count']}** across **{out['unmatched_field_scan_entries']}** triage items; never transaction-causality proof",
         f"- Review submissions recorded (UNAUTHENTICATED): **{out['review_submissions_recorded_unverified']}**; queue remains OPEN",
         f"- Local evidence SHA-256 checks (NOT attestations): **{out['review_evidence_files_sha256_checked']}**",
         f"- Review claims without byte checks: **{out['review_evidence_submissions_without_byte_checks']}**",
@@ -1074,6 +1093,45 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
                     "review_questions": ";".join(item["review_questions"]),
                 }
             )
+    (out / "v2_unmatched_account_field_cues.json").write_bytes(
+        cg.canonical_bytes({
+            "schema": "weall.v2.unmatched-account-field-cues.v0.1",
+            "source_commit": doc["target_checkout_commit"],
+            "scan_status": doc["unmatched_field_scan_status"],
+            "entries": doc["unmatched_account_field_cues"],
+            "release_authority": "NOT_ESTABLISHED",
+        })
+    )
+    with (out / "v2_unmatched_account_field_cues.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as f:
+        fields = [
+            "review_key", "source_commit", "source_file_sha256",
+            "source_path", "anchor_function", "visited_function",
+            "same_file_call_depth", "source_line", "account_field",
+            "account_path", "field_category", "write_form", "scan_status",
+            "constitutional_authorization",
+        ]
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        for item in doc["unmatched_account_field_cues"]:
+            for write in item["field_write_candidates"]:
+                writer.writerow({
+                    "review_key": item["review_key"],
+                    "source_commit": item["source_commit"],
+                    "source_file_sha256": item["source_file_sha256"],
+                    "source_path": item["source_path"],
+                    "anchor_function": item["anchor_function"],
+                    "visited_function": write["source_function"],
+                    "same_file_call_depth": write["same_file_call_depth"],
+                    "source_line": write["line"],
+                    "account_field": write["field"],
+                    "account_path": "/".join(write["account_path"]),
+                    "field_category": write["category"],
+                    "write_form": write["write_form"],
+                    "scan_status": item["status"],
+                    "constitutional_authorization": "NOT_ESTABLISHED",
+                })
     # Preserve all canonical TXs in the reverse CSV, including TXs with no
     # established candidates. Absence of a link MUST NOT mean unaffected.
     with (out / "v2_tx_requirement_candidates.csv").open("w", newline="", encoding="utf-8") as f:

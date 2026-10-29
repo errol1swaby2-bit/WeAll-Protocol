@@ -29,7 +29,7 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Compile Python source
         working-directory: Weall-Protocol/tooling/constitutional_change_gate
-        run: python -m py_compile weall_change_gate.py reconcile_v2.py
+        run: python -m py_compile weall_change_gate.py reconcile_v2.py field_trace.py
       - name: Exercise exact-checkout 236-TX static effect inventory (read-only)
         working-directory: Weall-Protocol/tooling/constitutional_change_gate
         run: |
@@ -79,6 +79,7 @@ jobs:
               gate.read_json(repo / v2.V2_REQUIREMENTS),
               [], checkout_commit=gate.repo_commit(repo), effects=effects,
               require_effect_pin=True,
+              field_source_repo=repo,
           )
           assert result["canonical_tx_count"] == 236
           assert result["v2_requirement_count"] == 755
@@ -105,6 +106,14 @@ jobs:
           assert result["authority_review_queue_unmatched_count"] <= result["authority_review_queue_item_count"]
           assert result["unmatched_review_triage_count"] == result["authority_review_queue_unmatched_count"]
           assert result["unmatched_review_triage_count"] == 22
+          assert result["unmatched_field_scan_status"] == "PINNED_BOUNDED_SOURCE_CUES_NOT_SEMANTIC_PROOF"
+          assert result["unmatched_field_scan_entries"] == 22
+          assert all(
+              x["constitutional_authorization"] == "NOT_ESTABLISHED"
+              and x["status"] == "SOURCE_ORDER_STATIC_FIELD_CUES_NOT_TX_CAUSALITY_OR_AUTHORITY"
+              and x["unknown_or_external_helper_effects_unproven"]
+              for x in result["unmatched_account_field_cues"]
+          )
           assert result["unmatched_review_triage_priority_counts"] == {
               "P2_REVIEW_NONCE_AND_CONTENT_PERMISSION_EFFECTS": 18,
               "P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS": 3,
@@ -141,6 +150,8 @@ jobs:
           assert (bundle / "v2_authority_review_queue.csv").is_file()
           assert (bundle / "v2_unmatched_authority_triage.json").is_file()
           assert (bundle / "v2_unmatched_authority_triage.csv").is_file()
+          assert (bundle / "v2_unmatched_account_field_cues.json").is_file()
+          assert (bundle / "v2_unmatched_account_field_cues.csv").is_file()
           print("Candidate-only review bundle at checkout", gate.repo_commit(repo))
           PY
       - name: Upload non-authoritative authority review bundle
@@ -156,4 +167,6 @@ jobs:
             ${{ runner.temp }}/pr62-authority-review/v2_authority_write_review_candidates.csv
             ${{ runner.temp }}/pr62-authority-review/v2_unmatched_authority_triage.json
             ${{ runner.temp }}/pr62-authority-review/v2_unmatched_authority_triage.csv
+            ${{ runner.temp }}/pr62-authority-review/v2_unmatched_account_field_cues.json
+            ${{ runner.temp }}/pr62-authority-review/v2_unmatched_account_field_cues.csv
             ${{ runner.temp }}/pr62-authority-review/v2_reconciliation.md

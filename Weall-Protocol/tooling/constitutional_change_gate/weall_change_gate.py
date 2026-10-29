@@ -1488,6 +1488,7 @@ def main(argv: list[str] | None = None) -> int:
                 if args.authority_review_submissions
                 else None
             ),
+            field_source_repo=repo,
         )
         reconcile_v2.write_results(reconciled, out)
     atomic_write(out / "tx_implementation_matrix.md", matrix_md(rows, policy).encode("utf-8"))

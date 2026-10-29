@@ -250,3 +250,33 @@ The candidate CI asserts the exact current split (18/3/1) and will fail
 if a source or register change silently alters that baseline without a
 review. It publishes the triage report alongside the existing queue as
 a temporary, non-authoritative GitHub Actions artifact.
+
+## v0.10 bounded account-field source cues — not transaction semantics
+
+The new `field_trace.py` scans *only* the SHA-256-matched source files and
+the existing 22 unmatched AWC review anchors. It records literal
+`accounts`-root subscript, alias and mutator **MAY-write** sites, with
+actual source function, line number, account field/key (or an explicit
+dynamic-key marker), and bounded same-file local-call depth. Exact source
+digest mismatch, unsafe paths, missing function anchors and excessive
+source size fail closed. This is a syntactic, source-order alias heuristic;
+control flow, state-parameter handoff, callbacks, external helpers,
+transitive effects and negative absence claims remain unresolved.
+
+Two additional reports are emitted:
+`v2_unmatched_account_field_cues.json` and
+`v2_unmatched_account_field_cues.csv`. On the exact-checkout CLI and
+candidate CI path, the scanner is enabled with the clean pinned repo,
+and its files are added to the downloadable candidate-only artifact.
+Standalone `reconcile()` calls without a source checkout explicitly
+say `NOT_REQUESTED_NO_SOURCE_REPO`, not `NO_EFFECT`.
+
+An `accounts`-root write is not a synonym for an eligibility or
+exclusion transition. The source currently has account nonce
+bookkeeping within content, explicit ban/reinstatement fields in
+reputation, and account balance writes in reward distribution. These
+are investigative leads, not per-TX semantic proofs; shared helper
+visitation may overattribute a write to a TX or miss dynamic effects.
+Every AWC stays open; every requirement link for these unmatched
+items stays empty; no review becomes authenticated, no test result is
+fabricated, and no runtime code or normative v2 register is changed.

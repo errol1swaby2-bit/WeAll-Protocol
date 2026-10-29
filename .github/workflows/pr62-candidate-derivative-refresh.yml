@@ -40,24 +40,30 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff format tooling/constitutional_change_gate/weall_change_gate.py tooling/constitutional_change_gate/tests/test_change_gate.py tooling/constitutional_change_gate/reconcile_v2.py tooling/constitutional_change_gate/tests/test_v2_reconciliation.py
+          ruff format tooling/constitutional_change_gate/weall_change_gate.py tooling/constitutional_change_gate/tests/test_change_gate.py tooling/constitutional_change_gate/reconcile_v2.py tooling/constitutional_change_gate/tests/test_v2_reconciliation.py tooling/constitutional_change_gate/field_trace.py tooling/constitutional_change_gate/tests/test_field_trace.py
           python - <<'PY'
           import hashlib
           from pathlib import Path
           root = Path("tooling/constitutional_change_gate")
           manifest = root / "SHA256SUMS.txt"
           update = {
+              "field_trace.py",
+              "tests/test_field_trace.py",
               "weall_change_gate.py",
               "tests/test_change_gate.py",
               "reconcile_v2.py",
               "tests/test_v2_reconciliation.py",
           }
           lines = []
+          seen = set()
           for line in manifest.read_text(encoding="utf-8").splitlines():
               digest, path = line.split("  ", 1)
+              seen.add(path)
               if path in update:
                   digest = hashlib.sha256((root / path).read_bytes()).hexdigest()
               lines.append(f"{digest}  {path}")
+          for path in sorted(update - seen):
+              lines.append(f"{hashlib.sha256((root / path).read_bytes()).hexdigest()}  {path}")
           manifest.write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
           cd tooling/constitutional_change_gate
