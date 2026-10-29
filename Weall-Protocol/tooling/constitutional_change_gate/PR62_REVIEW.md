@@ -99,3 +99,27 @@ The `TRANSITIVE_IMPORT_SOURCE_PATH_UNREVIEWED` link reason remains separate
 from first-hop source evidence. There is **no** assertion of transitive
 dependency closure, sound alias analysis, actual execution, state-root
 agreement, independently reviewed semantics, or release eligibility.
+
+## v0.6 authority-sensitive write review inventory — unverified
+
+The offline `tx_effect_candidates.json` now includes exact-key, **non-normative**
+review signals for potentially authority-relevant state roots, such as accounts,
+PoH, reputation, disputes, proposals/votes, validator sets, groups and the
+system queue. An observed write to these roots is NOT proof that authority was
+conferred, exercised, revoked, or improperly changed. Many such writes are
+ordinary receipts, nonces, bookkeeping, or legitimate state transitions.
+Unclassified and dynamic-root/alias writes remain explicitly reported; no
+"unaffected" or "safe" conclusion follows from an empty sensitive-candidate list.
+
+The optional effect-linked reconciliation produces a sixth report,
+`v2_authority_write_review_candidates.csv`, with each candidate's TX, root,
+classification, call depth, source path/function, write signal, v2 requirement
+IDs matching that source path, and **existing** requirement test-run and
+verification fields. A missing requirement path remains an unresolved gap, not
+a finding of irrelevance. This is a source-path intersection, not a semantic
+mapping or independent constitutional review.
+
+The taxonomy is a bounded human-review aid; it is not derived from a ratified
+mapping of constitutional rights to state storage keys. The existing 755-row
+requirement register is unchanged and no test outcome or authorization is
+fabricated. Gate verdict remains BLOCKED; no consensus code is altered.

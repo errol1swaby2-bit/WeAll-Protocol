@@ -388,6 +388,87 @@ class V2ReconciliationTests(unittest.TestCase):
                 require_effect_pin=True,
             )
 
+    def test_authority_write_candidates_join_only_by_source_and_keep_evidence_status(self):
+        effects = {
+            "source_commit": cg.repo_commit(self.repo),
+            "transaction_count": 2,
+            "transactions": [
+                {
+                    "tx_type": "DISPUTE_RESOLVE",
+                    "authority_sensitive_write_candidates": [
+                        {
+                            "state_root": "disputes",
+                            "authority_area": "DISPUTE_OR_ENFORCEMENT_REVIEW",
+                            "source_path": "Weall-Protocol/src/weall/runtime/apply/dispute.py",
+                            "source_function": "apply_dispute",
+                            "import_depth": 0,
+                            "write_signal": "DIRECT_STATE_ROOT",
+                        },
+                        {
+                            "state_root": "validators",
+                            "authority_area": "VALIDATOR_AUTHORITY_REVIEW",
+                            "source_path": "Weall-Protocol/src/weall/runtime/unreferenced.py",
+                            "source_function": "_change",
+                            "import_depth": 1,
+                            "write_signal": "MUTABLE_ALIAS_ROOT",
+                        },
+                    ],
+                },
+                {"tx_type": "ACCOUNT_LOCK", "authority_sensitive_write_candidates": []},
+            ],
+        }
+        result = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=cg.repo_commit(self.repo), effects=effects,
+        )
+        self.assertEqual(result["authority_sensitive_write_candidate_count"], 2)
+        self.assertEqual(result["authority_write_candidates_without_requirement_path_link"], 1)
+        linked = next(
+            x for x in result["authority_write_review_candidates"]
+            if x["state_root"] == "disputes"
+        )
+        self.assertEqual(linked["candidate_requirement_ids"], ["DISP-001"])
+        self.assertEqual(linked["candidate_requirement_evidence"][0]["test_run_id"], "NOT_RUN")
+        self.assertEqual(linked["constitutional_authorization"], "NOT_ESTABLISHED")
+        unlinked = next(
+            x for x in result["authority_write_review_candidates"]
+            if x["state_root"] == "validators"
+        )
+        self.assertEqual(unlinked["candidate_requirement_ids"], [])
+        self.assertTrue(unlinked["unlinked_requirement_review_required"])
+        reverse = {x["tx_type"]: x for x in result["tx_requirement_candidates"]}
+        self.assertEqual(reverse["DISPUTE_RESOLVE"]["authority_sensitive_write_count"], 2)
+        self.assertEqual(reverse["ACCOUNT_LOCK"]["authority_sensitive_write_count"], 0)
+        with tempfile.TemporaryDirectory() as folder:
+            rv.write_results(result, Path(folder))
+            csv_text = (Path(folder) / "v2_authority_write_review_candidates.csv").read_text()
+            self.assertIn("DISP-001", csv_text)
+            self.assertIn("NOT_RUN", csv_text)
+            self.assertIn("NOT_ESTABLISHED", csv_text)
+
+    def test_authority_write_candidate_unknown_root_is_rejected(self):
+        effects = {
+            "transaction_count": 2,
+            "transactions": [
+                {
+                    "tx_type": "DISPUTE_RESOLVE",
+                    "authority_sensitive_write_candidates": [
+                        {
+                            "state_root": "made_up",
+                            "authority_area": "VALIDATOR_AUTHORITY_REVIEW",
+                            "source_path": "Weall-Protocol/src/weall/runtime/apply/dispute.py",
+                        }
+                    ],
+                },
+                {"tx_type": "ACCOUNT_LOCK"},
+            ],
+        }
+        with self.assertRaisesRegex(cg.ContractError, "invalid_authority_write_provenance"):
+            rv.reconcile(
+                self.idx, self.rows, self.tx, self.req, [],
+                checkout_commit=cg.repo_commit(self.repo), effects=effects,
+            )
+
     def test_write_reports_external_only(self):
         a = self.check()
         output = Path(self.tmp.name) / "out"

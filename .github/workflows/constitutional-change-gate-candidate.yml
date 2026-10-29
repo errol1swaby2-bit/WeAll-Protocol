@@ -43,6 +43,16 @@ jobs:
           report = gate.trace_effect_candidates(repo, rows, require_commit_pin=True)
           assert len(rows) == 236
           assert report["transaction_count"] == 236
+          assert report["authority_review_taxonomy_status"] == "NON_NORMATIVE_EXACT_KEY_REVIEW_SIGNALS"
+          assert all(
+              tx["authority_review_status"] == "UNADJUDICATED_REVIEW_REQUIRED"
+              for tx in report["transactions"]
+          )
+          assert all(
+              isinstance(tx["ambiguous_state_write_candidates"], list)
+              and isinstance(tx["unclassified_state_write_candidates"], list)
+              for tx in report["transactions"]
+          )
           assert report["source_pin"]["status"] == "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
           assert report["source_pin"]["scanned_file_count"] > 0
           assert report["scheduler_status"] == "STATIC_INVENTORY_NOT_EXECUTION_PROOF"
@@ -74,10 +84,21 @@ jobs:
           assert result["v2_requirement_count"] == 755
           assert len(result["tx_requirement_candidates"]) == 236
           assert result["gate"].startswith("BLOCKED")
+          assert result["authority_sensitive_write_candidate_count"] == (
+              effects["authority_sensitive_write_candidate_count"]
+          )
+          assert all(
+              x["constitutional_authorization"] == "NOT_ESTABLISHED"
+              for x in result["authority_write_review_candidates"]
+          )
           assert result["effect_source_pin_status"] == "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
           print("v2 candidate requirements:", result["v2_requirement_count"],
                 "import source candidate requirements:",
                 result["requirements_with_imported_effect_candidates"],
                 "transitive candidates:",
-                result["requirements_with_transitive_effect_candidates"])
+                result["requirements_with_transitive_effect_candidates"],
+                "authority-sensitive write candidates:",
+                result["authority_sensitive_write_candidate_count"],
+                "without linked requirement path:",
+                result["authority_write_candidates_without_requirement_path_link"])
           PY

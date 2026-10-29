@@ -172,6 +172,9 @@ def reconcile(
     by_contract = {v["stable_id"]: v["tx_type"] for v in txs}
     imported_by_tx: dict[str, set[str]] = {name: set() for name in static_rows}
     transitive_by_tx: dict[str, set[str]] = {name: set() for name in static_rows}
+    authority_writes_by_tx: dict[str, list[dict[str, Any]]] = {
+        name: [] for name in static_rows
+    }
     if require_effect_pin and effects is None:
         raise cg.ContractError("required_effect_inventory_absent")
     if effects is not None:
@@ -197,6 +200,20 @@ def reconcile(
             require(isinstance(name, str) and name in static_rows, "unknown_effect_tx_type")
             require(name not in seen_effect_txs, "duplicate_effect_tx_type")
             seen_effect_txs.add(name)
+            for item in tx.get("authority_sensitive_write_candidates", []):
+                require(isinstance(item, dict), "invalid_authority_write_candidate")
+                root = item.get("state_root")
+                path = item.get("source_path")
+                norm = normalize_source_path(path) if isinstance(path, str) else None
+                require(
+                    isinstance(root, str)
+                    and root in cg.AUTHORITY_REVIEW_ROOTS
+                    and item.get("authority_area") == cg.AUTHORITY_REVIEW_ROOTS[root]
+                    and norm is not None
+                    and norm.startswith("Weall-Protocol/src/weall/runtime/"),
+                    "invalid_authority_write_provenance",
+                )
+                authority_writes_by_tx[name].append({**item, "source_path": norm})
             for item in tx.get("imported_function_candidates", []):
                 require(isinstance(item, dict), "invalid_imported_effect_row")
                 if item.get("status") != "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE":
@@ -301,6 +318,50 @@ def reconcile(
             if name in req["transitive_effect_candidate_txs"]:
                 reasons.append("TRANSITIVE_IMPORT_SOURCE_PATH_UNREVIEWED")
             reverse[name].append({"requirement_id": req["id"], "candidate_reasons": reasons})
+    # A write-to-requirement edge is supported only by a source-path
+    # intersection with that requirement's *declared* implementation paths.
+    # The write is a static MAY signal, and the v2 evidence is not accepted
+    # as semantic or constitutional proof by this join.
+    authority_review_rows: list[dict[str, Any]] = []
+    by_requirement = {r["id"]: r for r in requirement_candidates}
+    for name in sorted(static_rows):
+        for effect in authority_writes_by_tx[name]:
+            matches = sorted(
+                r["id"] for r in requirement_candidates
+                if any(
+                    path_matches(effect["source_path"], req_path)
+                    for req_path in r["v2_implementation_paths"]
+                )
+            )
+            review = {
+                "tx_type": name,
+                "state_root": effect["state_root"],
+                "authority_area": effect["authority_area"],
+                "source_path": effect["source_path"],
+                "source_function": effect.get("source_function"),
+                "import_depth": effect.get("import_depth"),
+                "write_signal": effect.get("write_signal"),
+                "candidate_requirement_ids": matches,
+                "candidate_requirement_evidence": [
+                    {
+                        "requirement_id": rid,
+                        "verification_result": by_requirement[rid]["verification_result"],
+                        "test_run_id": by_requirement[rid]["test_run_id"],
+                        "reviewer": by_requirement[rid]["reviewer"],
+                        "implementation_commit": by_requirement[rid]["implementation_commit"],
+                        "activation_receipt": by_requirement[rid]["activation_receipt"],
+                        "evidence_status": "UNVERIFIED_REQUIREMENT_REFERENCE_NOT_TEST_PROOF",
+                    }
+                    for rid in matches
+                ],
+                "unlinked_requirement_review_required": not matches,
+                "link_reason": "STATIC_WRITE_SOURCE_PATH_TO_DECLARED_V2_PATH_UNREVIEWED",
+                "constitutional_authorization": "NOT_ESTABLISHED",
+            }
+            authority_review_rows.append(review)
+    authority_by_tx: dict[str, list[dict[str, Any]]] = {name: [] for name in static_rows}
+    for review in authority_review_rows:
+        authority_by_tx[review["tx_type"]].append(review)
     tx_requirement_candidates = [
         {
             "tx_type": name,
@@ -309,6 +370,8 @@ def reconcile(
                 reverse[name], key=lambda link: link["requirement_id"]
             ),
             "candidate_requirement_count": len(reverse[name]),
+            "authority_sensitive_write_candidates": authority_by_tx[name],
+            "authority_sensitive_write_count": len(authority_by_tx[name]),
             "link_authority": "UNVERIFIED_STATIC_CANDIDATE_ONLY",
         }
         for name in sorted(static_rows)
@@ -370,6 +433,13 @@ def reconcile(
             if effects is not None
             else "NO_EFFECT_INVENTORY"
         ),
+        "tx_with_authority_sensitive_write_candidates": sum(
+            bool(authority_by_tx[name]) for name in authority_by_tx
+        ),
+        "authority_sensitive_write_candidate_count": len(authority_review_rows),
+        "authority_write_candidates_without_requirement_path_link": sum(
+            not row["candidate_requirement_ids"] for row in authority_review_rows
+        ),
         "tx_with_candidate_requirement_links": sum(
             bool(tx["candidate_requirements"]) for tx in tx_requirement_candidates
         ),
@@ -381,6 +451,7 @@ def reconcile(
         "transactions": comparisons,
         "requirements": requirement_candidates,
         "tx_requirement_candidates": tx_requirement_candidates,
+        "authority_write_review_candidates": authority_review_rows,
         "not_guaranteed": [
             "Full semantic dependency closure; source paths are a review signal, not a proof",
             "A complete normative requirement-to-TX binding for 755 requirements",
@@ -505,6 +576,33 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
             ):
                 item[k] = ";".join(item.get(k) or [])
             w.writerow(item)
+    # Separate write-site review ledger; no row constitutes evidence of
+    # authorization, semantic impact, or passing tests.
+    with (out / "v2_authority_write_review_candidates.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as f:
+        fields = [
+            "tx_type", "state_root", "authority_area", "source_path",
+            "source_function", "import_depth", "write_signal",
+            "candidate_requirement_ids", "candidate_requirement_test_runs",
+            "candidate_requirement_verification", "unlinked_requirement_review_required",
+            "link_reason", "constitutional_authorization",
+        ]
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        for item in doc["authority_write_review_candidates"]:
+            writer.writerow({
+                **{field: item.get(field) for field in fields},
+                "candidate_requirement_ids": ";".join(item["candidate_requirement_ids"]),
+                "candidate_requirement_test_runs": ";".join(
+                    str(x["requirement_id"]) + ":" + str(x["test_run_id"])
+                    for x in item["candidate_requirement_evidence"]
+                ),
+                "candidate_requirement_verification": ";".join(
+                    str(x["requirement_id"]) + ":" + str(x["verification_result"])
+                    for x in item["candidate_requirement_evidence"]
+                ),
+            })
     # Preserve all canonical TXs in the reverse CSV, including TXs with no
     # established candidates. Absence of a link MUST NOT mean unaffected.
     with (out / "v2_tx_requirement_candidates.csv").open("w", newline="", encoding="utf-8") as f:

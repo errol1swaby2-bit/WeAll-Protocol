@@ -375,6 +375,75 @@ def extract_routes(repo: Path) -> dict[str, dict[str, Any]]:
     return dict(sorted(rows.items()))
 
 
+# Non-normative REVIEW TAXONOMY of exact root keys observed by the AST.
+# An account/group/dispute write is NOT necessarily an authority change.
+# Never use this table to grant, deny, or certify authorization.
+AUTHORITY_REVIEW_ROOTS: dict[str, str] = {
+    "accounts": "ACCOUNT_ACCESS_OR_IDENTITY_REVIEW",
+    "account_recovery": "ACCOUNT_RECOVERY_AUTHORITY_REVIEW",
+    "account_sessions": "SESSION_AUTHORITY_REVIEW",
+    "poh": "POH_ELIGIBILITY_REVIEW",
+    "poh_cases": "POH_ELIGIBILITY_REVIEW",
+    "poh_tier2": "POH_ELIGIBILITY_REVIEW",
+    "reputation": "REPUTATION_OR_SANCTION_REVIEW",
+    "reputations": "REPUTATION_OR_SANCTION_REVIEW",
+    "reputation_events": "REPUTATION_OR_SANCTION_REVIEW",
+    "governance": "VOTING_OR_PROPOSAL_REVIEW",
+    "proposals": "VOTING_OR_PROPOSAL_REVIEW",
+    "votes": "VOTING_OR_PROPOSAL_REVIEW",
+    "ballots": "VOTING_OR_PROPOSAL_REVIEW",
+    "disputes": "DISPUTE_OR_ENFORCEMENT_REVIEW",
+    "cases": "DISPUTE_OR_ENFORCEMENT_REVIEW",
+    "validators": "VALIDATOR_AUTHORITY_REVIEW",
+    "validator_registry": "VALIDATOR_AUTHORITY_REVIEW",
+    "validator_set": "VALIDATOR_AUTHORITY_REVIEW",
+    "bft": "VALIDATOR_OR_CONSENSUS_REVIEW",
+    "quarantine": "VALIDATOR_OR_CONSENSUS_REVIEW",
+    "groups": "GROUP_MEMBERSHIP_OR_SCOPE_REVIEW",
+    "group_memberships": "GROUP_MEMBERSHIP_OR_SCOPE_REVIEW",
+    "system_queue": "SYSTEM_SCHEDULING_REVIEW",
+}
+
+
+def classify_authority_write_candidates(
+    *,
+    path: str,
+    function: str,
+    depth: int,
+    direct_writes: list[str] | set[str],
+    alias_writes: list[str] | set[str],
+) -> dict[str, list[dict[str, Any]]]:
+    """Classification only; a source-path name is never a semantic verdict."""
+    sensitive = []
+    unclassified = []
+    ambiguous = []
+    for kind, values in (
+        ("DIRECT_STATE_ROOT", direct_writes),
+        ("MUTABLE_ALIAS_ROOT", alias_writes),
+    ):
+        for state_root in sorted(set(values)):
+            item = {
+                "source_path": path,
+                "source_function": function,
+                "import_depth": depth,
+                "write_signal": kind,
+                "state_root": state_root,
+                "authority_area": AUTHORITY_REVIEW_ROOTS.get(state_root),
+                "status": "UNVERIFIED_STATIC_WRITE_CANDIDATE",
+            }
+            if state_root.startswith("<") or not state_root:
+                ambiguous.append(item)
+            elif item["authority_area"]:
+                sensitive.append(item)
+            else:
+                unclassified.append(item)
+    return {
+        "authority_sensitive_write_candidates": sensitive,
+        "unclassified_state_write_candidates": unclassified,
+        "ambiguous_state_write_candidates": ambiguous,
+    }
+
+
 def trace_effect_candidates(
     repo: Path, rows: dict[str, dict], *, require_commit_pin: bool = False
 ) -> dict[str, Any]:
@@ -797,6 +866,51 @@ def trace_effect_candidates(
                 transitive_details.append(detail)
             if transitive_truncated:
                 break
+        classified_sources = [
+            classify_authority_write_candidates(
+                path=path,
+                function=root,
+                depth=0,
+                direct_writes=writes,
+                alias_writes=alias_roots,
+            )
+        ]
+        for item in imported_details:
+            if item["status"] == "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE":
+                classified_sources.append(
+                    classify_authority_write_candidates(
+                        path=item["target_source_path"],
+                        function=item["target_function"],
+                        depth=1,
+                        direct_writes=item["state_root_write_candidates"],
+                        alias_writes=item["alias_root_write_candidates"],
+                    )
+                )
+        for item in transitive_details:
+            if item["status"] == "TRANSITIVE_EXPLICIT_STATE_HANDOFF_CANDIDATE":
+                classified_sources.append(
+                    classify_authority_write_candidates(
+                        path=item["target_source_path"],
+                        function=item["target_function"],
+                        depth=2,
+                        direct_writes=item["state_root_write_candidates"],
+                        alias_writes=item["alias_root_write_candidates"],
+                    )
+                )
+        classified = {
+            field: sorted(
+                [effect for source in classified_sources for effect in source[field]],
+                key=lambda item: (
+                    item["source_path"], item["source_function"],
+                    item["import_depth"], item["state_root"], item["write_signal"],
+                ),
+            )
+            for field in (
+                "authority_sensitive_write_candidates",
+                "unclassified_state_write_candidates",
+                "ambiguous_state_write_candidates",
+            )
+        }
         transactions.append(
             {
                 "tx_type": tx_type,
@@ -822,6 +936,8 @@ def trace_effect_candidates(
                 "transitive_imported_function_candidates": transitive_details,
                 "transitive_imported_candidate_count": len(transitive_details),
                 "transitive_import_truncated": transitive_truncated,
+                **classified,
+                "authority_review_status": "UNADJUDICATED_REVIEW_REQUIRED",
                 "imported_function_candidate_count": len(imported_details),
                 "imported_state_handoff_candidate_count": sum(
                     x["status"] == "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE"
@@ -899,7 +1015,7 @@ def trace_effect_candidates(
             raise ContractError("effect_source_commit_changed_during_pin")
         pin_status = "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
     return {
-        "schema": "weall.change-gate.static-effect-candidates.v0.5",
+        "schema": "weall.change-gate.static-effect-candidates.v0.6",
         "source_commit": starting_commit,
         "source_pin": {
             "status": pin_status,
@@ -908,6 +1024,13 @@ def trace_effect_candidates(
             "scope_note": "Only scanned files; not every runtime or repository file",
         },
         "transaction_count": len(transactions),
+        "transactions_with_authority_write_candidates": sum(
+            bool(tx["authority_sensitive_write_candidates"]) for tx in transactions
+        ),
+        "authority_sensitive_write_candidate_count": sum(
+            len(tx["authority_sensitive_write_candidates"]) for tx in transactions
+        ),
+        "authority_review_taxonomy_status": "NON_NORMATIVE_EXACT_KEY_REVIEW_SIGNALS",
         "transactions": transactions,
         "scheduler_inventory": scheduler_rows,
         "scheduler_status": scheduler_status,
