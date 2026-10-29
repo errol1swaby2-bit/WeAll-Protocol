@@ -473,7 +473,7 @@ class V2ReconciliationTests(unittest.TestCase):
         a = self.check()
         output = Path(self.tmp.name) / "out"
         rv.write_results(a, output)
-        self.assertEqual(len(list(output.iterdir())), 5)
+        self.assertEqual(len(list(output.iterdir())), 6)
         self.assertIn(
             "DISPUTE_RESOLVE",
             (output / "v2_tx_requirement_candidates.csv").read_text(),
