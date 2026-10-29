@@ -329,3 +329,31 @@ constitutional authorization. They do not adjudicate or close any of the
 22 unmatched AWC observations and cannot turn PR #62 into a merge-ready
 constitutional gate. An adversarial two-node rehearsal and independent
 review remain outstanding.
+
+### PR62-RUNTIME-GAP-001 — Duplicate reputation delta mutates JSON representation
+
+The first exact-checkout focused runtime test run (GitHub Actions run
+`40917690521`, on PR #62's synthetic pull-request checkout) yielded
+**9 passed, 1 failed**. The failing test is a concrete and reproducible
+observation: after applying a synthetic `REPUTATION_DELTA_APPLY` at the
+minimum reputation floor, the account stores `reputation` as numeric
+`-100.0`. Replaying the same `delta_id` is reported as deduped and
+preserves canonical `reputation_milli=-100000` and the ban, but changes
+the representation to the string `"-100"`. This is **not a complete
+state no-op**, despite equal numeric score.
+
+To keep the scope of PR #62 review-only, no runtime patch has been made.
+The focused suite now separates numeric/ban replay invariants from a
+`pytest.mark.xfail(strict=True)` regression requiring exact account
+representation to remain unchanged. CI's log must display this as
+**XFAIL**, not a success or waiver; an unexpected pass will fail CI until
+the finding is revisited. The original failing run remains in the CI
+history. This may affect canonical state hashing, snapshot parity or
+replay under some execution histories, but those impacts are **not yet
+demonstrated**. A separate scoped runtime fix and tests across canonical
+apply, persisted state and follower block replay are necessary before
+independent adjudication.
+
+Neither expected failure nor its description constitutes approval of
+reputation authorization or a determination that consensus is safe.
+Constitutional release remains BLOCKED and all review items stay OPEN.
