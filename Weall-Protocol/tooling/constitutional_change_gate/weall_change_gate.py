@@ -1480,7 +1480,8 @@ def main(argv: list[str] | None = None) -> int:
             require_effect_pin=True,
             review_submissions=(
                 read_json(args.authority_review_submissions)
-                if args.authority_review_submissions else None
+                if args.authority_review_submissions
+                else None
             ),
         )
         reconcile_v2.write_results(reconciled, out)

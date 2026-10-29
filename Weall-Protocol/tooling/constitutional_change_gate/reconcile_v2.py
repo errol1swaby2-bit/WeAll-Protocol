@@ -58,9 +58,15 @@ def require(condition: bool, msg: str) -> None:
 def authority_review_key(item: dict[str, Any]) -> str:
     """Stable observation identity, independent of candidate report ordering."""
     identity = {
-        name: item.get(name) for name in (
-            "tx_type", "state_root", "authority_area", "source_path",
-            "source_function", "import_depth", "write_signal",
+        name: item.get(name)
+        for name in (
+            "tx_type",
+            "state_root",
+            "authority_area",
+            "source_path",
+            "source_function",
+            "import_depth",
+            "write_signal",
         )
     }
     return "AWC-" + hashlib.sha256(cg.canonical_bytes(identity)).hexdigest()[:24]
@@ -101,7 +107,8 @@ def reconcile_review_submissions(
             "review_submission_source_digest_mismatch",
         )
         require(
-            record.get("review_decision") in {
+            record.get("review_decision")
+            in {
                 "EFFECT_CLAIMED",
                 "NO_EFFECT_CLAIMED",
                 "FALSE_POSITIVE_CLAIMED",
@@ -114,8 +121,7 @@ def reconcile_review_submissions(
                 isinstance(record.get(field), str) and record[field].strip()
                 for field in ("reviewer_id", "rationale", "evidence_ref")
             )
-            and re.fullmatch(r"[0-9a-f]{64}", str(record.get("evidence_sha256", "")))
-            is not None,
+            and re.fullmatch(r"[0-9a-f]{64}", str(record.get("evidence_sha256", ""))) is not None,
             "review_submission_metadata_incomplete",
         )
         claimed_reqs = record.get("requirement_ids")
@@ -127,9 +133,14 @@ def reconcile_review_submissions(
             "review_submission_unmapped_requirement",
         )
         item["review_submission"] = {
-            field: record[field] for field in (
-                "reviewer_id", "review_decision", "rationale",
-                "evidence_ref", "evidence_sha256", "requirement_ids",
+            field: record[field]
+            for field in (
+                "reviewer_id",
+                "review_decision",
+                "rationale",
+                "evidence_ref",
+                "evidence_sha256",
+                "requirement_ids",
             )
         }
         item["submission_status"] = "RECORDED_UNAUTHENTICATED_NOT_ADJUDICATED"
@@ -490,9 +501,7 @@ def reconcile(
             }
         review_queue_by_key[key]["candidate_observation_count"] += 1
         observation["review_key"] = key
-    authority_review_queue = [
-        review_queue_by_key[key] for key in sorted(review_queue_by_key)
-    ]
+    authority_review_queue = [review_queue_by_key[key] for key in sorted(review_queue_by_key)]
     submissions_recorded = reconcile_review_submissions(
         authority_review_queue, review_submissions, checkout_commit
     )
@@ -763,34 +772,47 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
                 }
             )
     (out / "v2_authority_review_queue.json").write_bytes(
-        cg.canonical_bytes({
-            "schema": "weall.v2.authority-review-queue.v0.1",
-            "source_commit": doc["target_checkout_commit"],
-            "review_queue": doc["authority_review_queue"],
-            "review_submission_schema": doc["review_submission_schema"],
-            "review_submissions_recorded_unverified":
-                doc["review_submissions_recorded_unverified"],
-            "release_authority": "NOT_ESTABLISHED",
-        })
+        cg.canonical_bytes(
+            {
+                "schema": "weall.v2.authority-review-queue.v0.1",
+                "source_commit": doc["target_checkout_commit"],
+                "review_queue": doc["authority_review_queue"],
+                "review_submission_schema": doc["review_submission_schema"],
+                "review_submissions_recorded_unverified": doc[
+                    "review_submissions_recorded_unverified"
+                ],
+                "release_authority": "NOT_ESTABLISHED",
+            }
+        )
     )
-    with (out / "v2_authority_review_queue.csv").open(
-        "w", newline="", encoding="utf-8"
-    ) as file:
+    with (out / "v2_authority_review_queue.csv").open("w", newline="", encoding="utf-8") as file:
         columns = [
-            "review_key", "source_commit", "source_file_sha256",
-            "tx_type", "state_root", "authority_area", "source_path",
-            "source_function", "import_depth", "write_signal",
-            "candidate_requirement_ids", "triage_bucket",
-            "candidate_observation_count", "submission_status",
-            "constitutional_authorization", "review_complete",
+            "review_key",
+            "source_commit",
+            "source_file_sha256",
+            "tx_type",
+            "state_root",
+            "authority_area",
+            "source_path",
+            "source_function",
+            "import_depth",
+            "write_signal",
+            "candidate_requirement_ids",
+            "triage_bucket",
+            "candidate_observation_count",
+            "submission_status",
+            "constitutional_authorization",
+            "review_complete",
         ]
         writer = csv.DictWriter(file, fieldnames=columns)
         writer.writeheader()
         for item in doc["authority_review_queue"]:
-            writer.writerow({
-                **{column: item.get(column) for column in columns},
-                "candidate_requirement_ids": ";".join(item["candidate_requirement_ids"]),
-            })
+            writer.writerow(
+                {
+                    **{column: item.get(column) for column in columns},
+                    "candidate_requirement_ids": ";".join(item["candidate_requirement_ids"]),
+                }
+            )
     # Preserve all canonical TXs in the reverse CSV, including TXs with no
     # established candidates. Absence of a link MUST NOT mean unaffected.
     with (out / "v2_tx_requirement_candidates.csv").open("w", newline="", encoding="utf-8") as f:

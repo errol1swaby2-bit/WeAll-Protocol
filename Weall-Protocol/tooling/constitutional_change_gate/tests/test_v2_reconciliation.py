@@ -479,7 +479,6 @@ class V2ReconciliationTests(unittest.TestCase):
                 effects=effects,
             )
 
-
     def _review_queue_fixture(self):
         path = "Weall-Protocol/src/weall/runtime/apply/dispute.py"
         effects = {
@@ -521,8 +520,13 @@ class V2ReconciliationTests(unittest.TestCase):
             }
         )
         result = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=cg.repo_commit(self.repo), effects=effects,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=cg.repo_commit(self.repo),
+            effects=effects,
         )
         queue = result["authority_review_queue"]
         self.assertEqual(result["authority_sensitive_write_candidate_count"], 3)
@@ -540,19 +544,28 @@ class V2ReconciliationTests(unittest.TestCase):
         self.assertEqual(unlinked["triage_bucket"], "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH")
         reversed_effects = self._review_queue_fixture()
         baseline = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=cg.repo_commit(self.repo), effects=reversed_effects,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=cg.repo_commit(self.repo),
+            effects=reversed_effects,
         )
-        self.assertEqual(
-            linked["review_key"], baseline["authority_review_queue"][0]["review_key"]
-        )
+        self.assertEqual(linked["review_key"], baseline["authority_review_queue"][0]["review_key"])
 
     def test_self_reported_review_never_closes_queue_or_authorizes(self):
         effects = self._review_queue_fixture()
         commit = cg.repo_commit(self.repo)
         baseline = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=commit, effects=effects, require_effect_pin=True,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=commit,
+            effects=effects,
+            require_effect_pin=True,
         )
         key = baseline["authority_review_queue"][0]["review_key"]
         claim = {
@@ -571,8 +584,14 @@ class V2ReconciliationTests(unittest.TestCase):
             "records": [claim],
         }
         result = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=commit, effects=effects, require_effect_pin=True,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=commit,
+            effects=effects,
+            require_effect_pin=True,
             review_submissions=payload,
         )
         q = result["authority_review_queue"][0]
@@ -595,8 +614,13 @@ class V2ReconciliationTests(unittest.TestCase):
         effects = self._review_queue_fixture()
         commit = cg.repo_commit(self.repo)
         baseline = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=commit, effects=effects,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=commit,
+            effects=effects,
         )
         claim = {
             "review_key": baseline["authority_review_queue"][0]["review_key"],
@@ -615,28 +639,47 @@ class V2ReconciliationTests(unittest.TestCase):
         }
         for changed, message in [
             ({"source_commit": "f" * 40}, "invalid_or_stale_review_submission_manifest"),
-            ({"records": [{**claim, "review_key": "AWC-not-present"}]}, "unknown_review_candidate_key"),
+            (
+                {"records": [{**claim, "review_key": "AWC-not-present"}]},
+                "unknown_review_candidate_key",
+            ),
             ({"records": [claim, claim]}, "duplicate_review_submission"),
-            ({"records": [{**claim, "review_decision": "AUTHORIZED"}]}, "unsupported_review_decision"),
-            ({"records": [{**claim, "source_file_sha256": "c" * 64}]}, "review_submission_source_digest_mismatch"),
-            ({"records": [{**claim, "requirement_ids": ["GOV-EXEC-001"]}]}, "review_submission_unmapped_requirement"),
+            (
+                {"records": [{**claim, "review_decision": "AUTHORIZED"}]},
+                "unsupported_review_decision",
+            ),
+            (
+                {"records": [{**claim, "source_file_sha256": "c" * 64}]},
+                "review_submission_source_digest_mismatch",
+            ),
+            (
+                {"records": [{**claim, "requirement_ids": ["GOV-EXEC-001"]}]},
+                "review_submission_unmapped_requirement",
+            ),
         ]:
             with self.subTest(message=message):
                 with self.assertRaisesRegex(cg.ContractError, message):
                     rv.reconcile(
-                        self.idx, self.rows, self.tx, self.req, [],
-                        checkout_commit=commit, effects=effects,
+                        self.idx,
+                        self.rows,
+                        self.tx,
+                        self.req,
+                        [],
+                        checkout_commit=commit,
+                        effects=effects,
                         require_effect_pin=True,
                         review_submissions={**payload, **changed},
                     )
 
     def test_review_submissions_require_pinned_source_scan(self):
         effects = self._review_queue_fixture()
-        with self.assertRaisesRegex(
-            cg.ContractError, "review_submissions_require_pinned_effects"
-        ):
+        with self.assertRaisesRegex(cg.ContractError, "review_submissions_require_pinned_effects"):
             rv.reconcile(
-                self.idx, self.rows, self.tx, self.req, [],
+                self.idx,
+                self.rows,
+                self.tx,
+                self.req,
+                [],
                 checkout_commit=cg.repo_commit(self.repo),
                 effects=effects,
                 review_submissions={
