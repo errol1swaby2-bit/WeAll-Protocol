@@ -6,6 +6,8 @@ on:
       - draft/pr62-constitutional-change-impact-gate-v02-20261028
     paths:
       - .github/workflows/pr62-candidate-derivative-refresh.yml
+      - Weall-Protocol/tooling/constitutional_change_gate/weall_change_gate.py
+      - Weall-Protocol/tooling/constitutional_change_gate/tests/test_change_gate.py
       - Weall-Protocol/tooling/constitutional_change_gate/reconcile_v2.py
       - Weall-Protocol/tooling/constitutional_change_gate/tests/test_v2_reconciliation.py
 
@@ -40,13 +42,15 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff format tooling/constitutional_change_gate/reconcile_v2.py tooling/constitutional_change_gate/tests/test_v2_reconciliation.py
+          ruff format tooling/constitutional_change_gate/weall_change_gate.py tooling/constitutional_change_gate/tests/test_change_gate.py tooling/constitutional_change_gate/reconcile_v2.py tooling/constitutional_change_gate/tests/test_v2_reconciliation.py
           python - <<'PY'
           import hashlib
           from pathlib import Path
           root = Path("tooling/constitutional_change_gate")
           manifest = root / "SHA256SUMS.txt"
           update = {
+              "weall_change_gate.py",
+              "tests/test_change_gate.py",
               "reconcile_v2.py",
               "tests/test_v2_reconciliation.py",
           }
@@ -70,7 +74,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          git add -u -- Weall-Protocol/tooling/constitutional_change_gate/reconcile_v2.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_v2_reconciliation.py Weall-Protocol/tooling/constitutional_change_gate/SHA256SUMS.txt Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          git add -u -- Weall-Protocol/tooling/constitutional_change_gate/weall_change_gate.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_change_gate.py Weall-Protocol/tooling/constitutional_change_gate/reconcile_v2.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_v2_reconciliation.py Weall-Protocol/tooling/constitutional_change_gate/SHA256SUMS.txt Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
           if git diff --cached --quiet; then
             echo "PR62 candidate and generated artifacts already current."
             exit 0

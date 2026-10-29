@@ -375,6 +375,230 @@ def extract_routes(repo: Path) -> dict[str, dict[str, Any]]:
     return dict(sorted(rows.items()))
 
 
+
+def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]:
+    """Bounded, non-authoritative source observations; never a semantic effect proof.
+
+    Follows only same-file top-level Python function calls, with a depth/size
+    ceiling. Imported calls and mutable aliases are recorded but NOT followed.
+    Scheduler phase calls are inventoried separately, not attached to TXs.
+    """
+    source_cache: dict[str, tuple[dict[str, ast.AST], dict[str, str]]] = {}
+
+    def source(path: str) -> tuple[dict[str, ast.AST], dict[str, str]]:
+        relative = Path(path)
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or not path.startswith(str(RUNTIME / ""))
+            or relative.suffix != ".py"
+        ):
+            raise ContractError("unsafe_effect_source:" + path)
+        if path not in source_cache:
+            filename = repo / relative
+            if not filename.is_file():
+                raise ContractError("missing_effect_source:" + path)
+            tree = ast.parse(filename.read_text(encoding="utf-8"), filename=path)
+            functions = {
+                n.name: n
+                for n in tree.body
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
+            imports: dict[str, str] = {}
+            for n in tree.body:
+                if isinstance(n, ast.ImportFrom) and n.module:
+                    prefix = "." * n.level + n.module
+                    for alias in n.names:
+                        imports[alias.asname or alias.name] = prefix + "." + alias.name
+                elif isinstance(n, ast.Import):
+                    for alias in n.names:
+                        imports[alias.asname or alias.name.split(".")[0]] = alias.name
+            source_cache[path] = (functions, imports)
+        return source_cache[path]
+
+    class Probe(ast.NodeVisitor):
+        def __init__(self, functions: dict[str, ast.AST], imports: dict[str, str]):
+            self.functions = functions
+            self.imports = imports
+            self.reads: set[str] = set()
+            self.writes: set[str] = set()
+            self.local_calls: set[str] = set()
+            self.external: set[str] = set()
+            self.authority: set[str] = set()
+            self.alias_writes = 0
+            self.unresolved_calls = 0
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            # Nested scopes are not automatically executed by their enclosing function.
+            return
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            return
+
+        @staticmethod
+        def key(node: ast.AST) -> str:
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                return node.value
+            return "<dynamic-key>"
+
+        def visit_Subscript(self, node: ast.Subscript) -> None:
+            if isinstance(node.value, ast.Name) and node.value.id == "state":
+                key = self.key(node.slice)
+                if isinstance(node.ctx, (ast.Store, ast.Del)):
+                    self.writes.add(key)
+                else:
+                    self.reads.add(key)
+            elif isinstance(node.ctx, (ast.Store, ast.Del)):
+                # Could be a mutable state alias; provenance not established.
+                self.alias_writes += 1
+            self.generic_visit(node)
+
+        def visit_Call(self, node: ast.Call) -> None:
+            call = node.func
+            name = ""
+            if isinstance(call, ast.Name):
+                name = call.id
+                if name in self.functions:
+                    self.local_calls.add(name)
+                elif name in self.imports:
+                    self.external.add(self.imports[name])
+                else:
+                    self.unresolved_calls += 1
+            elif isinstance(call, ast.Attribute):
+                name = call.attr
+                if isinstance(call.value, ast.Name):
+                    owner = call.value.id
+                    if owner == "state":
+                        if name in {"get", "setdefault", "pop"}:
+                            key = self.key(node.args[0]) if node.args else "<dynamic-key>"
+                            if name != "setdefault":
+                                self.reads.add(key)
+                            if name != "get":
+                                self.writes.add(key)
+                        elif name in {"update", "clear", "popitem"}:
+                            self.writes.add("<unknown-root-keys>")
+                    elif owner in self.imports:
+                        self.external.add(self.imports[owner] + "." + name)
+                    else:
+                        self.unresolved_calls += 1
+                else:
+                    self.unresolved_calls += 1
+            else:
+                self.unresolved_calls += 1
+            if re.search(
+                r"(?i)(?:authoriz|sanction|enforc|ban|lock|juror|reviewer|"
+                r"reput|quorum|poh|role|vote|ballot|eligib|permission|"
+                r"validator|penalt|appeal|recovery|disput)",
+                name,
+            ):
+                self.authority.add(name)
+            self.generic_visit(node)
+
+    transactions = []
+    for tx_type, row in sorted(rows.items()):
+        path = row["source_path"]
+        functions, imports = source(path)
+        root = row.get("routed_function") or row["entrypoint"]
+        found = root in functions
+        seen: set[str] = set()
+        queue = [(root, 0)]
+        reads: set[str] = set()
+        writes: set[str] = set()
+        external: set[str] = set()
+        authority: set[str] = set()
+        alias_writes = 0
+        unresolved_calls = 0
+        truncated = False
+        while queue:
+            current, depth = queue.pop(0)
+            if current in seen:
+                continue
+            if len(seen) >= 32 or depth > 2:
+                truncated = True
+                continue
+            fn = functions.get(current)
+            if fn is None:
+                continue
+            seen.add(current)
+            probe = Probe(functions, imports)
+            for statement in fn.body:
+                probe.visit(statement)
+            reads.update(probe.reads)
+            writes.update(probe.writes)
+            external.update(probe.external)
+            authority.update(probe.authority)
+            alias_writes += probe.alias_writes
+            unresolved_calls += probe.unresolved_calls
+            for callee in sorted(probe.local_calls):
+                if callee not in seen:
+                    queue.append((callee, depth + 1))
+        transactions.append(
+            {
+                "tx_type": tx_type,
+                "source_path": path,
+                "entrypoint": row["entrypoint"],
+                "anchor_function": root,
+                "anchor_status": (
+                    "DIRECT_ROUTE_ANCHOR_UNVERIFIED"
+                    if row.get("routed_function") and found
+                    else "SHARED_ENTRYPOINT_AMBIGUOUS"
+                    if found
+                    else "FUNCTION_ANCHOR_UNRESOLVED"
+                ),
+                "local_functions_visited": sorted(seen),
+                "direct_state_root_read_candidates": sorted(reads),
+                "direct_state_root_write_candidates": sorted(writes),
+                "imported_call_candidates": sorted(external)[:80],
+                "authority_name_signals": sorted(authority)[:80],
+                "unresolved_call_count": unresolved_calls,
+                "potential_alias_write_sites": alias_writes,
+                "trace_truncated_or_unresolved": truncated or not found,
+                "verification": "STATIC_PARTIAL_NOT_SEMANTICALLY_VERIFIED",
+            }
+        )
+
+    scheduler_path = str(RUNTIME / "scheduler_pipeline.py")
+    scheduler_rows = []
+    if (repo / scheduler_path).is_file():
+        scheduler_functions, _ = source(scheduler_path)
+        for name, fn in sorted(scheduler_functions.items()):
+            if name.startswith(("run_", "emit_", "prune_")):
+                calls = []
+                for node in ast.walk(fn):
+                    if isinstance(node, ast.Call):
+                        if isinstance(node.func, ast.Name):
+                            calls.append({"line": node.lineno, "target": node.func.id})
+                        elif isinstance(node.func, ast.Attribute):
+                            owner = node.func.value
+                            if isinstance(owner, ast.Name):
+                                calls.append(
+                                    {"line": node.lineno, "target": owner.id + "." + node.func.attr}
+                                )
+                scheduler_rows.append(
+                    {"function": name, "source_path": scheduler_path, "static_call_sites": sorted(
+                        calls, key=lambda call: (call["line"], call["target"])
+                    )}
+                )
+        scheduler_status = "STATIC_INVENTORY_NOT_EXECUTION_PROOF"
+    else:
+        scheduler_status = "SCHEDULER_SOURCE_ABSENT_UNRESOLVED"
+    return {
+        "schema": "weall.change-gate.static-effect-candidates.v0.3",
+        "source_commit": repo_commit(repo),
+        "transaction_count": len(transactions),
+        "transactions": transactions,
+        "scheduler_inventory": scheduler_rows,
+        "scheduler_status": scheduler_status,
+        "invariants": {
+            "runtime_authorization_verified": False,
+            "state_alias_effects_verified": False,
+            "scheduler_transaction_causality_verified": False,
+            "consensus_replay_verified": False,
+        },
+        "release_verdict": "BLOCKED_PENDING_SEMANTIC_TRACING_AND_INDEPENDENT_REVIEW",
+    }
+
+
 def load_policy() -> dict[str, Any]:
     d = read_json(POLICY_ROOT / "requirements.json")
     if d.get("policy_version") != "0.1.0":
@@ -776,6 +1000,8 @@ def main(argv: list[str] | None = None) -> int:
         "transactions": [rows[n] for n in sorted(rows)],
     }
     atomic_write(out / "tx_implementation_matrix.json", canonical_bytes(snapshot))
+    effects = trace_effect_candidates(repo, rows)
+    atomic_write(out / "tx_effect_candidates.json", canonical_bytes(effects))
     atomic_write(out / "tx_implementation_matrix.md", matrix_md(rows, policy).encode("utf-8"))
     with (out / "tx_implementation_matrix.csv").open("w", encoding="utf-8", newline="") as f:
         fields = [

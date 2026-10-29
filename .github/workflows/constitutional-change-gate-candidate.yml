@@ -30,3 +30,22 @@ jobs:
       - name: Compile Python source
         working-directory: Weall-Protocol/tooling/constitutional_change_gate
         run: python -m py_compile weall_change_gate.py reconcile_v2.py
+      - name: Exercise exact-checkout 236-TX static effect inventory (read-only)
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd()))
+          import weall_change_gate as gate
+          repo = Path.cwd().parents[2]
+          rows = gate.extract_routes(repo)
+          report = gate.trace_effect_candidates(repo, rows)
+          assert len(rows) == 236
+          assert report["transaction_count"] == 236
+          assert report["scheduler_status"] == "STATIC_INVENTORY_NOT_EXECUTION_PROOF"
+          assert not report["invariants"]["runtime_authorization_verified"]
+          assert not report["invariants"]["scheduler_transaction_causality_verified"]
+          print("Real static TX effects:", len(rows),
+                "scheduler phases:", len(report["scheduler_inventory"]))
+          PY

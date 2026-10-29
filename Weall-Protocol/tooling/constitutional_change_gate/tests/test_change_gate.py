@@ -180,6 +180,9 @@ class TestGate(unittest.TestCase):
         self.assertEqual(
             len(json.loads((out / "tx_implementation_matrix.json").read_text())["transactions"]), 2
         )
+        self.assertEqual(
+            json.loads((out / "tx_effect_candidates.json").read_text())["transaction_count"], 2
+        )
         rc = cg.main(
             [
                 "impact",
@@ -271,6 +274,72 @@ class TestGate(unittest.TestCase):
             "replay_and_api_surface_review", res["missing_requirement_evidence"]["ACC-003"]
         )
         self.assertEqual(res["gate_decision"], "BLOCKED")
+
+    def test_static_effect_trace_follows_local_route_not_unrelated_functions(self):
+        filename = self.repo / "Weall-Protocol/src/weall/runtime/apply/dispute.py"
+        filename.write_text(
+            'DISPUTE_TX_TYPES: set[str] = {"DISPUTE_RESOLVE"}\n'
+            'def _apply_resolve(state, env):\n'
+            '    value = state.get("cases")\n'
+            '    state["cases"] = {}\n'
+            '    cases = value or {}\n'
+            '    cases["marker"] = True\n'
+            '    _enforce_lock(state)\n'
+            '    return state\n'
+            'def _enforce_lock(state):\n'
+            '    state.setdefault("locks", {})\n'
+            '    return state\n'
+            'def _not_reachable(state):\n'
+            '    state["unrelated"] = True\n'
+            'def apply_dispute(state, env):\n'
+            '    t = env.tx_type\n'
+            '    if t == "DISPUTE_RESOLVE":\n'
+            '        return _apply_resolve(state, env)\n'
+            '    return None\n'
+        )
+        rows = cg.extract_routes(self.repo)
+        report = cg.trace_effect_candidates(self.repo, rows)
+        t = {x["tx_type"]: x for x in report["transactions"]}["DISPUTE_RESOLVE"]
+        self.assertEqual(t["anchor_function"], "_apply_resolve")
+        self.assertIn("_enforce_lock", t["local_functions_visited"])
+        self.assertNotIn("_not_reachable", t["local_functions_visited"])
+        self.assertIn("cases", t["direct_state_root_read_candidates"])
+        self.assertIn("cases", t["direct_state_root_write_candidates"])
+        self.assertIn("locks", t["direct_state_root_write_candidates"])
+        self.assertNotIn("unrelated", t["direct_state_root_write_candidates"])
+        self.assertGreaterEqual(t["potential_alias_write_sites"], 1)
+        self.assertIn("_enforce_lock", t["authority_name_signals"])
+        self.assertFalse(report["invariants"]["runtime_authorization_verified"])
+
+    def test_scheduler_inventory_is_separate_from_transaction_causality(self):
+        fn = self.repo / "Weall-Protocol/src/weall/runtime/scheduler_pipeline.py"
+        fn.write_text(
+            'def run_leader_pre_schedulers(state):\n'
+            '    schedulers.tick_dispute_lifecycle(state)\n'
+            'def run_replay_pre_schedulers(state):\n'
+            '    schedulers.tick_dispute_lifecycle(state)\n'
+        )
+        report = cg.trace_effect_candidates(self.repo, self.rows)
+        names = {x["function"] for x in report["scheduler_inventory"]}
+        self.assertEqual(names, {"run_leader_pre_schedulers", "run_replay_pre_schedulers"})
+        self.assertTrue(
+            all(
+                x["static_call_sites"][0]["target"] == "schedulers.tick_dispute_lifecycle"
+                for x in report["scheduler_inventory"]
+            )
+        )
+        self.assertFalse(report["invariants"]["scheduler_transaction_causality_verified"])
+
+    def test_trace_without_route_is_explicitly_ambiguous(self):
+        report = cg.trace_effect_candidates(self.repo, self.rows)
+        self.assertEqual(report["transaction_count"], 2)
+        self.assertTrue(
+            all(x["anchor_status"] == "SHARED_ENTRYPOINT_AMBIGUOUS"
+                for x in report["transactions"])
+        )
+        self.assertEqual(report["scheduler_status"], "SCHEDULER_SOURCE_ABSENT_UNRESOLVED")
+        self.assertEqual(report["release_verdict"],
+                         "BLOCKED_PENDING_SEMANTIC_TRACING_AND_INDEPENDENT_REVIEW")
 
     def test_source_snapshot_inventory_is_unique(self):
         groups = {}

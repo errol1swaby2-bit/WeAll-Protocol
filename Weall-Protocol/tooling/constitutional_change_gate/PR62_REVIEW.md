@@ -52,3 +52,18 @@ are clearly marked unverified. Missing links do not mean unaffected.
 This does not establish authoritative many-to-many constitutional mappings,
 semantic effects, proof of passing tests, independent review, or safe activation.
 Historical PR #61 snapshots remain pinned and unchanged.
+
+## Incremental source tracing — v0.3 candidate (not authorization)
+
+The new read-only `tx_effect_candidates.json` (written **outside** the checkout
+with the existing build command) inventories each registered TX handler anchor,
+bounded same-file call paths (maximum depth 2 / 32 functions), directly
+observed `state["root"]` / `state.get("root")` / `state.setdefault("root")`
+candidates, imported-call references, potentially mutable aliases, and
+authority-name signals. It separately inventories leader/replay scheduler
+function call sites, without asserting TX↔scheduler causality. Dynamic
+dispatch, imported callee effects, mutations through aliases and deeper
+functions are **not proven**, nor are deterministic replay and authorization.
+A passing exact-checkout 236-TX smoke test means only that the static
+inventory completes, not that every runtime effect is traced.
+The original normative and ledger release blockers remain intact.
