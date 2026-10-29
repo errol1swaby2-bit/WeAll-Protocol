@@ -142,9 +142,7 @@ def test_pr62_ban_reinstate_replay_preserves_balance_nonce_and_reputation() -> N
     second = apply_reputation(state, _tx("ACCOUNT_REINSTATE", unban_payload, nonce=2))
     assert second is not None and second["deduped"] is False
     assert state["accounts"]["@target"]["banned"] is False
-    replay_second = apply_reputation(
-        state, _tx("ACCOUNT_REINSTATE", unban_payload, nonce=2)
-    )
+    replay_second = apply_reputation(state, _tx("ACCOUNT_REINSTATE", unban_payload, nonce=2))
     assert replay_second is not None and replay_second["deduped"] is True
     assert state["reputation"]["bans"]["@target"]["banned"] is False
     for field in ("balance", "nonce", "poh_tier", "reputation_milli"):
@@ -164,9 +162,7 @@ def test_pr62_reputation_floor_auto_ban_replay_does_not_double_apply() -> None:
     assert state["accounts"]["@target"]["banned"] is True
     assert state["accounts"]["@target"]["reputation_milli"] == REP_MIN_UNITS
     before = copy.deepcopy(state)
-    replay = apply_reputation(
-        state, _tx("REPUTATION_DELTA_APPLY", payload, nonce=2)
-    )
+    replay = apply_reputation(state, _tx("REPUTATION_DELTA_APPLY", payload, nonce=2))
     assert replay is not None and replay["deduped"] is True
     # Canonical milli-units, ban state and other account fields are not
     # re-applied. JSON representation of "reputation" is separately tracked
@@ -217,14 +213,14 @@ def test_pr62_reward_distribution_conserves_balances_and_dedupes_replay() -> Non
     first = apply_rewards(state, _tx("BLOCK_REWARD_DISTRIBUTE", payload))
     assert first is not None and first["deduped"] is False
     assert first["distributed_total"] == first["debited_total"] == 30
-    assert {
-        key: value["balance"] for key, value in state["accounts"].items()
-    } == {"@source": 70, "@recipient": 25, "@other": 17}
+    assert {key: value["balance"] for key, value in state["accounts"].items()} == {
+        "@source": 70,
+        "@recipient": 25,
+        "@other": 17,
+    }
     assert sum(acct["balance"] for acct in state["accounts"].values()) == before_total
     snapshot = copy.deepcopy(state["accounts"])
-    replay = apply_rewards(
-        state, _tx("BLOCK_REWARD_DISTRIBUTE", payload, nonce=2)
-    )
+    replay = apply_rewards(state, _tx("BLOCK_REWARD_DISTRIBUTE", payload, nonce=2))
     assert replay is not None and replay["deduped"] is True
     assert state["accounts"] == snapshot
 
@@ -232,12 +228,17 @@ def test_pr62_reward_distribution_conserves_balances_and_dedupes_replay() -> Non
 @pytest.mark.parametrize(
     ("transfers", "debits", "reason"),
     [
-        ([{"to": "@missing", "amount": 10}], [{"from": "@source", "amount": 10}],
-         "to_account_missing"),
-        ([{"to": "@recipient", "amount": 200}], [{"from": "@source", "amount": 200}],
-         "insufficient_funds_for_debit"),
-        ([{"to": "@recipient", "amount": 30}], [],
-         "distribution_exceeds_debits"),
+        (
+            [{"to": "@missing", "amount": 10}],
+            [{"from": "@source", "amount": 10}],
+            "to_account_missing",
+        ),
+        (
+            [{"to": "@recipient", "amount": 200}],
+            [{"from": "@source", "amount": 200}],
+            "insufficient_funds_for_debit",
+        ),
+        ([{"to": "@recipient", "amount": 30}], [], "distribution_exceeds_debits"),
     ],
 )
 def test_pr62_reward_failed_preflight_does_not_change_account_balances(
