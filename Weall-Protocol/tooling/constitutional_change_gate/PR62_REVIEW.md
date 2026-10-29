@@ -294,3 +294,38 @@ sites where observed. This is not a verified return-value contract,
 control-flow path, interprocedural side-effect proof, or per-TX effect.
 The report marks when this helper-return name heuristic was used and
 never marks a requirement as satisfied or a review as completed.
+
+## v0.11 targeted account-field runtime observation suite
+
+The new `tests/test_pr62_account_field_runtime_evidence.py` executes the
+actual domain apply handlers on synthetic in-memory states, separate from
+the existing v0.10 static AST report. It checks:
+
+- A system-marked content reaction's observed account nonce change, without
+  assuming all content TXs are nonce-only; an ordinary banned account's
+  content-post rejection before mutation.
+- `ACCOUNT_BAN`/`ACCOUNT_REINSTATE` reject non-system envelopes;
+  system-marked receipts mutate `banned` and deduplicate replay while
+  preserving balance, nonce, PoH tier and reputation-milli in the fixture.
+- A synthetic reputation delta at the floor triggers automatic ban once;
+  duplicate delta IDs do not apply a second account delta.
+- Funded `BLOCK_REWARD_DISTRIBUTE` conserves the sum of balances and
+  deduplicates the same distribution ID. Missing targets, insufficient
+  debit funds and unfunded distributions leave account balances unchanged.
+
+A separate read-only CI workflow publishes `source_and_scope.txt` (the
+actual checkout commit, test-file SHA-256, scoped disclaimer and test exit
+code) plus the full verbatim `pytest -vv` log and its SHA-256 digest. A
+nonzero pytest exit fails the job, and upload is attempted even on failure.
+The source coverage compiler remains strict and the existing branch
+maintenance workflow regenerates derivatives when this test or workflow
+changes.
+
+**Limits:** These are domain-function-level tests, *not* evidence of
+canonical admission/cryptographic signature validation, authenticated
+SYSTEM queue lineage, consensus block formation, multi-node replay,
+independent auditor identity, normative requirement applicability, or
+constitutional authorization. They do not adjudicate or close any of the
+22 unmatched AWC observations and cannot turn PR #62 into a merge-ready
+constitutional gate. An adversarial two-node rehearsal and independent
+review remain outstanding.
