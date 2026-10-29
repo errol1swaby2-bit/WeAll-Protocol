@@ -50,11 +50,14 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          python scripts/compile_v2_spec.py
-          python scripts/compile_v2_spec.py --check
+          # Regenerate evidence inputs before hashing the v2 source tree.
           python scripts/gen_tx_lifecycle_assurance_v1_5.py
           python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
           python scripts/gen_tx_semantic_assurance_v1_5.py
+          python scripts/gen_tx_semantic_assurance_v1_5.py --check
+          python scripts/compile_v2_spec.py
+          python scripts/compile_v2_spec.py --check
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
           python scripts/gen_tx_semantic_assurance_v1_5.py --check
       - name: Commit only scoped changes and push
         shell: bash
