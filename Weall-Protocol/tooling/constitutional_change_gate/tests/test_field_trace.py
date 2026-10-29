@@ -25,25 +25,27 @@ class FieldTraceTests(unittest.TestCase):
     def triage(self, text: str, anchor: str = "_apply_tx") -> list[dict]:
         self.file.write_text(text, encoding="utf-8")
         sha = hashlib.sha256(self.file.read_bytes()).hexdigest()
-        return [{
-            "review_key": "AWC-fixture",
-            "source_path": self.path,
-            "source_file_sha256": sha,
-            "source_commit": "a" * 40,
-            "source_function": anchor,
-            "state_root": "accounts",
-        }]
+        return [
+            {
+                "review_key": "AWC-fixture",
+                "source_path": self.path,
+                "source_file_sha256": sha,
+                "source_commit": "a" * 40,
+                "source_function": anchor,
+                "state_root": "accounts",
+            }
+        ]
 
     def test_nested_account_fields_with_bounded_local_call(self) -> None:
         triage = self.triage(
-            'def _apply_tx(state, user):\n'
+            "def _apply_tx(state, user):\n"
             '    accounts = state.setdefault("accounts", {})\n'
-            '    acct = accounts.setdefault(user, {})\n'
+            "    acct = accounts.setdefault(user, {})\n"
             '    acct["nonce"] = 3\n'
-            '    _ban(state, user)\n'
-            'def _ban(state, user):\n'
+            "    _ban(state, user)\n"
+            "def _ban(state, user):\n"
             '    accounts = state.get("accounts")\n'
-            '    acct = accounts.get(user)\n'
+            "    acct = accounts.get(user)\n"
             '    acct["banned"] = True\n'
         )
         result = field_trace.scan_account_field_review(self.repo, triage)
@@ -60,10 +62,10 @@ class FieldTraceTests(unittest.TestCase):
 
     def test_unknown_key_remains_visible_not_safe(self) -> None:
         triage = self.triage(
-            'def _apply_tx(state, user, key):\n'
+            "def _apply_tx(state, user, key):\n"
             '    accounts = state["accounts"]\n'
-            '    acct = accounts[user]\n'
-            '    acct[key] = 7\n'
+            "    acct = accounts[user]\n"
+            "    acct[key] = 7\n"
         )
         result = field_trace.scan_account_field_review(self.repo, triage)
         self.assertIn(

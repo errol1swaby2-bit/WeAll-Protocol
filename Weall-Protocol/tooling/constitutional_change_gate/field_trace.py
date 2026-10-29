@@ -3,6 +3,7 @@
 This is NOT executable transaction causality, a data-flow proof, or normative
 authority. All reported fields are syntactic MAY-write candidates.
 """
+
 from __future__ import annotations
 
 import ast
@@ -56,8 +57,10 @@ class _AccountFieldProbe(ast.NodeVisitor):
             if node.func.attr in {"get", "setdefault"}:
                 base = self._path(node.func.value)
                 if base is not None:
-                    return (*base, _literal_key(node.args[0])) if node.args else (
-                        *base, "<dynamic-key>"
+                    return (
+                        (*base, _literal_key(node.args[0]))
+                        if node.args
+                        else (*base, "<dynamic-key>")
                     )
         return None
 
@@ -66,11 +69,7 @@ class _AccountFieldProbe(ast.NodeVisitor):
             return
         # A root accounts assignment, account-map mutation, and nested account
         # field mutation are different review categories. No absence claims.
-        category = (
-            "ACCOUNT_ROOT_OR_MAP"
-            if len(path) <= 2
-            else "ACCOUNT_FIELD_CANDIDATE"
-        )
+        category = "ACCOUNT_ROOT_OR_MAP" if len(path) <= 2 else "ACCOUNT_FIELD_CANDIDATE"
         self.writes.append(
             {
                 "source_function": self.function,
@@ -108,7 +107,8 @@ class _AccountFieldProbe(ast.NodeVisitor):
     def visit_Subscript(self, node: ast.Subscript) -> None:
         if isinstance(node.ctx, (ast.Store, ast.Del)):
             self._write(
-                self._path(node), node.lineno,
+                self._path(node),
+                node.lineno,
                 "SUBSCRIPT_DELETE" if isinstance(node.ctx, ast.Del) else "SUBSCRIPT_ASSIGN",
             )
         self.generic_visit(node)
@@ -119,9 +119,9 @@ class _AccountFieldProbe(ast.NodeVisitor):
             base = self._path(node.func.value)
             if name in {"setdefault", "pop"} and base is not None:
                 self._write(
-                    (*base, _literal_key(node.args[0])) if node.args
-                    else (*base, "<dynamic-key>"),
-                    node.lineno, "MAP_MUTATOR_" + name.upper(),
+                    (*base, _literal_key(node.args[0])) if node.args else (*base, "<dynamic-key>"),
+                    node.lineno,
+                    "MAP_MUTATOR_" + name.upper(),
                 )
             elif name in {"update", "clear", "popitem", "append", "extend"}:
                 self._write(base, node.lineno, "MUTATOR_" + name.upper())
@@ -139,7 +139,8 @@ def scan_account_field_review(
         expected = item["source_file_sha256"]
         relative = Path(path)
         _require(
-            isinstance(path, str) and not relative.is_absolute()
+            isinstance(path, str)
+            and not relative.is_absolute()
             and ".." not in relative.parts
             and path.startswith("Weall-Protocol/src/weall/runtime/")
             and relative.suffix == ".py"
@@ -187,29 +188,31 @@ def scan_account_field_review(
                     callee = call.func.id
                     if callee in functions and callee not in visited:
                         queue.append((callee, depth + 1))
-        evidence.sort(key=lambda x: (
-            x["source_function"], x["line"], x["field"], x["write_form"]
-        ))
+        evidence.sort(key=lambda x: (x["source_function"], x["line"], x["field"], x["write_form"]))
         # Avoid duplicate identical candidate rows from syntactic revisits.
-        uniq = {(
-            x["source_function"], x["line"], tuple(x["account_path"]), x["write_form"]
-        ): x for x in evidence}
-        evidence = sorted(uniq.values(), key=lambda x: (
-            x["source_function"], x["line"], x["field"], x["write_form"]
-        ))
-        results.append({
-            "review_key": item["review_key"],
-            "source_path": path,
-            "source_commit": item["source_commit"],
-            "source_file_sha256": actual_sha,
-            "anchor_function": anchor,
-            "state_root": item["state_root"],
-            "same_file_functions_visited": sorted(visited),
-            "same_file_local_trace_truncated": truncated,
-            "field_write_candidates": evidence,
-            "field_write_candidate_count": len(evidence),
-            "unknown_or_external_helper_effects_unproven": True,
-            "status": "SOURCE_ORDER_STATIC_FIELD_CUES_NOT_TX_CAUSALITY_OR_AUTHORITY",
-            "constitutional_authorization": "NOT_ESTABLISHED",
-        })
+        uniq = {
+            (x["source_function"], x["line"], tuple(x["account_path"]), x["write_form"]): x
+            for x in evidence
+        }
+        evidence = sorted(
+            uniq.values(),
+            key=lambda x: (x["source_function"], x["line"], x["field"], x["write_form"]),
+        )
+        results.append(
+            {
+                "review_key": item["review_key"],
+                "source_path": path,
+                "source_commit": item["source_commit"],
+                "source_file_sha256": actual_sha,
+                "anchor_function": anchor,
+                "state_root": item["state_root"],
+                "same_file_functions_visited": sorted(visited),
+                "same_file_local_trace_truncated": truncated,
+                "field_write_candidates": evidence,
+                "field_write_candidate_count": len(evidence),
+                "unknown_or_external_helper_effects_unproven": True,
+                "status": "SOURCE_ORDER_STATIC_FIELD_CUES_NOT_TX_CAUSALITY_OR_AUTHORITY",
+                "constitutional_authorization": "NOT_ESTABLISHED",
+            }
+        )
     return results
