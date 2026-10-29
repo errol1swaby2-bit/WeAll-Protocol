@@ -864,7 +864,7 @@ class V2ReconciliationTests(unittest.TestCase):
         ]
         triage = rv.build_unmatched_review_triage(queue, rows)
         self.assertEqual(len(triage), 4)
-        for item, (_, _, priority) in zip(triage, origins):
+        for item, (_, _, priority) in zip(triage, origins, strict=True):
             self.assertEqual(item["priority"], priority)
             self.assertEqual(item["candidate_requirement_ids"], [])
             self.assertTrue(item["thematic_reading_list_only"])
