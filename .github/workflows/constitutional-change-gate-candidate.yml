@@ -108,6 +108,15 @@ jobs:
           assert result["unmatched_review_triage_count"] == 22
           assert result["unmatched_field_scan_status"] == "PINNED_BOUNDED_SOURCE_CUES_NOT_SEMANTIC_PROOF"
           assert result["unmatched_field_scan_entries"] == 22
+          actual_fields = {}
+          for entry in result["unmatched_account_field_cues"]:
+              filename = entry["source_path"].split("/")[-1]
+              actual_fields.setdefault(filename, set()).update(
+                  w["field"] for w in entry["field_write_candidates"]
+              )
+          assert "nonce" in actual_fields["content.py"]
+          assert {"banned", "reputation", "reputation_milli"}.issubset(actual_fields["reputation.py"])
+          assert "balance" in actual_fields["rewards.py"]
           assert all(
               x["constitutional_authorization"] == "NOT_ESTABLISHED"
               and x["status"] == "SOURCE_ORDER_STATIC_FIELD_CUES_NOT_TX_CAUSALITY_OR_AUTHORITY"

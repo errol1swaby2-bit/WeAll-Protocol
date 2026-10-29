@@ -35,8 +35,10 @@ def _literal_key(node: ast.AST) -> str:
 class _AccountFieldProbe(ast.NodeVisitor):
     """Source-order aliases; control-flow joins and callbacks are unresolved."""
 
-    def __init__(self, function: str):
+    def __init__(self, function: str, account_helpers: set[str]):
         self.function = function
+        self.account_helpers = account_helpers
+        self.helper_return_alias_seen = False
         self.aliases: dict[str, tuple[str, ...]] = {"state": ()}
         self.writes: list[dict[str, Any]] = []
 
@@ -53,6 +55,18 @@ class _AccountFieldProbe(ast.NodeVisitor):
         if isinstance(node, ast.Subscript):
             base = self._path(node.value)
             return (*base, _literal_key(node.slice)) if base is not None else None
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if (
+                node.func.id in self.account_helpers
+                and node.args
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == "state"
+            ):
+                # Explicitly provisional. These existing local helper names
+                # return an account record in the inspected source, but name-
+                # based recognition is NOT an interprocedural return proof.
+                self.helper_return_alias_seen = True
+                return ("accounts", "<dynamic-key>")
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
             if node.func.attr in {"get", "setdefault"}:
                 base = self._path(node.func.value)
@@ -164,6 +178,8 @@ def scan_account_field_review(
         anchor = item.get("source_function")
         _require(isinstance(anchor, str) and anchor in functions, "unmatched_field_anchor_absent")
         queue = deque([(anchor, 0)])
+        account_helpers = {"_ensure_account", "_require_account"} & set(functions)
+        helper_return_alias_seen = False
         visited: set[str] = set()
         evidence: list[dict[str, Any]] = []
         truncated = False
@@ -176,13 +192,14 @@ def scan_account_field_review(
                 continue
             fn = functions[name]
             visited.add(name)
-            probe = _AccountFieldProbe(name)
+            probe = _AccountFieldProbe(name, account_helpers)
             # We only infer aliases named "state"; helper state handoff is NOT
             # checked by this lightweight local-name call graph.
             for statement in fn.body:
                 probe.visit(statement)
             for w in probe.writes:
                 evidence.append({**w, "same_file_call_depth": depth})
+            helper_return_alias_seen |= probe.helper_return_alias_seen
             for call in ast.walk(fn):
                 if isinstance(call, ast.Call) and isinstance(call.func, ast.Name):
                     callee = call.func.id
@@ -210,7 +227,8 @@ def scan_account_field_review(
                 "same_file_local_trace_truncated": truncated,
                 "field_write_candidates": evidence,
                 "field_write_candidate_count": len(evidence),
-                "unknown_or_external_helper_effects_unproven": True,
+                "account_record_helper_name_heuristic_used": helper_return_alias_seen,
+            "unknown_or_external_helper_effects_unproven": True,
                 "status": "SOURCE_ORDER_STATIC_FIELD_CUES_NOT_TX_CAUSALITY_OR_AUTHORITY",
                 "constitutional_authorization": "NOT_ESTABLISHED",
             }

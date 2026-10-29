@@ -60,6 +60,29 @@ class FieldTraceTests(unittest.TestCase):
         self.assertTrue(observation["unknown_or_external_helper_effects_unproven"])
         self.assertEqual(observation["constitutional_authorization"], "NOT_ESTABLISHED")
 
+    def test_local_account_record_helper_return_alias_is_unverified_candidate(self) -> None:
+        triage = self.triage(
+            'def _ensure_account(state, user):\n'
+            '    accounts = state.setdefault("accounts", {})\n'
+            '    return accounts.setdefault(user, {})\n'
+            'def _apply_tx(state, user):\n'
+            '    acct = _ensure_account(state, user)\n'
+            '    acct["banned"] = True\n'
+            '    acct["reputation"] = "0"\n'
+            '    acct["balance"] = 12\n'
+        )
+        result = field_trace.scan_account_field_review(self.repo, triage)[0]
+        self.assertTrue(result["account_record_helper_name_heuristic_used"])
+        self.assertEqual(
+            {"balance", "banned", "reputation"},
+            {write["field"] for write in result["field_write_candidates"]
+             if write["category"] == "ACCOUNT_FIELD_CANDIDATE"},
+        )
+        self.assertEqual(
+            result["status"],
+            "SOURCE_ORDER_STATIC_FIELD_CUES_NOT_TX_CAUSALITY_OR_AUTHORITY",
+        )
+
     def test_unknown_key_remains_visible_not_safe(self) -> None:
         triage = self.triage(
             "def _apply_tx(state, user, key):\n"

@@ -280,3 +280,17 @@ visitation may overattribute a write to a TX or miss dynamic effects.
 Every AWC stays open; every requirement link for these unmatched
 items stays empty; no review becomes authenticated, no test result is
 fabricated, and no runtime code or normative v2 register is changed.
+
+### v0.10 helper-return review refinement
+
+The first pinned field-cue report found nonce and account-map sites but
+underreported direct account fields in reputation and rewards: account
+records are obtained through local `_ensure_account(state,...)` and
+`_require_account(state,...)` helpers. The scanner now treats only those
+**existing same-file helper names called with literal `state`** as
+unverified candidate account-record aliases. It then reports literal
+`banned`, `reputation`, `reputation_milli` and `balance` write
+sites where observed. This is not a verified return-value contract,
+control-flow path, interprocedural side-effect proof, or per-TX effect.
+The report marks when this helper-return name heuristic was used and
+never marks a requirement as satisfied or a review as completed.
