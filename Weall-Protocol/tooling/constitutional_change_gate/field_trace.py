@@ -228,7 +228,7 @@ def scan_account_field_review(
                 "field_write_candidates": evidence,
                 "field_write_candidate_count": len(evidence),
                 "account_record_helper_name_heuristic_used": helper_return_alias_seen,
-            "unknown_or_external_helper_effects_unproven": True,
+                "unknown_or_external_helper_effects_unproven": True,
                 "status": "SOURCE_ORDER_STATIC_FIELD_CUES_NOT_TX_CAUSALITY_OR_AUTHORITY",
                 "constitutional_authorization": "NOT_ESTABLISHED",
             }

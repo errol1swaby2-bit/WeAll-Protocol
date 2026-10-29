@@ -62,11 +62,11 @@ class FieldTraceTests(unittest.TestCase):
 
     def test_local_account_record_helper_return_alias_is_unverified_candidate(self) -> None:
         triage = self.triage(
-            'def _ensure_account(state, user):\n'
+            "def _ensure_account(state, user):\n"
             '    accounts = state.setdefault("accounts", {})\n'
-            '    return accounts.setdefault(user, {})\n'
-            'def _apply_tx(state, user):\n'
-            '    acct = _ensure_account(state, user)\n'
+            "    return accounts.setdefault(user, {})\n"
+            "def _apply_tx(state, user):\n"
+            "    acct = _ensure_account(state, user)\n"
             '    acct["banned"] = True\n'
             '    acct["reputation"] = "0"\n'
             '    acct["balance"] = 12\n'
@@ -75,8 +75,11 @@ class FieldTraceTests(unittest.TestCase):
         self.assertTrue(result["account_record_helper_name_heuristic_used"])
         self.assertEqual(
             {"balance", "banned", "reputation"},
-            {write["field"] for write in result["field_write_candidates"]
-             if write["category"] == "ACCOUNT_FIELD_CANDIDATE"},
+            {
+                write["field"]
+                for write in result["field_write_candidates"]
+                if write["category"] == "ACCOUNT_FIELD_CANDIDATE"
+            },
         )
         self.assertEqual(
             result["status"],
