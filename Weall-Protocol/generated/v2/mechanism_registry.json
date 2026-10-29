@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "2966a969c00f722542c0f209b038521fc984adf6047942f250b5d69fad52b954"
+    "source_tree_digest": "ee3e83e7bbcc03397fc07e3f5c01c0398eeb35c65ebf545b8ea5b11202b9acec"
   },
   "rows": [
     {
@@ -3800,6 +3800,7 @@
         "tooling/constitutional_change_gate/PR62_REVIEW.md",
         "tooling/constitutional_change_gate/README.md",
         "tooling/constitutional_change_gate/SHA256SUMS.txt",
+        "tooling/constitutional_change_gate/field_trace.py",
         "tooling/constitutional_change_gate/policies/requirements.json",
         "tooling/constitutional_change_gate/reconcile_v2.py",
         "tooling/constitutional_change_gate/reference/LOCAL_TEST_RESULTS.txt",
@@ -3810,6 +3811,7 @@
         "tooling/constitutional_change_gate/reference/pinned_domain_requirement_preview.csv",
         "tooling/constitutional_change_gate/tests/__init__.py",
         "tooling/constitutional_change_gate/tests/test_change_gate.py",
+        "tooling/constitutional_change_gate/tests/test_field_trace.py",
         "tooling/constitutional_change_gate/tests/test_v2_reconciliation.py",
         "tooling/constitutional_change_gate/validate_pr61_isolated.sh",
         "tooling/constitutional_change_gate/weall_change_gate.py",

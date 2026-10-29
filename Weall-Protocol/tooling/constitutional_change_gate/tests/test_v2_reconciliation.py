@@ -917,11 +917,13 @@ class V2ReconciliationTests(unittest.TestCase):
 
     def test_field_scan_requires_pinned_effect_inventory(self):
         effects = self._review_queue_fixture()
-        with self.assertRaisesRegex(
-            cg.ContractError, "field_source_scan_requires_pinned_effects"
-        ):
+        with self.assertRaisesRegex(cg.ContractError, "field_source_scan_requires_pinned_effects"):
             rv.reconcile(
-                self.idx, self.rows, self.tx, self.req, [],
+                self.idx,
+                self.rows,
+                self.tx,
+                self.req,
+                [],
                 checkout_commit=cg.repo_commit(self.repo),
                 effects=effects,
                 field_source_repo=self.repo,

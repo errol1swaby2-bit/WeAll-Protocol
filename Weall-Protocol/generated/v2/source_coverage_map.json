@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2080,
+  "file_count": 2082,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/constitutional-change-gate-candidate.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "eee29f9995d17bab692b75a530f211006a31f558e27e3c840b8b7b0c5c715a76",
+      "sha256": "e0e119ea96ace57e3472d543654d6398a471a8fc038c72ef4a2105ab0c9bf4df",
       "source_id": "SRC-1415B80B453C4D21"
     },
     {
@@ -95,7 +95,7 @@
       ],
       "path": "../.github/workflows/pr62-candidate-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "a4c953dbd9396502bfc21f744eb9a7430cd50f475ea93bd008a1097cb8028cab",
+      "sha256": "f025dca7080297cc574f19199178c3a14c5acde07f263f113eaf36506b53ec26",
       "source_id": "SRC-7CB0805B9D1138CB"
     },
     {
@@ -6985,7 +6985,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "306937d1b4455e7a38d44609f11f32b7a7d09d545f9a5e4a4e438a64eddc62c5",
+      "sha256": "73ba787ac40eb3ba7d4b4883122acb45a54684696128af42e15ec83eb9189606",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -30568,7 +30568,7 @@
       ],
       "path": "tooling/constitutional_change_gate/PR62_REVIEW.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "04f24b45045f487e999b14da06fd0d95996fdc92b6071e3ef00416d2ebdd1c26",
+      "sha256": "e4669168e16aea9c197d67b8821f77cf458c74fd1c99fd36afb206b3437759a6",
       "source_id": "SRC-BDFF3DEA0AC7B6BA"
     },
     {
@@ -30596,8 +30596,24 @@
       ],
       "path": "tooling/constitutional_change_gate/SHA256SUMS.txt",
       "primary_mechanism_id": "M-076",
-      "sha256": "6acb4567854a7ce7da398db48dc75529714e176a9a5b03e3a3feebf23e0feb54",
+      "sha256": "58a3285cfbb7da2d93f26d89d90af72b42380e145c5700f1e38eb3522a57478f",
       "source_id": "SRC-CAAA5EC1F64384C0"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "tooling/constitutional_change_gate/field_trace.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "232dd036b936181f6c20a09e92c9a5845d599de2674b8476bdf583a4bfa60139",
+      "source_id": "SRC-4376F4C61CB67140"
     },
     {
       "affected_registers": [
@@ -30628,7 +30644,7 @@
       ],
       "path": "tooling/constitutional_change_gate/reconcile_v2.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e3af639c192e1a538ec774f9990752a2b48e3b0a1caa31c60a48d7157deb1b6c",
+      "sha256": "75bc0e4c86ff8f7213bc2165e32bdc1897dbf6587255c877022e26c18ec57586",
       "source_id": "SRC-6BE5BFA953B95629"
     },
     {
@@ -30738,9 +30754,23 @@
       "mappings": [
         "M-076"
       ],
+      "path": "tooling/constitutional_change_gate/tests/test_field_trace.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "5120f0649ac15916c257a9ca4d230cc84eb387966e65c97dcdac508a326709cf",
+      "source_id": "SRC-E1BC0032751D9F72"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "verification_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "tooling/constitutional_change_gate/tests/test_v2_reconciliation.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2fbed135bc7e9d37af79ed50d1d2630bfca70b119d616e16b2c8df3b69451f23",
+      "sha256": "f9340384c7e7f4ce505f5f1d9e9f4ff7b9607d2d2ae4d1a02ed33ad966c8e442",
       "source_id": "SRC-9CD87DABD7EA5551"
     },
     {
@@ -30756,7 +30786,7 @@
       ],
       "path": "tooling/constitutional_change_gate/weall_change_gate.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "80d761ba91ebf9c33564d0bc727343ec274d3ae423d4297a7a6193f89295e6bb",
+      "sha256": "eefa4e722a6ae83ac74e4a16082c63e5a7b73b8f7221843ba59ccd77affe736d",
       "source_id": "SRC-152E4C031D991B00"
     },
     {

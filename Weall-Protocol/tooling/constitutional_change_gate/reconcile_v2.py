@@ -801,7 +801,8 @@ def reconcile(
         "unmatched_review_triage_count": len(unmatched_review_triage),
         "unmatched_field_scan_status": (
             "PINNED_BOUNDED_SOURCE_CUES_NOT_SEMANTIC_PROOF"
-            if field_source_repo is not None else "NOT_REQUESTED_NO_SOURCE_REPO"
+            if field_source_repo is not None
+            else "NOT_REQUESTED_NO_SOURCE_REPO"
         ),
         "unmatched_field_scan_entries": len(account_field_cues),
         "unmatched_account_field_cue_count": sum(
@@ -1094,44 +1095,55 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
                 }
             )
     (out / "v2_unmatched_account_field_cues.json").write_bytes(
-        cg.canonical_bytes({
-            "schema": "weall.v2.unmatched-account-field-cues.v0.1",
-            "source_commit": doc["target_checkout_commit"],
-            "scan_status": doc["unmatched_field_scan_status"],
-            "entries": doc["unmatched_account_field_cues"],
-            "release_authority": "NOT_ESTABLISHED",
-        })
+        cg.canonical_bytes(
+            {
+                "schema": "weall.v2.unmatched-account-field-cues.v0.1",
+                "source_commit": doc["target_checkout_commit"],
+                "scan_status": doc["unmatched_field_scan_status"],
+                "entries": doc["unmatched_account_field_cues"],
+                "release_authority": "NOT_ESTABLISHED",
+            }
+        )
     )
-    with (out / "v2_unmatched_account_field_cues.csv").open(
-        "w", newline="", encoding="utf-8"
-    ) as f:
+    with (out / "v2_unmatched_account_field_cues.csv").open("w", newline="", encoding="utf-8") as f:
         fields = [
-            "review_key", "source_commit", "source_file_sha256",
-            "source_path", "anchor_function", "visited_function",
-            "same_file_call_depth", "source_line", "account_field",
-            "account_path", "field_category", "write_form", "scan_status",
+            "review_key",
+            "source_commit",
+            "source_file_sha256",
+            "source_path",
+            "anchor_function",
+            "visited_function",
+            "same_file_call_depth",
+            "source_line",
+            "account_field",
+            "account_path",
+            "field_category",
+            "write_form",
+            "scan_status",
             "constitutional_authorization",
         ]
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         for item in doc["unmatched_account_field_cues"]:
             for write in item["field_write_candidates"]:
-                writer.writerow({
-                    "review_key": item["review_key"],
-                    "source_commit": item["source_commit"],
-                    "source_file_sha256": item["source_file_sha256"],
-                    "source_path": item["source_path"],
-                    "anchor_function": item["anchor_function"],
-                    "visited_function": write["source_function"],
-                    "same_file_call_depth": write["same_file_call_depth"],
-                    "source_line": write["line"],
-                    "account_field": write["field"],
-                    "account_path": "/".join(write["account_path"]),
-                    "field_category": write["category"],
-                    "write_form": write["write_form"],
-                    "scan_status": item["status"],
-                    "constitutional_authorization": "NOT_ESTABLISHED",
-                })
+                writer.writerow(
+                    {
+                        "review_key": item["review_key"],
+                        "source_commit": item["source_commit"],
+                        "source_file_sha256": item["source_file_sha256"],
+                        "source_path": item["source_path"],
+                        "anchor_function": item["anchor_function"],
+                        "visited_function": write["source_function"],
+                        "same_file_call_depth": write["same_file_call_depth"],
+                        "source_line": write["line"],
+                        "account_field": write["field"],
+                        "account_path": "/".join(write["account_path"]),
+                        "field_category": write["category"],
+                        "write_form": write["write_form"],
+                        "scan_status": item["status"],
+                        "constitutional_authorization": "NOT_ESTABLISHED",
+                    }
+                )
     # Preserve all canonical TXs in the reverse CSV, including TXs with no
     # established candidates. Absence of a link MUST NOT mean unaffected.
     with (out / "v2_tx_requirement_candidates.csv").open("w", newline="", encoding="utf-8") as f:
