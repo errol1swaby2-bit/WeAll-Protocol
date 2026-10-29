@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2063,
+  "file_count": 2066,
   "files": [
     {
       "affected_registers": [
@@ -58,6 +58,32 @@
       "primary_mechanism_id": "M-075",
       "sha256": "9f928229d2232fb2eee7d80e239aa8f0795c3d0da31be25bd7cfe84fa0501dd5",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/issue63-bounded-derivative-maintenance.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "23afb8f92c92d2459651943475f792000a5045654c1ca08373c0c0cceddb18a0",
+      "source_id": "SRC-C504814E2BF479C1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/issue63-reputation-replay-evidence.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "127aa223fdf70f9f8d7aba89716d386c1da596ca0bb2e5b2a01db61f7254fe89",
+      "source_id": "SRC-9CB389758E060B13"
     },
     {
       "affected_registers": [
@@ -9706,7 +9732,7 @@
       ],
       "path": "src/weall/runtime/apply/reputation.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "ee54b66b67ac60197a0ed30a217042228ddd98ed37e18d0570282eb594e71862",
+      "sha256": "3c97e06f139a05db1944b60e1b3b65b1ddc0038680058d51863b80152e489e30",
       "source_id": "SRC-81FEB36449EC8138"
     },
     {
@@ -19874,6 +19900,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d44267a8f31ba9e60a6356280a5bb8f5bfa7e6fb04767d74d789e13fc6ff45a4",
       "source_id": "SRC-6FF32B41B3A4C241"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "TX-0900",
+        "TX-0904"
+      ],
+      "path": "tests/test_issue63_reputation_state_replay.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "fedab741b2fe017b186090b85b60620db7e7cd68ff0e27d358908f22443cb183",
+      "source_id": "SRC-85B4150E35424E66"
     },
     {
       "affected_registers": [

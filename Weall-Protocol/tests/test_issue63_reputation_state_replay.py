@@ -3,6 +3,7 @@
 Focused, in-memory domain apply only. No signed SYSTEM provenance, persistence,
 canonical executor replay, BFT cross-node execution, or release authorization.
 """
+
 from __future__ import annotations
 
 import copy
@@ -86,22 +87,27 @@ def test_duplicate_legacy_float_representation_is_a_strict_noop() -> None:
     state["accounts"]["@alice"]["reputation_milli"] = -100000
     state["accounts"]["@alice"]["banned"] = True
     state["reputation"] = {
-        "deltas": [{
-            "delta_id": "issue63:historical",
-            "account_id": "@alice",
-            "delta_milli": -100000,
-            "reason": "legacy",
-        }],
+        "deltas": [
+            {
+                "delta_id": "issue63:historical",
+                "account_id": "@alice",
+                "delta_milli": -100000,
+                "reason": "legacy",
+            }
+        ],
         "threshold_crossings": [],
         "role_eligibility": {},
         "bans": {},
     }
     before = _bytes(state)
-    result = apply_reputation(state, _tx(
-        "REPUTATION_DELTA_APPLY",
-        {"account_id": "@alice", "delta_id": "issue63:historical", "delta_milli": -100000},
-        nonce=9,
-    ))
+    result = apply_reputation(
+        state,
+        _tx(
+            "REPUTATION_DELTA_APPLY",
+            {"account_id": "@alice", "delta_id": "issue63:historical", "delta_milli": -100000},
+            nonce=9,
+        ),
+    )
     assert result is not None and result["deduped"] is True
     assert type(state["accounts"]["@alice"]["reputation"]) is float
     assert _bytes(state) == before
@@ -140,20 +146,25 @@ def test_exported_system_delta_replay_keeps_canonical_account_representation() -
 def test_duplicate_does_not_materialize_missing_target_account() -> None:
     state = _state()
     state["reputation"] = {
-        "deltas": [{
-            "delta_id": "issue63:orphan",
-            "account_id": "@missing",
-            "delta_milli": -1000,
-        }],
+        "deltas": [
+            {
+                "delta_id": "issue63:orphan",
+                "account_id": "@missing",
+                "delta_milli": -1000,
+            }
+        ],
         "threshold_crossings": [],
         "role_eligibility": {},
         "bans": {},
     }
     before = _bytes(state)
-    result = apply_reputation(state, _tx(
-        "REPUTATION_DELTA_APPLY",
-        {"account_id": "@missing", "delta_id": "issue63:orphan", "delta_milli": -1000},
-    ))
+    result = apply_reputation(
+        state,
+        _tx(
+            "REPUTATION_DELTA_APPLY",
+            {"account_id": "@missing", "delta_id": "issue63:orphan", "delta_milli": -1000},
+        ),
+    )
     assert result is not None and result["deduped"] is True
     assert "@missing" not in state["accounts"]
     assert _bytes(state) == before
@@ -174,11 +185,14 @@ def test_same_delta_id_must_not_silently_accept_different_target() -> None:
     apply_reputation(state, _tx("REPUTATION_DELTA_APPLY", payload))
     before = _bytes(state)
     with pytest.raises(ReputationApplyError):
-        apply_reputation(state, _tx(
-            "REPUTATION_DELTA_APPLY",
-            {**payload, "account_id": "@bob"},
-            nonce=2,
-        ))
+        apply_reputation(
+            state,
+            _tx(
+                "REPUTATION_DELTA_APPLY",
+                {**payload, "account_id": "@bob"},
+                nonce=2,
+            ),
+        )
     assert _bytes(state) == before
 
 
@@ -206,8 +220,11 @@ def test_rejected_missing_delta_does_not_mutate_any_state() -> None:
     state = _state()
     before = _bytes(state)
     with pytest.raises(ReputationApplyError):
-        apply_reputation(state, _tx(
-            "REPUTATION_DELTA_APPLY",
-            {"account_id": "@alice", "delta_id": "issue63:missing-delta"},
-        ))
+        apply_reputation(
+            state,
+            _tx(
+                "REPUTATION_DELTA_APPLY",
+                {"account_id": "@alice", "delta_id": "issue63:missing-delta"},
+            ),
+        )
     assert _bytes(state) == before

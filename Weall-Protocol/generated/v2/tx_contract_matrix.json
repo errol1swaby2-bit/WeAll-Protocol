@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "3f9d0e82687c9995ffb6366b9418b26225d525df2470e5882d5ad5727aba0af4"
+    "source_tree_digest": "5b95d5d11e910ca048723c50493028873e357164cc71116ab1f609cdd032c460"
   },
   "required_fields": [
     "stable_id",
@@ -17448,7 +17448,7 @@
       "implementation_source": {
         "function": "_apply_reputation_delta_apply",
         "handler": "reputation",
-        "line": 364,
+        "line": 373,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17525,6 +17525,7 @@
       ],
       "tests": [
         "tests/test_four_gate_safety.py",
+        "tests/test_issue63_reputation_state_replay.py",
         "tests/test_local_rehearsal_rate_limit_and_reviewer_status.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_reputation_accrual_policy.py",
@@ -17579,7 +17580,7 @@
       "implementation_source": {
         "function": "_apply_reputation_threshold_cross",
         "handler": "reputation",
-        "line": 458,
+        "line": 466,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17685,7 +17686,7 @@
       "implementation_source": {
         "function": "_apply_role_eligibility_set",
         "handler": "reputation",
-        "line": 499,
+        "line": 507,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17789,7 +17790,7 @@
       "implementation_source": {
         "function": "_apply_role_eligibility_revoke",
         "handler": "reputation",
-        "line": 540,
+        "line": 548,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17888,7 +17889,7 @@
       "implementation_source": {
         "function": "_apply_account_ban",
         "handler": "reputation",
-        "line": 581,
+        "line": 589,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17943,6 +17944,7 @@
       "tests": [
         "tests/test_four_gate_safety.py",
         "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_issue63_reputation_state_replay.py",
         "tests/test_tx_contract_coverage.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -17990,7 +17992,7 @@
       "implementation_source": {
         "function": "_apply_account_reinstate",
         "handler": "reputation",
-        "line": 618,
+        "line": 626,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
