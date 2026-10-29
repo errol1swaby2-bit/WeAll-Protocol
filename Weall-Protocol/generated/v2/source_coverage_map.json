@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/issue63-bounded-derivative-maintenance.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "f6a9d08d374a943072f9d452ab79bbb1d30e64680a5cd869753eaa6a9fd1ab04",
+      "sha256": "cf0feb974eaa41f0aeafb064adc33c563d1434a6599cf9dc82619005c5da4f1e",
       "source_id": "SRC-C504814E2BF479C1"
     },
     {
@@ -3479,7 +3479,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "b212f7fc42fca0706be608777b94f0a2d6457bdc7065fe3a9a7b099ce41517a7",
+      "sha256": "5afb9db3b3f12f0c941dc274b6ce5d2d41d2c5e8f18f5fbb271cca5e7d380feb",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3661,7 +3661,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0cd3882ca78919eb89b3be2ca25622be939f1543b8b324137e6c85e88b3b472a",
+      "sha256": "d68ee6341c46d53657db18cc0250f0fd94bd6b2a81999d31b61f34cd9ab44da7",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
