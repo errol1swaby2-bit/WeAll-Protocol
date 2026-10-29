@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import sys
 import tempfile
 import unittest
@@ -597,6 +598,12 @@ class V2ReconciliationTests(unittest.TestCase):
         q = result["authority_review_queue"][0]
         self.assertEqual(q["submission_status"], "RECORDED_UNAUTHENTICATED_NOT_ADJUDICATED")
         self.assertEqual(result["review_submissions_recorded_unverified"], 1)
+        self.assertEqual(result["review_evidence_files_sha256_checked"], 0)
+        self.assertEqual(result["review_evidence_submissions_without_byte_checks"], 1)
+        self.assertEqual(
+            q["evidence_byte_integrity"]["status"],
+            "METADATA_ONLY_BYTES_NOT_INSPECTED",
+        )
         self.assertEqual(result["authority_review_queue_open_count"], 1)
         self.assertEqual(result["independently_authenticated_reviews"], 0)
         self.assertFalse(q["review_complete"])
@@ -687,6 +694,92 @@ class V2ReconciliationTests(unittest.TestCase):
                     "source_commit": cg.repo_commit(self.repo),
                     "records": [],
                 },
+            )
+
+    def test_evidence_bytes_verified_without_authorizing_claim(self):
+        root = Path(self.tmp.name) / "review_bundle"
+        (root / "artifacts").mkdir(parents=True)
+        evidence = root / "artifacts" / "review.txt"
+        content = b"non-authoritative review fixture: not a passing test"
+        evidence.write_bytes(content)
+        sha = hashlib.sha256(content).hexdigest()
+        effects = self._review_queue_fixture()
+        commit = cg.repo_commit(self.repo)
+        baseline = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=commit, effects=effects, require_effect_pin=True,
+        )
+        claim = {
+            "review_key": baseline["authority_review_queue"][0]["review_key"],
+            "source_file_sha256": "a" * 64,
+            "reviewer_id": "reviewer-fixture-unverified",
+            "review_decision": "FALSE_POSITIVE_CLAIMED",
+            "rationale": "Synthetic file cannot settle any real authority effects",
+            "evidence_ref": "artifacts/review.txt",
+            "evidence_sha256": sha,
+            "requirement_ids": ["DISP-001"],
+        }
+        manifest = {
+            "schema": "weall.v2.authority-review-submissions.v0.1",
+            "source_commit": commit,
+            "records": [claim],
+        }
+        result = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=commit, effects=effects, require_effect_pin=True,
+            review_submissions=manifest, review_evidence_root=root,
+        )
+        item = result["authority_review_queue"][0]
+        self.assertEqual(result["review_evidence_files_sha256_checked"], 1)
+        self.assertEqual(result["review_evidence_submissions_without_byte_checks"], 0)
+        self.assertEqual(
+            item["evidence_byte_integrity"]["status"],
+            "LOCAL_BYTES_SHA256_MATCH_NOT_CONTENT_OR_IDENTITY_ATTESTATION",
+        )
+        self.assertEqual(item["evidence_byte_integrity"]["bytes_read"], len(content))
+        self.assertFalse(item["review_complete"])
+        self.assertEqual(result["independently_authenticated_reviews"], 0)
+        self.assertTrue(result["gate"].startswith("BLOCKED"))
+        evidence.write_bytes(content + b"\nTAMPERED")
+        with self.assertRaisesRegex(cg.ContractError, "review_evidence_digest_mismatch"):
+            rv.reconcile(
+                self.idx, self.rows, self.tx, self.req, [],
+                checkout_commit=commit, effects=effects, require_effect_pin=True,
+                review_submissions=manifest, review_evidence_root=root,
+            )
+
+    def test_evidence_ref_escape_symlink_missing_and_empty_are_rejected(self):
+        root = Path(self.tmp.name) / "bundle"
+        root.mkdir()
+        safe = root / "safe.log"
+        safe.write_bytes(b"review")
+        outside = Path(self.tmp.name) / "outside.txt"
+        outside.write_bytes(b"external")
+        (root / "linked.log").symlink_to(outside)
+        digest = hashlib.sha256(b"review").hexdigest()
+        for ref, code in [
+            ("../outside.txt", "review_evidence_ref_unsafe"),
+            ("/tmp/evidence.log", "review_evidence_ref_unsafe"),
+            ("C:/system32", "review_evidence_ref_unsafe"),
+            ("./safe.log", "review_evidence_ref_unsafe"),
+            ("a//file", "review_evidence_ref_unsafe"),
+            ("linked.log", "review_evidence_symlink_rejected"),
+            ("absent.log", "review_evidence_file_missing"),
+        ]:
+            with self.subTest(ref=ref):
+                with self.assertRaisesRegex(cg.ContractError, code):
+                    rv.verify_review_evidence_file(root, ref, digest)
+        safe.write_bytes(b"")
+        with self.assertRaisesRegex(cg.ContractError, "review_evidence_size_invalid"):
+            rv.verify_review_evidence_file(root, "safe.log", digest)
+
+    def test_review_evidence_root_without_submissions_is_rejected(self):
+        effects = self._review_queue_fixture()
+        with self.assertRaisesRegex(cg.ContractError, "review_evidence_root_without_submissions"):
+            rv.reconcile(
+                self.idx, self.rows, self.tx, self.req, [],
+                checkout_commit=cg.repo_commit(self.repo), effects=effects,
+                review_evidence_root=Path(self.tmp.name),
             )
 
     def test_write_reports_external_only(self):

@@ -94,6 +94,8 @@ jobs:
           assert result["authority_review_queue_open_count"] == result["authority_review_queue_item_count"]
           assert result["independently_authenticated_reviews"] == 0
           assert result["review_submissions_recorded_unverified"] == 0
+          assert result["review_evidence_files_sha256_checked"] == 0
+          assert result["review_evidence_submissions_without_byte_checks"] == 0
           assert all(
               not q["review_complete"]
               and q["constitutional_authorization"] == "NOT_ESTABLISHED"

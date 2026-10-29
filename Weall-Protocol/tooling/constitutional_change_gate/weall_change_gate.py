@@ -1483,6 +1483,11 @@ def main(argv: list[str] | None = None) -> int:
                 if args.authority_review_submissions
                 else None
             ),
+            review_evidence_root=(
+                args.authority_review_submissions.resolve().parent
+                if args.authority_review_submissions
+                else None
+            ),
         )
         reconcile_v2.write_results(reconciled, out)
     atomic_write(out / "tx_implementation_matrix.md", matrix_md(rows, policy).encode("utf-8"))

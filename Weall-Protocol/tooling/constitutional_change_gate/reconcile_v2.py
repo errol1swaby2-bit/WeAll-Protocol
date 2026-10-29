@@ -11,6 +11,7 @@ import argparse
 import csv
 import hashlib
 import re
+import stat
 from collections import Counter
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -72,16 +73,63 @@ def authority_review_key(item: dict[str, Any]) -> str:
     return "AWC-" + hashlib.sha256(cg.canonical_bytes(identity)).hexdigest()[:24]
 
 
+MAX_REVIEW_EVIDENCE_BYTES = 64 * 1024 * 1024
+
+
+def verify_review_evidence_file(
+    evidence_root: Path, ref: str, expected_sha256: str
+) -> dict[str, Any]:
+    """Verify bounded local bytes; no evidence interpretation or attestation."""
+    require(
+        isinstance(ref, str)
+        and 0 < len(ref) <= 1024
+        and "\\" not in ref
+        and "\0" not in ref
+        and not ref.startswith(("/", "~"))
+        and re.match(r"^[A-Za-z]:", ref) is None
+        and all(component not in {"", ".", ".."} for component in ref.split("/")),
+        "review_evidence_ref_unsafe",
+    )
+    root = evidence_root.resolve(strict=True)
+    require(root.is_dir(), "review_evidence_root_not_directory")
+    target = root
+    for component in ref.split("/"):
+        target = target / component
+        require(not target.is_symlink(), "review_evidence_symlink_rejected")
+    require(target.resolve().is_relative_to(root), "review_evidence_path_outside_root")
+    try:
+        st = target.stat()
+    except (FileNotFoundError, NotADirectoryError):
+        raise cg.ContractError("review_evidence_file_missing") from None
+    require(stat.S_ISREG(st.st_mode), "review_evidence_not_regular_file")
+    require(0 < st.st_size <= MAX_REVIEW_EVIDENCE_BYTES, "review_evidence_size_invalid")
+    sha = hashlib.sha256()
+    seen = 0
+    with target.open("rb") as handle:
+        while block := handle.read(1024 * 1024):
+            seen += len(block)
+            require(seen <= MAX_REVIEW_EVIDENCE_BYTES, "review_evidence_size_invalid")
+            sha.update(block)
+    require(seen == st.st_size, "review_evidence_size_changed_during_read")
+    require(sha.hexdigest() == expected_sha256, "review_evidence_digest_mismatch")
+    return {
+        "status": "LOCAL_BYTES_SHA256_MATCH_NOT_CONTENT_OR_IDENTITY_ATTESTATION",
+        "bytes_read": seen,
+        "verified_sha256": sha.hexdigest(),
+    }
+
+
 def reconcile_review_submissions(
     queue: list[dict[str, Any]],
     payload: dict[str, Any] | None,
     checkout_commit: str,
+    evidence_root: Path | None = None,
 ) -> int:
-    """Record reviewer *claims* without accepting authentication or compliance.
+    """Record review claims with optional digest checks, never adjudication.
 
     Strict binding stops orphan, stale and mismatched metadata from appearing
-    on a current queue. Independent human identity and evidence contents are
-    NOT verified and the queue always stays open.
+    on a current queue. Reviewer identity, evidence meaning and constitutional
+    authority remain unverified even if local file bytes match a digest.
     """
     if payload is None:
         return 0
@@ -132,6 +180,14 @@ def reconcile_review_submissions(
             and set(claimed_reqs).issubset(set(item["candidate_requirement_ids"])),
             "review_submission_unmapped_requirement",
         )
+        integrity = (
+            verify_review_evidence_file(
+                evidence_root, record["evidence_ref"], record["evidence_sha256"]
+            )
+            if evidence_root is not None
+            else {"status": "METADATA_ONLY_BYTES_NOT_INSPECTED"}
+        )
+        item["evidence_byte_integrity"] = integrity
         item["review_submission"] = {
             field: record[field]
             for field in (
@@ -159,6 +215,7 @@ def reconcile(
     effects: dict[str, Any] | None = None,
     require_effect_pin: bool = False,
     review_submissions: dict[str, Any] | None = None,
+    review_evidence_root: Path | None = None,
 ) -> dict[str, Any]:
     require(
         isinstance(v2_contract, dict)
@@ -272,6 +329,8 @@ def reconcile(
         raise cg.ContractError("required_effect_inventory_absent")
     if review_submissions is not None and not require_effect_pin:
         raise cg.ContractError("review_submissions_require_pinned_effects")
+    if review_evidence_root is not None and review_submissions is None:
+        raise cg.ContractError("review_evidence_root_without_submissions")
     if effects is not None:
         effect_commit = effects.get("source_commit")
         if effect_commit is not None and effect_commit != checkout_commit:
@@ -503,7 +562,13 @@ def reconcile(
         observation["review_key"] = key
     authority_review_queue = [review_queue_by_key[key] for key in sorted(review_queue_by_key)]
     submissions_recorded = reconcile_review_submissions(
-        authority_review_queue, review_submissions, checkout_commit
+        authority_review_queue, review_submissions, checkout_commit,
+        evidence_root=review_evidence_root,
+    )
+    verified_evidence_files = sum(
+        q.get("evidence_byte_integrity", {}).get("status")
+        == "LOCAL_BYTES_SHA256_MATCH_NOT_CONTENT_OR_IDENTITY_ATTESTATION"
+        for q in authority_review_queue
     )
     authority_by_tx: dict[str, list[dict[str, Any]]] = {name: [] for name in static_rows}
     for review in authority_review_rows:
@@ -592,6 +657,10 @@ def reconcile(
             for q in authority_review_queue
         ),
         "review_submissions_recorded_unverified": submissions_recorded,
+        "review_evidence_files_sha256_checked": verified_evidence_files,
+        "review_evidence_submissions_without_byte_checks": (
+            submissions_recorded - verified_evidence_files
+        ),
         "authority_review_queue_open_count": len(authority_review_queue),
         "independently_authenticated_reviews": 0,
         "tx_with_candidate_requirement_links": sum(
@@ -638,6 +707,8 @@ def render_md(out: dict[str, Any]) -> str:
         f"- Candidate TX-to-requirement links: **{out['tx_requirement_candidate_link_count']}**",
         f"- Authority-write review queue: **{out['authority_review_queue_item_count']}** unique observations; **{out['authority_review_queue_unmatched_count']}** without declared requirement-source links",
         f"- Review submissions recorded (UNAUTHENTICATED): **{out['review_submissions_recorded_unverified']}**; queue remains OPEN",
+        f"- Local evidence SHA-256 checks (NOT attestations): **{out['review_evidence_files_sha256_checked']}**",
+        f"- Review claims without byte checks: **{out['review_evidence_submissions_without_byte_checks']}**",
         f"- Non-canonical contract identifiers: **{', '.join(out['non_tx_contract_identifiers_not_in_canon'])}** (not necessarily invalid; these describe mechanisms/schedulers)",
         "",
         "## Requirement selection from actual changed paths",
@@ -780,6 +851,12 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
                 "review_submission_schema": doc["review_submission_schema"],
                 "review_submissions_recorded_unverified": doc[
                     "review_submissions_recorded_unverified"
+                ],
+                "review_evidence_files_sha256_checked": doc[
+                    "review_evidence_files_sha256_checked"
+                ],
+                "review_evidence_submissions_without_byte_checks": doc[
+                    "review_evidence_submissions_without_byte_checks"
                 ],
                 "release_authority": "NOT_ESTABLISHED",
             }

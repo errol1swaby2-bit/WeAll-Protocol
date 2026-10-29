@@ -162,3 +162,30 @@ constitutional authority from such metadata; it records the submission as
 The release gate stays BLOCKED even when someone claims no effect or supplies
 a digest. Human review must independently retrieve/verify the evidence and
 authorize each normative mapping through WeAll's constitutional process.
+
+## v0.8 local review-evidence byte integrity (still review-only)
+
+When an external authority-review submission manifest is supplied through
+`weall_change_gate.py build --v2-effect-links --authority-review-submissions
+<path>`, the CLI now loads the referenced evidence file **from the manifest's
+own directory**, not from the Git checkout. Each `evidence_ref` must be a
+relative path below that directory with no traversal, symlink segment, empty
+component or absolute/drive path. Evidence files must be nonempty regular
+files no larger than 64 MiB. The tool reads them in bounded chunks and
+checks their bytes against the submitted SHA-256 digest. Missing, mutated
+or malformed paths fail closed.
+
+The output `evidence_byte_integrity.status` may say
+`LOCAL_BYTES_SHA256_MATCH_NOT_CONTENT_OR_IDENTITY_ATTESTATION`.
+That means only that **local bytes matched the manifest's claimed digest**.
+It does not verify the log's provenance, the authenticity or independence
+of the declared reviewer, the tests actually performed, the legality of a
+state mutation or the authority of a claimed decision. The general
+`reconcile()` API can still process metadata-only synthetic fixtures;
+such records are explicitly marked `METADATA_ONLY_BYTES_NOT_INSPECTED`.
+The CLI never treats metadata-only evidence as verified bytes.
+
+All submissions remain unauthenticated and unadjudicated; all review queue
+items remain OPEN; protected branch policy and the constitutional release
+gate remain unchanged. Never interpret this digest check as independent
+security review or permission to merge.
