@@ -807,11 +807,118 @@ class V2ReconciliationTests(unittest.TestCase):
                 review_evidence_root=Path(self.tmp.name),
             )
 
+
+    def test_unmatched_triage_preserves_distinct_reading_vs_link(self):
+        origins = [
+            ("CONTENT_POST_CREATE", "content.py", "P2_REVIEW_NONCE_AND_CONTENT_PERMISSION_EFFECTS"),
+            ("ACCOUNT_BAN", "reputation.py", "P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS"),
+            ("BLOCK_REWARD_DISTRIBUTE", "rewards.py", "P1_REVIEW_BALANCE_AND_ISSUANCE_CONSERVATION"),
+            ("CUSTOM", "unknown.py", "UNCLASSIFIED_REVIEW_REQUIRED"),
+        ]
+        queue = [
+            {
+                "review_key": "AWC-fixture-" + str(i),
+                "source_commit": cg.repo_commit(self.repo),
+                "source_file_sha256": "a" * 64,
+                "tx_type": tx,
+                "state_root": "accounts",
+                "source_path": "Weall-Protocol/src/weall/runtime/apply/" + name,
+                "source_function": "_apply_fixture",
+                "write_signal": "DIRECT_STATE_ROOT",
+                "triage_bucket": "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH",
+                "candidate_requirement_ids": [],
+            }
+            for i, (tx, name, _priority) in enumerate(origins)
+        ]
+        rows = [
+            {
+                "id": "CONT-001",
+                "normative_sentence": "Edits SHALL keep canonical historical receipts.",
+                "pdf_page": 15,
+                "pdf_row_digest": "c" * 64,
+                "implementation_paths": ["src/weall/runtime/apply/social.py"],
+                "status": "normative_target",
+                "test_run_id": "NOT_RUN",
+            },
+            {
+                "id": "SAN-005",
+                "normative_sentence": "Exclusion SHALL require independent review and an appeal path.",
+                "pdf_page": 18,
+                "pdf_row_digest": "d" * 64,
+                "implementation_paths": ["src/weall/runtime/sanctions/"],
+                "status": "normative_target",
+                "test_run_id": "NOT_RUN",
+            },
+            {
+                "id": "ECO-108",
+                "normative_sentence": "New issuance SHALL be divided among buckets.",
+                "pdf_page": 21,
+                "pdf_row_digest": "e" * 64,
+                "implementation_paths": ["src/weall/ledger/issuance.py"],
+                "status": "normative_target",
+                "test_run_id": "NOT_RUN",
+            },
+        ]
+        triage = rv.build_unmatched_review_triage(queue, rows)
+        self.assertEqual(len(triage), 4)
+        for item, (_, _, priority) in zip(triage, origins):
+            self.assertEqual(item["priority"], priority)
+            self.assertEqual(item["candidate_requirement_ids"], [])
+            self.assertTrue(item["thematic_reading_list_only"])
+            self.assertEqual(item["constitutional_authorization"], "NOT_ESTABLISHED")
+            self.assertEqual(
+                item["triage_disposition"], "OPEN_REQUIRES_HUMAN_SOURCE_AND_NORMATIVE_REVIEW"
+            )
+        self.assertEqual(
+            triage[0]["thematic_reading_list"][0]["id"], "CONT-001"
+        )
+        self.assertEqual(
+            triage[0]["thematic_reading_list"][0]["normative_sentence"],
+            rows[0]["normative_sentence"],
+        )
+        self.assertEqual(
+            triage[1]["thematic_reading_list"][3]["id"], "SAN-005"
+        )
+        self.assertEqual(
+            triage[2]["thematic_reading_list"][0]["id"], "ECO-108"
+        )
+        self.assertEqual(triage[3]["thematic_reading_list"], [])
+        self.assertTrue(
+            any(
+                x["register_presence"] == "ABSENT_REVIEW_REQUIRED"
+                for x in triage[0]["thematic_reading_list"]
+            )
+        )
+
+    def test_unmatched_triage_cannot_hide_new_register_path_match(self):
+        path = "Weall-Protocol/src/weall/runtime/apply/content.py"
+        queue = [{
+            "review_key": "AWC-test",
+            "source_commit": cg.repo_commit(self.repo),
+            "source_file_sha256": "a" * 64,
+            "tx_type": "CONTENT_POST_EDIT",
+            "state_root": "accounts",
+            "source_path": path,
+            "source_function": "_apply_post_edit",
+            "write_signal": "DIRECT_STATE_ROOT",
+            "triage_bucket": "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH",
+            "candidate_requirement_ids": [],
+        }]
+        updated_register = [{
+            "id": "CONT-001",
+            "implementation_paths": [path],
+            "normative_sentence": "Test fixture update",
+        }]
+        with self.assertRaisesRegex(
+            cg.ContractError, "unmatched_triage_register_path_changed_reconcile_required"
+        ):
+            rv.build_unmatched_review_triage(queue, updated_register)
+
     def test_write_reports_external_only(self):
         a = self.check()
         output = Path(self.tmp.name) / "out"
         rv.write_results(a, output)
-        self.assertEqual(len(list(output.iterdir())), 8)
+        self.assertEqual(len(list(output.iterdir())), 10)
         self.assertIn(
             "DISPUTE_RESOLVE",
             (output / "v2_tx_requirement_candidates.csv").read_text(),

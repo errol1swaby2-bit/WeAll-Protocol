@@ -103,6 +103,20 @@ jobs:
               for q in result["authority_review_queue"]
           )
           assert result["authority_review_queue_unmatched_count"] <= result["authority_review_queue_item_count"]
+          assert result["unmatched_review_triage_count"] == result["authority_review_queue_unmatched_count"]
+          assert result["unmatched_review_triage_count"] == 22
+          assert result["unmatched_review_triage_priority_counts"] == {
+              "P2_REVIEW_NONCE_AND_CONTENT_PERMISSION_EFFECTS": 18,
+              "P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS": 3,
+              "P1_REVIEW_BALANCE_AND_ISSUANCE_CONSERVATION": 1,
+          }
+          assert all(
+              q["candidate_requirement_ids"] == []
+              and q["thematic_reading_list_only"]
+              and q["constitutional_authorization"] == "NOT_ESTABLISHED"
+              and q["triage_disposition"] == "OPEN_REQUIRES_HUMAN_SOURCE_AND_NORMATIVE_REVIEW"
+              for q in result["unmatched_review_triage"]
+          )
           assert result["effect_source_pin_status"] == "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
           print("v2 candidate requirements:", result["v2_requirement_count"],
                 "import source candidate requirements:",
@@ -125,6 +139,8 @@ jobs:
           assert len(result["authority_review_queue"]) == result["authority_review_queue_open_count"]
           assert (bundle / "v2_authority_review_queue.json").is_file()
           assert (bundle / "v2_authority_review_queue.csv").is_file()
+          assert (bundle / "v2_unmatched_authority_triage.json").is_file()
+          assert (bundle / "v2_unmatched_authority_triage.csv").is_file()
           print("Candidate-only review bundle at checkout", gate.repo_commit(repo))
           PY
       - name: Upload non-authoritative authority review bundle
@@ -138,4 +154,6 @@ jobs:
             ${{ runner.temp }}/pr62-authority-review/v2_authority_review_queue.json
             ${{ runner.temp }}/pr62-authority-review/v2_authority_review_queue.csv
             ${{ runner.temp }}/pr62-authority-review/v2_authority_write_review_candidates.csv
+            ${{ runner.temp }}/pr62-authority-review/v2_unmatched_authority_triage.json
+            ${{ runner.temp }}/pr62-authority-review/v2_unmatched_authority_triage.csv
             ${{ runner.temp }}/pr62-authority-review/v2_reconciliation.md

@@ -206,3 +206,47 @@ A downloadable artifact is not a signed reviewer finding, a completed
 testnet rehearsal, proof of constitutional authority, or release
 permission. No protected branch, runtime, ledger or requirement register
 is changed by report publication.
+
+## v0.9 source-family triage for 22 unmatched account-root observations
+
+The current verified candidate artifact isolates 22 unmatched static
+`accounts`-root write observations in three real source paths:
+18 in `src/weall/runtime/apply/content.py`, three in
+`src/weall/runtime/apply/reputation.py`, and one in
+`src/weall/runtime/apply/rewards.py`. This is 22 **observations**,
+not 22 identified constitutional violations or 22 independent mechanisms.
+
+The new `v2_unmatched_authority_triage.json` and
+`v2_unmatched_authority_triage.csv` preserve every unmatched `AWC` key,
+source commit, source file digest, TX name, function and type of write.
+They group the observations as a *review-order heuristic*:
+`P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS` for reputation/
+account exclusion, `P1_REVIEW_BALANCE_AND_ISSUANCE_CONSERVATION` for
+rewards, and `P2_REVIEW_NONCE_AND_CONTENT_PERMISSION_EFFECTS` for
+content. This ordering is NOT a proven security severity assessment.
+
+The report supplies **thematic reading pointers only** into existing
+v2 first-draft requirement text, including page and row digest as recorded
+in the register. The indicated reading groups include CONT/PUB/ACCT for
+content, REP/SAN for reputation, and ECO for rewards. The matching draft
+register declared implementation paths are *different* from these
+observed sources; the report does not modify any of them. The reading list
+is expressly **NOT** a requirement-to-TX link, implementation evidence,
+verified normative applicability, activation approval or a test result.
+Every `candidate_requirement_ids` list remains empty for these entries
+and every item remains OPEN and BLOCKED.
+
+The compiler's registers are draft source evidence. To resolve these
+items an independent reviewer must inspect the actual affected nested
+account fields and authorization mechanisms, determine which normative
+sentences apply (including any absent from this suggested reading list),
+check path ownership and scope, and supply reproducible exact-commit tests
+and applicable constitutional approvals. Content code presently includes
+an account nonce helper; reputation code contains ban and reinstatement
+writes; rewards code changes balances. These observations do not prove
+that any particular TX changes only those fields.
+
+The candidate CI asserts the exact current split (18/3/1) and will fail
+if a source or register change silently alters that baseline without a
+review. It publishes the triage report alongside the existing queue as
+a temporary, non-authoritative GitHub Actions artifact.

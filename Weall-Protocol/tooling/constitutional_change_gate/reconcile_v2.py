@@ -73,7 +73,120 @@ def authority_review_key(item: dict[str, Any]) -> str:
     return "AWC-" + hashlib.sha256(cg.canonical_bytes(identity)).hexdigest()[:24]
 
 
+# Unratified reading-list pointers for manual investigation ONLY. These are
+# specific, existing v2 draft-register rows, not requirement-to-TX links.
+# No row can be marked PASS or "unaffected" from these broad source families.
+UNMATCHED_REVIEW_TOPICS = {
+    "Weall-Protocol/src/weall/runtime/apply/content.py": {
+        "priority": "P2_REVIEW_NONCE_AND_CONTENT_PERMISSION_EFFECTS",
+        "topic": "Content and account nonce/eligibility interaction",
+        "reading_ids": (
+            "CONT-001", "CONT-002", "CONT-003",
+            "PUB-001", "ACCT-001", "ACCT-002", "ACCT-003",
+        ),
+        "questions": (
+            "Does the accounts-root write only advance an account nonce?",
+            "Can a content transaction change a PoH tier, ban, lock, eligibility or role?",
+            "Are group permissions, failed transactions and replay behavior covered?",
+        ),
+    },
+    "Weall-Protocol/src/weall/runtime/apply/reputation.py": {
+        "priority": "P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS",
+        "topic": "Reputation, exclusion and reinstatement authority",
+        "reading_ids": (
+            "REP-001", "REP-002", "SAN-001", "SAN-005",
+            "SAN-007", "SAN-008", "SAN-009", "SAN-010",
+        ),
+        "questions": (
+            "Which exact actor and constitutional process authorize this state mutation?",
+            "Are sanctions, appeals, restoration and identity/role effects traceable?",
+            "Are replay, idempotence and threshold behavior verified independently?",
+        ),
+    },
+    "Weall-Protocol/src/weall/runtime/apply/rewards.py": {
+        "priority": "P1_REVIEW_BALANCE_AND_ISSUANCE_CONSERVATION",
+        "topic": "Account balance, issuance and reward conservation",
+        "reading_ids": ("ECO-108", "ECO-109", "ECO-110", "ECO-111"),
+        "questions": (
+            "Is this state-root write monetary bookkeeping or an authority transition?",
+            "Are economic activation gates and atomic debit/credit conservation proven?",
+            "Are issuance caps, absent recipients and replay covered by pinned tests?",
+        ),
+    },
+}
+
 MAX_REVIEW_EVIDENCE_BYTES = 64 * 1024 * 1024
+
+
+def build_unmatched_review_triage(
+    queue: list[dict[str, Any]], requirement_rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Prepare manual-reading cues, NOT authority or requirement links.
+
+    Reuse only literal source text and identifiers from the existing v2
+    first-draft register. No suggestion modifies the canonical link graph.
+    """
+    by_id = {row["id"]: row for row in requirement_rows}
+    results: list[dict[str, Any]] = []
+    for item in queue:
+        if item["triage_bucket"] != "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH":
+            continue
+        topic = UNMATCHED_REVIEW_TOPICS.get(item["source_path"])
+        reading = []
+        if topic is not None:
+            for rid in topic["reading_ids"]:
+                row = by_id.get(rid)
+                if row is None:
+                    reading.append({
+                        "id": rid, "register_presence": "ABSENT_REVIEW_REQUIRED",
+                        "source_relation": "NO_REQUIREMENT_PATH_LINK_ESTABLISHED",
+                    })
+                    continue
+                declared = [
+                    norm for raw in row.get("implementation_paths", [])
+                    if (norm := normalize_source_path(raw)) is not None
+                ]
+                require(
+                    not any(path_matches(item["source_path"], path) for path in declared),
+                    "unmatched_triage_register_path_changed_reconcile_required",
+                )
+                reading.append({
+                    "id": rid,
+                    "register_presence": "EXISTING_V2_DRAFT_ROW",
+                    "normative_sentence": row.get("normative_sentence"),
+                    "pdf_page": row.get("pdf_page"),
+                    "pdf_row_digest": row.get("pdf_row_digest"),
+                    "v2_implementation_paths": declared,
+                    "v2_status": row.get("status"),
+                    "test_run_id": row.get("test_run_id"),
+                    "source_relation": "THEMATIC_READING_ONLY_NOT_REQUIREMENT_TX_LINK",
+                })
+        results.append({
+            "review_key": item["review_key"],
+            "source_commit": item["source_commit"],
+            "source_file_sha256": item["source_file_sha256"],
+            "tx_type": item["tx_type"],
+            "state_root": item["state_root"],
+            "source_path": item["source_path"],
+            "source_function": item["source_function"],
+            "write_signal": item["write_signal"],
+            "priority": (
+                topic["priority"] if topic else "UNCLASSIFIED_REVIEW_REQUIRED"
+            ),
+            "review_topic": (
+                topic["topic"] if topic else "No curated reading list for this source"
+            ),
+            "review_questions": list(topic["questions"]) if topic else [
+                "Identify the actual mutable account field and its authority impact."
+            ],
+            "thematic_reading_list": reading,
+            "thematic_reading_list_only": True,
+            "candidate_requirement_ids": item["candidate_requirement_ids"],
+            "source_path_match_status": "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH",
+            "triage_disposition": "OPEN_REQUIRES_HUMAN_SOURCE_AND_NORMATIVE_REVIEW",
+            "constitutional_authorization": "NOT_ESTABLISHED",
+        })
+    return results
 
 
 def verify_review_evidence_file(
@@ -561,6 +674,7 @@ def reconcile(
         review_queue_by_key[key]["candidate_observation_count"] += 1
         observation["review_key"] = key
     authority_review_queue = [review_queue_by_key[key] for key in sorted(review_queue_by_key)]
+    unmatched_review_triage = build_unmatched_review_triage(authority_review_queue, rs)
     submissions_recorded = reconcile_review_submissions(
         authority_review_queue,
         review_submissions,
@@ -658,6 +772,10 @@ def reconcile(
             q["triage_bucket"] == "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH"
             for q in authority_review_queue
         ),
+        "unmatched_review_triage_count": len(unmatched_review_triage),
+        "unmatched_review_triage_priority_counts": dict(sorted(Counter(
+            row["priority"] for row in unmatched_review_triage
+        ).items())),
         "review_submissions_recorded_unverified": submissions_recorded,
         "review_evidence_files_sha256_checked": verified_evidence_files,
         "review_evidence_submissions_without_byte_checks": (
@@ -678,6 +796,8 @@ def reconcile(
         "tx_requirement_candidates": tx_requirement_candidates,
         "authority_write_review_candidates": authority_review_rows,
         "authority_review_queue": authority_review_queue,
+        "unmatched_review_triage": unmatched_review_triage,
+        "unmatched_triage_authority": "THEMATIC_READING_ONLY_NOT_CONSTITUTIONAL_ADJUDICATION",
         "review_submission_schema": "weall.v2.authority-review-submissions.v0.1",
         "not_guaranteed": [
             "Full semantic dependency closure; source paths are a review signal, not a proof",
@@ -708,6 +828,7 @@ def render_md(out: dict[str, Any]) -> str:
         f"- TXs with candidate requirement links: **{out['tx_with_candidate_requirement_links']}**",
         f"- Candidate TX-to-requirement links: **{out['tx_requirement_candidate_link_count']}**",
         f"- Authority-write review queue: **{out['authority_review_queue_item_count']}** unique observations; **{out['authority_review_queue_unmatched_count']}** without declared requirement-source links",
+        f"- Unmatched authority triage entries (ALL OPEN): **{out['unmatched_review_triage_count']}**; thematic reading suggestions are NOT requirement links",
         f"- Review submissions recorded (UNAUTHENTICATED): **{out['review_submissions_recorded_unverified']}**; queue remains OPEN",
         f"- Local evidence SHA-256 checks (NOT attestations): **{out['review_evidence_files_sha256_checked']}**",
         f"- Review claims without byte checks: **{out['review_evidence_submissions_without_byte_checks']}**",
@@ -890,6 +1011,37 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
                     "candidate_requirement_ids": ";".join(item["candidate_requirement_ids"]),
                 }
             )
+    (out / "v2_unmatched_authority_triage.json").write_bytes(
+        cg.canonical_bytes({
+            "schema": "weall.v2.unmatched-authority-triage.v0.1",
+            "source_commit": doc["target_checkout_commit"],
+            "scope": doc["unmatched_triage_authority"],
+            "open_item_count": len(doc["unmatched_review_triage"]),
+            "entries": doc["unmatched_review_triage"],
+            "release_authority": "NOT_ESTABLISHED",
+        })
+    )
+    with (out / "v2_unmatched_authority_triage.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as file:
+        fields = [
+            "review_key", "source_commit", "source_file_sha256", "tx_type",
+            "state_root", "source_path", "source_function", "write_signal",
+            "priority", "review_topic", "reading_ids", "reading_source_pages",
+            "review_questions", "source_path_match_status", "triage_disposition",
+            "constitutional_authorization",
+        ]
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
+        for item in doc["unmatched_review_triage"]:
+            writer.writerow({
+                **{field: item.get(field) for field in fields},
+                "reading_ids": ";".join(x["id"] for x in item["thematic_reading_list"]),
+                "reading_source_pages": ";".join(
+                    str(x.get("pdf_page") or "") for x in item["thematic_reading_list"]
+                ),
+                "review_questions": ";".join(item["review_questions"]),
+            })
     # Preserve all canonical TXs in the reverse CSV, including TXs with no
     # established candidates. Absence of a link MUST NOT mean unaffected.
     with (out / "v2_tx_requirement_candidates.csv").open("w", newline="", encoding="utf-8") as f:
