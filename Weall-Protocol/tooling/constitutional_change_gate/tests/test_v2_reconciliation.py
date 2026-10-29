@@ -225,11 +225,50 @@ class V2ReconciliationTests(unittest.TestCase):
             [x["reason"] for x in a["changed_paths"]],
         )
 
+    def test_candidate_edges_are_bidirectional_and_unreviewed(self):
+        result = self.check(["web/src/unrelated.tsx"])
+        req = {row["id"]: row for row in result["requirements"]}
+        tx = {row["tx_type"]: row for row in result["tx_requirement_candidates"]}
+        self.assertEqual(req["DISP-001"]["candidate_canonical_txs"], ["DISPUTE_RESOLVE"])
+        self.assertEqual(req["DISP-001"]["handler_source_candidate_txs"], ["DISPUTE_RESOLVE"])
+        self.assertEqual(req["ACC-003"]["candidate_canonical_txs"], [])
+        self.assertEqual(tx["ACCOUNT_LOCK"]["candidate_requirement_count"], 0)
+        self.assertEqual(tx["DISPUTE_RESOLVE"]["candidate_requirements"][0]["requirement_id"], "DISP-001")
+        self.assertEqual(tx["DISPUTE_RESOLVE"]["link_authority"], "UNVERIFIED_STATIC_CANDIDATE_ONLY")
+        self.assertTrue(result["gate"].startswith("BLOCKED"))
+
+    def test_handler_directory_binding_without_explicit_id_remains_candidate(self):
+        self.req["rows"][1]["contract_ids"] = []
+        self.req["rows"][1]["implementation_paths"] = ["src/weall/runtime/apply/"]
+        result = self.check(["web/src/unrelated.tsx"])
+        req = {row["id"]: row for row in result["requirements"]}
+        self.assertEqual(
+            req["DISP-001"]["candidate_relation"],
+            "HANDLER_SOURCE_MATCH_REVIEW_CANDIDATE",
+        )
+        self.assertEqual(
+            req["DISP-001"]["candidate_canonical_txs"],
+            ["ACCOUNT_LOCK", "DISPUTE_RESOLVE"],
+        )
+        self.assertEqual(result["requirements_with_explicit_canonical_contract_link"], 0)
+
+    def test_similar_handler_filename_does_not_create_false_link(self):
+        self.req["rows"][1]["contract_ids"] = []
+        self.req["rows"][1]["implementation_paths"] = ["src/weall/runtime/apply/disputes.py"]
+        result = self.check(["web/src/unrelated.tsx"])
+        req = {row["id"]: row for row in result["requirements"]}
+        self.assertEqual(req["DISP-001"]["candidate_canonical_txs"], [])
+        self.assertEqual(req["DISP-001"]["candidate_relation"], "UNLINKED_NOT_SAFE_TO_DISMISS")
+
     def test_write_reports_external_only(self):
         a = self.check()
         output = Path(self.tmp.name) / "out"
         rv.write_results(a, output)
-        self.assertEqual(len(list(output.iterdir())), 4)
+        self.assertEqual(len(list(output.iterdir())), 5)
+        self.assertIn(
+            "DISPUTE_RESOLVE",
+            (output / "v2_tx_requirement_candidates.csv").read_text(),
+        )
         self.assertIn("DISP-001", (output / "v2_requirement_impact_candidates.csv").read_text())
 
 

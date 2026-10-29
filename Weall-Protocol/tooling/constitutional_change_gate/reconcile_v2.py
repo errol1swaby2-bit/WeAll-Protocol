@@ -181,10 +181,21 @@ def reconcile(
         explicit_txs = sorted(
             set(by_contract[x] for x in r.get("contract_ids", []) if x in by_contract)
         )
+        # A v2 source path can identify a registered handler or a
+        # directory containing handlers. Both are UNREVIEWED candidates;
+        # neither asserts that the requirement is satisfied or authorized.
+        handler_txs = sorted(
+            name
+            for name, static in static_rows.items()
+            if any(path_matches(static["source_path"], loc) for loc in paths)
+        )
+        candidate_txs = sorted(set(explicit_txs) | set(handler_txs))
         if direct_matches:
             category = "SOURCE_PATH_MATCH_REVIEW_CANDIDATE"
         elif explicit_txs:
             category = "CONTRACT_ID_LINK_REVIEW_CANDIDATE"
+        elif handler_txs:
+            category = "HANDLER_SOURCE_MATCH_REVIEW_CANDIDATE"
         else:
             category = "UNLINKED_NOT_SAFE_TO_DISMISS"
         requirement_candidates.append(
@@ -201,11 +212,38 @@ def reconcile(
                 "v2_implementation_paths": paths,
                 "matching_changed_paths": direct_matches,
                 "explicit_canonical_txs": explicit_txs,
+                "handler_source_candidate_txs": handler_txs,
+                "candidate_canonical_txs": candidate_txs,
                 "contract_refs": r.get("contract_ids", []),
                 "candidate_relation": category,
                 "link_authority": "UNVERIFIED_SOURCE_PATH_OR_CONTRACT_CANDIDATE_NOT_CONSTITUTIONAL_DECISION",
             }
         )
+    # Reverse the many-to-many candidate graph. An empty row is
+    # unresolved, not evidence that the TX is unrelated to the requirement.
+    reverse: dict[str, list[dict[str, Any]]] = {name: [] for name in static_rows}
+    for req in requirement_candidates:
+        for name in req["candidate_canonical_txs"]:
+            reasons = []
+            if name in req["explicit_canonical_txs"]:
+                reasons.append("EXPLICIT_V2_ID_UNREVIEWED")
+            if name in req["handler_source_candidate_txs"]:
+                reasons.append("HANDLER_SOURCE_PATH_UNREVIEWED")
+            reverse[name].append(
+                {"requirement_id": req["id"], "candidate_reasons": reasons}
+            )
+    tx_requirement_candidates = [
+        {
+            "tx_type": name,
+            "v2_stable_id": tx_by_name[name]["stable_id"],
+            "candidate_requirements": sorted(
+                reverse[name], key=lambda link: link["requirement_id"]
+            ),
+            "candidate_requirement_count": len(reverse[name]),
+            "link_authority": "UNVERIFIED_STATIC_CANDIDATE_ONLY",
+        }
+        for name in sorted(static_rows)
+    ]
     vc_commit = v2_contract.get("provenance", {}).get("implementation_commit")
     vr_commit = v2_requirements.get("provenance", {}).get("implementation_commit")
     require(vc_commit == vr_commit, "v2_derivative_provenance_mismatch")
@@ -249,10 +287,20 @@ def reconcile(
         ),
         "non_tx_contract_identifiers_not_in_canon": non_tx_refs,
         "requirement_candidate_relation_counts": dict(sorted(candidates.items())),
+        "requirements_with_handler_source_tx_candidates": sum(
+            bool(req["handler_source_candidate_txs"]) for req in requirement_candidates
+        ),
+        "tx_with_candidate_requirement_links": sum(
+            bool(tx["candidate_requirements"]) for tx in tx_requirement_candidates
+        ),
+        "tx_requirement_candidate_link_count": sum(
+            tx["candidate_requirement_count"] for tx in tx_requirement_candidates
+        ),
         "changed_path_count": len(change_set),
         "changed_paths": sorted(change_set),
         "transactions": comparisons,
         "requirements": requirement_candidates,
+        "tx_requirement_candidates": tx_requirement_candidates,
         "not_guaranteed": [
             "Full semantic dependency closure; source paths are a review signal, not a proof",
             "A complete normative requirement-to-TX binding for 755 requirements",
@@ -278,6 +326,9 @@ def render_md(out: dict[str, Any]) -> str:
         f"- Independent TX-contract reviews marked complete: **{out['tx_independent_review_count']}**",
         f"- Requirements with recorded test runs: **{out['requirements_with_realized_test_run']}**",
         f"- Requirements with direct canonical TX contract references: **{out['requirements_with_explicit_canonical_contract_link']}**",
+        f"- Requirements with handler-source TX candidates: **{out['requirements_with_handler_source_tx_candidates']}**",
+        f"- TXs with candidate requirement links: **{out['tx_with_candidate_requirement_links']}**",
+        f"- Candidate TX-to-requirement links: **{out['tx_requirement_candidate_link_count']}**",
         f"- Non-canonical contract identifiers: **{', '.join(out['non_tx_contract_identifiers_not_in_canon'])}** (not necessarily invalid; these describe mechanisms/schedulers)",
         "",
         "## Requirement selection from actual changed paths",
@@ -351,6 +402,8 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
             "matching_changed_paths",
             "contract_refs",
             "explicit_canonical_txs",
+            "handler_source_candidate_txs",
+            "candidate_canonical_txs",
             "implementation_commit",
             "test_run_id",
             "activation_receipt",
@@ -359,9 +412,44 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
         w.writeheader()
         for row in doc["requirements"]:
             item = {**row}
-            for k in ("matching_changed_paths", "contract_refs", "explicit_canonical_txs"):
+            for k in (
+                "matching_changed_paths",
+                "contract_refs",
+                "explicit_canonical_txs",
+                "handler_source_candidate_txs",
+                "candidate_canonical_txs",
+            ):
                 item[k] = ";".join(item.get(k) or [])
             w.writerow(item)
+    # Preserve all canonical TXs in the reverse CSV, including TXs with no
+    # established candidates. Absence of a link MUST NOT mean unaffected.
+    with (out / "v2_tx_requirement_candidates.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as f:
+        fields = [
+            "tx_type",
+            "v2_stable_id",
+            "candidate_requirement_count",
+            "candidate_requirement_ids",
+            "candidate_reasons",
+            "link_authority",
+        ]
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        for tx in doc["tx_requirement_candidates"]:
+            w.writerow({
+                "tx_type": tx["tx_type"],
+                "v2_stable_id": tx["v2_stable_id"],
+                "candidate_requirement_count": tx["candidate_requirement_count"],
+                "candidate_requirement_ids": ";".join(
+                    entry["requirement_id"] for entry in tx["candidate_requirements"]
+                ),
+                "candidate_reasons": ";".join(
+                    entry["requirement_id"] + ":" + "|".join(entry["candidate_reasons"])
+                    for entry in tx["candidate_requirements"]
+                ),
+                "link_authority": tx["link_authority"],
+            })
 
 
 def main(argv: list[str] | None = None) -> int:

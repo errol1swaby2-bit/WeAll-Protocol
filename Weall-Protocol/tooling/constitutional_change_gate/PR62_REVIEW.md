@@ -42,3 +42,13 @@ Do **not** merge based solely on synthetic tests, a readable matrix, or a green 
 - V2 generated derivatives declared implementation commit `1dedcaa5463f1fe230be35d90a610569a82c87dc`.
 
 See [README.md](README.md) for the exact offline package behavior and limitations.
+
+## Current incremental implementation: candidate graph
+
+The reconciliation now produces explicit and handler-path-based **candidate-only**
+requirement↔TX edges, a reverse per-TX graph, and a five-file report set including
+`v2_tx_requirement_candidates.csv` with every canonical TX represented. Links
+are clearly marked unverified. Missing links do not mean unaffected.
+This does not establish authoritative many-to-many constitutional mappings,
+semantic effects, proof of passing tests, independent review, or safe activation.
+Historical PR #61 snapshots remain pinned and unchanged.
