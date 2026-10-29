@@ -189,3 +189,20 @@ All submissions remain unauthenticated and unadjudicated; all review queue
 items remain OPEN; protected branch policy and the constitutional release
 gate remain unchanged. Never interpret this digest check as independent
 security review or permission to merge.
+
+## Reviewer artifact published by candidate CI
+
+The candidate workflow now serializes a read-only, exact-checkout review
+bundle into the Actions runner's temporary directory (outside the Git
+working tree) and publishes it as a short-lived GitHub Actions artifact.
+It contains `tx_effect_candidates.json`, both open-queue JSON and CSV
+reports, the authority-write CSV, and the reconciliation summary. The
+queue remains entirely OPEN and must be treated as **candidate-only**.
+The JSON embeds the scanned source commit and digest inventory so a
+reviewer can detect stale or mixed-checkout exports. The artifact name
+contains the triggering workflow SHA, and GitHub retains it for 14 days.
+
+A downloadable artifact is not a signed reviewer finding, a completed
+testnet rehearsal, proof of constitutional authority, or release
+permission. No protected branch, runtime, ledger or requirement register
+is changed by report publication.

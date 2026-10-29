@@ -115,4 +115,27 @@ jobs:
                 result["authority_write_candidates_without_requirement_path_link"],
                 "unique review queue:", result["authority_review_queue_item_count"],
                 "unmatched queue:", result["authority_review_queue_unmatched_count"])
+          # Emit exact-checkout candidate evidence OUTSIDE the repository.
+          import os
+          bundle = Path(os.environ["RUNNER_TEMP"]) / "pr62-authority-review"
+          v2.write_results(result, bundle)
+          (bundle / "tx_effect_candidates.json").write_bytes(
+              gate.canonical_bytes(effects)
+          )
+          assert len(result["authority_review_queue"]) == result["authority_review_queue_open_count"]
+          assert (bundle / "v2_authority_review_queue.json").is_file()
+          assert (bundle / "v2_authority_review_queue.csv").is_file()
+          print("Candidate-only review bundle at checkout", gate.repo_commit(repo))
           PY
+      - name: Upload non-authoritative authority review bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr62-authority-review-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/pr62-authority-review/tx_effect_candidates.json
+            ${{ runner.temp }}/pr62-authority-review/v2_authority_review_queue.json
+            ${{ runner.temp }}/pr62-authority-review/v2_authority_review_queue.csv
+            ${{ runner.temp }}/pr62-authority-review/v2_authority_write_review_candidates.csv
+            ${{ runner.temp }}/pr62-authority-review/v2_reconciliation.md
