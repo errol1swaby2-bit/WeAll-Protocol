@@ -49,3 +49,29 @@ jobs:
           print("Real static TX effects:", len(rows),
                 "scheduler phases:", len(report["scheduler_inventory"]))
           PY
+      - name: Exercise candidate-only v2 effect reconciliation at exact checkout
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd()))
+          import weall_change_gate as gate
+          import reconcile_v2 as v2
+          repo = Path.cwd().parents[2]
+          rows = gate.extract_routes(repo)
+          effects = gate.trace_effect_candidates(repo, rows)
+          result = v2.reconcile(
+              gate.read_json(repo / gate.INDEX), rows,
+              gate.read_json(repo / v2.V2_TX),
+              gate.read_json(repo / v2.V2_REQUIREMENTS),
+              [], checkout_commit=gate.repo_commit(repo), effects=effects,
+          )
+          assert result["canonical_tx_count"] == 236
+          assert result["v2_requirement_count"] == 755
+          assert len(result["tx_requirement_candidates"]) == 236
+          assert result["gate"].startswith("BLOCKED")
+          print("v2 candidate requirements:", result["v2_requirement_count"],
+                "import source candidate requirements:",
+                result["requirements_with_imported_effect_candidates"])
+          PY

@@ -264,6 +264,54 @@ class V2ReconciliationTests(unittest.TestCase):
         self.assertEqual(req["DISP-001"]["candidate_canonical_txs"], [])
         self.assertEqual(req["DISP-001"]["candidate_relation"], "UNLINKED_NOT_SAFE_TO_DISMISS")
 
+    def test_effect_import_source_links_to_requirement_without_approval(self):
+        self.req["rows"][1]["contract_ids"] = []
+        self.req["rows"][1]["implementation_paths"] = [
+            "src/weall/runtime/helper_effects.py"
+        ]
+        effects = {
+            "transaction_count": 2,
+            "transactions": [
+                {
+                    "tx_type": "DISPUTE_RESOLVE",
+                    "imported_function_candidates": [
+                        {
+                            "target_source_path": "Weall-Protocol/src/weall/runtime/helper_effects.py",
+                            "status": "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE",
+                        }
+                    ],
+                },
+                {"tx_type": "ACCOUNT_LOCK", "imported_function_candidates": []},
+            ],
+        }
+        result = rv.reconcile(
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            ["web/src/unrelated.tsx"],
+            checkout_commit=cg.repo_commit(self.repo),
+            effects=effects,
+        )
+        req = {row["id"]: row for row in result["requirements"]}["DISP-001"]
+        self.assertEqual(req["candidate_relation"], "TRACED_IMPORT_SOURCE_MATCH_REVIEW_CANDIDATE")
+        self.assertEqual(req["imported_effect_candidate_txs"], ["DISPUTE_RESOLVE"])
+        tx = {row["tx_type"]: row for row in result["tx_requirement_candidates"]}["DISPUTE_RESOLVE"]
+        self.assertIn(
+            "TRACED_IMPORT_SOURCE_PATH_UNREVIEWED",
+            tx["candidate_requirements"][0]["candidate_reasons"],
+        )
+        self.assertTrue(result["gate"].startswith("BLOCKED"))
+
+    def test_incomplete_effect_inventory_fails_closed(self):
+        effects = {"transaction_count": 2, "transactions": [{"tx_type": "DISPUTE_RESOLVE"}]}
+        with self.assertRaisesRegex(cg.ContractError, "effect_tx_coverage_mismatch"):
+            rv.reconcile(
+                self.idx, self.rows, self.tx, self.req, [],
+                checkout_commit=cg.repo_commit(self.repo),
+                effects=effects,
+            )
+
     def test_write_reports_external_only(self):
         a = self.check()
         output = Path(self.tmp.name) / "out"

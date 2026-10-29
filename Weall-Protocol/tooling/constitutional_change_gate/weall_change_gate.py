@@ -405,10 +405,23 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
             }
             imports: dict[str, str] = {}
             for n in tree.body:
-                if isinstance(n, ast.ImportFrom) and n.module:
-                    prefix = "." * n.level + n.module
-                    for alias in n.names:
-                        imports[alias.asname or alias.name] = prefix + "." + alias.name
+                if isinstance(n, ast.ImportFrom):
+                    if n.level:
+                        # The current file is a module, not a package. Resolve
+                        # relative imports against its containing Python package.
+                        module = path.removeprefix(str(PREFIX / "src") + "/").removesuffix(
+                            ".py"
+                        ).replace("/", ".")
+                        package = module.split(".")[:-1]
+                        if n.level > len(package):
+                            continue
+                        parent = package[: len(package) - n.level + 1]
+                        prefix = ".".join(parent + (n.module.split(".") if n.module else []))
+                    else:
+                        prefix = n.module or ""
+                    if prefix:
+                        for alias in n.names:
+                            imports[alias.asname or alias.name] = prefix + "." + alias.name
                 elif isinstance(n, ast.Import):
                     for alias in n.names:
                         imports[alias.asname or alias.name.split(".")[0]] = alias.name
@@ -416,9 +429,18 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
         return source_cache[path]
 
     class Probe(ast.NodeVisitor):
-        def __init__(self, functions: dict[str, ast.AST], imports: dict[str, str]):
+        def __init__(
+            self,
+            functions: dict[str, ast.AST],
+            imports: dict[str, str],
+            root_variable: str = "state",
+        ):
             self.functions = functions
             self.imports = imports
+            self.root_variable = root_variable
+            self.aliases: dict[str, str] = {}
+            self.alias_roots: set[str] = set()
+            self.imported_calls: list[dict[str, Any]] = []
             self.reads: set[str] = set()
             self.writes: set[str] = set()
             self.local_calls: set[str] = set()
@@ -440,16 +462,57 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                 return node.value
             return "<dynamic-key>"
 
+        def origin(self, value: ast.AST) -> str | None:
+            if isinstance(value, ast.Subscript):
+                if isinstance(value.value, ast.Name) and value.value.id == self.root_variable:
+                    return self.key(value.slice)
+            if isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute):
+                target = value.func.value
+                if (
+                    isinstance(target, ast.Name)
+                    and target.id == self.root_variable
+                    and value.func.attr in {"get", "setdefault"}
+                ):
+                    return self.key(value.args[0]) if value.args else "<dynamic-key>"
+            if isinstance(value, ast.Name):
+                return self.aliases.get(value.id)
+            return None
+
+        def visit_Assign(self, node: ast.Assign) -> None:
+            self.visit(node.value)
+            origin = self.origin(node.value)
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    if origin is None:
+                        self.aliases.pop(target.id, None)
+                    else:
+                        self.aliases[target.id] = origin
+                self.visit(target)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+            if node.value is not None:
+                self.visit(node.value)
+            if isinstance(node.target, ast.Name):
+                origin = self.origin(node.value) if node.value else None
+                if origin is None:
+                    self.aliases.pop(node.target.id, None)
+                else:
+                    self.aliases[node.target.id] = origin
+            self.visit(node.target)
+
         def visit_Subscript(self, node: ast.Subscript) -> None:
-            if isinstance(node.value, ast.Name) and node.value.id == "state":
+            if isinstance(node.value, ast.Name) and node.value.id == self.root_variable:
                 key = self.key(node.slice)
                 if isinstance(node.ctx, (ast.Store, ast.Del)):
                     self.writes.add(key)
                 else:
                     self.reads.add(key)
             elif isinstance(node.ctx, (ast.Store, ast.Del)):
-                # Could be a mutable state alias; provenance not established.
+                # A local variable may point into a root map; aliases are
+                # MAY-link candidates, never proven mutation paths.
                 self.alias_writes += 1
+                if isinstance(node.value, ast.Name) and node.value.id in self.aliases:
+                    self.alias_roots.add(self.aliases[node.value.id])
             self.generic_visit(node)
 
         def visit_Call(self, node: ast.Call) -> None:
@@ -461,13 +524,29 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                     self.local_calls.add(name)
                 elif name in self.imports:
                     self.external.add(self.imports[name])
+                    self.imported_calls.append(
+                        {
+                            "target": self.imports[name],
+                            "line": node.lineno,
+                            "state_positional_indices": [
+                                i
+                                for i, arg in enumerate(node.args)
+                                if isinstance(arg, ast.Name) and arg.id == self.root_variable
+                            ],
+                            "state_keywords": [
+                                kw.arg for kw in node.keywords
+                                if kw.arg and isinstance(kw.value, ast.Name)
+                                and kw.value.id == self.root_variable
+                            ],
+                        }
+                    )
                 else:
                     self.unresolved_calls += 1
             elif isinstance(call, ast.Attribute):
                 name = call.attr
                 if isinstance(call.value, ast.Name):
                     owner = call.value.id
-                    if owner == "state":
+                    if owner == self.root_variable:
                         if name in {"get", "setdefault", "pop"}:
                             key = self.key(node.args[0]) if node.args else "<dynamic-key>"
                             if name != "setdefault":
@@ -476,8 +555,29 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                                 self.writes.add(key)
                         elif name in {"update", "clear", "popitem"}:
                             self.writes.add("<unknown-root-keys>")
+                    elif owner in self.aliases and name in {
+                        "setdefault", "pop", "popitem", "update", "clear",
+                        "append", "extend", "insert", "remove", "discard", "add",
+                    }:
+                        self.alias_writes += 1
+                        self.alias_roots.add(self.aliases[owner])
                     elif owner in self.imports:
                         self.external.add(self.imports[owner] + "." + name)
+                        self.imported_calls.append(
+                            {
+                                "target": self.imports[owner] + "." + name,
+                                "line": node.lineno,
+                                "state_positional_indices": [
+                                    i for i, arg in enumerate(node.args)
+                                    if isinstance(arg, ast.Name) and arg.id == self.root_variable
+                                ],
+                                "state_keywords": [
+                                    kw.arg for kw in node.keywords
+                                    if kw.arg and isinstance(kw.value, ast.Name)
+                                    and kw.value.id == self.root_variable
+                                ],
+                            }
+                        )
                     else:
                         self.unresolved_calls += 1
                 else:
@@ -506,6 +606,8 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
         external: set[str] = set()
         authority: set[str] = set()
         alias_writes = 0
+        alias_roots: set[str] = set()
+        imported_call_sites: list[dict[str, Any]] = []
         unresolved_calls = 0
         truncated = False
         while queue:
@@ -527,10 +629,82 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
             external.update(probe.external)
             authority.update(probe.authority)
             alias_writes += probe.alias_writes
+            alias_roots.update(probe.alias_roots)
             unresolved_calls += probe.unresolved_calls
+            for call in probe.imported_calls:
+                imported_call_sites.append(
+                    {"caller_function": current, "caller_source_path": path, **call}
+                )
             for callee in sorted(probe.local_calls):
                 if callee not in seen:
                     queue.append((callee, depth + 1))
+        # Follow only explicit direct state handoffs into a resolved
+        # top-level imported function. A missing/dynamic/third-party callee
+        # stays unresolved; never execute imported code or assume causality.
+        imported_details: list[dict[str, Any]] = []
+        for call in sorted(
+            imported_call_sites,
+            key=lambda c: (c["caller_function"], c["line"], c["target"]),
+        ):
+            target = call["target"]
+            status = "IMPORT_TARGET_UNRESOLVED"
+            target_path = None
+            target_function = None
+            root_arg = None
+            imported_reads: set[str] = set()
+            imported_writes: set[str] = set()
+            imported_alias_roots: set[str] = set()
+            if target.startswith("weall.runtime.") and "." in target:
+                module, target_function = target.rsplit(".", 1)
+                target_path = str(module_path(module))
+                filename = repo / target_path
+                if filename.is_file():
+                    target_functions, target_imports = source(target_path)
+                    imported_fn = target_functions.get(target_function)
+                    if imported_fn:
+                        positional = imported_fn.args.posonlyargs + imported_fn.args.args
+                        if call["state_positional_indices"]:
+                            index = call["state_positional_indices"][0]
+                            if index < len(positional):
+                                root_arg = positional[index].arg
+                        elif call["state_keywords"]:
+                            keyword = call["state_keywords"][0]
+                            if keyword in {arg.arg for arg in positional + imported_fn.args.kwonlyargs}:
+                                root_arg = keyword
+                        if root_arg:
+                            probe = Probe(
+                                target_functions,
+                                target_imports,
+                                root_variable=root_arg,
+                            )
+                            for statement in imported_fn.body:
+                                probe.visit(statement)
+                            imported_reads.update(probe.reads)
+                            imported_writes.update(probe.writes)
+                            imported_alias_roots.update(probe.alias_roots)
+                            status = "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE"
+                        else:
+                            status = "IMPORTED_FUNCTION_FOUND_STATE_HANDOFF_UNPROVEN"
+                    else:
+                        status = "IMPORT_TARGET_NOT_TOP_LEVEL_FUNCTION"
+                else:
+                    status = "IMPORTED_SOURCE_ABSENT_OR_DYNAMIC"
+            imported_details.append(
+                {
+                    "caller_function": call["caller_function"],
+                    "caller_source_path": call["caller_source_path"],
+                    "line": call["line"],
+                    "target": target,
+                    "target_source_path": target_path,
+                    "target_function": target_function,
+                    "state_parameter": root_arg,
+                    "status": status,
+                    "state_root_read_candidates": sorted(imported_reads),
+                    "state_root_write_candidates": sorted(imported_writes),
+                    "alias_root_write_candidates": sorted(imported_alias_roots),
+                    "verification": "UNREVIEWED_ONE_HOP_STATIC_OBSERVATION",
+                }
+            )
         transactions.append(
             {
                 "tx_type": tx_type,
@@ -551,6 +725,13 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                 "authority_name_signals": sorted(authority)[:80],
                 "unresolved_call_count": unresolved_calls,
                 "potential_alias_write_sites": alias_writes,
+                "state_alias_root_write_candidates": sorted(alias_roots),
+                "imported_function_candidates": imported_details,
+                "imported_function_candidate_count": len(imported_details),
+                "imported_state_handoff_candidate_count": sum(
+                    x["status"] == "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE"
+                    for x in imported_details
+                ),
                 "trace_truncated_or_unresolved": truncated or not found,
                 "verification": "STATIC_PARTIAL_NOT_SEMANTICALLY_VERIFIED",
             }
@@ -586,7 +767,7 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
     else:
         scheduler_status = "SCHEDULER_SOURCE_ABSENT_UNRESOLVED"
     return {
-        "schema": "weall.change-gate.static-effect-candidates.v0.3",
+        "schema": "weall.change-gate.static-effect-candidates.v0.4",
         "source_commit": repo_commit(repo),
         "transaction_count": len(transactions),
         "transactions": transactions,
@@ -957,6 +1138,11 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("command", choices=["build", "impact", "gate"])
     p.add_argument(
+        "--v2-effect-links",
+        action="store_true",
+        help="Include candidate-only v2 requirement links; not an approval gate",
+    )
+    p.add_argument(
         "--repo", type=Path, required=True, help="Git repository root containing Weall-Protocol/"
     )
     p.add_argument(
@@ -1005,6 +1191,23 @@ def main(argv: list[str] | None = None) -> int:
     atomic_write(out / "tx_implementation_matrix.json", canonical_bytes(snapshot))
     effects = trace_effect_candidates(repo, rows)
     atomic_write(out / "tx_effect_candidates.json", canonical_bytes(effects))
+    if args.v2_effect_links:
+        import reconcile_v2
+
+        tx_source = repo / reconcile_v2.V2_TX
+        req_source = repo / reconcile_v2.V2_REQUIREMENTS
+        if not tx_source.is_file() or not req_source.is_file():
+            raise ContractError("v2_effect_link_inputs_missing")
+        reconciled = reconcile_v2.reconcile(
+            read_json(repo / INDEX),
+            rows,
+            read_json(tx_source),
+            read_json(req_source),
+            [],
+            checkout_commit=snapshot["source_commit"],
+            effects=effects,
+        )
+        reconcile_v2.write_results(reconciled, out)
     atomic_write(out / "tx_implementation_matrix.md", matrix_md(rows, policy).encode("utf-8"))
     with (out / "tx_implementation_matrix.csv").open("w", encoding="utf-8", newline="") as f:
         fields = [

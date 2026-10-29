@@ -62,6 +62,7 @@ def reconcile(
     changes: list[str],
     *,
     checkout_commit: str,
+    effects: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     require(
         isinstance(v2_contract, dict)
@@ -168,6 +169,30 @@ def reconcile(
         normalized_changes.append(norm)
     change_set = set(normalized_changes)
     by_contract = {v["stable_id"]: v["tx_type"] for v in txs}
+    imported_by_tx: dict[str, set[str]] = {name: set() for name in static_rows}
+    if effects is not None:
+        require(
+            isinstance(effects, dict)
+            and effects.get("transaction_count") == len(static_rows)
+            and isinstance(effects.get("transactions"), list),
+            "invalid_effect_candidate_inventory",
+        )
+        seen_effect_txs: set[str] = set()
+        for tx in effects["transactions"]:
+            require(isinstance(tx, dict), "invalid_effect_tx_row")
+            name = tx.get("tx_type")
+            require(isinstance(name, str) and name in static_rows, "unknown_effect_tx_type")
+            require(name not in seen_effect_txs, "duplicate_effect_tx_type")
+            seen_effect_txs.add(name)
+            for item in tx.get("imported_function_candidates", []):
+                require(isinstance(item, dict), "invalid_imported_effect_row")
+                if item.get("status") != "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE":
+                    continue
+                path = item.get("target_source_path")
+                norm = normalize_source_path(path) if isinstance(path, str) else None
+                if norm:
+                    imported_by_tx[name].add(norm)
+        require(seen_effect_txs == set(static_rows), "effect_tx_coverage_mismatch")
     requirement_candidates = []
     for r in rs:
         paths = []
@@ -189,13 +214,19 @@ def reconcile(
             for name, static in static_rows.items()
             if any(path_matches(static["source_path"], loc) for loc in paths)
         )
-        candidate_txs = sorted(set(explicit_txs) | set(handler_txs))
+        imported_effect_txs = sorted(
+            name for name, observed in imported_by_tx.items()
+            if any(path_matches(path, loc) for path in observed for loc in paths)
+        )
+        candidate_txs = sorted(set(explicit_txs) | set(handler_txs) | set(imported_effect_txs))
         if direct_matches:
             category = "SOURCE_PATH_MATCH_REVIEW_CANDIDATE"
         elif explicit_txs:
             category = "CONTRACT_ID_LINK_REVIEW_CANDIDATE"
         elif handler_txs:
             category = "HANDLER_SOURCE_MATCH_REVIEW_CANDIDATE"
+        elif imported_effect_txs:
+            category = "TRACED_IMPORT_SOURCE_MATCH_REVIEW_CANDIDATE"
         else:
             category = "UNLINKED_NOT_SAFE_TO_DISMISS"
         requirement_candidates.append(
@@ -213,6 +244,7 @@ def reconcile(
                 "matching_changed_paths": direct_matches,
                 "explicit_canonical_txs": explicit_txs,
                 "handler_source_candidate_txs": handler_txs,
+                "imported_effect_candidate_txs": imported_effect_txs,
                 "candidate_canonical_txs": candidate_txs,
                 "contract_refs": r.get("contract_ids", []),
                 "candidate_relation": category,
@@ -229,6 +261,8 @@ def reconcile(
                 reasons.append("EXPLICIT_V2_ID_UNREVIEWED")
             if name in req["handler_source_candidate_txs"]:
                 reasons.append("HANDLER_SOURCE_PATH_UNREVIEWED")
+            if name in req["imported_effect_candidate_txs"]:
+                reasons.append("TRACED_IMPORT_SOURCE_PATH_UNREVIEWED")
             reverse[name].append({"requirement_id": req["id"], "candidate_reasons": reasons})
     tx_requirement_candidates = [
         {
@@ -287,6 +321,9 @@ def reconcile(
         "requirement_candidate_relation_counts": dict(sorted(candidates.items())),
         "requirements_with_handler_source_tx_candidates": sum(
             bool(req["handler_source_candidate_txs"]) for req in requirement_candidates
+        ),
+        "requirements_with_imported_effect_candidates": sum(
+            bool(req["imported_effect_candidate_txs"]) for req in requirement_candidates
         ),
         "tx_with_candidate_requirement_links": sum(
             bool(tx["candidate_requirements"]) for tx in tx_requirement_candidates
@@ -401,6 +438,7 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
             "contract_refs",
             "explicit_canonical_txs",
             "handler_source_candidate_txs",
+            "imported_effect_candidate_txs",
             "candidate_canonical_txs",
             "implementation_commit",
             "test_run_id",
@@ -415,6 +453,7 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
                 "contract_refs",
                 "explicit_canonical_txs",
                 "handler_source_candidate_txs",
+                "imported_effect_candidate_txs",
                 "candidate_canonical_txs",
             ):
                 item[k] = ";".join(item.get(k) or [])

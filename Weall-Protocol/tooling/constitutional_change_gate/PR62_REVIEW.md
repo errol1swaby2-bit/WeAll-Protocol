@@ -67,3 +67,16 @@ functions are **not proven**, nor are deterministic replay and authorization.
 A passing exact-checkout 236-TX smoke test means only that the static
 inventory completes, not that every runtime effect is traced.
 The original normative and ledger release blockers remain intact.
+
+## v0.4 one-hop imported helper and alias root candidates
+
+The new static source inventory recognizes direct `state` handoffs to
+top-level imported Python functions within `weall.runtime` and records
+direct state-root and mutable-alias candidates in those callees, without
+executing code. It does **not** claim resolution of transitive imports,
+dynamic method dispatch, conditional paths, shadowed names, or callback
+effects. The optional `--v2-effect-links` build flag emits v2 reconciliation
+with source-matched imported candidates, identified by the distinct
+`TRACED_IMPORT_SOURCE_PATH_UNREVIEWED` reason. The source-level
+relationship is not proof of specification compliance, authorizations or
+TX execution. Review remains mandatory and the gate stays BLOCKED.

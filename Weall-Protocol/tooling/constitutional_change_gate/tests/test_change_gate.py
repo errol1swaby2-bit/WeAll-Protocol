@@ -341,6 +341,63 @@ class TestGate(unittest.TestCase):
             report["release_verdict"], "BLOCKED_PENDING_SEMANTIC_TRACING_AND_INDEPENDENT_REVIEW"
         )
 
+    def test_alias_root_and_import_handoff_preserve_candidate_uncertainty(self):
+        runtime = self.repo / "Weall-Protocol/src/weall/runtime"
+        (runtime / "helper_effects.py").write_text(
+            'def _imported(ctx):\n'
+            '    roles = ctx.setdefault("roles", {})\n'
+            '    roles["juror"] = True\n'
+            '    ctx["accounts"] = {}\n'
+            '    return ctx\n'
+        )
+        dispute = runtime / "apply/dispute.py"
+        dispute.write_text(
+            'from weall.runtime.helper_effects import _imported\n'
+            'DISPUTE_TX_TYPES: set[str] = {"DISPUTE_RESOLVE"}\n'
+            'def _resolve(state, env):\n'
+            '    groups = state.get("groups", {})\n'
+            '    groups["a"] = 3\n'
+            '    _imported(state)\n'
+            '    return state\n'
+            'def apply_dispute(state, env):\n'
+            '    if env.tx_type == "DISPUTE_RESOLVE":\n'
+            '        return _resolve(state, env)\n'
+            '    return None\n'
+        )
+        rows = cg.extract_routes(self.repo)
+        report = cg.trace_effect_candidates(self.repo, rows)
+        tx = {row["tx_type"]: row for row in report["transactions"]}["DISPUTE_RESOLVE"]
+        self.assertIn("groups", tx["state_alias_root_write_candidates"])
+        imported = tx["imported_function_candidates"]
+        self.assertEqual(len(imported), 1)
+        self.assertEqual(imported[0]["status"],
+                         "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE")
+        self.assertEqual(imported[0]["state_parameter"], "ctx")
+        self.assertIn("roles", imported[0]["alias_root_write_candidates"])
+        self.assertIn("accounts", imported[0]["state_root_write_candidates"])
+        self.assertFalse(report["invariants"]["state_alias_effects_verified"])
+
+    def test_external_call_without_state_handoff_is_not_claimed(self):
+        runtime = self.repo / "Weall-Protocol/src/weall/runtime"
+        (runtime / "helper_effects.py").write_text(
+            'def _imported(ctx):\n'
+            '    ctx["secret"] = True\n'
+        )
+        dispute = runtime / "apply/dispute.py"
+        dispute.write_text(
+            'from weall.runtime.helper_effects import _imported\n'
+            'DISPUTE_TX_TYPES: set[str] = {"DISPUTE_RESOLVE"}\n'
+            'def apply_dispute(state, env):\n'
+            '    _imported(env)\n'
+            '    return None\n'
+        )
+        rows = cg.extract_routes(self.repo)
+        report = cg.trace_effect_candidates(self.repo, rows)
+        tx = {row["tx_type"]: row for row in report["transactions"]}["DISPUTE_RESOLVE"]
+        item = tx["imported_function_candidates"][0]
+        self.assertEqual(item["status"], "IMPORTED_FUNCTION_FOUND_STATE_HANDOFF_UNPROVEN")
+        self.assertEqual(item["state_root_write_candidates"], [])
+
     def test_source_snapshot_inventory_is_unique(self):
         groups = {}
         for line in (ROOT / "reference/pinned_domain_names.txt").read_text().splitlines():
