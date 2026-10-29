@@ -375,7 +375,6 @@ def extract_routes(repo: Path) -> dict[str, dict[str, Any]]:
     return dict(sorted(rows.items()))
 
 
-
 def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]:
     """Bounded, non-authoritative source observations; never a semantic effect proof.
 
@@ -575,9 +574,13 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                                     {"line": node.lineno, "target": owner.id + "." + node.func.attr}
                                 )
                 scheduler_rows.append(
-                    {"function": name, "source_path": scheduler_path, "static_call_sites": sorted(
-                        calls, key=lambda call: (call["line"], call["target"])
-                    )}
+                    {
+                        "function": name,
+                        "source_path": scheduler_path,
+                        "static_call_sites": sorted(
+                            calls, key=lambda call: (call["line"], call["target"])
+                        ),
+                    }
                 )
         scheduler_status = "STATIC_INVENTORY_NOT_EXECUTION_PROOF"
     else:

@@ -279,23 +279,23 @@ class TestGate(unittest.TestCase):
         filename = self.repo / "Weall-Protocol/src/weall/runtime/apply/dispute.py"
         filename.write_text(
             'DISPUTE_TX_TYPES: set[str] = {"DISPUTE_RESOLVE"}\n'
-            'def _apply_resolve(state, env):\n'
+            "def _apply_resolve(state, env):\n"
             '    value = state.get("cases")\n'
             '    state["cases"] = {}\n'
-            '    cases = value or {}\n'
+            "    cases = value or {}\n"
             '    cases["marker"] = True\n'
-            '    _enforce_lock(state)\n'
-            '    return state\n'
-            'def _enforce_lock(state):\n'
+            "    _enforce_lock(state)\n"
+            "    return state\n"
+            "def _enforce_lock(state):\n"
             '    state.setdefault("locks", {})\n'
-            '    return state\n'
-            'def _not_reachable(state):\n'
+            "    return state\n"
+            "def _not_reachable(state):\n"
             '    state["unrelated"] = True\n'
-            'def apply_dispute(state, env):\n'
-            '    t = env.tx_type\n'
+            "def apply_dispute(state, env):\n"
+            "    t = env.tx_type\n"
             '    if t == "DISPUTE_RESOLVE":\n'
-            '        return _apply_resolve(state, env)\n'
-            '    return None\n'
+            "        return _apply_resolve(state, env)\n"
+            "    return None\n"
         )
         rows = cg.extract_routes(self.repo)
         report = cg.trace_effect_candidates(self.repo, rows)
@@ -314,10 +314,10 @@ class TestGate(unittest.TestCase):
     def test_scheduler_inventory_is_separate_from_transaction_causality(self):
         fn = self.repo / "Weall-Protocol/src/weall/runtime/scheduler_pipeline.py"
         fn.write_text(
-            'def run_leader_pre_schedulers(state):\n'
-            '    schedulers.tick_dispute_lifecycle(state)\n'
-            'def run_replay_pre_schedulers(state):\n'
-            '    schedulers.tick_dispute_lifecycle(state)\n'
+            "def run_leader_pre_schedulers(state):\n"
+            "    schedulers.tick_dispute_lifecycle(state)\n"
+            "def run_replay_pre_schedulers(state):\n"
+            "    schedulers.tick_dispute_lifecycle(state)\n"
         )
         report = cg.trace_effect_candidates(self.repo, self.rows)
         names = {x["function"] for x in report["scheduler_inventory"]}
@@ -334,12 +334,12 @@ class TestGate(unittest.TestCase):
         report = cg.trace_effect_candidates(self.repo, self.rows)
         self.assertEqual(report["transaction_count"], 2)
         self.assertTrue(
-            all(x["anchor_status"] == "SHARED_ENTRYPOINT_AMBIGUOUS"
-                for x in report["transactions"])
+            all(x["anchor_status"] == "SHARED_ENTRYPOINT_AMBIGUOUS" for x in report["transactions"])
         )
         self.assertEqual(report["scheduler_status"], "SCHEDULER_SOURCE_ABSENT_UNRESOLVED")
-        self.assertEqual(report["release_verdict"],
-                         "BLOCKED_PENDING_SEMANTIC_TRACING_AND_INDEPENDENT_REVIEW")
+        self.assertEqual(
+            report["release_verdict"], "BLOCKED_PENDING_SEMANTIC_TRACING_AND_INDEPENDENT_REVIEW"
+        )
 
     def test_source_snapshot_inventory_is_unique(self):
         groups = {}
