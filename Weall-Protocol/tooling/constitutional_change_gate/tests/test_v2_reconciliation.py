@@ -266,9 +266,7 @@ class V2ReconciliationTests(unittest.TestCase):
 
     def test_effect_import_source_links_to_requirement_without_approval(self):
         self.req["rows"][1]["contract_ids"] = []
-        self.req["rows"][1]["implementation_paths"] = [
-            "src/weall/runtime/helper_effects.py"
-        ]
+        self.req["rows"][1]["implementation_paths"] = ["src/weall/runtime/helper_effects.py"]
         effects = {
             "transaction_count": 2,
             "transactions": [
@@ -307,7 +305,11 @@ class V2ReconciliationTests(unittest.TestCase):
         effects = {"transaction_count": 2, "transactions": [{"tx_type": "DISPUTE_RESOLVE"}]}
         with self.assertRaisesRegex(cg.ContractError, "effect_tx_coverage_mismatch"):
             rv.reconcile(
-                self.idx, self.rows, self.tx, self.req, [],
+                self.idx,
+                self.rows,
+                self.tx,
+                self.req,
+                [],
                 checkout_commit=cg.repo_commit(self.repo),
                 effects=effects,
             )

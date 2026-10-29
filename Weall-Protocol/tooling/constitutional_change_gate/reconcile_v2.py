@@ -215,7 +215,8 @@ def reconcile(
             if any(path_matches(static["source_path"], loc) for loc in paths)
         )
         imported_effect_txs = sorted(
-            name for name, observed in imported_by_tx.items()
+            name
+            for name, observed in imported_by_tx.items()
             if any(path_matches(path, loc) for path in observed for loc in paths)
         )
         candidate_txs = sorted(set(explicit_txs) | set(handler_txs) | set(imported_effect_txs))

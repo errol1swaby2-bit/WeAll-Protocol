@@ -409,9 +409,11 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                     if n.level:
                         # The current file is a module, not a package. Resolve
                         # relative imports against its containing Python package.
-                        module = path.removeprefix(str(PREFIX / "src") + "/").removesuffix(
-                            ".py"
-                        ).replace("/", ".")
+                        module = (
+                            path.removeprefix(str(PREFIX / "src") + "/")
+                            .removesuffix(".py")
+                            .replace("/", ".")
+                        )
                         package = module.split(".")[:-1]
                         if n.level > len(package):
                             continue
@@ -534,8 +536,10 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                                 if isinstance(arg, ast.Name) and arg.id == self.root_variable
                             ],
                             "state_keywords": [
-                                kw.arg for kw in node.keywords
-                                if kw.arg and isinstance(kw.value, ast.Name)
+                                kw.arg
+                                for kw in node.keywords
+                                if kw.arg
+                                and isinstance(kw.value, ast.Name)
                                 and kw.value.id == self.root_variable
                             ],
                         }
@@ -556,8 +560,17 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                         elif name in {"update", "clear", "popitem"}:
                             self.writes.add("<unknown-root-keys>")
                     elif owner in self.aliases and name in {
-                        "setdefault", "pop", "popitem", "update", "clear",
-                        "append", "extend", "insert", "remove", "discard", "add",
+                        "setdefault",
+                        "pop",
+                        "popitem",
+                        "update",
+                        "clear",
+                        "append",
+                        "extend",
+                        "insert",
+                        "remove",
+                        "discard",
+                        "add",
                     }:
                         self.alias_writes += 1
                         self.alias_roots.add(self.aliases[owner])
@@ -568,12 +581,15 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                                 "target": self.imports[owner] + "." + name,
                                 "line": node.lineno,
                                 "state_positional_indices": [
-                                    i for i, arg in enumerate(node.args)
+                                    i
+                                    for i, arg in enumerate(node.args)
                                     if isinstance(arg, ast.Name) and arg.id == self.root_variable
                                 ],
                                 "state_keywords": [
-                                    kw.arg for kw in node.keywords
-                                    if kw.arg and isinstance(kw.value, ast.Name)
+                                    kw.arg
+                                    for kw in node.keywords
+                                    if kw.arg
+                                    and isinstance(kw.value, ast.Name)
                                     and kw.value.id == self.root_variable
                                 ],
                             }
@@ -669,7 +685,9 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                                 root_arg = positional[index].arg
                         elif call["state_keywords"]:
                             keyword = call["state_keywords"][0]
-                            if keyword in {arg.arg for arg in positional + imported_fn.args.kwonlyargs}:
+                            if keyword in {
+                                arg.arg for arg in positional + imported_fn.args.kwonlyargs
+                            }:
                                 root_arg = keyword
                         if root_arg:
                             probe = Probe(

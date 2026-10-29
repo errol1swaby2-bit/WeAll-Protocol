@@ -344,25 +344,25 @@ class TestGate(unittest.TestCase):
     def test_alias_root_and_import_handoff_preserve_candidate_uncertainty(self):
         runtime = self.repo / "Weall-Protocol/src/weall/runtime"
         (runtime / "helper_effects.py").write_text(
-            'def _imported(ctx):\n'
+            "def _imported(ctx):\n"
             '    roles = ctx.setdefault("roles", {})\n'
             '    roles["juror"] = True\n'
             '    ctx["accounts"] = {}\n'
-            '    return ctx\n'
+            "    return ctx\n"
         )
         dispute = runtime / "apply/dispute.py"
         dispute.write_text(
-            'from weall.runtime.helper_effects import _imported\n'
+            "from weall.runtime.helper_effects import _imported\n"
             'DISPUTE_TX_TYPES: set[str] = {"DISPUTE_RESOLVE"}\n'
-            'def _resolve(state, env):\n'
+            "def _resolve(state, env):\n"
             '    groups = state.get("groups", {})\n'
             '    groups["a"] = 3\n'
-            '    _imported(state)\n'
-            '    return state\n'
-            'def apply_dispute(state, env):\n'
+            "    _imported(state)\n"
+            "    return state\n"
+            "def apply_dispute(state, env):\n"
             '    if env.tx_type == "DISPUTE_RESOLVE":\n'
-            '        return _resolve(state, env)\n'
-            '    return None\n'
+            "        return _resolve(state, env)\n"
+            "    return None\n"
         )
         rows = cg.extract_routes(self.repo)
         report = cg.trace_effect_candidates(self.repo, rows)
@@ -370,8 +370,9 @@ class TestGate(unittest.TestCase):
         self.assertIn("groups", tx["state_alias_root_write_candidates"])
         imported = tx["imported_function_candidates"]
         self.assertEqual(len(imported), 1)
-        self.assertEqual(imported[0]["status"],
-                         "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE")
+        self.assertEqual(
+            imported[0]["status"], "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE"
+        )
         self.assertEqual(imported[0]["state_parameter"], "ctx")
         self.assertIn("roles", imported[0]["alias_root_write_candidates"])
         self.assertIn("accounts", imported[0]["state_root_write_candidates"])
@@ -380,16 +381,15 @@ class TestGate(unittest.TestCase):
     def test_external_call_without_state_handoff_is_not_claimed(self):
         runtime = self.repo / "Weall-Protocol/src/weall/runtime"
         (runtime / "helper_effects.py").write_text(
-            'def _imported(ctx):\n'
-            '    ctx["secret"] = True\n'
+            'def _imported(ctx):\n    ctx["secret"] = True\n'
         )
         dispute = runtime / "apply/dispute.py"
         dispute.write_text(
-            'from weall.runtime.helper_effects import _imported\n'
+            "from weall.runtime.helper_effects import _imported\n"
             'DISPUTE_TX_TYPES: set[str] = {"DISPUTE_RESOLVE"}\n'
-            'def apply_dispute(state, env):\n'
-            '    _imported(env)\n'
-            '    return None\n'
+            "def apply_dispute(state, env):\n"
+            "    _imported(env)\n"
+            "    return None\n"
         )
         rows = cg.extract_routes(self.repo)
         report = cg.trace_effect_candidates(self.repo, rows)
