@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "97d472aaf76398ab861d5febf8e6bc33b67733570349dbfd324dc2bf8d3a549c"
+    "source_tree_digest": "73da0b7f4baa221fc6b2e93e1efa101c1f8da60da9b87b8d73e14654548d8d56"
   },
   "required_fields": [
     "stable_id",
@@ -8068,6 +8068,7 @@
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
+        "tests/test_pr62_account_field_runtime_evidence.py",
         "tests/test_production_bft_block_replay_api_storage_claim_boundaries.py",
         "tests/test_protocol_blocker_safety.py",
         "tests/test_public_only_protocol_redesign.py",
@@ -8812,7 +8813,8 @@
       "system_followups": [],
       "tests": [
         "tests/test_bounded_rollback_equivalence.py",
-        "tests/test_devnet_permission_probe.py"
+        "tests/test_devnet_permission_probe.py",
+        "tests/test_pr62_account_field_runtime_evidence.py"
       ],
       "tx_type": "CONTENT_REACTION_SET",
       "vector_ids": [
@@ -15408,6 +15410,7 @@
         "tests/test_four_gate_safety.py",
         "tests/test_p1_a10_reward_scheduler_scope.py",
         "tests/test_p2_final_source_closure.py",
+        "tests/test_pr62_account_field_runtime_evidence.py",
         "tests/test_reward_issuance_invariants.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_v15_epoch_issuance_scheduler.py",
@@ -17527,6 +17530,7 @@
         "tests/test_four_gate_safety.py",
         "tests/test_local_rehearsal_rate_limit_and_reviewer_status.py",
         "tests/test_p1_remaining_complete_remediation.py",
+        "tests/test_pr62_account_field_runtime_evidence.py",
         "tests/test_reputation_accrual_policy.py",
         "tests/test_reputation_delta_replay_safety.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
@@ -17943,6 +17947,7 @@
       "tests": [
         "tests/test_four_gate_safety.py",
         "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_pr62_account_field_runtime_evidence.py",
         "tests/test_tx_contract_coverage.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -18045,6 +18050,7 @@
       "tests": [
         "tests/test_full_node_db_api_dispute_storage_coverage.py",
         "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_pr62_account_field_runtime_evidence.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "ACCOUNT_REINSTATE",

@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2082,
+  "file_count": 2084,
   "files": [
     {
       "affected_registers": [
@@ -93,9 +93,22 @@
       "mappings": [
         "M-075"
       ],
+      "path": "../.github/workflows/pr62-account-field-runtime-evidence.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "6b1d9cda8e78e3fd3b1870572a04976084fe85ab63cdd4e9e47fc97a6e0e7ae6",
+      "source_id": "SRC-23F48739E7F41432"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
       "path": "../.github/workflows/pr62-candidate-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "f6fddeab7a164fefb742c900802e17ddccd1d67c51edd16a5512342c6af0f5e3",
+      "sha256": "902f88afe72c0463cd7a375de2784a2b93313075b325a4f763f1a94a7dd2562c",
       "source_id": "SRC-7CB0805B9D1138CB"
     },
     {
@@ -24704,6 +24717,26 @@
       "mappings": [
         "M-076",
         "ROUTE-150316944D629C32",
+        "TX-0300",
+        "TX-0305",
+        "TX-0702",
+        "TX-0900",
+        "TX-0904",
+        "TX-0905"
+      ],
+      "path": "tests/test_pr62_account_field_runtime_evidence.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "c283b130fb4916f31e53ea7f98d9737e8e847caac94d7c5b1bd6e624af1d882c",
+      "source_id": "SRC-A6B37B4E353158AB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
         "TX-0001",
         "TX-0002",
         "TX-0003",
@@ -30568,7 +30601,7 @@
       ],
       "path": "tooling/constitutional_change_gate/PR62_REVIEW.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "3cb5a1a025fff36bfcfaad36f6520556176e277cde7210a3c7a5e1b18d0ab1e0",
+      "sha256": "e1bbe3f84fb7636a60a726cf98e31300f56e2fed4a71d4cb47614b9e27caea3c",
       "source_id": "SRC-BDFF3DEA0AC7B6BA"
     },
     {

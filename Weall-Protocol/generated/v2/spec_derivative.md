@@ -5,7 +5,7 @@ Normative candidate: `2.0 First Draft - Complete Pre-Testnet Design Blueprint`
 Normative PDF SHA-256: `c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a`
 Repository: `https://github.com/errol1swaby2-bit/WeAll-Protocol`
 Specification snapshot: `63629d71a2447abf314f8914a808b565c7c75d70`
-Source-tree digest: `97d472aaf76398ab861d5febf8e6bc33b67733570349dbfd324dc2bf8d3a549c`
+Source-tree digest: `73da0b7f4baa221fc6b2e93e1efa101c1f8da60da9b87b8d73e14654548d8d56`
 
 This derivative is generated from the singular source tree. It proves W1 mechanism coverage and derivative consistency only; it is not a production-readiness or runtime-correctness certificate.
 
@@ -34,7 +34,7 @@ This derivative is generated from the singular source tree. It proves W1 mechani
 - Tx Contract Matrix: **236**
 - Vector Registry: **1883**
 - W1 Closure Validation Manifest: **0**
-- Covered source files: **2082**
+- Covered source files: **2084**
 - Unmapped source files: **0**
 
 ## Semantic-review boundary
