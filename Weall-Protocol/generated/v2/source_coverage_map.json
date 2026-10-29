@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/issue63-bounded-derivative-maintenance.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "1678ebf4525af4eda0df2e74508e3199b6c833cdd374fcaaa86bd02f36881877",
+      "sha256": "f6a9d08d374a943072f9d452ab79bbb1d30e64680a5cd869753eaa6a9fd1ab04",
       "source_id": "SRC-C504814E2BF479C1"
     },
     {
@@ -3381,7 +3381,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "520f2d6461dcc11ceee22ae34a2d3421ff74df24dae131effb4ace352b031794",
+      "sha256": "5a3548cdeb0d7b63be5f7b1ece523a12cca2b7e84e82b126f182848e3c2ff7a5",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
