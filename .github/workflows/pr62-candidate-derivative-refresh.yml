@@ -8,6 +8,7 @@ on:
       - .github/workflows/pr62-candidate-derivative-refresh.yml
       - .github/workflows/constitutional-change-gate-candidate.yml
       - 'Weall-Protocol/tooling/constitutional_change_gate/**'
+      - Weall-Protocol/specs/v2/source/source_mappings.json
 
 permissions:
   contents: write

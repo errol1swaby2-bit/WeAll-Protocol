@@ -6117,6 +6117,18 @@
         "tx_contract_matrix"
       ],
       "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/field_trace.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
       "path": "tooling/constitutional_change_gate/reconcile_v2.py",
       "primary_mechanism_id": "M-076",
       "review_status": "candidate_unverified_pending_independent_review"
@@ -6208,6 +6220,16 @@
       ],
       "classification": "verification_tooling",
       "path": "tooling/constitutional_change_gate/tests/test_change_gate.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/tests/test_field_trace.py",
       "primary_mechanism_id": "M-076",
       "review_status": "candidate_unverified_pending_independent_review"
     },
