@@ -706,8 +706,14 @@ class V2ReconciliationTests(unittest.TestCase):
         effects = self._review_queue_fixture()
         commit = cg.repo_commit(self.repo)
         baseline = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=commit, effects=effects, require_effect_pin=True,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=commit,
+            effects=effects,
+            require_effect_pin=True,
         )
         claim = {
             "review_key": baseline["authority_review_queue"][0]["review_key"],
@@ -725,9 +731,16 @@ class V2ReconciliationTests(unittest.TestCase):
             "records": [claim],
         }
         result = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=commit, effects=effects, require_effect_pin=True,
-            review_submissions=manifest, review_evidence_root=root,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=commit,
+            effects=effects,
+            require_effect_pin=True,
+            review_submissions=manifest,
+            review_evidence_root=root,
         )
         item = result["authority_review_queue"][0]
         self.assertEqual(result["review_evidence_files_sha256_checked"], 1)
@@ -743,9 +756,16 @@ class V2ReconciliationTests(unittest.TestCase):
         evidence.write_bytes(content + b"\nTAMPERED")
         with self.assertRaisesRegex(cg.ContractError, "review_evidence_digest_mismatch"):
             rv.reconcile(
-                self.idx, self.rows, self.tx, self.req, [],
-                checkout_commit=commit, effects=effects, require_effect_pin=True,
-                review_submissions=manifest, review_evidence_root=root,
+                self.idx,
+                self.rows,
+                self.tx,
+                self.req,
+                [],
+                checkout_commit=commit,
+                effects=effects,
+                require_effect_pin=True,
+                review_submissions=manifest,
+                review_evidence_root=root,
             )
 
     def test_evidence_ref_escape_symlink_missing_and_empty_are_rejected(self):
@@ -777,8 +797,13 @@ class V2ReconciliationTests(unittest.TestCase):
         effects = self._review_queue_fixture()
         with self.assertRaisesRegex(cg.ContractError, "review_evidence_root_without_submissions"):
             rv.reconcile(
-                self.idx, self.rows, self.tx, self.req, [],
-                checkout_commit=cg.repo_commit(self.repo), effects=effects,
+                self.idx,
+                self.rows,
+                self.tx,
+                self.req,
+                [],
+                checkout_commit=cg.repo_commit(self.repo),
+                effects=effects,
                 review_evidence_root=Path(self.tmp.name),
             )
 

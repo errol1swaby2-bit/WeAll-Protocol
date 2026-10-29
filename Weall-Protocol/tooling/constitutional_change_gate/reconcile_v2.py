@@ -562,7 +562,9 @@ def reconcile(
         observation["review_key"] = key
     authority_review_queue = [review_queue_by_key[key] for key in sorted(review_queue_by_key)]
     submissions_recorded = reconcile_review_submissions(
-        authority_review_queue, review_submissions, checkout_commit,
+        authority_review_queue,
+        review_submissions,
+        checkout_commit,
         evidence_root=review_evidence_root,
     )
     verified_evidence_files = sum(
@@ -852,9 +854,7 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
                 "review_submissions_recorded_unverified": doc[
                     "review_submissions_recorded_unverified"
                 ],
-                "review_evidence_files_sha256_checked": doc[
-                    "review_evidence_files_sha256_checked"
-                ],
+                "review_evidence_files_sha256_checked": doc["review_evidence_files_sha256_checked"],
                 "review_evidence_submissions_without_byte_checks": doc[
                     "review_evidence_submissions_without_byte_checks"
                 ],
