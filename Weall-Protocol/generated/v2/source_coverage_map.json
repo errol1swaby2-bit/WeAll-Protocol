@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2079,
+  "file_count": 2080,
   "files": [
     {
       "affected_registers": [
@@ -84,6 +84,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "2aa38306fd730583b11c1d32a26ebfbdabc9818120fe003e92b4a6c21e8b519b",
       "source_id": "SRC-2CE1BEE9A904E55D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/pr62-candidate-derivative-refresh.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "66d4965a662c4f4cbaa9deb1984bd810e606093205aa23d72c03db7a98b3884a",
+      "source_id": "SRC-7CB0805B9D1138CB"
     },
     {
       "affected_registers": [
@@ -30555,7 +30568,7 @@
       ],
       "path": "tooling/constitutional_change_gate/PR62_REVIEW.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "9da869e35d46e3c5b5e492aa08aac29c1ad97908e9846cc3913dc3407d635899",
+      "sha256": "1c9bb20c3903c7092eeeae9035a5dde31e6f672aaed793a093797ecb7661048f",
       "source_id": "SRC-BDFF3DEA0AC7B6BA"
     },
     {
@@ -30583,7 +30596,7 @@
       ],
       "path": "tooling/constitutional_change_gate/SHA256SUMS.txt",
       "primary_mechanism_id": "M-076",
-      "sha256": "432ff28c0238c48e0c04d16249576c85f6f1ce220597f6e54a0c73e227550719",
+      "sha256": "a77ef65a554889993ce9193fb343e3f356b7f7cc8b23fcb5f3da89d472723e11",
       "source_id": "SRC-CAAA5EC1F64384C0"
     },
     {
@@ -30615,7 +30628,7 @@
       ],
       "path": "tooling/constitutional_change_gate/reconcile_v2.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "965b23a4bac7446993c8f1ca6e07843947b7d985765b2d46c73981650ba5e957",
+      "sha256": "3571e51d91b71aba351e5b8cb493b6a739e3dfd9eb4c0a58f3ad9e10b5f2a700",
       "source_id": "SRC-6BE5BFA953B95629"
     },
     {
@@ -30727,7 +30740,7 @@
       ],
       "path": "tooling/constitutional_change_gate/tests/test_v2_reconciliation.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "9256268be356f02d62c468d68047c7e1afc37f8df7f94c7082c769dc3afc3d2c",
+      "sha256": "5bb296df2960a5faa4a6040dc6c21b9b2c39a09cc47fabc8d42228dbe8a55731",
       "source_id": "SRC-9CD87DABD7EA5551"
     },
     {

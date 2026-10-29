@@ -233,8 +233,12 @@ class V2ReconciliationTests(unittest.TestCase):
         self.assertEqual(req["DISP-001"]["handler_source_candidate_txs"], ["DISPUTE_RESOLVE"])
         self.assertEqual(req["ACC-003"]["candidate_canonical_txs"], [])
         self.assertEqual(tx["ACCOUNT_LOCK"]["candidate_requirement_count"], 0)
-        self.assertEqual(tx["DISPUTE_RESOLVE"]["candidate_requirements"][0]["requirement_id"], "DISP-001")
-        self.assertEqual(tx["DISPUTE_RESOLVE"]["link_authority"], "UNVERIFIED_STATIC_CANDIDATE_ONLY")
+        self.assertEqual(
+            tx["DISPUTE_RESOLVE"]["candidate_requirements"][0]["requirement_id"], "DISP-001"
+        )
+        self.assertEqual(
+            tx["DISPUTE_RESOLVE"]["link_authority"], "UNVERIFIED_STATIC_CANDIDATE_ONLY"
+        )
         self.assertTrue(result["gate"].startswith("BLOCKED"))
 
     def test_handler_directory_binding_without_explicit_id_remains_candidate(self):

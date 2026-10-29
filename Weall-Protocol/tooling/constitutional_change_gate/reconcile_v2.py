@@ -229,9 +229,7 @@ def reconcile(
                 reasons.append("EXPLICIT_V2_ID_UNREVIEWED")
             if name in req["handler_source_candidate_txs"]:
                 reasons.append("HANDLER_SOURCE_PATH_UNREVIEWED")
-            reverse[name].append(
-                {"requirement_id": req["id"], "candidate_reasons": reasons}
-            )
+            reverse[name].append({"requirement_id": req["id"], "candidate_reasons": reasons})
     tx_requirement_candidates = [
         {
             "tx_type": name,
@@ -423,9 +421,7 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
             w.writerow(item)
     # Preserve all canonical TXs in the reverse CSV, including TXs with no
     # established candidates. Absence of a link MUST NOT mean unaffected.
-    with (out / "v2_tx_requirement_candidates.csv").open(
-        "w", newline="", encoding="utf-8"
-    ) as f:
+    with (out / "v2_tx_requirement_candidates.csv").open("w", newline="", encoding="utf-8") as f:
         fields = [
             "tx_type",
             "v2_stable_id",
@@ -437,19 +433,21 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         for tx in doc["tx_requirement_candidates"]:
-            w.writerow({
-                "tx_type": tx["tx_type"],
-                "v2_stable_id": tx["v2_stable_id"],
-                "candidate_requirement_count": tx["candidate_requirement_count"],
-                "candidate_requirement_ids": ";".join(
-                    entry["requirement_id"] for entry in tx["candidate_requirements"]
-                ),
-                "candidate_reasons": ";".join(
-                    entry["requirement_id"] + ":" + "|".join(entry["candidate_reasons"])
-                    for entry in tx["candidate_requirements"]
-                ),
-                "link_authority": tx["link_authority"],
-            })
+            w.writerow(
+                {
+                    "tx_type": tx["tx_type"],
+                    "v2_stable_id": tx["v2_stable_id"],
+                    "candidate_requirement_count": tx["candidate_requirement_count"],
+                    "candidate_requirement_ids": ";".join(
+                        entry["requirement_id"] for entry in tx["candidate_requirements"]
+                    ),
+                    "candidate_reasons": ";".join(
+                        entry["requirement_id"] + ":" + "|".join(entry["candidate_reasons"])
+                        for entry in tx["candidate_requirements"]
+                    ),
+                    "link_authority": tx["link_authority"],
+                }
+            )
 
 
 def main(argv: list[str] | None = None) -> int:
