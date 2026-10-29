@@ -807,12 +807,15 @@ class V2ReconciliationTests(unittest.TestCase):
                 review_evidence_root=Path(self.tmp.name),
             )
 
-
     def test_unmatched_triage_preserves_distinct_reading_vs_link(self):
         origins = [
             ("CONTENT_POST_CREATE", "content.py", "P2_REVIEW_NONCE_AND_CONTENT_PERMISSION_EFFECTS"),
             ("ACCOUNT_BAN", "reputation.py", "P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS"),
-            ("BLOCK_REWARD_DISTRIBUTE", "rewards.py", "P1_REVIEW_BALANCE_AND_ISSUANCE_CONSERVATION"),
+            (
+                "BLOCK_REWARD_DISTRIBUTE",
+                "rewards.py",
+                "P1_REVIEW_BALANCE_AND_ISSUANCE_CONSERVATION",
+            ),
             ("CUSTOM", "unknown.py", "UNCLASSIFIED_REVIEW_REQUIRED"),
         ]
         queue = [
@@ -869,19 +872,13 @@ class V2ReconciliationTests(unittest.TestCase):
             self.assertEqual(
                 item["triage_disposition"], "OPEN_REQUIRES_HUMAN_SOURCE_AND_NORMATIVE_REVIEW"
             )
-        self.assertEqual(
-            triage[0]["thematic_reading_list"][0]["id"], "CONT-001"
-        )
+        self.assertEqual(triage[0]["thematic_reading_list"][0]["id"], "CONT-001")
         self.assertEqual(
             triage[0]["thematic_reading_list"][0]["normative_sentence"],
             rows[0]["normative_sentence"],
         )
-        self.assertEqual(
-            triage[1]["thematic_reading_list"][3]["id"], "SAN-005"
-        )
-        self.assertEqual(
-            triage[2]["thematic_reading_list"][0]["id"], "ECO-108"
-        )
+        self.assertEqual(triage[1]["thematic_reading_list"][3]["id"], "SAN-005")
+        self.assertEqual(triage[2]["thematic_reading_list"][0]["id"], "ECO-108")
         self.assertEqual(triage[3]["thematic_reading_list"], [])
         self.assertTrue(
             any(
@@ -892,23 +889,27 @@ class V2ReconciliationTests(unittest.TestCase):
 
     def test_unmatched_triage_cannot_hide_new_register_path_match(self):
         path = "Weall-Protocol/src/weall/runtime/apply/content.py"
-        queue = [{
-            "review_key": "AWC-test",
-            "source_commit": cg.repo_commit(self.repo),
-            "source_file_sha256": "a" * 64,
-            "tx_type": "CONTENT_POST_EDIT",
-            "state_root": "accounts",
-            "source_path": path,
-            "source_function": "_apply_post_edit",
-            "write_signal": "DIRECT_STATE_ROOT",
-            "triage_bucket": "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH",
-            "candidate_requirement_ids": [],
-        }]
-        updated_register = [{
-            "id": "CONT-001",
-            "implementation_paths": [path],
-            "normative_sentence": "Test fixture update",
-        }]
+        queue = [
+            {
+                "review_key": "AWC-test",
+                "source_commit": cg.repo_commit(self.repo),
+                "source_file_sha256": "a" * 64,
+                "tx_type": "CONTENT_POST_EDIT",
+                "state_root": "accounts",
+                "source_path": path,
+                "source_function": "_apply_post_edit",
+                "write_signal": "DIRECT_STATE_ROOT",
+                "triage_bucket": "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH",
+                "candidate_requirement_ids": [],
+            }
+        ]
+        updated_register = [
+            {
+                "id": "CONT-001",
+                "implementation_paths": [path],
+                "normative_sentence": "Test fixture update",
+            }
+        ]
         with self.assertRaisesRegex(
             cg.ContractError, "unmatched_triage_register_path_changed_reconcile_required"
         ):
