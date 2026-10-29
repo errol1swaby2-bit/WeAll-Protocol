@@ -123,3 +123,42 @@ The taxonomy is a bounded human-review aid; it is not derived from a ratified
 mapping of constitutional rights to state storage keys. The existing 755-row
 requirement register is unchanged and no test outcome or authorization is
 fabricated. Gate verdict remains BLOCKED; no consensus code is altered.
+
+## v0.7 open authority review queue and untrusted submissions
+
+The offline v2 candidate report now emits `v2_authority_review_queue.json`
+and `v2_authority_review_queue.csv`. Each source-root write observation has a
+deterministic `AWC-...` key based on its TX, root, source path, function, import
+depth and write signal. Duplicate observations receive one queue entry but are
+counted. Entries distinguish missing **declared implementation-path matches**
+from existing but **unverified** requirement-path matches. A missing path is
+neither proof of a missing constitutional rule nor proof that the write is
+unconstitutional.
+
+Each entry includes the exact inspected checkout SHA and the scanned source
+file's SHA-256 when available; the review queue cannot be closed automatically.
+Its listed evidence obligations are: exact-source effect analysis, human
+constitutional requirement adjudication, independently verified reviewer
+identity, reproducible targeted test logs, and consensus/replay checks when
+relevant. These are requirements for *future review*, not claims of completion.
+
+For external review preparation, an operator may provide an external JSON
+manifest to the existing offline `weall_change_gate.py` build via the
+`--v2-effect-links --authority-review-submissions <path>` options. Input schema
+`weall.v2.authority-review-submissions.v0.1` requires `source_commit` and
+`records`. Each record must contain the current `review_key`,
+`source_file_sha256`, a declared `reviewer_id`, a `review_decision` from
+`EFFECT_CLAIMED`, `NO_EFFECT_CLAIMED`, `FALSE_POSITIVE_CLAIMED`,
+`MORE_EVIDENCE_REQUESTED`, a rationale, an `evidence_ref`, SHA-256 of the
+referenced evidence, and `requirement_ids` from the existing source-matched
+candidate set. Duplicate/stale/unmapped claims fail closed. External manifests
+are never read as instructions, used to update the checkout, or treated as
+signatures.
+
+**Critical:** The tool does not verify identity, log contents or
+constitutional authority from such metadata; it records the submission as
+`RECORDED_UNAUTHENTICATED_NOT_ADJUDICATED`. Every queue item remains OPEN,
+`review_complete=false` and `constitutional_authorization=NOT_ESTABLISHED`.
+The release gate stays BLOCKED even when someone claims no effect or supplies
+a digest. Human review must independently retrieve/verify the evidence and
+authorize each normative mapping through WeAll's constitutional process.

@@ -1421,6 +1421,11 @@ def main(argv: list[str] | None = None) -> int:
         "--evidence", type=Path, help="Review + test evidence claims manifest, gate only"
     )
     p.add_argument("--owner", help="Declared developer identity, gate only")
+    p.add_argument(
+        "--authority-review-submissions",
+        type=Path,
+        help="External self-reported review claims; never treated as approved",
+    )
     args = p.parse_args(argv)
     repo = args.repo.resolve()
     out = args.out.resolve()
@@ -1428,6 +1433,8 @@ def main(argv: list[str] | None = None) -> int:
         raise ContractError("not_a_weall_repo_or_index_missing:" + str(repo))
     if out == repo or repo in out.parents:
         raise ContractError("output_must_be_outside_repository")
+    if args.authority_review_submissions and not args.v2_effect_links:
+        raise ContractError("authority_review_submissions_require_v2_effect_links")
     rows = extract_routes(repo)
     policy = load_policy()
     existing_v2 = {}
@@ -1471,6 +1478,10 @@ def main(argv: list[str] | None = None) -> int:
             checkout_commit=snapshot["source_commit"],
             effects=effects,
             require_effect_pin=True,
+            review_submissions=(
+                read_json(args.authority_review_submissions)
+                if args.authority_review_submissions else None
+            ),
         )
         reconcile_v2.write_results(reconciled, out)
     atomic_write(out / "tx_implementation_matrix.md", matrix_md(rows, policy).encode("utf-8"))

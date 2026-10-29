@@ -479,11 +479,178 @@ class V2ReconciliationTests(unittest.TestCase):
                 effects=effects,
             )
 
+
+    def _review_queue_fixture(self):
+        path = "Weall-Protocol/src/weall/runtime/apply/dispute.py"
+        effects = {
+            "source_commit": cg.repo_commit(self.repo),
+            "source_pin": {
+                "status": "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD",
+                "scanned_files": [{"path": path, "sha256": "a" * 64}],
+            },
+            "transaction_count": 2,
+            "transactions": [
+                {
+                    "tx_type": "DISPUTE_RESOLVE",
+                    "authority_sensitive_write_candidates": [
+                        {
+                            "state_root": "disputes",
+                            "authority_area": "DISPUTE_OR_ENFORCEMENT_REVIEW",
+                            "source_path": path,
+                            "source_function": "apply_dispute",
+                            "import_depth": 0,
+                            "write_signal": "DIRECT_STATE_ROOT",
+                        },
+                    ],
+                },
+                {"tx_type": "ACCOUNT_LOCK", "authority_sensitive_write_candidates": []},
+            ],
+        }
+        return effects
+
+    def test_review_queue_unique_stable_keys_and_unmatched_obligation(self):
+        effects = self._review_queue_fixture()
+        item = effects["transactions"][0]["authority_sensitive_write_candidates"][0]
+        effects["transactions"][0]["authority_sensitive_write_candidates"].append(dict(item))
+        effects["transactions"][0]["authority_sensitive_write_candidates"].append(
+            {
+                **item,
+                "state_root": "validators",
+                "authority_area": "VALIDATOR_AUTHORITY_REVIEW",
+                "source_path": "Weall-Protocol/src/weall/runtime/unmatched.py",
+            }
+        )
+        result = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=cg.repo_commit(self.repo), effects=effects,
+        )
+        queue = result["authority_review_queue"]
+        self.assertEqual(result["authority_sensitive_write_candidate_count"], 3)
+        self.assertEqual(len(queue), 2)
+        self.assertEqual(result["authority_review_queue_unmatched_count"], 1)
+        linked = next(q for q in queue if q["state_root"] == "disputes")
+        self.assertEqual(linked["candidate_observation_count"], 2)
+        self.assertTrue(linked["review_key"].startswith("AWC-"))
+        self.assertEqual(linked["source_file_sha256"], "a" * 64)
+        self.assertEqual(linked["candidate_requirement_ids"], ["DISP-001"])
+        self.assertEqual(linked["submission_status"], "OPEN_NO_REVIEW_SUBMISSION")
+        self.assertFalse(linked["review_complete"])
+        self.assertEqual(result["independently_authenticated_reviews"], 0)
+        unlinked = next(q for q in queue if q["state_root"] == "validators")
+        self.assertEqual(unlinked["triage_bucket"], "NO_DECLARED_V2_REQUIREMENT_PATH_MATCH")
+        reversed_effects = self._review_queue_fixture()
+        baseline = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=cg.repo_commit(self.repo), effects=reversed_effects,
+        )
+        self.assertEqual(
+            linked["review_key"], baseline["authority_review_queue"][0]["review_key"]
+        )
+
+    def test_self_reported_review_never_closes_queue_or_authorizes(self):
+        effects = self._review_queue_fixture()
+        commit = cg.repo_commit(self.repo)
+        baseline = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=commit, effects=effects, require_effect_pin=True,
+        )
+        key = baseline["authority_review_queue"][0]["review_key"]
+        claim = {
+            "review_key": key,
+            "source_file_sha256": "a" * 64,
+            "reviewer_id": "independent-reviewer-fixture",
+            "review_decision": "NO_EFFECT_CLAIMED",
+            "rationale": "Fixture requires separate independent verification",
+            "evidence_ref": "artifacts/fixture-review.txt",
+            "evidence_sha256": "b" * 64,
+            "requirement_ids": ["DISP-001"],
+        }
+        payload = {
+            "schema": "weall.v2.authority-review-submissions.v0.1",
+            "source_commit": commit,
+            "records": [claim],
+        }
+        result = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=commit, effects=effects, require_effect_pin=True,
+            review_submissions=payload,
+        )
+        q = result["authority_review_queue"][0]
+        self.assertEqual(q["submission_status"], "RECORDED_UNAUTHENTICATED_NOT_ADJUDICATED")
+        self.assertEqual(result["review_submissions_recorded_unverified"], 1)
+        self.assertEqual(result["authority_review_queue_open_count"], 1)
+        self.assertEqual(result["independently_authenticated_reviews"], 0)
+        self.assertFalse(q["review_complete"])
+        self.assertEqual(q["constitutional_authorization"], "NOT_ESTABLISHED")
+        self.assertTrue(result["gate"].startswith("BLOCKED"))
+        with tempfile.TemporaryDirectory() as directory:
+            rv.write_results(result, Path(directory))
+            self.assertIn(key, (Path(directory) / "v2_authority_review_queue.csv").read_text())
+            self.assertIn(
+                "RECORDED_UNAUTHENTICATED_NOT_ADJUDICATED",
+                (Path(directory) / "v2_authority_review_queue.json").read_text(),
+            )
+
+    def test_review_submission_stale_unknown_or_authorized_claim_fails_closed(self):
+        effects = self._review_queue_fixture()
+        commit = cg.repo_commit(self.repo)
+        baseline = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=commit, effects=effects,
+        )
+        claim = {
+            "review_key": baseline["authority_review_queue"][0]["review_key"],
+            "source_file_sha256": "a" * 64,
+            "reviewer_id": "review-fixture",
+            "review_decision": "EFFECT_CLAIMED",
+            "rationale": "Fixture",
+            "evidence_ref": "reference/fixture",
+            "evidence_sha256": "b" * 64,
+            "requirement_ids": ["DISP-001"],
+        }
+        payload = {
+            "schema": "weall.v2.authority-review-submissions.v0.1",
+            "source_commit": commit,
+            "records": [claim],
+        }
+        for changed, message in [
+            ({"source_commit": "f" * 40}, "invalid_or_stale_review_submission_manifest"),
+            ({"records": [{**claim, "review_key": "AWC-not-present"}]}, "unknown_review_candidate_key"),
+            ({"records": [claim, claim]}, "duplicate_review_submission"),
+            ({"records": [{**claim, "review_decision": "AUTHORIZED"}]}, "unsupported_review_decision"),
+            ({"records": [{**claim, "source_file_sha256": "c" * 64}]}, "review_submission_source_digest_mismatch"),
+            ({"records": [{**claim, "requirement_ids": ["GOV-EXEC-001"]}]}, "review_submission_unmapped_requirement"),
+        ]:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(cg.ContractError, message):
+                    rv.reconcile(
+                        self.idx, self.rows, self.tx, self.req, [],
+                        checkout_commit=commit, effects=effects,
+                        require_effect_pin=True,
+                        review_submissions={**payload, **changed},
+                    )
+
+    def test_review_submissions_require_pinned_source_scan(self):
+        effects = self._review_queue_fixture()
+        with self.assertRaisesRegex(
+            cg.ContractError, "review_submissions_require_pinned_effects"
+        ):
+            rv.reconcile(
+                self.idx, self.rows, self.tx, self.req, [],
+                checkout_commit=cg.repo_commit(self.repo),
+                effects=effects,
+                review_submissions={
+                    "schema": "weall.v2.authority-review-submissions.v0.1",
+                    "source_commit": cg.repo_commit(self.repo),
+                    "records": [],
+                },
+            )
+
     def test_write_reports_external_only(self):
         a = self.check()
         output = Path(self.tmp.name) / "out"
         rv.write_results(a, output)
-        self.assertEqual(len(list(output.iterdir())), 6)
+        self.assertEqual(len(list(output.iterdir())), 8)
         self.assertIn(
             "DISPUTE_RESOLVE",
             (output / "v2_tx_requirement_candidates.csv").read_text(),

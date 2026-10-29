@@ -91,6 +91,16 @@ jobs:
               x["constitutional_authorization"] == "NOT_ESTABLISHED"
               for x in result["authority_write_review_candidates"]
           )
+          assert result["authority_review_queue_open_count"] == result["authority_review_queue_item_count"]
+          assert result["independently_authenticated_reviews"] == 0
+          assert result["review_submissions_recorded_unverified"] == 0
+          assert all(
+              not q["review_complete"]
+              and q["constitutional_authorization"] == "NOT_ESTABLISHED"
+              and q["submission_status"] == "OPEN_NO_REVIEW_SUBMISSION"
+              for q in result["authority_review_queue"]
+          )
+          assert result["authority_review_queue_unmatched_count"] <= result["authority_review_queue_item_count"]
           assert result["effect_source_pin_status"] == "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
           print("v2 candidate requirements:", result["v2_requirement_count"],
                 "import source candidate requirements:",
@@ -100,5 +110,7 @@ jobs:
                 "authority-sensitive write candidates:",
                 result["authority_sensitive_write_candidate_count"],
                 "without linked requirement path:",
-                result["authority_write_candidates_without_requirement_path_link"])
+                result["authority_write_candidates_without_requirement_path_link"],
+                "unique review queue:", result["authority_review_queue_item_count"],
+                "unmatched queue:", result["authority_review_queue_unmatched_count"])
           PY
