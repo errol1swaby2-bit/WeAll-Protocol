@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/issue63-bounded-derivative-maintenance.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "23afb8f92c92d2459651943475f792000a5045654c1ca08373c0c0cceddb18a0",
+      "sha256": "1678ebf4525af4eda0df2e74508e3199b6c833cdd374fcaaa86bd02f36881877",
       "source_id": "SRC-C504814E2BF479C1"
     },
     {
@@ -3814,7 +3814,7 @@
       ],
       "path": "generated/tx_lifecycle_assurance_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3071e871524e93b15a8c639a42cf3c22c1a04e1aa734834f1b50512d00c3dd6e",
+      "sha256": "c810125761c0423f3b2792ce2fe3b24dd14e9aa643a0dd45bd3e03e9b863f7f1",
       "source_id": "SRC-6FB7A2F5900CA009"
     },
     {
