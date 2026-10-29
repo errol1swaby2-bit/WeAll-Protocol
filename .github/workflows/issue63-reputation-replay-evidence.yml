@@ -1,0 +1,71 @@
+name: Issue63 reputation replay targeted evidence
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue63-reputation-replay-evidence.yml
+      - Weall-Protocol/tests/test_issue63_reputation_state_replay.py
+      - Weall-Protocol/src/weall/runtime/apply/reputation.py
+      - Weall-Protocol/src/weall/runtime/reputation_units.py
+      - Weall-Protocol/src/weall/ledger/migrations.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-runtime:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact triggering commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Check focused Python format, lint and tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          OUT="$RUNNER_TEMP/issue63-reputation"
+          mkdir -p "$OUT"
+          {
+            echo "scope=IN_MEMORY_DOMAIN_APPLY_ONLY_NO_EXECUTOR_BFT_OR_CONSTITUTIONAL_AUTHORIZATION"
+            echo "checkout_commit=$(git rev-parse HEAD)"
+            echo "pr_branch_sha=${{ github.event.pull_request.head.sha }}"
+            echo "issue=63"
+            echo "normative_authority=NOT_ESTABLISHED"
+            sha256sum src/weall/runtime/apply/reputation.py
+            sha256sum tests/test_issue63_reputation_state_replay.py
+          } > "$OUT/source_and_scope.txt"
+          set +e
+          {
+            ruff format --check src/weall/runtime/apply/reputation.py tests/test_issue63_reputation_state_replay.py &&
+            ruff check src/weall/runtime/apply/reputation.py tests/test_issue63_reputation_state_replay.py &&
+            pytest -vv -rx tests/test_issue63_reputation_state_replay.py
+          } 2>&1 | tee "$OUT/targeted_pytest.log"
+          RC="${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=$RC" >> "$OUT/source_and_scope.txt"
+          sha256sum "$OUT/targeted_pytest.log" >> "$OUT/source_and_scope.txt"
+          exit "$RC"
+      - name: Publish bounded review-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue63-reputation-replay-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/issue63-reputation/source_and_scope.txt
+            ${{ runner.temp }}/issue63-reputation/targeted_pytest.log

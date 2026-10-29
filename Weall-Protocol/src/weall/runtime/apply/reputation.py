@@ -34,6 +34,7 @@ from weall.runtime.reputation_units import (
     reputation_to_units,
     sync_account_reputation,
     units_to_reputation,
+    units_to_reputation_text,
 )
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -182,6 +183,13 @@ def _ensure_account(state: Json, account_id: str) -> Json:
     return acct
 
 
+def _read_account_reputation_units_without_mutation(state: Json, account_id: str) -> int:
+    """A duplicate receipt must not create/normalize account state on replay."""
+    accounts = state.get("accounts")
+    acct = accounts.get(account_id) if isinstance(accounts, dict) else None
+    return account_reputation_units(acct, default=0)
+
+
 def _mk_id(prefix: str, env: TxEnvelope, provided: Any) -> str:
     p = _as_str(provided).strip()
     if p:
@@ -223,7 +231,9 @@ def _apply_rep_delta_and_autoban(
     cur_units = account_reputation_units(acct, default=0)
     nxt_units = clamp_reputation_units(cur_units + int(delta_units))
     acct["reputation_milli"] = int(nxt_units)
-    acct["reputation"] = units_to_reputation(nxt_units)
+    # Account state uses canonical decimal text; float is retained only for
+    # legacy receipt/API compatibility. See reputation_units and migrations.
+    acct["reputation"] = units_to_reputation_text(nxt_units)
 
     newly_banned = False
     if int(nxt_units) <= REP_MIN_UNITS and not bool(acct.get("banned", False)):
@@ -295,8 +305,7 @@ def apply_reputation_delta_system(
     delta_units = reputation_to_units(delta)
     already = _find_by_id(deltas, "delta_id", delta_id) is not None
     if already:
-        acct = _ensure_account(state, account_id)
-        current_units = account_reputation_units(acct, default=0)
+        current_units = _read_account_reputation_units_without_mutation(state, account_id)
         return {
             "ok": True,
             "account_id": account_id,
@@ -383,8 +392,7 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
     deltas = rep["deltas"]
     already = _find_by_id(deltas, "delta_id", delta_id) is not None
     if already:
-        acct = _ensure_account(state, account_id)
-        current_units = account_reputation_units(acct, default=0)
+        current_units = _read_account_reputation_units_without_mutation(state, account_id)
         return {
             "applied": "REPUTATION_DELTA_APPLY",
             "delta_id": delta_id,

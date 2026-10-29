@@ -1,0 +1,105 @@
+name: Issue63 bounded derivative maintenance
+
+on:
+  push:
+    branches:
+      - fix/issue63-reputation-replay-serialization-20261029
+    paths:
+      - .github/workflows/issue63-bounded-derivative-maintenance.yml
+      - .github/workflows/issue63-reputation-replay-evidence.yml
+      - Weall-Protocol/src/weall/runtime/apply/reputation.py
+      - Weall-Protocol/tests/test_issue63_reputation_state_replay.py
+      - Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json
+      - Weall-Protocol/generated/tx_semantic_assurance_v1_5.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: issue63-bounded-derivative-maintenance
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref_name == 'fix/issue63-reputation-replay-serialization-20261029'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout bounded branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked backend dev dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Format and exercise scoped runtime tests
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format src/weall/runtime/apply/reputation.py tests/test_issue63_reputation_state_replay.py
+          ruff check src/weall/runtime/apply/reputation.py tests/test_issue63_reputation_state_replay.py
+          pytest -q -rx tests/test_issue63_reputation_state_replay.py
+      - name: Refresh required pinned derivatives without weakening checks
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          # Regenerate source-derived evidence before v2 source fingerprinting.
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_failure_code_registry_v1_5.py --check
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
+          python scripts/gen_tx_semantic_assurance_v1_5.py
+          python scripts/gen_tx_semantic_assurance_v1_5.py --check
+          python scripts/compile_v2_spec.py
+          python scripts/compile_v2_spec.py --check
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
+          python scripts/gen_tx_semantic_assurance_v1_5.py --check
+          python scripts/gen_failure_code_registry_v1_5.py --check
+      - name: Commit only scoped changes and push
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          python - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(
+              ["git", "diff", "--name-only"], text=True,
+          ).splitlines()
+          allowed_exact = {
+              "Weall-Protocol/src/weall/runtime/apply/reputation.py",
+              "Weall-Protocol/tests/test_issue63_reputation_state_replay.py",
+              "Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json",
+              "Weall-Protocol/generated/failure_code_registry_v1_5.json",
+              "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+              "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
+              "Weall-Protocol/generated/tx_semantic_assurance_v1_5.json",
+              "web/src/generated/protocolStatus.ts",
+          }
+          unexpected = [
+              p for p in paths
+              if p not in allowed_exact and not p.startswith("Weall-Protocol/generated/v2/")
+          ]
+          if unexpected:
+              raise SystemExit("unexpected generated edits: " + repr(unexpected))
+          print("Scoped generated updates:", paths)
+          PY
+          git add -u -- Weall-Protocol/src/weall/runtime/apply/reputation.py Weall-Protocol/tests/test_issue63_reputation_state_replay.py Weall-Protocol/generated/v2 Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json Weall-Protocol/generated/failure_code_registry_v1_5.json Weall-Protocol/generated/release_evidence_manifest_v1_5.json Weall-Protocol/generated/public_beta_blocker_report_v1_5.json Weall-Protocol/generated/tx_semantic_assurance_v1_5.json web/src/generated/protocolStatus.ts
+          if git diff --cached --quiet; then
+            echo "Issue63 scoped source and derivatives are current."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(issue63): format replay regression and refresh exact-source derivatives'
+          git push origin HEAD:"${GITHUB_REF_NAME}"

@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "3f9d0e82687c9995ffb6366b9418b26225d525df2470e5882d5ad5727aba0af4"
+    "source_tree_digest": "9f5e6129fbabd7da500dc849ad2bd646412b87604265a1e682ec04a4d40988c2"
   },
   "rows": [
     {
@@ -167,7 +167,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "b212f7fc42fca0706be608777b94f0a2d6457bdc7065fe3a9a7b099ce41517a7",
+      "sha256": "5afb9db3b3f12f0c941dc274b6ce5d2d41d2c5e8f18f5fbb271cca5e7d380feb",
       "stable_id": "EVD-224E96B1E6D9984E",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -321,7 +321,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "0cd3882ca78919eb89b3be2ca25622be939f1543b8b324137e6c85e88b3b472a",
+      "sha256": "d68ee6341c46d53657db18cc0250f0fd94bd6b2a81999d31b61f34cd9ab44da7",
       "stable_id": "EVD-4F9C5188B5C90E01",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -1091,7 +1091,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "520f2d6461dcc11ceee22ae34a2d3421ff74df24dae131effb4ace352b031794",
+      "sha256": "5a3548cdeb0d7b63be5f7b1ece523a12cca2b7e84e82b126f182848e3c2ff7a5",
       "stable_id": "EVD-F47E2373CB956305",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
