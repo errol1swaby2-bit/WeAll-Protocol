@@ -439,7 +439,8 @@ class TestGate(unittest.TestCase):
     def test_authority_root_classification_keeps_unknown_writes_visible(self):
         classified = cg.classify_authority_write_candidates(
             path="Weall-Protocol/src/weall/runtime/apply/identity.py",
-            function="_apply_account_lock", depth=0,
+            function="_apply_account_lock",
+            depth=0,
             direct_writes={"accounts", "random_data", "<dynamic-key>"},
             alias_writes={"reputation", "<unknown-root-keys>"},
         )
@@ -447,12 +448,8 @@ class TestGate(unittest.TestCase):
             (x["state_root"], x["authority_area"])
             for x in classified["authority_sensitive_write_candidates"]
         }
-        self.assertIn(
-            ("accounts", "ACCOUNT_ACCESS_OR_IDENTITY_REVIEW"), sensitive
-        )
-        self.assertIn(
-            ("reputation", "REPUTATION_OR_SANCTION_REVIEW"), sensitive
-        )
+        self.assertIn(("accounts", "ACCOUNT_ACCESS_OR_IDENTITY_REVIEW"), sensitive)
+        self.assertIn(("reputation", "REPUTATION_OR_SANCTION_REVIEW"), sensitive)
         self.assertEqual(
             [x["state_root"] for x in classified["unclassified_state_write_candidates"]],
             ["random_data"],
@@ -462,36 +459,34 @@ class TestGate(unittest.TestCase):
             {"<dynamic-key>", "<unknown-root-keys>"},
         )
         self.assertTrue(
-            all(x["status"] == "UNVERIFIED_STATIC_WRITE_CANDIDATE"
-                for kind in classified.values() for x in kind)
+            all(
+                x["status"] == "UNVERIFIED_STATIC_WRITE_CANDIDATE"
+                for kind in classified.values()
+                for x in kind
+            )
         )
 
     def test_tracer_reports_authority_write_across_import_depths(self):
         runtime = self.repo / "Weall-Protocol/src/weall/runtime"
-        (runtime / "deep_effects.py").write_text(
-            'def _inner(ctx):\n'
-            '    ctx["validators"] = {}\n'
-        )
+        (runtime / "deep_effects.py").write_text('def _inner(ctx):\n    ctx["validators"] = {}\n')
         (runtime / "outer_effects.py").write_text(
-            'from weall.runtime.deep_effects import _inner\n'
-            'def _outer(ctx):\n'
+            "from weall.runtime.deep_effects import _inner\n"
+            "def _outer(ctx):\n"
             '    ctx["reputation"] = {}\n'
-            '    _inner(ctx)\n'
+            "    _inner(ctx)\n"
         )
         (runtime / "apply/dispute.py").write_text(
-            'from weall.runtime.outer_effects import _outer\n'
+            "from weall.runtime.outer_effects import _outer\n"
             'DISPUTE_TX_TYPES: set[str] = {"DISPUTE_RESOLVE"}\n'
-            'def apply_dispute(state, env):\n'
+            "def apply_dispute(state, env):\n"
             '    state["disputes"] = {}\n'
             '    state["ordinary"] = True\n'
-            '    _outer(state)\n'
-            '    return None\n'
+            "    _outer(state)\n"
+            "    return None\n"
         )
         rows = cg.extract_routes(self.repo)
         effects = cg.trace_effect_candidates(self.repo, rows)
-        item = {row["tx_type"]: row for row in effects["transactions"]}[
-            "DISPUTE_RESOLVE"
-        ]
+        item = {row["tx_type"]: row for row in effects["transactions"]}["DISPUTE_RESOLVE"]
         signals = {
             (x["state_root"], x["import_depth"])
             for x in item["authority_sensitive_write_candidates"]

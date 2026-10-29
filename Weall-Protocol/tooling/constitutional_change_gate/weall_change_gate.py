@@ -901,8 +901,11 @@ def trace_effect_candidates(
             field: sorted(
                 [effect for source in classified_sources for effect in source[field]],
                 key=lambda item: (
-                    item["source_path"], item["source_function"],
-                    item["import_depth"], item["state_root"], item["write_signal"],
+                    item["source_path"],
+                    item["source_function"],
+                    item["import_depth"],
+                    item["state_root"],
+                    item["write_signal"],
                 ),
             )
             for field in (

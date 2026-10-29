@@ -172,9 +172,7 @@ def reconcile(
     by_contract = {v["stable_id"]: v["tx_type"] for v in txs}
     imported_by_tx: dict[str, set[str]] = {name: set() for name in static_rows}
     transitive_by_tx: dict[str, set[str]] = {name: set() for name in static_rows}
-    authority_writes_by_tx: dict[str, list[dict[str, Any]]] = {
-        name: [] for name in static_rows
-    }
+    authority_writes_by_tx: dict[str, list[dict[str, Any]]] = {name: [] for name in static_rows}
     if require_effect_pin and effects is None:
         raise cg.ContractError("required_effect_inventory_absent")
     if effects is not None:
@@ -327,7 +325,8 @@ def reconcile(
     for name in sorted(static_rows):
         for effect in authority_writes_by_tx[name]:
             matches = sorted(
-                r["id"] for r in requirement_candidates
+                r["id"]
+                for r in requirement_candidates
                 if any(
                     path_matches(effect["source_path"], req_path)
                     for req_path in r["v2_implementation_paths"]
@@ -582,27 +581,37 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
         "w", newline="", encoding="utf-8"
     ) as f:
         fields = [
-            "tx_type", "state_root", "authority_area", "source_path",
-            "source_function", "import_depth", "write_signal",
-            "candidate_requirement_ids", "candidate_requirement_test_runs",
-            "candidate_requirement_verification", "unlinked_requirement_review_required",
-            "link_reason", "constitutional_authorization",
+            "tx_type",
+            "state_root",
+            "authority_area",
+            "source_path",
+            "source_function",
+            "import_depth",
+            "write_signal",
+            "candidate_requirement_ids",
+            "candidate_requirement_test_runs",
+            "candidate_requirement_verification",
+            "unlinked_requirement_review_required",
+            "link_reason",
+            "constitutional_authorization",
         ]
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         for item in doc["authority_write_review_candidates"]:
-            writer.writerow({
-                **{field: item.get(field) for field in fields},
-                "candidate_requirement_ids": ";".join(item["candidate_requirement_ids"]),
-                "candidate_requirement_test_runs": ";".join(
-                    str(x["requirement_id"]) + ":" + str(x["test_run_id"])
-                    for x in item["candidate_requirement_evidence"]
-                ),
-                "candidate_requirement_verification": ";".join(
-                    str(x["requirement_id"]) + ":" + str(x["verification_result"])
-                    for x in item["candidate_requirement_evidence"]
-                ),
-            })
+            writer.writerow(
+                {
+                    **{field: item.get(field) for field in fields},
+                    "candidate_requirement_ids": ";".join(item["candidate_requirement_ids"]),
+                    "candidate_requirement_test_runs": ";".join(
+                        str(x["requirement_id"]) + ":" + str(x["test_run_id"])
+                        for x in item["candidate_requirement_evidence"]
+                    ),
+                    "candidate_requirement_verification": ";".join(
+                        str(x["requirement_id"]) + ":" + str(x["verification_result"])
+                        for x in item["candidate_requirement_evidence"]
+                    ),
+                }
+            )
     # Preserve all canonical TXs in the reverse CSV, including TXs with no
     # established candidates. Absence of a link MUST NOT mean unaffected.
     with (out / "v2_tx_requirement_candidates.csv").open("w", newline="", encoding="utf-8") as f:

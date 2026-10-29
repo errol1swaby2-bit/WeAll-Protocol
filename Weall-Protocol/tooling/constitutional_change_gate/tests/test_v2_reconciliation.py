@@ -418,20 +418,25 @@ class V2ReconciliationTests(unittest.TestCase):
             ],
         }
         result = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=cg.repo_commit(self.repo), effects=effects,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=cg.repo_commit(self.repo),
+            effects=effects,
         )
         self.assertEqual(result["authority_sensitive_write_candidate_count"], 2)
         self.assertEqual(result["authority_write_candidates_without_requirement_path_link"], 1)
         linked = next(
-            x for x in result["authority_write_review_candidates"]
-            if x["state_root"] == "disputes"
+            x for x in result["authority_write_review_candidates"] if x["state_root"] == "disputes"
         )
         self.assertEqual(linked["candidate_requirement_ids"], ["DISP-001"])
         self.assertEqual(linked["candidate_requirement_evidence"][0]["test_run_id"], "NOT_RUN")
         self.assertEqual(linked["constitutional_authorization"], "NOT_ESTABLISHED")
         unlinked = next(
-            x for x in result["authority_write_review_candidates"]
+            x
+            for x in result["authority_write_review_candidates"]
             if x["state_root"] == "validators"
         )
         self.assertEqual(unlinked["candidate_requirement_ids"], [])
@@ -465,8 +470,13 @@ class V2ReconciliationTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(cg.ContractError, "invalid_authority_write_provenance"):
             rv.reconcile(
-                self.idx, self.rows, self.tx, self.req, [],
-                checkout_commit=cg.repo_commit(self.repo), effects=effects,
+                self.idx,
+                self.rows,
+                self.tx,
+                self.req,
+                [],
+                checkout_commit=cg.repo_commit(self.repo),
+                effects=effects,
             )
 
     def test_write_reports_external_only(self):
