@@ -53,6 +53,10 @@ jobs:
           # Regenerate source-derived evidence before v2 source fingerprinting.
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_failure_code_registry_v1_5.py --check
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py --check
           python scripts/gen_tx_lifecycle_assurance_v1_5.py
           python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
           python scripts/gen_tx_semantic_assurance_v1_5.py
@@ -77,6 +81,8 @@ jobs:
               "Weall-Protocol/tests/test_issue63_reputation_state_replay.py",
               "Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json",
               "Weall-Protocol/generated/failure_code_registry_v1_5.json",
+              "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+              "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
               "Weall-Protocol/generated/tx_semantic_assurance_v1_5.json",
               "web/src/generated/protocolStatus.ts",
           }
@@ -88,7 +94,7 @@ jobs:
               raise SystemExit("unexpected generated edits: " + repr(unexpected))
           print("Scoped generated updates:", paths)
           PY
-          git add -u -- Weall-Protocol/src/weall/runtime/apply/reputation.py Weall-Protocol/tests/test_issue63_reputation_state_replay.py Weall-Protocol/generated/v2 Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json Weall-Protocol/generated/failure_code_registry_v1_5.json Weall-Protocol/generated/tx_semantic_assurance_v1_5.json web/src/generated/protocolStatus.ts
+          git add -u -- Weall-Protocol/src/weall/runtime/apply/reputation.py Weall-Protocol/tests/test_issue63_reputation_state_replay.py Weall-Protocol/generated/v2 Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json Weall-Protocol/generated/failure_code_registry_v1_5.json Weall-Protocol/generated/release_evidence_manifest_v1_5.json Weall-Protocol/generated/public_beta_blocker_report_v1_5.json Weall-Protocol/generated/tx_semantic_assurance_v1_5.json web/src/generated/protocolStatus.ts
           if git diff --cached --quiet; then
             echo "Issue63 scoped source and derivatives are current."
             exit 0
