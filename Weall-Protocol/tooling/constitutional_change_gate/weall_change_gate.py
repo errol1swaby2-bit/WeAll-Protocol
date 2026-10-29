@@ -375,13 +375,11 @@ def extract_routes(repo: Path) -> dict[str, dict[str, Any]]:
     return dict(sorted(rows.items()))
 
 
-def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]:
-    """Bounded, non-authoritative source observations; never a semantic effect proof.
-
-    Follows only same-file top-level Python function calls, with a depth/size
-    ceiling. Imported calls and mutable aliases are recorded but NOT followed.
-    Scheduler phase calls are inventoried separately, not attached to TXs.
-    """
+def trace_effect_candidates(
+    repo: Path, rows: dict[str, dict], *, require_commit_pin: bool = False
+) -> dict[str, Any]:
+    """Bounded static candidates. Strict pin proves scanned file identity only."""
+    starting_commit = repo_commit(repo)
     source_cache: dict[str, tuple[dict[str, ast.AST], dict[str, str]]] = {}
 
     def source(path: str) -> tuple[dict[str, ast.AST], dict[str, str]]:
@@ -723,6 +721,84 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                     "verification": "UNREVIEWED_ONE_HOP_STATIC_OBSERVATION",
                 }
             )
+        # Follow at most one additional imported call edge (depth two).
+        # No dynamic dispatch, callbacks, transitive closure, or causal proof.
+        transitive_details: list[dict[str, Any]] = []
+        transitive_truncated = False
+        for parent in imported_details:
+            if parent["status"] != "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE":
+                continue
+            parent_path = parent["target_source_path"]
+            parent_fn = parent["target_function"]
+            parent_functions, parent_imports = source(parent_path)
+            parent_probe = Probe(
+                parent_functions, parent_imports, root_variable=parent["state_parameter"]
+            )
+            for statement in parent_functions[parent_fn].body:
+                parent_probe.visit(statement)
+            for child in sorted(parent_probe.imported_calls, key=lambda x: (x["line"], x["target"])):
+                if len(transitive_details) >= 32:
+                    transitive_truncated = True
+                    break
+                target = child["target"]
+                detail: dict[str, Any] = {
+                    "parent_target": parent["target"],
+                    "parent_source_path": parent_path,
+                    "line": child["line"],
+                    "target": target,
+                    "target_source_path": None,
+                    "target_function": None,
+                    "state_parameter": None,
+                    "depth": 2,
+                    "status": "TRANSITIVE_IMPORT_UNRESOLVED",
+                    "state_root_read_candidates": [],
+                    "state_root_write_candidates": [],
+                    "alias_root_write_candidates": [],
+                    "verification": "UNREVIEWED_BOUNDED_TRANSITIVE_SOURCE_CANDIDATE",
+                }
+                if target == parent["target"]:
+                    detail["status"] = "TRANSITIVE_IMPORT_CYCLE_UNRESOLVED"
+                elif target.startswith("weall.runtime.") and "." in target:
+                    module, fn_name = target.rsplit(".", 1)
+                    target_path = str(module_path(module))
+                    detail["target_source_path"] = target_path
+                    detail["target_function"] = fn_name
+                    if (repo / target_path).is_file():
+                        fn_map, fn_imports = source(target_path)
+                        node = fn_map.get(fn_name)
+                        if node is None:
+                            detail["status"] = "TRANSITIVE_FUNCTION_NOT_TOP_LEVEL"
+                        else:
+                            positional = node.args.posonlyargs + node.args.args
+                            state_parameter = None
+                            if child["state_positional_indices"]:
+                                index = child["state_positional_indices"][0]
+                                if index < len(positional):
+                                    state_parameter = positional[index].arg
+                            elif child["state_keywords"]:
+                                keyword = child["state_keywords"][0]
+                                if keyword in {
+                                    a.arg for a in positional + node.args.kwonlyargs
+                                }:
+                                    state_parameter = keyword
+                            if state_parameter:
+                                probe = Probe(
+                                    fn_map, fn_imports, root_variable=state_parameter
+                                )
+                                for statement in node.body:
+                                    probe.visit(statement)
+                                detail["state_parameter"] = state_parameter
+                                detail["state_root_read_candidates"] = sorted(probe.reads)
+                                detail["state_root_write_candidates"] = sorted(probe.writes)
+                                detail["alias_root_write_candidates"] = sorted(probe.alias_roots)
+                                detail["status"] = "TRANSITIVE_EXPLICIT_STATE_HANDOFF_CANDIDATE"
+                            else:
+                                detail["status"] = "TRANSITIVE_STATE_HANDOFF_UNPROVEN"
+                    else:
+                        detail["status"] = "TRANSITIVE_SOURCE_ABSENT"
+                transitive_details.append(detail)
+            if transitive_truncated:
+                break
         transactions.append(
             {
                 "tx_type": tx_type,
@@ -745,12 +821,15 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
                 "potential_alias_write_sites": alias_writes,
                 "state_alias_root_write_candidates": sorted(alias_roots),
                 "imported_function_candidates": imported_details,
+                "transitive_imported_function_candidates": transitive_details,
+                "transitive_imported_candidate_count": len(transitive_details),
+                "transitive_import_truncated": transitive_truncated,
                 "imported_function_candidate_count": len(imported_details),
                 "imported_state_handoff_candidate_count": sum(
                     x["status"] == "EXPLICIT_STATE_HANDOFF_IMPORTED_FUNCTION_CANDIDATE"
                     for x in imported_details
                 ),
-                "trace_truncated_or_unresolved": truncated or not found,
+                "trace_truncated_or_unresolved": truncated or transitive_truncated or not found,
                 "verification": "STATIC_PARTIAL_NOT_SEMANTICALLY_VERIFIED",
             }
         )
@@ -784,9 +863,45 @@ def trace_effect_candidates(repo: Path, rows: dict[str, dict]) -> dict[str, Any]
         scheduler_status = "STATIC_INVENTORY_NOT_EXECUTION_PROOF"
     else:
         scheduler_status = "SCHEDULER_SOURCE_ABSENT_UNRESOLVED"
+    # Pin only the finite set of source files this scanner actually parsed.
+    scanned_paths = sorted(source_cache)
+    if repo_commit(repo) != starting_commit:
+        raise ContractError("effect_source_commit_changed_during_scan")
+    source_files = [
+        {"path": path, "sha256": digest(repo / path)} for path in scanned_paths
+    ]
+    pin_status = "UNVERIFIED_WORKTREE"
+    if require_commit_pin:
+        tracked = subprocess.run(
+            ["git", "-C", str(repo), "ls-files", "-z", "--", *scanned_paths],
+            capture_output=True, check=False,
+        )
+        if tracked.returncode:
+            raise ContractError("effect_source_tracking_check_failed")
+        tracked_paths = {p.decode("utf-8") for p in tracked.stdout.split(b"\0") if p}
+        if tracked_paths != set(scanned_paths):
+            raise ContractError("effect_source_untracked_path")
+        status = subprocess.run(
+            [
+                "git", "-C", str(repo), "status", "--porcelain",
+                "--untracked-files=all", "-z", "--", *scanned_paths,
+            ],
+            capture_output=True, check=False,
+        )
+        if status.returncode or status.stdout:
+            raise ContractError("effect_source_dirty_or_unverifiable")
+        if repo_commit(repo) != starting_commit:
+            raise ContractError("effect_source_commit_changed_during_pin")
+        pin_status = "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
     return {
-        "schema": "weall.change-gate.static-effect-candidates.v0.4",
-        "source_commit": repo_commit(repo),
+        "schema": "weall.change-gate.static-effect-candidates.v0.5",
+        "source_commit": starting_commit,
+        "source_pin": {
+            "status": pin_status,
+            "scanned_file_count": len(source_files),
+            "scanned_files": source_files,
+            "scope_note": "Only scanned files; not every runtime or repository file",
+        },
         "transaction_count": len(transactions),
         "transactions": transactions,
         "scheduler_inventory": scheduler_rows,
@@ -1207,7 +1322,9 @@ def main(argv: list[str] | None = None) -> int:
         "transactions": [rows[n] for n in sorted(rows)],
     }
     atomic_write(out / "tx_implementation_matrix.json", canonical_bytes(snapshot))
-    effects = trace_effect_candidates(repo, rows)
+    effects = trace_effect_candidates(
+        repo, rows, require_commit_pin=args.v2_effect_links
+    )
     atomic_write(out / "tx_effect_candidates.json", canonical_bytes(effects))
     if args.v2_effect_links:
         import reconcile_v2
@@ -1224,6 +1341,7 @@ def main(argv: list[str] | None = None) -> int:
             [],
             checkout_commit=snapshot["source_commit"],
             effects=effects,
+            require_effect_pin=True,
         )
         reconcile_v2.write_results(reconciled, out)
     atomic_write(out / "tx_implementation_matrix.md", matrix_md(rows, policy).encode("utf-8"))

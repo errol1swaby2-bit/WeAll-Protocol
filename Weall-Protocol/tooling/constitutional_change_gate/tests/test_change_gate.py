@@ -398,6 +398,58 @@ class TestGate(unittest.TestCase):
         self.assertEqual(item["status"], "IMPORTED_FUNCTION_FOUND_STATE_HANDOFF_UNPROVEN")
         self.assertEqual(item["state_root_write_candidates"], [])
 
+    def test_scanned_sources_are_pinned_to_clean_git_head(self):
+        report = cg.trace_effect_candidates(
+            self.repo, self.rows, require_commit_pin=True
+        )
+        self.assertEqual(
+            report["source_pin"]["status"], "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
+        )
+        self.assertEqual(
+            report["source_pin"]["scanned_file_count"],
+            len(report["source_pin"]["scanned_files"]),
+        )
+        path = self.repo / "Weall-Protocol/src/weall/runtime/apply/dispute.py"
+        path.write_text(path.read_text() + "\n# dirty source\n")
+        with self.assertRaisesRegex(cg.ContractError, "effect_source_dirty_or_unverifiable"):
+            cg.trace_effect_candidates(self.repo, self.rows, require_commit_pin=True)
+
+    def test_transitive_imported_state_handoff_is_bounded(self):
+        runtime = self.repo / "Weall-Protocol/src/weall/runtime"
+        (runtime / "deep_effects.py").write_text(
+            'def _inner(ctx):\n'
+            '    votes = ctx.setdefault("votes", {})\n'
+            '    votes["alice"] = True\n'
+        )
+        (runtime / "outer_effects.py").write_text(
+            'from weall.runtime.deep_effects import _inner\n'
+            'def _outer(ctx):\n'
+            '    _inner(ctx)\n'
+        )
+        dispute = runtime / "apply/dispute.py"
+        dispute.write_text(
+            'from weall.runtime.outer_effects import _outer\n'
+            'DISPUTE_TX_TYPES: set[str] = {"DISPUTE_RESOLVE"}\n'
+            'def apply_dispute(state, env):\n'
+            '    _outer(state)\n'
+            '    return None\n'
+        )
+        rows = cg.extract_routes(self.repo)
+        effects = cg.trace_effect_candidates(self.repo, rows)
+        tx = {item["tx_type"]: item for item in effects["transactions"]}[
+            "DISPUTE_RESOLVE"
+        ]
+        candidates = tx["transitive_imported_function_candidates"]
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(
+            candidates[0]["status"], "TRANSITIVE_EXPLICIT_STATE_HANDOFF_CANDIDATE"
+        )
+        self.assertEqual(candidates[0]["alias_root_write_candidates"], ["votes"])
+        self.assertEqual(candidates[0]["depth"], 2)
+        self.assertEqual(
+            effects["source_pin"]["status"], "UNVERIFIED_WORKTREE"
+        )
+
     def test_source_snapshot_inventory_is_unique(self):
         groups = {}
         for line in (ROOT / "reference/pinned_domain_names.txt").read_text().splitlines():

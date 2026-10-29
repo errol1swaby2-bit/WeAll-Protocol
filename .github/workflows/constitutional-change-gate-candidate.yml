@@ -40,9 +40,11 @@ jobs:
           import weall_change_gate as gate
           repo = Path.cwd().parents[2]
           rows = gate.extract_routes(repo)
-          report = gate.trace_effect_candidates(repo, rows)
+          report = gate.trace_effect_candidates(repo, rows, require_commit_pin=True)
           assert len(rows) == 236
           assert report["transaction_count"] == 236
+          assert report["source_pin"]["status"] == "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
+          assert report["source_pin"]["scanned_file_count"] > 0
           assert report["scheduler_status"] == "STATIC_INVENTORY_NOT_EXECUTION_PROOF"
           assert not report["invariants"]["runtime_authorization_verified"]
           assert not report["invariants"]["scheduler_transaction_causality_verified"]
@@ -60,18 +62,22 @@ jobs:
           import reconcile_v2 as v2
           repo = Path.cwd().parents[2]
           rows = gate.extract_routes(repo)
-          effects = gate.trace_effect_candidates(repo, rows)
+          effects = gate.trace_effect_candidates(repo, rows, require_commit_pin=True)
           result = v2.reconcile(
               gate.read_json(repo / gate.INDEX), rows,
               gate.read_json(repo / v2.V2_TX),
               gate.read_json(repo / v2.V2_REQUIREMENTS),
               [], checkout_commit=gate.repo_commit(repo), effects=effects,
+              require_effect_pin=True,
           )
           assert result["canonical_tx_count"] == 236
           assert result["v2_requirement_count"] == 755
           assert len(result["tx_requirement_candidates"]) == 236
           assert result["gate"].startswith("BLOCKED")
+          assert result["effect_source_pin_status"] == "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
           print("v2 candidate requirements:", result["v2_requirement_count"],
                 "import source candidate requirements:",
-                result["requirements_with_imported_effect_candidates"])
+                result["requirements_with_imported_effect_candidates"],
+                "transitive candidates:",
+                result["requirements_with_transitive_effect_candidates"])
           PY

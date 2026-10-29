@@ -63,6 +63,7 @@ def reconcile(
     *,
     checkout_commit: str,
     effects: dict[str, Any] | None = None,
+    require_effect_pin: bool = False,
 ) -> dict[str, Any]:
     require(
         isinstance(v2_contract, dict)
@@ -170,7 +171,19 @@ def reconcile(
     change_set = set(normalized_changes)
     by_contract = {v["stable_id"]: v["tx_type"] for v in txs}
     imported_by_tx: dict[str, set[str]] = {name: set() for name in static_rows}
+    transitive_by_tx: dict[str, set[str]] = {name: set() for name in static_rows}
+    if require_effect_pin and effects is None:
+        raise cg.ContractError("required_effect_inventory_absent")
     if effects is not None:
+        effect_commit = effects.get("source_commit")
+        if effect_commit is not None and effect_commit != checkout_commit:
+            raise cg.ContractError("effect_source_commit_mismatch")
+        if require_effect_pin and (
+            effect_commit != checkout_commit
+            or (effects.get("source_pin") or {}).get("status")
+            != "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
+        ):
+            raise cg.ContractError("effect_source_pin_unverified")
         require(
             isinstance(effects, dict)
             and effects.get("transaction_count") == len(static_rows)
@@ -192,6 +205,14 @@ def reconcile(
                 norm = normalize_source_path(path) if isinstance(path, str) else None
                 if norm:
                     imported_by_tx[name].add(norm)
+            for item in tx.get("transitive_imported_function_candidates", []):
+                require(isinstance(item, dict), "invalid_transitive_effect_row")
+                if item.get("status") != "TRANSITIVE_EXPLICIT_STATE_HANDOFF_CANDIDATE":
+                    continue
+                path = item.get("target_source_path")
+                norm = normalize_source_path(path) if isinstance(path, str) else None
+                if norm:
+                    transitive_by_tx[name].add(norm)
         require(seen_effect_txs == set(static_rows), "effect_tx_coverage_mismatch")
     requirement_candidates = []
     for r in rs:
@@ -219,7 +240,14 @@ def reconcile(
             for name, observed in imported_by_tx.items()
             if any(path_matches(path, loc) for path in observed for loc in paths)
         )
-        candidate_txs = sorted(set(explicit_txs) | set(handler_txs) | set(imported_effect_txs))
+        transitive_effect_txs = sorted(
+            name for name, observed in transitive_by_tx.items()
+            if any(path_matches(path, loc) for path in observed for loc in paths)
+        )
+        candidate_txs = sorted(
+            set(explicit_txs) | set(handler_txs) | set(imported_effect_txs)
+            | set(transitive_effect_txs)
+        )
         if direct_matches:
             category = "SOURCE_PATH_MATCH_REVIEW_CANDIDATE"
         elif explicit_txs:
@@ -228,6 +256,8 @@ def reconcile(
             category = "HANDLER_SOURCE_MATCH_REVIEW_CANDIDATE"
         elif imported_effect_txs:
             category = "TRACED_IMPORT_SOURCE_MATCH_REVIEW_CANDIDATE"
+        elif transitive_effect_txs:
+            category = "TRANSITIVE_IMPORT_SOURCE_MATCH_REVIEW_CANDIDATE"
         else:
             category = "UNLINKED_NOT_SAFE_TO_DISMISS"
         requirement_candidates.append(
@@ -246,6 +276,7 @@ def reconcile(
                 "explicit_canonical_txs": explicit_txs,
                 "handler_source_candidate_txs": handler_txs,
                 "imported_effect_candidate_txs": imported_effect_txs,
+                "transitive_effect_candidate_txs": transitive_effect_txs,
                 "candidate_canonical_txs": candidate_txs,
                 "contract_refs": r.get("contract_ids", []),
                 "candidate_relation": category,
@@ -264,6 +295,8 @@ def reconcile(
                 reasons.append("HANDLER_SOURCE_PATH_UNREVIEWED")
             if name in req["imported_effect_candidate_txs"]:
                 reasons.append("TRACED_IMPORT_SOURCE_PATH_UNREVIEWED")
+            if name in req["transitive_effect_candidate_txs"]:
+                reasons.append("TRANSITIVE_IMPORT_SOURCE_PATH_UNREVIEWED")
             reverse[name].append({"requirement_id": req["id"], "candidate_reasons": reasons})
     tx_requirement_candidates = [
         {
@@ -325,6 +358,13 @@ def reconcile(
         ),
         "requirements_with_imported_effect_candidates": sum(
             bool(req["imported_effect_candidate_txs"]) for req in requirement_candidates
+        ),
+        "requirements_with_transitive_effect_candidates": sum(
+            bool(req["transitive_effect_candidate_txs"]) for req in requirement_candidates
+        ),
+        "effect_source_pin_status": (
+            (effects.get("source_pin") or {}).get("status")
+            if effects is not None else "NO_EFFECT_INVENTORY"
         ),
         "tx_with_candidate_requirement_links": sum(
             bool(tx["candidate_requirements"]) for tx in tx_requirement_candidates
@@ -440,6 +480,7 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
             "explicit_canonical_txs",
             "handler_source_candidate_txs",
             "imported_effect_candidate_txs",
+            "transitive_effect_candidate_txs",
             "candidate_canonical_txs",
             "implementation_commit",
             "test_run_id",
@@ -455,6 +496,7 @@ def write_results(doc: dict[str, Any], out: Path) -> None:
                 "explicit_canonical_txs",
                 "handler_source_candidate_txs",
                 "imported_effect_candidate_txs",
+                "transitive_effect_candidate_txs",
                 "candidate_canonical_txs",
             ):
                 item[k] = ";".join(item.get(k) or [])

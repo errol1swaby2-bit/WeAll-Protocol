@@ -80,3 +80,22 @@ with source-matched imported candidates, identified by the distinct
 `TRACED_IMPORT_SOURCE_PATH_UNREVIEWED` reason. The source-level
 relationship is not proof of specification compliance, authorizations or
 TX execution. Review remains mandatory and the gate stays BLOCKED.
+
+## v0.5 scanned-source commit pin and second imported edge (candidate only)
+
+The static candidate report now records SHA-256 digests for every source
+file actually parsed and an optional strict Git HEAD pin. A strict pin checks
+that **every scanned file** is tracked and unchanged at HEAD; it does not
+certify files outside the scanned set, test results, effects at runtime, or
+a constitutional decision. The v2 effect-link path requires the strict pin
+and rejects a mismatched checkout commit. Exploratory builds without a
+strict pin identify themselves as `UNVERIFIED_WORKTREE`.
+
+A second imported-helper edge (depth 2; maximum 32 transitive candidate
+edges per transaction) is now scanned for direct state-parameter handoffs.
+Candidates contain parent source/target, target source, state-root access
+signals, and an unresolved status for missing, ambiguous, or cyclic links.
+The `TRANSITIVE_IMPORT_SOURCE_PATH_UNREVIEWED` link reason remains separate
+from first-hop source evidence. There is **no** assertion of transitive
+dependency closure, sound alias analysis, actual execution, state-root
+agreement, independently reviewed semantics, or release eligibility.

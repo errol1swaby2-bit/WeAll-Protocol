@@ -314,6 +314,68 @@ class V2ReconciliationTests(unittest.TestCase):
                 effects=effects,
             )
 
+    def test_transitive_import_candidate_is_not_authorization(self):
+        self.req["rows"][1]["contract_ids"] = []
+        self.req["rows"][1]["implementation_paths"] = [
+            "src/weall/runtime/deep_effects.py"
+        ]
+        effects = {
+            "source_commit": cg.repo_commit(self.repo),
+            "transaction_count": 2,
+            "transactions": [
+                {
+                    "tx_type": "DISPUTE_RESOLVE",
+                    "imported_function_candidates": [],
+                    "transitive_imported_function_candidates": [
+                        {
+                            "status": "TRANSITIVE_EXPLICIT_STATE_HANDOFF_CANDIDATE",
+                            "target_source_path":
+                            "Weall-Protocol/src/weall/runtime/deep_effects.py",
+                        },
+                    ],
+                },
+                {
+                    "tx_type": "ACCOUNT_LOCK",
+                    "imported_function_candidates": [],
+                    "transitive_imported_function_candidates": [],
+                },
+            ],
+        }
+        result = rv.reconcile(
+            self.idx, self.rows, self.tx, self.req, [],
+            checkout_commit=cg.repo_commit(self.repo), effects=effects,
+        )
+        row = {r["id"]: r for r in result["requirements"]}["DISP-001"]
+        self.assertEqual(
+            row["candidate_relation"],
+            "TRANSITIVE_IMPORT_SOURCE_MATCH_REVIEW_CANDIDATE",
+        )
+        self.assertEqual(row["transitive_effect_candidate_txs"], ["DISPUTE_RESOLVE"])
+        self.assertEqual(result["requirements_with_transitive_effect_candidates"], 1)
+        self.assertTrue(result["gate"].startswith("BLOCKED"))
+
+    def test_require_effect_pin_rejects_unverified_and_wrong_commit(self):
+        effects = {
+            "source_commit": "0" * 40,
+            "source_pin": {"status": "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"},
+            "transaction_count": 2,
+            "transactions": [],
+        }
+        with self.assertRaisesRegex(cg.ContractError, "effect_source_commit_mismatch"):
+            rv.reconcile(
+                self.idx, self.rows, self.tx, self.req, [],
+                checkout_commit=cg.repo_commit(self.repo),
+                effects=effects, require_effect_pin=True,
+            )
+        effects["source_commit"] = cg.repo_commit(self.repo)
+        effects["source_pin"]["status"] = "UNVERIFIED_WORKTREE"
+        with self.assertRaisesRegex(cg.ContractError, "effect_source_pin_unverified"):
+            rv.reconcile(
+                self.idx, self.rows, self.tx, self.req, [],
+                checkout_commit=cg.repo_commit(self.repo),
+                effects=effects, require_effect_pin=True,
+            )
+
     def test_write_reports_external_only(self):
         a = self.check()
         output = Path(self.tmp.name) / "out"
