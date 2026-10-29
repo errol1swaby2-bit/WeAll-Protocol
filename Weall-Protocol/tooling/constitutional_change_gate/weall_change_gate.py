@@ -736,7 +736,9 @@ def trace_effect_candidates(
             )
             for statement in parent_functions[parent_fn].body:
                 parent_probe.visit(statement)
-            for child in sorted(parent_probe.imported_calls, key=lambda x: (x["line"], x["target"])):
+            for child in sorted(
+                parent_probe.imported_calls, key=lambda x: (x["line"], x["target"])
+            ):
                 if len(transitive_details) >= 32:
                     transitive_truncated = True
                     break
@@ -777,14 +779,10 @@ def trace_effect_candidates(
                                     state_parameter = positional[index].arg
                             elif child["state_keywords"]:
                                 keyword = child["state_keywords"][0]
-                                if keyword in {
-                                    a.arg for a in positional + node.args.kwonlyargs
-                                }:
+                                if keyword in {a.arg for a in positional + node.args.kwonlyargs}:
                                     state_parameter = keyword
                             if state_parameter:
-                                probe = Probe(
-                                    fn_map, fn_imports, root_variable=state_parameter
-                                )
+                                probe = Probe(fn_map, fn_imports, root_variable=state_parameter)
                                 for statement in node.body:
                                     probe.visit(statement)
                                 detail["state_parameter"] = state_parameter
@@ -867,14 +865,13 @@ def trace_effect_candidates(
     scanned_paths = sorted(source_cache)
     if repo_commit(repo) != starting_commit:
         raise ContractError("effect_source_commit_changed_during_scan")
-    source_files = [
-        {"path": path, "sha256": digest(repo / path)} for path in scanned_paths
-    ]
+    source_files = [{"path": path, "sha256": digest(repo / path)} for path in scanned_paths]
     pin_status = "UNVERIFIED_WORKTREE"
     if require_commit_pin:
         tracked = subprocess.run(
             ["git", "-C", str(repo), "ls-files", "-z", "--", *scanned_paths],
-            capture_output=True, check=False,
+            capture_output=True,
+            check=False,
         )
         if tracked.returncode:
             raise ContractError("effect_source_tracking_check_failed")
@@ -883,10 +880,18 @@ def trace_effect_candidates(
             raise ContractError("effect_source_untracked_path")
         status = subprocess.run(
             [
-                "git", "-C", str(repo), "status", "--porcelain",
-                "--untracked-files=all", "-z", "--", *scanned_paths,
+                "git",
+                "-C",
+                str(repo),
+                "status",
+                "--porcelain",
+                "--untracked-files=all",
+                "-z",
+                "--",
+                *scanned_paths,
             ],
-            capture_output=True, check=False,
+            capture_output=True,
+            check=False,
         )
         if status.returncode or status.stdout:
             raise ContractError("effect_source_dirty_or_unverifiable")
@@ -1322,9 +1327,7 @@ def main(argv: list[str] | None = None) -> int:
         "transactions": [rows[n] for n in sorted(rows)],
     }
     atomic_write(out / "tx_implementation_matrix.json", canonical_bytes(snapshot))
-    effects = trace_effect_candidates(
-        repo, rows, require_commit_pin=args.v2_effect_links
-    )
+    effects = trace_effect_candidates(repo, rows, require_commit_pin=args.v2_effect_links)
     atomic_write(out / "tx_effect_candidates.json", canonical_bytes(effects))
     if args.v2_effect_links:
         import reconcile_v2

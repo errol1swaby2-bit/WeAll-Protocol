@@ -316,9 +316,7 @@ class V2ReconciliationTests(unittest.TestCase):
 
     def test_transitive_import_candidate_is_not_authorization(self):
         self.req["rows"][1]["contract_ids"] = []
-        self.req["rows"][1]["implementation_paths"] = [
-            "src/weall/runtime/deep_effects.py"
-        ]
+        self.req["rows"][1]["implementation_paths"] = ["src/weall/runtime/deep_effects.py"]
         effects = {
             "source_commit": cg.repo_commit(self.repo),
             "transaction_count": 2,
@@ -329,8 +327,7 @@ class V2ReconciliationTests(unittest.TestCase):
                     "transitive_imported_function_candidates": [
                         {
                             "status": "TRANSITIVE_EXPLICIT_STATE_HANDOFF_CANDIDATE",
-                            "target_source_path":
-                            "Weall-Protocol/src/weall/runtime/deep_effects.py",
+                            "target_source_path": "Weall-Protocol/src/weall/runtime/deep_effects.py",
                         },
                     ],
                 },
@@ -342,8 +339,13 @@ class V2ReconciliationTests(unittest.TestCase):
             ],
         }
         result = rv.reconcile(
-            self.idx, self.rows, self.tx, self.req, [],
-            checkout_commit=cg.repo_commit(self.repo), effects=effects,
+            self.idx,
+            self.rows,
+            self.tx,
+            self.req,
+            [],
+            checkout_commit=cg.repo_commit(self.repo),
+            effects=effects,
         )
         row = {r["id"]: r for r in result["requirements"]}["DISP-001"]
         self.assertEqual(
@@ -363,17 +365,27 @@ class V2ReconciliationTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(cg.ContractError, "effect_source_commit_mismatch"):
             rv.reconcile(
-                self.idx, self.rows, self.tx, self.req, [],
+                self.idx,
+                self.rows,
+                self.tx,
+                self.req,
+                [],
                 checkout_commit=cg.repo_commit(self.repo),
-                effects=effects, require_effect_pin=True,
+                effects=effects,
+                require_effect_pin=True,
             )
         effects["source_commit"] = cg.repo_commit(self.repo)
         effects["source_pin"]["status"] = "UNVERIFIED_WORKTREE"
         with self.assertRaisesRegex(cg.ContractError, "effect_source_pin_unverified"):
             rv.reconcile(
-                self.idx, self.rows, self.tx, self.req, [],
+                self.idx,
+                self.rows,
+                self.tx,
+                self.req,
+                [],
                 checkout_commit=cg.repo_commit(self.repo),
-                effects=effects, require_effect_pin=True,
+                effects=effects,
+                require_effect_pin=True,
             )
 
     def test_write_reports_external_only(self):

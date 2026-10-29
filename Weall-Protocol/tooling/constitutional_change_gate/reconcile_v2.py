@@ -241,11 +241,14 @@ def reconcile(
             if any(path_matches(path, loc) for path in observed for loc in paths)
         )
         transitive_effect_txs = sorted(
-            name for name, observed in transitive_by_tx.items()
+            name
+            for name, observed in transitive_by_tx.items()
             if any(path_matches(path, loc) for path in observed for loc in paths)
         )
         candidate_txs = sorted(
-            set(explicit_txs) | set(handler_txs) | set(imported_effect_txs)
+            set(explicit_txs)
+            | set(handler_txs)
+            | set(imported_effect_txs)
             | set(transitive_effect_txs)
         )
         if direct_matches:
@@ -364,7 +367,8 @@ def reconcile(
         ),
         "effect_source_pin_status": (
             (effects.get("source_pin") or {}).get("status")
-            if effects is not None else "NO_EFFECT_INVENTORY"
+            if effects is not None
+            else "NO_EFFECT_INVENTORY"
         ),
         "tx_with_candidate_requirement_links": sum(
             bool(tx["candidate_requirements"]) for tx in tx_requirement_candidates
