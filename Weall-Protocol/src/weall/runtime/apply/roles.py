@@ -291,9 +291,7 @@ def _require_role_activation_eligible(
             )
         elif decision["reason"] == "policy_unknown":
             details["gate_version"] = decision["gate_version"]
-        raise RolesApplyError(
-            str(decision["code"]), str(decision["reason"]), details
-        )
+        raise RolesApplyError(str(decision["code"]), str(decision["reason"]), details)
     return _account_for_activation(ledger, acct)
 
 
