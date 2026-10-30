@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/pr70-integrated-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "ded78ac25b355f8e364aa1a0e9deeb05ddca3209b34c47e67f9ba9195290918b",
+      "sha256": "ed3461985d9f96c5f272bdb75d65b34c770548bd762d062fa6f549200fedfa54",
       "source_id": "SRC-04B0EE523B44A5A3"
     },
     {
@@ -24786,7 +24786,7 @@
       ],
       "path": "tests/test_pq_mldsa_signature_profile.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "673b0e29ca1d31773803adf86c61a4abab9e9c5bbc8e6158c48536aa3d513027",
+      "sha256": "2a2b16a6ca80fe233e47940ab8aab7246700f84249878bb47e3cbbb61e0e3622",
       "source_id": "SRC-6B4AEE24ADABC9C3"
     },
     {
