@@ -9,6 +9,7 @@ on:
       - web/src/components/ActivityBell.tsx
       - web/src/components/AppShell.tsx
       - web/scripts/test_issue71_attention_source.mjs
+      - web/scripts/test_issue71_attention_logic.mjs
   workflow_dispatch:
 
 permissions:
@@ -47,6 +48,7 @@ jobs:
           set +e
           {
             node scripts/test_issue71_attention_source.mjs &&
+            node --experimental-strip-types scripts/test_issue71_attention_logic.mjs &&
             npm run typecheck &&
             npm run build
           } 2>&1 | tee "$OUT/targeted.log"
