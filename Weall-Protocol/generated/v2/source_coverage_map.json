@@ -30642,7 +30642,7 @@
       ],
       "path": "tooling/constitutional_change_gate/SHA256SUMS.txt",
       "primary_mechanism_id": "M-076",
-      "sha256": "35a3b75ed5fb76411c16ca21e7ed1db16b7e428682648b20657a45c3237561c2",
+      "sha256": "803e2029fe92eb6c0358381ace26deb7f63f503a83445dbfedb1a3415bf470b6",
       "source_id": "SRC-CAAA5EC1F64384C0"
     },
     {
@@ -30834,7 +30834,7 @@
       ],
       "path": "tooling/constitutional_change_gate/tests/test_repository_coverage.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b613e7b9c8ef56ed94bf5d2f71f7b768ce1c9869a88f64789645a0f21726e536",
+      "sha256": "852081ec7e687d834fbfc945e4ae10130b916dad844e4b8339deb2177de33ad2",
       "source_id": "SRC-5B2C7BF11CDB34AA"
     },
     {
