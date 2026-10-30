@@ -22,6 +22,7 @@ from weall.runtime.reputation_events import (
     derive_role_eligibility_from_dimensions,
     reduce_reputation_events,
 )
+from weall.runtime.reputation_role_gate import operative_role_reputation_preview
 from weall.runtime.reputation_units import (
     REPUTATION_MAX_UNITS,
     REPUTATION_MIN_UNITS,
@@ -1003,6 +1004,9 @@ def derive_reputation_matrix(
         "dimensions": exposed_dimensions,
         "canonical_dimensions": canonical_dimensions,
         "eligibility": eligibility,
+        # Distinguish canonical event-dimensional policy from actual role gate,
+        # including scalar/manual/PoH restrictions and an explicit v2 flag.
+        "operative_role_activation": operative_role_reputation_preview(state, acct_id),
         "event_history_root": canonical_reduction.get("event_history_root"),
         "visibility": {
             "public_dimensions": list(PUBLIC_DIMENSIONS),
