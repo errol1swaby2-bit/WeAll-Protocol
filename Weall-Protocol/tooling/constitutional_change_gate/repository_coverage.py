@@ -160,7 +160,8 @@ def inventory(repo: Path, head: str) -> list[dict]:
             path = name.decode("utf-8", errors="strict")
         except UnicodeError as exc:
             raise CoverageError("non_utf8_git_path") from exc
-        area = classify(path)
+        # Do not treat symlinks or submodule gitlinks as inspected source files.
+        area = classify(path) if object_type == "blob" and mode in ("100644", "100755") else None
         rows.append(
             {
                 "path": path,

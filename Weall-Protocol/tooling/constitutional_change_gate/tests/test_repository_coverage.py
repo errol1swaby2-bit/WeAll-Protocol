@@ -93,6 +93,13 @@ class RepositoryCoverageTests(unittest.TestCase):
         self.assertEqual(out["unclassified_changed_paths"], ["web/src/exposed.ts"])
         self.assertEqual(out["changes"][0]["classifications"], ["frontend", "UNCLASSIFIED"])
 
+    def test_symlink_not_treated_as_complete_file_coverage(self):
+        (self.repo / "web/src/link.ts").symlink_to("App.tsx")
+        head = self.commit()
+        out = gate.report(self.repo, self.base, head)
+        self.assertEqual(out["coverage_gate"], "BLOCKED_UNCLASSIFIED")
+        self.assertIn("web/src/link.ts", out["unclassified_paths"])
+
     def test_head_must_match_actual_checkout(self):
         self.write("web/src/a.ts", "one\n")
         head = self.commit()
