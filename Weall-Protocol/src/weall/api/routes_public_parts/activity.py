@@ -147,6 +147,37 @@ def collect_public_activity_notices(state: Json, account_id: str) -> list[Json]:
             source="reputation.events",
         )
 
+    # Public comments have an unambiguous parent post and author. A comment
+    # by another account on the viewer's own visible post is an actual reply;
+    # mention-like substrings in arbitrary bodies do not confer relevance.
+    content = _mapping(state.get("content"))
+    posts = _mapping(content.get("posts"))
+    comments = _mapping(content.get("comments"))
+    for comment_id, raw in comments.items():
+        comment = _mapping(raw)
+        if bool(comment.get("deleted")) or _text(comment.get("visibility")) != "public":
+            continue
+        author = _text(comment.get("author"))
+        if not author or author == account:
+            continue
+        post_id = _text(comment.get("post_id"))
+        post = _mapping(posts.get(post_id))
+        if _text(post.get("author")) != account or bool(post.get("deleted")):
+            continue
+        if _text(post.get("visibility")) != "public":
+            continue
+        cid = _text(comment.get("comment_id")) or _text(comment_id)
+        if not cid:
+            continue
+        add(
+            f"reply:{cid}:{account}",
+            kind="reply",
+            title="New public reply",
+            body="Another account commented on your public post.",
+            href=f"/thread/{quote(post_id, safe='')}",
+            source="content.comments",
+        )
+
     # A juror entry is an explicit public assignment, not a text reference.
     disputes = _mapping(state.get("disputes_by_id"))
     for dispute_id, raw in disputes.items():
