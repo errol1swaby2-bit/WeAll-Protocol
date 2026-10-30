@@ -55,11 +55,7 @@ def test_one_cause_is_only_one_authoritative_score_even_with_legacy_mirrors() ->
             "payload": {"source": "consensus", "slash_id": "slash:1"},
         }
     ]
-    state["slashing"] = {
-        "executions": {
-            "slash:1": {"validator": "@alice", "type": "equivocation"}
-        }
-    }
+    state["slashing"] = {"executions": {"slash:1": {"validator": "@alice", "type": "equivocation"}}}
     state["validators"] = {"registry": {"@alice": {"status": "active"}}}
     before = json.dumps(state, sort_keys=True, separators=(",", ":"))
     mirrored = derive_reputation_matrix(state, "@alice", include_events=True)
@@ -77,11 +73,14 @@ def test_one_cause_is_only_one_authoritative_score_even_with_legacy_mirrors() ->
     )
     assert mirrored["eligibility"] == baseline["eligibility"]
     assert any(ev["source"] == "reputation_delta" for ev in mirrored["events"])
-    assert sum(
-        1
-        for ev in mirrored["events"]
-        if ev["contributes_to_canonical_score"] and ev["source_ref"] == event["event_id"]
-    ) == 1
+    assert (
+        sum(
+            1
+            for ev in mirrored["events"]
+            if ev["contributes_to_canonical_score"] and ev["source_ref"] == event["event_id"]
+        )
+        == 1
+    )
     assert json.dumps(state, sort_keys=True, separators=(",", ":")) == before
     assert mirrored == derive_reputation_matrix(copy.deepcopy(state), "@alice", include_events=True)
 
