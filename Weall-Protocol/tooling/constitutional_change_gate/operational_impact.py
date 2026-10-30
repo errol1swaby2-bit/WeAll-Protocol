@@ -101,6 +101,7 @@ def inspect(repo, sha: str, row: dict, inventory: set[str], mechanisms: list[dic
         "git_oid": row["git_oid"],
         "review_status": "OPEN_UNADJUDICATED",
         "possible_dependencies": [],
+        "dependency_evidence": [],
         "mechanism_evidence_path_candidates": candidate_mechanisms(path, mechanisms),
         "environment_tokens": [],
         "hazard_observations": [],
@@ -137,17 +138,24 @@ def inspect(repo, sha: str, row: dict, inventory: set[str], mechanisms: list[dic
         record["unresolved_observations"].append("DYNAMIC_PATH_OR_VARIABLE_USAGE_UNRESOLVED")
     base = "Weall-Protocol" if path.startswith("Weall-Protocol/") else ""
     referenced = set()
+    observations = set()
     for match in LITERAL.finditer(data):
         token = match.group(1)
         # Resolution is a candidate, not proof that the shell invokes it.
         resolved = resolve_candidate(token, base, inventory)
         if resolved and resolved != path:
             referenced.add(resolved)
+            observations.add((resolved, data.count("\n", 0, match.start()) + 1, "LITERAL_PATH"))
     for match in SCRIPT_DIR.finditer(data):
         resolved = resolve_candidate(match.group(1), str(PurePosixPath(path).parent), inventory)
         if resolved and resolved != path:
             referenced.add(resolved)
+            observations.add((resolved, data.count("\n", 0, match.start()) + 1, "SCRIPT_DIR_PATH"))
     record["possible_dependencies"] = sorted(referenced)
+    record["dependency_evidence"] = [
+        {"target": target, "line": line, "kind": kind}
+        for target, line, kind in sorted(observations)
+    ]
     if not referenced and area in {
         "deployment",
         "tooling",
@@ -159,6 +167,38 @@ def inspect(repo, sha: str, row: dict, inventory: set[str], mechanisms: list[dic
     # A literal path alone cannot prove the absence of dynamic dependencies.
     record["dependency_completeness"] = "NOT_PROVEN"
     return record
+
+
+def reverse_candidates(changes: list[dict], rows: list[dict]) -> list[dict]:
+    """Conservative reverse closure of observed literal references only."""
+    incoming: dict[str, set[str]] = {}
+    for row in rows:
+        for target in row.get("possible_dependencies", []):
+            incoming.setdefault(target, set()).add(row["path"])
+    answers = []
+    for change in changes:
+        for seed in (change["path"], change.get("previous_path")):
+            if not seed:
+                continue
+            seen = {seed}
+            frontier = [(seed, 0)]
+            upstream = []
+            while frontier:
+                current, depth = frontier.pop(0)
+                for dependent in sorted(incoming.get(current, ())):
+                    if dependent in seen:
+                        continue
+                    seen.add(dependent)
+                    upstream.append({"path": dependent, "minimum_literal_hops": depth + 1})
+                    frontier.append((dependent, depth + 1))
+            answers.append({
+                "changed_path": seed,
+                "candidate_upstream_dependents": sorted(
+                    upstream, key=lambda x: (x["minimum_literal_hops"], x["path"])
+                ),
+                "semantic_status": "UNREVIEWED_LITERAL_CANDIDATE_NO_CAUSALITY_PROVEN",
+            })
+    return answers
 
 
 def scan_unlinked(
