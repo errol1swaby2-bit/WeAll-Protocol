@@ -133,8 +133,8 @@ def reset(target_raw: str, repo_root: Path) -> Path:
 def check_ipfs(devnet_raw: str, ipfs_raw: str) -> Path:
     devnet = validate_devnet(devnet_raw)
     ipfs = checked_absolute(ipfs_raw)
-    if ipfs.parent != devnet or ipfs.name in ("blocks", RESET_BASENAME):
-        raise UnsafeDevnetPath("ipfs_partition_must_be_a_direct_devnet_child")
+    if ipfs.parent != devnet or ipfs.name not in ("ipfs_partition", "ipfs"):
+        raise UnsafeDevnetPath("ipfs_must_be_reserved_partition_or_native_repo_direct_devnet_child")
     # Validate all existing internal Kubo paths before the launcher can mkdir
     # or chmod them. Never follow an externally supplied blocks/temp symlink.
     for part in (ipfs, ipfs / "blocks", ipfs / "blocks" / "temp", ipfs / "blocks" / "SHARDING"):

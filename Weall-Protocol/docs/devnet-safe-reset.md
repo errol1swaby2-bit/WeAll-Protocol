@@ -22,8 +22,9 @@ permanently enabled.
 
 ## IPFS storage
 
-The rehearsal launcher permits an auto-managed local partition only as
-a direct child of the configured devnet directory. The helper checks the
+The rehearsal launcher permits auto-managed local storage only in
+the reserved ipfs_partition or ipfs direct child of the configured devnet
+directory; accounts, node state and arbitrary child names are refused. The helper checks the
 existing partition, blocks, SHARDING and temp paths for symlinks before
 any mkdir/chmod. A corrupt blocks tree without SHARDING now fails startup
 without deleting the repository. For an independently managed external

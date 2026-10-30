@@ -152,11 +152,15 @@ class DevnetDeleteBoundaries(unittest.TestCase):
         self.target.mkdir()
         partition = self.target / "ipfs_partition"
         self.assertEqual(self.invoke("check-ipfs", self.target, partition).returncode, 0)
+        self.assertEqual(self.invoke("check-ipfs", self.target, self.target / "ipfs").returncode, 0)
         for candidate in (
             self.root / "unrelated_ipfs",
             self.repo / "ipfs",
             self.target,
             self.target / "nested" / "ipfs",
+            self.target / "accounts",
+            self.target / "node1",
+            self.target / "other_ipfs",
         ):
             with self.subTest(path=str(candidate)):
                 self.assertEqual(self.invoke("check-ipfs", self.target, candidate).returncode, 2)
