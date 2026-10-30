@@ -1,0 +1,57 @@
+name: Issue68 v2 source derivative refresh
+
+on:
+  push:
+    branches:
+      - fix/issue68-devnet-ipfs-delete-boundaries-20261030
+    paths:
+      - 'Weall-Protocol/scripts/devnet_safe_paths.py'
+      - 'Weall-Protocol/specs/v2/source/source_mappings.json'
+      - '.github/workflows/issue68-derivative-refresh.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: issue68-v2-derivative-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/issue68-devnet-ipfs-delete-boundaries-20261030
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install source compiler dependencies from locked inputs
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Regenerate source-bound v2 derivatives and verify stability
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/compile_v2_spec.py
+          python scripts/compile_v2_spec.py --check
+      - name: Commit only declared v2 derivative outputs
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git add -u -- Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          if git diff --cached --quiet; then
+            echo 'All v2 source derivatives are already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(issue68): regenerate source-bound v2 evidence'
+          git push origin HEAD:fix/issue68-devnet-ipfs-delete-boundaries-20261030
