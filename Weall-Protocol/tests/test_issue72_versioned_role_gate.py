@@ -60,9 +60,12 @@ def test_absent_version_preserves_legacy_operative_gate_despite_event_penalty() 
     assert result["eligible"] is True
     assert result["canonical_eligible"] is False
     assert result["canonical_enforcement"] is False
-    assert _require_role_activation_eligible(
-        state, "@alice", role="validator", minimum_reputation_milli=5000
-    ) is state["accounts"]["@alice"]
+    assert (
+        _require_role_activation_eligible(
+            state, "@alice", role="validator", minimum_reputation_milli=5000
+        )
+        is state["accounts"]["@alice"]
+    )
     assert json.dumps(state, sort_keys=True) == before
 
 
@@ -97,9 +100,12 @@ def test_juror_reversal_and_reversal_of_reversal_are_applied_only_to_juror() -> 
     )
     blocked = role_activation_reputation_decision(state, "@alice", role="juror")
     assert blocked["eligible"] is False
-    assert role_activation_reputation_decision(
-        state, "@alice", role="validator", minimum_reputation_milli=5000
-    )["eligible"] is True
+    assert (
+        role_activation_reputation_decision(
+            state, "@alice", role="validator", minimum_reputation_milli=5000
+        )["eligible"]
+        is True
+    )
     correction = append_reputation_reversal_event(
         state,
         original_event_id=negative["event_id"],
