@@ -10,6 +10,7 @@ on:
       - '.github/workflows/pr70-integrated-derivative-refresh.yml'
       - 'Weall-Protocol/tooling/constitutional_change_gate/operational_boundary_review.py'
       - 'Weall-Protocol/tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py'
+      - 'Weall-Protocol/tests/test_pq_mldsa_signature_profile.py'
 
 permissions:
   contents: write
