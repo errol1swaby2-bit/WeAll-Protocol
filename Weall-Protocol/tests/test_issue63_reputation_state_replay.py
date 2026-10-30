@@ -170,10 +170,6 @@ def test_duplicate_does_not_materialize_missing_target_account() -> None:
     assert _bytes(state) == before
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Adjacent review gap: duplicate delta ID for another target is accepted, not rejected",
-)
 def test_same_delta_id_must_not_silently_accept_different_target() -> None:
     state = _state()
     payload = {
@@ -196,26 +192,19 @@ def test_same_delta_id_must_not_silently_accept_different_target() -> None:
     assert _bytes(state) == before
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Adjacent review gap: duplicate ban receipt overwrites stored audit reason",
-)
 def test_duplicate_ban_receipt_cannot_rewrite_audit_reason() -> None:
     state = _state()
     payload = {"account_id": "@alice", "reason": "first"}
     apply_reputation(state, _tx("ACCOUNT_BAN", payload, nonce=5))
     before = _bytes(state)
-    apply_reputation(
-        state,
-        _tx("ACCOUNT_BAN", {**payload, "reason": "rewritten"}, nonce=5),
-    )
+    with pytest.raises(ReputationApplyError):
+        apply_reputation(
+            state,
+            _tx("ACCOUNT_BAN", {**payload, "reason": "rewritten"}, nonce=5),
+        )
     assert _bytes(state) == before
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Adjacent review gap: rejected malformed reputation payload initializes root",
-)
 def test_rejected_missing_delta_does_not_mutate_any_state() -> None:
     state = _state()
     before = _bytes(state)
@@ -226,5 +215,96 @@ def test_rejected_missing_delta_does_not_mutate_any_state() -> None:
                 "REPUTATION_DELTA_APPLY",
                 {"account_id": "@alice", "delta_id": "issue63:missing-delta"},
             ),
+        )
+    assert _bytes(state) == before
+
+
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"delta_milli": -2000},
+        {"reason": "tampered"},
+        {"source_object_id": "another-object"},
+    ],
+)
+def test_duplicate_delta_id_with_conflicting_effect_rejects_atomically(
+    changed: dict,
+) -> None:
+    state = _state()
+    first = {
+        "account_id": "@alice",
+        "delta_id": "issue65:effect",
+        "delta_milli": -1000,
+        "reason": "first",
+        "source_object_id": "original-object",
+    }
+    apply_reputation(state, _tx("REPUTATION_DELTA_APPLY", first, nonce=1))
+    before = _bytes(state)
+    with pytest.raises(ReputationApplyError) as error:
+        apply_reputation(
+            state,
+            _tx("REPUTATION_DELTA_APPLY", {**first, **changed}, nonce=2),
+        )
+    assert error.value.reason == "duplicate_delta_id_conflict"
+    assert _bytes(state) == before
+
+
+def test_duplicate_ban_same_receipt_is_full_noop() -> None:
+    state = _state()
+    receipt = {"account_id": "@alice", "reason": "confirmed"}
+    result = apply_reputation(state, _tx("ACCOUNT_BAN", receipt, nonce=13))
+    assert result is not None and result["deduped"] is False
+    before = _bytes(state)
+    repeated = apply_reputation(state, _tx("ACCOUNT_BAN", receipt, nonce=13))
+    assert repeated is not None and repeated["deduped"] is True
+    assert _bytes(state) == before
+
+
+def test_duplicate_ban_receipt_reason_conflict_fails_closed() -> None:
+    state = _state()
+    apply_reputation(
+        state, _tx("ACCOUNT_BAN", {"account_id": "@alice", "reason": "first"}, nonce=14)
+    )
+    before = _bytes(state)
+    with pytest.raises(ReputationApplyError) as error:
+        apply_reputation(
+            state, _tx("ACCOUNT_BAN", {"account_id": "@alice", "reason": "second"}, nonce=14)
+        )
+    assert error.value.reason == "duplicate_ban_receipt_conflict"
+    assert _bytes(state) == before
+
+
+def test_exported_system_duplicate_id_collision_is_rejected_without_mutation() -> None:
+    state = _state()
+    evidence = {"delta_id": "issue65:system:collision", "source": "consensus"}
+    apply_reputation_delta_system(
+        state,
+        account_id="@alice",
+        delta=-1.0,
+        reason="slash",
+        evidence=evidence,
+        at_nonce=11,
+    )
+    before = _bytes(state)
+    with pytest.raises(ReputationApplyError) as error:
+        apply_reputation_delta_system(
+            state,
+            account_id="@bob",
+            delta=-1.0,
+            reason="slash",
+            evidence=evidence,
+            at_nonce=12,
+        )
+    assert error.value.reason == "duplicate_delta_id_conflict"
+    assert _bytes(state) == before
+
+
+def test_rejected_account_ban_without_target_does_not_initialize_root() -> None:
+    state = _state()
+    before = _bytes(state)
+    with pytest.raises(ReputationApplyError):
+        apply_reputation(
+            state,
+            _tx("ACCOUNT_BAN", {"reason": "missing-target"}, nonce=2),
         )
     assert _bytes(state) == before
