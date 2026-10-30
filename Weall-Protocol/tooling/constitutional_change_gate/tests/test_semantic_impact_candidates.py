@@ -381,9 +381,18 @@ class SemanticImpactFixture(unittest.TestCase):
         self.assertEqual(reproduced["status"], "OPEN_SOURCE_ANCHORS_REPRODUCED")
         self.assertEqual([e["observed"]["line"] for e in reproduced["evidence"]], [2, 3, 4])
         self.assertEqual(reproduced["semantic_authorization"], "NOT_ESTABLISHED")
-        drifted = boundary.adjudicate(case, source.replace("rm -rf", "echo"), "b" * 64)
+        drifted = boundary.adjudicate(case, source.replace(case["anchors"][-1], "intentionally changed"), "b" * 64)
         self.assertEqual(drifted["status"], "BLOCKED_SOURCE_ANCHOR_MISSING_OR_CHANGED")
         self.assertIsNone(drifted["evidence"][-1]["observed"])
+
+    def test_issue68_helper_evidence_is_review_only(self):
+        import operational_boundary_review as boundary
+
+        case = next(x for x in boundary.CASES if x["id"] == "OPS-SAFE-007")
+        report = boundary.adjudicate(case, "\n".join(case["anchors"]), "f" * 64)
+        self.assertEqual(report["status"], "OPEN_SOURCE_ANCHORS_REPRODUCED")
+        self.assertEqual(report["semantic_authorization"], "NOT_ESTABLISHED")
+        self.assertEqual(len(report["evidence"]), len(case["anchors"]))
 
     def test_path_traversal_rejected(self):
         for raw in ("../../secrets", "../other/private", "/abs", "src//bad.py"):
