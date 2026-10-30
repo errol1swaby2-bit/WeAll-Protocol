@@ -178,6 +178,27 @@ def collect_public_activity_notices(state: Json, account_id: str) -> list[Json]:
             source="content.comments",
         )
 
+    # A public governance proposal has one explicit creator account. Report
+    # only its currently committed terminal/tally stage; no inference about
+    # secret ballots, per-voter positions, or earlier historical transitions.
+    proposals = _mapping(state.get("gov_proposals_by_id"))
+    for proposal_key, raw in proposals.items():
+        proposal = _mapping(raw)
+        if _text(proposal.get("creator")) != account:
+            continue
+        proposal_id = _text(proposal.get("proposal_id")) or _text(proposal_key)
+        stage = _text(proposal.get("stage")).lower()
+        if not proposal_id or stage not in {"tallied", "executed", "finalized", "withdrawn"}:
+            continue
+        add(
+            f"governance-stage:{proposal_id}:{stage}:{account}",
+            kind="governance_notice",
+            title="Public proposal status updated",
+            body=f"Your public proposal is currently {stage}.",
+            href=f"/decisions/{quote(proposal_id, safe='')}",
+            source="gov_proposals_by_id",
+        )
+
     # A juror entry is an explicit public assignment, not a text reference.
     disputes = _mapping(state.get("disputes_by_id"))
     for dispute_id, raw in disputes.items():
