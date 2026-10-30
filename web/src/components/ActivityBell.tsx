@@ -6,12 +6,13 @@ import {
   ACTIVITY_READ_CHANGED,
   activityReadKey,
   getReadActivityIds,
-  recentUnreadActivityCount,
+  countRecentAttention,
+  readActivityPreference,
 } from "../lib/activityReadState";
 import { nav } from "../lib/router";
 
 type ActivityFeed = {
-  ids: Array<{ id: string }>;
+  ids: Array<{ id: string; type: string; priority?: string }>;
   key: string;
   more: boolean;
 };
@@ -26,6 +27,7 @@ export default function ActivityBell({
   const base = useMemo(() => getApiBaseUrl(), []);
   const [feed, setFeed] = useState<ActivityFeed | null>(null);
   const [readRevision, setReadRevision] = useState(0);
+  const [clockRevision, setClockRevision] = useState(0);
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {
@@ -36,6 +38,11 @@ export default function ActivityBell({
       window.removeEventListener(ACTIVITY_READ_CHANGED, onReadStateChange);
       window.removeEventListener("storage", onReadStateChange);
     };
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setClockRevision((value) => value + 1), 60_000);
+    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -61,8 +68,12 @@ export default function ActivityBell({
         const key = activityReadKey(base, account, response);
         if (!key) return;
         const ids = response.items
-          .filter((item: any) => item && typeof item.id === "string")
-          .map((item: any) => ({ id: String(item.id) }));
+          .filter((item: any) => item && typeof item.id === "string" && typeof item.type === "string")
+          .map((item: any) => ({
+            id: String(item.id),
+            type: String(item.type),
+            priority: item.priority === "high" ? "high" : "normal",
+          }));
         setFeed({ ids, key, more: typeof response.next_cursor === "string" });
         setAvailable(true);
       })
@@ -74,13 +85,18 @@ export default function ActivityBell({
 
   // The revision signal only re-reads client-side state, not protocol events.
   void readRevision;
+  void clockRevision;
   const count = feed
-    ? recentUnreadActivityCount(feed.ids, getReadActivityIds(feed.key))
+    ? countRecentAttention(
+        feed.ids,
+        getReadActivityIds(feed.key),
+        readActivityPreference(feed.key),
+      )
     : null;
 
   const accessibleStatus = count === null
     ? available ? "Activity notices" : "Activity notices, count unavailable"
-    : `${count} unread among the latest ${feed?.ids.length || 0} loaded public notices`;
+    : `${count} need attention among the latest ${feed?.ids.length || 0} loaded public notices (local mutes and quiet hours apply)`;
 
   return (
     <button
