@@ -6,6 +6,8 @@ on:
       - .github/workflows/issue72-matrix-projection-evidence.yml
       - Weall-Protocol/src/weall/runtime/reputation_matrix.py
       - Weall-Protocol/tests/test_issue72_matrix_authoritative_projection.py
+      - web/src/pages/Account.tsx
+      - web/scripts/test_issue72_reputation_authority_source.mjs
   workflow_dispatch:
 
 permissions:
@@ -53,6 +55,9 @@ jobs:
           echo "exit_code=$RC" >> "$OUT/source_and_scope.txt"
           sha256sum "$OUT/targeted_pytest.log" >> "$OUT/source_and_scope.txt"
           exit "$RC"
+      - name: Verify frontend Matrix truth without browser
+        working-directory: web
+        run: node scripts/test_issue72_reputation_authority_source.mjs
       - name: Publish bounded evidence
         if: always()
         uses: actions/upload-artifact@v4
