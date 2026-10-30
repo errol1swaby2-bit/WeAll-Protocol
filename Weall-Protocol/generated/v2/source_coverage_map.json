@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2089,
+  "file_count": 2090,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/pr62-candidate-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "c9bf609376d5ea7dd8e04815b224bfe3c43cf3ef9a3212ab4e7c52533dd20aeb",
+      "sha256": "b747d2d2d81509b1b5bae73bc4a7dd43a3380afd7fd8b67e61695788f1025264",
       "source_id": "SRC-7CB0805B9D1138CB"
     },
     {
@@ -7011,7 +7011,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3ac2ddd096706c116f4cb6b6822be4639946eae6f532000718338d478520d936",
+      "sha256": "13289559bd9a385a1a7149aa0e0a6929a0ee5a932c45ae27a17e80739361f903",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -30642,7 +30642,7 @@
       ],
       "path": "tooling/constitutional_change_gate/SHA256SUMS.txt",
       "primary_mechanism_id": "M-076",
-      "sha256": "95836013fee40320d81d782ec1065c1b6631788739f6b923bc191a2512921818",
+      "sha256": "fa0d22986325747ce0c68903a1239873296f39b627a6392c6db86d817ed7a33b",
       "source_id": "SRC-CAAA5EC1F64384C0"
     },
     {
@@ -30660,6 +30660,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "cb3fc1d2edd8fab47b7f373c70f4d9dfcb556b4d3bbf6adb20a8445f69f80e85",
       "source_id": "SRC-4376F4C61CB67140"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "tooling/constitutional_change_gate/operational_impact.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "8147d793ddf82e41f9a6a4392de01985b289df517bdee8eeb2eaa4d04c065cd2",
+      "source_id": "SRC-8A523A30F4C01192"
     },
     {
       "affected_registers": [
@@ -30792,7 +30808,7 @@
       ],
       "path": "tooling/constitutional_change_gate/semantic_impact_candidates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "3fc937a17e7f554582b03b5da17ea20f3e07dedcfb6726e34abebdbc3c16058a",
+      "sha256": "b6a3686fd8a1999c3c54a617a8b171205f0e3b34a0bc36cafb24347acfad82c6",
       "source_id": "SRC-042AC8D8522B6351"
     },
     {
@@ -30866,7 +30882,7 @@
       ],
       "path": "tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "547a0888aefe1fab7228d36276c36e9d8b146dce3d80531b3cf089084008aedf",
+      "sha256": "aa9f52c82375a72b56eb10b98c934aa7b2a41abc07c661f1fe1088f3fb84277e",
       "source_id": "SRC-19D13CDB0C15073B"
     },
     {

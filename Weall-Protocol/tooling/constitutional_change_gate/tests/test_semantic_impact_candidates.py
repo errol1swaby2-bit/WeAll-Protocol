@@ -300,8 +300,8 @@ class SemanticImpactFixture(unittest.TestCase):
         self.write(other, "echo checks\n")
         self.write(
             launcher,
-            '#!/bin/sh\n'
-            'WEALL_MODE=prod\n'
+            "#!/bin/sh\n"
+            "WEALL_MODE=prod\n"
             'bash "${SCRIPT_DIR}/preflight.sh"\n'
             'rm -rf "${WEALL_DEVNET_DIR}"\n',
         )
@@ -323,8 +323,11 @@ class SemanticImpactFixture(unittest.TestCase):
         target.write_bytes(b"src/weall/runtime/executor.py\x00")
         head = self.commit()
         result = semantic.semantic_report(self.repo, self.base, head)
-        row = next(x for x in result["global_semantic_inventory"]["operational_static_candidates"]["files"]
-                   if x["path"] == path)
+        row = next(
+            x
+            for x in result["global_semantic_inventory"]["operational_static_candidates"]["files"]
+            if x["path"] == path
+        )
         self.assertEqual(row["scan_status"], "UNINSPECTED_BINARY")
         self.assertEqual(row["possible_dependencies"], [])
         self.assertEqual(row["review_status"], "OPEN_UNADJUDICATED")

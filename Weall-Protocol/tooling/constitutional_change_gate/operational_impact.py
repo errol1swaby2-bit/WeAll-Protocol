@@ -4,6 +4,7 @@
 No shell command is executed. Literal references are *possible* dependencies,
 not a sound call graph or permission to approve an operational change.
 """
+
 from __future__ import annotations
 
 import fnmatch
@@ -22,9 +23,7 @@ LITERAL = re.compile(
     r"|(?:requirements(?:-dev)?\.(?:in|lock))"
     r")"
 )
-SCRIPT_DIR = re.compile(
-    r"\$\{?SCRIPT_DIR\}?/([A-Za-z0-9_.\-/]+)"
-)
+SCRIPT_DIR = re.compile(r"\$\{?SCRIPT_DIR\}?/([A-Za-z0-9_.\-/]+)")
 ENVIRONMENT = re.compile(
     r"\b(?:WEALL|VITE_WEALL|NODE1|NODE2|REVIEW_COMMIT|GENESIS|OBSERVER)"
     r"_[A-Z0-9_]+\b"
@@ -149,14 +148,22 @@ def inspect(repo, sha: str, row: dict, inventory: set[str], mechanisms: list[dic
         if resolved and resolved != path:
             referenced.add(resolved)
     record["possible_dependencies"] = sorted(referenced)
-    if not referenced and area in {"deployment", "tooling", "chain_config", "dependencies", "specification"}:
+    if not referenced and area in {
+        "deployment",
+        "tooling",
+        "chain_config",
+        "dependencies",
+        "specification",
+    }:
         record["unresolved_observations"].append("NO_PROVEN_FILE_DEPENDENCIES")
     # A literal path alone cannot prove the absence of dynamic dependencies.
     record["dependency_completeness"] = "NOT_PROVEN"
     return record
 
 
-def scan_unlinked(repo, sha: str, file_rows: list[dict], unlinked: list[str], mechanisms: list[dict]) -> dict:
+def scan_unlinked(
+    repo, sha: str, file_rows: list[dict], unlinked: list[str], mechanisms: list[dict]
+) -> dict:
     inventory = {row["path"] for row in file_rows}
     by_path = {row["path"]: row for row in file_rows}
     records = []
@@ -171,7 +178,9 @@ def scan_unlinked(repo, sha: str, file_rows: list[dict], unlinked: list[str], me
         "status": "UNREVIEWED_STATIC_CANDIDATES_NOT_SEMANTIC_CLOSURE",
         "scanned_priority_file_count": len(records),
         "files": records,
-        "files_with_literal_dependency_candidates": sum(bool(x["possible_dependencies"]) for x in records),
+        "files_with_literal_dependency_candidates": sum(
+            bool(x["possible_dependencies"]) for x in records
+        ),
         "files_with_destructive_command_observations": sum(
             "recursive_delete_command_present" in x["hazard_observations"] for x in records
         ),
