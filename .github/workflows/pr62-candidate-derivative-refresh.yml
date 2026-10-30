@@ -43,13 +43,14 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff format tooling/constitutional_change_gate/operational_impact.py tooling/constitutional_change_gate/semantic_impact_candidates.py tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py tooling/constitutional_change_gate/repository_coverage.py tooling/constitutional_change_gate/tests/test_repository_coverage.py tests/test_pr62_account_field_runtime_evidence.py tooling/constitutional_change_gate/weall_change_gate.py tooling/constitutional_change_gate/tests/test_change_gate.py tooling/constitutional_change_gate/reconcile_v2.py tooling/constitutional_change_gate/tests/test_v2_reconciliation.py tooling/constitutional_change_gate/field_trace.py tooling/constitutional_change_gate/tests/test_field_trace.py
+          ruff format tooling/constitutional_change_gate/operational_boundary_review.py tooling/constitutional_change_gate/operational_impact.py tooling/constitutional_change_gate/semantic_impact_candidates.py tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py tooling/constitutional_change_gate/repository_coverage.py tooling/constitutional_change_gate/tests/test_repository_coverage.py tests/test_pr62_account_field_runtime_evidence.py tooling/constitutional_change_gate/weall_change_gate.py tooling/constitutional_change_gate/tests/test_change_gate.py tooling/constitutional_change_gate/reconcile_v2.py tooling/constitutional_change_gate/tests/test_v2_reconciliation.py tooling/constitutional_change_gate/field_trace.py tooling/constitutional_change_gate/tests/test_field_trace.py
           python - <<'PY'
           import hashlib
           from pathlib import Path
           root = Path("tooling/constitutional_change_gate")
           manifest = root / "SHA256SUMS.txt"
           update = {
+              "operational_boundary_review.py",
               "operational_impact.py",
               "semantic_impact_candidates.py",
               "tests/test_semantic_impact_candidates.py",
@@ -86,7 +87,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          git add -u -- Weall-Protocol/tooling/constitutional_change_gate/operational_impact.py Weall-Protocol/tooling/constitutional_change_gate/semantic_impact_candidates.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py Weall-Protocol/tooling/constitutional_change_gate/repository_coverage.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_repository_coverage.py Weall-Protocol/tests/test_pr62_account_field_runtime_evidence.py Weall-Protocol/tooling/constitutional_change_gate/field_trace.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_field_trace.py Weall-Protocol/tooling/constitutional_change_gate/weall_change_gate.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_change_gate.py Weall-Protocol/tooling/constitutional_change_gate/reconcile_v2.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_v2_reconciliation.py Weall-Protocol/tooling/constitutional_change_gate/SHA256SUMS.txt Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          git add -u -- Weall-Protocol/tooling/constitutional_change_gate/operational_boundary_review.py Weall-Protocol/tooling/constitutional_change_gate/operational_impact.py Weall-Protocol/tooling/constitutional_change_gate/semantic_impact_candidates.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py Weall-Protocol/tooling/constitutional_change_gate/repository_coverage.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_repository_coverage.py Weall-Protocol/tests/test_pr62_account_field_runtime_evidence.py Weall-Protocol/tooling/constitutional_change_gate/field_trace.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_field_trace.py Weall-Protocol/tooling/constitutional_change_gate/weall_change_gate.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_change_gate.py Weall-Protocol/tooling/constitutional_change_gate/reconcile_v2.py Weall-Protocol/tooling/constitutional_change_gate/tests/test_v2_reconciliation.py Weall-Protocol/tooling/constitutional_change_gate/SHA256SUMS.txt Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
           if git diff --cached --quiet; then
             echo "PR62 candidate and generated artifacts already current."
             exit 0
