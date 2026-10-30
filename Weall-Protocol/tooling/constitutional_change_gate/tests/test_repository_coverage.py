@@ -1,6 +1,7 @@
 """Independent miniature Git histories exercise complete file/path detection."""
 
 from __future__ import annotations
+
 import subprocess
 import sys
 import tempfile
