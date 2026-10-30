@@ -213,22 +213,25 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
                     actual = hashlib.sha256(read_in_commit(repo, final_commit, path)).hexdigest()
                     pin = (
                         "MATCH_DECLARED_COMPILATION_HASH"
-                        if actual == expected else "STALE_COMPILATION_OUTPUT_HASH"
+                        if actual == expected
+                        else "STALE_COMPILATION_OUTPUT_HASH"
                     )
-                impacted.append({
-                    "side": role,
-                    "path": path,
-                    "v2_link_status": "DECLARED_COMPILER_DERIVATIVE_UNREVIEWED",
-                    "derivative_manifest_path": DERIVATIVE_MANIFEST,
-                    "candidate_compiler": PREFIX + "scripts/compile_v2_spec.py",
-                    "candidate_mechanisms": [],
-                    "candidate_txs": [],
-                    "candidate_state_or_message_ids": [],
-                    "direct_requirement_ids": [],
-                    "source_digest_status": pin,
-                    "impact_extent": "DERIVED_OUTPUT_REPRODUCIBILITY_AND_DOWNSTREAM_EFFECTS_UNVERIFIED",
-                    "review_priority": "HIGH",
-                })
+                impacted.append(
+                    {
+                        "side": role,
+                        "path": path,
+                        "v2_link_status": "DECLARED_COMPILER_DERIVATIVE_UNREVIEWED",
+                        "derivative_manifest_path": DERIVATIVE_MANIFEST,
+                        "candidate_compiler": PREFIX + "scripts/compile_v2_spec.py",
+                        "candidate_mechanisms": [],
+                        "candidate_txs": [],
+                        "candidate_state_or_message_ids": [],
+                        "direct_requirement_ids": [],
+                        "source_digest_status": pin,
+                        "impact_extent": "DERIVED_OUTPUT_REPRODUCIBILITY_AND_DOWNSTREAM_EFFECTS_UNVERIFIED",
+                        "review_priority": "HIGH",
+                    }
+                )
                 continue
             if source is None:
                 impacted.append(
@@ -365,10 +368,14 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
         "changed_entry_count": len(entries),
         "reviewed_semantic_edges": 0,
         "candidate_link_observations": dict(counts),
-        "declared_compiler_derivative_paths": sorted({
-            r["path"] for row in entries for r in row["candidate_links"]
-            if r["v2_link_status"] == "DECLARED_COMPILER_DERIVATIVE_UNREVIEWED"
-        }),
+        "declared_compiler_derivative_paths": sorted(
+            {
+                r["path"]
+                for row in entries
+                for r in row["candidate_links"]
+                if r["v2_link_status"] == "DECLARED_COMPILER_DERIVATIVE_UNREVIEWED"
+            }
+        ),
         "unmapped_change_paths": missing,
         "critical_unmapped_change_paths": critical_missing,
         "stale_sha256_source_paths": stale,

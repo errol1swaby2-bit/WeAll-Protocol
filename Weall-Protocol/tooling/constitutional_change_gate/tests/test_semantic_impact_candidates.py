@@ -60,12 +60,18 @@ class SemanticImpactFixture(unittest.TestCase):
     def set_registers(self, rows):
         prefix = "Weall-Protocol/generated/v2/"
         output = "generated/v2/current_tx_canon.json"
-        self.write("Weall-Protocol/specs/v2/source/manifest.json",
-                   json.dumps({"outputs": [output]}))
-        self.write(prefix + "spec_compilation_manifest.json", json.dumps({
-            "schema": "weall.v2.spec_compilation_manifest",
-            "output_hashes": {output: self.digest("Weall-Protocol/" + output)},
-        }))
+        self.write(
+            "Weall-Protocol/specs/v2/source/manifest.json", json.dumps({"outputs": [output]})
+        )
+        self.write(
+            prefix + "spec_compilation_manifest.json",
+            json.dumps(
+                {
+                    "schema": "weall.v2.spec_compilation_manifest",
+                    "output_hashes": {output: self.digest("Weall-Protocol/" + output)},
+                }
+            ),
+        )
         self.write(
             prefix + "source_coverage_map.json",
             json.dumps(
@@ -221,18 +227,24 @@ class SemanticImpactFixture(unittest.TestCase):
     def test_declared_derivative_requires_compiler_digest_and_review(self):
         output = "Weall-Protocol/generated/v2/current_tx_canon.json"
         self.write(output, '{"changed":true}\n')
-        self.set_registers([
-            self.row("src/weall/runtime/executor.py", self.executor,
-                     ["M-018", "TX-0001", "STATE-0001"]),
-            self.row("../web/src/App.tsx", self.frontend, ["M-069"]),
-        ])
+        self.set_registers(
+            [
+                self.row(
+                    "src/weall/runtime/executor.py",
+                    self.executor,
+                    ["M-018", "TX-0001", "STATE-0001"],
+                ),
+                self.row("../web/src/App.tsx", self.frontend, ["M-069"]),
+            ]
+        )
         head = self.commit()
         result = semantic.semantic_report(self.repo, self.base, head)
         self.assertIn(output, result["declared_compiler_derivative_paths"])
         self.assertNotIn(output, result["unmapped_change_paths"])
         entry = next(x for x in result["changes"] if x["change"]["path"] == output)
-        self.assertEqual(entry["candidate_links"][0]["source_digest_status"],
-                         "MATCH_DECLARED_COMPILATION_HASH")
+        self.assertEqual(
+            entry["candidate_links"][0]["source_digest_status"], "MATCH_DECLARED_COMPILATION_HASH"
+        )
         self.assertEqual(entry["candidate_links"][0]["candidate_txs"], [])
         self.assertEqual(entry["semantic_disposition"], "OPEN_UNREVIEWED_POTENTIAL_IMPACT")
 
