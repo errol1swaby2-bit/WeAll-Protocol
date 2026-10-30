@@ -148,3 +148,52 @@ def test_invalid_authenticated_session_is_not_silent_empty_inbox(
     )
     assert result.status_code == 401
     assert result.json()["detail"]["code"] == "invalid_session"
+
+
+def test_public_reply_is_derived_from_parent_ownership_not_body_substrings() -> None:
+    state = _snapshot()
+    state["content"] = {
+        "posts": {
+            "owned": {"author": "@alice", "visibility": "public", "deleted": False},
+            "other": {"author": "@alicia", "visibility": "public", "deleted": False},
+        },
+        "comments": {
+            "real": {
+                "comment_id": "real",
+                "post_id": "owned",
+                "author": "@bob",
+                "visibility": "public",
+                "deleted": False,
+                "body": "Thanks!",
+            },
+            "not-mine": {
+                "comment_id": "not-mine",
+                "post_id": "other",
+                "author": "@bob",
+                "visibility": "public",
+                "deleted": False,
+                "body": "@alice",
+            },
+            "self": {
+                "comment_id": "self",
+                "post_id": "owned",
+                "author": "@alice",
+                "visibility": "public",
+                "deleted": False,
+            },
+            "deleted": {
+                "comment_id": "deleted",
+                "post_id": "owned",
+                "author": "@bob",
+                "visibility": "public",
+                "deleted": True,
+            },
+        },
+    }
+    replies = [
+        item for item in collect_public_activity_notices(state, "@alice")
+        if item["type"] == "reply"
+    ]
+    assert len(replies) == 1
+    assert replies[0]["id"] == "reply:real:@alice"
+    assert replies[0]["href"] == "/thread/owned"
