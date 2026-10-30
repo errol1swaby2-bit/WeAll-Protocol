@@ -14,6 +14,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+import operational_impact as operational
 import repository_coverage as coverage
 
 PREFIX = "Weall-Protocol/"
@@ -448,6 +449,9 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
             "unlinked_files": len(globally_unlinked),
             "critical_unlinked_files": len(globally_unlinked_high),
             "unlinked_by_file_area": dict(sorted(unlinked_by_area.items())),
+            "operational_static_candidates": operational.scan_unlinked(
+                repo, final_commit, files["files"], globally_unlinked, reg["rows"]
+            ),
             "unlinked_paths": globally_unlinked,
             "critical_unlinked_paths": globally_unlinked_high,
             "status": "BLOCKED_OPEN_WHOLE_REPOSITORY_SEMANTIC_BACKLOG"

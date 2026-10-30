@@ -294,6 +294,41 @@ class SemanticImpactFixture(unittest.TestCase):
         self.assertEqual(link["candidate_mechanisms"][0]["id"], "M-018")
         self.assertEqual(result["reviewed_semantic_edges"], 0)
 
+    def test_unlinked_shell_script_is_observed_not_approved(self):
+        launcher = "Weall-Protocol/scripts/operator_boot.sh"
+        other = "Weall-Protocol/scripts/preflight.sh"
+        self.write(other, "echo checks\n")
+        self.write(
+            launcher,
+            '#!/bin/sh\n'
+            'WEALL_MODE=prod\n'
+            'bash "${SCRIPT_DIR}/preflight.sh"\n'
+            'rm -rf "${WEALL_DEVNET_DIR}"\n',
+        )
+        head = self.commit()
+        result = semantic.semantic_report(self.repo, self.base, head)
+        observed = result["global_semantic_inventory"]["operational_static_candidates"]
+        self.assertEqual(observed["status"], "UNREVIEWED_STATIC_CANDIDATES_NOT_SEMANTIC_CLOSURE")
+        row = next(x for x in observed["files"] if x["path"] == launcher)
+        self.assertIn(other, row["possible_dependencies"])
+        self.assertIn("WEALL_MODE", row["environment_tokens"])
+        self.assertIn("recursive_delete_command_present", row["hazard_observations"])
+        self.assertEqual(row["review_status"], "OPEN_UNADJUDICATED")
+        self.assertIn(launcher, result["global_semantic_inventory"]["unlinked_paths"])
+
+    def test_binary_priority_file_never_claims_dependencies(self):
+        path = "Weall-Protocol/configs/binary.dat"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"src/weall/runtime/executor.py\x00")
+        head = self.commit()
+        result = semantic.semantic_report(self.repo, self.base, head)
+        row = next(x for x in result["global_semantic_inventory"]["operational_static_candidates"]["files"]
+                   if x["path"] == path)
+        self.assertEqual(row["scan_status"], "UNINSPECTED_BINARY")
+        self.assertEqual(row["possible_dependencies"], [])
+        self.assertEqual(row["review_status"], "OPEN_UNADJUDICATED")
+
     def test_path_traversal_rejected(self):
         for raw in ("../../secrets", "../other/private", "/abs", "src//bad.py"):
             with self.assertRaises(semantic.ImpactError):

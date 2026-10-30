@@ -6332,6 +6332,18 @@
       "path": "tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py",
       "primary_mechanism_id": "M-076",
       "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/operational_impact.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
     }
   ],
   "schema": "weall.v2.source_mapping_registry",
