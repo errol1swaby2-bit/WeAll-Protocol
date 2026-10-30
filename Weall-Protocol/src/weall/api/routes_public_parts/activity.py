@@ -7,6 +7,7 @@ a private messaging channel, or a source of role/reputation authority.
 """
 
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
@@ -140,7 +141,7 @@ def collect_public_activity_notices(state: Json, account_id: str) -> list[Json]:
             kind="reputation_update",
             title="Reputation record updated",
             body=f"Public reputation event: {event_code[:80]}",
-            href=f"/reputation/{account}",
+            href=f"/reputation/{quote(account, safe='')}",
             priority="high" if severity >= 3 else "normal",
             height=_int(event.get("occurred_at_block")),
             source="reputation.events",
@@ -160,7 +161,7 @@ def collect_public_activity_notices(state: Json, account_id: str) -> list[Json]:
             kind="dispute_assignment",
             title="Public review assignment",
             body="A public dispute lists your account as a juror.",
-            href=f"/reports/{did}",
+            href=f"/reports/{quote(did, safe='')}",
             priority="high",
             source="disputes_by_id.jurors",
         )
@@ -204,9 +205,7 @@ def activity_notices(
 
     all_notices = collect_public_activity_notices(state, account)
     if cursor:
-        cursor_index = next(
-            (i for i, item in enumerate(all_notices) if item["id"] == cursor), None
-        )
+        cursor_index = next((i for i, item in enumerate(all_notices) if item["id"] == cursor), None)
         if cursor_index is None:
             raise HTTPException(status_code=400, detail={"code": "invalid_notice_cursor"})
         all_notices = all_notices[cursor_index + 1 :]
