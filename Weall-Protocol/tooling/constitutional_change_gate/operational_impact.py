@@ -30,10 +30,10 @@ ENVIRONMENT = re.compile(
     r"_[A-Z0-9_]+\b"
 )
 STATE_DELETION = re.compile(
-    r"(?:^|[;&| \t])rm[ \t]+(?:-[A-Za-z]*[rf]|--recursive|--force)"
+    r"(?:^|[;&| \t])rm[ \t]+(?:-[A-Za-z]*[rf]|--recursive|--force)", re.MULTILINE
 )
 GENERIC_CODE = re.compile(
-    r"(?:^|[;&| \t])(?:bash|sh|exec|source|python3?|docker|git)[ \t]+"
+    r"(?:^|[;&| \t])(?:bash|sh|exec|source|python3?|docker|git)[ \t]+", re.MULTILINE
 )
 DYNAMIC_PATH = re.compile(r"\$\{|\$\(|\$(?:[A-Za-z_])")
 HAZARD_TAGS = (
