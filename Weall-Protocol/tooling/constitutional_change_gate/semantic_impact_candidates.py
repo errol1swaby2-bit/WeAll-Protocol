@@ -399,6 +399,22 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
             if r["v2_link_status"].startswith("NO_DECLARED") and r["review_priority"] == "HIGH"
         }
     )
+    # Track the FULL repository, not merely the files changed in this PR.
+    # Categories are disjoint with precedence source > derivative > declared.
+    source_paths = set(current)
+    derivative_only = set(derivatives) - source_paths
+    declared_only = set(registered_current) - source_paths - derivative_only
+    globally_unlinked = sorted(
+        current_paths - source_paths - derivative_only - declared_only
+    )
+    globally_unlinked_high = sorted(
+        path for path in globally_unlinked if coverage.classify(path) in CRITICAL
+    )
+    unlinked_by_area = Counter(
+        coverage.classify(path) or "UNCLASSIFIED" for path in globally_unlinked
+    )
+    if len(source_paths | derivative_only | declared_only | set(globally_unlinked)) != len(current_paths):
+        raise ImpactError("global_semantic_inventory_accounting_mismatch")
     counts = Counter(
         "DECLARED" if r["v2_link_status"].startswith("DECLARED") else "UNLINKED"
         for row in entries
@@ -424,6 +440,19 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
         "mechanism_count": len(mechanism),
         "tracked_file_count": files["tracked_file_count"],
         "changed_entry_count": len(entries),
+        "global_semantic_inventory": {
+            "tracked_files": len(current_paths),
+            "v2_source_mapped_files": len(source_paths),
+            "declared_compiler_derivatives_not_in_source_map": len(derivative_only),
+            "explicit_mapping_only_files": len(declared_only),
+            "unlinked_files": len(globally_unlinked),
+            "critical_unlinked_files": len(globally_unlinked_high),
+            "unlinked_by_file_area": dict(sorted(unlinked_by_area.items())),
+            "unlinked_paths": globally_unlinked,
+            "critical_unlinked_paths": globally_unlinked_high,
+            "status": "BLOCKED_OPEN_WHOLE_REPOSITORY_SEMANTIC_BACKLOG"
+            if globally_unlinked else "ALL_PATHS_HAVE_CANDIDATE_LINKS_NOT_PROVEN_CAUSALITY",
+        },
         "reviewed_semantic_edges": 0,
         "candidate_link_observations": dict(counts),
         "declared_compiler_derivative_paths": sorted(
@@ -469,7 +498,8 @@ def main() -> int:
         f"UNREVIEWED_SEMANTIC_CANDIDATES: {result['changed_entry_count']} changes, "
         f"unmapped={len(result['unmapped_change_paths'])}, "
         f"critical_unmapped={len(result['critical_unmapped_change_paths'])}, "
-        f"stale={len(result['stale_sha256_source_paths'])}"
+        f"stale={len(result['stale_sha256_source_paths'])}, "
+        f"global_unlinked={result['global_semantic_inventory']['unlinked_files']}"
     )
     return 0  # Report generation succeeded; this is NOT a merge/release gate pass.
 

@@ -174,6 +174,9 @@ class SemanticImpactFixture(unittest.TestCase):
             "BLOCKED_PENDING_TRANSITIVE_TRACING_EXACT_RUNS_AND_INDEPENDENT_ADJUDICATION",
         )
         self.assertIn(self.cfg, result["critical_unmapped_change_paths"])
+        self.assertIn(self.cfg, result["global_semantic_inventory"]["unlinked_paths"])
+        self.assertEqual(result["global_semantic_inventory"]["status"],
+                         "BLOCKED_OPEN_WHOLE_REPOSITORY_SEMANTIC_BACKLOG")
         affected = next(x for x in result["changes"] if x["change"]["path"] == self.executor)
         link = affected["candidate_links"][0]
         self.assertEqual(link["candidate_txs"][0]["stable_id"], "TX-0001")
@@ -251,6 +254,7 @@ class SemanticImpactFixture(unittest.TestCase):
         head = self.commit()
         result = semantic.semantic_report(self.repo, self.base, head)
         self.assertIn(output, result["declared_compiler_derivative_paths"])
+        self.assertNotIn(output, result["global_semantic_inventory"]["unlinked_paths"])
         self.assertNotIn(output, result["unmapped_change_paths"])
         entry = next(x for x in result["changes"] if x["change"]["path"] == output)
         self.assertEqual(
@@ -280,6 +284,7 @@ class SemanticImpactFixture(unittest.TestCase):
         head = self.commit()
         result = semantic.semantic_report(self.repo, self.base, head)
         self.assertIn(path, result["declared_unscanned_source_paths"])
+        self.assertNotIn(path, result["global_semantic_inventory"]["unlinked_paths"])
         self.assertNotIn(path, result["unmapped_change_paths"])
         item = next(x for x in result["changes"] if x["change"]["path"] == path)
         link = item["candidate_links"][0]
