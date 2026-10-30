@@ -55,9 +55,7 @@ def _snapshot() -> dict:
             "case-other": {"dispute_id": "case-other", "jurors": {"@alicia": {}}},
         },
         "content": {
-            "posts_by_id": {
-                "post-with-text": {"body": "hello @alice", "author": "@alicia"}
-            }
+            "posts_by_id": {"post-with-text": {"body": "hello @alice", "author": "@alicia"}}
         },
     }
 
@@ -79,9 +77,7 @@ def test_projector_is_exact_recipient_only_and_does_not_read_arbitrary_text() ->
 
 def test_projector_dedupes_replayed_receipt_id_and_keeps_stable_order() -> None:
     state = _snapshot()
-    state["notify"]["emit_receipts"].append(
-        copy.deepcopy(state["notify"]["emit_receipts"][0])
-    )
+    state["notify"]["emit_receipts"].append(copy.deepcopy(state["notify"]["emit_receipts"][0]))
     notices = collect_public_activity_notices(state, "@alice")
     assert len(notices) == 3
     ids = [item["id"] for item in notices]
@@ -122,13 +118,15 @@ def test_authenticated_route_reads_deterministic_page_and_rejects_bad_cursor(
     assert len(data["items"]) == 1
     assert data["next_cursor"] == data["items"][0]["id"]
     second = client.get(
-        "/v1/activity/notices", headers=headers,
+        "/v1/activity/notices",
+        headers=headers,
         params={"cursor": data["next_cursor"]},
     )
     assert second.status_code == 200
     assert len(second.json()["items"]) == 2
     invalid = client.get(
-        "/v1/activity/notices", headers=headers,
+        "/v1/activity/notices",
+        headers=headers,
         params={"cursor": "does-not-exist"},
     )
     assert invalid.status_code == 400
