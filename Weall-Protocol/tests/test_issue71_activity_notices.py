@@ -191,9 +191,7 @@ def test_public_reply_is_derived_from_parent_ownership_not_body_substrings() -> 
         },
     }
     replies = [
-        item
-        for item in collect_public_activity_notices(state, "@alice")
-        if item["type"] == "reply"
+        item for item in collect_public_activity_notices(state, "@alice") if item["type"] == "reply"
     ]
     assert len(replies) == 1
     assert replies[0]["id"] == "reply:real:@alice"
