@@ -21,6 +21,8 @@ SOURCE_MAP = PREFIX + "generated/v2/source_coverage_map.json"
 MECHANISMS = PREFIX + "generated/v2/mechanism_registry.json"
 TX_MATRIX = PREFIX + "generated/v2/tx_contract_matrix.json"
 REQUIREMENTS = PREFIX + "generated/v2/requirement_traceability.json"
+DERIVATIVE_MANIFEST = PREFIX + "specs/v2/source/manifest.json"
+COMPILATION_MANIFEST = PREFIX + "generated/v2/spec_compilation_manifest.json"
 CRITICAL = {
     "consensus_runtime",
     "backend_source",
@@ -173,6 +175,21 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
     reqs = requirements_index(
         load_json(repo, final_commit, REQUIREMENTS, "weall.v2.requirement_traceability")
     )
+    # Generated derivatives are declared by compiler source metadata. A known
+    # output is not equivalent to a verified semantic dependency.
+    source_manifest = load_json(repo, final_commit, DERIVATIVE_MANIFEST)
+    outputs = source_manifest.get("outputs")
+    if not isinstance(outputs, list) or not all(isinstance(x, str) for x in outputs):
+        raise ImpactError("invalid_declared_derivative_outputs")
+    derivatives = {normalize_v2_path(x): x for x in outputs}
+    if len(derivatives) != len(outputs) or not set(derivatives) <= current_paths:
+        raise ImpactError("declared_derivative_inventory_drift")
+    compilation = load_json(
+        repo, final_commit, COMPILATION_MANIFEST, "weall.v2.spec_compilation_manifest"
+    )
+    output_hashes = compilation.get("output_hashes")
+    if not isinstance(output_hashes, dict):
+        raise ImpactError("missing_compilation_output_hashes")
     entries = []
     for change in files["changes"]:
         impacted = []
@@ -185,6 +202,34 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
             relevant = current if exists_in_head else prior
             source = relevant.get(path)
             area = coverage.classify(path)
+            if source is None and role == "after" and path in derivatives:
+                output = derivatives[path]
+                expected = output_hashes.get(output)
+                if path == COMPILATION_MANIFEST:
+                    pin = "SELF_HASH_NOT_CLAIMED_REQUIRES_COMPILER_CHECK"
+                elif not isinstance(expected, str) or len(expected) != 64:
+                    pin = "MISSING_DERIVATIVE_OUTPUT_HASH"
+                else:
+                    actual = hashlib.sha256(read_in_commit(repo, final_commit, path)).hexdigest()
+                    pin = (
+                        "MATCH_DECLARED_COMPILATION_HASH"
+                        if actual == expected else "STALE_COMPILATION_OUTPUT_HASH"
+                    )
+                impacted.append({
+                    "side": role,
+                    "path": path,
+                    "v2_link_status": "DECLARED_COMPILER_DERIVATIVE_UNREVIEWED",
+                    "derivative_manifest_path": DERIVATIVE_MANIFEST,
+                    "candidate_compiler": PREFIX + "scripts/compile_v2_spec.py",
+                    "candidate_mechanisms": [],
+                    "candidate_txs": [],
+                    "candidate_state_or_message_ids": [],
+                    "direct_requirement_ids": [],
+                    "source_digest_status": pin,
+                    "impact_extent": "DERIVED_OUTPUT_REPRODUCIBILITY_AND_DOWNSTREAM_EFFECTS_UNVERIFIED",
+                    "review_priority": "HIGH",
+                })
+                continue
             if source is None:
                 impacted.append(
                     {
@@ -282,6 +327,7 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
             for row in entries
             for r in row["candidate_links"]
             if r["source_digest_status"].startswith("STALE")
+            or r["source_digest_status"] == "MISSING_DERIVATIVE_OUTPUT_HASH"
         }
     )
     critical_missing = sorted(
@@ -319,6 +365,10 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
         "changed_entry_count": len(entries),
         "reviewed_semantic_edges": 0,
         "candidate_link_observations": dict(counts),
+        "declared_compiler_derivative_paths": sorted({
+            r["path"] for row in entries for r in row["candidate_links"]
+            if r["v2_link_status"] == "DECLARED_COMPILER_DERIVATIVE_UNREVIEWED"
+        }),
         "unmapped_change_paths": missing,
         "critical_unmapped_change_paths": critical_missing,
         "stale_sha256_source_paths": stale,
