@@ -71,7 +71,7 @@ export const DEFAULT_ACTIVITY_PREFERENCE: ActivityPreference = {
 };
 
 function isValidTime(input: string): boolean {
-  return /^([01]\\d|2[0-3]):[0-5]\\d$/.test(input);
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(input);
 }
 
 export function readActivityPreference(key: string): ActivityPreference {
