@@ -4,6 +4,7 @@
 This deliberately cannot grant semantic completeness, constitutional authority,
 or merge approval. Unmapped/stale paths remain OPEN review obligations.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -20,9 +21,21 @@ SOURCE_MAP = PREFIX + "generated/v2/source_coverage_map.json"
 MECHANISMS = PREFIX + "generated/v2/mechanism_registry.json"
 TX_MATRIX = PREFIX + "generated/v2/tx_contract_matrix.json"
 REQUIREMENTS = PREFIX + "generated/v2/requirement_traceability.json"
-CRITICAL = {"consensus_runtime", "backend_source", "backend_runtime", "chain_config",
-            "deployment", "dependencies", "specification", "generated", "frontend",
-            "frontend_build", "tooling", "ci", "repository_control"}
+CRITICAL = {
+    "consensus_runtime",
+    "backend_source",
+    "backend_runtime",
+    "chain_config",
+    "deployment",
+    "dependencies",
+    "specification",
+    "generated",
+    "frontend",
+    "frontend_build",
+    "tooling",
+    "ci",
+    "repository_control",
+}
 
 
 class ImpactError(ValueError):
@@ -86,7 +99,11 @@ def source_rows(document: dict, *, inventory_paths: set[str]) -> dict[str, dict]
         if not isinstance(ids, list) or not all(isinstance(x, str) and x for x in ids):
             raise ImpactError("malformed_source_edges:" + path)
         digest = item.get("sha256")
-        if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(c not in "0123456789abcdef" for c in digest)
+        ):
             raise ImpactError("invalid_source_digest:" + path)
         out[path] = item
     return out
@@ -119,11 +136,13 @@ def requirements_index(doc: dict) -> list[dict]:
                 paths.append(normalize_v2_path(p))
             except ImpactError:
                 continue
-        normalized.append({
-            "id": r["id"],
-            "paths": paths,
-            "contract_ids": [x for x in r.get("contract_ids", []) if isinstance(x, str)],
-        })
+        normalized.append(
+            {
+                "id": r["id"],
+                "paths": paths,
+                "contract_ids": [x for x in r.get("contract_ids", []) if isinstance(x, str)],
+            }
+        )
     return normalized
 
 
@@ -151,28 +170,36 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
     tx_by_id = {x["stable_id"]: x for x in txs["rows"]}
     if len(tx_by_id) != len(txs["rows"]):
         raise ImpactError("tx_stable_id_duplicate")
-    reqs = requirements_index(load_json(repo, final_commit, REQUIREMENTS, "weall.v2.requirement_traceability"))
+    reqs = requirements_index(
+        load_json(repo, final_commit, REQUIREMENTS, "weall.v2.requirement_traceability")
+    )
     entries = []
     for change in files["changes"]:
         impacted = []
         for role, path in (("after", change["path"]), ("before", change["previous_path"])):
             if path is None:
                 continue
-            exists_in_head = path in current_paths and change["status"][0] != "D" and role == "after"
+            exists_in_head = (
+                path in current_paths and change["status"][0] != "D" and role == "after"
+            )
             relevant = current if exists_in_head else prior
             source = relevant.get(path)
             area = coverage.classify(path)
             if source is None:
-                impacted.append({
-                    "side": role, "path": path,
-                    "v2_link_status": "NO_DECLARED_SOURCE_EDGE_REVIEW_REQUIRED",
-                    "candidate_mechanisms": [], "candidate_txs": [],
-                    "candidate_state_or_message_ids": [],
-                    "direct_requirement_ids": [],
-                    "source_digest_status": "NOT_APPLICABLE_NO_EDGE",
-                    "impact_extent": "UNRESOLVED_CONSERVATIVE_SCOPE",
-                    "review_priority": "HIGH" if area in CRITICAL else "EVIDENCE_AND_CLAIMS",
-                })
+                impacted.append(
+                    {
+                        "side": role,
+                        "path": path,
+                        "v2_link_status": "NO_DECLARED_SOURCE_EDGE_REVIEW_REQUIRED",
+                        "candidate_mechanisms": [],
+                        "candidate_txs": [],
+                        "candidate_state_or_message_ids": [],
+                        "direct_requirement_ids": [],
+                        "source_digest_status": "NOT_APPLICABLE_NO_EDGE",
+                        "impact_extent": "UNRESOLVED_CONSERVATIVE_SCOPE",
+                        "review_priority": "HIGH" if area in CRITICAL else "EVIDENCE_AND_CLAIMS",
+                    }
+                )
                 continue
             ids = sorted(set(source["mappings"]))
             m_ids = [x for x in ids if x.startswith("M-")]
@@ -186,51 +213,89 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
             pin = "NOT_AVAILABLE_DELETED_PATH"
             if role == "after" and path in current_paths and change["status"][0] != "D":
                 actual = hashlib.sha256(read_in_commit(repo, final_commit, path)).hexdigest()
-                pin = "MATCH_EXACT_HEAD_BYTES" if actual == source["sha256"] else "STALE_SHA256_SOURCE_CANDIDATE"
+                pin = (
+                    "MATCH_EXACT_HEAD_BYTES"
+                    if actual == source["sha256"]
+                    else "STALE_SHA256_SOURCE_CANDIDATE"
+                )
             elif path in previous_paths:
                 actual = hashlib.sha256(read_in_commit(repo, base_commit, path)).hexdigest()
-                pin = "MATCH_BASE_BYTES" if actual == source["sha256"] else "STALE_BASE_SOURCE_CANDIDATE"
-            req_ids = sorted({
-                req["id"] for req in reqs
-                if any(path_candidate_match(path, q) for q in req["paths"])
-                or (set(req["contract_ids"]) & set(tx_ids))
-            })
-            impacted.append({
-                "side": role, "path": path,
-                "v2_link_status": "DECLARED_DRAFT_CANDIDATE_UNREVIEWED",
-                "candidate_mechanisms": [
-                    {"id": i, "title": mechanism[i].get("title"),
-                     "required_evidence": mechanism[i].get("required_evidence", []),
-                     "specification_sections": mechanism[i].get("specification_sections", [])}
-                    for i in m_ids
-                ],
-                "candidate_txs": [
-                    {"stable_id": i, "tx_type": tx_by_id[i].get("tx_type")}
-                    for i in tx_ids
-                ],
-                "candidate_state_or_message_ids": other_ids,
-                "unrecognized_mapping_ids": unknown_ids,
-                "direct_requirement_ids": req_ids,
-                "source_digest_status": pin,
-                "impact_extent": "DIRECT_CANDIDATES_ONLY_TRANSITIVE_EFFECTS_UNVERIFIED",
-                "review_priority": "HIGH" if area in CRITICAL else "EVIDENCE_AND_CLAIMS",
-            })
-        entries.append({
-            "change": change,
-            "candidate_links": impacted,
-            "semantic_disposition": "OPEN_UNREVIEWED_POTENTIAL_IMPACT",
-            "constitutional_authorization": "NOT_ESTABLISHED",
-        })
-    missing = sorted({r["path"] for row in entries for r in row["candidate_links"]
-                      if r["v2_link_status"].startswith("NO_DECLARED")})
-    stale = sorted({r["path"] for row in entries for r in row["candidate_links"]
-                    if r["source_digest_status"].startswith("STALE")})
-    critical_missing = sorted({r["path"] for row in entries for r in row["candidate_links"]
-                               if r["v2_link_status"].startswith("NO_DECLARED")
-                               and r["review_priority"] == "HIGH"})
+                pin = (
+                    "MATCH_BASE_BYTES"
+                    if actual == source["sha256"]
+                    else "STALE_BASE_SOURCE_CANDIDATE"
+                )
+            req_ids = sorted(
+                {
+                    req["id"]
+                    for req in reqs
+                    if any(path_candidate_match(path, q) for q in req["paths"])
+                    or (set(req["contract_ids"]) & set(tx_ids))
+                }
+            )
+            impacted.append(
+                {
+                    "side": role,
+                    "path": path,
+                    "v2_link_status": "DECLARED_DRAFT_CANDIDATE_UNREVIEWED",
+                    "candidate_mechanisms": [
+                        {
+                            "id": i,
+                            "title": mechanism[i].get("title"),
+                            "required_evidence": mechanism[i].get("required_evidence", []),
+                            "specification_sections": mechanism[i].get(
+                                "specification_sections", []
+                            ),
+                        }
+                        for i in m_ids
+                    ],
+                    "candidate_txs": [
+                        {"stable_id": i, "tx_type": tx_by_id[i].get("tx_type")} for i in tx_ids
+                    ],
+                    "candidate_state_or_message_ids": other_ids,
+                    "unrecognized_mapping_ids": unknown_ids,
+                    "direct_requirement_ids": req_ids,
+                    "source_digest_status": pin,
+                    "impact_extent": "DIRECT_CANDIDATES_ONLY_TRANSITIVE_EFFECTS_UNVERIFIED",
+                    "review_priority": "HIGH" if area in CRITICAL else "EVIDENCE_AND_CLAIMS",
+                }
+            )
+        entries.append(
+            {
+                "change": change,
+                "candidate_links": impacted,
+                "semantic_disposition": "OPEN_UNREVIEWED_POTENTIAL_IMPACT",
+                "constitutional_authorization": "NOT_ESTABLISHED",
+            }
+        )
+    missing = sorted(
+        {
+            r["path"]
+            for row in entries
+            for r in row["candidate_links"]
+            if r["v2_link_status"].startswith("NO_DECLARED")
+        }
+    )
+    stale = sorted(
+        {
+            r["path"]
+            for row in entries
+            for r in row["candidate_links"]
+            if r["source_digest_status"].startswith("STALE")
+        }
+    )
+    critical_missing = sorted(
+        {
+            r["path"]
+            for row in entries
+            for r in row["candidate_links"]
+            if r["v2_link_status"].startswith("NO_DECLARED") and r["review_priority"] == "HIGH"
+        }
+    )
     counts = Counter(
         "DECLARED" if r["v2_link_status"].startswith("DECLARED") else "UNLINKED"
-        for row in entries for r in row["candidate_links"]
+        for row in entries
+        for r in row["candidate_links"]
     )
     return {
         "schema": "weall.v2.semantic-impact-review-candidates.v0.1",
@@ -238,9 +303,15 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
         "comparison_base": base_commit,
         "source_tree": files["source_tree"],
         "file_coverage_report_sha256": files["report_sha256"],
-        "source_map_sha256": hashlib.sha256(read_in_commit(repo, final_commit, SOURCE_MAP)).hexdigest(),
-        "requirements_sha256": hashlib.sha256(read_in_commit(repo, final_commit, REQUIREMENTS)).hexdigest(),
-        "mechanism_registry_sha256": hashlib.sha256(read_in_commit(repo, final_commit, MECHANISMS)).hexdigest(),
+        "source_map_sha256": hashlib.sha256(
+            read_in_commit(repo, final_commit, SOURCE_MAP)
+        ).hexdigest(),
+        "requirements_sha256": hashlib.sha256(
+            read_in_commit(repo, final_commit, REQUIREMENTS)
+        ).hexdigest(),
+        "mechanism_registry_sha256": hashlib.sha256(
+            read_in_commit(repo, final_commit, MECHANISMS)
+        ).hexdigest(),
         "v2_canonical_tx_count": len(tx_by_id),
         "v2_requirement_count": len(reqs),
         "mechanism_count": len(mechanism),
@@ -271,10 +342,12 @@ def main() -> int:
     result = semantic_report(repo, args.base, args.head)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"UNREVIEWED_SEMANTIC_CANDIDATES: {result['changed_entry_count']} changes, "
-          f"unmapped={len(result['unmapped_change_paths'])}, "
-          f"critical_unmapped={len(result['critical_unmapped_change_paths'])}, "
-          f"stale={len(result['stale_sha256_source_paths'])}")
+    print(
+        f"UNREVIEWED_SEMANTIC_CANDIDATES: {result['changed_entry_count']} changes, "
+        f"unmapped={len(result['unmapped_change_paths'])}, "
+        f"critical_unmapped={len(result['critical_unmapped_change_paths'])}, "
+        f"stale={len(result['stale_sha256_source_paths'])}"
+    )
     return 0  # Report generation succeeded; this is NOT a merge/release gate pass.
 
 
