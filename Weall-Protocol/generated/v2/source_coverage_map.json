@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2074,
+  "file_count": 2073,
   "files": [
     {
       "affected_registers": [
@@ -110,19 +110,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "cb00383808bcb32fe4f57a1944a2066c571fc3f555fa34b80976579fc38eec7e",
       "source_id": "SRC-C95C081E62B7F8BA"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/issue71-v2-derivatives-one-time.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "8f07a63ebc0e987af5f2216a4a565f33a8ccc0c72229073ed97ab818a9c89a6f",
-      "source_id": "SRC-344AE0EA539D9369"
     },
     {
       "affected_registers": [
