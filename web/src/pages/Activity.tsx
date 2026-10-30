@@ -5,6 +5,7 @@ import { normalizeAccount } from "../auth/keys";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import { nav } from "../lib/router";
+import { activityReadKey, getReadActivityIds, setReadActivityIds } from "../lib/activityReadState";
 
 type ActivityItem = {
   id: string;
@@ -38,23 +39,6 @@ function parseNotices(response: any): ActivityItem[] {
       height: Number.isSafeInteger(value.height) ? value.height : undefined,
       priority: value.priority === "high" ? "high" : "normal",
     }));
-}
-
-function readLocalIds(key: string): string[] {
-  if (!key) return [];
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) || "[]");
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistenceKey(base: string, account: string, response: any): string {
-  const chainId = String(response?.chain_id || "").trim();
-  const genesisId = String(response?.genesis_id || "").trim();
-  if (!chainId || !genesisId) return "";
-  return `weall:public-activity:v1:${encodeURIComponent(base)}:${encodeURIComponent(chainId)}:${encodeURIComponent(genesisId)}:${encodeURIComponent(account)}`;
 }
 
 export default function Activity(): JSX.Element {
@@ -96,10 +80,10 @@ export default function Activity(): JSX.Element {
         throw new Error("Account session is required to view personalized public notices.");
       }
       const received = parseNotices(response);
-      const key = persistenceKey(base, account, response);
+      const key = activityReadKey(base, account, response);
       if (!nextCursor) {
         setStorageKey(key);
-        setReadIds(readLocalIds(key));
+        setReadIds(getReadActivityIds(key));
         setItems(received);
       } else {
         setItems((current) => {
@@ -129,11 +113,7 @@ export default function Activity(): JSX.Element {
     const combined = Array.from(new Set([...readIds, ...ids]));
     setReadIds(combined);
     if (storageKey) {
-      try {
-        window.localStorage.setItem(storageKey, JSON.stringify(combined));
-      } catch {
-        // Browser storage is optional. Reading protocol events never depends on it.
-      }
+      setReadActivityIds(storageKey, combined);
     }
   }
 
