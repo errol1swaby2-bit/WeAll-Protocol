@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2063,
+  "file_count": 2068,
   "files": [
     {
       "affected_registers": [
@@ -58,6 +58,32 @@
       "primary_mechanism_id": "M-075",
       "sha256": "9f928229d2232fb2eee7d80e239aa8f0795c3d0da31be25bd7cfe84fa0501dd5",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/issue68-derivative-refresh.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "593e2ff20c71e3074f7bc3ffab8cdbf6fe89e7819822020c115be6c878b770d0",
+      "source_id": "SRC-47FE9ABFCD962DA1"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/issue68-devnet-delete-safety.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "a867dc7fefdce83955953a9a024d5ca96e1233aaf0c36e375d7233de781e66df",
+      "source_id": "SRC-5E8B5883E6698BE9"
     },
     {
       "affected_registers": [
@@ -1710,6 +1736,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "edef65c30552a9f056b820ea1a075be984456eb59d6c9eec791582fa87f97169",
       "source_id": "SRC-DAC36DDA8F402283"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/devnet-safe-reset.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "1dfcf7b0e7ba754d974add667f4c860f1f7e101f0192aca58d3c0f22aa156428",
+      "source_id": "SRC-16FF05B1AEA93EB1"
     },
     {
       "affected_registers": [
@@ -4426,6 +4465,20 @@
       "mappings": [
         "M-076"
       ],
+      "path": "scripts/devnet_safe_paths.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "410d2d7111cb232d78967f7e29f02d5681fd21963dcc63ac7aecf343f2328028",
+      "source_id": "SRC-6F74D9B4A271D735"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
       "path": "scripts/devnet_tx.py",
       "primary_mechanism_id": "M-076",
       "sha256": "be39d33e213e7e73a0edd1987eff332deb8e5369bdd0c2e387f30e60b63b21cf",
@@ -6959,7 +7012,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "b713d67d49652f8e2034743b80ee8aa120cf0cc416ea293976ad776cf46db88e",
+      "sha256": "170138af1da91bec9297d50168dadcd1f989939c6dbdbf63b92b785b79885bcb",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -19874,6 +19927,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d44267a8f31ba9e60a6356280a5bb8f5bfa7e6fb04767d74d789e13fc6ff45a4",
       "source_id": "SRC-6FF32B41B3A4C241"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_issue68_delete_boundaries.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "e66c64504fb6b39d444208912df2433b3f0841886048ac440d448d8b7927f11e",
+      "source_id": "SRC-80ED2A966274DC42"
     },
     {
       "affected_registers": [
