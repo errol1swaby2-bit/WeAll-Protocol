@@ -23,6 +23,7 @@ TX_MATRIX = PREFIX + "generated/v2/tx_contract_matrix.json"
 REQUIREMENTS = PREFIX + "generated/v2/requirement_traceability.json"
 DERIVATIVE_MANIFEST = PREFIX + "specs/v2/source/manifest.json"
 COMPILATION_MANIFEST = PREFIX + "generated/v2/spec_compilation_manifest.json"
+EXPLICIT_MAPPING_REGISTRY = PREFIX + "specs/v2/source/source_mappings.json"
 CRITICAL = {
     "consensus_runtime",
     "backend_source",
@@ -190,6 +191,29 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
     output_hashes = compilation.get("output_hashes")
     if not isinstance(output_hashes, dict):
         raise ImpactError("missing_compilation_output_hashes")
+    # Unsupported compiler input extensions (.sh/.csv) may still have
+    # explicitly registered paths. Preserve them as unscanned candidates,
+    # NEVER as source-proven semantic edges.
+    def registered_paths(commit: str) -> dict[str, dict]:
+        doc = load_json(
+            repo, commit, EXPLICIT_MAPPING_REGISTRY,
+            "weall.v2.source_mapping_registry"
+        )
+        records = doc.get("mappings")
+        if not isinstance(records, list):
+            raise ImpactError("explicit_mapping_rows_missing")
+        found = {}
+        for item in records:
+            if not isinstance(item, dict):
+                raise ImpactError("invalid_explicit_mapping")
+            path = normalize_v2_path(item.get("path"))
+            if path in found:
+                raise ImpactError("duplicate_explicit_mapping:" + path)
+            found[path] = item
+        return found
+
+    registered_current = registered_paths(final_commit)
+    registered_prior = registered_paths(base_commit)
     entries = []
     for change in files["changes"]:
         impacted = []
@@ -232,6 +256,38 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
                         "review_priority": "HIGH",
                     }
                 )
+                continue
+            registered = (
+                registered_current if role == "after" and path in current_paths
+                else registered_prior
+            ).get(path)
+            if source is None and registered is not None:
+                m_id = registered.get("primary_mechanism_id")
+                if not isinstance(m_id, str) or m_id not in mechanism:
+                    raise ImpactError("unresolved_unscanned_mapping_mechanism:" + path)
+                target_commit = (
+                    final_commit if role == "after" and path in current_paths
+                    else base_commit
+                )
+                pin = hashlib.sha256(read_in_commit(repo, target_commit, path)).hexdigest()
+                impacted.append({
+                    "side": role,
+                    "path": path,
+                    "v2_link_status": "DECLARED_UNSCANNED_SOURCE_MAPPING_UNREVIEWED",
+                    "explicit_mapping_registry": EXPLICIT_MAPPING_REGISTRY,
+                    "candidate_mechanisms": [{
+                        "id": m_id,
+                        "title": mechanism[m_id].get("title"),
+                        "required_evidence": mechanism[m_id].get("required_evidence", []),
+                    }],
+                    "candidate_txs": [],
+                    "candidate_state_or_message_ids": [],
+                    "direct_requirement_ids": [],
+                    "sha256_of_raw_git_bytes": pin,
+                    "source_digest_status": "UNSCANNED_EXPLICIT_REGISTER_NOT_IN_SOURCE_COVERAGE",
+                    "impact_extent": "UNSCANNED_DECLARATION_ONLY_TRANSITIVE_EFFECTS_UNVERIFIED",
+                    "review_priority": "HIGH" if area in CRITICAL else "EVIDENCE_AND_CLAIMS",
+                })
                 continue
             if source is None:
                 impacted.append(
@@ -376,6 +432,10 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
                 if r["v2_link_status"] == "DECLARED_COMPILER_DERIVATIVE_UNREVIEWED"
             }
         ),
+        "declared_unscanned_source_paths": sorted({
+            r["path"] for row in entries for r in row["candidate_links"]
+            if r["v2_link_status"] == "DECLARED_UNSCANNED_SOURCE_MAPPING_UNREVIEWED"
+        }),
         "unmapped_change_paths": missing,
         "critical_unmapped_change_paths": critical_missing,
         "stale_sha256_source_paths": stale,

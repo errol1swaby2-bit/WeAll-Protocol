@@ -59,6 +59,11 @@ class SemanticImpactFixture(unittest.TestCase):
 
     def set_registers(self, rows):
         prefix = "Weall-Protocol/generated/v2/"
+        registry = "Weall-Protocol/specs/v2/source/source_mappings.json"
+        if not (self.repo / registry).is_file():
+            self.write(registry, json.dumps({
+                "schema": "weall.v2.source_mapping_registry", "mappings": [],
+            }))
         output = "generated/v2/current_tx_canon.json"
         self.write(
             "Weall-Protocol/specs/v2/source/manifest.json", json.dumps({"outputs": [output]})
@@ -247,6 +252,28 @@ class SemanticImpactFixture(unittest.TestCase):
         )
         self.assertEqual(entry["candidate_links"][0]["candidate_txs"], [])
         self.assertEqual(entry["semantic_disposition"], "OPEN_UNREVIEWED_POTENTIAL_IMPACT")
+
+    def test_explicit_unscanned_script_mapping_stays_review_only(self):
+        path = "Weall-Protocol/tooling/validate.sh"
+        self.write(path, "echo validation\n")
+        self.write("Weall-Protocol/specs/v2/source/source_mappings.json", json.dumps({
+            "schema": "weall.v2.source_mapping_registry",
+            "mappings": [{
+                "path": "tooling/validate.sh",
+                "primary_mechanism_id": "M-018",
+                "classification": "verification_tooling",
+            }],
+        }))
+        head = self.commit()
+        result = semantic.semantic_report(self.repo, self.base, head)
+        self.assertIn(path, result["declared_unscanned_source_paths"])
+        self.assertNotIn(path, result["unmapped_change_paths"])
+        item = next(x for x in result["changes"] if x["change"]["path"] == path)
+        link = item["candidate_links"][0]
+        self.assertEqual(link["v2_link_status"],
+                         "DECLARED_UNSCANNED_SOURCE_MAPPING_UNREVIEWED")
+        self.assertEqual(link["candidate_mechanisms"][0]["id"], "M-018")
+        self.assertEqual(result["reviewed_semantic_edges"], 0)
 
     def test_path_traversal_rejected(self):
         for raw in ("../../secrets", "../other/private", "/abs", "src//bad.py"):
