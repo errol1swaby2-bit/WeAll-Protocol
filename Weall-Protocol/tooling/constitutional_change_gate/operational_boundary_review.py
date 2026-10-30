@@ -32,7 +32,7 @@ CASES = (
         "anchors": (
             'IPFS_PARTITION_PATH="${WEALL_IPFS_PARTITION_PATH:-',
             'python3 scripts/devnet_safe_paths.py check-ipfs "${DEVNET_DIR}" "${IPFS_PARTITION_PATH}"',
-            'Preserving the repository; no automatic deletion.',
+            "Preserving the repository; no automatic deletion.",
         ),
         "control": "reject_untrusted_partition_and_fail_without_automatic_recovery_deletion",
         "finding": "Automatic rm -rf was removed and checked-path refusal was introduced. Dynamic path races, other IPFS startup paths, and real Kubo behavior remain unproven.",
@@ -103,10 +103,10 @@ CASES = (
         "boundary": "fd_safe_custom_reset_and_reserved_ipfs_subpaths",
         "anchors": (
             'CONFIRMATION = "I_CONFIRM_DELETE_CUSTOM_DEVNET"',
-            'NOFOLLOW = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW',
-            'if target == repo_root / RESET_BASENAME:',
-            'if not shutil.rmtree.avoids_symlink_attacks:',
-            'shutil.rmtree(target.name, dir_fd=parent_fd)',
+            "NOFOLLOW = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW",
+            "if target == repo_root / RESET_BASENAME:",
+            "if not shutil.rmtree.avoids_symlink_attacks:",
+            "shutil.rmtree(target.name, dir_fd=parent_fd)",
             'if ipfs.parent != devnet or ipfs.name not in ("ipfs_partition", "ipfs"):',
         ),
         "control": "disposable_target_path_and_fd_relative_delete_candidate",

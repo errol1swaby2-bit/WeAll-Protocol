@@ -381,7 +381,9 @@ class SemanticImpactFixture(unittest.TestCase):
         self.assertEqual(reproduced["status"], "OPEN_SOURCE_ANCHORS_REPRODUCED")
         self.assertEqual([e["observed"]["line"] for e in reproduced["evidence"]], [2, 3, 4])
         self.assertEqual(reproduced["semantic_authorization"], "NOT_ESTABLISHED")
-        drifted = boundary.adjudicate(case, source.replace(case["anchors"][-1], "intentionally changed"), "b" * 64)
+        drifted = boundary.adjudicate(
+            case, source.replace(case["anchors"][-1], "intentionally changed"), "b" * 64
+        )
         self.assertEqual(drifted["status"], "BLOCKED_SOURCE_ANCHOR_MISSING_OR_CHANGED")
         self.assertIsNone(drifted["evidence"][-1]["observed"])
 

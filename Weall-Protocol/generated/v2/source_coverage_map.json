@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/pr70-integrated-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "8d9d1217ea042c89f7d5e0516162178ba59806d5068ef9d1072dbf7e3e0b6055",
+      "sha256": "ded78ac25b355f8e364aa1a0e9deeb05ddca3209b34c47e67f9ba9195290918b",
       "source_id": "SRC-04B0EE523B44A5A3"
     },
     {
@@ -30709,7 +30709,7 @@
       ],
       "path": "tooling/constitutional_change_gate/SHA256SUMS.txt",
       "primary_mechanism_id": "M-076",
-      "sha256": "73fa767924f8df352a6567869d74f4c8e7370c220c9cd6254c4fa27788436691",
+      "sha256": "66c0e96dabf69871f620ce2472d0a68a5d3f4df1212b38cbcd7d1ba48eecc736",
       "source_id": "SRC-CAAA5EC1F64384C0"
     },
     {
@@ -30741,7 +30741,7 @@
       ],
       "path": "tooling/constitutional_change_gate/operational_boundary_review.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "3685cf7a13f38ff800d08ba105ce8f8c4021022457291bc0c90500b504eb9c20",
+      "sha256": "33066784ac81b8136bc9fbf01aef8598fa23514f1cc1975400cd8befc2e6a84e",
       "source_id": "SRC-D82DAA06E099213B"
     },
     {
@@ -30965,7 +30965,7 @@
       ],
       "path": "tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "97848e130b4fa03dcbe8994f707c56015c9c715acb22806839f5229d45b5eb68",
+      "sha256": "4fadd99a8e30630f85310028b7163ce627460ab942269194b726b4ed6bf5df85",
       "source_id": "SRC-19D13CDB0C15073B"
     },
     {
