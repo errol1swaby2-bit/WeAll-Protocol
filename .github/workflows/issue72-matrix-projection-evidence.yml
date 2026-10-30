@@ -5,6 +5,10 @@ on:
     paths:
       - .github/workflows/issue72-matrix-projection-evidence.yml
       - Weall-Protocol/src/weall/runtime/reputation_matrix.py
+      - Weall-Protocol/src/weall/runtime/reputation_role_gate.py
+      - Weall-Protocol/src/weall/runtime/apply/roles.py
+      - Weall-Protocol/src/weall/api/routes_public_parts/reputation.py
+      - Weall-Protocol/tests/test_issue72_versioned_role_gate.py
       - Weall-Protocol/tests/test_issue72_matrix_authoritative_projection.py
       - web/src/pages/Account.tsx
       - web/scripts/test_issue72_reputation_authority_source.mjs
@@ -41,14 +45,16 @@ jobs:
             echo "scope=READ_ONLY_CANONICAL_MATRIX_NO_CONSENSUS_ACTIVATION"
             echo "checkout_commit=$(git rev-parse HEAD)"
             echo "role_gate_parity=NOT_CLOSED"
+            sha256sum src/weall/runtime/reputation_role_gate.py
+            sha256sum src/weall/runtime/apply/roles.py
             sha256sum src/weall/runtime/reputation_matrix.py
             sha256sum tests/test_issue72_matrix_authoritative_projection.py
           } > "$OUT/source_and_scope.txt"
           set +e
           {
-            ruff format --check src/weall/runtime/reputation_matrix.py tests/test_issue72_matrix_authoritative_projection.py &&
-            ruff check src/weall/runtime/reputation_matrix.py tests/test_issue72_matrix_authoritative_projection.py &&
-            pytest -vv -rx tests/test_issue72_matrix_authoritative_projection.py tests/test_reputation_matrix_read_model.py tests/test_reputation_matrix_completion_v1_5.py
+            ruff format --check src/weall/runtime/reputation_matrix.py src/weall/runtime/reputation_role_gate.py src/weall/runtime/apply/roles.py src/weall/api/routes_public_parts/reputation.py tests/test_issue72_matrix_authoritative_projection.py tests/test_issue72_versioned_role_gate.py &&
+            ruff check src/weall/runtime/reputation_matrix.py src/weall/runtime/reputation_role_gate.py src/weall/runtime/apply/roles.py src/weall/api/routes_public_parts/reputation.py tests/test_issue72_matrix_authoritative_projection.py tests/test_issue72_versioned_role_gate.py &&
+            pytest -vv -rx tests/test_issue72_versioned_role_gate.py tests/test_issue72_matrix_authoritative_projection.py tests/test_reputation_matrix_read_model.py tests/test_reputation_matrix_completion_v1_5.py
           } 2>&1 | tee "$OUT/targeted_pytest.log"
           RC="${PIPESTATUS[0]}"
           set -e
