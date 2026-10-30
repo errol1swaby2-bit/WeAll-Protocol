@@ -1,0 +1,85 @@
+name: Issue71 final-tree v1.5 reports and V2 evidence refresh (one-time)
+
+on:
+  push:
+    branches:
+      - feat/issue71-notification-attention-ux-20261030
+    paths:
+      - .github/workflows/issue71-v15-reports-finalize-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-review-evidence:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: issue71-final-tree-v15-report-evidence
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+      - name: Check exact trusted branch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REF_NAME" = "feat/issue71-notification-attention-ux-20261030"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)" = "$GITHUB_SHA"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked compiler environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Exclude one-time workflow from final source digest
+        run: git rm -- .github/workflows/issue71-v15-reports-finalize-once.yml
+      - name: Generate official v1.5 reports then V2 derivatives
+        shell: bash
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/gen_public_only_protocol_audit_v1_5.py
+          PYTHONPATH=src python scripts/gen_public_only_protocol_audit_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_public_beta_blocker_report_v1_5.py || test "$?" -eq 1
+          PYTHONPATH=src python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py || test "$?" -eq 1
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          PYTHONPATH=src python scripts/gen_public_only_protocol_audit_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+      - name: Stage only official generated files and self-deletion
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -A --             Weall-Protocol/generated/public_only_protocol_audit_v1_5.json             Weall-Protocol/generated/public_beta_blocker_report_v1_5.json             Weall-Protocol/generated/release_evidence_manifest_v1_5.json             Weall-Protocol/generated/v2/             web/src/generated/protocolStatus.ts
+          python - <<'PY'
+          import subprocess
+          files = subprocess.check_output(["git", "diff", "--cached", "--name-only"], text=True).splitlines()
+          own = ".github/workflows/issue71-v15-reports-finalize-once.yml"
+          roots = (
+              "Weall-Protocol/generated/v2/",
+              "web/src/generated/protocolStatus.ts",
+              "Weall-Protocol/generated/public_only_protocol_audit_v1_5.json",
+              "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
+              "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+          )
+          assert own in files
+          assert all(any(p == r or p.startswith(r) for r in roots) or p == own for p in files)
+          for required in roots[2:]:
+              assert required in files, f"expected stale report not changed: {required}"
+          print("VALIDATED_GENERATED_REPORTS_AND_V2_FILES", len(files)-1)
+          PY
+          test "$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)" = "$GITHUB_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(evidence): refresh v1.5 readiness reports and source-bound V2 tree"
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
