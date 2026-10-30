@@ -788,8 +788,15 @@ export const weall = {
     return apiGet("/v1/state/snapshot", base, headers);
   },
 
-  activityNotices(base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet("/v1/activity/notices", base, headers);
+  activityNotices(
+    base?: string,
+    headers?: HeadersInit,
+    params?: { limit?: number; cursor?: string },
+  ): Promise<any> {
+    return apiGet(withSearch("/v1/activity/notices", {
+      limit: params?.limit,
+      cursor: params?.cursor,
+    }), base, headers);
   },
 
   disputes(
