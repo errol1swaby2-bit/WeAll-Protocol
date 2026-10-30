@@ -1,0 +1,116 @@
+{
+  "policy_version": "0.1.0",
+  "policy_status": "REVIEW_CANDIDATE_NOT_GOVERNANCE_APPROVED",
+  "normative_source": {
+    "title": "WeAll v2.0 Full-Scope Product and Protocol Specification — First Draft",
+    "sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
+    "status": "DRAFT_NOT_PROVEN_ACTIVE_CONSTITUTIONALLY_AUTHORIZED",
+    "source_version_claim": "v2.0 First Draft 3.11R1 (as present in provided PDF)",
+    "note": "Actual supplied PDF SHA is pinned. The evidence/source SHA printed INSIDE the draft does not match these supplied file bytes; resolve before authoritative release adoption."
+  },
+  "genesis_constitution": {
+    "title": "WeAll Genesis Constitution v0.1 — Draft",
+    "sha256": "76a067116707a08a4e4afe4ff2fecd83b342bfd917b11107505b010fa1d857a5",
+    "status": "DRAFT_NOT_PROVEN_ACTIVE"
+  },
+  "all_type_runtime_paths": [
+    "tx_admission.py", "tx_admission_types.py", "tx_contracts.py", "tx_schema.py",
+    "system_tx_engine.py", "block_builder.py", "block_replay.py", "block_commit.py",
+    "block_loop.py", "scheduler_pipeline.py", "state_hash.py", "sqlite_db.py",
+    "mempool.py", "executor.py", "domain_dispatch.py", "bft_hotstuff.py",
+    "parallel_execution.py", "helper_merge.py", "helper_executor.py"
+  ],
+  "cross_domain_effects": {
+    "Cases": ["Dispute", "Identity", "Roles", "Reputation", "Groups", "Consensus"],
+    "Consensus": ["Identity", "PoH", "Governance", "Dispute", "Treasury", "Roles"],
+    "Content": ["Dispute", "Moderation", "Groups", "Reputation"],
+    "Dispute": ["Identity", "Content", "Moderation", "Roles", "Groups", "Reputation", "Consensus", "Cases"],
+    "Governance": ["Roles", "Groups", "Treasury", "Consensus", "Identity"],
+    "Groups": ["Governance", "Roles", "Dispute", "Treasury", "Identity"],
+    "Identity": ["PoH", "Roles", "Governance", "Dispute", "Reputation"],
+    "Moderation": ["Content", "Dispute", "Reputation", "Identity"],
+    "Notifications": ["Dispute", "PoH", "Governance"],
+    "PoH": ["Identity", "Roles", "Governance", "Reputation", "Dispute"],
+    "Reputation": ["Identity", "Roles", "Dispute", "Governance"],
+    "Roles": ["Identity", "PoH", "Dispute", "Governance", "Groups"],
+    "Treasury": ["Governance", "Groups", "Roles", "Economics"],
+    "Economics": ["Treasury", "Governance", "Identity"],
+    "Storage": ["PoH", "Identity", "Treasury"],
+    "Performance": ["Reputation", "Roles", "Consensus"],
+    "Indexing": ["Consensus", "Storage"],
+    "Networking": ["Consensus", "Identity"],
+    "Rewards": ["Economics", "Treasury", "Consensus"],
+    "Social": ["Content", "Groups", "Identity"]
+  },
+  "requirements": [
+    {
+      "id": "ACC-003", "title": "Complete one-row-per-TX canonical contract matrix", "source_ref": "v2.0 draft, Section 83 / ACC-003", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["canonical_index_roundtrip", "state_read_write_and_auth_review", "replay_and_api_surface_review"]
+    },
+    {
+      "id": "ACC-004", "title": "One traceability row per stable requirement, owner, tests, digest, reviewer", "source_ref": "v2.0 draft, Section 83 / ACC-004", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["bidirectional_traceability", "independent_review"]
+    },
+    {
+      "id": "ACC-005", "title": "Exact canonical name and repository index compatibility", "source_ref": "v2.0 draft, Section 83 / ACC-005", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["exact_index_validation", "append_only_compatibility_review"]
+    },
+    {
+      "id": "ACC-007", "title": "Deterministic derivatives pinned to exact source and version", "source_ref": "v2.0 draft, Section 83 / ACC-007", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["deterministic_regeneration", "source_digest_check"]
+    },
+    {
+      "id": "ACC-008", "title": "Normative and derivative changes updated in the same authorized change", "source_ref": "v2.0 draft, Section 83 / ACC-008", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["spec_change_reconciliation", "impact_diff_review"]
+    },
+    {
+      "id": "ACC-009", "title": "PASS requires pinned commit, passing test and complete evidence", "source_ref": "v2.0 draft, Section 83 / ACC-009", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["commit_bound_test_run", "independent_review"]
+    },
+    {
+      "id": "TRACE-001", "title": "Traceability closure supported by independent executable evidence", "source_ref": "v2.0 draft, Section 71 / TRACE-001-003; exact per-ID text pending confirmation", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["owner_and_test_trace", "evidence_integrity"]
+    },
+    {
+      "id": "C-I-2", "title": "Constitutional supremacy over protocol and client actions", "source_ref": "Genesis Constitution v0.1 draft, Article I §2", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["authority_boundary_regression", "constitutional_review"]
+    },
+    {
+      "id": "C-I-3", "title": "No client or operator may become final civic authority", "source_ref": "Genesis Constitution v0.1 draft, Article I §3", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["protocol_state_source_of_truth", "operator_privilege_review"]
+    },
+    {
+      "id": "C-II-4", "title": "Notice, response, reviewer, record, appeal for sanctions", "source_ref": "Genesis Constitution v0.1 draft, Article II §4", "status_category": "normative_target", "domains": ["Dispute", "Cases", "Moderation", "Content", "Groups", "Roles", "PoH", "Identity", "Reputation", "Governance"], "required_evidence": ["due_process_vector", "appeal_lifecycle", "unauthorized_target_rejection"]
+    },
+    {
+      "id": "C-II-7", "title": "Appeal and correction of unjust or mistaken records", "source_ref": "Genesis Constitution v0.1 draft, Article II §7", "status_category": "normative_target", "domains": ["Dispute", "Cases", "Moderation", "PoH", "Reputation", "Governance", "Identity"], "required_evidence": ["correction_and_reversal", "appeal_test"]
+    },
+    {
+      "id": "C-IV-4", "title": "Group self-governance limited by constitutional rights", "source_ref": "Genesis Constitution v0.1 draft, Article IV §4", "status_category": "normative_target", "domains": ["Groups", "Governance", "Dispute", "Cases"], "required_evidence": ["jurisdiction_and_membership_vectors", "cross_scope_denial"]
+    },
+    {
+      "id": "C-VI-1", "title": "Human verification does not automatically grant a role", "source_ref": "Genesis Constitution v0.1 draft, Article VI §1", "status_category": "normative_target", "domains": ["Roles", "PoH", "Identity", "Dispute", "Cases", "Consensus"], "required_evidence": ["explicit_role_authority", "responsibility_opt_in_review"]
+    },
+    {
+      "id": "C-VI-3", "title": "Reputation contextual, correctable, not permanent exclusion", "source_ref": "Genesis Constitution v0.1 draft, Article VI §3", "status_category": "normative_target", "domains": ["Reputation", "Dispute", "Cases", "Roles", "Governance"], "required_evidence": ["reputation_reversal", "sanction_expiry_test"]
+    },
+    {
+      "id": "C-VII-2", "title": "Conflict-free review rather than factional adjudication", "source_ref": "Genesis Constitution v0.1 draft, Article VII §2", "status_category": "normative_target", "domains": ["Dispute", "Cases", "PoH", "Moderation", "Roles"], "required_evidence": ["reviewer_conflict_checks", "case_subject_binding"]
+    },
+    {
+      "id": "C-VII-4", "title": "Significant sanctions require a meaningful appeal path", "source_ref": "Genesis Constitution v0.1 draft, Article VII §4", "status_category": "normative_target", "domains": ["Dispute", "Cases", "Moderation", "Reputation", "Roles", "Identity"], "required_evidence": ["appeal_before_enforcement", "finality_and_reversal"]
+    },
+    {
+      "id": "C-VIII-4", "title": "Group-scoped actions require protocol recognized relationship", "source_ref": "Genesis Constitution v0.1 draft, Article VIII §4", "status_category": "normative_target", "domains": ["Groups", "Dispute", "Cases", "Moderation", "Roles"], "required_evidence": ["group_scope_enforcement", "cross_group_sanction_rejection"]
+    },
+    {
+      "id": "C-X-2", "title": "Frontend and clients cannot create civic authority", "source_ref": "Genesis Constitution v0.1 draft, Article X §2", "status_category": "normative_target", "domains": ["*"], "required_evidence": ["api_auth_consistency", "frontend_authority_noninterference"]
+    },
+    {
+      "id": "C-XI-1", "title": "Treasury authority transparent, role-bound and reviewable", "source_ref": "Genesis Constitution v0.1 draft, Article XI §1", "status_category": "normative_target", "domains": ["Treasury", "Economics", "Rewards", "Groups", "Governance"], "required_evidence": ["treasury_signer_and_threshold", "audit_trail"]
+    },
+    {
+      "id": "C-XIII-1", "title": "Amendments only via constitutional process", "source_ref": "Genesis Constitution v0.1 draft, Article XIII §1", "status_category": "normative_target", "domains": ["Governance", "Consensus", "Roles"], "required_evidence": ["upgrade_activation_gate", "amendment_ratification_test"]
+    },
+    {
+      "id": "E-SYSTEM-001", "title": "Mandatory SYSTEM queue strictly validates schema and replay lineage", "source_ref": "Engineering invariant, audit WA-01/WA-03; requires constitutional owner acceptance", "status_category": "implementation_divergence", "domains": ["*"], "required_evidence": ["system_queue_schema_invariant", "two_node_restart_replay", "root_equivalence"]
+    },
+    {
+      "id": "E-DISPUTE-002", "title": "Delayed assignment may not overwrite a later juror decision", "source_ref": "Engineering finding WA-02, PR #61 review; policy details unadjudicated", "status_category": "implementation_divergence", "domains": ["Dispute", "Cases"], "required_evidence": ["assignment_idempotence_vector", "panel_reassignment_vector", "opt_out_and_deadline_vector"]
+    },
+    {
+      "id": "E-DISPUTE-003", "title": "Every sanction bound to case subject, jurisdiction and appeal finality", "source_ref": "Engineering finding WA-03; constitutional authority mapping proposed", "status_category": "implementation_divergence", "domains": ["Dispute", "Cases", "Identity", "Roles", "Groups", "Reputation", "Moderation"], "required_evidence": ["inline_enforcement_scope_vectors", "queued_enforcement_scope_vectors", "legacy_replay_compatibility"]
+    }
+  ]
+}

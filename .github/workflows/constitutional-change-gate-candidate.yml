@@ -1,0 +1,181 @@
+name: Constitutional change gate candidate tests
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/tooling/constitutional_change_gate/**'
+      - '.github/workflows/constitutional-change-gate-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR commit
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned artifact integrity
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: sha256sum -c SHA256SUMS.txt
+      - name: Run isolated change-gate unit tests
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: python -m unittest discover -s tests -v
+      - name: Compile Python source
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: python -m py_compile weall_change_gate.py reconcile_v2.py field_trace.py
+      - name: Exercise exact-checkout 236-TX static effect inventory (read-only)
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd()))
+          import weall_change_gate as gate
+          repo = Path.cwd().parents[2]
+          rows = gate.extract_routes(repo)
+          report = gate.trace_effect_candidates(repo, rows, require_commit_pin=True)
+          assert len(rows) == 236
+          assert report["transaction_count"] == 236
+          assert report["authority_review_taxonomy_status"] == "NON_NORMATIVE_EXACT_KEY_REVIEW_SIGNALS"
+          assert all(
+              tx["authority_review_status"] == "UNADJUDICATED_REVIEW_REQUIRED"
+              for tx in report["transactions"]
+          )
+          assert all(
+              isinstance(tx["ambiguous_state_write_candidates"], list)
+              and isinstance(tx["unclassified_state_write_candidates"], list)
+              for tx in report["transactions"]
+          )
+          assert report["source_pin"]["status"] == "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
+          assert report["source_pin"]["scanned_file_count"] > 0
+          assert report["scheduler_status"] == "STATIC_INVENTORY_NOT_EXECUTION_PROOF"
+          assert not report["invariants"]["runtime_authorization_verified"]
+          assert not report["invariants"]["scheduler_transaction_causality_verified"]
+          print("Real static TX effects:", len(rows),
+                "scheduler phases:", len(report["scheduler_inventory"]))
+          PY
+      - name: Exercise candidate-only v2 effect reconciliation at exact checkout
+        working-directory: Weall-Protocol/tooling/constitutional_change_gate
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd()))
+          import weall_change_gate as gate
+          import reconcile_v2 as v2
+          repo = Path.cwd().parents[2]
+          rows = gate.extract_routes(repo)
+          effects = gate.trace_effect_candidates(repo, rows, require_commit_pin=True)
+          result = v2.reconcile(
+              gate.read_json(repo / gate.INDEX), rows,
+              gate.read_json(repo / v2.V2_TX),
+              gate.read_json(repo / v2.V2_REQUIREMENTS),
+              [], checkout_commit=gate.repo_commit(repo), effects=effects,
+              require_effect_pin=True,
+              field_source_repo=repo,
+          )
+          assert result["canonical_tx_count"] == 236
+          assert result["v2_requirement_count"] == 755
+          assert len(result["tx_requirement_candidates"]) == 236
+          assert result["gate"].startswith("BLOCKED")
+          assert result["authority_sensitive_write_candidate_count"] == (
+              effects["authority_sensitive_write_candidate_count"]
+          )
+          assert all(
+              x["constitutional_authorization"] == "NOT_ESTABLISHED"
+              for x in result["authority_write_review_candidates"]
+          )
+          assert result["authority_review_queue_open_count"] == result["authority_review_queue_item_count"]
+          assert result["independently_authenticated_reviews"] == 0
+          assert result["review_submissions_recorded_unverified"] == 0
+          assert result["review_evidence_files_sha256_checked"] == 0
+          assert result["review_evidence_submissions_without_byte_checks"] == 0
+          assert all(
+              not q["review_complete"]
+              and q["constitutional_authorization"] == "NOT_ESTABLISHED"
+              and q["submission_status"] == "OPEN_NO_REVIEW_SUBMISSION"
+              for q in result["authority_review_queue"]
+          )
+          assert result["authority_review_queue_unmatched_count"] <= result["authority_review_queue_item_count"]
+          assert result["unmatched_review_triage_count"] == result["authority_review_queue_unmatched_count"]
+          assert result["unmatched_review_triage_count"] == 22
+          assert result["unmatched_field_scan_status"] == "PINNED_BOUNDED_SOURCE_CUES_NOT_SEMANTIC_PROOF"
+          assert result["unmatched_field_scan_entries"] == 22
+          actual_fields = {}
+          for entry in result["unmatched_account_field_cues"]:
+              filename = entry["source_path"].split("/")[-1]
+              actual_fields.setdefault(filename, set()).update(
+                  w["field"] for w in entry["field_write_candidates"]
+              )
+          assert "nonce" in actual_fields["content.py"]
+          assert {"banned", "reputation", "reputation_milli"}.issubset(actual_fields["reputation.py"])
+          assert "balance" in actual_fields["rewards.py"]
+          assert all(
+              x["constitutional_authorization"] == "NOT_ESTABLISHED"
+              and x["status"] == "SOURCE_ORDER_STATIC_FIELD_CUES_NOT_TX_CAUSALITY_OR_AUTHORITY"
+              and x["unknown_or_external_helper_effects_unproven"]
+              for x in result["unmatched_account_field_cues"]
+          )
+          assert result["unmatched_review_triage_priority_counts"] == {
+              "P2_REVIEW_NONCE_AND_CONTENT_PERMISSION_EFFECTS": 18,
+              "P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS": 3,
+              "P1_REVIEW_BALANCE_AND_ISSUANCE_CONSERVATION": 1,
+          }
+          assert all(
+              q["candidate_requirement_ids"] == []
+              and q["thematic_reading_list_only"]
+              and q["constitutional_authorization"] == "NOT_ESTABLISHED"
+              and q["triage_disposition"] == "OPEN_REQUIRES_HUMAN_SOURCE_AND_NORMATIVE_REVIEW"
+              for q in result["unmatched_review_triage"]
+          )
+          assert result["effect_source_pin_status"] == "SCANNED_FILES_TRACKED_AND_CLEAN_AT_HEAD"
+          print("v2 candidate requirements:", result["v2_requirement_count"],
+                "import source candidate requirements:",
+                result["requirements_with_imported_effect_candidates"],
+                "transitive candidates:",
+                result["requirements_with_transitive_effect_candidates"],
+                "authority-sensitive write candidates:",
+                result["authority_sensitive_write_candidate_count"],
+                "without linked requirement path:",
+                result["authority_write_candidates_without_requirement_path_link"],
+                "unique review queue:", result["authority_review_queue_item_count"],
+                "unmatched queue:", result["authority_review_queue_unmatched_count"])
+          # Emit exact-checkout candidate evidence OUTSIDE the repository.
+          import os
+          bundle = Path(os.environ["RUNNER_TEMP"]) / "pr62-authority-review"
+          v2.write_results(result, bundle)
+          (bundle / "tx_effect_candidates.json").write_bytes(
+              gate.canonical_bytes(effects)
+          )
+          assert len(result["authority_review_queue"]) == result["authority_review_queue_open_count"]
+          assert (bundle / "v2_authority_review_queue.json").is_file()
+          assert (bundle / "v2_authority_review_queue.csv").is_file()
+          assert (bundle / "v2_unmatched_authority_triage.json").is_file()
+          assert (bundle / "v2_unmatched_authority_triage.csv").is_file()
+          assert (bundle / "v2_unmatched_account_field_cues.json").is_file()
+          assert (bundle / "v2_unmatched_account_field_cues.csv").is_file()
+          print("Candidate-only review bundle at checkout", gate.repo_commit(repo))
+          PY
+      - name: Upload non-authoritative authority review bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr62-authority-review-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/pr62-authority-review/tx_effect_candidates.json
+            ${{ runner.temp }}/pr62-authority-review/v2_authority_review_queue.json
+            ${{ runner.temp }}/pr62-authority-review/v2_authority_review_queue.csv
+            ${{ runner.temp }}/pr62-authority-review/v2_authority_write_review_candidates.csv
+            ${{ runner.temp }}/pr62-authority-review/v2_unmatched_authority_triage.json
+            ${{ runner.temp }}/pr62-authority-review/v2_unmatched_authority_triage.csv
+            ${{ runner.temp }}/pr62-authority-review/v2_unmatched_account_field_cues.json
+            ${{ runner.temp }}/pr62-authority-review/v2_unmatched_account_field_cues.csv
+            ${{ runner.temp }}/pr62-authority-review/v2_reconciliation.md
