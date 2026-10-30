@@ -97,7 +97,7 @@ def role_activation_reputation_decision(
     rep = _dict(state.get("reputation"))
     roles = _dict(_dict(_dict(rep.get("role_eligibility")).get(account_id)).get("roles"))
     aliases = ROLE_REVOKE_ALIASES.get(role, (role,))
-    if any(alias in roles and roles[alias] is False for alias in aliases):
+    if any(alias in roles and bool(roles[alias]) is False for alias in aliases):
         result["reason"] = "role_eligibility_revoked"
         return result
     actual = account_reputation_units(account, default=0)
