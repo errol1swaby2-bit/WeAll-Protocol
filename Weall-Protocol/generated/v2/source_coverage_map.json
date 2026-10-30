@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2066,
+  "file_count": 2074,
   "files": [
     {
       "affected_registers": [
@@ -84,6 +84,45 @@
       "primary_mechanism_id": "M-075",
       "sha256": "127aa223fdf70f9f8d7aba89716d386c1da596ca0bb2e5b2a01db61f7254fe89",
       "source_id": "SRC-9CB389758E060B13"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/issue71-attention-evidence.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "4aef0cb643ddacdefbd50b0a74255dd8a4a88407bf9f9a2a77d156ce0d630bf5",
+      "source_id": "SRC-2BC776B29CC8DAA2"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/issue71-public-notices-targeted.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "cb00383808bcb32fe4f57a1944a2066c571fc3f555fa34b80976579fc38eec7e",
+      "source_id": "SRC-C95C081E62B7F8BA"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/issue71-v2-derivatives-one-time.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "8f07a63ebc0e987af5f2216a4a565f33a8ccc0c72229073ed97ab818a9c89a6f",
+      "source_id": "SRC-344AE0EA539D9369"
     },
     {
       "affected_registers": [
@@ -6985,7 +7024,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "b713d67d49652f8e2034743b80ee8aa120cf0cc416ea293976ad776cf46db88e",
+      "sha256": "345a92f4fd41805077747046821bae094c482a1dd66f90a595475c52c9c80fe0",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -7323,7 +7362,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/activity.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "52392a70c4bd650d59ac37ad874d9b70e1c86ef49a0f5777d262e299290db05e",
+      "sha256": "38d9c6501b46d40f84ee2b6283d25abc4a46234ba41ad909306f8616761a9e2b",
       "source_id": "SRC-BAD91DA1A2E65F71"
     },
     {
@@ -19924,6 +19963,22 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-A2A85AC93E907C82"
+      ],
+      "path": "tests/test_issue71_activity_notices.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "2f512afab4970011af8db4de310cfb33327b6aae7a5eb433fcf7b4d84f1c3de7",
+      "source_id": "SRC-85C8BEF717814B86"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
         "ROUTE-150316944D629C32"
       ],
       "path": "tests/test_lane_assignment.py",
@@ -30933,6 +30988,32 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_issue71_attention_logic.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "40fc63366b4f9a5db3da83e3149e05a502adb087622a17b27c8c82a64e753230",
+      "source_id": "SRC-5044E2E754515C38"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_issue71_attention_source.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "a4a3a4bcb4cffe4e04a8199066be00ed84564f4ef9201b81dea5c7828e111b24",
+      "source_id": "SRC-EA41872D367C2637"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_launch_prep_governance_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "9c20d6e6447e4eb76c6373bb20cff393bf3dd827d1e7503ed6a569d8738d29f2",
@@ -31392,7 +31473,7 @@
       ],
       "path": "../web/src/api/weall.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "9dd93398ed863969a7aa9ac9c83fb950ffaa8d8ce68e21f3e8f58f3f9a27d054",
+      "sha256": "4a4c5e70356f3d15e7383686124e489c6b14d360b3cf89ad32e947bf07f8c829",
       "source_id": "SRC-79BC4F6206422C07"
     },
     {
@@ -31544,6 +31625,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/components/ActivityBell.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "4b4126800bc8c53b107400e04e270c5590817ddc570bd19a57c125d9431468d6",
+      "source_id": "SRC-3268ABC0AE79F195"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/components/AppRightRail.tsx",
       "primary_mechanism_id": "M-069",
       "sha256": "ddf6db5a6a588d2d901a3c8e588190ed189e3953d1a8550d2e875ff80a6384ef",
@@ -31561,7 +31657,7 @@
       ],
       "path": "../web/src/components/AppShell.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "4f5af02aa65f50fe36e5169bf817b9e0ee75ad95c3b423998cb36e7bc44b33e2",
+      "sha256": "520e32a89cb7e51a48a42f7b3b4bd412ecf06e22b496db030bd839cc42af67cf",
       "source_id": "SRC-D78A14AE7C5FA9F1"
     },
     {
@@ -32014,6 +32110,21 @@
       "primary_mechanism_id": "M-069",
       "sha256": "61dbce24374a920fdb2b41944a157ad36836c9702f0af7332c50343cb4db6a60",
       "source_id": "SRC-6C162FA822344785"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/lib/activityReadState.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "57d7d6f699a306fff17d1f5375e28da09d8f2c30590dd8ed6ad2b54aaa17b1d7",
+      "source_id": "SRC-91E29962B872BD1C"
     },
     {
       "affected_registers": [
@@ -32624,7 +32735,7 @@
       ],
       "path": "../web/src/pages/Activity.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "41e86e3dfde01761de22b9b29be161a369ea045236afe881ad6f59c1d55dfc82",
+      "sha256": "45527b2766bd474ba643a07abc809e00f66b39b86211be5d89ab292218a9a627",
       "source_id": "SRC-F6394D3C39BCC5AF"
     },
     {
@@ -32807,7 +32918,7 @@
       ],
       "path": "../web/src/pages/Home.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "27996e2d24134135570da17e4bdf6fdaaecc832514859629b8a85fd8dab18717",
+      "sha256": "5381063b63d774505ca27ace7ea316a26b3e6cf7fbcb42728037fffd2883f4c8",
       "source_id": "SRC-6A8D5788EF945F62"
     },
     {
