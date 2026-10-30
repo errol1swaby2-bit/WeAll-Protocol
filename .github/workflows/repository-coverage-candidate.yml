@@ -1,0 +1,44 @@
+name: Repository-wide change coverage candidate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  file-coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR head with complete history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test additions deletions renames and unknown paths
+        run: python -m unittest discover -s Weall-Protocol/tooling/constitutional_change_gate/tests -p test_repository_coverage.py -v
+      - name: Inventory all tracked files and classify every PR change
+        shell: bash
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -Eeuo pipefail
+          args=(--repo . --head "$HEAD" --out "${RUNNER_TEMP}/repository-coverage.json")
+          if [[ -n "$BASE" ]]; then args+=(--base "$BASE"); fi
+          python Weall-Protocol/tooling/constitutional_change_gate/repository_coverage.py "${args[@]}"
+      - name: Publish exact-commit file coverage and unresolved review obligations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-change-coverage-${{ github.sha }}
+          path: ${{ runner.temp }}/repository-coverage.json
+          retention-days: 14
+          if-no-files-found: warn
