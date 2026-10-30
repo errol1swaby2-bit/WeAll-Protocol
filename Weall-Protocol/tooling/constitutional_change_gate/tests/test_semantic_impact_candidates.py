@@ -115,6 +115,12 @@ class SemanticImpactFixture(unittest.TestCase):
 
     def test_rename_reads_before_side_from_base_and_keeps_unlinked_after(self):
         self.git("mv", self.frontend, "web/src/Renamed.tsx")
+        # Current derived register must no longer claim the deleted old path.
+        # The base register remains available for before-side impact.
+        self.set_registers([
+            self.row("src/weall/runtime/executor.py", self.executor,
+                     ["M-018", "TX-0001", "STATE-0001"]),
+        ])
         head = self.commit()
         result = semantic.semantic_report(self.repo, self.base, head)
         entry = next(x for x in result["changes"] if x["change"]["status"].startswith("R"))
