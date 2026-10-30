@@ -5,7 +5,16 @@ import { normalizeAccount } from "../auth/keys";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import { nav } from "../lib/router";
-import { activityReadKey, getReadActivityIds, setReadActivityIds } from "../lib/activityReadState";
+import {
+  activityReadKey,
+  countRecentAttention,
+  DEFAULT_ACTIVITY_PREFERENCE,
+  getReadActivityIds,
+  readActivityPreference,
+  setReadActivityIds,
+  writeActivityPreference,
+  type ActivityPreference,
+} from "../lib/activityReadState";
 
 type ActivityItem = {
   id: string;
@@ -49,6 +58,7 @@ export default function Activity(): JSX.Element {
   const requestVersion = useRef(0);
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
+  const [preferences, setPreferences] = useState<ActivityPreference>(DEFAULT_ACTIVITY_PREFERENCE);
   const [storageKey, setStorageKey] = useState("");
   const [cursor, setCursor] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -63,6 +73,7 @@ export default function Activity(): JSX.Element {
       setItems([]);
       setCursor(null);
       setReadIds([]);
+      setPreferences(DEFAULT_ACTIVITY_PREFERENCE);
       setStorageKey("");
     }
     if (!account) {
@@ -84,6 +95,7 @@ export default function Activity(): JSX.Element {
       if (!nextCursor) {
         setStorageKey(key);
         setReadIds(getReadActivityIds(key));
+        setPreferences(readActivityPreference(key));
         setItems(received);
       } else {
         setItems((current) => {
@@ -117,7 +129,14 @@ export default function Activity(): JSX.Element {
     }
   }
 
+  function changePreferences(next: ActivityPreference): void {
+    setPreferences(next);
+    writeActivityPreference(storageKey, next);
+  }
+
   const unread = items.filter((item) => !readIds.includes(item.id));
+  const attentionCount = countRecentAttention(items, readIds, preferences);
+  const noticeCategories = Array.from(new Set(items.map((item) => item.type))).sort();
   const visible = items.filter((item) => (
     filter === "all"
       || (filter === "unread" && !readIds.includes(item.id))
@@ -175,6 +194,11 @@ export default function Activity(): JSX.Element {
             ) : null}
           </div>
 
+          <div className="infoCardText">
+            {attentionCount} recent notice{attentionCount === 1 ? "" : "s"} requiring attention in this loaded page.
+            Muted categories and local quiet hours never remove public protocol events or suppress high-priority safety and review duties.
+          </div>
+
           <div className="buttonRow" role="group" aria-label="Filter activity notices">
             {(["all", "unread", "high"] as Filter[]).map((option) => (
               <button
@@ -187,6 +211,74 @@ export default function Activity(): JSX.Element {
               </button>
             ))}
           </div>
+
+
+          {account && (
+            <section aria-label="Local notification preferences" className="infoCard compact">
+              <h3>Local notification preferences</h3>
+              <p className="cardDesc">
+                These settings affect only the recent-attention bell, never the public event history
+                or protocol permissions. High-priority safety and review-duty alerts remain visible.
+              </p>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={preferences.quietHours.enabled}
+                  disabled={!storageKey}
+                  onChange={(event) => changePreferences({
+                    ...preferences,
+                    quietHours: { ...preferences.quietHours, enabled: event.target.checked },
+                  })}
+                />
+                Quiet hours for normal-priority attention
+              </label>
+              <div className="buttonRow">
+                <label>Start
+                  <input
+                    type="time"
+                    value={preferences.quietHours.start}
+                    disabled={!storageKey}
+                    onChange={(event) => changePreferences({
+                      ...preferences,
+                      quietHours: { ...preferences.quietHours, start: event.target.value },
+                    })}
+                  />
+                </label>
+                <label>End
+                  <input
+                    type="time"
+                    value={preferences.quietHours.end}
+                    disabled={!storageKey}
+                    onChange={(event) => changePreferences({
+                      ...preferences,
+                      quietHours: { ...preferences.quietHours, end: event.target.value },
+                    })}
+                  />
+                </label>
+              </div>
+              <div className="buttonRow" role="group" aria-label="Mute normal-priority categories">
+                {noticeCategories.map((category) => {
+                  const muted = preferences.mutedTypes.includes(category);
+                  return (
+                    <button
+                      key={category}
+                      className="btn btnSmall"
+                      disabled={!storageKey}
+                      aria-pressed={muted}
+                      onClick={() => changePreferences({
+                        ...preferences,
+                        mutedTypes: muted
+                          ? preferences.mutedTypes.filter((entry) => entry !== category)
+                          : [...preferences.mutedTypes, category],
+                      })}
+                    >
+                      {muted ? "Unmute " : "Mute "}{category.replace(/_/g, " ")}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {visible.length > 0 ? (
             <div className="listStack">
