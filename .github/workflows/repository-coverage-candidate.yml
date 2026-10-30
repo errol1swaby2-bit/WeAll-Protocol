@@ -34,11 +34,27 @@ jobs:
           args=(--repo . --head "$HEAD" --out "${RUNNER_TEMP}/repository-coverage.json")
           if [[ -n "$BASE" ]]; then args+=(--base "$BASE"); fi
           python Weall-Protocol/tooling/constitutional_change_gate/repository_coverage.py "${args[@]}"
+      - name: Test conservative semantic joins and unresolved evidence
+        run: python -m unittest discover -s Weall-Protocol/tooling/constitutional_change_gate/tests -p test_semantic_impact_candidates.py -v
+      - name: Generate source-bound semantic review candidates (NOT authorization)
+        shell: bash
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -Eeuo pipefail
+          if [[ -z "$BASE" ]]; then
+            BASE="$(git merge-base "$HEAD" origin/main)"
+          fi
+          python Weall-Protocol/tooling/constitutional_change_gate/semantic_impact_candidates.py \
+            --repo . --base "$BASE" --head "$HEAD" --out "${RUNNER_TEMP}/semantic-impact-candidates.json"
       - name: Publish exact-commit file coverage and unresolved review obligations
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: repository-change-coverage-${{ github.sha }}
-          path: ${{ runner.temp }}/repository-coverage.json
+          path: |
+            ${{ runner.temp }}/repository-coverage.json
+            ${{ runner.temp }}/semantic-impact-candidates.json
           retention-days: 14
           if-no-files-found: warn
