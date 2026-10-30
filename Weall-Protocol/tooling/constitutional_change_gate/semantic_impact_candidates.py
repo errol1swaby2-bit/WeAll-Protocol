@@ -10,8 +10,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from collections import Counter, defaultdict
-from pathlib import Path, PurePosixPath
+from collections import Counter
+from pathlib import Path
 from typing import Any
 
 import repository_coverage as coverage
