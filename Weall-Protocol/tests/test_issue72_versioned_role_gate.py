@@ -58,8 +58,10 @@ def test_absent_version_preserves_legacy_operative_gate_despite_event_penalty() 
     )
     assert result["gate_version"] == 1
     assert result["eligible"] is True
-    assert result["canonical_eligible"] is False
+    assert result["canonical_eligible"] is None
     assert result["canonical_enforcement"] is False
+    preview = operative_role_reputation_preview(state, "@alice")
+    assert preview["roles"]["validator"]["canonical_eligible"] is False
     assert (
         _require_role_activation_eligible(
             state, "@alice", role="validator", minimum_reputation_milli=5000
