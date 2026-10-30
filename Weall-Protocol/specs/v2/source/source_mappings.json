@@ -5595,6 +5595,18 @@
       "review_status": "mapped_current_snapshot"
     },
     {
+      "path": "src/weall/runtime/reputation_role_gate.py",
+      "affected_registers": [
+        "transactions",
+        "mechanisms",
+        "activation",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
       "affected_registers": [
         "mechanisms"
       ],
