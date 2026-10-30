@@ -57,6 +57,7 @@ def role_activation_reputation_decision(
     *,
     role: str,
     minimum_reputation_milli: int = 0,
+    include_canonical_diagnostics: bool = False,
 ) -> Json:
     """Return the exact predicate outcome without mutating the state.
 
@@ -108,7 +109,9 @@ def role_activation_reputation_decision(
     if version not in (1, 2):
         return result
 
-    if mapped:
+    # No canonical reducer evaluation on v1 consensus apply paths. This keeps
+    # historical authorization cost and failure behavior unchanged.
+    if mapped and (version == 2 or include_canonical_diagnostics):
         canonical = _dict(derive_role_eligibility(state, account_id).get(mapped))
         result["canonical_eligible"] = canonical.get("eligible") is True
         result["canonical_reasons"] = list(canonical.get("reasons", []))
@@ -142,7 +145,11 @@ def operative_role_reputation_preview(state: Json, account_id: str) -> Json:
                     required = default
                 break
         previews[role] = role_activation_reputation_decision(
-            state, account_id, role=role, minimum_reputation_milli=required
+            state,
+            account_id,
+            role=role,
+            minimum_reputation_milli=required,
+            include_canonical_diagnostics=True,
         )
     return {
         "gate_version": reputation_role_gate_version(state),
