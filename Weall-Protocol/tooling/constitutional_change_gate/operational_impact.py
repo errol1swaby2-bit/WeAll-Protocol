@@ -191,13 +191,15 @@ def reverse_candidates(changes: list[dict], rows: list[dict]) -> list[dict]:
                     seen.add(dependent)
                     upstream.append({"path": dependent, "minimum_literal_hops": depth + 1})
                     frontier.append((dependent, depth + 1))
-            answers.append({
-                "changed_path": seed,
-                "candidate_upstream_dependents": sorted(
-                    upstream, key=lambda x: (x["minimum_literal_hops"], x["path"])
-                ),
-                "semantic_status": "UNREVIEWED_LITERAL_CANDIDATE_NO_CAUSALITY_PROVEN",
-            })
+            answers.append(
+                {
+                    "changed_path": seed,
+                    "candidate_upstream_dependents": sorted(
+                        upstream, key=lambda x: (x["minimum_literal_hops"], x["path"])
+                    ),
+                    "semantic_status": "UNREVIEWED_LITERAL_CANDIDATE_NO_CAUSALITY_PROVEN",
+                }
+            )
     return answers
 
 

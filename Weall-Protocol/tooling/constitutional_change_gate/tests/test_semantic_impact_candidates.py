@@ -311,8 +311,12 @@ class SemanticImpactFixture(unittest.TestCase):
         self.assertEqual(observed["status"], "UNREVIEWED_STATIC_CANDIDATES_NOT_SEMANTIC_CLOSURE")
         row = next(x for x in observed["files"] if x["path"] == launcher)
         self.assertIn(other, row["possible_dependencies"])
-        self.assertTrue(any(x["target"] == other and x["kind"] == "SCRIPT_DIR_PATH"
-                            for x in row["dependency_evidence"]))
+        self.assertTrue(
+            any(
+                x["target"] == other and x["kind"] == "SCRIPT_DIR_PATH"
+                for x in row["dependency_evidence"]
+            )
+        )
         self.assertIn("WEALL_MODE", row["environment_tokens"])
         self.assertIn("recursive_delete_command_present", row["hazard_observations"])
         self.assertEqual(row["review_status"], "OPEN_UNADJUDICATED")
@@ -338,22 +342,35 @@ class SemanticImpactFixture(unittest.TestCase):
         import operational_impact as ops
 
         rows = [
-            {"path": "Weall-Protocol/scripts/preflight.sh", "possible_dependencies": [
-                "Weall-Protocol/configs/chain.json",
-            ]},
-            {"path": "Weall-Protocol/scripts/boot.sh", "possible_dependencies": [
-                "Weall-Protocol/scripts/preflight.sh",
-            ]},
+            {
+                "path": "Weall-Protocol/scripts/preflight.sh",
+                "possible_dependencies": [
+                    "Weall-Protocol/configs/chain.json",
+                ],
+            },
+            {
+                "path": "Weall-Protocol/scripts/boot.sh",
+                "possible_dependencies": [
+                    "Weall-Protocol/scripts/preflight.sh",
+                ],
+            },
         ]
-        result = ops.reverse_candidates([
-            {"path": "Weall-Protocol/configs/chain.json", "previous_path": None},
-        ], rows)
-        self.assertEqual(result[0]["candidate_upstream_dependents"], [
-            {"path": "Weall-Protocol/scripts/preflight.sh", "minimum_literal_hops": 1},
-            {"path": "Weall-Protocol/scripts/boot.sh", "minimum_literal_hops": 2},
-        ])
-        self.assertEqual(result[0]["semantic_status"],
-                         "UNREVIEWED_LITERAL_CANDIDATE_NO_CAUSALITY_PROVEN")
+        result = ops.reverse_candidates(
+            [
+                {"path": "Weall-Protocol/configs/chain.json", "previous_path": None},
+            ],
+            rows,
+        )
+        self.assertEqual(
+            result[0]["candidate_upstream_dependents"],
+            [
+                {"path": "Weall-Protocol/scripts/preflight.sh", "minimum_literal_hops": 1},
+                {"path": "Weall-Protocol/scripts/boot.sh", "minimum_literal_hops": 2},
+            ],
+        )
+        self.assertEqual(
+            result[0]["semantic_status"], "UNREVIEWED_LITERAL_CANDIDATE_NO_CAUSALITY_PROVEN"
+        )
 
     def test_path_traversal_rejected(self):
         for raw in ("../../secrets", "../other/private", "/abs", "src//bad.py"):
