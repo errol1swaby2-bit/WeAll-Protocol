@@ -238,6 +238,16 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
             <button
               className="appShellInfoToggle"
               type="button"
+              onClick={() => { setMenuOpen(false); nav(ready ? "/activity" : "/login"); }}
+              aria-label="Activity notices"
+              title="Activity notices"
+            >
+              <span aria-hidden="true">🔔</span> Activity
+            </button>
+
+            <button
+              className="appShellInfoToggle"
+              type="button"
               onClick={() => { setMenuOpen(false); setInfoOpen(true); }}
               aria-haspopup="dialog"
               aria-controls="app-shell-context-drawer"

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getAuthHeaders, getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -12,115 +12,49 @@ type ActivityItem = {
   title: string;
   body: string;
   href?: string;
+  source?: string;
+  height?: number;
   priority?: "normal" | "high";
 };
 
-function asObject(value: any): Record<string, any> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+type Filter = "all" | "unread" | "high";
+
+function parseNotices(response: any): ActivityItem[] {
+  if (!response || response.ok !== true || !Array.isArray(response.items)) {
+    throw new Error("The node did not return a valid public activity notice list.");
+  }
+  return response.items
+    .filter((value: any) => value && typeof value.id === "string" && typeof value.type === "string")
+    .map((value: any) => ({
+      id: value.id,
+      type: value.type,
+      title: String(value.title || "Public activity"),
+      body: String(value.body || ""),
+      // Only internal application routes are valid navigation targets.
+      href: typeof value.href === "string" && /^\/[a-zA-Z0-9@/_%-]*$/.test(value.href)
+        ? value.href
+        : "/activity",
+      source: String(value.source || ""),
+      height: Number.isSafeInteger(value.height) ? value.height : undefined,
+      priority: value.priority === "high" ? "high" : "normal",
+    }));
 }
 
-function accountCandidates(account: string): Set<string> {
-  const acct = normalizeAccount(account || "");
-  const raw = String(account || "").trim();
-  return new Set([acct, raw].filter(Boolean));
+function readLocalIds(key: string): string[] {
+  if (!key) return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
-function textIncludesAccount(value: any, candidates: Set<string>): boolean {
-  const text = JSON.stringify(value || {}).toLowerCase();
-  for (const candidate of candidates) {
-    if (candidate && text.includes(candidate.toLowerCase())) return true;
-  }
-  return false;
-}
-
-function collectPublicActivity(snapshot: any, account: string): ActivityItem[] {
-  const accountSet = accountCandidates(account);
-  const items: ActivityItem[] = [];
-  const state = asObject(snapshot?.state || snapshot);
-
-  const postsRoot = asObject(state.content || state.posts || {});
-  const posts = asObject(postsRoot.posts_by_id || postsRoot.by_id || state.posts_by_id || {});
-  const comments = asObject(postsRoot.comments_by_id || state.comments_by_id || {});
-  for (const [id, post] of Object.entries(posts)) {
-    if (!textIncludesAccount(post, accountSet)) continue;
-    const postId = String((post as any)?.post_id || id);
-    items.push({
-      id: `mention:${postId}`,
-      type: "mention",
-      title: "Public mention",
-      body: `A public post references ${account}.`,
-      href: `/content/${encodeURIComponent(postId)}`,
-    });
-  }
-  for (const [id, comment] of Object.entries(comments)) {
-    if (!textIncludesAccount(comment, accountSet)) continue;
-    const parent = String((comment as any)?.post_id || (comment as any)?.parent_post_id || "").trim();
-    items.push({
-      id: `reply:${String(id)}`,
-      type: "reply",
-      title: "Public reply or mention",
-      body: `A public comment references ${account}.`,
-      href: parent ? `/thread/${encodeURIComponent(parent)}` : "/feed",
-    });
-  }
-
-  const disputesRoot = asObject(state.disputes || {});
-  const disputes = asObject(disputesRoot.disputes_by_id || state.disputes_by_id || {});
-  for (const [id, dispute] of Object.entries(disputes)) {
-    if (!textIncludesAccount(dispute, accountSet)) continue;
-    const disputeId = String((dispute as any)?.dispute_id || id);
-    items.push({
-      id: `dispute:${disputeId}`,
-      type: "dispute_assignment",
-      title: "Public review or report notice",
-      body: "A public dispute/review record references your account or role.",
-      href: `/reports/${encodeURIComponent(disputeId)}`,
-      priority: "high",
-    });
-  }
-
-  const proposalsRoot = asObject(state.governance || state.gov || {});
-  const proposals = asObject(proposalsRoot.proposals_by_id || state.proposals_by_id || {});
-  for (const [id, proposal] of Object.entries(proposals)) {
-    if (!textIncludesAccount(proposal, accountSet)) continue;
-    const proposalId = String((proposal as any)?.proposal_id || id);
-    items.push({
-      id: `governance:${proposalId}`,
-      type: "governance_notice",
-      title: "Public governance notice",
-      body: "A public decision record references your account or responsibilities.",
-      href: `/decisions/${encodeURIComponent(proposalId)}`,
-    });
-  }
-
-  const groups = asObject(state.groups_by_id || asObject(state.groups).groups_by_id || {});
-  for (const [id, group] of Object.entries(groups)) {
-    if (!textIncludesAccount(group, accountSet)) continue;
-    const groupId = String((group as any)?.group_id || id);
-    items.push({
-      id: `group:${groupId}`,
-      type: "group_invitation",
-      title: "Public group activity",
-      body: "A public group membership, invitation, or role event references your account.",
-      href: `/groups/${encodeURIComponent(groupId)}`,
-    });
-  }
-
-  const validators = asObject(state.validators || state.validator_set || state.operator_status || {});
-  if (textIncludesAccount(validators, accountSet)) {
-    items.push({
-      id: "operator:account",
-      type: "validator_operator_alert",
-      title: "Public node/operator alert",
-      body: "Public validator/operator state references your account.",
-      href: "/node",
-      priority: "high",
-    });
-  }
-
-  const dedup = new Map<string, ActivityItem>();
-  for (const item of items) dedup.set(item.id, item);
-  return Array.from(dedup.values()).slice(0, 100);
+function persistenceKey(base: string, account: string, response: any): string {
+  const chainId = String(response?.chain_id || "").trim();
+  const genesisId = String(response?.genesis_id || "").trim();
+  if (!chainId || !genesisId) return "";
+  return `weall:public-activity:v1:${encodeURIComponent(base)}:${encodeURIComponent(chainId)}:${encodeURIComponent(genesisId)}:${encodeURIComponent(account)}`;
 }
 
 export default function Activity(): JSX.Element {
@@ -128,28 +62,87 @@ export default function Activity(): JSX.Element {
   const session = getSession();
   const account = normalizeAccount(session?.account || "");
   const headers = useMemo(() => (account ? getAuthHeaders(account) : undefined), [account]);
+  const requestVersion = useRef(0);
   const [items, setItems] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [readIds, setReadIds] = useState<string[]>([]);
+  const [storageKey, setStorageKey] = useState("");
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
 
-  async function load(): Promise<void> {
-    if (!account) return;
+  async function load(nextCursor?: string): Promise<void> {
+    const version = ++requestVersion.current;
     setLoading(true);
     setErr(null);
-    try {
-      const snapshot = await weall.stateSnapshot(base, headers);
-      setItems(collectPublicActivity(snapshot, account));
-    } catch (e: any) {
-      setErr({ msg: e?.message || "Unable to load public activity notices.", details: e?.payload || e?.body || e });
+    if (!nextCursor) {
       setItems([]);
-    } finally {
+      setCursor(null);
+      setReadIds([]);
+      setStorageKey("");
+    }
+    if (!account) {
       setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await weall.activityNotices(base, headers, {
+        limit: 50,
+        cursor: nextCursor,
+      });
+      if (version !== requestVersion.current) return;
+      if (response?.authenticated !== true || response?.account_id !== account) {
+        throw new Error("Account session is required to view personalized public notices.");
+      }
+      const received = parseNotices(response);
+      const key = persistenceKey(base, account, response);
+      if (!nextCursor) {
+        setStorageKey(key);
+        setReadIds(readLocalIds(key));
+        setItems(received);
+      } else {
+        setItems((current) => {
+          const byId = new Map(current.map((item) => [item.id, item]));
+          received.forEach((item) => byId.set(item.id, item));
+          return Array.from(byId.values());
+        });
+      }
+      setCursor(typeof response.next_cursor === "string" ? response.next_cursor : null);
+    } catch (e: any) {
+      if (version !== requestVersion.current) return;
+      setErr({
+        msg: e?.message || "Unable to load public activity notices.",
+        details: e?.payload || e?.body || e,
+      });
+    } finally {
+      if (version === requestVersion.current) setLoading(false);
     }
   }
 
   useEffect(() => {
     void load();
+    return () => { requestVersion.current += 1; };
   }, [account, base]);
+
+  function markRead(ids: string[]): void {
+    const combined = Array.from(new Set([...readIds, ...ids]));
+    setReadIds(combined);
+    if (storageKey) {
+      try {
+        window.localStorage.setItem(storageKey, JSON.stringify(combined));
+      } catch {
+        // Browser storage is optional. Reading protocol events never depends on it.
+      }
+    }
+  }
+
+  const unread = items.filter((item) => !readIds.includes(item.id));
+  const visible = items.filter((item) => (
+    filter === "all"
+      || (filter === "unread" && !readIds.includes(item.id))
+      || (filter === "high" && item.priority === "high")
+  ));
 
   return (
     <section className="pageStack">
@@ -158,53 +151,104 @@ export default function Activity(): JSX.Element {
           <div className="eyebrow">Public activity</div>
           <h1>Activity notices</h1>
           <p>
-            Notices here are derived from publicly inspectable protocol events: mentions, replies, group invitations,
-            moderation notices, dispute assignments, governance notices, and validator/operator alerts.
+            Notices come from publicly inspectable protocol events. Supported activity includes
+            mentions, replies, review assignments, governance events, reputation updates, and
+            validator/operator alerts. Read and filtering choices are local to this browser.
           </p>
         </div>
-        <button className="btn" onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
+        <button className="btn" onClick={() => void load()} disabled={loading || !account}>
+          {loading ? "Refreshing…" : "Refresh"}
+        </button>
       </div>
 
       <section className="card">
         <div className="cardBody formStack">
           <div className="eyebrow">Protocol rule</div>
-          <h2 className="cardTitle">Participation can be gated; visibility cannot</h2>
+          <h2 className="cardTitle">Public events, personal attention</h2>
           <p className="cardDesc">
-            WeAll does not provide protocol-native private user-to-user communication. Group content and moderation activity remain public;
-            group membership may restrict posting, commenting, voting, moderation, or administration.
+            Participation may require membership or verification, but public protocol visibility is
+            not restricted by your notification choices. This is not a private message inbox.
           </p>
+          {!storageKey && account && items.length > 0 ? (
+            <p className="cardDesc">This node did not provide a full chain and genesis identity, so read status will not persist across visits.</p>
+          ) : null}
         </div>
       </section>
 
-      {err ? <ErrorBanner message={err.msg} details={err.details} onRetry={() => void load()} onDismiss={() => setErr(null)} /> : null}
+      {err ? (
+        <ErrorBanner message={err.msg} details={err.details} onRetry={() => void load()} onDismiss={() => setErr(null)} />
+      ) : null}
 
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionTitleRow">
             <div>
               <div className="eyebrow">Public event notices</div>
-              <h2 className="cardTitle">{items.length ? `${items.length} relevant public notice${items.length === 1 ? "" : "s"}` : "No public notices found"}</h2>
+              <h2 className="cardTitle">
+                {account ? `${unread.length} unread · ${items.length} loaded` : "Sign in to view activity"}
+              </h2>
             </div>
+            {items.length > 0 ? (
+              <button className="btn btnSmall" onClick={() => markRead(items.map((item) => item.id))}>
+                Mark all read
+              </button>
+            ) : null}
           </div>
 
-          {items.length ? (
+          <div className="buttonRow" role="group" aria-label="Filter activity notices">
+            {(["all", "unread", "high"] as Filter[]).map((option) => (
+              <button
+                key={option}
+                className={`btn btnSmall ${filter === option ? "btnPrimary" : ""}`.trim()}
+                onClick={() => setFilter(option)}
+                aria-pressed={filter === option}
+              >
+                {option === "all" ? "All" : option === "unread" ? "Unread" : "High priority"}
+              </button>
+            ))}
+          </div>
+
+          {visible.length > 0 ? (
             <div className="listStack">
-              {items.map((item) => (
-                <article key={item.id} className="listItem">
-                  <div>
-                    <div className="eyebrow">{item.type.replace(/_/g, " ")}{item.priority === "high" ? " · high" : ""}</div>
-                    <h3>{item.title}</h3>
-                    <p>{item.body}</p>
-                  </div>
-                  {item.href ? <button className="btn btnSmall" onClick={() => nav(item.href || "/activity")}>Open</button> : null}
-                </article>
-              ))}
+              {visible.map((item) => {
+                const isUnread = !readIds.includes(item.id);
+                return (
+                  <article key={item.id} className="listItem">
+                    <div>
+                      <div className="eyebrow">
+                        {item.type.replace(/_/g, " ")}
+                        {item.priority === "high" ? " · high priority" : ""}
+                        {isUnread ? " · unread" : ""}
+                      </div>
+                      <h3>{item.title}</h3>
+                      <p>{item.body}</p>
+                    </div>
+                    <div className="buttonRow">
+                      {isUnread ? (
+                        <button className="btn btnSmall" onClick={() => markRead([item.id])}>Mark read</button>
+                      ) : null}
+                      {item.href ? (
+                        <button className="btn btnSmall" onClick={() => { markRead([item.id]); nav(item.href || "/activity"); }}>Open</button>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <p className="cardDesc">
-              There are no currently indexed public notices for {account || "this account"}. The absence of a notice does not hide protocol data; it only means this derived view found no relevant public event.
+              {!account ? "Connect an account session first."
+                : loading ? "Loading public notices…"
+                  : err ? "The notice feed could not be refreshed; do not interpret this as an empty inbox."
+                    : items.length === 0 ? "No finalized public notices were found for this account in the currently supported categories."
+                      : "No notices match the selected filter."}
             </p>
           )}
+          {cursor && !err ? (
+            <button className="btn" disabled={loading} onClick={() => void load(cursor)}>
+              {loading ? "Loading…" : "Load more"}
+            </button>
+          ) : null}
         </div>
       </section>
     </section>
