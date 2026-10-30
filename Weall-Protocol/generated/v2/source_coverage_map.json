@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2091,
+  "file_count": 2096,
   "files": [
     {
       "affected_registers": [
@@ -80,6 +80,19 @@
       "mappings": [
         "M-075"
       ],
+      "path": "../.github/workflows/issue68-devnet-delete-safety.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "a867dc7fefdce83955953a9a024d5ca96e1233aaf0c36e375d7233de781e66df",
+      "source_id": "SRC-5E8B5883E6698BE9"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
       "path": "../.github/workflows/p1-revalidation.yml",
       "primary_mechanism_id": "M-075",
       "sha256": "2aa38306fd730583b11c1d32a26ebfbdabc9818120fe003e92b4a6c21e8b519b",
@@ -110,6 +123,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "bace1603b8592550738439d01cfb57bedd24560bb892064d12b59e28d8a1f211",
       "source_id": "SRC-7CB0805B9D1138CB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/pr70-integrated-derivative-refresh.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "ed3461985d9f96c5f272bdb75d65b34c770548bd762d062fa6f549200fedfa54",
+      "source_id": "SRC-04B0EE523B44A5A3"
     },
     {
       "affected_registers": [
@@ -1762,6 +1788,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "edef65c30552a9f056b820ea1a075be984456eb59d6c9eec791582fa87f97169",
       "source_id": "SRC-DAC36DDA8F402283"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/devnet-safe-reset.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "0472ab2430e80a694cde3c61d41a1de2d72e0da4cbcf9c83a22708400bd96662",
+      "source_id": "SRC-16FF05B1AEA93EB1"
     },
     {
       "affected_registers": [
@@ -4478,6 +4517,20 @@
       "mappings": [
         "M-076"
       ],
+      "path": "scripts/devnet_safe_paths.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "7ba59b8d5bf9ebcb4f3461b32a620d6e6cb8a452751eeaf851fd5652bf5bd895",
+      "source_id": "SRC-6F74D9B4A271D735"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
       "path": "scripts/devnet_tx.py",
       "primary_mechanism_id": "M-076",
       "sha256": "be39d33e213e7e73a0edd1987eff332deb8e5369bdd0c2e387f30e60b63b21cf",
@@ -7011,7 +7064,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "00f358fcfb8bf6559284ded99470d3aa640e413850e6a8e2ef826665cac84384",
+      "sha256": "ac79477947c316b96e3be1ef68078140f05b3e7d811e84ec9dec147af30215f3",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -19936,6 +19989,20 @@
         "M-076",
         "ROUTE-150316944D629C32"
       ],
+      "path": "tests/test_issue68_delete_boundaries.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "524cfa557d3bea7ae0fd801c6d0a808431d44613a3dfd4f43178e9dd9dcb6f63",
+      "source_id": "SRC-80ED2A966274DC42"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
       "path": "tests/test_lane_assignment.py",
       "primary_mechanism_id": "M-076",
       "sha256": "b174749fae285f8d6e36211ecfd51b02e6630e4cd7e6e7cd891a3676cb4ef6e2",
@@ -24719,7 +24786,7 @@
       ],
       "path": "tests/test_pq_mldsa_signature_profile.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "673b0e29ca1d31773803adf86c61a4abab9e9c5bbc8e6158c48536aa3d513027",
+      "sha256": "2a2b16a6ca80fe233e47940ab8aab7246700f84249878bb47e3cbbb61e0e3622",
       "source_id": "SRC-6B4AEE24ADABC9C3"
     },
     {
@@ -30642,7 +30709,7 @@
       ],
       "path": "tooling/constitutional_change_gate/SHA256SUMS.txt",
       "primary_mechanism_id": "M-076",
-      "sha256": "73fa767924f8df352a6567869d74f4c8e7370c220c9cd6254c4fa27788436691",
+      "sha256": "66c0e96dabf69871f620ce2472d0a68a5d3f4df1212b38cbcd7d1ba48eecc736",
       "source_id": "SRC-CAAA5EC1F64384C0"
     },
     {
@@ -30674,7 +30741,7 @@
       ],
       "path": "tooling/constitutional_change_gate/operational_boundary_review.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "3685cf7a13f38ff800d08ba105ce8f8c4021022457291bc0c90500b504eb9c20",
+      "sha256": "33066784ac81b8136bc9fbf01aef8598fa23514f1cc1975400cd8befc2e6a84e",
       "source_id": "SRC-D82DAA06E099213B"
     },
     {
@@ -30898,7 +30965,7 @@
       ],
       "path": "tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "97848e130b4fa03dcbe8994f707c56015c9c715acb22806839f5229d45b5eb68",
+      "sha256": "4fadd99a8e30630f85310028b7163ce627460ab942269194b726b4ed6bf5df85",
       "source_id": "SRC-19D13CDB0C15073B"
     },
     {
