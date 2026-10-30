@@ -1,4 +1,5 @@
 """Independent miniature Git histories exercise complete file/path detection."""
+
 from __future__ import annotations
 import subprocess
 import sys
@@ -63,9 +64,15 @@ class RepositoryCoverageTests(unittest.TestCase):
         changes = out["changes"]
         self.assertEqual(len(changes), 4)
         self.assertEqual(set(x["status"][0] for x in changes), set("ARMD"))
-        self.assertEqual(next(x for x in changes if x["status"].startswith("R"))["previous_path"], "web/src/App.tsx")
+        self.assertEqual(
+            next(x for x in changes if x["status"].startswith("R"))["previous_path"],
+            "web/src/App.tsx",
+        )
         self.assertEqual(out["coverage_gate"], "PASS_FILE_CLASSIFICATION_ONLY")
-        self.assertIn("locked_reproducibility", next(x for x in changes if x["status"] == "D")["review_obligations"])
+        self.assertIn(
+            "locked_reproducibility",
+            next(x for x in changes if x["status"] == "D")["review_obligations"],
+        )
 
     def test_unknown_path_fails_closed(self):
         self.write("unexpected/authority_switch.rs", "privilege\n")

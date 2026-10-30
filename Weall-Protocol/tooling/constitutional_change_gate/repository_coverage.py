@@ -4,6 +4,7 @@
 This is an inspectable review gate, not consensus execution, a semantic
 call graph, constitutional authorization, or proof of protocol safety.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -20,7 +21,12 @@ class CoverageError(ValueError):
 # Every repository path must match an explicit known class or block. Categories
 # are review domains, not claims of harmlessness or semantic completeness.
 AREAS = {
-    "consensus_runtime": ("consensus_replay", "state_root_parity", "authorization", "protocol_tests"),
+    "consensus_runtime": (
+        "consensus_replay",
+        "state_root_parity",
+        "authorization",
+        "protocol_tests",
+    ),
     "backend_runtime": ("consensus_replay", "state_mutation", "protocol_tests"),
     "backend_source": ("backend_tests", "api_authority", "cross_domain_review"),
     "frontend": ("frontend_build", "browser_real_stack", "api_authority_noninterference"),
@@ -30,7 +36,11 @@ AREAS = {
     "chain_config": ("chain_identity", "genesis_compatibility", "consensus_replay"),
     "deployment": ("fresh_clone", "restart_catchup", "chain_config_review"),
     "dependencies": ("locked_reproducibility", "dependency_audit", "build_reproduction"),
-    "specification": ("normative_traceability", "constitutional_review", "source_derivative_rebuild"),
+    "specification": (
+        "normative_traceability",
+        "constitutional_review",
+        "source_derivative_rebuild",
+    ),
     "generated": ("source_derivative_rebuild", "artifact_integrity", "protocol_claims_review"),
     "evidence": ("evidence_provenance", "claim_integrity", "independent_review"),
     "tooling": ("test_evidence_integrity", "change_gate_integrity", "reproducibility"),
@@ -42,8 +52,11 @@ AREAS = {
 
 def classify(path: str) -> str | None:
     """Explicit path-domain routing. Unknown paths never receive a safe default."""
-    if not path or path.startswith("/") or "\\" in path or any(
-        bit in ("", ".", "..") for bit in path.split("/")
+    if (
+        not path
+        or path.startswith("/")
+        or "\\" in path
+        or any(bit in ("", ".", "..") for bit in path.split("/"))
     ):
         return None
     name = path.rsplit("/", 1)[-1]
@@ -67,7 +80,12 @@ def classify(path: str) -> str | None:
         return "tooling"
     if path.startswith("Weall-Protocol/docs/") or path.startswith("docs/"):
         return "documentation"
-    if path.startswith("Weall-Protocol/evidence/") or path.startswith("Weall-Protocol/artifacts/") or path.startswith("artifacts/") or path.startswith("audit-metadata/"):
+    if (
+        path.startswith("Weall-Protocol/evidence/")
+        or path.startswith("Weall-Protocol/artifacts/")
+        or path.startswith("artifacts/")
+        or path.startswith("audit-metadata/")
+    ):
         return "evidence"
     if path.startswith("web/src/generated/"):
         return "generated"
@@ -98,7 +116,14 @@ def classify(path: str) -> str | None:
     if "/" not in path:
         if name.endswith(".sh") or name in {"Dockerfile", "Makefile"}:
             return "deployment"
-        if name in {".gitignore", ".gitattributes", "LICENSE", "SECURITY.md", "CODE_OF_CONDUCT.md", "CONTRIBUTING.md"}:
+        if name in {
+            ".gitignore",
+            ".gitattributes",
+            "LICENSE",
+            "SECURITY.md",
+            "CODE_OF_CONDUCT.md",
+            "CONTRIBUTING.md",
+        }:
             return "repository_control"
         if name.endswith((".md", ".txt")):
             return "documentation"
@@ -106,9 +131,7 @@ def classify(path: str) -> str | None:
 
 
 def git(repo: Path, *args: str) -> bytes:
-    process = subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, check=False
-    )
+    process = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, check=False)
     if process.returncode:
         raise CoverageError(f"git_error:{args[0]}:{process.stderr.decode(errors='replace')[:240]}")
     return process.stdout
@@ -138,15 +161,17 @@ def inventory(repo: Path, head: str) -> list[dict]:
         except UnicodeError as exc:
             raise CoverageError("non_utf8_git_path") from exc
         area = classify(path)
-        rows.append({
-            "path": path,
-            "git_mode": mode,
-            "object_type": object_type,
-            "git_oid": oid,
-            "classification": area or "UNCLASSIFIED",
-            "review_obligations": list(AREAS.get(area, ("explicit_classification_required",))),
-            "coverage": "CLASSIFIED_REVIEW_REQUIRED" if area else "BLOCKED_UNKNOWN_PATH",
-        })
+        rows.append(
+            {
+                "path": path,
+                "git_mode": mode,
+                "object_type": object_type,
+                "git_oid": oid,
+                "classification": area or "UNCLASSIFIED",
+                "review_obligations": list(AREAS.get(area, ("explicit_classification_required",))),
+                "coverage": "CLASSIFIED_REVIEW_REQUIRED" if area else "BLOCKED_UNKNOWN_PATH",
+            }
+        )
     if len(rows) != len({x["path"] for x in rows}):
         raise CoverageError("duplicate_git_paths")
     if not rows:
@@ -178,15 +203,21 @@ def changed_paths(repo: Path, base: str, head: str) -> list[dict]:
             idx += 1
         paths = [path] + ([old_path] if old_path else [])
         categories = [classify(p) for p in paths]
-        obligations = sorted({o for c in categories for o in AREAS.get(c, ("explicit_classification_required",))})
-        changes.append({
-            "status": status,
-            "path": path,
-            "previous_path": old_path,
-            "classifications": [c or "UNCLASSIFIED" for c in categories],
-            "review_obligations": obligations,
-            "impact_status": "REVIEW_REQUIRED_UNRESOLVED_SEMANTICS" if all(categories) else "BLOCKED_UNCLASSIFIED_CHANGE",
-        })
+        obligations = sorted(
+            {o for c in categories for o in AREAS.get(c, ("explicit_classification_required",))}
+        )
+        changes.append(
+            {
+                "status": status,
+                "path": path,
+                "previous_path": old_path,
+                "classifications": [c or "UNCLASSIFIED" for c in categories],
+                "review_obligations": obligations,
+                "impact_status": "REVIEW_REQUIRED_UNRESOLVED_SEMANTICS"
+                if all(categories)
+                else "BLOCKED_UNCLASSIFIED_CHANGE",
+            }
+        )
     return changes
 
 
@@ -199,7 +230,9 @@ def report(repo: Path, base: str | None, head: str) -> dict:
     changes = changed_paths(repo, git_commit(repo, base), expected) if base else []
     classifications = sorted({r["classification"] for r in rows})
     missing = [r["path"] for r in rows if r["coverage"] == "BLOCKED_UNKNOWN_PATH"]
-    unknown_changes = [c["path"] for c in changes if c["impact_status"] == "BLOCKED_UNCLASSIFIED_CHANGE"]
+    unknown_changes = [
+        c["path"] for c in changes if c["impact_status"] == "BLOCKED_UNCLASSIFIED_CHANGE"
+    ]
     body = {
         "schema": "weall.repository-change-coverage.candidate.v1",
         "source_commit": expected,
@@ -218,7 +251,11 @@ def report(repo: Path, base: str | None, head: str) -> dict:
     }
     payload = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
     body["report_sha256"] = hashlib.sha256(payload).hexdigest()
-    body["coverage_gate"] = "PASS_FILE_CLASSIFICATION_ONLY" if not missing and not unknown_changes else "BLOCKED_UNCLASSIFIED"
+    body["coverage_gate"] = (
+        "PASS_FILE_CLASSIFICATION_ONLY"
+        if not missing and not unknown_changes
+        else "BLOCKED_UNCLASSIFIED"
+    )
     return body
 
 
@@ -236,7 +273,9 @@ def main() -> int:
     result = report(repo, args.base, args.head)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"{result['coverage_gate']}: {result['classified_file_count']}/{result['tracked_file_count']} tracked, {result['changed_entry_count']} changes; SHA256 {result['report_sha256']}")
+    print(
+        f"{result['coverage_gate']}: {result['classified_file_count']}/{result['tracked_file_count']} tracked, {result['changed_entry_count']} changes; SHA256 {result['report_sha256']}"
+    )
     return 0 if result["coverage_gate"] == "PASS_FILE_CLASSIFICATION_ONLY" else 2
 
 
