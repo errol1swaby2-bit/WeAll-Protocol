@@ -150,9 +150,11 @@ export default function Activity(): JSX.Element {
           <div className="eyebrow">Public activity</div>
           <h1>Activity notices</h1>
           <p>
-            Notices come from publicly inspectable protocol events. Supported activity includes
-            mentions, replies, review assignments, governance events, reputation updates, and
-            validator/operator alerts. Read and filtering choices are local to this browser.
+            Notices are derived from inspectable public protocol state. Current sources include
+            replies to your public posts, review assignments, governance proposal status,
+            reputation events, and explicitly addressed notification receipts.
+            Other categories require verified event-source integration.
+            Read and filtering choices remain local to this browser.
           </p>
         </div>
         <button className="btn" onClick={() => void load()} disabled={loading || !account}>
