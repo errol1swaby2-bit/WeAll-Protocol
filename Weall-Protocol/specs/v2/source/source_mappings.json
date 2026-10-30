@@ -6366,6 +6366,26 @@
       "path": "scripts/devnet_safe_paths.py",
       "primary_mechanism_id": "M-076",
       "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_local_two_frontend_rehearsal.sh",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_reset_state.sh",
+      "primary_mechanism_id": "M-074",
+      "review_status": "candidate_unverified_pending_independent_review"
     }
   ],
   "schema": "weall.v2.source_mapping_registry",
