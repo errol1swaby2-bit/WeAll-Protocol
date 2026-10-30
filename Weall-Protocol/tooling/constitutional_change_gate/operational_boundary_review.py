@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Read-only source-pinned operational boundary observations, not approvals."""
+
 from __future__ import annotations
 
 import hashlib
@@ -20,7 +21,11 @@ CASES = (
         ),
         "control": "basename_check_before_delete",
         "finding": "A required basename does not itself prove canonical parent containment or resolve symlinked ancestors.",
-        "next_proofs": ("canonical_path_policy", "symlink_and_parent_escape_tests", "ledger_preservation"),
+        "next_proofs": (
+            "canonical_path_policy",
+            "symlink_and_parent_escape_tests",
+            "ledger_preservation",
+        ),
     },
     {
         "id": "OPS-IPFS-002",
@@ -33,7 +38,11 @@ CASES = (
         ),
         "control": "missing_sharding_file_while_blocks_directory_exists",
         "finding": "The configured IPFS path is environment-overridable and can enter automatic recursive deletion; external storage containment needs proof.",
-        "next_proofs": ("canonical_partition_containment", "override_rejection", "disposable_fixture_negative_tests"),
+        "next_proofs": (
+            "canonical_partition_containment",
+            "override_rejection",
+            "disposable_fixture_negative_tests",
+        ),
     },
     {
         "id": "OPS-REHEARSAL-003",
@@ -54,7 +63,7 @@ CASES = (
         "boundary": "restart_catchup_reset",
         "anchors": (
             'if _bool_true "${WEALL_DEVNET_LIVE_RESET:-0}"; then',
-            'bash scripts/devnet_reset_state.sh',
+            "bash scripts/devnet_reset_state.sh",
         ),
         "control": "restart_reset_flag_defaults_off",
         "finding": "Restart/catch-up reset is opt-in; persisted chain parity needs exact two-node evidence and explicit path checks.",
@@ -71,7 +80,11 @@ CASES = (
         ),
         "control": "production_preflight_before_process_exec",
         "finding": "Preflight and nonempty account/node-key checks are not proof of runtime on-chain operator authorization.",
-        "next_proofs": ("manifest_identity", "on_chain_operator_role", "invalid_key_role_negative_tests"),
+        "next_proofs": (
+            "manifest_identity",
+            "on_chain_operator_role",
+            "invalid_key_role_negative_tests",
+        ),
     },
     {
         "id": "OPS-PROD-006",
@@ -79,8 +92,8 @@ CASES = (
         "boundary": "manifest_and_signing_preflight",
         "anchors": (
             'MANIFEST="${WEALL_CHAIN_MANIFEST_PATH:-',
-            'WEALL_SIGVERIFY=0 is forbidden',
-            'prod_chain_manifest_check.sh',
+            "WEALL_SIGVERIFY=0 is forbidden",
+            "prod_chain_manifest_check.sh",
         ),
         "control": "manifest_and_signature_verification_preflight",
         "finding": "Shell checks are not proof that runtime consensus, replay, and authority enforcement cannot be bypassed.",
@@ -92,14 +105,18 @@ CASES = (
 def adjudicate(case: dict, source: str | None, sha256: str | None) -> dict:
     evidence = []
     for anchor in case["anchors"]:
-        match = next(
-            (
-                {"line": index, "text": text.strip()}
-                for index, text in enumerate(source.splitlines(), start=1)
-                if anchor in text
-            ),
-            None,
-        ) if source is not None else None
+        match = (
+            next(
+                (
+                    {"line": index, "text": text.strip()}
+                    for index, text in enumerate(source.splitlines(), start=1)
+                    if anchor in text
+                ),
+                None,
+            )
+            if source is not None
+            else None
+        )
         evidence.append({"expected": anchor, "observed": match})
     status = (
         "OPEN_SOURCE_ANCHORS_REPRODUCED"

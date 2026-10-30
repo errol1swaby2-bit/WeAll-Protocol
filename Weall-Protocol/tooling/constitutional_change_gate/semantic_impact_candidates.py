@@ -457,9 +457,7 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
             "critical_unlinked_files": len(globally_unlinked_high),
             "unlinked_by_file_area": dict(sorted(unlinked_by_area.items())),
             "operational_static_candidates": operational_inventory,
-            "operational_boundary_review": boundaries.inspect(
-                repo, final_commit, current_paths
-            ),
+            "operational_boundary_review": boundaries.inspect(repo, final_commit, current_paths),
             "unlinked_paths": globally_unlinked,
             "critical_unlinked_paths": globally_unlinked_high,
             "status": "BLOCKED_OPEN_WHOLE_REPOSITORY_SEMANTIC_BACKLOG"
