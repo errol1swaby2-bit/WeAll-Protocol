@@ -4,6 +4,7 @@
 Only the explicit reset command deletes anything. check-devnet and check-ipfs
 are read-only validation commands for the operator shell scripts.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -136,8 +137,7 @@ def check_ipfs(devnet_raw: str, ipfs_raw: str) -> Path:
         raise UnsafeDevnetPath("ipfs_partition_must_be_a_direct_devnet_child")
     # Validate all existing internal Kubo paths before the launcher can mkdir
     # or chmod them. Never follow an externally supplied blocks/temp symlink.
-    for part in (ipfs, ipfs / "blocks", ipfs / "blocks" / "temp",
-                 ipfs / "blocks" / "SHARDING"):
+    for part in (ipfs, ipfs / "blocks", ipfs / "blocks" / "temp", ipfs / "blocks" / "SHARDING"):
         check_no_symlinks(part)
     if not devnet.is_dir():
         raise UnsafeDevnetPath("devnet_directory_missing")

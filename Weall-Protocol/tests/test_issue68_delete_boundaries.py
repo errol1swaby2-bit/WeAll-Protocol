@@ -1,4 +1,5 @@
 """Issue 68: deletion only in synthetic temporary devnet fixtures."""
+
 from __future__ import annotations
 
 import os
@@ -36,9 +37,15 @@ class DevnetDeleteBoundaries(unittest.TestCase):
         if env:
             variables.update(env)
         return subprocess.run(
-            [sys.executable, str(self.repo / "scripts/devnet_safe_paths.py"),
-             *[str(x) for x in args]],
-            env=variables, capture_output=True, text=True, check=False,
+            [
+                sys.executable,
+                str(self.repo / "scripts/devnet_safe_paths.py"),
+                *[str(x) for x in args],
+            ],
+            env=variables,
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
     def assert_protected(self):
@@ -61,7 +68,10 @@ class DevnetDeleteBoundaries(unittest.TestCase):
         env["WEALL_DEVNET_DIR"] = str(self.target)
         result = subprocess.run(
             ["bash", str(self.repo / "scripts/devnet_reset_state.sh")],
-            env=env, capture_output=True, text=True, check=False,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("ok=true", result.stdout)
@@ -78,17 +88,26 @@ class DevnetDeleteBoundaries(unittest.TestCase):
             {},
             {"WEALL_DEVNET_RESET_ALLOWED_PARENT": str(parent)},
             {"WEALL_DEVNET_RESET_CONFIRM": CONFIRM},
-            {"WEALL_DEVNET_RESET_ALLOWED_PARENT": str(self.repo),
-             "WEALL_DEVNET_RESET_CONFIRM": CONFIRM},
+            {
+                "WEALL_DEVNET_RESET_ALLOWED_PARENT": str(self.repo),
+                "WEALL_DEVNET_RESET_CONFIRM": CONFIRM,
+            },
         )
         for case in cases:
             with self.subTest(case=case):
                 self.assertEqual(self.invoke("reset", target, env=case).returncode, 2)
                 self.assertEqual((target / "important.db").read_text(), "keep")
-        self.assertEqual(self.invoke("reset", target, env={
-            "WEALL_DEVNET_RESET_ALLOWED_PARENT": str(parent),
-            "WEALL_DEVNET_RESET_CONFIRM": CONFIRM,
-        }).returncode, 0)
+        self.assertEqual(
+            self.invoke(
+                "reset",
+                target,
+                env={
+                    "WEALL_DEVNET_RESET_ALLOWED_PARENT": str(parent),
+                    "WEALL_DEVNET_RESET_CONFIRM": CONFIRM,
+                },
+            ).returncode,
+            0,
+        )
         self.assertFalse((target / "important.db").exists())
         self.assert_protected()
 
@@ -101,17 +120,30 @@ class DevnetDeleteBoundaries(unittest.TestCase):
         self.target.unlink()
         alias = self.root / "alias"
         alias.symlink_to(self.repo, target_is_directory=True)
-        self.assertEqual(self.invoke("reset", alias / ".weall-devnet", env={
-            "WEALL_DEVNET_RESET_ALLOWED_PARENT": str(alias),
-            "WEALL_DEVNET_RESET_CONFIRM": CONFIRM,
-        }).returncode, 2)
+        self.assertEqual(
+            self.invoke(
+                "reset",
+                alias / ".weall-devnet",
+                env={
+                    "WEALL_DEVNET_RESET_ALLOWED_PARENT": str(alias),
+                    "WEALL_DEVNET_RESET_CONFIRM": CONFIRM,
+                },
+            ).returncode,
+            2,
+        )
         self.assertEqual((external / "important").read_text(), "keep")
         self.assert_protected()
 
     def test_path_traversal_root_relative_wrong_name_denied(self):
-        for candidate in ("/", "/home", ".", "../.weall-devnet", "",
-                          str(self.repo / ".." / ".weall-devnet"),
-                          str(self.repo / "other")):
+        for candidate in (
+            "/",
+            "/home",
+            ".",
+            "../.weall-devnet",
+            "",
+            str(self.repo / ".." / ".weall-devnet"),
+            str(self.repo / "other"),
+        ):
             with self.subTest(path=candidate):
                 self.assertEqual(self.invoke("reset", candidate).returncode, 2)
         self.assert_protected()
@@ -120,8 +152,12 @@ class DevnetDeleteBoundaries(unittest.TestCase):
         self.target.mkdir()
         partition = self.target / "ipfs_partition"
         self.assertEqual(self.invoke("check-ipfs", self.target, partition).returncode, 0)
-        for candidate in (self.root / "unrelated_ipfs", self.repo / "ipfs",
-                          self.target, self.target / "nested" / "ipfs"):
+        for candidate in (
+            self.root / "unrelated_ipfs",
+            self.repo / "ipfs",
+            self.target,
+            self.target / "nested" / "ipfs",
+        ):
             with self.subTest(path=str(candidate)):
                 self.assertEqual(self.invoke("check-ipfs", self.target, candidate).returncode, 2)
         self.assertFalse(partition.exists())
