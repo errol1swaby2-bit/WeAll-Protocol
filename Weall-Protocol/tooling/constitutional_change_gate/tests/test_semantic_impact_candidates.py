@@ -175,8 +175,10 @@ class SemanticImpactFixture(unittest.TestCase):
         )
         self.assertIn(self.cfg, result["critical_unmapped_change_paths"])
         self.assertIn(self.cfg, result["global_semantic_inventory"]["unlinked_paths"])
-        self.assertEqual(result["global_semantic_inventory"]["status"],
-                         "BLOCKED_OPEN_WHOLE_REPOSITORY_SEMANTIC_BACKLOG")
+        self.assertEqual(
+            result["global_semantic_inventory"]["status"],
+            "BLOCKED_OPEN_WHOLE_REPOSITORY_SEMANTIC_BACKLOG",
+        )
         affected = next(x for x in result["changes"] if x["change"]["path"] == self.executor)
         link = affected["candidate_links"][0]
         self.assertEqual(link["candidate_txs"][0]["stable_id"], "TX-0001")

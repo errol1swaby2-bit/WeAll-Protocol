@@ -404,16 +404,16 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
     source_paths = set(current)
     derivative_only = set(derivatives) - source_paths
     declared_only = set(registered_current) - source_paths - derivative_only
-    globally_unlinked = sorted(
-        current_paths - source_paths - derivative_only - declared_only
-    )
+    globally_unlinked = sorted(current_paths - source_paths - derivative_only - declared_only)
     globally_unlinked_high = sorted(
         path for path in globally_unlinked if coverage.classify(path) in CRITICAL
     )
     unlinked_by_area = Counter(
         coverage.classify(path) or "UNCLASSIFIED" for path in globally_unlinked
     )
-    if len(source_paths | derivative_only | declared_only | set(globally_unlinked)) != len(current_paths):
+    if len(source_paths | derivative_only | declared_only | set(globally_unlinked)) != len(
+        current_paths
+    ):
         raise ImpactError("global_semantic_inventory_accounting_mismatch")
     counts = Counter(
         "DECLARED" if r["v2_link_status"].startswith("DECLARED") else "UNLINKED"
@@ -451,7 +451,8 @@ def semantic_report(repo: Path, base: str, head: str) -> dict[str, Any]:
             "unlinked_paths": globally_unlinked,
             "critical_unlinked_paths": globally_unlinked_high,
             "status": "BLOCKED_OPEN_WHOLE_REPOSITORY_SEMANTIC_BACKLOG"
-            if globally_unlinked else "ALL_PATHS_HAVE_CANDIDATE_LINKS_NOT_PROVEN_CAUSALITY",
+            if globally_unlinked
+            else "ALL_PATHS_HAVE_CANDIDATE_LINKS_NOT_PROVEN_CAUSALITY",
         },
         "reviewed_semantic_edges": 0,
         "candidate_link_observations": dict(counts),
