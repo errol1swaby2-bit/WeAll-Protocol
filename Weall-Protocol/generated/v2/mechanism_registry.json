@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f83e9ed418aacfd87d946dc639b4ab780e2ca86691d67d0a3428ee120ba0df2b"
+    "source_tree_digest": "2bb9582e9e94840ff17636ab7137ce6db60dfc005d6e793473dbe584d556ce74"
   },
   "rows": [
     {
@@ -3493,6 +3493,7 @@
       ],
       "repository_evidence_paths": [
         "scripts/crash_drill.py",
+        "scripts/devnet_reset_state.sh",
         "src/weall/runtime/failpoints.py",
         "src/weall/runtime/fault_injection.py"
       ],
@@ -3644,6 +3645,7 @@
         "scripts/dev_seed_full_surface.py",
         "scripts/devnet_cross_node_convergence.py",
         "scripts/devnet_join_anchor.py",
+        "scripts/devnet_local_two_frontend_rehearsal.sh",
         "scripts/devnet_permission_probe.py",
         "scripts/devnet_safe_paths.py",
         "scripts/devnet_tx.py",
