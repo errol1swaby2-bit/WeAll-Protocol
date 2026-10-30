@@ -22,6 +22,7 @@ from weall.runtime.reputation_events import (
     derive_role_eligibility_from_dimensions,
     reduce_reputation_events,
 )
+from weall.runtime.reputation_role_gate import operative_role_reputation_preview
 from weall.runtime.reputation_units import (
     REPUTATION_MAX_UNITS,
     REPUTATION_MIN_UNITS,
@@ -69,16 +70,19 @@ BASELINE_DIMENSION_WEIGHTS: dict[str, int] = {
     "storage_reputation": 100,
     "helper_reputation": 100,
     "appeal_correction_history": 0,
-    "juror": 100,
-    "dispute_participation": 100,
-    "validator": 100,
-    "helper": 100,
-    "storage": 100,
-    "creator": 100,
-    "governance": 100,
-    "identity_poh": 100,
-    "social_trust": 100,
-    "abuse_risk": 0,  # public safety signal, never raises the aggregate
+    # Legacy dimensions remain inspectable but are never additive weight.
+    # The aliases represent the same causal event and historical heuristics
+    # are NOT canonical reputation issuance.
+    "juror": 0,
+    "dispute_participation": 0,
+    "validator": 0,
+    "helper": 0,
+    "storage": 0,
+    "creator": 0,
+    "governance": 0,
+    "identity_poh": 0,
+    "social_trust": 0,
+    "abuse_risk": 0,
 }
 
 REASON_DIMENSION_MAP: dict[str, tuple[str, ...]] = {
@@ -248,6 +252,15 @@ def _dimensions_from_events(events: list[MatrixEvent]) -> Json:
             "level": _score_level(score),
             "visibility": "public",
             "weight_bps": int(BASELINE_DIMENSION_WEIGHTS.get(dimension, 0)),
+            "score_authority": (
+                "canonical_event_ledger"
+                if dimension in REPUTATION_DIMENSIONS
+                else "legacy_observation_only"
+            ),
+            "contributes_to_aggregate": bool(
+                dimension in REPUTATION_DIMENSIONS
+                and BASELINE_DIMENSION_WEIGHTS.get(dimension, 0) > 0
+            ),
             "event_count": len(dims_events),
             "positive_event_count": sum(1 for event in dims_events if event.polarity == "positive"),
             "negative_event_count": sum(1 for event in dims_events if event.polarity == "negative"),
@@ -257,9 +270,14 @@ def _dimensions_from_events(events: list[MatrixEvent]) -> Json:
 
 
 def _aggregate_public_score(dimensions: Json) -> int:
+    """Informational average of *canonical* dimensions, never legacy aliases.
+
+    A single canonical event may be projected into multiple legacy dimensions;
+    allowing those dimensions into the mean double-weights one causal event.
+    """
     total_weight = 0
     weighted = 0
-    for dimension in PUBLIC_DIMENSIONS:
+    for dimension in REPUTATION_DIMENSIONS:
         rec = _as_dict(dimensions.get(dimension))
         weight = _as_int(rec.get("weight_bps"), 0)
         if weight <= 0:
@@ -915,17 +933,48 @@ def derive_reputation_matrix(
     raw_events = collect_reputation_matrix_events(state, acct_id)
     events = [MatrixEvent(**event) for event in raw_events]
     dimensions = _dimensions_from_events(events)
+    canonical_events = canonical_reputation_events_for_actor(state, acct_id)
+    canonical_reduction = reduce_reputation_events(canonical_events)
+    canonical_actor = _as_dict(_as_dict(canonical_reduction.get("actors")).get(acct_id))
+    canonical_dimensions = _as_dict(canonical_actor.get("dimensions"))
+
+    # The reducer applies events in canonical order with per-step clamping.
+    # Use its exact dimension scores/counts as the public score authority.
+    # Legacy heuristic and alias projections are displayed but cannot alter
+    # these values or the aggregate. This is read-only, not a state migration.
+    for dimension in REPUTATION_DIMENSIONS:
+        authoritative = _as_dict(canonical_dimensions.get(dimension))
+        projected = dimensions[dimension]
+        score = _as_int(authoritative.get("score_milli"), 0)
+        projected["score_milli"] = score
+        projected["score"] = units_to_reputation(score)
+        projected["level"] = _score_level(score)
+        for field in (
+            "event_count",
+            "positive_event_count",
+            "negative_event_count",
+            "neutral_event_count",
+        ):
+            projected[field] = _as_int(authoritative.get(field), 0)
     scalar_units = account_reputation_units(
         _as_dict(_as_dict(state.get("accounts")).get(acct_id)), default=0
     )
     aggregate = _aggregate_public_score(dimensions)
     public_dims = {name: dimensions[name] for name in PUBLIC_DIMENSIONS}
     exposed_dimensions = public_dims
-    exposed_events = [event.as_dict() for event in events if event.visibility == "public"]
-    canonical_events = canonical_reputation_events_for_actor(state, acct_id)
-    canonical_reduction = reduce_reputation_events(canonical_events)
-    canonical_actor = _as_dict(_as_dict(canonical_reduction.get("actors")).get(acct_id))
-    canonical_dimensions = _as_dict(canonical_actor.get("dimensions"))
+    exposed_events = [
+        {
+            **event.as_dict(),
+            "score_authority": (
+                "canonical_event_ledger"
+                if event.source == "reputation_event_ledger"
+                else "legacy_observation_only"
+            ),
+            "contributes_to_canonical_score": event.source == "reputation_event_ledger",
+        }
+        for event in events
+        if event.visibility == "public"
+    ]
     eligibility = derive_role_eligibility_from_dimensions(canonical_dimensions, canonical_events)
     out: Json = {
         "ok": True,
@@ -940,6 +989,9 @@ def derive_reputation_matrix(
             "integer_milli_units": True,
             "float_scoring": False,
             "wall_clock_time": False,
+            "aggregate_authority": "canonical_event_ledger_only",
+            "legacy_compatibility": "read_only_non_additive",
+            "role_authorization": "not_derived_from_aggregate",
         },
         "scalar_reputation": {
             "score_milli": int(scalar_units),
@@ -952,6 +1004,9 @@ def derive_reputation_matrix(
         "dimensions": exposed_dimensions,
         "canonical_dimensions": canonical_dimensions,
         "eligibility": eligibility,
+        # Distinguish canonical event-dimensional policy from actual role gate,
+        # including scalar/manual/PoH restrictions and an explicit v2 flag.
+        "operative_role_activation": operative_role_reputation_preview(state, acct_id),
         "event_history_root": canonical_reduction.get("event_history_root"),
         "visibility": {
             "public_dimensions": list(PUBLIC_DIMENSIONS),
