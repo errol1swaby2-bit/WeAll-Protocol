@@ -22293,7 +22293,7 @@
           "signature_bytes": 0,
           "signature_bytes_omitted_from_manifest": false
         },
-        "state_root_after": "f473bc59e1021a6287b43a1bd6b0475bab570aa45b28fc758f00be0f30b921f7",
+        "state_root_after": "435ee4e5e8cfcf38cf959adcc5348250d5f98414013257752fb70fb19407d4ea",
         "state_root_before": "b90eaef5de20cdd8770d3f8a7c9be7d1320a375384b03f66e8b167e99de13316",
         "state_writing": true,
         "success_receipt": {

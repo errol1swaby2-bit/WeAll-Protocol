@@ -34,6 +34,7 @@ from weall.runtime.reputation_units import (
     reputation_to_units,
     sync_account_reputation,
     units_to_reputation,
+    units_to_reputation_text,
 )
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -182,6 +183,13 @@ def _ensure_account(state: Json, account_id: str) -> Json:
     return acct
 
 
+def _read_account_reputation_units_without_mutation(state: Json, account_id: str) -> int:
+    """A duplicate receipt must not create/normalize account state on replay."""
+    accounts = state.get("accounts")
+    acct = accounts.get(account_id) if isinstance(accounts, dict) else None
+    return account_reputation_units(acct, default=0)
+
+
 def _mk_id(prefix: str, env: TxEnvelope, provided: Any) -> str:
     p = _as_str(provided).strip()
     if p:
@@ -204,6 +212,40 @@ def _find_by_id(items: list[Any], key: str, value: str) -> Json | None:
     return None
 
 
+def _assert_duplicate_delta_identity(
+    prior: Json,
+    *,
+    delta_id: str,
+    account_id: str,
+    delta_units: int,
+    reason: str,
+    payload: Json,
+) -> None:
+    """Reject ID reuse for different effects without mutating audited state.
+
+    Legacy receipts lacking a full stored payload are checked against the fields
+    they actually recorded. Current receipts require a byte-equivalent payload.
+    A retried SYSTEM receipt may have a different envelope nonce; its explicit
+    delta ID and original payload remain the stable dedup identity.
+    """
+    if "delta_milli" in prior:
+        prior_units = _as_int(prior.get("delta_milli"))
+    else:
+        prior_units = reputation_to_units(prior.get("delta"))
+    prior_payload = prior.get("payload")
+    if (
+        _as_str(prior.get("account_id")).strip() != account_id
+        or prior_units != int(delta_units)
+        or (bool(reason) and _as_str(prior.get("reason")).strip() != reason)
+        or (isinstance(prior_payload, dict) and prior_payload != payload)
+    ):
+        raise ReputationApplyError(
+            "conflicting_receipt",
+            "duplicate_delta_id_conflict",
+            {"delta_id": delta_id},
+        )
+
+
 def _apply_rep_delta_and_autoban(
     state: Json,
     *,
@@ -223,7 +265,9 @@ def _apply_rep_delta_and_autoban(
     cur_units = account_reputation_units(acct, default=0)
     nxt_units = clamp_reputation_units(cur_units + int(delta_units))
     acct["reputation_milli"] = int(nxt_units)
-    acct["reputation"] = units_to_reputation(nxt_units)
+    # Account state uses canonical decimal text; float is retained only for
+    # legacy receipt/API compatibility. See reputation_units and migrations.
+    acct["reputation"] = units_to_reputation_text(nxt_units)
 
     newly_banned = False
     if int(nxt_units) <= REP_MIN_UNITS and not bool(acct.get("banned", False)):
@@ -276,10 +320,6 @@ def apply_reputation_delta_system(
     The resulting audit entry is appended to state["reputation"]["deltas"].
     Duplicate delta ids are replay-safe no-ops and must not mutate score again.
     """
-    rep = _ensure_reputation(state)
-    deltas = rep.get("deltas")
-    deltas = _require_list_invariant(deltas, field="deltas")
-
     # Deterministic delta_id from evidence fields if provided
     delta_id = _as_str(evidence.get("delta_id") or evidence.get("id") or "").strip()
     if not delta_id:
@@ -293,10 +333,18 @@ def apply_reputation_delta_system(
         )
 
     delta_units = reputation_to_units(delta)
-    already = _find_by_id(deltas, "delta_id", delta_id) is not None
-    if already:
-        acct = _ensure_account(state, account_id)
-        current_units = account_reputation_units(acct, default=0)
+    existing = _as_dict(state.get("reputation")).get("deltas")
+    prior = _find_by_id(existing, "delta_id", delta_id) if isinstance(existing, list) else None
+    if prior is not None:
+        _assert_duplicate_delta_identity(
+            prior,
+            delta_id=delta_id,
+            account_id=account_id,
+            delta_units=delta_units,
+            reason=_as_str(reason).strip(),
+            payload=evidence,
+        )
+        current_units = _read_account_reputation_units_without_mutation(state, account_id)
         return {
             "ok": True,
             "account_id": account_id,
@@ -306,6 +354,8 @@ def apply_reputation_delta_system(
             "deduped": True,
         }
 
+    rep = _ensure_reputation(state)
+    deltas = _require_list_invariant(rep.get("deltas"), field="deltas")
     deltas.append(
         {
             "delta_id": delta_id,
@@ -363,7 +413,6 @@ def apply_reputation_delta_system(
 
 def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
-    rep = _ensure_reputation(state)
     payload = _as_dict(env.payload)
 
     account_id = _pick_account(payload, "account_id", "target", "account", "user")
@@ -380,11 +429,18 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
     delta_id = _mk_id("repdelta", env, payload.get("delta_id") or payload.get("id"))
     reason = _as_str(payload.get("reason")).strip()
 
-    deltas = rep["deltas"]
-    already = _find_by_id(deltas, "delta_id", delta_id) is not None
-    if already:
-        acct = _ensure_account(state, account_id)
-        current_units = account_reputation_units(acct, default=0)
+    existing = _as_dict(state.get("reputation")).get("deltas")
+    prior = _find_by_id(existing, "delta_id", delta_id) if isinstance(existing, list) else None
+    if prior is not None:
+        _assert_duplicate_delta_identity(
+            prior,
+            delta_id=delta_id,
+            account_id=account_id,
+            delta_units=delta_units,
+            reason=reason,
+            payload=payload,
+        )
+        current_units = _read_account_reputation_units_without_mutation(state, account_id)
         return {
             "applied": "REPUTATION_DELTA_APPLY",
             "delta_id": delta_id,
@@ -395,6 +451,8 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
             "newly_banned": False,
         }
 
+    rep = _ensure_reputation(state)
+    deltas = rep["deltas"]
     deltas.append(
         {
             "delta_id": delta_id,
@@ -580,7 +638,6 @@ def _apply_role_eligibility_revoke(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
-    rep = _ensure_reputation(state)
     payload = _as_dict(env.payload)
 
     account_id = _pick_account(payload, "account_id", "target", "account", "user")
@@ -591,15 +648,28 @@ def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
 
     reason = _as_str(payload.get("reason")).strip()
 
-    bans = rep["bans"]
-    bans = _require_dict_invariant(bans, field="bans")
-    prior = bans.get(account_id)
-    already = (
+    existing = _as_dict(_as_dict(state.get("reputation")).get("bans"))
+    prior = existing.get(account_id)
+    if (
         isinstance(prior, dict)
         and bool(prior.get("banned"))
         and _as_int(prior.get("set_at_nonce"), 0) == int(env.nonce)
-    )
+    ):
+        if (
+            _as_str(prior.get("account_id")).strip() != account_id
+            or _as_str(prior.get("reason")).strip() != reason
+            or bool(prior.get("auto", False))
+            or (isinstance(prior.get("payload"), dict) and prior.get("payload") != payload)
+        ):
+            raise ReputationApplyError(
+                "conflicting_receipt",
+                "duplicate_ban_receipt_conflict",
+                {"account_id": account_id, "at_nonce": int(env.nonce)},
+            )
+        return {"applied": "ACCOUNT_BAN", "account_id": account_id, "deduped": True}
 
+    rep = _ensure_reputation(state)
+    bans = _require_dict_invariant(rep["bans"], field="bans")
     bans[account_id] = {
         "account_id": account_id,
         "banned": True,
@@ -612,7 +682,7 @@ def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
     acct = _ensure_account(state, account_id)
     acct["banned"] = True
 
-    return {"applied": "ACCOUNT_BAN", "account_id": account_id, "deduped": bool(already)}
+    return {"applied": "ACCOUNT_BAN", "account_id": account_id, "deduped": False}
 
 
 def _apply_account_reinstate(state: Json, env: TxEnvelope) -> Json:

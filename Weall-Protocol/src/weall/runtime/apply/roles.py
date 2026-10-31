@@ -12,6 +12,7 @@ from weall.runtime.node_operator_responsibilities import (
     is_node_operator_active,
 )
 from weall.runtime.poh.state import effective_poh_tier
+from weall.runtime.reputation_role_gate import role_activation_reputation_decision
 from weall.runtime.reputation_units import account_reputation_units
 from weall.runtime.reviewer_responsibilities import REVIEWER_LANES
 from weall.runtime.tx_admission import TxEnvelope
@@ -263,31 +264,35 @@ def _require_role_activation_eligible(
     role: str,
     minimum_reputation_milli: int = 0,
 ) -> Json:
-    account = _account_for_activation(ledger, acct)
-    if bool(account.get("banned", False)) or bool(account.get("locked", False)):
-        raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct, "role": role})
-    if effective_poh_tier(ledger, acct) < 2:
-        raise RolesApplyError(
-            "forbidden", "live_verification_required", {"account_id": acct, "role": role}
-        )
-    if _role_eligibility_revoked(ledger, acct, role):
-        raise RolesApplyError(
-            "forbidden", "role_eligibility_revoked", {"account_id": acct, "role": role}
-        )
-    required = max(0, int(minimum_reputation_milli))
-    actual = account_reputation_units(account, default=0)
-    if actual < required:
-        raise RolesApplyError(
-            "forbidden",
-            "reputation_insufficient",
-            {
-                "account_id": acct,
-                "role": role,
-                "required_milli": int(required),
-                "actual_milli": int(actual),
-            },
-        )
-    return account
+    """Enforce versioned predicate without changing legacy activation defaults.
+
+    Missing policy version remains legacy v1; v2 requires an explicit
+    chain-committed parameter and separate consensus activation review.
+    Other role-specific authorization checks are intentionally unchanged.
+    """
+    decision = role_activation_reputation_decision(
+        ledger,
+        acct,
+        role=role,
+        minimum_reputation_milli=minimum_reputation_milli,
+    )
+    if not bool(decision["eligible"]):
+        details: Json = {"account_id": acct, "role": role}
+        if decision["reason"] == "reputation_insufficient":
+            details.update(
+                required_milli=int(decision["required_milli"]),
+                actual_milli=int(decision["actual_milli"]),
+            )
+        elif decision["reason"] == "canonical_role_reputation_ineligible":
+            details.update(
+                gate_version=int(decision["gate_version"]),
+                canonical_role=decision["canonical_role"],
+                canonical_reasons=list(decision["canonical_reasons"]),
+            )
+        elif decision["reason"] == "policy_unknown":
+            details["gate_version"] = decision["gate_version"]
+        raise RolesApplyError(str(decision["code"]), str(decision["reason"]), details)
+    return _account_for_activation(ledger, acct)
 
 
 def _role_required_reputation_milli(
