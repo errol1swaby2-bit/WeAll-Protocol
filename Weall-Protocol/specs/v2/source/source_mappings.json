@@ -209,6 +209,17 @@
       "review_status": "mapped_current_snapshot"
     },
     {
+      "path": "../web/src/components/ActivityBell.tsx",
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
       "affected_registers": [
         "routes",
         "activation",
@@ -546,6 +557,17 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "../web/src/lib/accountSurface.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "path": "../web/src/lib/activityReadState.ts",
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
     },

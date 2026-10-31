@@ -276,7 +276,7 @@
       "route_id": "474cc553c6b4e946",
       "route_path_without_v1_prefix": "/activity/notices",
       "source": "src/weall/api/routes_public_parts/activity.py",
-      "source_lineno": 13,
+      "source_lineno": 225,
       "summary": "",
       "tags": [
         "activity"

@@ -196,3 +196,30 @@ def test_public_reply_is_derived_from_parent_ownership_not_body_substrings() -> 
     assert len(replies) == 1
     assert replies[0]["id"] == "reply:real:@alice"
     assert replies[0]["href"] == "/thread/owned"
+
+
+def test_governance_status_notice_requires_exact_proposal_creator_and_terminal_stage() -> None:
+    state = _snapshot()
+    state["gov_proposals_by_id"] = {
+        "p-1": {"proposal_id": "p-1", "creator": "@alice", "stage": "tallied"},
+        "p-2": {"proposal_id": "p-2", "creator": "@alicia", "stage": "finalized"},
+        "p-3": {"proposal_id": "p-3", "creator": "@alice", "stage": "draft"},
+        "p-4": {"proposal_id": "p-4", "creator": "@alice", "stage": "executed"},
+    }
+    before = json.dumps(state, sort_keys=True)
+    notices = [
+        item
+        for item in collect_public_activity_notices(state, "@alice")
+        if item["type"] == "governance_notice"
+    ]
+    assert {item["id"] for item in notices} == {
+        "governance-stage:p-1:tallied:@alice",
+        "governance-stage:p-4:executed:@alice",
+    }
+    assert {item["href"] for item in notices} == {"/decisions/p-1", "/decisions/p-4"}
+    assert json.dumps(state, sort_keys=True) == before
+    assert notices == [
+        item
+        for item in collect_public_activity_notices(state, "@alice")
+        if item["type"] == "governance_notice"
+    ]
