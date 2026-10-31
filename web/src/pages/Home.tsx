@@ -333,6 +333,7 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className="formStack">
+            <HomeNotificationRow label="Activity notices" detail="Inspect finalized public events addressed to your account." href="/activity" />
             <HomeNotificationRow label="Feed" detail="See recent public posts and replies." href="/feed" />
             <HomeNotificationRow label="Open decisions" detail={pending.activeProposals ? `${pending.activeProposals} community decision${pending.activeProposals === 1 ? "" : "s"} may need votes.` : "No open decisions are surfaced right now."} href="/decisions" open={pending.activeProposals > 0} />
             <HomeNotificationRow label="Review work" detail={pending.assignedDisputes ? `${pending.assignedDisputes} review assignment${pending.assignedDisputes === 1 ? "" : "s"} appear tied to this account.` : pending.availableDisputes ? `${pending.availableDisputes} open report${pending.availableDisputes === 1 ? "" : "s"} are visible.` : "No active reports are visible right now."} href="/reviews" open={pending.assignedDisputes > 0} />

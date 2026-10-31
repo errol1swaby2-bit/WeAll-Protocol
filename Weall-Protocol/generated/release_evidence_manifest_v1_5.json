@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "d2a8c318687c4e0071fecdd18bd18ccef71a281943299370da4ad66c9c24e080",
+  "artifact_digest": "211be3b612bb826f3009af5673bc0a49b8f72928805992f203bd5ebcc4f1a43d",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -148,7 +148,7 @@
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "f81b9295288a73037b591bababe101446c4341f27a4de2c0c09fe4f1bcbbe580",
+      "file_sha256": "26b8f97325db306c6dcf3d54f5751bfe06997bea29229171d7a87fc5a8142bf8",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -292,7 +292,7 @@
     },
     "generated/public_only_protocol_audit_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "9e5084a3025f0511a829466615f62ff7107e2b940b7979e4bfda49896975fb46",
+      "file_sha256": "0c0bff3250d38db9f53128649e43bd7b9b78bda8ee2546e54702a186fd62e1e8",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

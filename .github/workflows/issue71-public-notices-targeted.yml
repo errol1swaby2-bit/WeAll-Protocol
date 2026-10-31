@@ -1,0 +1,70 @@
+name: Issue71 public notices focused evidence
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue71-public-notices-targeted.yml
+      - Weall-Protocol/src/weall/api/routes_public_parts/activity.py
+      - Weall-Protocol/tests/test_issue71_activity_notices.py
+      - web/src/pages/Activity.tsx
+      - web/src/api/weall.ts
+      - web/src/components/AppShell.tsx
+      - web/src/pages/Home.tsx
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notice-contract:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@v4
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Focused public-only projection regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          OUT="$RUNNER_TEMP/issue71-notices"
+          mkdir -p "$OUT"
+          {
+            echo "scope=PUBLIC_NOTIFICATION_READ_PROJECTION_ONLY_NOT_ACCEPTANCE"
+            echo "checkout_commit=$(git rev-parse HEAD)"
+            echo "issue=71"
+            echo "consensus_semantic_authorization=NOT_ESTABLISHED"
+            sha256sum src/weall/api/routes_public_parts/activity.py
+            sha256sum tests/test_issue71_activity_notices.py
+          } > "$OUT/source_and_scope.txt"
+          set +e
+          {
+            ruff format --check src/weall/api/routes_public_parts/activity.py tests/test_issue71_activity_notices.py &&
+            ruff check src/weall/api/routes_public_parts/activity.py tests/test_issue71_activity_notices.py &&
+            pytest -vv -rx tests/test_issue71_activity_notices.py
+          } 2>&1 | tee "$OUT/targeted_pytest.log"
+          RC="${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=$RC" >> "$OUT/source_and_scope.txt"
+          sha256sum "$OUT/targeted_pytest.log" >> "$OUT/source_and_scope.txt"
+          exit "$RC"
+      - name: Publish bounded evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue71-notices-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/issue71-notices/source_and_scope.txt
+            ${{ runner.temp }}/issue71-notices/targeted_pytest.log
