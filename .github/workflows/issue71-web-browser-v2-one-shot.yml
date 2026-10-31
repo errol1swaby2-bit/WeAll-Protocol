@@ -1,0 +1,78 @@
+name: Issue71 one-time final-source evidence refresh for browser runner fix
+
+on:
+  push:
+    branches:
+      - feat/issue71-notification-attention-ux-20261030
+    paths:
+      - .github/workflows/issue71-web-browser-v2-one-shot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+      - name: Assert safe same-branch revision
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REF_NAME" = "feat/issue71-notification-attention-ux-20261030"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)" = "$GITHUB_SHA"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install frozen dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Remove one-time workflow before deriving source identity
+        run: git rm -- .github/workflows/issue71-web-browser-v2-one-shot.yml
+      - name: Refresh canonical source-bound reports
+        shell: bash
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONPATH=src python scripts/gen_public_only_protocol_audit_v1_5.py
+          PYTHONPATH=src python scripts/gen_public_beta_blocker_report_v1_5.py || test "$?" -eq 1
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py || test "$?" -eq 1
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          PYTHONPATH=src python scripts/gen_public_only_protocol_audit_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+      - name: Commit only generated evidence and workflow cleanup
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -A --             Weall-Protocol/generated/public_only_protocol_audit_v1_5.json             Weall-Protocol/generated/public_beta_blocker_report_v1_5.json             Weall-Protocol/generated/release_evidence_manifest_v1_5.json             Weall-Protocol/generated/v2/             web/src/generated/protocolStatus.ts
+          python - <<'PY'
+          import subprocess
+          changed = subprocess.check_output(["git", "diff", "--cached", "--name-only"], text=True).splitlines()
+          own = ".github/workflows/issue71-web-browser-v2-one-shot.yml"
+          assert own in changed
+          allowed = {
+              "Weall-Protocol/generated/public_only_protocol_audit_v1_5.json",
+              "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
+              "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+              "web/src/generated/protocolStatus.ts",
+          }
+          for path in changed:
+              assert path == own or path in allowed or path.startswith("Weall-Protocol/generated/v2/"), path
+          assert len(changed) > 1
+          print("verified generated file count:", len(changed) - 1)
+          PY
+          test "$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)" = "$GITHUB_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(v2): regenerate evidence for supported Playwright runner"
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
