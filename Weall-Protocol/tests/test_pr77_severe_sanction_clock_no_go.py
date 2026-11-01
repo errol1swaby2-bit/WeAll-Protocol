@@ -82,9 +82,7 @@ def _envelope(payload: dict) -> TxEnvelope:
     ],
     ids=["bare-system", "self-asserted-panel", "self-asserted-waiver"],
 )
-def test_constitutional_clock_rejects_unverified_ban_atomically(
-    apply, payload: dict
-) -> None:
+def test_constitutional_clock_rejects_unverified_ban_atomically(apply, payload: dict) -> None:
     state = _state(clock_enabled=True)
     # Deliberately include plausible, but unauthenticated, case data.
     state["disputes_by_id"] = {
