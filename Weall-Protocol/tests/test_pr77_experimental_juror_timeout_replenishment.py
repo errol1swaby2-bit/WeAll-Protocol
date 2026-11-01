@@ -10,9 +10,10 @@ from weall.runtime.dispute_engine import tick_dispute_lifecycle
 
 
 def _role() -> dict:
-    return {"active": True, "responsibilities": {
-        "reviewer": {"dispute_review": {"active": True, "opted_in": True}}
-    }}
+    return {
+        "active": True,
+        "responsibilities": {"reviewer": {"dispute_review": {"active": True, "opted_in": True}}},
+    }
 
 
 def _state(*, appeal: bool = True, enabled: bool = True, reviewers: int = 90) -> dict:
@@ -54,15 +55,17 @@ def _state(*, appeal: bool = True, enabled: bool = True, reviewers: int = 90) ->
         "appeal_ballot_nullifiers": {},
     }
     if appeal:
-        case.update({
-            "original_panel_juror_ids": original,
-            "original_substitute_juror_ids": original_reserve,
-            "appeal_panel_juror_ids": list(second),
-            "appeal_substitute_juror_ids": list(second_reserve),
-            "appeal_panel_round": 2,
-            "appeal_panel_status": "assigned",
-            "appeal_panel_commitment": "original-fresh-panel-commitment",
-        })
+        case.update(
+            {
+                "original_panel_juror_ids": original,
+                "original_substitute_juror_ids": original_reserve,
+                "appeal_panel_juror_ids": list(second),
+                "appeal_substitute_juror_ids": list(second_reserve),
+                "appeal_panel_round": 2,
+                "appeal_panel_status": "assigned",
+                "appeal_panel_commitment": "original-fresh-panel-commitment",
+            }
+        )
     return {
         "chain_id": "replenishment-fixture",
         "height": 10,
@@ -72,10 +75,12 @@ def _state(*, appeal: bool = True, enabled: bool = True, reviewers: int = 90) ->
             "dispute": {"experimental_juror_response_window_blocks": 3},
         },
         "meta": {"constitutional_clock": {"enabled": True}},
-        "roles": {"jurors": {
-            "active_set": everyone,
-            "by_id": {j: _role() for j in everyone},
-        }},
+        "roles": {
+            "jurors": {
+                "active_set": everyone,
+                "by_id": {j: _role() for j in everyone},
+            }
+        },
         "accounts": {
             **{j: {"poh_tier": 2, "banned": False, "locked": False} for j in everyone},
             "@target": {"poh_tier": 2, "banned": False, "locked": False},
@@ -167,8 +172,10 @@ def test_fresh_appeal_never_reuses_original_juror() -> None:
     case = state["disputes_by_id"]["case"]
     tick_dispute_lifecycle(state, next_height=14)
     all_identities = (
-        case["original_panel_juror_ids"] + case["original_substitute_juror_ids"]
-        + case["appeal_panel_juror_ids"] + case["appeal_substitute_juror_ids"]
+        case["original_panel_juror_ids"]
+        + case["original_substitute_juror_ids"]
+        + case["appeal_panel_juror_ids"]
+        + case["appeal_substitute_juror_ids"]
     )
     assert len(all_identities) == len(set(all_identities)) == 60
 

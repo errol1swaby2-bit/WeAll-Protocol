@@ -63,7 +63,11 @@ def _snapshot_valid(dispute: Json, *, appeal: bool) -> bool:
     ids = dispute.get(ids_key, [])
     counts = dispute.get(counts_key, {})
     nullifiers = dispute.get(nullifier_key, {})
-    if not isinstance(ids, list) or not isinstance(counts, dict) or not isinstance(nullifiers, dict):
+    if (
+        not isinstance(ids, list)
+        or not isinstance(counts, dict)
+        or not isinstance(nullifiers, dict)
+    ):
         return False
     normalized = [_identity(item) for item in ids]
     if any(not item for item in normalized) or len(normalized) != len(set(normalized)):
@@ -88,9 +92,7 @@ def _eligible_new_candidate(
     # previously assigned, declined, timed-out, or original appeal juror.
     from weall.runtime.apply.dispute import _dispute_conflict_account_ids
 
-    conflicts = {
-        _identity(item) for item in _dispute_conflict_account_ids(state, dispute)
-    }
+    conflicts = {_identity(item) for item in _dispute_conflict_account_ids(state, dispute)}
     options: dict[str, str] = {}
     for juror in eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE):
         k = _identity(juror)
@@ -116,7 +118,10 @@ def _eligible_new_candidate(
     }
     return min(
         options.values(),
-        key=lambda candidate: (_commit({**seed, "juror": _identity(candidate)}), _identity(candidate)),
+        key=lambda candidate: (
+            _commit({**seed, "juror": _identity(candidate)}),
+            _identity(candidate),
+        ),
     )
 
 
@@ -145,7 +150,11 @@ def replenish_severe_juror_pool(
 
     stage = dispute.get("stage")
     appeal = stage == "appeal_review"
-    if stage not in {"juror_review", "appeal_review"} or dispute.get("resolved") is True and not appeal:
+    if (
+        stage not in {"juror_review", "appeal_review"}
+        or dispute.get("resolved") is True
+        and not appeal
+    ):
         return 0
     if appeal:
         panel_key = "appeal_panel_juror_ids"
@@ -225,8 +234,14 @@ def replenish_severe_juror_pool(
         excluded = {_identity(x) for x in previous + panel + reserve}
         excluded.update(_identity(x.get("outgoing")) for x in history)
         newcomer = _eligible_new_candidate(
-            state, dispute, dispute_id=dispute_id, round_no=round_no,
-            next_height=next_height, slot=slot, excluded=excluded, historic=history,
+            state,
+            dispute,
+            dispute_id=dispute_id,
+            round_no=round_no,
+            next_height=next_height,
+            slot=slot,
+            excluded=excluded,
+            historic=history,
         )
         if not newcomer:
             continue
