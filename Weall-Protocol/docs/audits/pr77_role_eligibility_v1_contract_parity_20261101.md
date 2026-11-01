@@ -112,3 +112,46 @@ derivatives were modified. The role policy v2 gate remains
 **not activated**, and the 15 semantically stale review transactions are
 still deliberately blocked pending authorization. GitHub PR77 remains
 Draft.
+
+## Canonical bounded-rollback versus deepcopy differential — 2026-11-01
+
+The preceding 121 predicate tests did not execute transactions through the
+`JournaledDict` / `JournaledList` bounded-rollback path. A new
+**84-case** differential matrix runs seven actual role/reviewer transaction
+appliers in version-absent, version-1 and explicit version-2 states,
+including permitted, banned, low-PoH and missing-account cases. It compares
+the full returned receipt metadata and resulting state against the
+preexisting deepcopy execution oracle; rejected operations must also
+restore the original state.
+
+**Real consensus-visible bug found:** Initial CI run
+`41353750616` failed three role-operator activation cases:
+`ROLE_NODE_OPERATOR_ACTIVATE` returned `deduped: false` under bounded
+rollback versus `deduped: true` under deepcopy. Its existing
+`active_set` membership check `acct in aset` was performed on
+`JournaledList`, whose inherited `list.__contains__` incorrectly read
+the proxy's deliberately empty base list rather than its target. Fix
+`a81a8d1eff3d12bdfb593a750756a31656451794` adds a read-only
+`JournaledList.__contains__` delegate to the persisted target. A direct
+proxy membership test confirms both present and absent identities, nested
+lists, no journal snapshots and no state changes.
+
+**Verified evidence after fix:**
+- Issue72 workflow `41354073085` **PASS: 205 focused tests**,
+  including the 84 transaction differential cases.
+- PR77 bounded V1.5 workflow `41354069122` **PASS: 338 focused tests**,
+  Ruff lint/format, source-bound generated freshness, release hygiene,
+  and direct `JournaledList` membership regression.
+- Bot `1cd58af9459c61018d7853e033d8cbcad756658d` refreshed only
+  three source-bound V1.5 completion proof JSON artifacts; no V2 reviews
+  were modified.
+
+**Unclosed boundary:** This correction changes consensus-visible behavior
+for historical callers whose active-set logic used the defective proxy.
+Passing the bounded/deepcopy oracle on the tested cases is not a
+preserved-ledger replay proof, clean-clone test, fork-activation policy,
+or independent BFT state-root agreement. Other inherited list read
+operators (`__eq__`, `index`, `count`) are not certified by this fix
+and require a separate scoped audit before merge. There remains no
+authorized V2 semantic-review acceptance, network rollout or severe
+sanction authority.
