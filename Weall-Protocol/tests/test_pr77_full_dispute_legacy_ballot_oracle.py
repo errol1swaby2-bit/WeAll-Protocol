@@ -17,6 +17,7 @@ from typing import Any
 import pytest
 
 from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE
+from weall.runtime.bounded_rollback import run_with_bounded_rollback
 from weall.runtime.domain_apply import (
     ApplyError,
     apply_tx_atomic_meta_bounded_rollback,
@@ -176,3 +177,24 @@ def test_duplicate_legacy_dispute_vote_rejection_rolls_back_both_engines() -> No
     print(json.dumps({"rollback_probe": outcomes, "synthetic_only": True}, sort_keys=True))
     assert all(outcome["pre_state_restored"] for outcome in outcomes)
     assert all(outcome["state_root_restored"] for outcome in outcomes)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="parent entry replacement snapshots an already-cleared child dict",
+)
+def test_child_clear_then_parent_replace_rejection_restores_raw_state() -> None:
+    """Minimal journal-ordering regression independent of dispute transaction logic."""
+    initial = {"votes": {"@juror1": {"vote": "yes"}}}
+    state = copy.deepcopy(initial)
+
+    def reject_after_replacement(proxy: dict[str, Any]) -> None:
+        votes = proxy["votes"]
+        votes.clear()
+        proxy["votes"] = {}
+        raise RuntimeError("reject_after_legacy_migration")
+
+    with pytest.raises(RuntimeError, match="reject_after_legacy_migration"):
+        run_with_bounded_rollback(state, reject_after_replacement)
+    assert state == initial
