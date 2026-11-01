@@ -277,7 +277,14 @@ def _require_role_activation_eligible(
         minimum_reputation_milli=minimum_reputation_milli,
     )
     if not bool(decision["eligible"]):
-        details: Json = {"account_id": acct, "role": role}
+        # The pre-versioned _account_for_activation emitted no "role" in
+        # account_not_found details. Keep that replay-observable v1 contract
+        # even when rejection is mediated through the shared pure predicate.
+        details: Json = (
+            {"account_id": acct}
+            if decision["reason"] == "account_not_found"
+            else {"account_id": acct, "role": role}
+        )
         if decision["reason"] == "reputation_insufficient":
             details.update(
                 required_milli=int(decision["required_milli"]),
