@@ -14,6 +14,7 @@ from weall.runtime.apply import dispute
 from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.severe_sanction_boundary import (
     is_explicit_severe_account_sanction,
+    requires_severe_sanction_finality_hold,
 )
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -122,3 +123,86 @@ def test_no_account_ban_is_emitted_as_side_effect() -> None:
     assert not state["system_queue"]
     assert "reputation" not in state
     assert "accounts" not in state
+
+
+@pytest.mark.parametrize(
+    "location",
+    ["resolution", "final_resolution", "appeal_panel_result"],
+)
+def test_unclassified_ban_action_blocks_scheduled_final_receipt(location) -> None:
+    state = _state(enabled=True, marker="", value="")
+    action_resolution = {"actions": [{"tx_type": " account_ban ", "payload": {"account_id": "@target"}}]}
+    case = state["disputes_by_id"]["case-1"]
+    if location == "appeal_panel_result":
+        case["stage"] = "appeal_resolved"
+        case["appeal_panel_result"] = {
+            "reached": True, "resolution": {"decision": "uphold", **action_resolution}
+        }
+    else:
+        case[location] = action_resolution
+    before = copy.deepcopy(state)
+    assert requires_severe_sanction_finality_hold(case)
+    assert tick_dispute_lifecycle(state, next_height=11) == 0
+    assert state == before
+
+
+@pytest.mark.parametrize("location", ["resolution", "appeal_resolution"])
+def test_unclassified_incoming_ban_action_rejected_atomically(location) -> None:
+    state = _state(enabled=True, marker="", value="")
+    before = copy.deepcopy(state)
+    receipt = _receipt()
+    receipt.payload[location] = {
+        "actions": [{"tx_type": "ACCOUNT_BAN", "payload": {"account_id": "@target"}}]
+    }
+    with pytest.raises(dispute.DisputeApplyError) as exc:
+        dispute.apply_dispute(state, receipt)
+    assert exc.value.reason == "severe_sanction_automatic_appeal_unimplemented"
+    assert state == before
+
+
+def test_non_account_dispute_cannot_smuggle_account_ban() -> None:
+    state = _state(enabled=True, marker="", value="")
+    case = state["disputes_by_id"]["case-1"]
+    case["target_type"] = "content"
+    case["resolution"]["actions"] = [{"tx_type": "ACCOUNT_BAN"}]
+    before = copy.deepcopy(state)
+    assert requires_severe_sanction_finality_hold(case)
+    assert tick_dispute_lifecycle(state, next_height=11) == 0
+    assert state == before
+
+
+def test_conflicting_outer_low_does_not_override_severe_rules() -> None:
+    state = _state(enabled=True, marker="severity", value="low")
+    case = state["disputes_by_id"]["case-1"]
+    case["rules"] = {"severity": "severe"}
+    assert is_explicit_severe_account_sanction(case)
+    assert tick_dispute_lifecycle(state, next_height=11) == 0
+
+
+def test_conflicting_outer_non_s4_does_not_override_s4_rules() -> None:
+    state = _state(enabled=True, marker="sanction_class", value="S2")
+    case = state["disputes_by_id"]["case-1"]
+    case["rules"] = {"sanction_class": "S4"}
+    assert is_explicit_severe_account_sanction(case)
+    assert tick_dispute_lifecycle(state, next_height=11) == 0
+
+
+def test_ordinary_account_lock_is_not_mistaken_for_account_ban() -> None:
+    state = _state(enabled=True, marker="", value="")
+    case = state["disputes_by_id"]["case-1"]
+    case["resolution"]["actions"] = [{"tx_type": "ACCOUNT_LOCK"}]
+    assert not requires_severe_sanction_finality_hold(case)
+    assert tick_dispute_lifecycle(state, next_height=11) == 1
+
+
+def test_legacy_clock_preserves_incoming_ban_action_filter() -> None:
+    state = _state(enabled=False, marker="", value="")
+    receipt = _receipt()
+    receipt.payload["resolution"] = {
+        "actions": [{"tx_type": "ACCOUNT_BAN", "payload": {"account_id": "@target"}}]
+    }
+    result = dispute.apply_dispute(state, receipt)
+    assert result is not None
+    assert result["applied"] == "DISPUTE_FINAL_RECEIPT"
+    assert not result["enforcement_applied"]
+    assert state["dispute_enforcement_rejections"][0]["tx_type"] == "ACCOUNT_BAN"

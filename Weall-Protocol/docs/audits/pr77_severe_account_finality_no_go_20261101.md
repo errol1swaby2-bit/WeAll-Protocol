@@ -37,3 +37,22 @@ the ordinary-dispute and legacy-clock paths.
 ### Explicit safety caveat
 
 The `DISPUTE_OPEN` schema does **not** yet provide authenticated severity/sanction-class admission. This guard applies only to cases **already carrying explicit severe/critical/S4 account-targeted classification** and cannot substitute for a canonical classification and appeal producer. Other severe-like matters and any direct `ACCOUNT_BAN` execution require independent checks. The V2 `TX-0904` semantic review remains unapproved; the new `DISPUTE_FINAL_RECEIPT` behavior also warrants semantic/replay review. No launch or merge authorization is implied.
+
+
+## Follow-up: unclassified ban-intent detection
+
+The initial clock-mode hold required a declared severe/critical/S4 account class.
+The follow-up extends the **hold only** to `ACCOUNT_BAN` actions in recorded
+initial/final/appeal-panel resolutions and directly supplied final-receipt
+resolutions. This includes account-ban actions mislabeled as a lower-severity
+case or attached to another target type. Conflicting severity fields are
+conservatively treated as severe when either level declares a severe class.
+
+This is **not** canonical, authenticated classification. A case that omits
+explicit severe metadata and contains no visible ban action cannot be
+recognized by this predicate. The separate reputation-domain `ACCOUNT_BAN`
+clock-mode reject continues to block direct execution. Unauthenticated
+payload actions can HOLD a final receipt but can never GRANT authorization.
+
+No protocol activation, automatic juror appeal, V2 semantic acceptance,
+legacy replay change, or ban producer is introduced.

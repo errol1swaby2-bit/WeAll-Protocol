@@ -32,7 +32,7 @@ from weall.runtime.reviewer_responsibilities import (
     eligible_reviewer_ids,
     reviewer_lane_active,
 )
-from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
+from weall.runtime.severe_sanction_boundary import requires_severe_sanction_finality_hold
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 from weall.util.ipfs_cid import validate_ipfs_cid
@@ -2965,11 +2965,13 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
     dispute_id = _as_str(payload.get("dispute_id")).strip()
     disputes = state.get("disputes_by_id")
     candidate = disputes.get(dispute_id) if isinstance(disputes, dict) else None
-    # An explicitly classified severe account sanction must not escape through
-    # direct SYSTEM finalization before the automatic fresh appeal is verified.
-    # There is no authenticated severe-sanction appeal/finality producer yet.
-    # Legacy-clock receipts and other dispute classes retain their behavior.
-    if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(candidate):
+    # An explicit severe class OR ACCOUNT_BAN action, including in an incoming
+    # receipt with no previously declared severity, must not escape through
+    # ordinary finalization. Neither the case nor its payload proves a fresh
+    # appeal or valid sanction authority. Legacy clock behavior is unchanged.
+    if _constitutional_clock_enabled(state) and requires_severe_sanction_finality_hold(
+        candidate, receipt_payload=payload
+    ):
         raise DisputeApplyError(
             "forbidden",
             "severe_sanction_automatic_appeal_unimplemented",
