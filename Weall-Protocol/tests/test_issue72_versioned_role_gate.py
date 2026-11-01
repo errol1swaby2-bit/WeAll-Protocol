@@ -357,3 +357,76 @@ def test_role_v2_or_malformed_gates_never_mutate_consensus_state(version: object
     except RolesApplyError as exc:
         assert exc.reason in ("canonical_role_reputation_ineligible", "policy_unknown")
     assert state == before
+
+
+@pytest.mark.parametrize("version", (None, 1, 2))
+@pytest.mark.parametrize("condition", ("eligible", "banned", "tier1", "missing_account"))
+@pytest.mark.parametrize(
+    "tx_type,system",
+    (
+        ("ROLE_JUROR_ENROLL", False),
+        ("ROLE_JUROR_ACTIVATE", False),
+        ("REVIEWER_LANE_OPT_IN", False),
+        ("ROLE_NODE_OPERATOR_ACTIVATE", True),
+        ("ROLE_VALIDATOR_ACTIVATE", True),
+        ("ROLE_EMISSARY_SEAT", True),
+        ("ROLE_GOV_EXECUTOR_SET", True),
+    ),
+)
+def test_role_transaction_rollback_matches_deepcopy_reference(
+    version: int | None, condition: str, tx_type: str, system: bool
+) -> None:
+    """Compare actual role TX state transitions, not just the gate predicate.
+
+    This proves bounded-journal atomicity against the reference execution;
+    it is not a historical two-node replay or semantic-review approval.
+    """
+    from weall.runtime.apply.roles import apply_roles
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+    from weall.runtime.tx_admission import TxEnvelope
+
+    state = _state(version=version)
+    state["roles"] = {
+        "jurors": {"by_id": {"@alice": {"enrolled": True}}, "active_set": []},
+        "node_operators": {
+            "by_id": {"@alice": {"enrolled": True, "active": True}},
+            "active_set": ["@alice"],
+        },
+    }
+    if condition == "banned":
+        state["accounts"]["@alice"]["banned"] = True
+    elif condition == "tier1":
+        state["accounts"]["@alice"]["poh_tier"] = 1
+    elif condition == "missing_account":
+        state["accounts"].clear()
+    payload = {"account_id": "@alice", "reviewer_lanes": ["dispute_review"]}
+    env = TxEnvelope(
+        tx_type=tx_type,
+        signer="SYSTEM" if system else "@alice",
+        nonce=7,
+        payload=payload,
+        sig="sig",
+        parent="p:6" if system else None,
+        system=system,
+    )
+    before = copy.deepcopy(state)
+    reference = copy.deepcopy(state)
+    journaled = copy.deepcopy(state)
+
+    def outcome(fn):
+        try:
+            return ("accepted", fn())
+        except RolesApplyError as error:
+            return ("rejected", error.code, error.reason, error.details)
+
+    old = outcome(lambda: apply_roles(reference, env))
+    new = outcome(
+        lambda: run_with_bounded_rollback(
+            journaled, lambda target: apply_roles(target, env)
+        )[0]
+    )
+    assert new == old
+    if new[0] == "rejected":
+        assert journaled == before
+    else:
+        assert journaled == reference
