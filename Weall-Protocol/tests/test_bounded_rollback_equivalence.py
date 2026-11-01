@@ -788,3 +788,24 @@ def test_governance_execute_nested_action_queue_and_emission_match_deepcopy_orac
     assert _canonical_json(bounded) == _canonical_json(oracle)
     assert compute_state_root(bounded) == compute_state_root(oracle)
     _assert_no_journal_proxy(bounded)
+
+
+def test_journaled_list_membership_is_read_only_and_target_backed() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    state = {"members": ["@alice", "@bob"], "nested": {"active_set": ["@alice"]}}
+    initial = copy.deepcopy(state)
+
+    def inspect(proxy: Json) -> Json:
+        members = proxy["members"]
+        assert "@alice" in members
+        assert "@bob" in members
+        assert "@carol" not in members
+        assert "@alice" in proxy["nested"]["active_set"]
+        assert "@bob" not in proxy["nested"]["active_set"]
+        return {"members": list(members)}
+
+    result, journal_records = run_with_bounded_rollback(state, inspect)
+    assert result == {"members": ["@alice", "@bob"]}
+    assert journal_records == 0
+    assert state == initial

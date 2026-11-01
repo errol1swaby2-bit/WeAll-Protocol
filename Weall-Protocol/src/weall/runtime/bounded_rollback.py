@@ -594,6 +594,13 @@ class JournaledList(list):
     def __len__(self) -> int:
         return len(self._target)
 
+    def __contains__(self, value: object) -> bool:
+        # The inherited list base is deliberately empty. Without overriding
+        # membership it reports false for every persisted active-set member,
+        # changing ROLE_NODE_OPERATOR_ACTIVATE deduplication under the
+        # canonical journaled executor versus the deepcopy oracle.
+        return _unwrap(value) in self._target
+
     def __iter__(self) -> Iterator[Any]:
         for idx, value in enumerate(self._target):
             yield _wrap(value, self._journal, self._path + (idx,))
