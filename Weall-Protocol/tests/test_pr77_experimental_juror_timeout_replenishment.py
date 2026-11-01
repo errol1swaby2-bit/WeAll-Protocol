@@ -238,9 +238,7 @@ def test_previously_assigned_juror_cannot_be_reintroduced_as_reserve() -> None:
     assert state == before
 
 
-def _general_state(
-    *, size: int, appeal: bool, general: bool = True, reviewers: int = 100
-) -> dict:
+def _general_state(*, size: int, appeal: bool, general: bool = True, reviewers: int = 100) -> dict:
     """Derive 7/15/ordinary-25 cases from the existing review-role fixture."""
     from weall.runtime.bft_hotstuff import quorum_threshold
 
@@ -252,9 +250,7 @@ def _general_state(
     second_start = size + reserve_size
     panel = roster[second_start : second_start + size] if appeal else old_panel
     reserve = (
-        roster[second_start + size : second_start + size + reserve_size]
-        if appeal
-        else old_reserve
+        roster[second_start + size : second_start + size + reserve_size] if appeal else old_reserve
     )
     case = state["disputes_by_id"]["case"]
     case["severity"] = {7: "low", 15: "medium", 25: "high"}[size]
@@ -295,9 +291,7 @@ def _general_state(
 
 @pytest.mark.parametrize("size", [7, 15, 25])
 @pytest.mark.parametrize("appeal", [False, True])
-def test_general_panels_reuse_fifo_promotion_and_backfill(
-    size: int, appeal: bool
-) -> None:
+def test_general_panels_reuse_fifo_promotion_and_backfill(size: int, appeal: bool) -> None:
     from weall.runtime.bft_hotstuff import quorum_threshold
 
     state = _general_state(size=size, appeal=appeal)
@@ -364,9 +358,7 @@ def test_general_juror_with_recorded_ballot_is_never_replaced(size: int) -> None
 @pytest.mark.parametrize("size", [7, 15, 25])
 def test_general_pool_missing_replacement_refill_remains_unchanged(size: int) -> None:
     reserve_size = (size + 4) // 5
-    state = _general_state(
-        size=size, appeal=False, reviewers=size + reserve_size
-    )
+    state = _general_state(size=size, appeal=False, reviewers=size + reserve_size)
     prior = copy.deepcopy(state)
     tick_dispute_lifecycle(state, next_height=14)
     assert state == prior
@@ -405,9 +397,9 @@ def test_general_content_dispute_respects_dispute_reviewer_opt_in() -> None:
     case = state["disputes_by_id"]["case"]
     case["target_type"] = "content"
     reserve = case["substitute_juror_ids"][0]
-    state["roles"]["jurors"]["by_id"][reserve]["responsibilities"]["reviewer"][
-        "dispute_review"
-    ]["opted_in"] = False
+    state["roles"]["jurors"]["by_id"][reserve]["responsibilities"]["reviewer"]["dispute_review"][
+        "opted_in"
+    ] = False
     before = copy.deepcopy(state)
     tick_dispute_lifecycle(state, next_height=14)
     assert state == before
