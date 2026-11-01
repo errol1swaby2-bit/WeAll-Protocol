@@ -551,9 +551,7 @@ def apply_semantic_reviews(
         != str(tx_reviews[str(row["stable_id"])].get("review_digest") or "")
     ]
     if stale_tx:
-        raise ValueError(
-            "transaction semantic-review digest is stale: " + ", ".join(stale_tx)
-        )
+        raise ValueError("transaction semantic-review digest is stale: " + ", ".join(stale_tx))
     for row in tx_rows:
         review = tx_reviews[str(row["stable_id"])]
         if review.get("disposition") != "accepted_current_semantic_contract":
