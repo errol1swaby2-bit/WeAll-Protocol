@@ -19,9 +19,7 @@ validation = importlib.import_module("v2_spec_validation")
 
 
 def test_dispute_open_maps_to_actual_handler_not_catchall_dispatcher() -> None:
-    registry = json.loads(
-        (ROOT / "specs/v2/source/tx_appliers.json").read_text(encoding="utf-8")
-    )
+    registry = json.loads((ROOT / "specs/v2/source/tx_appliers.json").read_text(encoding="utf-8"))
     rows = [row for row in registry["rows"] if row.get("tx_type") == "DISPUTE_OPEN"]
     assert len(rows) == 1
     row = rows[0]
@@ -35,7 +33,11 @@ def test_dispute_open_standalone_analysis_does_not_capture_other_transactions() 
     path = ROOT / "src/weall/runtime/apply/dispute.py"
     txs = {"DISPUTE_OPEN", "DISPUTE_RESOLVE", "DISPUTE_APPEAL", "ACCOUNT_BAN"}
     analysis = compiler._tx_function_analysis(
-        "DISPUTE_OPEN", path, "dispute_open", txs, {"DISPUTE_RESOLVE"},
+        "DISPUTE_OPEN",
+        path,
+        "dispute_open",
+        txs,
+        {"DISPUTE_RESOLVE"},
         ["disputes_by_id"],
     )
     assert analysis["function"] == "dispute_open"
@@ -53,7 +55,11 @@ def test_dispute_open_standalone_analysis_does_not_capture_other_transactions() 
 def test_review_material_does_not_bind_line_number_or_fabricate_authority() -> None:
     path = ROOT / "src/weall/runtime/apply/dispute.py"
     analysis = compiler._tx_function_analysis(
-        "DISPUTE_OPEN", path, "dispute_open", {"DISPUTE_OPEN"}, set(),
+        "DISPUTE_OPEN",
+        path,
+        "dispute_open",
+        {"DISPUTE_OPEN"},
+        set(),
         ["disputes_by_id"],
     )
     material = validation.tx_review_material(

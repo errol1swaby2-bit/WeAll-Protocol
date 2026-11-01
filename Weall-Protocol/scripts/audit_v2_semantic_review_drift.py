@@ -41,11 +41,10 @@ def main() -> int:
     del compiler
     reviews = _load(ROOT / "specs/v2/source/semantic_reviews.json")
     previous, previous_shape = _prior_rows()
-    previous_by_type = {
-        str(x.get("tx_type") or ""): x for x in previous
-    }
+    previous_by_type = {str(x.get("tx_type") or ""): x for x in previous}
     accepted = {
-        str(x.get("tx_type") or ""): x for x in reviews.get("transactions", [])
+        str(x.get("tx_type") or ""): x
+        for x in reviews.get("transactions", [])
         if isinstance(x, dict)
     }
     changed: list[Json] = []
@@ -58,37 +57,43 @@ def main() -> int:
         if current_digest == reviewed_digest:
             continue
         older = previous_by_type.get(tx_type)
-        old_material = (
-            validation.tx_review_material(older)
-            if isinstance(older, dict) else None
-        )
+        old_material = validation.tx_review_material(older) if isinstance(older, dict) else None
         fields = []
         if old_material is not None:
             for key in sorted(set(old_material) | set(material)):
                 if old_material.get(key) != material.get(key):
-                    fields.append({
-                        "field": key,
-                        "committed": old_material.get(key),
-                        "current": material.get(key),
-                    })
-        changed.append({
-            "tx_type": tx_type,
-            "reviewed_digest": reviewed_digest,
-            "current_digest": current_digest,
-            "previous_material_available": old_material is not None,
-            "changed_review_fields": fields,
-            "current_implementation_source": material.get("implementation_source"),
-            "current_failure_codes": material.get("failure_codes"),
-            "review_accepted": prior.get("disposition") == (
-                "accepted_current_semantic_contract"
-            ),
-        })
-    print(json.dumps({
-        "status": "DIAGNOSTIC_ONLY_NOT_SEMANTIC_REVIEW",
-        "prior_generated_shape": previous_shape,
-        "mismatched_transaction_reviews": len(changed),
-        "details": changed,
-    }, indent=2, ensure_ascii=False))
+                    fields.append(
+                        {
+                            "field": key,
+                            "committed": old_material.get(key),
+                            "current": material.get(key),
+                        }
+                    )
+        changed.append(
+            {
+                "tx_type": tx_type,
+                "reviewed_digest": reviewed_digest,
+                "current_digest": current_digest,
+                "previous_material_available": old_material is not None,
+                "changed_review_fields": fields,
+                "current_implementation_source": material.get("implementation_source"),
+                "current_failure_codes": material.get("failure_codes"),
+                "review_accepted": prior.get("disposition")
+                == ("accepted_current_semantic_contract"),
+            }
+        )
+    print(
+        json.dumps(
+            {
+                "status": "DIAGNOSTIC_ONLY_NOT_SEMANTIC_REVIEW",
+                "prior_generated_shape": previous_shape,
+                "mismatched_transaction_reviews": len(changed),
+                "details": changed,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
