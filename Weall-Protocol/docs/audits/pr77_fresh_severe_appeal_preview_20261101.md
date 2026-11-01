@@ -40,3 +40,31 @@ Every preview explicitly returns `may_enqueue_account_ban=false` and
 
 The preview is a building block for the eventual automatic appeal scheduler,
 not a substitute for the constitutional lifecycle.
+
+## Exact GitHub test evidence
+
+- Source/panel sizing and candidate preview commit: `4dc9e08f39363ab5bf1c40c99735918679b69728`.
+- Import correction: `3815815c1fc93d38469d17d6203a55bdfa29bd06`.
+- Bounded V1.5 evidence/format workflow: `41321551870`, **PASS**.
+- This run passed Ruff lint and formatting, **69 focused tests**, the V1.5
+  derived-artifact checks, and release-hygiene checks. It generated bot
+  commit `c917ccf52c2517822d80425aaa00f83c40a8a783`, limited to
+  Ruff formatting of the two new candidate/test files and three
+  source-bound V1.5 proof artifacts.
+- The public-beta blocker report still lists **8 open blockers**.
+- Neither the V2 semantic attestation nor the explicit account-ban
+  constitutional-clock deny was changed by this work.
+
+### Semantics explicitly not yet authorized
+
+S4 panel sizing is a source/consensus behavior change for explicitly marked
+account cases. This preview cannot distinguish a legitimate from a forged
+initial vote tally or sanction-class marker. A real automatic appeal must
+originate from an authenticated first-stage decision, persist a distinct
+deterministic juror assignment, allow actual juror ballots, verify 20 approvals,
+and produce a queue-bound final receipt. None of those transitions is
+implemented here.
+
+PR #77 remains Draft. Full backend/clean-clone and replay compatibility
+validation, V2 semantic adjudication, and remaining readiness blockers
+must be resolved independently before merge or launch.
