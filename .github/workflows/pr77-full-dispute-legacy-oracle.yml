@@ -1,0 +1,46 @@
+name: PR77 strict legacy dispute full-TX replay diagnostic
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - Weall-Protocol/tests/test_pr77_full_dispute_legacy_ballot_oracle.py
+      - .github/workflows/pr77-full-dispute-legacy-oracle.yml
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/runtime/bounded_rollback.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-full-tx:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Check formatting and compare entire transaction path
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_full_dispute_legacy_ballot_oracle.py
+          ruff format --check tests/test_pr77_full_dispute_legacy_ballot_oracle.py
+          python -m pytest -q -rxX tests/test_pr77_full_dispute_legacy_ballot_oracle.py --junitxml=pr77-full-dispute-legacy-oracle.xml
+          echo 'NO-GO: an XFAIL is an unresolved consensus-visible full-TX difference.'
+      - name: Preserve diagnostic test transcript
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-full-dispute-legacy-synthetic-only
+          path: Weall-Protocol/pr77-full-dispute-legacy-oracle.xml
+          if-no-files-found: warn
