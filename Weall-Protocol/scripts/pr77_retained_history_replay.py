@@ -19,11 +19,11 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
-from weall.runtime.executor import WeAllExecutor
 from weall.runtime.block_commitment_validation import (
     BlockCommitmentBindingError,
     ensure_complete_block_commitments,
 )
+from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 
 Json = dict[str, Any]
