@@ -19,7 +19,10 @@ from pathlib import Path
 from typing import Any
 
 from weall.runtime.executor import WeAllExecutor
-from weall.runtime.replay_consistency import _block_manifest_entry
+from weall.runtime.block_commitment_validation import (
+    BlockCommitmentBindingError,
+    ensure_complete_block_commitments,
+)
 from weall.runtime.state_hash import compute_state_root
 
 Json = dict[str, Any]
@@ -84,11 +87,18 @@ def inspect_offline_source(
                 block = json.loads(str(entry["block_json"]))
                 if not isinstance(block, dict) or int(block.get("height") or 0) != height:
                     raise ReplayEvidenceError(f"offline_source_block_height_mismatch:{height}")
-                if not all(
-                    str(block.get(key) or "")
-                    for key in ("block_id", "state_root", "receipts_root", "block_hash")
+                header = block.get("header")
+                if not isinstance(header, dict) or not all(
+                    str(value or "")
+                    for value in (
+                        block.get("block_id"),
+                        header.get("state_root"),
+                        header.get("receipts_root"),
+                    )
                 ):
                     raise ReplayEvidenceError(f"offline_source_missing_commitment:{height}")
+                # The block hash may be derived from its signed/committed header;
+                # it need not be stored as a top-level JSON key.
                 blocks.append(block)
     except (sqlite3.Error, ValueError, TypeError, json.JSONDecodeError) as exc:
         raise ReplayEvidenceError(
@@ -151,10 +161,21 @@ def replay_offline_source(
         observed = executor.get_block_by_height(height)
         if not isinstance(observed, dict):
             raise ReplayEvidenceError(f"historical_block_not_persisted:{height}")
-        if _block_manifest_entry(block) != _block_manifest_entry(observed):
+        try:
+            original, _ = ensure_complete_block_commitments(
+                block=block, chain_id=chain_id
+            )
+            current, _ = ensure_complete_block_commitments(
+                block=observed, chain_id=chain_id
+            )
+        except BlockCommitmentBindingError as exc:
+            raise ReplayEvidenceError(
+                f"historical_block_binding_invalid:{height}:{exc}"
+            ) from exc
+        if original != current:
             raise ReplayEvidenceError(f"historical_block_commitment_mismatch:{height}")
         root = compute_state_root(dict(executor.read_state()))
-        if root != str(block["state_root"]):
+        if root != str(block["header"]["state_root"]):
             raise ReplayEvidenceError(f"historical_state_root_mismatch:{height}")
     final_root = compute_state_root(dict(executor.read_state()))
     if final_root != compute_state_root(source_state):

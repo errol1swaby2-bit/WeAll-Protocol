@@ -33,7 +33,9 @@ The tool opens the source with SQLite `mode=ro&immutable=1`, validates the
 archive and rejects gaps, missing commitments, branch/index mismatches and
 different chain identity. It creates a **new** scratch executor and compares
 every re-applied block/header commitment and calculated state root to the
-retained committed block, failing at the first mismatch.
+retained committed block, failing at the first mismatch. Canonical state
+and receipt roots are validated within the block `header`, not as
+nonexistent top-level block fields.
 
 A PASS means only single-revision replay against the supplied stored
 commitments succeeded. The report deliberately sets the fields for historical

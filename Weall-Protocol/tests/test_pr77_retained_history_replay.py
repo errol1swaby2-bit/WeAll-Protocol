@@ -30,9 +30,10 @@ def _fixture_db(
             block = {
                 "height": height,
                 "block_id": f"block-{height}",
-                "block_hash": "a" * 64,
-                "state_root": "b" * 64,
-                "receipts_root": "c" * 64,
+                "header": {
+                    "state_root": "b" * 64,
+                    "receipts_root": "c" * 64,
+                },
             }
             con.execute(
                 "INSERT INTO blocks(height, block_json) VALUES(?, ?)",
