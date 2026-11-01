@@ -1201,7 +1201,6 @@ def _apply_inline_content_enforcement(
     return applied
 
 
-
 def _severe_initial_twenty_of_twenty_five_observed(dispute: Json, dispute_id: str) -> bool:
     """Check strict on-state ballot bookkeeping, not cryptographic authorization.
 
@@ -1252,9 +1251,7 @@ def _severe_initial_twenty_of_twenty_five_observed(dispute: Json, dispute_id: st
     if any(j.removeprefix("@") not in panel_ids for j in voted):
         return False
     expected = {
-        _dispute_ballot_nullifier(
-            dispute_id=dispute_id, panel_round=1, juror=juror, appeal=False
-        )
+        _dispute_ballot_nullifier(dispute_id=dispute_id, panel_round=1, juror=juror, appeal=False)
         for juror in voted
     }
     if set(nullifiers) != expected:
@@ -1275,9 +1272,9 @@ def _maybe_schedule_dispute_auto_resolution(
     if bool(dispute.get("resolved")) or _as_str(dispute.get("stage")).strip().lower() == "resolved":
         return
 
-    severe_clock_case = _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(
-        dispute
-    )
+    severe_clock_case = _constitutional_clock_enabled(
+        state
+    ) and is_explicit_severe_account_sanction(dispute)
     # This is a guard on the existing decision path, not an account-ban
     # producer. Reject incomplete/migrated vote bookkeeping before any
     # eligibility refresh mutates the case or queues a SYSTEM resolution.
@@ -2692,9 +2689,9 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
     if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(d):
-        if not strict_civic_governance_enabled(state) or not _severe_initial_twenty_of_twenty_five_observed(
-            d, dispute_id
-        ):
+        if not strict_civic_governance_enabled(
+            state
+        ) or not _severe_initial_twenty_of_twenty_five_observed(d, dispute_id):
             raise DisputeApplyError(
                 "forbidden",
                 "severe_sanction_initial_twenty_votes_unverified",

@@ -571,7 +571,7 @@
       "http_status": null,
       "sample_reason": "dispute_ballot_already_final",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 2211
+      "source_lineno": 2292
     },
     {
       "code": "conflict",
@@ -670,7 +670,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1659
+      "source_lineno": 1740
     },
     {
       "code": "duplicate",
@@ -1660,7 +1660,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1618
+      "source_lineno": 1699
     },
     {
       "code": "not_found",
@@ -2011,7 +2011,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 3124
+      "source_lineno": 3223
     },
     {
       "code": "validator_mismatch",
