@@ -13,12 +13,14 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
-KNOWN_ROLE_VECTORS = frozenset({
-    "ROLE_JUROR_ACTIVATE",
-    "ROLE_JUROR_REINSTATE",
-    "ROLE_JUROR_SUSPEND",
-    "ROLE_NODE_OPERATOR_SUSPEND",
-})
+KNOWN_ROLE_VECTORS = frozenset(
+    {
+        "ROLE_JUROR_ACTIVATE",
+        "ROLE_JUROR_REINSTATE",
+        "ROLE_JUROR_SUSPEND",
+        "ROLE_NODE_OPERATOR_SUSPEND",
+    }
+)
 
 
 def leaf_diffs(old: Any, new: Any, path: str = "") -> list[dict[str, Any]]:
@@ -29,11 +31,13 @@ def leaf_diffs(old: Any, new: Any, path: str = "") -> list[dict[str, Any]]:
             segment = str(key).replace("~", "~0").replace("/", "~1")
             child = f"{path}/{segment}"
             if key not in old or key not in new:
-                found.append({
-                    "path": child,
-                    "old": old.get(key, "<missing>"),
-                    "new": new.get(key, "<missing>"),
-                })
+                found.append(
+                    {
+                        "path": child,
+                        "old": old.get(key, "<missing>"),
+                        "new": new.get(key, "<missing>"),
+                    }
+                )
             else:
                 found.extend(leaf_diffs(old[key], new[key], child))
         return found
@@ -42,11 +46,13 @@ def leaf_diffs(old: Any, new: Any, path: str = "") -> list[dict[str, Any]]:
         for index in range(max(len(old), len(new))):
             child = f"{path}/{index}"
             if index >= len(old) or index >= len(new):
-                found.append({
-                    "path": child,
-                    "old": old[index] if index < len(old) else "<missing>",
-                    "new": new[index] if index < len(new) else "<missing>",
-                })
+                found.append(
+                    {
+                        "path": child,
+                        "old": old[index] if index < len(old) else "<missing>",
+                        "new": new[index] if index < len(new) else "<missing>",
+                    }
+                )
             else:
                 found.extend(leaf_diffs(old[index], new[index], child))
         return found
@@ -83,9 +89,7 @@ def build_diagnostic() -> tuple[dict[str, Any], dict[str, Any]]:
 
     changed = sorted(key for key in prior if prior[key] != current[key])
     fixture = generator.load_fixture_module()
-    semantic_rows = {
-        row["tx_type"]: row for row in generator.load_semantic_manifest()["rows"]
-    }
+    semantic_rows = {row["tx_type"]: row for row in generator.load_semantic_manifest()["rows"]}
     investigations: dict[str, Any] = {}
     for tx_type in changed:
         before = fixture._base_state()
@@ -94,9 +98,7 @@ def build_diagnostic() -> tuple[dict[str, Any], dict[str, Any]]:
         bounded = copy.deepcopy(before)
         old_state_root = compute_state_root(before)
         oracle_meta = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(envelope))
-        bounded_meta = apply_tx_atomic_meta_bounded_rollback(
-            bounded, copy.deepcopy(envelope)
-        )
+        bounded_meta = apply_tx_atomic_meta_bounded_rollback(bounded, copy.deepcopy(envelope))
         new_state_root = compute_state_root(bounded)
         execution = current[tx_type]["successful_execution"]
         if (
@@ -120,9 +122,7 @@ def build_diagnostic() -> tuple[dict[str, Any], dict[str, Any]]:
             "historical_pre_fix_state_available": False,
         }
 
-    candidate_bytes = (
-        json.dumps(candidate, sort_keys=True, indent=2) + "\n"
-    ).encode("utf-8")
+    candidate_bytes = (json.dumps(candidate, sort_keys=True, indent=2) + "\n").encode("utf-8")
     report = {
         "schema": "weall.pr77.lifecycle_adjudication_diagnostic.v1",
         "provenance": "current_synthetic_fixture_only",
@@ -132,11 +132,10 @@ def build_diagnostic() -> tuple[dict[str, Any], dict[str, Any]]:
         "tracked_manifest_sha256": hashlib.sha256(tracked_bytes).hexdigest(),
         "candidate_manifest_sha256": hashlib.sha256(candidate_bytes).hexdigest(),
         "changed_tx_types": changed,
-        "changed_outside_four_known_role_vectors": sorted(
-            set(changed) - KNOWN_ROLE_VECTORS
-        ),
+        "changed_outside_four_known_role_vectors": sorted(set(changed) - KNOWN_ROLE_VECTORS),
         "changed_top_level_fields": sorted(
-            key for key in set(original) | set(candidate)
+            key
+            for key in set(original) | set(candidate)
             if key != "rows" and original.get(key) != candidate.get(key)
         ),
         "investigations": investigations,
@@ -172,15 +171,20 @@ def main() -> int:
         json.dumps(candidate, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print(json.dumps({
-        "changed_tx_types": report["changed_tx_types"],
-        "changed_pointers": {
-            name: row["changed_pointers"]
-            for name, row in report["investigations"].items()
-        },
-        "oracle_parity": report["all_changed_rows_match_deepcopy_oracle"],
-        "historical_compatibility_proven": False,
-    }, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "changed_tx_types": report["changed_tx_types"],
+                "changed_pointers": {
+                    name: row["changed_pointers"] for name, row in report["investigations"].items()
+                },
+                "oracle_parity": report["all_changed_rows_match_deepcopy_oracle"],
+                "historical_compatibility_proven": False,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     if report["changed_tx_types"]:
         print("FAIL_CLOSED: review drift; do not automatically refresh evidence")
         return 1
