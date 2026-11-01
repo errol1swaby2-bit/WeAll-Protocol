@@ -867,3 +867,110 @@ def test_journaled_list_inherited_reads_match_raw_list_without_journaling() -> N
     assert result is None
     assert records == 0
     assert state == initial
+
+
+def test_journaled_dict_reads_and_union_match_persisted_target_without_snapshots() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    initial = {
+        "records": {"alice": {"roles": ["juror"]}, "count": 2},
+        "other": {"x": 1},
+    }
+    state = copy.deepcopy(initial)
+
+    def inspect(st: Json) -> None:
+        records = st["records"]
+        reference = initial["records"]
+        assert records == reference
+        assert reference == records
+        assert records != {"count": 2}
+        assert not (records != reference)
+        assert repr(records) == repr(reference)
+        assert records | {"new": True} == reference | {"new": True}
+        assert {"new": True} | records == {"new": True} | reference
+        assert st["records"]["alice"] == reference["alice"]
+        assert st["records"]["alice"] != {"roles": ["validator"]}
+        assert st["records"]["alice"]["roles"] == ["juror"]
+
+    result, records = run_with_bounded_rollback(state, inspect)
+    assert result is None
+    assert records == 0
+    assert state == initial
+
+
+@pytest.mark.parametrize("fail", (False, True))
+def test_journaled_nested_augmented_assignments_are_atomic_and_match_raw_list(
+    fail: bool,
+) -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    initial = {
+        "items": ["a", "b"],
+        "matrix": [["x"], ["z"]],
+        "roles": {"alice": True},
+    }
+    reference = copy.deepcopy(initial)
+    reference["items"] += ["c"]
+    reference["matrix"][0] += ["y"]
+    reference["matrix"][1] *= 0
+    reference["roles"] |= {"bob": True}
+    reference["items"] *= 2
+
+    state = copy.deepcopy(initial)
+
+    def mutate(st: Json) -> None:
+        st["items"] += ["c"]
+        st["matrix"][0] += ["y"]
+        st["matrix"][1] *= 0
+        st["roles"] |= {"bob": True}
+        st["items"] *= 2
+        assert st["items"] == reference["items"]
+        assert st["matrix"] == reference["matrix"]
+        assert st["roles"] == reference["roles"]
+        if fail:
+            raise RuntimeError("rollback_probe")
+
+    if fail:
+        with pytest.raises(RuntimeError, match="rollback_probe"):
+            run_with_bounded_rollback(state, mutate)
+        assert state == initial
+    else:
+        result, records = run_with_bounded_rollback(state, mutate)
+        assert result is None
+        assert records > 0
+        assert state == reference
+
+
+def test_journaled_list_self_extend_and_self_iadd_are_finite_and_reversible() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    initial = {"rows": [[1, 2]]}
+    state = copy.deepcopy(initial)
+
+    def mutate(st: Json) -> None:
+        row = st["rows"][0]
+        row.extend(row)
+        assert row == [1, 2, 1, 2]
+        row += row
+        assert row == [1, 2, 1, 2] * 2
+        raise RuntimeError("rollback_self_extend")
+
+    with pytest.raises(RuntimeError, match="rollback_self_extend"):
+        run_with_bounded_rollback(state, mutate)
+    assert state == initial
+
+
+def test_journaled_parent_augmented_assignments_do_not_snapshot_post_mutation() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    original = {"rows": [["x"]], "items": ["a"]}
+    state = copy.deepcopy(original)
+
+    def mutate(st: Json) -> None:
+        st["rows"][0] += ["y"]
+        st["items"] += ["b"]
+        raise RuntimeError("rollback_parent")
+
+    with pytest.raises(RuntimeError, match="rollback_parent"):
+        run_with_bounded_rollback(state, mutate)
+    assert state == original

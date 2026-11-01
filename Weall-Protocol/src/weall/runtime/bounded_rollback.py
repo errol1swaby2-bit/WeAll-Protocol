@@ -496,6 +496,29 @@ class JournaledDict(dict):
     def __contains__(self, key: object) -> bool:
         return key in self._target
 
+    def __eq__(self, other: object) -> bool:
+        return self._target == _unwrap(other)
+
+    def __ne__(self, other: object) -> bool:
+        return self._target != _unwrap(other)
+
+    def __repr__(self) -> str:
+        return repr(self._target)
+
+    def __or__(self, other: Any) -> dict[Any, Any]:
+        if not isinstance(other, dict):
+            return NotImplemented
+        return self._target | _unwrap(other)
+
+    def __ror__(self, other: Any) -> dict[Any, Any]:
+        if not isinstance(other, dict):
+            return NotImplemented
+        return _unwrap(other) | self._target
+
+    def __ior__(self, other: Any) -> JournaledDict:
+        self.update(other)
+        return self
+
     def __len__(self) -> int:
         return len(self._target)
 
@@ -509,9 +532,15 @@ class JournaledDict(dict):
         return _wrap(self._target[key], self._journal, self._path + (_path_segment(key),))
 
     def __setitem__(self, key: Any, value: Any) -> None:
+        raw_value = _unwrap(value)
+        # Augmented assignment writes the same nested object back to its
+        # parent after the child has already journaled its in-place mutation.
+        # A second post-mutation parent snapshot would break reverse rollback.
+        if key in self._target and self._target[key] is raw_value:
+            return
         semantic_path = self._path + (_path_segment(key),)
         self._journal.record_dict_key(self._target, key, semantic_path=semantic_path)
-        self._target[key] = _unwrap(value)
+        self._target[key] = raw_value
 
     def __delitem__(self, key: Any) -> None:
         semantic_path = self._path + (_path_segment(key),)
@@ -667,11 +696,15 @@ class JournaledList(list):
         return list(self) * factor
 
     def __setitem__(self, index: Any, value: Any) -> None:
-        self._journal.record_list_state(self._target, semantic_path=self._path)
         if isinstance(index, slice):
+            self._journal.record_list_state(self._target, semantic_path=self._path)
             self._target[index] = [_unwrap(v) for v in value]
-        else:
-            self._target[index] = _unwrap(value)
+            return
+        raw_value = _unwrap(value)
+        if self._target[index] is raw_value:
+            return
+        self._journal.record_list_state(self._target, semantic_path=self._path)
+        self._target[index] = raw_value
 
     def __delitem__(self, index: Any) -> None:
         self._journal.record_list_state(self._target, semantic_path=self._path)
@@ -683,7 +716,19 @@ class JournaledList(list):
 
     def extend(self, values: Iterable[Any]) -> None:  # type: ignore[override]
         self._journal.record_list_append(self._target, semantic_path=self._path)
-        self._target.extend(_unwrap(v) for v in values)
+        # A generator walking this proxy while extending its target can grow
+        # without bound. Match list.extend(self)'s finite self-snapshot.
+        source = list(self._target) if values is self or values is self._target else values
+        self._target.extend(_unwrap(v) for v in source)
+
+    def __iadd__(self, values: Iterable[Any]) -> JournaledList:
+        self.extend(values)
+        return self
+
+    def __imul__(self, multiplier: Any) -> JournaledList:
+        self._journal.record_list_state(self._target, semantic_path=self._path)
+        self._target.__imul__(multiplier)
+        return self
 
     def insert(self, index: int, value: Any) -> None:  # type: ignore[override]
         self._journal.record_list_state(self._target, semantic_path=self._path)
