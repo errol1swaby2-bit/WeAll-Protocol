@@ -236,3 +236,174 @@ def test_previously_assigned_juror_cannot_be_reintroduced_as_reserve() -> None:
     before = copy.deepcopy(state)
     assert tick_dispute_lifecycle(state, next_height=14) == 0
     assert state == before
+
+
+def _general_state(
+    *, size: int, appeal: bool, general: bool = True, reviewers: int = 100
+) -> dict:
+    """Derive 7/15/ordinary-25 cases from the existing review-role fixture."""
+    from weall.runtime.bft_hotstuff import quorum_threshold
+
+    state = _state(appeal=False, enabled=False, reviewers=reviewers)
+    roster = [f"@juror-{i:03d}" for i in range(reviewers)]
+    reserve_size = (size + 4) // 5
+    old_panel = roster[:size]
+    old_reserve = roster[size : size + reserve_size]
+    second_start = size + reserve_size
+    panel = roster[second_start : second_start + size] if appeal else old_panel
+    reserve = (
+        roster[second_start + size : second_start + size + reserve_size]
+        if appeal
+        else old_reserve
+    )
+    case = state["disputes_by_id"]["case"]
+    case["severity"] = {7: "low", 15: "medium", 25: "high"}[size]
+    case["sanction_class"] = ""
+    case["stage"] = "appeal_review" if appeal else "juror_review"
+    case["resolved"] = appeal
+    case["assigned_jurors"] = list(panel)
+    case["eligible_juror_ids"] = list(panel)
+    case["substitute_juror_ids"] = list(old_reserve)
+    case["panel_round"] = 1
+    case["required_votes"] = quorum_threshold(size)
+    case["jurors"] = {
+        juror: {
+            "status": "assigned" if idx == 0 else "accepted",
+            "assigned_at_height": 10,
+            "vote_deadline_height": 200,
+            "panel_round": 2 if appeal else 1,
+        }
+        for idx, juror in enumerate(panel)
+    }
+    if appeal:
+        case.update(
+            original_panel_juror_ids=list(old_panel),
+            original_substitute_juror_ids=list(old_reserve),
+            appeal_panel_juror_ids=list(panel),
+            appeal_substitute_juror_ids=list(reserve),
+            appeal_panel_round=2,
+            appeal_panel_status="assigned",
+            appeal_panel_commitment="unchanged-appeal-commitment",
+        )
+    state["params"]["experimental_general_juror_replenishment_v0"] = general
+    return state
+
+
+@pytest.mark.parametrize("size", [7, 15, 25])
+@pytest.mark.parametrize("appeal", [False, True])
+def test_general_panels_reuse_fifo_promotion_and_backfill(
+    size: int, appeal: bool
+) -> None:
+    from weall.runtime.bft_hotstuff import quorum_threshold
+
+    state = _general_state(size=size, appeal=appeal)
+    before = copy.deepcopy(state)
+    case = state["disputes_by_id"]["case"]
+    outgoing = case["assigned_jurors"][0]
+    reserve_key = "appeal_substitute_juror_ids" if appeal else "substitute_juror_ids"
+    incoming = case[reserve_key][0]
+    assert tick_dispute_lifecycle(state, next_height=13) == 0
+    assert state == before
+    assert tick_dispute_lifecycle(state, next_height=14) == 0
+    assert case["assigned_jurors"][0] == incoming
+    assert len(case["assigned_jurors"]) == size
+    assert len(case[reserve_key]) == (size + 4) // 5
+    assert case["required_votes"] == quorum_threshold(size)
+    assert case["jurors"][outgoing]["status"] == "replaced_no_response"
+    assert len(case["experimental_juror_replacements"]) == 1
+    if appeal:
+        all_jurors = (
+            case["original_panel_juror_ids"]
+            + case["original_substitute_juror_ids"]
+            + case["appeal_panel_juror_ids"]
+            + case["appeal_substitute_juror_ids"]
+        )
+        assert len({_j.removeprefix("@") for _j in all_jurors}) == len(all_jurors)
+    replica = copy.deepcopy(before)
+    tick_dispute_lifecycle(replica, next_height=14)
+    assert replica == state
+    again = copy.deepcopy(state)
+    tick_dispute_lifecycle(state, next_height=14)
+    assert again == state
+
+
+@pytest.mark.parametrize("size", [7, 15, 25])
+def test_general_accepted_nonvoter_needs_canonical_timeout(size: int) -> None:
+    state = _general_state(size=size, appeal=False)
+    case = state["disputes_by_id"]["case"]
+    juror = case["assigned_jurors"][0]
+    case["jurors"][juror]["status"] = "accepted"
+    case["jurors"][juror]["vote_deadline_height"] = 12
+    tick_dispute_lifecycle(state, next_height=13)
+    assert case["assigned_jurors"][0] == juror
+    assert any(q["tx_type"] == "DISPUTE_JUROR_TIMEOUT" for q in state["system_queue"])
+    # The scheduler does not forge or shortcut the canonical receipt.
+    state["system_queue"].clear()
+    case["jurors"][juror]["status"] = "timed_out"
+    tick_dispute_lifecycle(state, next_height=13)
+    assert case["assigned_jurors"][0] != juror
+
+
+@pytest.mark.parametrize("size", [7, 15, 25])
+def test_general_juror_with_recorded_ballot_is_never_replaced(size: int) -> None:
+    state = _general_state(size=size, appeal=False)
+    case = state["disputes_by_id"]["case"]
+    juror = case["assigned_jurors"][0]
+    case["jurors"][juror]["status"] = "timed_out"
+    case["voted_juror_ids"] = [juror]
+    case["vote_counts"] = {"yes": 1}
+    case["ballot_nullifiers"] = {"synthetic-final-nullifier": {"final": True}}
+    tick_dispute_lifecycle(state, next_height=14)
+    assert case["assigned_jurors"][0] == juror
+
+
+@pytest.mark.parametrize("size", [7, 15, 25])
+def test_general_pool_missing_replacement_refill_remains_unchanged(size: int) -> None:
+    reserve_size = (size + 4) // 5
+    state = _general_state(
+        size=size, appeal=False, reviewers=size + reserve_size
+    )
+    prior = copy.deepcopy(state)
+    tick_dispute_lifecycle(state, next_height=14)
+    assert state == prior
+
+
+@pytest.mark.parametrize("size", [7, 15, 25])
+def test_general_switch_is_strict_boolean_and_independent(size: int) -> None:
+    state = _general_state(size=size, appeal=False, general=False)
+    state["params"]["experimental_general_juror_replenishment_v0"] = "true"
+    state["params"]["experimental_severe_juror_replenishment_v0"] = True
+    before = copy.deepcopy(state)
+    tick_dispute_lifecycle(state, next_height=14)
+    assert state == before
+
+
+def test_general_enable_does_not_enable_severe_sanctions() -> None:
+    state = _state(appeal=False, enabled=False)
+    state["params"]["experimental_general_juror_replenishment_v0"] = True
+    prior = copy.deepcopy(state)
+    tick_dispute_lifecycle(state, next_height=14)
+    assert state == prior
+
+
+@pytest.mark.parametrize("size", [7, 15])
+def test_general_conflicted_reserve_is_not_promoted(size: int) -> None:
+    state = _general_state(size=size, appeal=False)
+    case = state["disputes_by_id"]["case"]
+    case["conflicted_account_ids"] = [case["substitute_juror_ids"][0]]
+    before = copy.deepcopy(state)
+    tick_dispute_lifecycle(state, next_height=14)
+    assert state == before
+
+
+def test_general_content_dispute_respects_dispute_reviewer_opt_in() -> None:
+    state = _general_state(size=7, appeal=False)
+    case = state["disputes_by_id"]["case"]
+    case["target_type"] = "content"
+    reserve = case["substitute_juror_ids"][0]
+    state["roles"]["jurors"]["by_id"][reserve]["responsibilities"]["reviewer"][
+        "dispute_review"
+    ]["opted_in"] = False
+    before = copy.deepcopy(state)
+    tick_dispute_lifecycle(state, next_height=14)
+    assert state == before

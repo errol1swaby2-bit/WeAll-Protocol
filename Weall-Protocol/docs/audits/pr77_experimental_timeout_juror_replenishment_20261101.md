@@ -130,3 +130,33 @@ and restricted to explicitly marked severe/S4 account cases. Ordinary 7/15
 review panels do not yet use this replenisher. Current severity markers and
 previous vote/assignment fields remain insufficient independent authority
 proofs; no public-chain activation, finality, or ACCOUNT_BAN is authorized.
+
+## Experimental ordinary-panel extension (review required)
+
+The existing `replenish_severe_juror_pool` implementation and its
+`tick_dispute_lifecycle` call were **reused**; no duplicate scheduler,
+timeout action, or juror selection algorithm was introduced.
+
+An independent replicated-state switch,
+`params.experimental_general_juror_replenishment_v0 is True`, enables
+the same algorithm for non-S4 disputes requiring 7, 15, or ordinary
+25 jurors. The panel size comes from the existing `_dispute_panel_size`
+function and substitutes remain ceil(20%) (2, 3, or 5). For non-S4
+cases the original `quorum_threshold` is preserved, never silently
+lowered; severe/S4 cases still use the separate default-off switch
+and minimum 20/25 threshold. The existing canonical accepted-juror
+SYSTEM timeout, no-response block timer, replacement history,
+current-conflict checks, and eligible reserve refresh are reused.
+
+Tests cover deterministic initial/appeal replacement, block-height
+boundary, preserved voted jurors, absence of candidates, strict boolean
+flag isolation, original-appeal-panel exclusion, and case conflicts.
+One discrepancy remains in the pre-existing code: initial `dispute_open`
+uses the `DISPUTE_REVIEW_LANE` while panel repair can use
+`CONTENT_REVIEW_LANE` for content targets. This extension follows
+the existing active dispute juror/vote admission requirement and
+uses `DISPUTE_REVIEW_LANE`; the different-lane repair policy needs
+separate normative review before production activation.
+
+This is NOT automatically activated; no replay or V2 semantic
+review, finality, or launch authorization is implied.

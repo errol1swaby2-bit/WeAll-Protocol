@@ -1,9 +1,9 @@
 """Experimental deterministic juror-pool replenishment, default OFF.
 
 No local-wall-clock timers: all deadlines are replicated block heights.
-This code only changes panel membership for explicitly classified S4 account
-cases on a separate experimental state gate. It does not grant sanction
-authority, decide ballot disputes, or emit ACCOUNT_BAN.
+Severe S4 membership uses its original experimental state gate; other
+7/15/25-person panels have an independent default-off general gate. This
+does not grant sanction authority, decide ballots, or emit ACCOUNT_BAN.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ import json
 from typing import Any
 
 from weall.runtime.ballot_policy import strict_civic_governance_enabled
+from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.reviewer_responsibilities import (
     DISPUTE_REVIEW_LANE,
@@ -94,6 +95,7 @@ def _eligible_new_candidate(
     slot: int,
     excluded: set[str],
     historic: list[Json],
+    severe: bool = True,
 ) -> str:
     # Shared role eligibility and case-party exclusions; never choose a
     # previously assigned, declined, timed-out, or original appeal juror.
@@ -113,7 +115,11 @@ def _eligible_new_candidate(
     if not options:
         return ""
     seed = {
-        "domain": "weall.experimental.severe-juror-backfill.v0",
+        "domain": (
+            "weall.experimental.severe-juror-backfill.v0"
+            if severe
+            else "weall.experimental.general-juror-backfill.v0"
+        ),
         "chain_id": state.get("chain_id", ""),
         "dispute_id": dispute_id,
         "round": round_no,
@@ -133,7 +139,7 @@ def _eligible_new_candidate(
 def replenish_severe_juror_pool(
     state: Json, *, dispute_id: str, dispute: Json, next_height: int
 ) -> int:
-    """Replace unresponsive/nonvoting seats while retaining a full 25+5.
+    """Replace unresponsive/nonvoting seats, preserving the full panel/reserve.
 
     A no-response juror is eligible for replacement only AFTER the assigned
     block-height deadline; accepted jurors are replaced only after the
@@ -142,16 +148,32 @@ def replenish_severe_juror_pool(
     original panel commitments, or finalizes a sanction.
     """
     params = state.get("params")
+    severe = is_explicit_severe_account_sanction(dispute)
     if (
         not isinstance(params, dict)
-        or params.get("experimental_severe_juror_replenishment_v0") is not True
+        or not (
+            params.get(
+                "experimental_severe_juror_replenishment_v0"
+                if severe
+                else "experimental_general_juror_replenishment_v0"
+            )
+            is True
+        )
         or not policy_from_state(state).enabled
         or not strict_civic_governance_enabled(state)
-        or not is_explicit_severe_account_sanction(dispute)
         or type(next_height) is not int
         or next_height < 0
     ):
         return 0
+
+    # Reuse the actual constitutional selector's severity-to-size decision.
+    # A separate sizing table could silently diverge from case admission.
+    from weall.runtime.apply.dispute import _dispute_panel_size
+
+    panel_size = _dispute_panel_size(dispute)
+    if panel_size not in {7, 15, 25} or (severe and panel_size != 25):
+        return 0
+    reserve_size = (panel_size + 4) // 5
 
     stage = dispute.get("stage")
     appeal = stage == "appeal_review"
@@ -167,8 +189,8 @@ def replenish_severe_juror_pool(
         panel_status = "appeal_panel_status"
         panel_round = "appeal_panel_round"
         commitment = "appeal_panel_commitment"
-        original = _clean_roster(dispute.get("original_panel_juror_ids"), 25)
-        old_reserve = _clean_roster(dispute.get("original_substitute_juror_ids"), 5)
+        original = _clean_roster(dispute.get("original_panel_juror_ids"), panel_size)
+        old_reserve = _clean_roster(dispute.get("original_substitute_juror_ids"), reserve_size)
         if original is None or old_reserve is None:
             return 0
         previous = original + old_reserve
@@ -182,9 +204,9 @@ def replenish_severe_juror_pool(
         previous = []
         round_no = 1
 
-    panel = _clean_roster(dispute.get(panel_key), 25)
-    reserve = _clean_roster(dispute.get(reserve_key), 5)
-    current = _clean_roster(dispute.get("assigned_jurors"), 25)
+    panel = _clean_roster(dispute.get(panel_key), panel_size)
+    reserve = _clean_roster(dispute.get(reserve_key), reserve_size)
+    current = _clean_roster(dispute.get("assigned_jurors"), panel_size)
     if panel is None or reserve is None or current is None or panel != current:
         return 0
     all_identities = [_identity(x) for x in previous + panel + reserve]
@@ -255,6 +277,7 @@ def replenish_severe_juror_pool(
             slot=slot,
             excluded=excluded,
             historic=history,
+            severe=severe,
         )
         if not newcomer:
             continue
@@ -302,8 +325,9 @@ def replenish_severe_juror_pool(
         dispute[reserve_key] = reserve
         dispute["assigned_jurors"] = list(panel)
         dispute["eligible_juror_ids"] = list(panel)
-        dispute["eligible_validator_count"] = 25
-        dispute["required_votes"] = max(20, int(dispute.get("required_votes") or 0))
+        dispute["eligible_validator_count"] = panel_size
+        threshold = 20 if severe else int(quorum_threshold(panel_size))
+        dispute["required_votes"] = max(threshold, int(dispute.get("required_votes") or 0))
         dispute["jurors"] = jurors
         dispute["experimental_juror_replacements"] = history
     return count
