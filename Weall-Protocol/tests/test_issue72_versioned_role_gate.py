@@ -183,3 +183,174 @@ def test_matrix_reports_canonical_and_operative_separately_without_mutation() ->
     assert preview["roles"]["validator"]["eligible"] is True
     assert matrix["eligibility"]["validator_operator"]["eligible"] is False
     assert state == before
+
+
+# PR77 semantic adjudication: the baseline below independently mirrors the
+# unmodified main-branch role activation predicate. Tests compare exact
+# observable errors and state immutability across all five operative roles.
+# These tests do not approve the new version-2 consensus activation policy.
+from weall.runtime.poh.state import effective_poh_tier
+from weall.runtime.reputation_role_gate import ROLE_REVOKE_ALIASES
+from weall.runtime.reputation_units import account_reputation_units
+
+
+def _legacy_role_gate_oracle(
+    state: dict, account_id: str, role: str, minimum: int
+) -> dict:
+    """Prior main-branch authorization contract, independent of new helper."""
+    account = state.get("accounts", {}).get(account_id)
+    if not isinstance(account, dict):
+        raise RolesApplyError("not_found", "account_not_found", {"account_id": account_id})
+    if bool(account.get("banned", False)) or bool(account.get("locked", False)):
+        raise RolesApplyError(
+            "forbidden", "account_restricted", {"account_id": account_id, "role": role}
+        )
+    if effective_poh_tier(state, account_id) < 2:
+        raise RolesApplyError(
+            "forbidden", "live_verification_required",
+            {"account_id": account_id, "role": role},
+        )
+    eligible_roles = (
+        state.get("reputation", {}).get("role_eligibility", {})
+        .get(account_id, {}).get("roles", {})
+    )
+    if any(
+        alias in eligible_roles and bool(eligible_roles[alias]) is False
+        for alias in ROLE_REVOKE_ALIASES.get(role, (role,))
+    ):
+        raise RolesApplyError(
+            "forbidden", "role_eligibility_revoked",
+            {"account_id": account_id, "role": role},
+        )
+    required = max(0, int(minimum))
+    actual = account_reputation_units(account, default=0)
+    if actual < required:
+        raise RolesApplyError(
+            "forbidden", "reputation_insufficient",
+            {
+                "account_id": account_id,
+                "role": role,
+                "required_milli": int(required),
+                "actual_milli": int(actual),
+            },
+        )
+    return account
+
+
+@pytest.mark.parametrize(
+    "role",
+    ("juror", "node_operator", "validator", "gov_executor", "emissary"),
+)
+@pytest.mark.parametrize("version", (None, 1))
+@pytest.mark.parametrize(
+    "case",
+    (
+        "eligible",
+        "missing_account",
+        "banned",
+        "locked",
+        "tier1",
+        "revoked",
+        "low_reputation",
+        "multiple_failures",
+    ),
+)
+def test_all_roles_v1_matches_prechange_error_contract(
+    role: str, version: int | None, case: str
+) -> None:
+    state = _state(version=version)
+    acct = state["accounts"]["@alice"]
+    minimum = 5000
+    if case == "missing_account":
+        state["accounts"].clear()
+    elif case == "banned":
+        acct["banned"] = True
+    elif case == "locked":
+        acct["locked"] = True
+    elif case == "tier1":
+        acct["poh_tier"] = 1
+    elif case == "revoked":
+        state["reputation"] = {
+            "role_eligibility": {"@alice": {"roles": {role: False}}}
+        }
+    elif case == "low_reputation":
+        acct["reputation_milli"] = 1000
+    elif case == "multiple_failures":
+        acct.update(banned=True, poh_tier=1, reputation_milli=1000)
+    before = copy.deepcopy(state)
+
+    def result(fn):
+        try:
+            account = fn(state, "@alice", role, minimum)
+            return ("ok", account)
+        except RolesApplyError as exc:
+            return (exc.code, exc.reason, exc.details)
+
+    expected = result(_legacy_role_gate_oracle)
+    actual = result(
+        lambda st, aid, r, req: _require_role_activation_eligible(
+            st, aid, role=r, minimum_reputation_milli=req
+        )
+    )
+    assert actual == expected
+    assert state == before
+
+
+@pytest.mark.parametrize(
+    ("role", "mapped"),
+    (
+        ("juror", True),
+        ("validator", True),
+        ("node_operator", False),
+        ("emissary", False),
+        ("gov_executor", False),
+    ),
+)
+def test_v2_does_not_invent_reputation_authority_for_unmapped_roles(
+    role: str, mapped: bool
+) -> None:
+    state = _state(version=2)
+    _validator_penalty(state)
+    before = copy.deepcopy(state)
+    decision = role_activation_reputation_decision(
+        state, "@alice", role=role, minimum_reputation_milli=5000
+    )
+    assert decision["canonical_enforcement"] is mapped
+    assert decision["canonical_role"] == (
+        "juror_assignment" if role == "juror"
+        else "validator_operator" if role == "validator"
+        else None
+    )
+    if role == "validator":
+        assert decision["eligible"] is False
+        assert decision["reason"] == "canonical_role_reputation_ineligible"
+    else:
+        assert decision["eligible"] is True
+        assert decision["reason"] == "eligible"
+    assert state == before
+
+
+def test_role_version_from_payload_or_account_cannot_activate_v2() -> None:
+    state = _state()
+    _validator_penalty(state)
+    state["accounts"]["@alice"]["reputation_role_gate_version"] = 2
+    state["pending_tx_payload"] = {"reputation_role_gate_version": 2}
+    assert role_activation_reputation_decision(
+        state, "@alice", role="validator", minimum_reputation_milli=5000
+    )["eligible"] is True
+    assert "params" not in state or "reputation_role_gate_version" not in state["params"]
+
+
+@pytest.mark.parametrize("version", (2, -1, "2", True))
+def test_role_v2_or_malformed_gates_never_mutate_consensus_state(version: object) -> None:
+    state = _state()
+    state["params"] = {"reputation_role_gate_version": version}
+    _validator_penalty(state)
+    before = copy.deepcopy(state)
+    try:
+        _require_role_activation_eligible(
+            state, "@alice", role="validator", minimum_reputation_milli=5000
+        )
+    except RolesApplyError as exc:
+        assert exc.reason in ("canonical_role_reputation_ineligible", "policy_unknown")
+    assert state == before
