@@ -85,3 +85,30 @@ V2 provenance before the failing CI gates can truthfully pass.
 
 PR77 stays Draft. Both public-chain v2 activation and sanctions remain
 unauthorized; public-beta blockers remain open. No merge or launch.
+
+## Exact bounded derivative refresh after the runtime repair
+
+The production v1 error-contract repair changed source-bound V1.5
+completion proof hashes; Backend CI briefly stopped at
+`b528 artifact input digest is stale; rerun generator`. This was a
+genuine derivation freshness issue, not an invitation to suppress the gate.
+
+The existing bounded refresh workflow was taught to watch
+`src/weall/runtime/apply/roles.py` and
+`tests/test_issue72_versioned_role_gate.py`. Run
+`41352161279` **PASS: 148 focused tests, Ruff lint/format, six updated
+source-bound artifacts, release-hygiene checks**. GitHub Actions bot
+commit `c52514124453d17bd03f9d14fb48c3f2788e269c` modified only:
+
+- `generated/b528_b532_completion_proof_v1_5.json`
+- `generated/b534_b538_completion_proof_v1_5.json`
+- `generated/b567_b571_autonomous_mechanics_proof_v1_5.json`
+- `generated/failure_code_registry_v1_5.json`
+- `generated/public_beta_blocker_report_v1_5.json`
+- `generated/release_evidence_manifest_v1_5.json`
+
+Neither `specs/v2/source/semantic_reviews.json` nor any V2 compiler
+derivatives were modified. The role policy v2 gate remains
+**not activated**, and the 15 semantically stale review transactions are
+still deliberately blocked pending authorization. GitHub PR77 remains
+Draft.
