@@ -15,7 +15,7 @@ Source requirements:
   SQLite backup after quiescence; do not simply discard WAL files.
 
 On the exact PR77 checkout, from `Weall-Protocol/` with locked dependencies
-installed, create a **new empty scratch directory** and run:
+installed, create a **new empty scratch directory** (not a symlink) and run:
 
 ```bash
 python scripts/pr77_retained_history_replay.py \
@@ -33,7 +33,11 @@ The tool opens the source with SQLite `mode=ro&immutable=1`, validates the
 archive and rejects gaps, missing commitments, branch/index mismatches and
 different chain identity. It creates a **new** scratch executor and compares
 every re-applied block/header commitment and calculated state root to the
-retained committed block, failing at the first mismatch. Canonical state
+retained committed block, failing at the first mismatch. On success, it emits
+a per-height transcript of block ID, block hash, state root and receipts root
+for comparison with separately pinned historical/external runs. The scratch
+directory must be empty, and the optional report must be a new file, never
+the source SQLite ledger or pinned transaction index. Canonical state
 and receipt roots are validated within the block `header`, not as
 nonexistent top-level block fields.
 

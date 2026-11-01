@@ -127,8 +127,10 @@ def replay_offline_source(
     if not tx_index.is_file() or file_sha256(tx_index) != tx_index_sha256:
         raise ReplayEvidenceError("tx_index_sha256_mismatch")
     source_state, blocks = inspect_offline_source(source, source_sha256, chain_id)
-    if not scratch_dir.is_dir():
-        raise ReplayEvidenceError("scratch_directory_missing")
+    if not scratch_dir.is_dir() or scratch_dir.is_symlink():
+        raise ReplayEvidenceError("scratch_directory_missing_or_symlink")
+    if any(scratch_dir.iterdir()):
+        raise ReplayEvidenceError("scratch_directory_must_be_empty")
     target = scratch_dir.resolve() / "pr77_retained_replay.sqlite"
     if target.exists() or source.resolve() == target:
         raise ReplayEvidenceError("scratch_destination_exists_or_overlaps_source")
@@ -141,6 +143,7 @@ def replay_offline_source(
     )
     if int(executor.read_state().get("height") or 0) != 0:
         raise ReplayEvidenceError("scratch_executor_not_at_genesis")
+    per_height_commitments: list[Json] = []
     for height, block in enumerate(blocks, start=1):
         meta = executor.apply_block(copy.deepcopy(block))
         if not bool(meta.ok):
@@ -158,6 +161,16 @@ def replay_offline_source(
         root = compute_state_root(dict(executor.read_state()))
         if root != str(block["header"]["state_root"]):
             raise ReplayEvidenceError(f"historical_state_root_mismatch:{height}")
+        header = block["header"]
+        per_height_commitments.append(
+            {
+                "height": height,
+                "block_id": str(original["block_id"]),
+                "block_hash": str(original["block_hash"]),
+                "state_root": root,
+                "receipts_root": str(header["receipts_root"]),
+            }
+        )
     final_root = compute_state_root(dict(executor.read_state()))
     if final_root != compute_state_root(source_state):
         raise ReplayEvidenceError("retained_head_state_root_mismatch")
@@ -172,11 +185,34 @@ def replay_offline_source(
         "tx_index_sha256": tx_index_sha256,
         "block_count": len(blocks),
         "final_state_root": final_root,
+        "per_height_commitments": per_height_commitments,
         "proof_scope": "single_revision_replay_against_recorded_commitments",
         "historical_provenance_verified": False,
         "old_version_compatibility_proven": False,
         "independent_two_node_consensus_proven": False,
     }
+
+
+def validate_report_destination(report: Path, *, source: Path, tx_index: Path) -> None:
+    """Refuse overwriting input evidence or any existing report.
+
+    Report creation must use exclusive-create mode after this check as well.
+    """
+    if report.resolve() in {source.resolve(), tx_index.resolve()}:
+        raise ReplayEvidenceError("report_overlaps_protected_evidence")
+    if report.exists() or report.is_symlink():
+        raise ReplayEvidenceError("report_destination_already_exists")
+    if not report.parent.is_dir() or report.parent.is_symlink():
+        raise ReplayEvidenceError("report_parent_missing_or_symlink")
+
+
+def write_report_exclusively(report: Path, rendered: str) -> None:
+    """An existing file or symlink must never be truncated by evidence output."""
+    try:
+        with report.open("x", encoding="utf-8") as stream:
+            stream.write(rendered)
+    except FileExistsError as exc:
+        raise ReplayEvidenceError("report_destination_already_exists") from exc
 
 
 def main() -> int:
@@ -190,7 +226,13 @@ def main() -> int:
     parser.add_argument("--expected-commit", required=True)
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
+    safe_report = False
     try:
+        if args.report:
+            validate_report_destination(
+                args.report, source=args.offline_source_db, tx_index=args.tx_index
+            )
+            safe_report = True
         result = replay_offline_source(
             source=args.offline_source_db.absolute(),
             source_sha256=args.source_sha256,
@@ -210,8 +252,12 @@ def main() -> int:
             "independent_two_node_consensus_proven": False,
         }
     rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
-    if args.report:
-        args.report.write_text(rendered, encoding="utf-8")
+    if args.report and safe_report:
+        try:
+            write_report_exclusively(args.report, rendered)
+        except (ReplayEvidenceError, OSError) as exc:
+            print(json.dumps({"ok": False, "failure": str(exc)}, sort_keys=True))
+            return 1
     print(rendered, end="")
     return 0 if result["ok"] else 1
 

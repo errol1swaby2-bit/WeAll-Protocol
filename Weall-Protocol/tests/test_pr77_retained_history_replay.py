@@ -12,6 +12,8 @@ from scripts.pr77_retained_history_replay import (
     file_sha256,
     inspect_offline_source,
     replay_offline_source,
+    validate_report_destination,
+    write_report_exclusively,
 )
 
 
@@ -151,6 +153,85 @@ def test_synthetic_stored_blocks_replay_through_real_executor(
     assert report["ok"] is True
     assert report["block_count"] == 3
     assert report["final_state_root"] == sample["source_manifest"]["computed_state_root"]
+    commitments = report["per_height_commitments"]
+    assert [record["height"] for record in commitments] == [1, 2, 3]
+    assert all(
+        record["block_hash"] and record["state_root"] and record["receipts_root"]
+        for record in commitments
+    )
+    assert commitments[-1]["state_root"] == report["final_state_root"]
     assert report["historical_provenance_verified"] is False
     assert report["old_version_compatibility_proven"] is False
     assert report["independent_two_node_consensus_proven"] is False
+
+
+def test_report_destination_never_overwrites_source_or_pinned_tx_index(
+    tmp_path: Path,
+) -> None:
+    source = _fixture_db(tmp_path)
+    tx_index = tmp_path / "tx-index.json"
+    tx_index.write_text("{}", encoding="utf-8")
+    source_bytes = source.read_bytes()
+    index_bytes = tx_index.read_bytes()
+
+    for destination in (source, tx_index):
+        with pytest.raises(ReplayEvidenceError, match="report_overlaps_protected_evidence"):
+            validate_report_destination(destination, source=source, tx_index=tx_index)
+    assert source.read_bytes() == source_bytes
+    assert tx_index.read_bytes() == index_bytes
+
+
+def test_report_destination_rejects_preexisting_or_symlink_files(
+    tmp_path: Path,
+) -> None:
+    source = _fixture_db(tmp_path)
+    tx_index = tmp_path / "tx-index.json"
+    tx_index.write_text("{}", encoding="utf-8")
+    report = tmp_path / "report.json"
+    validate_report_destination(report, source=source, tx_index=tx_index)
+    write_report_exclusively(report, '{"ok":false}\n')
+    assert report.read_text(encoding="utf-8") == '{"ok":false}\n'
+    with pytest.raises(ReplayEvidenceError, match="report_destination_already_exists"):
+        write_report_exclusively(report, "must-not-overwrite")
+    assert report.read_text(encoding="utf-8") == '{"ok":false}\n'
+
+    symlink = tmp_path / "report-alias.json"
+    symlink.symlink_to(report)
+    with pytest.raises(ReplayEvidenceError, match="report_destination_already_exists"):
+        validate_report_destination(symlink, source=source, tx_index=tx_index)
+
+
+@pytest.mark.parametrize("scratch_state", ("nonempty", "symlink"))
+def test_replay_rejects_unclean_or_symlinked_scratch_before_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scratch_state: str
+) -> None:
+    source = _fixture_db(tmp_path)
+    tx_index = tmp_path / "tx-index.json"
+    tx_index.write_text("{}", encoding="utf-8")
+    scratch = tmp_path / "scratch"
+    if scratch_state == "nonempty":
+        scratch.mkdir()
+        (scratch / "existing-evidence.json").write_text("preserve", encoding="utf-8")
+        expected = "scratch_directory_must_be_empty"
+    else:
+        empty = tmp_path / "real-empty"
+        empty.mkdir()
+        scratch.symlink_to(empty, target_is_directory=True)
+        expected = "scratch_directory_missing_or_symlink"
+    monkeypatch.setattr(
+        "scripts.pr77_retained_history_replay.subprocess.check_output",
+        lambda *args, **kwargs: "f" * 40 + "\n",
+    )
+    with pytest.raises(ReplayEvidenceError, match=expected):
+        replay_offline_source(
+            source=source,
+            source_sha256=file_sha256(source),
+            chain_id="test-chain",
+            scratch_dir=scratch,
+            tx_index=tx_index,
+            tx_index_sha256=file_sha256(tx_index),
+            expected_commit="f" * 40,
+        )
+    assert not (tmp_path / "pr77_retained_replay.sqlite").exists()
+    if scratch_state == "nonempty":
+        assert (scratch / "existing-evidence.json").read_text(encoding="utf-8") == "preserve"
