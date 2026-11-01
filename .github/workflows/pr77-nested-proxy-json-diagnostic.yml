@@ -1,0 +1,49 @@
+name: PR77 nested proxy JSON hash diagnostic (known unapproved gaps)
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - Weall-Protocol/tests/test_pr77_nested_proxy_json_hash.py
+      - .github/workflows/pr77-nested-proxy-json-diagnostic.yml
+      - Weall-Protocol/src/weall/runtime/bounded_rollback.py
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/runtime/apply/content.py
+      - Weall-Protocol/src/weall/runtime/apply/groups.py
+      - Weall-Protocol/src/weall/runtime/apply/governance.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deliberately-unapproved:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Report serialization parity gaps as strict expected failures
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_nested_proxy_json_hash.py
+          ruff format --check tests/test_pr77_nested_proxy_json_hash.py
+          python -m pytest -q -rxX tests/test_pr77_nested_proxy_json_hash.py --junitxml=pr77-nested-json-unsafe.xml
+          echo 'NO-GO: any XFAIL is an OPEN consensus-hashing review item, not permission to change old commitments.'
+      - name: Preserve machine-readable expected-failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-nested-json-unapproved-expected-failures
+          path: Weall-Protocol/pr77-nested-json-unsafe.xml
+          if-no-files-found: warn
