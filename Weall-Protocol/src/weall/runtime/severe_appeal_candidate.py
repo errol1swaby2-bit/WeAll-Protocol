@@ -29,11 +29,7 @@ def _dict(value: Any) -> Json:
 def _ids(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
-    return [
-        item
-        for item in value
-        if isinstance(item, str) and item and item == item.strip()
-    ]
+    return [item for item in value if isinstance(item, str) and item and item == item.strip()]
 
 
 def _identity_keys(values: list[str]) -> set[str]:

@@ -139,9 +139,9 @@ def test_no_s4_or_severe_marker_fails_closed() -> None:
     case["sanction_class"] = "S2"
     case["severity"] = "low"
     case["rules"] = {}
-    assert "canonical_severe_account_class_not_established" in _preview(state)[
-        "structural_blockers"
-    ]
+    assert (
+        "canonical_severe_account_class_not_established" in _preview(state)["structural_blockers"]
+    )
 
 
 def test_forged_receipt_fields_do_not_authorize_candidate() -> None:
