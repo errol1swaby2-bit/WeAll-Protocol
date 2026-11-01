@@ -106,10 +106,7 @@ def test_compiler_reports_all_stale_transactions_without_mutating_rows() -> None
         {"tx_type": "ACCOUNT_BAN", "stable_id": "TX-0904"},
     ]
     reviews = {
-        "transactions": [
-            {"stable_id": row["stable_id"], "review_digest": "stale"}
-            for row in rows
-        ],
+        "transactions": [{"stable_id": row["stable_id"], "review_digest": "stale"} for row in rows],
         "routes": [],
     }
     original = copy.deepcopy(rows)
