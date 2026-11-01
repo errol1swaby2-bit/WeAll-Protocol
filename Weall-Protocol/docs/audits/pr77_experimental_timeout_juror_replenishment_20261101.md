@@ -34,3 +34,41 @@ appeals, or execute ACCOUNT_BAN. The safety path must be replay-audited,
 reviewed against the V2 specification, tested on separate nodes, and
 subject to a proper activation decision. Public-beta blockers and stale
 V2 semantics remain unresolved. Do not merge PR77 or launch.
+
+## GitHub implementation and test checkpoint
+
+- Primary feature commit: `dfbfb1bf9c33e7afd482f2f9bd9dfff15fb3f617`.
+- Dedicated timeout/replenishment workflow `41330070295`: **PASS,
+  59 focused tests**. These exercise both the initial and fresh-appeal
+  panels, deadline boundaries, substitute promotion, reserve refill,
+  blocked candidate pools, preserved voted jurors, deterministic
+  replay-shaped identical state, and the default-off switch.
+- Bounded artifact and formatting workflow `41330250777`:
+  **PASS, 120 focused tests**, Ruff lint/format, V1.5 regeneration,
+  artifact currentness and release hygiene.
+- Bounded bot commit `3e33b07cf969dbece2c0b3707bdc1d32e3a29875`
+  has only the three regenerated V1.5 proof JSON files and
+  Ruff formatting of the new module and tests.
+- Public-beta evidence continues to list **8 open blockers**.
+
+### Safety / implementation boundaries
+
+Accepted nonvoters are not displaced by a scheduler's speculative
+timeout: the existing canonical SYSTEM timeout receipt must first set
+`timed_out` in state. The new response timeout for jurors who never
+accept only records an unpenalized `replaced_no_response`; it does
+not invent a reputation sanction. At each replacement, an eligible
+substitute is promoted only when an external eligible reviewer can
+restore the full reserve. An incomplete pool leaves the roster intact.
+
+This remains an EXPERIMENTAL replicated-state algorithm with a
+separate default-off switch, not a production-active consensus rule.
+The original severe-sanction category and ballots still lack
+independent source authentication, the replacement hash chain has
+not undergone multi-node replay adjudication, and actual juror
+notifications/delivery require separate workflow verification.
+The 20/25 requirement and terminal severe-ban no-go are preserved.
+
+Do not merge or enable on shared networks, or approve the stale
+V2 `DISPUTE_OPEN`/`ACCOUNT_BAN` semantic attestations merely
+to green CI.
