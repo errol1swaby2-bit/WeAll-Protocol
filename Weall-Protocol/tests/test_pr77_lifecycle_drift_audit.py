@@ -27,11 +27,14 @@ def test_json_pointer_differences_detect_list_growth() -> None:
     assert diffs[-1]["new"] == "c"
 
 
-def test_four_role_lifecycle_vectors_remain_unapproved_and_oracle_equal() -> None:
+def test_refreshed_lifecycle_manifest_has_no_unreviewed_drift() -> None:
     report, candidate = build_diagnostic()
     assert candidate["schema"] == "weall.tx_lifecycle_assurance.v1"
     assert len(candidate["rows"]) == 236
-    assert set(report["changed_tx_types"]) == KNOWN_ROLE_VECTORS
+    # Expected to be empty after the authorized source-bound four-row refresh.
+    # Any new drift is still fail-closed rather than accepted as semantic proof.
+    assert report["changed_tx_types"] == []
+    assert set(report["changed_tx_types"]) <= KNOWN_ROLE_VECTORS
     assert report["changed_outside_four_known_role_vectors"] == []
     assert report["changed_top_level_fields"] == []
     assert report["all_changed_rows_match_deepcopy_oracle"] is True

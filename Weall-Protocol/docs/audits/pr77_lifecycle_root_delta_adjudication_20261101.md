@@ -36,3 +36,18 @@ software and policies, per-height receipt/state-root comparison and a
 separate external two-node replay, followed by authorized semantic review.
 
 No merge, attestation refresh, public validator launch, or production enablement.
+
+## Authorized source-bound manifest refresh — 2026-11-01
+
+The draft's current fixture generator was re-run after the journal identity
+and nested JSON hash corrections. The guarded workflow confirmed **248
+passing current-version tests**, changed exactly the four known role rows,
+and rejected any extra transaction or top-level semantic drift. The
+source-derived manifest-only refresh commit is `78c64132788891d957e5185fb163d44872587818`.
+No other tracked file changed in that commit.
+
+The previous four-row comparison remains available in the workflow evidence
+and earlier revisions. From the refreshed baseline, the diagnostic test
+requires **zero** candidate-versus-committed differences. This does not
+establish historical chain replay, pre-fix migration compatibility, V2
+semantic-review authorization, or permission to merge/launch.
