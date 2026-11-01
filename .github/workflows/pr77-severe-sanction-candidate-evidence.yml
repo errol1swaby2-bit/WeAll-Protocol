@@ -1,0 +1,39 @@
+name: PR77 severe-sanction candidate evidence (non-authoritative)
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/tooling/severe_sanction_candidate_review.py'
+      - 'Weall-Protocol/tests/test_pr77_severe_sanction_candidate_review.py'
+      - '.github/workflows/pr77-severe-sanction-candidate-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate pure candidate-only review invariants
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m py_compile tooling/severe_sanction_candidate_review.py tests/test_pr77_severe_sanction_candidate_review.py
+          python -m unittest discover -s tests -p test_pr77_severe_sanction_candidate_review.py -v
+      - name: Assert the review cannot authorize or enqueue a ban
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          from tooling.severe_sanction_candidate_review import review_severe_sanction_candidate
+          result = review_severe_sanction_candidate({}, dispute_id="missing", account_id="@none")
+          assert result["constitutional_authorization"] == "NOT_ESTABLISHED"
+          assert result["may_enqueue_account_ban"] is False
+          assert result["blocking_reasons"]
+          print("Candidate review only; production authorization remains BLOCKED")
+          PY
