@@ -1015,9 +1015,7 @@ def test_lifecycle_role_change_vectors_match_independent_deepcopy_executor(tx_ty
     staged_root = compute_state_root(staged_state)
 
     oracle_meta = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(env))
-    canonical_meta = apply_tx_atomic_meta_bounded_rollback(
-        canonical, copy.deepcopy(env)
-    )
+    canonical_meta = apply_tx_atomic_meta_bounded_rollback(canonical, copy.deepcopy(env))
 
     assert canonical_meta == oracle_meta
     assert canonical == oracle
