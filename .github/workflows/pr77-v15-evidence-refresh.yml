@@ -16,6 +16,8 @@ on:
       - Weall-Protocol/tests/test_pr77_severe_initial_20_vote_guard.py
       - Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py
       - Weall-Protocol/tests/test_pr77_experimental_automatic_severe_appeal.py
+      - Weall-Protocol/src/weall/runtime/severe_juror_replenishment.py
+      - Weall-Protocol/tests/test_pr77_experimental_juror_timeout_replenishment.py
       - .github/workflows/pr77-v15-evidence-refresh.yml
 
 permissions:
@@ -52,10 +54,10 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff format src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py
-          ruff check src/weall/runtime/apply/reputation.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py
-          ruff format --check src/weall/runtime/apply/reputation.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py
-          pytest -q tests/test_pr77_experimental_automatic_severe_appeal.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr73_account_ban_atomic_duplicate.py tests/test_stage23_account_ban_severe_sanction_no_go.py tests/test_constitutional_procedure_clock.py tests/test_dispute_followups.py
+          ruff format src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py src/weall/runtime/severe_juror_replenishment.py tests/test_pr77_experimental_juror_timeout_replenishment.py
+          ruff check src/weall/runtime/apply/reputation.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py src/weall/runtime/severe_juror_replenishment.py tests/test_pr77_experimental_juror_timeout_replenishment.py
+          ruff format --check src/weall/runtime/apply/reputation.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py src/weall/runtime/severe_juror_replenishment.py tests/test_pr77_experimental_juror_timeout_replenishment.py
+          pytest -q tests/test_pr77_experimental_juror_timeout_replenishment.py tests/test_pr77_experimental_automatic_severe_appeal.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr73_account_ban_atomic_duplicate.py tests/test_stage23_account_ban_severe_sanction_no_go.py tests/test_constitutional_procedure_clock.py tests/test_dispute_followups.py
 
       - name: Regenerate only the seven V1.5 source-bound artifacts
         working-directory: Weall-Protocol
@@ -87,6 +89,8 @@ jobs:
               "Weall-Protocol/tests/test_pr77_severe_initial_20_vote_guard.py",
               "Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py",
               "Weall-Protocol/tests/test_pr77_experimental_automatic_severe_appeal.py",
+              "Weall-Protocol/src/weall/runtime/severe_juror_replenishment.py",
+              "Weall-Protocol/tests/test_pr77_experimental_juror_timeout_replenishment.py",
               "Weall-Protocol/tests/test_pr77_severe_sanction_clock_no_go.py",
               "Weall-Protocol/generated/api_contract_map_v1_5.json",
               "Weall-Protocol/generated/failure_code_registry_v1_5.json",
@@ -100,7 +104,7 @@ jobs:
           assert changed <= allowed, f"Unexpected derivative changes: {sorted(changed - allowed)}"
           print("V1.5 derived edits:", sorted(changed))
           PY
-          git add -u -- Weall-Protocol/src/weall/runtime/apply/dispute.py Weall-Protocol/src/weall/runtime/dispute_engine.py Weall-Protocol/src/weall/runtime/severe_sanction_boundary.py Weall-Protocol/src/weall/runtime/severe_appeal_candidate.py Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py Weall-Protocol/tests/test_pr77_severe_sanction_clock_no_go.py Weall-Protocol/tests/test_pr77_fresh_severe_appeal_preview.py Weall-Protocol/tests/test_pr77_severe_initial_20_vote_guard.py Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py Weall-Protocol/tests/test_pr77_experimental_automatic_severe_appeal.py \
+          git add -u -- Weall-Protocol/src/weall/runtime/apply/dispute.py Weall-Protocol/src/weall/runtime/dispute_engine.py Weall-Protocol/src/weall/runtime/severe_sanction_boundary.py Weall-Protocol/src/weall/runtime/severe_appeal_candidate.py Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py Weall-Protocol/tests/test_pr77_severe_sanction_clock_no_go.py Weall-Protocol/tests/test_pr77_fresh_severe_appeal_preview.py Weall-Protocol/tests/test_pr77_severe_initial_20_vote_guard.py Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py Weall-Protocol/tests/test_pr77_experimental_automatic_severe_appeal.py Weall-Protocol/src/weall/runtime/severe_juror_replenishment.py Weall-Protocol/tests/test_pr77_experimental_juror_timeout_replenishment.py \
             Weall-Protocol/generated/api_contract_map_v1_5.json \
             Weall-Protocol/generated/failure_code_registry_v1_5.json \
             Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
@@ -114,5 +118,5 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'chore(pr77): format auto appeal prototype and refresh V1.5 evidence'
+          git commit -m 'chore(pr77): format juror timeout backfill and refresh V1.5 evidence'
           git push origin HEAD:review/pr70-pr75-pr76-consolidation-stage23-20261031
