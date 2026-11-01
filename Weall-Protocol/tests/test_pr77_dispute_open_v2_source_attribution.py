@@ -6,11 +6,14 @@ or prove the constitutional correctness of the actual dispute mechanism.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib
 import json
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
@@ -95,3 +98,35 @@ def test_all_newly_observed_state_tokens_have_stable_append_only_ids() -> None:
     for name in sorted(names):
         expected = "STATE-" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:16].upper()
         assert ids.resolve("state", name) == expected
+
+
+def test_compiler_reports_all_stale_transactions_without_mutating_rows() -> None:
+    rows = [
+        {"tx_type": "DISPUTE_OPEN", "stable_id": "TX-0200"},
+        {"tx_type": "ACCOUNT_BAN", "stable_id": "TX-0904"},
+    ]
+    reviews = {
+        "transactions": [
+            {"stable_id": row["stable_id"], "review_digest": "stale"}
+            for row in rows
+        ],
+        "routes": [],
+    }
+    original = copy.deepcopy(rows)
+    with pytest.raises(ValueError) as exc:
+        validation.apply_semantic_reviews(rows, [], reviews)
+    message = str(exc.value)
+    assert message.startswith("transaction semantic-review digest is stale:")
+    assert "DISPUTE_OPEN" in message and "ACCOUNT_BAN" in message
+    assert rows == original
+
+
+def test_compiler_preserves_independent_route_stale_gate() -> None:
+    route = {"stable_id": "ROUTE-TEST", "route_key": "GET /v2/review"}
+    review = {
+        "transactions": [],
+        "routes": [{"stable_id": "ROUTE-TEST", "review_digest": "stale"}],
+    }
+    with pytest.raises(ValueError) as exc:
+        validation.apply_semantic_reviews([], [route], review)
+    assert "route semantic-review digest is stale: GET /v2/review" in str(exc.value)

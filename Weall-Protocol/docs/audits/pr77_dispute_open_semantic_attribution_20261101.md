@@ -74,3 +74,16 @@ regression tests verify that result and the hash-derived identities.
 All 15 stale *transaction* semantics still require item-by-item
 review and an **authorized maintainer decision**. No digest was
 replaced; no independent review was claimed. PR77 remains Draft.
+
+## Multi-contract fail-closed error reporting
+
+The original V2 semantic check raised at the *first* stale transaction.
+That hid fourteen additional changed transaction reviews behind
+`DISPUTE_OPEN`. The compiler now enumerates **every stale TX type**
+in one deterministic validation error; no stale digest is accepted,
+no review disposition is changed, and the independent route review
+check remains fail-closed. Focused tests verify the complete error list,
+no partial transaction-row mutation when stale, and retained route
+rejection.
+
+This is a diagnostic usability repair, **not** a gate bypass.
