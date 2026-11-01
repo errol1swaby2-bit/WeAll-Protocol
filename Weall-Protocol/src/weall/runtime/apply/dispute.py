@@ -24,8 +24,8 @@ from weall.runtime.commitments import (
     consensus_active_validator_ids,  # noqa: E402 -- legacy module docstring follows __future__ import
 )
 from weall.runtime.constitutional_clock import policy_from_state
-from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
 from weall.runtime.poh.state import effective_poh_tier
+from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
 from weall.runtime.reputation_events import append_reputation_event
 from weall.runtime.reviewer_responsibilities import (
     CONTENT_REVIEW_LANE,
