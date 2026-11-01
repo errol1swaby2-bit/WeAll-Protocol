@@ -20,9 +20,7 @@ def _fixture_db(
 ) -> Path:
     db_path = tmp_path / "offline-copy.sqlite"
     with sqlite3.connect(db_path) as con:
-        con.execute(
-            "CREATE TABLE blocks(height INTEGER PRIMARY KEY, block_json TEXT NOT NULL)"
-        )
+        con.execute("CREATE TABLE blocks(height INTEGER PRIMARY KEY, block_json TEXT NOT NULL)")
         con.execute(
             "CREATE TABLE ledger_state(id INTEGER PRIMARY KEY, height INTEGER, state_json TEXT)"
         )
@@ -140,9 +138,7 @@ def test_synthetic_stored_blocks_replay_through_real_executor(
     scratch.mkdir()
     repo_root = Path(__file__).resolve().parents[2]
     tx_index = repo_root / "Weall-Protocol" / "generated" / "tx_index.json"
-    commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
-    ).strip()
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_root, text=True).strip()
     report = replay_offline_source(
         source=source,
         source_sha256=file_sha256(source),

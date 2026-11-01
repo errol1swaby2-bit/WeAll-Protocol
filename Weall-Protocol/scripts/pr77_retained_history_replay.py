@@ -5,6 +5,7 @@ Success proves one code revision re-applies stored blocks to a fresh executor.
 It does NOT prove the ledger is historical, old-version compatibility, or
 independent two-node consensus. Never supply a live node database here.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -61,15 +62,11 @@ def inspect_offline_source(
             if db.execute("PRAGMA quick_check(1)").fetchone()[0] != "ok":
                 raise ReplayEvidenceError("offline_source_sqlite_integrity_failure")
             tables = {
-                row[0] for row in db.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'"
-                )
+                row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")
             }
             if not {"blocks", "ledger_state"}.issubset(tables):
                 raise ReplayEvidenceError("offline_source_missing_chain_tables")
-            row = db.execute(
-                "SELECT height, state_json FROM ledger_state WHERE id=1"
-            ).fetchone()
+            row = db.execute("SELECT height, state_json FROM ledger_state WHERE id=1").fetchone()
             if row is None:
                 raise ReplayEvidenceError("offline_source_missing_ledger_state")
             state = json.loads(str(row["state_json"]))
@@ -101,14 +98,8 @@ def inspect_offline_source(
                 # it need not be stored as a top-level JSON key.
                 blocks.append(block)
     except (sqlite3.Error, ValueError, TypeError, json.JSONDecodeError) as exc:
-        raise ReplayEvidenceError(
-            f"offline_source_invalid:{type(exc).__name__}"
-        ) from exc
-    if (
-        not blocks
-        or int(state.get("height") or 0) != len(blocks)
-        or snapshot_height != len(blocks)
-    ):
+        raise ReplayEvidenceError(f"offline_source_invalid:{type(exc).__name__}") from exc
+    if not blocks or int(state.get("height") or 0) != len(blocks) or snapshot_height != len(blocks):
         raise ReplayEvidenceError("offline_source_snapshot_height_mismatch")
     if file_sha256(source) != expected_sha256:
         raise ReplayEvidenceError("offline_source_changed_during_read")
@@ -130,9 +121,7 @@ def replay_offline_source(
         raise ReplayEvidenceError("invalid_expected_commit")
     if not _SHA256.fullmatch(tx_index_sha256):
         raise ReplayEvidenceError("invalid_tx_index_sha256")
-    actual_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
-    ).strip()
+    actual_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     if actual_commit != expected_commit:
         raise ReplayEvidenceError("checkout_commit_mismatch")
     if not tx_index.is_file() or file_sha256(tx_index) != tx_index_sha256:
@@ -155,23 +144,15 @@ def replay_offline_source(
     for height, block in enumerate(blocks, start=1):
         meta = executor.apply_block(copy.deepcopy(block))
         if not bool(meta.ok):
-            raise ReplayEvidenceError(
-                f"historical_apply_rejected:{height}:{str(meta.error)[:120]}"
-            )
+            raise ReplayEvidenceError(f"historical_apply_rejected:{height}:{str(meta.error)[:120]}")
         observed = executor.get_block_by_height(height)
         if not isinstance(observed, dict):
             raise ReplayEvidenceError(f"historical_block_not_persisted:{height}")
         try:
-            original, _ = ensure_complete_block_commitments(
-                block=block, chain_id=chain_id
-            )
-            current, _ = ensure_complete_block_commitments(
-                block=observed, chain_id=chain_id
-            )
+            original, _ = ensure_complete_block_commitments(block=block, chain_id=chain_id)
+            current, _ = ensure_complete_block_commitments(block=observed, chain_id=chain_id)
         except BlockCommitmentBindingError as exc:
-            raise ReplayEvidenceError(
-                f"historical_block_binding_invalid:{height}:{exc}"
-            ) from exc
+            raise ReplayEvidenceError(f"historical_block_binding_invalid:{height}:{exc}") from exc
         if original != current:
             raise ReplayEvidenceError(f"historical_block_commitment_mismatch:{height}")
         root = compute_state_root(dict(executor.read_state()))

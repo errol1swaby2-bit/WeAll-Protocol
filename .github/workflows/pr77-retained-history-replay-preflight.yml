@@ -31,5 +31,7 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
+          ruff check scripts/pr77_retained_history_replay.py tests/test_pr77_retained_history_replay.py
+          ruff format --check scripts/pr77_retained_history_replay.py tests/test_pr77_retained_history_replay.py
           python -m pytest -q tests/test_pr77_retained_history_replay.py
           echo 'Historical compatibility NOT proven: no retained ledger supplied.'
