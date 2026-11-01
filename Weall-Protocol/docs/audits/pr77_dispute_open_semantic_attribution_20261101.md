@@ -43,3 +43,34 @@ transaction review and *every* missing state stable ID without changing
 the accepted registries. Source-only diagnostic output is not equivalent
 to a passing V2 compiler. Focused binding tests passed (3 of 3); this
 checkpoint triggers the exact-HEAD read-only CI inspection.
+
+## Complete non-authoritative drift inventory
+
+The source-only CI diagnostic at run `41350028387` succeeded and found
+**15 stale transaction semantics** and **21 missing source-observed state
+stable IDs**. The compiler's first-error failure had obscured the backlog.
+
+The review queue is:
+`DISPUTE_OPEN`, `DISPUTE_VOTE_SUBMIT`, `DISPUTE_RESOLVE`,
+`DISPUTE_APPEAL`, `DISPUTE_FINAL_RECEIPT`, `ACCOUNT_BAN`,
+`ROLE_JUROR_ENROLL`, `ROLE_JUROR_ACTIVATE`,
+`ROLE_JUROR_REINSTATE`, `ROLE_VALIDATOR_ACTIVATE`,
+`ROLE_NODE_OPERATOR_ACTIVATE`, `ROLE_EMISSARY_SEAT`,
+`ROLE_GOV_EXECUTOR_SET`, `REVIEWER_LANE_OPT_IN`, and
+`REVIEWER_LANE_OPT_OUT`.
+
+An explicit, append-only set of 21 `STATE-<SHA256 key prefix>` rows
+was registered in `specs/v2/source/stable_ids.json` (commit
+`e1ef34b8bf00e1f698cb27cba9cfedad021d12af`). These are
+compiler-derived state-access *labels*, not an amendment to the
+constitution, a declaration of production readiness, or proof that a
+user-facing field is semantically sound. Original IDs and tombstones
+are preserved. Seven of the new IDs belong to `Roles`, three to
+`Reputation` and eleven to `Dispute`.
+
+The current read-only V2 diagnostic independently checks that every
+source-observed state token resolves to an existing stable ID. New
+regression tests verify that result and the hash-derived identities.
+All 15 stale *transaction* semantics still require item-by-item
+review and an **authorized maintainer decision**. No digest was
+replaced; no independent review was claimed. PR77 remains Draft.

@@ -38,6 +38,12 @@ jobs:
         run: |
           python scripts/audit_v2_semantic_review_drift.py > /tmp/pr77-v2-drift.txt
           cat /tmp/pr77-v2-drift.txt
+      - name: Upload read-only semantic drift inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-v2-semantic-drift-diagnostic
+          path: /tmp/pr77-v2-drift.txt
+          if-no-files-found: error
       - name: Confirm no semantic review or derivative was changed
         run: |
           git diff --exit-code -- Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated/v2

@@ -6,6 +6,7 @@ or prove the constitutional correctness of the actual dispute mechanism.
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import sys
@@ -75,3 +76,22 @@ def test_review_material_does_not_bind_line_number_or_fabricate_authority() -> N
     assert material["implementation_source"]["function"] == "dispute_open"
     assert "line" not in material["implementation_source"]
     assert material.get("authority") is None
+
+
+def test_all_newly_observed_state_tokens_have_stable_append_only_ids() -> None:
+    import audit_v2_semantic_review_drift as audit
+
+    rows, ids, sources = audit._current_rows()
+    assert audit._missing_state_ids(rows, ids, sources) == []
+    names = {
+        "Dispute:assignment_blocked_reason",
+        "Dispute:automatic_appeal_record",
+        "Dispute:disputes_by_id",
+        "Reputation:account_id",
+        "Reputation:auto",
+        "Roles:actual_milli",
+        "Roles:required_milli",
+    }
+    for name in sorted(names):
+        expected = "STATE-" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:16].upper()
+        assert ids.resolve("state", name) == expected
