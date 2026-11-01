@@ -8,6 +8,8 @@ on:
       - Weall-Protocol/src/weall/runtime/bounded_rollback.py
       - Weall-Protocol/src/weall/runtime/apply/roles.py
       - Weall-Protocol/tests/test_bounded_rollback_equivalence.py
+      - Weall-Protocol/scripts/pr77_lifecycle_drift_audit.py
+      - Weall-Protocol/tests/test_pr77_lifecycle_drift_audit.py
       - .github/workflows/pr77-lifecycle-manifest-diagnostic.yml
   workflow_dispatch:
 
@@ -20,80 +22,37 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - name: Checkout the exact draft head
+      - name: Checkout exact draft head
         uses: actions/checkout@v4
-
       - name: Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install locked backend dependencies
         working-directory: Weall-Protocol
         run: |
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install -e . --no-deps
-
-      - name: Generate candidate and compare with committed lifecycle semantics
+      - name: Validate diagnostic and independent oracle parity
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          export PYTHONDONTWRITEBYTECODE=1
-          python scripts/gen_tx_lifecycle_assurance_v1_5.py
-          python - <<'PY'
-          import hashlib
-          import json
-          import subprocess
-          from pathlib import Path
-
-          path = "Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json"
-          old_bytes = subprocess.check_output(["git", "show", f"HEAD:{path}"], cwd="..")
-          new_bytes = Path("generated/tx_lifecycle_assurance_v1_5.json").read_bytes()
-          old = json.loads(old_bytes)
-          new = json.loads(new_bytes)
-          assert len(old.get("rows", [])) == len(new.get("rows", [])) == 236, "incomplete lifecycle vectors"
-          original = {r["tx_type"]: r for r in old["rows"]}
-          candidate = {r["tx_type"]: r for r in new["rows"]}
-          assert len(original) == len(candidate) == 236, "duplicate lifecycle transaction types"
-          assert set(original) == set(candidate), "changed transaction inventory"
-          changed = sorted(k for k in original if original[k] != candidate[k])
-          fields = {
-              k: sorted(
-                  field
-                  for field in set(original[k]) | set(candidate[k])
-                  if original[k].get(field) != candidate[k].get(field)
-              )
-              for k in changed
-          }
-          meta = sorted(
-              k for k in set(old) | set(new)
-              if k != "rows" and old.get(k) != new.get(k)
-          )
-          report = {
-              "schema": "weall.pr77.lifecycle_manifest_drift_diagnostic.v1",
-              "no_semantic_approval": True,
-              "approved_v2_review_rows_changed": False,
-              "old_sha256": hashlib.sha256(old_bytes).hexdigest(),
-              "candidate_sha256": hashlib.sha256(new_bytes).hexdigest(),
-              "changed_tx_types": changed,
-              "changed_fields_by_tx_type": fields,
-              "changed_top_level_fields": meta,
-              "has_drift": bool(old_bytes != new_bytes),
-          }
-          Path("pr77_lifecycle_drift_report.json").write_text(
-              json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-          )
-          print(json.dumps(report, indent=2, sort_keys=True))
-          if old_bytes != new_bytes:
-              raise SystemExit("FAIL_CLOSED: generated lifecycle manifest differs; review candidate artifact before any refresh")
-          PY
-
-      - name: Upload read-only evidence even when drift gate fails
+          ruff check scripts/pr77_lifecycle_drift_audit.py tests/test_pr77_lifecycle_drift_audit.py
+          ruff format --check scripts/pr77_lifecycle_drift_audit.py tests/test_pr77_lifecycle_drift_audit.py
+          python -m pytest -q tests/test_pr77_lifecycle_drift_audit.py
+      - name: Compare candidate with tracked manifest (intentional fail-closed)
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONDONTWRITEBYTECODE=1 python scripts/pr77_lifecycle_drift_audit.py \
+            --report pr77_lifecycle_drift_report.json \
+            --candidate pr77_lifecycle_candidate.json
+      - name: Upload unapproved candidate and review diagnostics on failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pr77-lifecycle-drift-no-approval
           path: |
             Weall-Protocol/pr77_lifecycle_drift_report.json
-            Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json
+            Weall-Protocol/pr77_lifecycle_candidate.json
           if-no-files-found: warn
