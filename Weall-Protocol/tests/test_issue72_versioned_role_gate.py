@@ -421,9 +421,7 @@ def test_role_transaction_rollback_matches_deepcopy_reference(
 
     old = outcome(lambda: apply_roles(reference, env))
     new = outcome(
-        lambda: run_with_bounded_rollback(
-            journaled, lambda target: apply_roles(target, env)
-        )[0]
+        lambda: run_with_bounded_rollback(journaled, lambda target: apply_roles(target, env))[0]
     )
     assert new == old
     if new[0] == "rejected":
