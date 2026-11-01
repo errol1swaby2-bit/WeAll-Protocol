@@ -509,6 +509,12 @@ def _dispute_conflict_account_ids(state: Json, dispute: Json) -> list[str]:
 
 
 def _dispute_panel_size(dispute: Json) -> int:
+    # A severe account sanction must never silently receive the default
+    # seven-person panel when class S4 is represented without a severity label,
+    # or when a conflicting outer "low" masks severe rules. This is panel
+    # sizing only; it does not authenticate classification or grant authority.
+    if is_explicit_severe_account_sanction(dispute):
+        return 25
     raw = (
         _as_str(dispute.get("severity") or _as_dict(dispute.get("rules")).get("severity") or "low")
         .strip()
