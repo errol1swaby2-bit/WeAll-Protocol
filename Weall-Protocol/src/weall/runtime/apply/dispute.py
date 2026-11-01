@@ -1201,10 +1201,90 @@ def _apply_inline_content_enforcement(
     return applied
 
 
+
+def _severe_initial_twenty_of_twenty_five_observed(dispute: Json, dispute_id: str) -> bool:
+    """Check strict on-state ballot bookkeeping, not cryptographic authorization.
+
+    Severe sanctions require 20 actual affirmative juror votes, not the BFT
+    quorum normally used to finalize a dispute. This precondition is defensive
+    and cannot approve the final sanction or authenticate the case class.
+    """
+    panel = dispute.get("assigned_jurors")
+    substitutes = dispute.get("substitute_juror_ids")
+    if not isinstance(panel, list) or not isinstance(substitutes, list):
+        return False
+    if len(panel) != 25 or len(substitutes) != 5:
+        return False
+    if not all(isinstance(j, str) and j.strip() == j and j for j in panel + substitutes):
+        return False
+    canonical_ids = [juror.removeprefix("@") for juror in panel + substitutes]
+    if len(set(canonical_ids)) != 30:
+        return False
+    if dispute.get("panel_status") != "assigned":
+        return False
+    if not isinstance(dispute.get("panel_commitment"), str) or not dispute["panel_commitment"]:
+        return False
+    if type(dispute.get("panel_round", 1)) is not int or dispute.get("panel_round", 1) != 1:
+        return False
+    counts = dispute.get("vote_counts")
+    if not isinstance(counts, dict) or any(k not in {"yes", "no", "abstain"} for k in counts):
+        return False
+    if not all(type(v) is int and 0 <= v <= 25 for v in counts.values()):
+        return False
+    yes = counts.get("yes", 0)
+    total = sum(counts.values())
+    if yes < 20 or total > 25:
+        return False
+    if dispute.get("votes"):
+        # Mixed attributable/strict ballot state needs explicit migration review.
+        return False
+    voted = dispute.get("voted_juror_ids")
+    nullifiers = dispute.get("ballot_nullifiers")
+    if not isinstance(voted, list) or not isinstance(nullifiers, dict):
+        return False
+    if len(voted) != total:
+        return False
+    if not all(isinstance(j, str) and j.strip() == j and j for j in voted):
+        return False
+    if len({j.removeprefix("@") for j in voted}) != total:
+        return False
+    panel_ids = {j.removeprefix("@") for j in panel}
+    if any(j.removeprefix("@") not in panel_ids for j in voted):
+        return False
+    expected = {
+        _dispute_ballot_nullifier(
+            dispute_id=dispute_id, panel_round=1, juror=juror, appeal=False
+        )
+        for juror in voted
+    }
+    if set(nullifiers) != expected:
+        return False
+    return all(
+        isinstance(nullifiers.get(n), dict)
+        and nullifiers[n].get("final") is True
+        and type(nullifiers[n].get("panel_round")) is int
+        and nullifiers[n]["panel_round"] == 1
+        and not nullifiers[n].get("migrated_from_attributable_state")
+        for n in expected
+    )
+
+
 def _maybe_schedule_dispute_auto_resolution(
     state: Json, dispute: Json, dispute_id: str, *, current_height: int, parent_ref: str | None
 ) -> None:
     if bool(dispute.get("resolved")) or _as_str(dispute.get("stage")).strip().lower() == "resolved":
+        return
+
+    severe_clock_case = _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(
+        dispute
+    )
+    # This is a guard on the existing decision path, not an account-ban
+    # producer. Reject incomplete/migrated vote bookkeeping before any
+    # eligibility refresh mutates the case or queues a SYSTEM resolution.
+    if severe_clock_case and (
+        not strict_civic_governance_enabled(state)
+        or not _severe_initial_twenty_of_twenty_five_observed(dispute, dispute_id)
+    ):
         return
 
     eligible_jurors = _dispute_eligible_juror_ids(state, dispute)
@@ -1231,6 +1311,10 @@ def _maybe_schedule_dispute_auto_resolution(
             required_votes = len(active_votes)
             total_votes = len(active_votes)
         tally = _vote_choice_tally(active_votes)
+    if severe_clock_case:
+        if eligible_count != 25:
+            return
+        required_votes = max(required_votes, 20)
     if required_votes <= 0 or total_votes < required_votes:
         return
 
@@ -2607,6 +2691,24 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(d):
+        if not strict_civic_governance_enabled(state) or not _severe_initial_twenty_of_twenty_five_observed(
+            d, dispute_id
+        ):
+            raise DisputeApplyError(
+                "forbidden",
+                "severe_sanction_initial_twenty_votes_unverified",
+                {"dispute_id": dispute_id, "tx_type": env.tx_type},
+            )
+        # The supplied resolution must agree with the stored constitutional
+        # verdict. SYSTEM status and user-supplied tallies confer no authority.
+        resolution = _as_dict(payload.get("resolution"))
+        if resolution.get("outcome") != "report_upheld":
+            raise DisputeApplyError(
+                "forbidden",
+                "severe_sanction_initial_outcome_mismatch",
+                {"dispute_id": dispute_id, "tx_type": env.tx_type},
+            )
     d["resolved"] = True
     d["resolved_at_nonce"] = int(env.nonce)
 
