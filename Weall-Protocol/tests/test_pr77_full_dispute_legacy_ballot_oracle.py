@@ -123,8 +123,6 @@ def test_legacy_migration_identifies_root_and_resolution_option_delta() -> None:
     assert bounded_root != reference_root
 
 
-
-
 def _changed_paths(before: Any, after: Any, path: str = "") -> list[str]:
     if type(before) is not type(after):
         return [path or "/"]
@@ -146,6 +144,7 @@ def _changed_paths(before: Any, after: Any, path: str = "") -> list[str]:
             changed.extend(_changed_paths(old, new, f"{path}/{index}"))
         return changed
     return [] if before == after else [path or "/"]
+
 
 def test_duplicate_legacy_dispute_vote_rejection_rolls_back_both_engines() -> None:
     """No partial legacy migration survives an apply-stage duplicate rejection."""
