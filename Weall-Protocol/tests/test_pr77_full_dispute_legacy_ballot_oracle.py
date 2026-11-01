@@ -72,12 +72,8 @@ def _apply_both(legacy: bool) -> tuple[Any, Any, dict[str, Any], dict[str, Any]]
     before = copy.deepcopy(prepared)
     bounded = copy.deepcopy(prepared)
     reference = copy.deepcopy(prepared)
-    bounded_meta = apply_tx_atomic_meta_bounded_rollback(
-        bounded, copy.deepcopy(envelope)
-    )
-    deepcopy_meta = apply_tx_atomic_meta_deepcopy(
-        reference, copy.deepcopy(envelope)
-    )
+    bounded_meta = apply_tx_atomic_meta_bounded_rollback(bounded, copy.deepcopy(envelope))
+    deepcopy_meta = apply_tx_atomic_meta_deepcopy(reference, copy.deepcopy(envelope))
     assert prepared == before
     assert compute_state_root(prepared) == compute_state_root(before)
     return bounded_meta, deepcopy_meta, bounded, reference
