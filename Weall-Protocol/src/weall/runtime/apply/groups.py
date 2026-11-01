@@ -304,7 +304,9 @@ def _ensure_group_emissary_ballot_nullifiers(state: Json) -> Json:
 
 def _group_ballot_hash(value: Any) -> str:
     return hashlib.sha256(
-        json.dumps(materialize_journaled(value), sort_keys=True, separators=(",", ":")).encode("utf-8")
+        json.dumps(materialize_journaled(value), sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
     ).hexdigest()
 
 

@@ -57,7 +57,9 @@ def _sorted_dict(d: dict[str, Any]) -> dict[str, Any]:
 
 def _canonical_json_hash(value: Any) -> str:
     return hashlib.sha256(
-        json.dumps(materialize_journaled(value), sort_keys=True, separators=(",", ":")).encode("utf-8")
+        json.dumps(materialize_journaled(value), sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
     ).hexdigest()
 
 
