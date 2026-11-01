@@ -96,3 +96,27 @@ def test_strict_dispute_vote_with_legacy_resolution_has_executor_parity() -> Non
     assert bounded_meta == deepcopy_meta
     assert bounded == reference
     assert compute_state_root(bounded) == compute_state_root(reference)
+
+
+def test_legacy_migration_identifies_root_and_resolution_option_delta() -> None:
+    """Record the reached state-root mismatch without accepting the result."""
+    bounded_meta, deepcopy_meta, bounded, reference = _apply_both(legacy=True)
+    bounded_root = compute_state_root(bounded)
+    reference_root = compute_state_root(reference)
+    bounded_options = bounded["disputes_by_id"]["a"].get("resolution_options", {})
+    reference_options = reference["disputes_by_id"]["a"].get("resolution_options", {})
+    summary = {
+        "schema": "weall.pr77.full_dispute_legacy_probe.v1",
+        "synthetic_only": True,
+        "metadata_equal": bounded_meta == deepcopy_meta,
+        "root_equal": bounded_root == reference_root,
+        "bounded_state_root": bounded_root,
+        "deepcopy_state_root": reference_root,
+        "resolution_options_equal": bounded_options == reference_options,
+        "bounded_resolution_option_keys": sorted(bounded_options),
+        "deepcopy_resolution_option_keys": sorted(reference_options),
+        "historical_compatibility_proven": False,
+    }
+    print(json.dumps(summary, sort_keys=True))
+    assert bounded_options != reference_options
+    assert bounded_root != reference_root
