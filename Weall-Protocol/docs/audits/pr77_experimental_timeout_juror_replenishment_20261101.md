@@ -72,3 +72,28 @@ The 20/25 requirement and terminal severe-ban no-go are preserved.
 Do not merge or enable on shared networks, or approve the stale
 V2 `DISPUTE_OPEN`/`ACCOUNT_BAN` semantic attestations merely
 to green CI.
+
+
+## Adversarial promotion-boundary audit (2026-11-01)
+
+A read of the existing implementation found the deterministic no-response
+replacement, accepted-juror canonical SYSTEM timeout receipt, FIFO reserve
+promotion, eligible reviewer backfill, and hashed replacement history were
+**already implemented** and covered by the original 120-test checkpoint.
+No alternative scheduler, selection algorithm, or transaction type was added.
+
+A narrow conflict-of-interest gap was identified: the reserve juror chosen for
+promotion was rechecked for **role eligibility**, but not rechecked against the
+current dispute conflict set. A juror could become a reporter, party, target
+owner, or rule-defined conflict after the original assignment and still be
+promoted. The existing authoritative `_dispute_conflict_account_ids` function
+is now reused at promotion time. The guard also refuses promotion of a
+historically retired or already journaled/assigned juror, without changing
+the deterministic newcomer selection algorithm. Unsafe reserves cause the
+existing fail-closed no-mutation outcome.
+
+This does not address the wider undecided rollout question: the current
+prototype operates only on explicitly classified severe/S4 account cases,
+and remains default OFF. General 7/15-person dispute panel replenishment,
+independent case-class authentication, BFT replay/activation, actual delivery
+notifications, and final sanction authority remain outside this change.

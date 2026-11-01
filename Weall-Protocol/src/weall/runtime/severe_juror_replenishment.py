@@ -77,6 +77,13 @@ def _snapshot_valid(dispute: Json, *, appeal: bool) -> bool:
     return sum(counts.values()) == len(normalized) == len(nullifiers)
 
 
+def _case_conflict_identities(state: Json, dispute: Json) -> set[str]:
+    """Reuse the authoritative dispute conflict enumeration at promotion time."""
+    from weall.runtime.apply.dispute import _dispute_conflict_account_ids
+
+    return {_identity(item) for item in _dispute_conflict_account_ids(state, dispute)}
+
+
 def _eligible_new_candidate(
     state: Json,
     dispute: Json,
@@ -90,9 +97,7 @@ def _eligible_new_candidate(
 ) -> str:
     # Shared role eligibility and case-party exclusions; never choose a
     # previously assigned, declined, timed-out, or original appeal juror.
-    from weall.runtime.apply.dispute import _dispute_conflict_account_ids
-
-    conflicts = {_identity(item) for item in _dispute_conflict_account_ids(state, dispute)}
+    conflicts = _case_conflict_identities(state, dispute)
     options: dict[str, str] = {}
     for juror in eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE):
         k = _identity(juror)
@@ -227,9 +232,17 @@ def replenish_severe_juror_pool(
         if not reserve:
             break
         incoming = reserve[0]
-        if _identity(incoming) in voted or _identity(incoming) in {
-            _identity(x) for x in previous + panel
-        }:
+        incoming_identity = _identity(incoming)
+        # Pool eligibility is not enough: a reserve can become a case party,
+        # beneficiary, or material/financial conflict after assignment. Never
+        # promote such an account even if its original panel was valid.
+        if (
+            incoming_identity in voted
+            or incoming_identity in {_identity(x) for x in previous + panel}
+            or incoming_identity in _case_conflict_identities(state, dispute)
+            or incoming_identity in {_identity(x.get("outgoing")) for x in history}
+            or incoming_identity in {_identity(x) for x in jurors}
+        ):
             continue
         excluded = {_identity(x) for x in previous + panel + reserve}
         excluded.update(_identity(x.get("outgoing")) for x in history)

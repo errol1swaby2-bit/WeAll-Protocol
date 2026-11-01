@@ -196,3 +196,45 @@ def test_existing_nonparticipant_status_promotes_without_deadline(status) -> Non
     tick_dispute_lifecycle(state, next_height=11)
     assert case["experimental_juror_replacements"][0]["reason"] == status
     assert case["required_votes"] == 20
+
+
+@pytest.mark.parametrize("source", ["case", "rules", "reporter", "target"])
+def test_newly_conflicted_reserve_cannot_be_promoted(source: str) -> None:
+    state = _state()
+    case = state["disputes_by_id"]["case"]
+    incoming = case["appeal_substitute_juror_ids"][0]
+    if source == "case":
+        case["conflicted_account_ids"] = [incoming]
+    elif source == "rules":
+        case["rules"] = {"conflicted_account_ids": [incoming]}
+    elif source == "reporter":
+        case["reported_by"] = incoming
+    else:
+        case["appeal_substitute_juror_ids"][0] = "@target"
+    before = copy.deepcopy(state)
+    assert tick_dispute_lifecycle(state, next_height=14) == 0
+    assert state == before
+
+
+def test_historical_retired_juror_cannot_be_promoted_from_reserve() -> None:
+    state = _state()
+    case = state["disputes_by_id"]["case"]
+    retired = "@juror-061"
+    case["appeal_substitute_juror_ids"][0] = retired
+    case["experimental_juror_replacements"] = [
+        {"outgoing": retired, "reason": "timed_out"}
+    ]
+    before = copy.deepcopy(state)
+    assert tick_dispute_lifecycle(state, next_height=14) == 0
+    assert state == before
+
+
+def test_previously_assigned_juror_cannot_be_reintroduced_as_reserve() -> None:
+    state = _state()
+    case = state["disputes_by_id"]["case"]
+    former = "@juror-061"
+    case["appeal_substitute_juror_ids"][0] = former
+    case["jurors"][former] = {"status": "timed_out", "panel_round": 2}
+    before = copy.deepcopy(state)
+    assert tick_dispute_lifecycle(state, next_height=14) == 0
+    assert state == before
