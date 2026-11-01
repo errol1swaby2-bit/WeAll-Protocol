@@ -276,6 +276,10 @@ def _general_state(
         for idx, juror in enumerate(panel)
     }
     if appeal:
+        # Prevent the pre-existing generic appeal scheduler from first
+        # materializing a missing appeal deadline during the timeout-boundary
+        # assertion; this test is about roster replacement, not expiry.
+        case["appeal_deadline_height"] = 200
         case.update(
             original_panel_juror_ids=list(old_panel),
             original_substitute_juror_ids=list(old_reserve),
