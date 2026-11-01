@@ -26,9 +26,10 @@ def _state(*, enabled: bool, reviewers: int = 90) -> dict:
         ): {"final": True, "panel_round": 1}
         for j in voted
     }
-    role = {"active": True, "responsibilities": {
-        "reviewer": {"dispute_review": {"active": True, "opted_in": True}}
-    }}
+    role = {
+        "active": True,
+        "responsibilities": {"reviewer": {"dispute_review": {"active": True, "opted_in": True}}},
+    }
     return {
         "height": 11,
         "chain_id": "experimental-auto-appeal-fixture",
@@ -42,10 +43,12 @@ def _state(*, enabled: bool, reviewers: int = 90) -> dict:
             **{j: {"poh_tier": 2, "banned": False, "locked": False} for j in all_jurors},
             "@target": {"poh_tier": 2, "banned": False, "locked": False},
         },
-        "roles": {"jurors": {
-            "active_set": all_jurors,
-            "by_id": {j: copy.deepcopy(role) for j in all_jurors},
-        }},
+        "roles": {
+            "jurors": {
+                "active_set": all_jurors,
+                "by_id": {j: copy.deepcopy(role) for j in all_jurors},
+            }
+        },
         "disputes_by_id": {
             "severe-case": {
                 "id": "severe-case",
@@ -98,10 +101,20 @@ def test_opt_in_assigns_deterministic_fresh_panel_without_enforcement() -> None:
     assert d["required_votes"] == 20
     assert len(d["appeal_panel_juror_ids"]) == 25
     assert len(d["appeal_substitute_juror_ids"]) == 5
-    assert len({x.removeprefix("@") for x in (
-        d["original_panel_juror_ids"] + d["original_substitute_juror_ids"]
-        + d["appeal_panel_juror_ids"] + d["appeal_substitute_juror_ids"]
-    )}) == 60
+    assert (
+        len(
+            {
+                x.removeprefix("@")
+                for x in (
+                    d["original_panel_juror_ids"]
+                    + d["original_substitute_juror_ids"]
+                    + d["appeal_panel_juror_ids"]
+                    + d["appeal_substitute_juror_ids"]
+                )
+            }
+        )
+        == 60
+    )
     assert d["automatic_appeal_record"]["source"] == "experimental_system_resolution_v0"
     assert tick_dispute_lifecycle(state, next_height=12) == 0
     assert not state["system_queue"]
