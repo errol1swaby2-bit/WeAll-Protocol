@@ -14,23 +14,17 @@ from typing import Any
 
 import pytest
 
-from weall.runtime.apply.content import _canonical_hash as content_hash
-from weall.runtime.apply.dispute import (
-    _canonical_hash as dispute_hash,
-    _record_deattributed_resolution_option,
-)
-from weall.runtime.apply.governance import _canonical_json_hash as governance_hash
-from weall.runtime.apply.groups import _group_ballot_hash as group_hash
+from weall.runtime.apply import content, dispute, governance, groups
 from weall.runtime.bounded_rollback import (
     materialize_journaled,
     run_with_bounded_rollback,
 )
 
 HASHERS: tuple[Callable[[Any], str], ...] = (
-    content_hash,
-    dispute_hash,
-    governance_hash,
-    group_hash,
+    content._canonical_hash,
+    dispute._canonical_hash,
+    governance._canonical_json_hash,
+    groups._group_ballot_hash,
 )
 _HASH_IDS = ("content", "dispute", "governance", "groups")
 
@@ -92,12 +86,12 @@ def test_legacy_dispute_resolution_commitment_matches_plain_state() -> None:
     raw = copy.deepcopy(initial)
     bounded = copy.deepcopy(initial)
 
-    _record_deattributed_resolution_option(
+    dispute._record_deattributed_resolution_option(
         raw["dispute"], choice="yes", resolution=raw["resolution"], summary=""
     )
 
     def apply(proxy: dict[str, Any]) -> None:
-        _record_deattributed_resolution_option(
+        dispute._record_deattributed_resolution_option(
             proxy["dispute"],
             choice="yes",
             resolution=proxy["resolution"],
