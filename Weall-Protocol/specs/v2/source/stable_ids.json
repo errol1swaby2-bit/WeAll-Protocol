@@ -18686,6 +18686,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Reputation:auto",
+      "kind": "state",
+      "stable_id": "STATE-1428208E67E4439F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Groups:profile_id",
       "kind": "state",
       "stable_id": "STATE-1441F8C546B30978",
@@ -18780,6 +18787,13 @@
       "canonical_key": "Groups:finalized_at_nonce",
       "kind": "state",
       "stable_id": "STATE-15F560A8F4A3C665",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:disputes_by_id",
+      "kind": "state",
+      "stable_id": "STATE-162912D5BA5E7E41",
       "status": "active"
     },
     {
@@ -18990,6 +19004,13 @@
       "canonical_key": "Moderation:flags",
       "kind": "state",
       "stable_id": "STATE-1D39887A33F2DE8F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:automatic_appeal_record",
+      "kind": "state",
+      "stable_id": "STATE-1D3C587C710A334C",
       "status": "active"
     },
     {
@@ -20331,6 +20352,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Roles:eligible",
+      "kind": "state",
+      "stable_id": "STATE-48054E863760B15B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Groups:count",
       "kind": "state",
       "stable_id": "STATE-481A909A771641EE",
@@ -20432,6 +20460,13 @@
       "canonical_key": "Storage:operator",
       "kind": "state",
       "stable_id": "STATE-4AF34281F5513F13",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Roles:actual_milli",
+      "kind": "state",
+      "stable_id": "STATE-4AFC1DCF32ABB654",
       "status": "active"
     },
     {
@@ -21094,6 +21129,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Roles:required_milli",
+      "kind": "state",
+      "stable_id": "STATE-5FF70C7CD46EA8F5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Dispute:required_panel_size",
       "kind": "state",
       "stable_id": "STATE-5FFDD4B580EC69C3",
@@ -21549,6 +21591,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Dispute:reported_by",
+      "kind": "state",
+      "stable_id": "STATE-7020E6433F99740C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Consensus:quorum_certificates",
       "kind": "state",
       "stable_id": "STATE-702516B17D867FB0",
@@ -21920,6 +21969,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Roles:canonical_role",
+      "kind": "state",
+      "stable_id": "STATE-7963C8A4AE4D4664",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Indexing:tx_hash",
       "kind": "state",
       "stable_id": "STATE-79AE0DD3E46D56B7",
@@ -22074,6 +22130,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Dispute:outcome",
+      "kind": "state",
+      "stable_id": "STATE-811148B65FBF54D2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Content:stage",
       "kind": "state",
       "stable_id": "STATE-8116156D3049B898",
@@ -22224,6 +22287,13 @@
       "canonical_key": "Economics:<append:dynamic>",
       "kind": "state",
       "stable_id": "STATE-855FE069ACC2C3E5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Roles:canonical_reasons",
+      "kind": "state",
+      "stable_id": "STATE-8560A5824EEB30E7",
       "status": "active"
     },
     {
@@ -22525,6 +22595,13 @@
       "canonical_key": "Storage:storage_leases",
       "kind": "state",
       "stable_id": "STATE-8F926962DE4E9B19",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:gov_proposals_by_id",
+      "kind": "state",
+      "stable_id": "STATE-8FB9434D0706E34B",
       "status": "active"
     },
     {
@@ -23019,6 +23096,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Reputation:account_id",
+      "kind": "state",
+      "stable_id": "STATE-A06D4AD213212EEA",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Economics:fee_amount",
       "kind": "state",
       "stable_id": "STATE-A0706E47B17C829E",
@@ -23306,6 +23390,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Dispute:panel_status",
+      "kind": "state",
+      "stable_id": "STATE-A9B3034F3610F06C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:social_attestation_commitments",
       "kind": "state",
       "stable_id": "STATE-A9CAF165CFDC20AA",
@@ -23470,6 +23561,13 @@
       "canonical_key": "Storage:status",
       "kind": "state",
       "stable_id": "STATE-ADB5C9ED179E2774",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:panel_required_size",
+      "kind": "state",
+      "stable_id": "STATE-ADF642AD13849DB6",
       "status": "active"
     },
     {
@@ -23649,6 +23747,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Dispute:assignment_blocked_reason",
+      "kind": "state",
+      "stable_id": "STATE-B38D8CD3C722286B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Content:target_type",
       "kind": "state",
       "stable_id": "STATE-B3A085B0590EAD4F",
@@ -23764,6 +23869,13 @@
       "canonical_key": "Dispute:timed_out_at_nonce",
       "kind": "state",
       "stable_id": "STATE-B6940D98BE1899D7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Roles:code",
+      "kind": "state",
+      "stable_id": "STATE-B6A01EB0C91A8347",
       "status": "active"
     },
     {
@@ -24622,6 +24734,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Dispute:substitute_required_count",
+      "kind": "state",
+      "stable_id": "STATE-D09F34976C3B260C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "PoH:pubkey",
       "kind": "state",
       "stable_id": "STATE-D0A232149326231D",
@@ -24660,6 +24779,13 @@
       "canonical_key": "Roles:current",
       "kind": "state",
       "stable_id": "STATE-D1E0B87E4649F4E8",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:reporter",
+      "kind": "state",
+      "stable_id": "STATE-D24C8B5097A0A80B",
       "status": "active"
     },
     {
@@ -25546,6 +25672,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Roles:gate_version",
+      "kind": "state",
+      "stable_id": "STATE-EBBEFD641753231F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Rewards:transfers",
       "kind": "state",
       "stable_id": "STATE-EBCB8C6A825A5DFA",
@@ -26029,6 +26162,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Reputation:payload",
+      "kind": "state",
+      "stable_id": "STATE-FC949270AB54E86C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:<append:dynamic>",
       "kind": "state",
       "stable_id": "STATE-FCC16DDD8168716C",
@@ -26046,6 +26186,13 @@
       "canonical_key": "PoH:evidence_commitment",
       "kind": "state",
       "stable_id": "STATE-FCDCF45DC7B9BCBF",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:flagged_by",
+      "kind": "state",
+      "stable_id": "STATE-FDB71B01B71E8DF8",
       "status": "active"
     },
     {
