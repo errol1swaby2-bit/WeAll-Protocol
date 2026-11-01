@@ -151,14 +151,12 @@ def replenish_severe_juror_pool(
     severe = is_explicit_severe_account_sanction(dispute)
     if (
         not isinstance(params, dict)
-        or not (
-            params.get(
-                "experimental_severe_juror_replenishment_v0"
-                if severe
-                else "experimental_general_juror_replenishment_v0"
-            )
-            is True
+        or params.get(
+            "experimental_severe_juror_replenishment_v0"
+            if severe
+            else "experimental_general_juror_replenishment_v0"
         )
+        is not True
         or not policy_from_state(state).enabled
         or not strict_civic_governance_enabled(state)
         or type(next_height) is not int
