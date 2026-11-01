@@ -1,8 +1,6 @@
-"""PR77 source-only JSON proxy hashing risk: deliberately unapproved.
+"""PR77 nested JSON hash parity with journal-backed inputs.
 
-A green inventory fixture oracle is not evidence of nested payload coverage.
-Expected failures identify raw JSON serialization of dictionary proxies;
-do not resolve by silently rewriting historical commitments.
+Current-version synthetic parity does not establish archived chain replay.
 """
 
 from __future__ import annotations
@@ -50,11 +48,6 @@ def test_materialization_is_safe_for_nested_json_hash_inputs() -> None:
 
 
 @pytest.mark.parametrize("hasher", HASHERS, ids=_HASH_IDS)
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="unreviewed JSON serialization of nested JournaledDict proxies",
-)
 def test_nested_journal_dict_hash_matches_ordinary_dict(
     hasher: Callable[[Any], str],
 ) -> None:
@@ -70,11 +63,6 @@ def test_nested_journal_dict_hash_matches_ordinary_dict(
     assert proxied_hash == detached_hash
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="legacy dispute-resolution migration may hash nested journal proxies",
-)
 def test_legacy_dispute_resolution_commitment_matches_plain_state() -> None:
     initial = {
         "dispute": {},

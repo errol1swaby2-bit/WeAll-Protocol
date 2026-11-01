@@ -88,11 +88,6 @@ def test_strict_dispute_vote_without_legacy_ballots_has_executor_parity() -> Non
     assert compute_state_root(bounded) == compute_state_root(reference)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="full DISPUTE_VOTE_SUBMIT legacy resolution hashes journaled state incorrectly",
-)
 def test_strict_dispute_vote_with_legacy_resolution_has_executor_parity() -> None:
     bounded_meta, deepcopy_meta, bounded, reference = _apply_both(legacy=True)
     assert bounded_meta == deepcopy_meta
@@ -100,8 +95,8 @@ def test_strict_dispute_vote_with_legacy_resolution_has_executor_parity() -> Non
     assert compute_state_root(bounded) == compute_state_root(reference)
 
 
-def test_legacy_migration_identifies_root_and_resolution_option_delta() -> None:
-    """Record the reached state-root mismatch without accepting the result."""
+def test_legacy_migration_has_equal_roots_and_resolution_options() -> None:
+    """Legacy migration must agree between bounded and deepcopy executors."""
     bounded_meta, deepcopy_meta, bounded, reference = _apply_both(legacy=True)
     bounded_root = compute_state_root(bounded)
     reference_root = compute_state_root(reference)
@@ -120,8 +115,8 @@ def test_legacy_migration_identifies_root_and_resolution_option_delta() -> None:
         "historical_compatibility_proven": False,
     }
     print(json.dumps(summary, sort_keys=True))
-    assert bounded_options != reference_options
-    assert bounded_root != reference_root
+    assert bounded_options == reference_options
+    assert bounded_root == reference_root
 
 
 def _changed_paths(before: Any, after: Any, path: str = "") -> list[str]:
@@ -179,11 +174,6 @@ def test_duplicate_legacy_dispute_vote_rejection_rolls_back_both_engines() -> No
     assert all(outcome["state_root_restored"] for outcome in outcomes)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="parent entry replacement snapshots an already-cleared child dict",
-)
 def test_child_clear_then_parent_replace_rejection_restores_raw_state() -> None:
     """Minimal journal-ordering regression independent of dispute transaction logic."""
     initial = {"votes": {"@juror1": {"vote": "yes"}}}

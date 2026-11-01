@@ -36,7 +36,7 @@ jobs:
           ruff check tests/test_pr77_full_dispute_legacy_ballot_oracle.py
           ruff format --check tests/test_pr77_full_dispute_legacy_ballot_oracle.py
           python -m pytest -q -s -rxX tests/test_pr77_full_dispute_legacy_ballot_oracle.py --junitxml=pr77-full-dispute-legacy-oracle.xml
-          echo 'NO-GO: an XFAIL is an unresolved consensus-visible full-TX difference.'
+          echo 'Current-version synthetic parity checked; archived historical replay remains NO-GO.'
       - name: Preserve diagnostic test transcript
         if: always()
         uses: actions/upload-artifact@v4
