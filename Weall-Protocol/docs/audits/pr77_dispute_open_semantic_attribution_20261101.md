@@ -27,3 +27,19 @@ files. Another failure may be revealed after DISPUTE_OPEN acceptance.
 The correction to the V2 source registry is analytical only. It does not
 change runtime transaction dispatch, constitutional authority, activated
 protocol behavior or ACCOUNT_BAN fail-closed gates. PR77 remains Draft.
+
+## Diagnostic pipeline repair
+
+The first read-only diagnostic run found that a complete V2 compilation
+could not be used for discovery: after temporarily substituting non-authority
+review placeholders, state-index construction stopped on the unregistered
+`Dispute:assignment_blocked_reason` state token. That does **not** authorize
+automatically allocating a new stable ID.
+
+The source-only AST diagnostic now calls the compiler's existing
+`_scan_transaction_contracts` routine without running later signed,
+semantic-review, stable-ID or release gates. It reports *every* mismatched
+transaction review and *every* missing state stable ID without changing
+the accepted registries. Source-only diagnostic output is not equivalent
+to a passing V2 compiler. Focused binding tests passed (3 of 3); this
+checkpoint triggers the exact-HEAD read-only CI inspection.
