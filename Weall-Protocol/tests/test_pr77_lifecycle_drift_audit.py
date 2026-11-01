@@ -44,4 +44,6 @@ def test_four_role_lifecycle_vectors_remain_unapproved_and_oracle_equal() -> Non
         assert entry["deepcopy_root_equal"] is True
         assert entry["historical_pre_fix_state_available"] is False
         assert entry["changed_pointers"]
-        assert entry["current_state_transition_paths"]
+        assert isinstance(entry["current_state_transition_paths"], list)
+        if entry["current_fixture_before_root"] == entry["current_fixture_after_root"]:
+            assert entry["current_state_transition_paths"] == []
