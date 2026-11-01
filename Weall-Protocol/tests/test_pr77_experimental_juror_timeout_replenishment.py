@@ -221,9 +221,7 @@ def test_historical_retired_juror_cannot_be_promoted_from_reserve() -> None:
     case = state["disputes_by_id"]["case"]
     retired = "@juror-061"
     case["appeal_substitute_juror_ids"][0] = retired
-    case["experimental_juror_replacements"] = [
-        {"outgoing": retired, "reason": "timed_out"}
-    ]
+    case["experimental_juror_replacements"] = [{"outgoing": retired, "reason": "timed_out"}]
     before = copy.deepcopy(state)
     assert tick_dispute_lifecycle(state, next_height=14) == 0
     assert state == before
