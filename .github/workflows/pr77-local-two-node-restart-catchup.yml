@@ -1,0 +1,69 @@
+name: PR77 controlled two-node restart/catch-up (single runner only)
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - .github/workflows/pr77-local-two-node-restart-catchup.yml
+      - Weall-Protocol/scripts/devnet_restart_catchup_live.sh
+      - Weall-Protocol/scripts/devnet_cross_node_convergence.py
+      - Weall-Protocol/scripts/devnet_sync_from_peer.sh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  single-runner-two-node:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      WEALL_MODE: controlled_devnet
+      WEALL_RUNTIME_PROFILE: controlled_devnet
+      WEALL_DEVNET_AUTO_VENV: '0'
+      WEALL_DEVNET_LIVE_RESET: '1'
+      WEALL_DEVNET_KEEP_NODES: '0'
+      WEALL_NET_ENABLED: '0'
+      WEALL_NET_LOOP_AUTOSTART: '0'
+      WEALL_ENABLE_DEMO_SEED_ROUTE: '0'
+      WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE: '0'
+      WEALL_DEVNET_READY_TIMEOUT: '120'
+      WEALL_DEVNET_RESTART_PARITY_ATTEMPTS: '10'
+      NODE1_API: http://127.0.0.1:8001
+      NODE2_API: http://127.0.0.1:8002
+    steps:
+      - name: Checkout exact review head
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+
+      - name: Two local nodes, signed TX, independently persisted DBs, restart/catchup
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          bash scripts/devnet_restart_catchup_live.sh
+          echo 'PASS: single-runner two-node convergence and restart/catch-up.'
+          echo 'NO-GO: historical replay, distinct external machines, independent operator or public-testnet readiness are NOT established.'
+
+      - name: Upload non-secret root comparison and sync logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-single-runner-two-node-comparison-only
+          path: |
+            Weall-Protocol/.weall-devnet/logs/restart-catchup-compare-live.log
+            Weall-Protocol/.weall-devnet/logs/restart-catchup-sync-live.log
+            Weall-Protocol/.weall-devnet/logs/restart-catchup-convergence-live.log
+          if-no-files-found: warn
+          retention-days: 14

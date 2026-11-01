@@ -51,3 +51,18 @@ semantic review attestations or treat this tool as merge authorization.
 
 The repository tracks no suitable old SQLite ledger in its tracked-file
 inventory. The dedicated CI workflow tests offline-intake guards and a short, **synthetic** three-block replay through the actual executor. It is **not** historical replay evidence.
+
+## Separate single-runner two-node rehearsal (not historical proof)
+
+The `.github/workflows/pr77-local-two-node-restart-catchup.yml` workflow
+runs the existing `scripts/devnet_restart_catchup_live.sh` on an ephemeral
+GitHub Actions runner. It boots two **local** controlled-devnet processes
+with separate databases, exercises signed transactions and verified state
+sync, restarts each process from persisted state, and checks state-root parity
+after each restart. It uploads comparison/sync logs only, not the node
+databases or generated operator key files.
+
+A green run demonstrates the single-runner devnet path, **not** historical
+compatibility, machine independence, a third-party attestation, decentralized
+validator consensus or public testnet readiness. It cannot close either the
+retained-history archive prerequisite or external two-machine review gate.
