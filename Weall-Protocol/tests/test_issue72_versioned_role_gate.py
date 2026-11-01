@@ -194,9 +194,7 @@ from weall.runtime.reputation_role_gate import ROLE_REVOKE_ALIASES
 from weall.runtime.reputation_units import account_reputation_units
 
 
-def _legacy_role_gate_oracle(
-    state: dict, account_id: str, role: str, minimum: int
-) -> dict:
+def _legacy_role_gate_oracle(state: dict, account_id: str, role: str, minimum: int) -> dict:
     """Prior main-branch authorization contract, independent of new helper."""
     account = state.get("accounts", {}).get(account_id)
     if not isinstance(account, dict):
@@ -207,26 +205,28 @@ def _legacy_role_gate_oracle(
         )
     if effective_poh_tier(state, account_id) < 2:
         raise RolesApplyError(
-            "forbidden", "live_verification_required",
+            "forbidden",
+            "live_verification_required",
             {"account_id": account_id, "role": role},
         )
     eligible_roles = (
-        state.get("reputation", {}).get("role_eligibility", {})
-        .get(account_id, {}).get("roles", {})
+        state.get("reputation", {}).get("role_eligibility", {}).get(account_id, {}).get("roles", {})
     )
     if any(
         alias in eligible_roles and bool(eligible_roles[alias]) is False
         for alias in ROLE_REVOKE_ALIASES.get(role, (role,))
     ):
         raise RolesApplyError(
-            "forbidden", "role_eligibility_revoked",
+            "forbidden",
+            "role_eligibility_revoked",
             {"account_id": account_id, "role": role},
         )
     required = max(0, int(minimum))
     actual = account_reputation_units(account, default=0)
     if actual < required:
         raise RolesApplyError(
-            "forbidden", "reputation_insufficient",
+            "forbidden",
+            "reputation_insufficient",
             {
                 "account_id": account_id,
                 "role": role,
@@ -270,9 +270,7 @@ def test_all_roles_v1_matches_prechange_error_contract(
     elif case == "tier1":
         acct["poh_tier"] = 1
     elif case == "revoked":
-        state["reputation"] = {
-            "role_eligibility": {"@alice": {"roles": {role: False}}}
-        }
+        state["reputation"] = {"role_eligibility": {"@alice": {"roles": {role: False}}}}
     elif case == "low_reputation":
         acct["reputation_milli"] = 1000
     elif case == "multiple_failures":
@@ -317,8 +315,10 @@ def test_v2_does_not_invent_reputation_authority_for_unmapped_roles(
     )
     assert decision["canonical_enforcement"] is mapped
     assert decision["canonical_role"] == (
-        "juror_assignment" if role == "juror"
-        else "validator_operator" if role == "validator"
+        "juror_assignment"
+        if role == "juror"
+        else "validator_operator"
+        if role == "validator"
         else None
     )
     if role == "validator":
@@ -335,9 +335,12 @@ def test_role_version_from_payload_or_account_cannot_activate_v2() -> None:
     _validator_penalty(state)
     state["accounts"]["@alice"]["reputation_role_gate_version"] = 2
     state["pending_tx_payload"] = {"reputation_role_gate_version": 2}
-    assert role_activation_reputation_decision(
-        state, "@alice", role="validator", minimum_reputation_milli=5000
-    )["eligible"] is True
+    assert (
+        role_activation_reputation_decision(
+            state, "@alice", role="validator", minimum_reputation_milli=5000
+        )["eligible"]
+        is True
+    )
     assert "params" not in state or "reputation_role_gate_version" not in state["params"]
 
 
