@@ -56,3 +56,51 @@ payload actions can HOLD a final receipt but can never GRANT authorization.
 
 No protocol activation, automatic juror appeal, V2 semantic acceptance,
 legacy replay change, or ban producer is introduced.
+
+## Verified unclassified-ban guard (2026-11-01)
+
+Commit `de75fc64f6b31fe402b228c98b8b3af815f1ccdb` adds an
+**authorization-neutral finality hold**, rather than a sanction producer.
+
+The runtime now detects explicit `ACCOUNT_BAN` intent in recorded initial
+resolutions, recorded final resolutions, recorded appeal-panel resolutions,
+and the supplied `DISPUTE_FINAL_RECEIPT` resolution or appeal resolution.
+It blocks both final-receipt scheduling and final-receipt execution in
+constitutional-clock mode, even where a case has no severe marker or is
+labeled as another target type. Both top-level and rules-level severity and
+sanction class are considered independently so a lower-severity field cannot
+override an explicitly declared S4/severe class.
+
+**Limitations:** Action lists are not authoritative constitutional evidence;
+a malicious action can hold (not grant) finalization. The predicate cannot
+recognize an undisclosed severe sanction unless a severe class or ban
+action is present. This does not implement the required canonical case
+classification or automatic fresh-panel appeal. The separate clock-mode
+`ACCOUNT_BAN` execution guard remains in force.
+
+**Focused GitHub evidence:** severe-account finality workflow
+`41320245661` passed **36 tests**. Its companion bounded evidence refresh
+produced bot commit `66a4e65f7379fff6da818b56e0036bd9d8dd7156`
+from parent `de75fc64f6b31fe402b228c98b8b3af815f1ccdb`;
+the commit changed only six regenerated V1.5 artifacts and Ruff formatting
+of the scoped boundary helper and focused tests. No V2 semantic-review
+digest was approved, and the generated public-beta report still shows
+8 open blockers.
+
+### Next source-bound authorization milestones
+
+1. Create a **canonical, non-spoofable severe-sanction classification**
+   sourced from an authorized case/admission contract. Current
+   `DISPUTE_OPEN` payload lacks such a field.
+2. Require independently valid 25-member initial panel assignment, 20
+   approval ballots, and a complete evidence record. Do not derive
+   sanction authority from arbitrary `resolution.actions`.
+3. Materialize the **automatic**, newly selected and conflict-free
+   25-member appeal panel via a deterministic authenticated lifecycle,
+   including a valid 20-vote appeal threshold and narrowly scoped waiver.
+4. Only after verified finalization, bind the exact account/reason/case
+   to a deterministic SYSTEM queue item and parent receipt.
+5. Adjudicate replay compatibility and V2 source semantic digest
+   changes (including `DISPUTE_OPEN` and `TX-0904`) before any activation.
+
+The draft PR is **not** approved for merge or public testnet release.
