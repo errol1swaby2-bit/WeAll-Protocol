@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'Weall-Protocol/scripts/audit_v2_semantic_review_drift.py'
+      - 'Weall-Protocol/scripts/v2_spec_validation.py'
+      - 'Weall-Protocol/docs/audits/pr77_ci_semantic_adjudication_queue_20261101.md'
       - 'Weall-Protocol/specs/v2/source/tx_appliers.json'
       - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
       - 'Weall-Protocol/tests/test_pr77_dispute_open_v2_source_attribution.py'
@@ -30,8 +32,8 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff check scripts/audit_v2_semantic_review_drift.py tests/test_pr77_dispute_open_v2_source_attribution.py
-          ruff format --check scripts/audit_v2_semantic_review_drift.py tests/test_pr77_dispute_open_v2_source_attribution.py
+          ruff check scripts/audit_v2_semantic_review_drift.py scripts/v2_spec_validation.py tests/test_pr77_dispute_open_v2_source_attribution.py
+          ruff format --check scripts/audit_v2_semantic_review_drift.py scripts/v2_spec_validation.py tests/test_pr77_dispute_open_v2_source_attribution.py
           pytest -q tests/test_pr77_dispute_open_v2_source_attribution.py
       - name: Report mismatches without updating accepted semantic reviews
         working-directory: Weall-Protocol
