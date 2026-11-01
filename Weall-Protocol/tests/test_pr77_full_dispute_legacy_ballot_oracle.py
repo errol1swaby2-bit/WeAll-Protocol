@@ -123,6 +123,30 @@ def test_legacy_migration_identifies_root_and_resolution_option_delta() -> None:
     assert bounded_root != reference_root
 
 
+
+
+def _changed_paths(before: Any, after: Any, path: str = "") -> list[str]:
+    if type(before) is not type(after):
+        return [path or "/"]
+    if isinstance(before, dict):
+        changed: list[str] = []
+        for key in sorted(set(before) | set(after)):
+            name = str(key).replace("~", "~0").replace("/", "~1")
+            child_path = f"{path}/{name}"
+            if key not in before or key not in after:
+                changed.append(child_path)
+            else:
+                changed.extend(_changed_paths(before[key], after[key], child_path))
+        return changed
+    if isinstance(before, list):
+        if len(before) != len(after):
+            return [path or "/"]
+        changed = []
+        for index, (old, new) in enumerate(zip(before, after, strict=True)):
+            changed.extend(_changed_paths(old, new, f"{path}/{index}"))
+        return changed
+    return [] if before == after else [path or "/"]
+
 def test_duplicate_legacy_dispute_vote_rejection_rolls_back_both_engines() -> None:
     """No partial legacy migration survives an apply-stage duplicate rejection."""
     prepared, envelope = _vote_fixture(legacy=True)
@@ -131,6 +155,7 @@ def test_duplicate_legacy_dispute_vote_rejection_rolls_back_both_engines() -> No
     before = copy.deepcopy(prepared)
     before_root = compute_state_root(before)
 
+    outcomes = []
     for engine in (
         apply_tx_atomic_meta_bounded_rollback,
         apply_tx_atomic_meta_deepcopy,
@@ -138,5 +163,17 @@ def test_duplicate_legacy_dispute_vote_rejection_rolls_back_both_engines() -> No
         state = copy.deepcopy(before)
         with pytest.raises(ApplyError, match="dispute_ballot_already_final"):
             engine(state, copy.deepcopy(envelope))
-        assert state == before
-        assert compute_state_root(state) == before_root
+        after_root = compute_state_root(state)
+        outcomes.append(
+            {
+                "engine": engine.__name__,
+                "pre_state_restored": state == before,
+                "state_root_restored": after_root == before_root,
+                "changed_paths": _changed_paths(before, state),
+                "before_root": before_root,
+                "after_root": after_root,
+            }
+        )
+    print(json.dumps({"rollback_probe": outcomes, "synthetic_only": True}, sort_keys=True))
+    assert all(outcome["pre_state_restored"] for outcome in outcomes)
+    assert all(outcome["state_root_restored"] for outcome in outcomes)
