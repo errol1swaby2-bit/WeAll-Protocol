@@ -886,6 +886,7 @@ def test_journaled_dict_reads_and_union_match_persisted_target_without_snapshots
         assert records != {"count": 2}
         assert not (records != reference)
         assert repr(records) == repr(reference)
+        assert list(reversed(records)) == list(reversed(reference))
         assert records | {"new": True} == reference | {"new": True}
         assert {"new": True} | records == {"new": True} | reference
         assert st["records"]["alice"] == reference["alice"]

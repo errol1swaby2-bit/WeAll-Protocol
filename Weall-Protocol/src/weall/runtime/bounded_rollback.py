@@ -525,6 +525,9 @@ class JournaledDict(dict):
     def __iter__(self) -> Iterator[Any]:
         return iter(self._target)
 
+    def __reversed__(self) -> Iterator[Any]:
+        return reversed(self._target)
+
     def __bool__(self) -> bool:
         return bool(self._target)
 
