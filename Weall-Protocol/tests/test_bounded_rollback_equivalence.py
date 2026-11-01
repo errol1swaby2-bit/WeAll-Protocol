@@ -954,6 +954,9 @@ def test_journaled_list_self_extend_and_self_iadd_are_finite_and_reversible() ->
         assert row == [1, 2, 1, 2]
         row += row
         assert row == [1, 2, 1, 2] * 2
+        # Separately obtained journal proxies can alias the same raw list.
+        st["rows"][0] += st["rows"][0]
+        assert st["rows"][0] == [1, 2, 1, 2] * 4
         raise RuntimeError("rollback_self_extend")
 
     with pytest.raises(RuntimeError, match="rollback_self_extend"):

@@ -721,7 +721,10 @@ class JournaledList(list):
         self._journal.record_list_append(self._target, semantic_path=self._path)
         # A generator walking this proxy while extending its target can grow
         # without bound. Match list.extend(self)'s finite self-snapshot.
-        source = list(self._target) if values is self or values is self._target else values
+        aliased = values is self._target or (
+            isinstance(values, JournaledList) and values._target is self._target
+        )
+        source = list(self._target) if aliased else values
         self._target.extend(_unwrap(v) for v in source)
 
     def __iadd__(self, values: Iterable[Any]) -> JournaledList:
