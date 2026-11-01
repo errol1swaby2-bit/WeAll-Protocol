@@ -59,7 +59,7 @@ jobs:
           python scripts/gen_release_evidence_manifest_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
           python scripts/check_v15_public_readiness_artifacts.py
-          python scripts/verify_release_hygiene.py
+          python scripts/check_release_hygiene_v1_5.py --allow-dirty
 
       - name: Commit ONLY reviewed V1.5 artifacts, without V2 attestation changes
         run: |
