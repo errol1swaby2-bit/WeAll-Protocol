@@ -2735,6 +2735,105 @@ def _maybe_record_appeal_panel_vote(
     return result
 
 
+
+def _experimental_severe_auto_appeal_enabled(state: Json) -> bool:
+    """Replayable, default-off prototype gate; NOT constitutional activation."""
+    params = state.get("params")
+    return (
+        isinstance(params, dict)
+        and params.get("experimental_severe_auto_appeal_v0") is True
+    )
+
+
+def _assign_experimental_severe_auto_appeal(
+    state: Json, dispute: Json, *, dispute_id: str, parent_ref: str, at_height: int
+) -> bool:
+    """Derive fresh panel inside the initial SYSTEM resolution, never a ban.
+
+    This prototype is explicitly opt-in in replicated state. It does not
+    authenticate the severe classification, ballot signatures, or SYSTEM
+    parent lineage, and cannot make a severe sanction executable.
+    """
+    if (
+        not _experimental_severe_auto_appeal_enabled(state)
+        or not _constitutional_clock_enabled(state)
+        or not strict_civic_governance_enabled(state)
+        or not is_explicit_severe_account_sanction(dispute)
+    ):
+        return False
+    if isinstance(dispute.get("automatic_appeal_record"), dict):
+        return False
+    if not _severe_initial_twenty_of_twenty_five_observed(dispute, dispute_id):
+        return False
+
+    original = list(dispute["assigned_jurors"])
+    original_subs = list(dispute["substitute_juror_ids"])
+    selection = select_dispute_panel(
+        state,
+        dispute,
+        eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE),
+        round_no=2,
+        exclude_ids=original + original_subs,
+    )
+    fresh = list(selection["panel"])
+    substitutes = list(selection["substitutes"])
+    all_jurors = original + original_subs + fresh + substitutes
+    complete = (
+        selection.get("strict") is True
+        and selection.get("status") == "assigned"
+        and selection.get("required_panel_size") == 25
+        and selection.get("required_substitute_count") == 5
+        and len(fresh) == 25
+        and len(substitutes) == 5
+        and len(all_jurors) == 60
+        and all(isinstance(j, str) and j and j == j.strip() for j in all_jurors)
+        and len({j.removeprefix("@") for j in all_jurors}) == 60
+    )
+    if not complete:
+        # An unavailable fresh panel is an unresolved automatic appeal,
+        # not permission to finalize on the ordinary appeal deadline.
+        dispute["experimental_auto_appeal_blocker"] = "insufficient_fresh_reviewers"
+        return False
+
+    dispute["original_panel_juror_ids"] = original
+    dispute["original_substitute_juror_ids"] = original_subs
+    dispute["appeal_panel_round"] = 2
+    dispute["appeal_panel_status"] = "assigned"
+    dispute["appeal_panel_commitment"] = selection["panel_commitment"]
+    dispute["appeal_panel_juror_ids"] = fresh
+    dispute["appeal_substitute_juror_ids"] = substitutes
+    dispute["appeal_conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
+    dispute["eligible_juror_ids"] = fresh
+    dispute["eligible_validator_count"] = 25
+    dispute["required_votes"] = 20
+    dispute["appeal_panel_votes"] = {}
+    dispute["appeal_vote_counts"] = {}
+    dispute["appeal_ballot_nullifiers"] = {}
+    dispute["appeal_voted_juror_ids"] = []
+    dispute["appeal_resolution_options"] = {}
+    dispute["jurors"] = {
+        juror: {
+            "status": "assigned",
+            "assigned_at_height": int(at_height),
+            "panel_round": 2,
+            "panel_kind": "automatic_appeal_experimental",
+        }
+        for juror in fresh
+    }
+    dispute["assigned_jurors"] = fresh
+    dispute["automatic_appeal_record"] = {
+        "source": "experimental_system_resolution_v0",
+        "dispute_id": str(dispute_id),
+        "source_parent_ref": str(parent_ref),
+        "assigned_at_height": int(at_height),
+        "panel_commitment": selection["panel_commitment"],
+    }
+    dispute.pop("experimental_auto_appeal_blocker", None)
+    dispute["stage"] = "appeal_review"
+    dispute["stage_set_at_height"] = int(at_height)
+    return True
+
+
 def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     payload = _as_dict(env.payload)
@@ -2742,6 +2841,17 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    if (
+        _constitutional_clock_enabled(state)
+        and is_explicit_severe_account_sanction(d)
+        and _experimental_severe_auto_appeal_enabled(state)
+        and isinstance(d.get("automatic_appeal_record"), dict)
+    ):
+        raise DisputeApplyError(
+            "conflict",
+            "automatic_severe_appeal_already_assigned",
+            {"dispute_id": dispute_id},
+        )
     if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(d):
         if not strict_civic_governance_enabled(
             state
@@ -2807,6 +2917,15 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
         _as_str(payload.get("_system_queue_id") or "").strip()
         or f"tx:{env.signer}:{int(env.nonce)}"
     )
+
+    if constitutional_appeal_mode and is_explicit_severe_account_sanction(d):
+        _assign_experimental_severe_auto_appeal(
+            state,
+            d,
+            dispute_id=dispute_id,
+            parent_ref=parent_ref,
+            at_height=int(base_due_h),
+        )
 
     # 1) Emit DISPUTE_FINAL_RECEIPT immediately only in legacy/dev mode.
     # Constitutional-clock mode delays final receipt until the appeal window closes.
@@ -2896,6 +3015,16 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
     stage = _as_str(d.get("stage")).strip().lower()
+    if (
+        _constitutional_clock_enabled(state)
+        and is_explicit_severe_account_sanction(d)
+        and isinstance(d.get("automatic_appeal_record"), dict)
+    ):
+        raise DisputeApplyError(
+            "conflict",
+            "automatic_severe_appeal_already_assigned",
+            {"dispute_id": dispute_id},
+        )
     if _constitutional_clock_enabled(state):
         if stage not in {"appeal_window", "appealed", "appeal_review"}:
             raise DisputeApplyError(

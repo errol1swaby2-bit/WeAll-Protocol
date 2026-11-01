@@ -1,0 +1,32 @@
+name: PR77 experimental automatic severe appeal - fail closed
+
+on:
+  pull_request:
+    paths:
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/tests/test_pr77_experimental_automatic_severe_appeal.py
+      - .github/workflows/pr77-experimental-automatic-severe-appeal.yml
+
+permissions:
+  contents: read
+
+jobs:
+  automatic-prototype:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Exercise experimental auto-assignment and prior safety guards
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check src/weall/runtime/apply/dispute.py tests/test_pr77_experimental_automatic_severe_appeal.py
+          pytest -q tests/test_pr77_experimental_automatic_severe_appeal.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_account_finality_no_go.py tests/test_constitutional_procedure_clock.py
