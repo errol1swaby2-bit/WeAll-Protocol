@@ -161,7 +161,15 @@ jobs:
                   w["field"] for w in entry["field_write_candidates"]
               )
           assert "nonce" in actual_fields["content.py"]
-          assert {"banned", "reputation", "reputation_milli"}.issubset(actual_fields["reputation.py"])
+          # The removed direct-write observation formerly contributed the
+          # reputation/reputation_milli field cues. Remaining unmatched
+          # account-ban/reinstatement observations must still expose banned.
+          # This limited scanner does NOT prove absence of reputation writes
+          # through other, matched call paths or imported helpers.
+          print("Unmatched account-field cues:", {
+              name: sorted(fields) for name, fields in sorted(actual_fields.items())
+          }, flush=True)
+          assert "banned" in actual_fields["reputation.py"]
           assert "balance" in actual_fields["rewards.py"]
           assert all(
               x["constitutional_authorization"] == "NOT_ESTABLISHED"
