@@ -34,9 +34,7 @@ def _plausible_case() -> dict:
                     "decision": "uphold",
                     "counts": {"uphold": 20, "reverse": 5},
                 },
-                "automatic_appeal_receipt": {
-                    "id": "unverified-auto-appeal-claim"
-                },
+                "automatic_appeal_receipt": {"id": "unverified-auto-appeal-claim"},
                 "final_resolution": {"summary": "Claimed reasoned final outcome"},
                 "stage": "finalized",
             },
@@ -51,9 +49,7 @@ def _plausible_case() -> dict:
 
 
 def _review(state: dict) -> dict:
-    return review_severe_sanction_candidate(
-        state, dispute_id="d1", account_id="@target"
-    )
+    return review_severe_sanction_candidate(state, dispute_id="d1", account_id="@target")
 
 
 class SevereSanctionCandidateReviewTests(unittest.TestCase):

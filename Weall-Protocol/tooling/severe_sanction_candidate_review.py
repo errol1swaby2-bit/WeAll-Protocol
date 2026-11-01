@@ -75,8 +75,7 @@ def review_severe_sanction_candidate(
             len(initial) == INITIAL_PANEL_SIZE and len(set(initial)) == INITIAL_PANEL_SIZE
         ),
         "initial_commitment_present": bool(
-            isinstance(dispute.get("panel_commitment"), str)
-            and dispute["panel_commitment"].strip()
+            isinstance(dispute.get("panel_commitment"), str) and dispute["panel_commitment"].strip()
         ),
         "initial_20_yes_observed": (
             initial_resolution.get("outcome") == "report_upheld"
@@ -101,18 +100,13 @@ def review_severe_sanction_candidate(
             and bool(dispute["automatic_appeal_receipt"])
         ),
         "public_reason_present": bool(
-            isinstance(final_resolution.get("summary"), str)
-            and final_resolution["summary"].strip()
+            isinstance(final_resolution.get("summary"), str) and final_resolution["summary"].strip()
         ),
-        "final_receipt_observed": (
-            dispute.get("stage") == "finalized" and recorded_final
-        ),
+        "final_receipt_observed": (dispute.get("stage") == "finalized" and recorded_final),
     }
     # These are hard blockers even if every observational field appears.
     # No supplied payload or dispute record can flip them to True.
-    blockers = [
-        name for name, observed in observations.items() if not observed
-    ]
+    blockers = [name for name, observed in observations.items() if not observed]
     blockers.extend(
         (
             "authenticated_panel_ballots_not_independently_verified",
