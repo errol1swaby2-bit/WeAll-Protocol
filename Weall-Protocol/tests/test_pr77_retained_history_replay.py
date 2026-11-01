@@ -113,3 +113,47 @@ def test_checkout_mismatch_fails_before_opening_archive_or_creating_scratch(
             expected_commit="e" * 40,
         )
     assert not list(scratch.iterdir())
+
+
+def test_synthetic_stored_blocks_replay_through_real_executor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Execute the full archive/replay path on a synthetic 3-block chain only.
+
+    This test cannot certify any retained historical ledger or two-node BFT.
+    """
+    import subprocess
+
+    from weall.runtime.replay_consistency import build_sample_chain
+
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_REQUIRE_VRF", "0")
+    sample = build_sample_chain(
+        work_dir=str(tmp_path / "synthetic"), chain_id_prefix="pr77-archive-fixture"
+    )
+    assert sample["ok"] is True
+    assert sample["source_manifest"]["height"] == 3
+
+    source = Path(sample["source_db"])
+    scratch = tmp_path / "independent-scratch"
+    scratch.mkdir()
+    repo_root = Path(__file__).resolve().parents[2]
+    tx_index = repo_root / "Weall-Protocol" / "generated" / "tx_index.json"
+    commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+    ).strip()
+    report = replay_offline_source(
+        source=source,
+        source_sha256=file_sha256(source),
+        chain_id=sample["chain_id"],
+        scratch_dir=scratch,
+        tx_index=tx_index,
+        tx_index_sha256=file_sha256(tx_index),
+        expected_commit=commit,
+    )
+    assert report["ok"] is True
+    assert report["block_count"] == 3
+    assert report["final_state_root"] == sample["source_manifest"]["computed_state_root"]
+    assert report["historical_provenance_verified"] is False
+    assert report["old_version_compatibility_proven"] is False
+    assert report["independent_two_node_consensus_proven"] is False
