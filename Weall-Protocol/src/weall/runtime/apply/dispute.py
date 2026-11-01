@@ -809,7 +809,12 @@ def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str
         if appeal_snap:
             dispute["eligible_juror_ids"] = list(appeal_snap)
             dispute["eligible_validator_count"] = int(len(appeal_snap))
-            dispute["required_votes"] = int(quorum_threshold(len(appeal_snap)))
+            dispute["required_votes"] = (
+                max(20, int(quorum_threshold(len(appeal_snap))))
+                if _constitutional_clock_enabled(state)
+                and is_explicit_severe_account_sanction(dispute)
+                else int(quorum_threshold(len(appeal_snap)))
+            )
             return appeal_snap
 
     snap = _filter_active_dispute_reviewers(
@@ -2269,6 +2274,20 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     profile = _require_active_dispute_ballot_profile(
         state, dispute_id=dispute_id, stage=stage or "juror_review"
     )
+    is_appeal_vote = stage in {"appealed", "appeal_review"}
+    if (
+        is_appeal_vote
+        and _constitutional_clock_enabled(state)
+        and is_explicit_severe_account_sanction(d)
+        and (not bool(profile.get("strict")) or not _severe_fresh_appeal_panel_observed(d))
+    ):
+        # Reject before mutating vote, juror, or reputation state. A manual
+        # panel does not prove the constitutionally mandated automatic appeal.
+        raise DisputeApplyError(
+            "forbidden",
+            "severe_appeal_fresh_panel_unverified",
+            {"dispute_id": dispute_id, "tx_type": env.tx_type},
+        )
     _require_dispute_reviewer_lane(state, env.signer, d)
     if _is_dispute_target_owner(state, d, env.signer):
         raise DisputeApplyError(
@@ -2282,7 +2301,6 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
         )
     _dispute_eligible_juror_ids(state, d, env.signer)
     juror_key = _juror_key_for_actor(d, env.signer)
-    is_appeal_vote = stage in {"appealed", "appeal_review"}
     if bool(profile.get("strict")):
         prior_voters = _dispute_voted_juror_ids(d, appeal=is_appeal_vote)
         if any(
@@ -2538,6 +2556,39 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     return out
 
 
+
+def _severe_fresh_appeal_panel_observed(dispute: Json) -> bool:
+    """Structurally inspect two disjoint 25+5 panels; never authorize a ban."""
+    names = (
+        "original_panel_juror_ids",
+        "original_substitute_juror_ids",
+        "appeal_panel_juror_ids",
+        "appeal_substitute_juror_ids",
+    )
+    groups = [dispute.get(name) for name in names]
+    current = dispute.get("assigned_jurors")
+    if not all(isinstance(group, list) for group in groups) or not isinstance(current, list):
+        return False
+    if [len(group) for group in groups] != [25, 5, 25, 5] or len(current) != 25:
+        return False
+    all_ids = [item for group in groups for item in group]
+    if not all(isinstance(item, str) and item and item == item.strip() for item in all_ids + current):
+        return False
+    if len({item.removeprefix("@") for item in all_ids}) != 60:
+        return False
+    if [x.removeprefix("@") for x in current] != [
+        x.removeprefix("@") for x in groups[2]
+    ]:
+        return False
+    return (
+        dispute.get("appeal_panel_status") == "assigned"
+        and isinstance(dispute.get("appeal_panel_commitment"), str)
+        and bool(dispute["appeal_panel_commitment"].strip())
+        and type(dispute.get("appeal_panel_round")) is int
+        and dispute["appeal_panel_round"] == 2
+    )
+
+
 def _maybe_record_appeal_panel_vote(
     state: Json, d: Json, env: TxEnvelope, payload: Json, juror_key: str
 ) -> Json | None:
@@ -2636,6 +2687,10 @@ def _maybe_record_appeal_panel_vote(
     required = int(d.get("required_votes") or 0)
     if required <= 0:
         required = int(quorum_threshold(len(eligible))) if eligible else 1
+    if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(d):
+        # Less than 25 active jurors cannot establish severe-appeal finality.
+        required = max(20, required) if len(eligible) == 25 else 26
+        d["required_votes"] = int(required)
 
     decision = ""
     for candidate in ("reverse", "modify", "uphold"):
@@ -2914,7 +2969,12 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     d["appeal_conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
     d["eligible_juror_ids"] = list(appeal_panel)
     d["eligible_validator_count"] = int(len(appeal_panel))
-    d["required_votes"] = int(quorum_threshold(len(appeal_panel))) if appeal_panel else 0
+    d["required_votes"] = (
+        max(20, int(quorum_threshold(len(appeal_panel))))
+        if appeal_panel and _constitutional_clock_enabled(state)
+        and is_explicit_severe_account_sanction(d)
+        else int(quorum_threshold(len(appeal_panel))) if appeal_panel else 0
+    )
     d["appeal_panel_votes"] = {}
     d["appeal_vote_counts"] = {}
     d["appeal_ballot_nullifiers"] = {}
