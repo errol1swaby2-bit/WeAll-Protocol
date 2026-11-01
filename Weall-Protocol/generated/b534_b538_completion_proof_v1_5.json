@@ -1,6 +1,6 @@
 {
   "api_lifecycle": {
-    "activity_status_code": 200,
+    "activity_status_code": 401,
     "api_route_count": 6,
     "api_routes_exercised": [
       "GET /v1/session/me",
@@ -42,7 +42,7 @@
     "538"
   ],
   "freshness": {
-    "input_digest_sha256": "31373afa7ddf2849fcf590176587e012e911fe740a3fde0b6b76b5ea99b4bb83",
+    "input_digest_sha256": "b557489955e5553ed22beb2cf43de1706932f2cf3fe08b913953a2989b36df2d",
     "mode": "deterministic_input_digest_v1"
   },
   "locked_boundaries": {

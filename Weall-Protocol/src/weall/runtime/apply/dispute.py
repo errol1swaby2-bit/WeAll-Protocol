@@ -251,7 +251,11 @@ def _validate_dispute_enforcement_actions(
             )
             continue
         tx_type = _as_str(action.get("tx_type")).strip().upper()
-        if tx_type not in _ALLOWED_DISPUTE_ENFORCEMENT_TX_TYPES:
+        # Severe account bans require a constitutionally complete, automatic
+        # fresh-appeal path before enforcement.  They are not activated here.
+        # Keep the ban fail-closed even if somebody accidentally expands
+        # the ordinary dispute enforcement allowlist in a future patch.
+        if tx_type == "ACCOUNT_BAN" or tx_type not in _ALLOWED_DISPUTE_ENFORCEMENT_TX_TYPES:
             _dispute_enforcement_rejections(state).append(
                 {
                     "dispute_id": dispute_id,

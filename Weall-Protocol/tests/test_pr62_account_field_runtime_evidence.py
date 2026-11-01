@@ -165,8 +165,7 @@ def test_pr62_reputation_floor_auto_ban_replay_does_not_double_apply() -> None:
     replay = apply_reputation(state, _tx("REPUTATION_DELTA_APPLY", payload, nonce=2))
     assert replay is not None and replay["deduped"] is True
     # Canonical milli-units, ban state and other account fields are not
-    # re-applied. JSON representation of "reputation" is separately tracked
-    # as a KNOWN replay discrepancy below; do not erase that finding.
+    # re-applied. Exact JSON representation is asserted by the test below.
     for field in ("nonce", "poh_tier", "locked", "balance", "banned", "reputation_milli"):
         assert state["accounts"]["@target"][field] == before["accounts"]["@target"][field]
     assert float(state["accounts"]["@target"]["reputation"]) == float(
@@ -175,15 +174,8 @@ def test_pr62_reputation_floor_auto_ban_replay_does_not_double_apply() -> None:
     assert len(state["reputation"]["deltas"]) == 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "PR62-RUNTIME-GAP-001: duplicate REPUTATION_DELTA_APPLY currently"
-        " normalizes account reputation from float to string"
-    ),
-)
 def test_pr62_duplicate_reputation_replay_should_preserve_account_json_representation() -> None:
-    """Strict expected failure: a duplicate claim must not be called a full no-op."""
+    """Duplicate replay must preserve the account JSON representation."""
     state = {"accounts": {"@target": _account()}}
     payload = {
         "account_id": "@target",

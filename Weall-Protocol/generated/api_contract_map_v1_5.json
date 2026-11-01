@@ -2850,7 +2850,7 @@
       "route_id": "07458def0b2ed72f",
       "route_path_without_v1_prefix": "/reputation/{account}/events",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 108,
+      "source_lineno": 109,
       "summary": "",
       "tags": [
         "reputation"

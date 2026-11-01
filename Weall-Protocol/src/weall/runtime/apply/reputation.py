@@ -25,6 +25,7 @@ penalties deterministically without duplicating logic.
 from dataclasses import dataclass
 from typing import Any
 
+from weall.runtime.bounded_rollback import materialize_journaled
 from weall.runtime.reputation_events import append_reputation_event, event_code_for_reason
 from weall.runtime.reputation_units import (
     REPUTATION_MAX_UNITS,
@@ -655,11 +656,14 @@ def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
         and bool(prior.get("banned"))
         and _as_int(prior.get("set_at_nonce"), 0) == int(env.nonce)
     ):
+        # The canonical bounded-rollback path exposes nested state as
+        # JournaledDict. Its dict-base equality is not content equality.
+        prior_payload = prior.get("payload")
         if (
             _as_str(prior.get("account_id")).strip() != account_id
             or _as_str(prior.get("reason")).strip() != reason
             or bool(prior.get("auto", False))
-            or (isinstance(prior.get("payload"), dict) and prior.get("payload") != payload)
+            or (isinstance(prior_payload, dict) and materialize_journaled(prior_payload) != payload)
         ):
             raise ReputationApplyError(
                 "conflicting_receipt",
