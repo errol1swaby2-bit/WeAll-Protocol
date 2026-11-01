@@ -2556,7 +2556,6 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     return out
 
 
-
 def _severe_fresh_appeal_panel_observed(dispute: Json) -> bool:
     """Structurally inspect two disjoint 25+5 panels; never authorize a ban."""
     names = (
@@ -2572,13 +2571,13 @@ def _severe_fresh_appeal_panel_observed(dispute: Json) -> bool:
     if [len(group) for group in groups] != [25, 5, 25, 5] or len(current) != 25:
         return False
     all_ids = [item for group in groups for item in group]
-    if not all(isinstance(item, str) and item and item == item.strip() for item in all_ids + current):
+    if not all(
+        isinstance(item, str) and item and item == item.strip() for item in all_ids + current
+    ):
         return False
     if len({item.removeprefix("@") for item in all_ids}) != 60:
         return False
-    if [x.removeprefix("@") for x in current] != [
-        x.removeprefix("@") for x in groups[2]
-    ]:
+    if [x.removeprefix("@") for x in current] != [x.removeprefix("@") for x in groups[2]]:
         return False
     return (
         dispute.get("appeal_panel_status") == "assigned"
@@ -2971,9 +2970,12 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     d["eligible_validator_count"] = int(len(appeal_panel))
     d["required_votes"] = (
         max(20, int(quorum_threshold(len(appeal_panel))))
-        if appeal_panel and _constitutional_clock_enabled(state)
+        if appeal_panel
+        and _constitutional_clock_enabled(state)
         and is_explicit_severe_account_sanction(d)
-        else int(quorum_threshold(len(appeal_panel))) if appeal_panel else 0
+        else int(quorum_threshold(len(appeal_panel)))
+        if appeal_panel
+        else 0
     )
     d["appeal_panel_votes"] = {}
     d["appeal_vote_counts"] = {}

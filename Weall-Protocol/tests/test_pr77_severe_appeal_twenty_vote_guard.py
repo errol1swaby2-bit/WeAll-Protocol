@@ -71,11 +71,18 @@ def _ready() -> tuple[dict, list[str]]:
 def test_seventeen_ordinary_votes_cannot_resolve_severe_appeal() -> None:
     state, panel = _ready()
     for index, juror in enumerate(panel[:20], 1):
-        dispute.apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", juror, 10 + index, {"dispute_id": "s4"}))
+        dispute.apply_dispute(
+            state, _env("DISPUTE_JUROR_ACCEPT", juror, 10 + index, {"dispute_id": "s4"})
+        )
     for index, juror in enumerate(panel[:20], 1):
         result = dispute.apply_dispute(
             state,
-            _env("DISPUTE_VOTE_SUBMIT", juror, 40 + index, {"dispute_id": "s4", "appeal_decision": "uphold"}),
+            _env(
+                "DISPUTE_VOTE_SUBMIT",
+                juror,
+                40 + index,
+                {"dispute_id": "s4", "appeal_decision": "uphold"},
+            ),
         )
         assert result["appeal_panel_result"]["required_votes"] == 20
         assert result["appeal_panel_result"]["reached"] is (index == 20)
@@ -85,10 +92,14 @@ def test_seventeen_ordinary_votes_cannot_resolve_severe_appeal() -> None:
     assert d["appeal_vote_counts"] == {"uphold": 20}
     assert d["stage"] == "appeal_resolved"
     assert tick_dispute_lifecycle(state, next_height=101) == 0
-    assert not any(q.get("tx_type") in {"ACCOUNT_BAN", "DISPUTE_FINAL_RECEIPT"} for q in state["system_queue"])
+    assert not any(
+        q.get("tx_type") in {"ACCOUNT_BAN", "DISPUTE_FINAL_RECEIPT"} for q in state["system_queue"]
+    )
 
 
-@pytest.mark.parametrize("fault", ["round", "panel", "substitutes", "original", "commitment", "status", "assigned"])
+@pytest.mark.parametrize(
+    "fault", ["round", "panel", "substitutes", "original", "commitment", "status", "assigned"]
+)
 def test_structurally_invalid_second_panel_refuses_vote_without_mutation(fault: str) -> None:
     state, panel = _ready()
     d = state["disputes_by_id"]["s4"]
@@ -108,7 +119,15 @@ def test_structurally_invalid_second_panel_refuses_vote_without_mutation(fault: 
         d["assigned_jurors"] = list(reversed(d["assigned_jurors"]))
     before = copy.deepcopy(state)
     with pytest.raises(dispute.DisputeApplyError) as exc:
-        dispute.apply_dispute(state, _env("DISPUTE_VOTE_SUBMIT", panel[0], 12, {"dispute_id": "s4", "appeal_decision": "uphold"}))
+        dispute.apply_dispute(
+            state,
+            _env(
+                "DISPUTE_VOTE_SUBMIT",
+                panel[0],
+                12,
+                {"dispute_id": "s4", "appeal_decision": "uphold"},
+            ),
+        )
     assert exc.value.code == "forbidden"
     assert exc.value.reason == "severe_appeal_fresh_panel_unverified"
     assert state == before
@@ -121,6 +140,7 @@ def test_legacy_clock_preserves_manual_appeal_vote_path() -> None:
     d["appeal_panel_round"] = 1
     dispute.apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", panel[0], 2, {"dispute_id": "s4"}))
     result = dispute.apply_dispute(
-        state, _env("DISPUTE_VOTE_SUBMIT", panel[0], 3, {"dispute_id": "s4", "appeal_decision": "uphold"})
+        state,
+        _env("DISPUTE_VOTE_SUBMIT", panel[0], 3, {"dispute_id": "s4", "appeal_decision": "uphold"}),
     )
     assert result["appeal_panel_result"]["votes"] == 1
