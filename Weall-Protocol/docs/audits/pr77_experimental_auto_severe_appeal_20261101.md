@@ -32,3 +32,28 @@ severe account cases and cannot execute `ACCOUNT_BAN` in
 constitutional-clock mode. Appeal waiver, finality provenance and
 sanction restoration remain unimplemented. Eight public-beta blockers
 remain open. Do not merge or launch PR #77 based on this prototype.
+
+## Verification record — 2026-11-01
+
+- Default-off prototype implementation: `ef9a345051b23ad696eaa694f0f6aafdbb029205`.
+- Dedicated experimental appeal CI run `41329035847`: **PASS, 66 focused
+  tests**, including prior severe initial/appeal/finality regressions.
+- Follow-up dedicated run `41329151563`: **PASS**.
+- Bounded V1.5 regeneration and safety workflow run `41329147768`:
+  **PASS, 106 focused tests**, Ruff lint/format, source-bound generated
+  evidence checks and release hygiene. Bot commit
+  `a15ec15d74d1388bd86737e118383ddc39925726` changed only Ruff
+  formatting of the new experimental regression test; the V1.5
+  derivatives were already current.
+- Public-beta blocker report: **8 remaining open blockers**.
+
+The automatic assignment prototype is gated behind a replicated-state
+`experimental_severe_auto_appeal_v0 is True` flag and **is disabled by
+default**. No canonical severe case admission, independent vote proof,
+cryptographic SYSTEM parent lineage, appeal waiver, sanction finalization,
+or ACCOUNT_BAN authority is supplied by this increment. Even in the
+experimental case, no severe final receipt or ban may be emitted.
+
+Historical replay/activation safety and the stale V2 DISPUTE_OPEN
+semantic-review contract remain explicitly unapproved. PR #77 remains
+Draft and must not be merged or launched on this evidence alone.
