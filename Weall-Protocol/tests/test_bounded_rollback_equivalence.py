@@ -809,3 +809,60 @@ def test_journaled_list_membership_is_read_only_and_target_backed() -> None:
     assert result == {"members": ["@alice", "@bob"]}
     assert journal_records == 0
     assert state == initial
+
+def test_journaled_list_inherited_reads_match_raw_list_without_journaling() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    initial = {
+        "members": ["@alice", "@bob", "@bob", "@carol"],
+        "peer": ["@alice", "@bob", "@bob", "@carol"],
+        "nested": [{"id": "a"}, {"id": "b"}],
+    }
+    state = copy.deepcopy(initial)
+
+    def inspect(proxy: Json) -> None:
+        members = proxy["members"]
+        peer = proxy["peer"]
+        expected = initial["members"]
+
+        assert members == expected
+        assert expected == members
+        assert members == peer
+        assert members != ["@alice"]
+        assert not (members != peer)
+        assert members < ["@alice", "@bob", "@bob", "@dave"]
+        assert members <= expected
+        assert members > ["@alice", "@bob", "@bob", "@bob"]
+        assert members >= peer
+        assert repr(members) == repr(expected)
+
+        assert members.count("@bob") == expected.count("@bob")
+        assert members.count("@missing") == 0
+        assert members.index("@bob") == expected.index("@bob")
+        assert members.index("@bob", 2) == expected.index("@bob", 2)
+        assert members.index("@bob", 1, 3) == 1
+        with pytest.raises(ValueError):
+            members.index("@missing")
+
+        assert members[0] == "@alice"
+        assert members[-1] == "@carol"
+        assert members[1:4:2] == expected[1:4:2]
+        assert members[::-1] == expected[::-1]
+        assert list(reversed(members)) == list(reversed(expected))
+        assert members + ["@end"] == expected + ["@end"]
+        assert ["@start"] + members == ["@start"] + expected
+        assert members * 2 == expected * 2
+        assert 2 * members == 2 * expected
+
+        nested = proxy["nested"]
+        assert nested == initial["nested"]
+        assert nested.index(nested[0]) == 0
+        assert nested.count(nested[1]) == 1
+        assert nested[::-1][0]["id"] == "b"
+        # Comparisons, copies of values, and reverse traversal are read-only.
+        assert proxy["peer"] == expected
+
+    result, records = run_with_bounded_rollback(state, inspect)
+    assert result is None
+    assert records == 0
+    assert state == initial

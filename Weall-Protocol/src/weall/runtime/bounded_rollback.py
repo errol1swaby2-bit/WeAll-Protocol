@@ -601,9 +601,36 @@ class JournaledList(list):
         # canonical journaled executor versus the deepcopy oracle.
         return _unwrap(value) in self._target
 
+    # list's inherited C-level reads inspect its deliberately empty base.
+    # Delegate to the persisted target; unlike writes, these must not journal.
+    def __eq__(self, other: object) -> bool:
+        return self._target == _unwrap(other)
+
+    def __ne__(self, other: object) -> bool:
+        return self._target != _unwrap(other)
+
+    def __lt__(self, other: Any) -> bool:
+        return self._target < _unwrap(other)
+
+    def __le__(self, other: Any) -> bool:
+        return self._target <= _unwrap(other)
+
+    def __gt__(self, other: Any) -> bool:
+        return self._target > _unwrap(other)
+
+    def __ge__(self, other: Any) -> bool:
+        return self._target >= _unwrap(other)
+
+    def __repr__(self) -> str:
+        return repr(self._target)
+
     def __iter__(self) -> Iterator[Any]:
         for idx, value in enumerate(self._target):
             yield _wrap(value, self._journal, self._path + (idx,))
+
+    def __reversed__(self) -> Iterator[Any]:
+        for idx in range(len(self._target) - 1, -1, -1):
+            yield _wrap(self._target[idx], self._journal, self._path + (idx,))
 
     def __bool__(self) -> bool:
         return bool(self._target)
@@ -611,12 +638,33 @@ class JournaledList(list):
     def __getitem__(self, index: Any) -> Any:
         value = self._target[index]
         if isinstance(index, slice):
-            start = 0 if index.start is None else int(index.start)
             return [
-                _wrap(v, self._journal, self._path + (start + offset,))
-                for offset, v in enumerate(value)
+                _wrap(self._target[idx], self._journal, self._path + (idx,))
+                for idx in range(*index.indices(len(self._target)))
             ]
         return _wrap(value, self._journal, self._path + (index,))
+
+    def count(self, value: Any) -> int:
+        return self._target.count(_unwrap(value))
+
+    def index(self, value: Any, *bounds: int) -> int:
+        return self._target.index(_unwrap(value), *bounds)
+
+    def __add__(self, other: Any) -> list[Any]:
+        if not isinstance(other, list):
+            return NotImplemented
+        return list(self) + list(other)
+
+    def __radd__(self, other: Any) -> list[Any]:
+        if not isinstance(other, list):
+            return NotImplemented
+        return list(other) + list(self)
+
+    def __mul__(self, factor: Any) -> list[Any]:
+        return list(self) * factor
+
+    def __rmul__(self, factor: Any) -> list[Any]:
+        return list(self) * factor
 
     def __setitem__(self, index: Any, value: Any) -> None:
         self._journal.record_list_state(self._target, semantic_path=self._path)
