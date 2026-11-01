@@ -6,6 +6,8 @@ on:
       - review/pr70-pr75-pr76-consolidation-stage23-20261031
     paths:
       - Weall-Protocol/src/weall/runtime/apply/reputation.py
+      - Weall-Protocol/src/weall/runtime/apply/roles.py
+      - Weall-Protocol/tests/test_issue72_versioned_role_gate.py
       - Weall-Protocol/tests/test_pr77_severe_sanction_clock_no_go.py
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
       - Weall-Protocol/src/weall/runtime/dispute_engine.py
