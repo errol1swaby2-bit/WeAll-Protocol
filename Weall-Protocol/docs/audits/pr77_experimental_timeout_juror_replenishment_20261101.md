@@ -97,3 +97,36 @@ prototype operates only on explicitly classified severe/S4 account cases,
 and remains default OFF. General 7/15-person dispute panel replenishment,
 independent case-class authentication, BFT replay/activation, actual delivery
 notifications, and final sanction authority remain outside this change.
+
+### Exact GitHub verification — 2026-11-01 reserve-conflict guard
+
+The replenishment mechanic **already existed** at the start of this follow-up:
+`severe_juror_replenishment.replenish_severe_juror_pool` is called from
+`dispute_engine.tick_dispute_lifecycle`. Juror-assignment repair,
+block-height acceptance/vote deadlines, canonical SYSTEM timeout receipts,
+strict 25+5 panel selection, and deterministic candidate ranking were also
+already implemented. This follow-up did not duplicate them.
+
+The only runtime patch (commit
+`7ec5ee643ccde0d8a2a4d301e98a7e51fe62be72`) reuses the existing
+authoritative `_dispute_conflict_account_ids` function to recheck the
+**incoming reserve** against current reporter/target/rules/case conflicts.
+It additionally prevents a previously retired or already journaled juror
+from being promoted through a stale reserve. The existing FIFO promotion,
+candidate choice, history commitments, deadline and timeout semantics are
+unchanged; a compromised reserve remains unpromoted.
+
+- Dedicated workflow `41344465362`: **PASS, 65 focused tests**, including
+  six new adversarial instances (case/rules/reporter/target conflicts,
+  retired identity, previously assigned identity).
+- Bounded evidence workflow `41344459768`: **PASS, 126 focused tests**,
+  Ruff lint/format, seven V1.5 source-bound artifact checks, release hygiene.
+- Bounded bot commit `204306fcc0cfb958fe3ccc1d1885a0bd40236701`
+  changed only the new test formatting and three dependent V1.5 JSON proofs.
+- The generated public-beta report still states **8 open blockers**.
+
+**Remaining coverage boundary:** The experimental replenisher is default OFF
+and restricted to explicitly marked severe/S4 account cases. Ordinary 7/15
+review panels do not yet use this replenisher. Current severity markers and
+previous vote/assignment fields remain insufficient independent authority
+proofs; no public-chain activation, finality, or ACCOUNT_BAN is authorized.
