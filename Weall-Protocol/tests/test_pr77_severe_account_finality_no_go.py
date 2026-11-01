@@ -131,12 +131,15 @@ def test_no_account_ban_is_emitted_as_side_effect() -> None:
 )
 def test_unclassified_ban_action_blocks_scheduled_final_receipt(location) -> None:
     state = _state(enabled=True, marker="", value="")
-    action_resolution = {"actions": [{"tx_type": " account_ban ", "payload": {"account_id": "@target"}}]}
+    action_resolution = {
+        "actions": [{"tx_type": " account_ban ", "payload": {"account_id": "@target"}}]
+    }
     case = state["disputes_by_id"]["case-1"]
     if location == "appeal_panel_result":
         case["stage"] = "appeal_resolved"
         case["appeal_panel_result"] = {
-            "reached": True, "resolution": {"decision": "uphold", **action_resolution}
+            "reached": True,
+            "resolution": {"decision": "uphold", **action_resolution},
         }
     else:
         case[location] = action_resolution

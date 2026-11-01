@@ -27,10 +27,7 @@ def is_explicit_severe_account_sanction(dispute: Any) -> bool:
     return any(
         isinstance(value, str) and value.strip().lower() in {"severe", "critical"}
         for value in severities
-    ) or any(
-        isinstance(value, str) and value.strip().upper() == "S4"
-        for value in classes
-    )
+    ) or any(isinstance(value, str) and value.strip().upper() == "S4" for value in classes)
 
 
 def _has_explicit_account_ban_action(resolution: Any) -> bool:
@@ -48,9 +45,7 @@ def _has_explicit_account_ban_action(resolution: Any) -> bool:
     )
 
 
-def requires_severe_sanction_finality_hold(
-    dispute: Any, *, receipt_payload: Any = None
-) -> bool:
+def requires_severe_sanction_finality_hold(dispute: Any, *, receipt_payload: Any = None) -> bool:
     """Hold final receipt when explicit severe class OR ban intent is present.
 
     Ban intent is inspected in the submitted final receipt as well as the
