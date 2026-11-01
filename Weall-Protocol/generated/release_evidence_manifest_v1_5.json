@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "667bf66dc132b89f5a18949768366ca2ffa0a53e1d7521ab7697a9b7f501ac79",
+  "artifact_digest": "7a1db84f0fb2614256d186d0e2ad83f43ae3bdede0819c73330a5bfbfc2f596a",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -202,7 +202,7 @@
     },
     "generated/failure_code_registry_v1_5.json": {
       "contract_valid": true,
-      "file_sha256": "e5802c4fd90ab9b9f531fd60e0259ba9c489acf57ca3d9e3418a01f20a304782",
+      "file_sha256": "eddc55b74680fc5eee66e11280594a72ebe7ba0a20f9a3f0f0fbe30b87372bf5",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
