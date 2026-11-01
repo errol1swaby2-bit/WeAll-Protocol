@@ -83,9 +83,7 @@ def test_claimed_resolved_appeal_cannot_schedule_severe_final_receipt() -> None:
     ("marker", "value"),
     [("severity", "severe"), ("severity", "critical"), ("sanction_class", "S4")],
 )
-def test_direct_system_final_receipt_cannot_bypass_unimplemented_appeal(
-    marker, value
-) -> None:
+def test_direct_system_final_receipt_cannot_bypass_unimplemented_appeal(marker, value) -> None:
     state = _state(enabled=True, marker=marker, value=value)
     before = copy.deepcopy(state)
     with pytest.raises(dispute.DisputeApplyError) as exc:

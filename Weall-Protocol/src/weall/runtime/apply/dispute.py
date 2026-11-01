@@ -2969,9 +2969,7 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
     # direct SYSTEM finalization before the automatic fresh appeal is verified.
     # There is no authenticated severe-sanction appeal/finality producer yet.
     # Legacy-clock receipts and other dispute classes retain their behavior.
-    if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(
-        candidate
-    ):
+    if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(candidate):
         raise DisputeApplyError(
             "forbidden",
             "severe_sanction_automatic_appeal_unimplemented",
