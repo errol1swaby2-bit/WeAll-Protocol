@@ -160,3 +160,37 @@ separate normative review before production activation.
 
 This is NOT automatically activated; no replay or V2 semantic
 review, finality, or launch authorization is implied.
+
+### Exact GitHub general-panel verification — 2026-11-01
+
+The generic extension **reuses** the existing
+`replenish_severe_juror_pool`, its scheduler call, canonical
+`DISPUTE_JUROR_TIMEOUT` receipt, FIFO substitute promotion, reviewer
+responsibility registry, conflict checks, and deterministic replacement
+history. No second scheduler or selection engine was introduced.
+
+- Implemented on commit `fa108fedce60a9379596f37e26066f81bab995e3`;
+  narrow Ruff identity-check correction `59d2625431ce1e9cb6fa3673ef2535c07d65717c`;
+  pre-existing generic appeal-deadline fixture correction
+  `615066c820c3c5542f9648583a16584e739125de`.
+- Dedicated juror-replenishment workflow `41346812705`: **PASS,
+  87 tests**, covering the 7/15/non-severe-25 cases, initial and appeal
+  timeout boundaries, deterministic replay-shaped equality, disjoint
+  fresh-appeal rosters, no-replacement-after-ballot, insufficient reserve
+  replenishment, conflicted reserve, and independent strict boolean
+  gate behavior.
+- Bounded V1.5 source/evidence workflow `41346808546`: **PASS,
+  148 focused tests**, Ruff lint/format, artifact regeneration/currentness,
+  and release hygiene.
+- Bot commit `8ba7f6b6a8043bfdf0e0bb6ca227c19d92aa791a`
+  changed only three source-bound proof JSON files and test formatting.
+  The public-beta report still contains **8 open blockers**.
+- No V2 semantic digest was refreshed. The earlier
+  `DISPUTE_OPEN` source-review failure is intentionally unresolved.
+
+Both `experimental_general_juror_replenishment_v0` and
+`experimental_severe_juror_replenishment_v0` are default OFF and
+independent. This is *not* consensus activation or evidence of two-node
+replay equivalence. General dispute/content reviewer-lane inconsistencies
+and authenticated case/ballot provenance remain subject to separate
+normative review, as do appeal finality and account sanctions.
