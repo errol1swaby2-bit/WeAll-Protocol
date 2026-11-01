@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.runtime.bounded_rollback import materialize_journaled
+from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.reputation_events import append_reputation_event, event_code_for_reason
 from weall.runtime.reputation_units import (
     REPUTATION_MAX_UNITS,
@@ -639,6 +640,22 @@ def _apply_role_eligibility_revoke(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
+    # V2 severe-sanction execution requires a source-backed 25-juror decision,
+    # 20 approvals, and automatic fresh-panel appeal/finalization (or a
+    # constitutionally valid post-outcome waiver). There is no authenticated
+    # ACCOUNT_BAN producer/receipt verifier for that contract yet.
+    #
+    # The constitutional-clock path must therefore fail closed, even when a
+    # SYSTEM envelope carries plausible but unauthenticated appeal metadata.
+    # Legacy/dev replay behavior is deliberately unchanged pending an
+    # explicit activation/migration decision. Do not mistake this for
+    # completed V2 sanction authorization.
+    if policy_from_state(state).enabled:
+        raise ReputationApplyError(
+            "forbidden",
+            "severe_sanction_authorization_unimplemented",
+            {"tx_type": env.tx_type},
+        )
     payload = _as_dict(env.payload)
 
     account_id = _pick_account(payload, "account_id", "target", "account", "user")
