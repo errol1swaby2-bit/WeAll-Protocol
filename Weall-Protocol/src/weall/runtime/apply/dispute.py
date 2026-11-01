@@ -32,7 +32,10 @@ from weall.runtime.reviewer_responsibilities import (
     eligible_reviewer_ids,
     reviewer_lane_active,
 )
-from weall.runtime.severe_sanction_boundary import requires_severe_sanction_finality_hold
+from weall.runtime.severe_sanction_boundary import (
+    is_explicit_severe_account_sanction,
+    requires_severe_sanction_finality_hold,
+)
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 from weall.util.ipfs_cid import validate_ipfs_cid
