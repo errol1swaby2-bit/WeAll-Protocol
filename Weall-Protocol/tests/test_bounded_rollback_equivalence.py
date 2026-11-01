@@ -810,6 +810,7 @@ def test_journaled_list_membership_is_read_only_and_target_backed() -> None:
     assert journal_records == 0
     assert state == initial
 
+
 def test_journaled_list_inherited_reads_match_raw_list_without_journaling() -> None:
     from weall.runtime.bounded_rollback import run_with_bounded_rollback
 
