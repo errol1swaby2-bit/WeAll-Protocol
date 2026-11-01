@@ -23494,7 +23494,7 @@
           "metadata": {
             "account_id": "@tester",
             "applied": "ROLE_JUROR_ACTIVATE",
-            "deduped": false,
+            "deduped": true,
             "reassigned_content_reviews": 0,
             "reviewer_lane_policy": "exact_lane_opt_in_required"
           },
@@ -23735,7 +23735,7 @@
           "signature_bytes_omitted_from_manifest": false
         },
         "state_root_after": "acbfddd3480046e683ca86e44dee14ad0cff46dc3dbf95ecd612f5907c81599c",
-        "state_root_before": "95155716a9f2cd829666f5ddf27e7a46d2ced71313b0a6fea87c3675b5b8ec9d",
+        "state_root_before": "2f04b2ce1888ebb9ce8687e3b2da474c8233aac699a21a32533a7091597b1376",
         "state_writing": true,
         "success_receipt": {
           "nonce": 1,
@@ -23833,7 +23833,7 @@
           "signature_bytes": 0,
           "signature_bytes_omitted_from_manifest": false
         },
-        "state_root_after": "95155716a9f2cd829666f5ddf27e7a46d2ced71313b0a6fea87c3675b5b8ec9d",
+        "state_root_after": "2f04b2ce1888ebb9ce8687e3b2da474c8233aac699a21a32533a7091597b1376",
         "state_root_before": "6998ecce9ece058e2bd99522bb406967a99c1c3766f1073376061e49157b7b5e",
         "state_writing": true,
         "success_receipt": {
@@ -24137,7 +24137,7 @@
           "signature_bytes": 0,
           "signature_bytes_omitted_from_manifest": false
         },
-        "state_root_after": "294dde7e8cff9704aa535947989b854638f3d75a61f06b0e9c11f6c0f48d92b5",
+        "state_root_after": "bf9aa8430e3ab95ec8ec5897d45420edf6a3a9fe135d06c1c9e911dcc9d8ecb0",
         "state_root_before": "3f622b32562b032e5b5ee633c3791fdb180ef7aae062557769db7be07725dffe",
         "state_writing": true,
         "success_receipt": {
