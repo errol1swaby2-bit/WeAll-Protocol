@@ -13,7 +13,7 @@ from weall.runtime.tx_admission import TxEnvelope
 def _case(*, yes: int = 20, no: int = 0) -> dict:
     panel = [f"juror-{n:02d}" for n in range(25)]
     substitutes = [f"sub-{n:02d}" for n in range(5)]
-    voted = panel[:yes + no]
+    voted = panel[: yes + no]
     nullifiers = {
         dispute._dispute_ballot_nullifier(
             dispute_id="severe-1", panel_round=1, juror=juror, appeal=False
@@ -50,9 +50,7 @@ def _state(*, yes: int = 20, no: int = 0, clock: bool = True) -> dict:
         "height": 11,
         "meta": {"constitutional_clock": {"enabled": clock}},
         "params": {"m3_civic_governance_strict": True},
-        "roles": {
-            "jurors": {"active_set": case["assigned_jurors"] + case["substitute_juror_ids"]}
-        },
+        "roles": {"jurors": {"active_set": case["assigned_jurors"] + case["substitute_juror_ids"]}},
         "disputes_by_id": {"severe-1": case},
     }
 
@@ -78,8 +76,11 @@ def test_strict_severe_under_twenty_cannot_auto_resolve_or_mutate(yes: int) -> N
     state = _state(yes=yes)
     before = copy.deepcopy(state)
     dispute._maybe_schedule_dispute_auto_resolution(
-        state, state["disputes_by_id"]["severe-1"], "severe-1",
-        current_height=11, parent_ref="synthetic-parent",
+        state,
+        state["disputes_by_id"]["severe-1"],
+        "severe-1",
+        current_height=11,
+        parent_ref="synthetic-parent",
     )
     assert state == before
 
@@ -98,8 +99,11 @@ def test_direct_system_resolve_under_twenty_rejected_before_mutation(yes: int) -
 def test_exact_twenty_with_consistent_strict_ballots_resolves_only_to_appeal_window() -> None:
     state = _state(yes=20)
     dispute._maybe_schedule_dispute_auto_resolution(
-        state, state["disputes_by_id"]["severe-1"], "severe-1",
-        current_height=11, parent_ref="synthetic-parent",
+        state,
+        state["disputes_by_id"]["severe-1"],
+        "severe-1",
+        current_height=11,
+        parent_ref="synthetic-parent",
     )
     case = state["disputes_by_id"]["severe-1"]
     assert case["stage"] == "appeal_window"
@@ -112,9 +116,18 @@ def test_exact_twenty_with_consistent_strict_ballots_resolves_only_to_appeal_win
     )
 
 
-@pytest.mark.parametrize("field", ["panel_status", "panel_commitment", "assigned_jurors",
-                                  "substitute_juror_ids", "voted_juror_ids",
-                                  "ballot_nullifiers", "vote_counts"])
+@pytest.mark.parametrize(
+    "field",
+    [
+        "panel_status",
+        "panel_commitment",
+        "assigned_jurors",
+        "substitute_juror_ids",
+        "voted_juror_ids",
+        "ballot_nullifiers",
+        "vote_counts",
+    ],
+)
 def test_corrupt_vote_read_model_refuses_direct_resolution(field: str) -> None:
     state = _state()
     case = state["disputes_by_id"]["severe-1"]
