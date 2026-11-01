@@ -105,8 +105,10 @@ jobs:
           )
           assert result["authority_review_queue_unmatched_count"] <= result["authority_review_queue_item_count"]
           assert result["unmatched_review_triage_count"] == result["authority_review_queue_unmatched_count"]
-          # Diagnostic-only: preserve the fail-closed 22-item baseline while
-          # exposing the exact current review inventory for adjudication.
+          # Diagnostic-only: expose the current inventory. Historic PR #70
+          # evidence contained 22 unmatched observations. The integrated
+          # REPUTATION_DELTA_APPLY duplicate path no longer calls _ensure_account,
+          # removing one DIRECT_STATE_ROOT candidate, not authorizing a sanction.
           print("Constitutional review inventory:", {
               "unmatched_review_triage_count": result["unmatched_review_triage_count"],
               "unmatched_field_scan_entries": result["unmatched_field_scan_entries"],
@@ -118,9 +120,40 @@ jobs:
                   "source_path": item.get("source_path"),
                   "priority": item.get("priority"),
               }, flush=True)
-          assert result["unmatched_review_triage_count"] == 22
+          # Exact review identities from the earlier passing PR #70 candidate
+          # evidence, excluding only AWC-206d933e1f8444b2a9917082. That
+          # observation was a direct accounts-root signal from the duplicate
+          # REPUTATION_DELTA_APPLY branch which is now a non-mutating read.
+          # Pin all remaining observations; a count alone can hide replacements.
+          expected_unmatched_keys = {
+              "AWC-0c56ff3a89b3d45536dbc98f",
+              "AWC-12bd59150b55e57acf890f8a",
+              "AWC-16d06569e02910d6cfe0ec16",
+              "AWC-1fdc04d56d10a01349b03a16",
+              "AWC-207f5d46cbc4f03b73f48d1e",
+              "AWC-255058af0fee7a548f7a7323",
+              "AWC-26419290de15d62021a04dd8",
+              "AWC-327347bb7ad93d7ce116c7c7",
+              "AWC-3377184b2bef65b6841d4745",
+              "AWC-3be2059e6f269826eb8a3dad",
+              "AWC-44739522eba745859d9f965f",
+              "AWC-4bd94fba6243346e276967e5",
+              "AWC-5d0280fb818567f3abf17eef",
+              "AWC-ae7e87103e045df2ef55c895",
+              "AWC-b0fef54be9cb60607a525564",
+              "AWC-bb64e79f87e8dcb8d019edda",
+              "AWC-bbe92b0839dbdcb7eafcfe25",
+              "AWC-caa6d24ae6a3f8fca20e324d",
+              "AWC-e2db5cee38f2e7fa934a23e4",
+              "AWC-e9e52bf1d5977752d66d758e",
+              "AWC-fb4ac5fb071569b949681c52",
+          }
+          assert result["unmatched_review_triage_count"] == len(expected_unmatched_keys)
+          assert {
+              q["review_key"] for q in result["unmatched_review_triage"]
+          } == expected_unmatched_keys
           assert result["unmatched_field_scan_status"] == "PINNED_BOUNDED_SOURCE_CUES_NOT_SEMANTIC_PROOF"
-          assert result["unmatched_field_scan_entries"] == 22
+          assert result["unmatched_field_scan_entries"] == len(expected_unmatched_keys)
           actual_fields = {}
           for entry in result["unmatched_account_field_cues"]:
               filename = entry["source_path"].split("/")[-1]
@@ -138,7 +171,7 @@ jobs:
           )
           assert result["unmatched_review_triage_priority_counts"] == {
               "P2_REVIEW_NONCE_AND_CONTENT_PERMISSION_EFFECTS": 18,
-              "P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS": 3,
+              "P0_REVIEW_POSSIBLE_EXCLUSION_AND_REPUTATION_EFFECTS": 2,
               "P1_REVIEW_BALANCE_AND_ISSUANCE_CONSERVATION": 1,
           }
           assert all(
