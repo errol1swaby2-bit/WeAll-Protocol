@@ -60,6 +60,7 @@ def build_diagnostic() -> tuple[dict[str, Any], dict[str, Any]]:
     if str(SCRIPTS) not in sys.path:
         sys.path.insert(0, str(SCRIPTS))
     import gen_tx_lifecycle_assurance_v1_5 as generator
+
     from weall.runtime.domain_apply import (
         apply_tx_atomic_meta_bounded_rollback,
         apply_tx_atomic_meta_deepcopy,
