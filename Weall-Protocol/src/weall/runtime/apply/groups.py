@@ -9,7 +9,7 @@ from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.ballot_policy import ballot_profile_status, strict_civic_governance_enabled
-from weall.runtime.bounded_rollback import journal_set_dict_key
+from weall.runtime.bounded_rollback import journal_set_dict_key, materialize_journaled
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.group_treasury_scheduler import (
     group_spend_plan_hash,
@@ -304,7 +304,7 @@ def _ensure_group_emissary_ballot_nullifiers(state: Json) -> Json:
 
 def _group_ballot_hash(value: Any) -> str:
     return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        json.dumps(materialize_journaled(value), sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
 
 

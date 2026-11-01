@@ -20,6 +20,7 @@ from typing import Any
 
 from weall.runtime.ballot_policy import ballot_profile_status, strict_civic_governance_enabled
 from weall.runtime.bft_hotstuff import quorum_threshold
+from weall.runtime.bounded_rollback import materialize_journaled
 from weall.runtime.commitments import (
     consensus_active_validator_ids,  # noqa: E402 -- legacy module docstring follows __future__ import
 )
@@ -45,7 +46,7 @@ Json = dict[str, Any]
 
 def _canonical_hash(value: Any) -> str:
     return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        json.dumps(materialize_journaled(value), sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
 
 

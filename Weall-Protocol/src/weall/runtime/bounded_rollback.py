@@ -389,13 +389,15 @@ class RollbackJournal:
         existed = key in target
         raw_previous = target.get(key, _MISSING) if existed else _MISSING
         self._record_snapshot(value=raw_previous, path_key=path, semantic_path=semantic_path)
-        previous = _rollback_copy(raw_previous) if existed else _MISSING
+        # Preserve identity so earlier child undo records restore the same
+        # container after this parent entry is reattached on reverse replay.
+        previous = raw_previous if existed else _MISSING
 
         def undo() -> None:
             if previous is _MISSING:
                 target.pop(key, None)
             else:
-                target[key] = _rollback_copy(previous)
+                target[key] = previous
 
         self._records.append(undo)
 

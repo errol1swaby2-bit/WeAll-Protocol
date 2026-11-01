@@ -32,7 +32,11 @@ from typing import Any
 # (This is intentionally a light dependency; dispute.py has no content imports.)
 from weall.runtime.apply.dispute import dispute_open, select_dispute_panel  # type: ignore
 from weall.runtime.bft_hotstuff import quorum_threshold
-from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
+from weall.runtime.bounded_rollback import (
+    journal_append_list,
+    journal_set_dict_key,
+    materialize_journaled,
+)
 from weall.runtime.commitments import (
     consensus_active_validator_ids,  # noqa: E402 -- legacy module docstring follows __future__ import
 )
@@ -56,7 +60,7 @@ Json = dict[str, Any]
 
 def _canonical_hash(value: Any) -> str:
     return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+        json.dumps(materialize_journaled(value), sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
     ).hexdigest()
 
 
