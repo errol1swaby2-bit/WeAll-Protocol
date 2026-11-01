@@ -2735,14 +2735,10 @@ def _maybe_record_appeal_panel_vote(
     return result
 
 
-
 def _experimental_severe_auto_appeal_enabled(state: Json) -> bool:
     """Replayable, default-off prototype gate; NOT constitutional activation."""
     params = state.get("params")
-    return (
-        isinstance(params, dict)
-        and params.get("experimental_severe_auto_appeal_v0") is True
-    )
+    return isinstance(params, dict) and params.get("experimental_severe_auto_appeal_v0") is True
 
 
 def _assign_experimental_severe_auto_appeal(
