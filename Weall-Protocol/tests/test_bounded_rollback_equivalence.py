@@ -978,3 +978,50 @@ def test_journaled_parent_augmented_assignments_do_not_snapshot_post_mutation() 
     with pytest.raises(RuntimeError, match="rollback_parent"):
         run_with_bounded_rollback(state, mutate)
     assert state == original
+
+
+@pytest.mark.parametrize(
+    "tx_type",
+    (
+        "ROLE_JUROR_ACTIVATE",
+        "ROLE_JUROR_REINSTATE",
+        "ROLE_JUROR_SUSPEND",
+        "ROLE_NODE_OPERATOR_SUSPEND",
+    ),
+)
+def test_lifecycle_role_change_vectors_match_independent_deepcopy_executor(tx_type: str) -> None:
+    """The four stale V1.5 vector outcomes must agree with deepcopy execution.
+
+    This is exact fixture-level executor parity, not preserved-history replay,
+    semantic-review acceptance, or permission to regenerate approval evidence.
+    """
+    import importlib.util
+    from pathlib import Path
+
+    fixture_path = Path(__file__).with_name("test_p2_a02_success_lifecycle_baseline.py")
+    spec = importlib.util.spec_from_file_location("pr77_lifecycle_fixture", fixture_path)
+    assert spec is not None and spec.loader is not None
+    fixture = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fixture)
+
+    semantic_path = fixture_path.parents[1] / "generated" / "tx_semantic_assurance_v1_5.json"
+    semantic_rows = json.loads(semantic_path.read_text(encoding="utf-8"))["rows"]
+    row = next(item for item in semantic_rows if item["tx_type"] == tx_type)
+
+    staged_state = fixture._base_state()
+    env = fixture._prepared_envelope(staged_state, row)
+    oracle = copy.deepcopy(staged_state)
+    canonical = copy.deepcopy(staged_state)
+    staged_root = compute_state_root(staged_state)
+
+    oracle_meta = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(env))
+    canonical_meta = apply_tx_atomic_meta_bounded_rollback(
+        canonical, copy.deepcopy(env)
+    )
+
+    assert canonical_meta == oracle_meta
+    assert canonical == oracle
+    assert compute_state_root(canonical) == compute_state_root(oracle)
+    assert compute_state_root(staged_state) == staged_root
+    _assert_no_journal_proxy(canonical)
+    _assert_no_journal_proxy(canonical_meta)
