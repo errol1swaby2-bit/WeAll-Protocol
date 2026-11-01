@@ -105,6 +105,19 @@ jobs:
           )
           assert result["authority_review_queue_unmatched_count"] <= result["authority_review_queue_item_count"]
           assert result["unmatched_review_triage_count"] == result["authority_review_queue_unmatched_count"]
+          # Diagnostic-only: preserve the fail-closed 22-item baseline while
+          # exposing the exact current review inventory for adjudication.
+          print("Constitutional review inventory:", {
+              "unmatched_review_triage_count": result["unmatched_review_triage_count"],
+              "unmatched_field_scan_entries": result["unmatched_field_scan_entries"],
+              "priority_counts": result["unmatched_review_triage_priority_counts"],
+          }, flush=True)
+          for item in result["unmatched_review_triage"]:
+              print("Unmatched review:", {
+                  "review_key": item.get("review_key"),
+                  "source_path": item.get("source_path"),
+                  "priority": item.get("priority"),
+              }, flush=True)
           assert result["unmatched_review_triage_count"] == 22
           assert result["unmatched_field_scan_status"] == "PINNED_BOUNDED_SOURCE_CUES_NOT_SEMANTIC_PROOF"
           assert result["unmatched_field_scan_entries"] == 22
