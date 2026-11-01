@@ -42,9 +42,7 @@ def _current_rows() -> tuple[list[Json], Any, Json]:
     tx_canon = sources["transaction_canon"]
     tx_defs = [row for row in tx_canon["txs"] if isinstance(row, dict)]
     tx_types = {str(row["name"]).upper() for row in tx_defs}
-    frontend = compiler._scan_files(
-        compiler.WORKSPACE_ROOT / "web" / "src", {".ts", ".tsx"}
-    )
+    frontend = compiler._scan_files(compiler.WORKSPACE_ROOT / "web" / "src", {".ts", ".tsx"})
     tests = compiler._scan_files(compiler.ROOT / "tests", {".py"})
     routes = compiler._scan_route_contracts(
         tx_types, frontend, tests, sources["contract_overrides"], stable_ids
@@ -102,9 +100,7 @@ def main() -> int:
         if current_digest == reviewed_digest:
             continue
         old = previous_by_type.get(tx_type)
-        previous_material = (
-            validation.tx_review_material(old) if isinstance(old, dict) else None
-        )
+        previous_material = validation.tx_review_material(old) if isinstance(old, dict) else None
         fields = []
         if previous_material is not None:
             for key in sorted(set(previous_material) | set(material)):
@@ -135,9 +131,7 @@ def main() -> int:
                 "status": "DIAGNOSTIC_ONLY_NOT_SEMANTIC_REVIEW",
                 "previous_generated_shape": previous_shape,
                 "mismatched_transaction_reviews": len(changed),
-                "missing_state_stable_ids": _missing_state_ids(
-                    rows, stable_ids, sources
-                ),
+                "missing_state_stable_ids": _missing_state_ids(rows, stable_ids, sources),
                 "details": changed,
             },
             indent=2,
