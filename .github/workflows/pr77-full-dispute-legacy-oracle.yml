@@ -35,7 +35,7 @@ jobs:
           set -Eeuo pipefail
           ruff check tests/test_pr77_full_dispute_legacy_ballot_oracle.py
           ruff format --check tests/test_pr77_full_dispute_legacy_ballot_oracle.py
-          python -m pytest -q -rxX tests/test_pr77_full_dispute_legacy_ballot_oracle.py --junitxml=pr77-full-dispute-legacy-oracle.xml
+          python -m pytest -q -s -rxX tests/test_pr77_full_dispute_legacy_ballot_oracle.py --junitxml=pr77-full-dispute-legacy-oracle.xml
           echo 'NO-GO: an XFAIL is an unresolved consensus-visible full-TX difference.'
       - name: Preserve diagnostic test transcript
         if: always()
