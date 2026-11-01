@@ -26,3 +26,14 @@ historical-adjudication review.
 The focused tests are synthetic; passing them cannot authorize a merge,
 release or live severe-sanction execution. This patch intentionally preserves
 the ordinary-dispute and legacy-clock paths.
+
+## GitHub evidence and remaining gates
+
+- PR77 severe-account finality fail-closed validation: **PASS** on source guard commit `83a1ff7bc0733ba9ecced799d9f1074375b9a082` (run `41319299349`), including targeted dispute, scheduler, constitutional-clock and legacy behavior tests.
+- Bounded V1.5 evidence refresh: **PASS**, run `41319395407`. Ruff checks succeeded and **41 focused tests passed**; seven declared artifacts were regenerated. Six derivative files changed; the API contract map was already current. Bot commit `9e0dd6fd8f40897ab2cc679a58c98ee05e788a13` also contains only Ruff formatting of the pre-reviewed source/test paths.
+- The generated public-beta report still has **8 open blockers**.
+- A bot-authored derivative commit can show `action_required` for follow-on PR workflows; this evidence note is committed separately to trigger ordinary PR checks.
+
+### Explicit safety caveat
+
+The `DISPUTE_OPEN` schema does **not** yet provide authenticated severity/sanction-class admission. This guard applies only to cases **already carrying explicit severe/critical/S4 account-targeted classification** and cannot substitute for a canonical classification and appeal producer. Other severe-like matters and any direct `ACCOUNT_BAN` execution require independent checks. The V2 `TX-0904` semantic review remains unapproved; the new `DISPUTE_FINAL_RECEIPT` behavior also warrants semantic/replay review. No launch or merge authorization is implied.
