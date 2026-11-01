@@ -28,3 +28,28 @@ On success the initial decision may only enter the existing appeal window.
 The earlier independent fresh-appeal and ACCOUNT_BAN finalization guards
 remain in force; no ban receipt is emitted or enforced. Source-bound V1.5
 derivatives and stale V2 review digests require separate validation.
+
+## Exact-checkout verification
+
+- Implementation commit: `4a5aade52aff11a30f6fca70b7aa78891b8ef895`.
+- New focused severe-initial gate run `41322603328`: **PASS**, 73
+  targeted tests against the source version.
+- Bounded Ruff/V1.5 refresh run `41322724433`: **PASS**,
+  **90 focused tests**, Ruff lint and formatting, generated-artifact
+  currentness, and release hygiene.
+- The bounded refresh created commit
+  `787ac5050e7143d7e111426760295617c29518fb`; it changed only
+  formatting of `tests/test_pr77_severe_initial_20_vote_guard.py`.
+  V1.5 evidence was already current on the refreshed source parent.
+- The public-beta report still states **8 open blockers**.
+
+This is a defensive first-decision invariant only. Original ballot
+signatures and panel eligibility are **not independently proven by merely
+checking stored tally/nullifier fields**, and the severe label remains
+non-canonical. The initial yes-vote threshold is not an automatic appeal,
+and the decision remains incapable of producing an authorized
+`ACCOUNT_BAN`.
+
+The remaining stale `DISPUTE_OPEN` and `TX-0904` semantic-review
+attestations must be substantively adjudicated; no digest is refreshed by
+this checkpoint. All changes remain on **Draft PR #77**, not `main`.
