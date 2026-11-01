@@ -18,6 +18,7 @@ import pytest
 
 from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE
 from weall.runtime.domain_apply import (
+    ApplyError,
     apply_tx_atomic_meta_bounded_rollback,
     apply_tx_atomic_meta_deepcopy,
 )
@@ -120,3 +121,22 @@ def test_legacy_migration_identifies_root_and_resolution_option_delta() -> None:
     print(json.dumps(summary, sort_keys=True))
     assert bounded_options != reference_options
     assert bounded_root != reference_root
+
+
+def test_duplicate_legacy_dispute_vote_rejection_rolls_back_both_engines() -> None:
+    """No partial legacy migration survives an apply-stage duplicate rejection."""
+    prepared, envelope = _vote_fixture(legacy=True)
+    dispute = prepared["disputes_by_id"]["a"]
+    dispute["votes"]["@juror1"] = dispute["votes"].pop("@legacy-reviewer")
+    before = copy.deepcopy(prepared)
+    before_root = compute_state_root(before)
+
+    for engine in (
+        apply_tx_atomic_meta_bounded_rollback,
+        apply_tx_atomic_meta_deepcopy,
+    ):
+        state = copy.deepcopy(before)
+        with pytest.raises(ApplyError, match="dispute_ballot_already_final"):
+            engine(state, copy.deepcopy(envelope))
+        assert state == before
+        assert compute_state_root(state) == before_root
