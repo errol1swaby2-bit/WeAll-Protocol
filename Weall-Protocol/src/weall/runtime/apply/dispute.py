@@ -24,6 +24,7 @@ from weall.runtime.commitments import (
     consensus_active_validator_ids,  # noqa: E402 -- legacy module docstring follows __future__ import
 )
 from weall.runtime.constitutional_clock import policy_from_state
+from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
 from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.reputation_events import append_reputation_event
 from weall.runtime.reviewer_responsibilities import (
@@ -2961,6 +2962,21 @@ def _final_receipt_resolution(dispute: Json, payload: Json) -> tuple[Json, Json]
 def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     payload = _as_dict(env.payload)
+    dispute_id = _as_str(payload.get("dispute_id")).strip()
+    disputes = state.get("disputes_by_id")
+    candidate = disputes.get(dispute_id) if isinstance(disputes, dict) else None
+    # An explicitly classified severe account sanction must not escape through
+    # direct SYSTEM finalization before the automatic fresh appeal is verified.
+    # There is no authenticated severe-sanction appeal/finality producer yet.
+    # Legacy-clock receipts and other dispute classes retain their behavior.
+    if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(
+        candidate
+    ):
+        raise DisputeApplyError(
+            "forbidden",
+            "severe_sanction_automatic_appeal_unimplemented",
+            {"dispute_id": dispute_id, "tx_type": env.tx_type},
+        )
     # Keep a light receipt surface for audits
     root = _ensure_root_dict(state, "dispute_receipts")
     rid = _mk_id("receipt", env, payload.get("receipt_id") or payload.get("id"))

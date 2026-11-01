@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from weall.runtime.constitutional_clock import policy_from_state
+from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = dict[str, Any]
@@ -107,6 +108,11 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
                     enq += 1
         stage = str(dispute.get("stage") or "").strip().lower()
         if stage not in {"appeal_window", "appealed", "appeal_review", "appeal_resolved"}:
+            continue
+        # A conventional window-expiry or apparently resolved appeal is not
+        # an authenticated automatic fresh-panel appeal for severe sanctions.
+        # Block final-receipt production until that lifecycle is implemented.
+        if is_explicit_severe_account_sanction(dispute):
             continue
         if stage == "appeal_resolved":
             panel_result = _d(dispute.get("appeal_panel_result"))
