@@ -25,7 +25,6 @@ from weall.runtime.commitments import (
 )
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.poh.state import effective_poh_tier
-from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
 from weall.runtime.reputation_events import append_reputation_event
 from weall.runtime.reviewer_responsibilities import (
     CONTENT_REVIEW_LANE,
@@ -33,6 +32,7 @@ from weall.runtime.reviewer_responsibilities import (
     eligible_reviewer_ids,
     reviewer_lane_active,
 )
+from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 from weall.util.ipfs_cid import validate_ipfs_cid
