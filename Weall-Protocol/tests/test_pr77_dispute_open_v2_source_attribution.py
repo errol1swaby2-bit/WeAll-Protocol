@@ -1,0 +1,71 @@
+"""DISPUTE_OPEN V2 reviews must be scoped to the real transaction handler.
+
+A green scanner regression does not accept an updated semantic-review digest
+or prove the constitutional correctness of the actual dispute mechanism.
+"""
+
+from __future__ import annotations
+
+import importlib
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+compiler = importlib.import_module("compile_v2_spec")
+validation = importlib.import_module("v2_spec_validation")
+
+
+def test_dispute_open_maps_to_actual_handler_not_catchall_dispatcher() -> None:
+    registry = json.loads(
+        (ROOT / "specs/v2/source/tx_appliers.json").read_text(encoding="utf-8")
+    )
+    rows = [row for row in registry["rows"] if row.get("tx_type") == "DISPUTE_OPEN"]
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["dispatch_function"] == "dispute_open"
+    tree, functions = compiler._module_cached(ROOT / row["path"])
+    assert "dispute_open" in functions
+    assert "apply_dispute" in functions
+
+
+def test_dispute_open_standalone_analysis_does_not_capture_other_transactions() -> None:
+    path = ROOT / "src/weall/runtime/apply/dispute.py"
+    txs = {"DISPUTE_OPEN", "DISPUTE_RESOLVE", "DISPUTE_APPEAL", "ACCOUNT_BAN"}
+    analysis = compiler._tx_function_analysis(
+        "DISPUTE_OPEN", path, "dispute_open", txs, {"DISPUTE_RESOLVE"},
+        ["disputes_by_id"],
+    )
+    assert analysis["function"] == "dispute_open"
+    forbidden = {
+        "severe_sanction_initial_twenty_votes_unverified",
+        "severe_sanction_initial_outcome_mismatch",
+        "automatic_severe_appeal_already_assigned",
+        "severe_appeal_fresh_panel_unverified",
+    }
+    reasons = {row["reason"] for row in analysis["failure_codes"]}
+    assert reasons.isdisjoint(forbidden)
+    assert analysis["semantic_precision"] == "function_static"
+
+
+def test_review_material_does_not_bind_line_number_or_fabricate_authority() -> None:
+    path = ROOT / "src/weall/runtime/apply/dispute.py"
+    analysis = compiler._tx_function_analysis(
+        "DISPUTE_OPEN", path, "dispute_open", {"DISPUTE_OPEN"}, set(),
+        ["disputes_by_id"],
+    )
+    material = validation.tx_review_material(
+        {
+            "tx_type": "DISPUTE_OPEN",
+            "implementation_source": {
+                "path": "src/weall/runtime/apply/dispute.py",
+                "function": analysis["function"],
+                "line": analysis["line"],
+            },
+        }
+    )
+    assert material["implementation_source"]["function"] == "dispute_open"
+    assert "line" not in material["implementation_source"]
+    assert material.get("authority") is None
