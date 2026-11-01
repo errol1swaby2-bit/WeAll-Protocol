@@ -30,9 +30,7 @@ FIXTURE_PATH = ROOT / "tests" / "test_p2_a02_success_lifecycle_baseline.py"
 
 
 def _fixture() -> Any:
-    spec = importlib.util.spec_from_file_location(
-        "pr77_full_236_executor_oracle", FIXTURE_PATH
-    )
+    spec = importlib.util.spec_from_file_location("pr77_full_236_executor_oracle", FIXTURE_PATH)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -66,12 +64,8 @@ def test_every_tx_agrees_with_independent_deepcopy_executor(
 
     bounded = copy.deepcopy(staged)
     oracle = copy.deepcopy(staged)
-    meta_bounded = apply_tx_atomic_meta_bounded_rollback(
-        bounded, copy.deepcopy(envelope)
-    )
-    meta_oracle = apply_tx_atomic_meta_deepcopy(
-        oracle, copy.deepcopy(envelope)
-    )
+    meta_bounded = apply_tx_atomic_meta_bounded_rollback(bounded, copy.deepcopy(envelope))
+    meta_oracle = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(envelope))
 
     assert meta_bounded == meta_oracle
     assert bounded == oracle
