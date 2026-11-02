@@ -31,3 +31,18 @@ semantic approvals.
 regressions per transaction, explicit authorized human signoff for
 the changed digest, pinned old-ledger replay, and clean checkout V2
 derivatives. No public-testnet or Mainnet authorization.
+
+## Expanded versioned role/reviewer runtime comparison
+
+The existing Issue #72 independent reference comparison already spans
+version absent/v1/v2, eligible and restricted accounts, and seven of the
+nine stale role/reviewer TX types. The new regression rows include
+`ROLE_JUROR_REINSTATE` and `REVIEWER_LANE_OPT_OUT`.
+
+Additional full-dispatch checks assert v1 legacy reinstatement vs explicit
+v2 canonical-event disqualification, exact rollback of rejected
+reinstatement, and reviewer-duty withdrawal even when the member is
+ineligible to activate a juror role. These tests confirm **current-version
+policy** only; they do not accept nine source-review digests or prove
+replay compatibility with old blocks. Runtime review must still inspect
+source attribution and registered failure codes separately.

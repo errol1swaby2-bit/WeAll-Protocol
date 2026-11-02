@@ -366,7 +366,9 @@ def test_role_v2_or_malformed_gates_never_mutate_consensus_state(version: object
     (
         ("ROLE_JUROR_ENROLL", False),
         ("ROLE_JUROR_ACTIVATE", False),
+        ("ROLE_JUROR_REINSTATE", False),
         ("REVIEWER_LANE_OPT_IN", False),
+        ("REVIEWER_LANE_OPT_OUT", False),
         ("ROLE_NODE_OPERATOR_ACTIVATE", True),
         ("ROLE_VALIDATOR_ACTIVATE", True),
         ("ROLE_EMISSARY_SEAT", True),
@@ -428,3 +430,91 @@ def test_role_transaction_rollback_matches_deepcopy_reference(
         assert journaled == before
     else:
         assert journaled == reference
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    ((None, "accepted"), (1, "accepted"), (2, "canonical_role_reputation_ineligible")),
+)
+def test_juror_reinstate_explicit_v2_enforces_role_event_policy(
+    version: int | None, expected: str
+) -> None:
+    """Reinstatement, unlike v1, must reject event-penalized jurors in v2."""
+    from weall.runtime.apply.roles import apply_roles
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+    from weall.runtime.tx_admission import TxEnvelope
+
+    state = _state(version=version)
+    state["roles"] = {
+        "jurors": {"by_id": {"@alice": {"enrolled": True, "active": False}}, "active_set": []}
+    }
+    append_reputation_event(
+        state,
+        actor_id="@alice",
+        event_code="DISPUTE_JUROR_TIMED_OUT",
+        source_flow="dispute",
+        source_tx_id="timeout:reinstatement",
+        source_object_id="case:reinstatement",
+        occurred_at_block=21,
+    )
+    env = TxEnvelope(
+        tx_type="ROLE_JUROR_REINSTATE",
+        signer="@alice",
+        nonce=8,
+        payload={"account_id": "@alice"},
+        sig="sig",
+    )
+    before = copy.deepcopy(state)
+    if expected != "accepted":
+        with pytest.raises(RolesApplyError) as raised:
+            run_with_bounded_rollback(state, lambda target: apply_roles(target, env))
+        assert raised.value.reason == expected
+        assert state == before
+    else:
+        (metadata, _) = run_with_bounded_rollback(
+            state, lambda target: apply_roles(target, env)
+        )
+        assert metadata["account_id"] == "@alice"
+        assert state["roles"]["jurors"]["by_id"]["@alice"]["active"] is True
+
+
+@pytest.mark.parametrize("version", (None, 1, 2))
+def test_reviewer_lane_opt_out_never_requires_reputation_eligibility(
+    version: int | None,
+) -> None:
+    """Withdrawal remains available when the account cannot activate a role."""
+    from weall.runtime.apply.roles import apply_roles
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+    from weall.runtime.tx_admission import TxEnvelope
+
+    state = _state(version=version)
+    state["accounts"]["@alice"]["banned"] = True
+    state["roles"] = {
+        "jurors": {
+            "by_id": {
+                "@alice": {
+                    "enrolled": True,
+                    "active": True,
+                    "responsibilities": {
+                        "reviewer": {"dispute_review": {"active": True, "opted_in": True}}
+                    },
+                }
+            },
+            "active_set": ["@alice"],
+        }
+    }
+    env = TxEnvelope(
+        tx_type="REVIEWER_LANE_OPT_OUT",
+        signer="@alice",
+        nonce=9,
+        payload={"account_id": "@alice", "reviewer_lanes": ["dispute_review"]},
+        sig="sig",
+    )
+    (metadata, _) = run_with_bounded_rollback(
+        state, lambda target: apply_roles(target, env)
+    )
+    assert metadata["applied"] == "REVIEWER_LANE_OPT_OUT"
+    assert state["roles"]["jurors"]["by_id"]["@alice"]["responsibilities"]["reviewer"][
+        "dispute_review"
+    ]["active"] is False
+    assert state["roles"]["jurors"]["active_set"] == ["@alice"]
