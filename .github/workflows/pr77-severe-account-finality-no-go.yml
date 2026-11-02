@@ -57,6 +57,5 @@ jobs:
         run: |
           set -Eeuo pipefail
           ruff check tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py
-          ruff format --diff tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py || true
           ruff format --check tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py
           pytest -q tests/test_pr77_ban_state_contract_candidate.py
