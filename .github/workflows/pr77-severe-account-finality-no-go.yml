@@ -13,6 +13,7 @@ on:
       - 'Weall-Protocol/tests/test_pr77_ban_state_contract_candidate.py'
       - 'Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py'
       - 'Weall-Protocol/tests/test_pr77_account_ban_queue_provenance.py'
+      - 'Weall-Protocol/tests/test_pr77_complete_severe_appeal_no_authority.py'
       - '.github/workflows/pr77-severe-account-finality-no-go.yml'
 
 permissions:
@@ -67,3 +68,11 @@ jobs:
           ruff check tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py
           ruff format --check tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py
           python -m pytest -q tests/test_pr77_ban_state_contract_candidate.py
+      - name: Verify completed 25/20 experimental appeal still has no severe ban authority
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_complete_severe_appeal_no_authority.py
+          ruff format --diff tests/test_pr77_complete_severe_appeal_no_authority.py || true
+          ruff format --check tests/test_pr77_complete_severe_appeal_no_authority.py
+          python -m pytest -q tests/test_pr77_complete_severe_appeal_no_authority.py
