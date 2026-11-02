@@ -3026,9 +3026,11 @@ def _appeal_excluded_ids(
     state: Json, dispute: Json, original_panel: list[str], original_substitutes: list[str]
 ) -> list[str]:
     # Exclude every known identity spelling, including @-prefixed aliases.
-    excluded = original_panel + original_substitutes + [
-        _as_str(dispute.get(key)) for key in ("reported_by", "flagged_by", "reporter")
-    ]
+    excluded = (
+        original_panel
+        + original_substitutes
+        + [_as_str(dispute.get(key)) for key in ("reported_by", "flagged_by", "reporter")]
+    )
     return _normalized_str_list(
         [
             variant
@@ -3118,9 +3120,7 @@ def assign_pending_appeal_panels(state: Json, *, next_height: int) -> int:
         )
         if selection.get("status") != "assigned":
             continue
-        appeal_nonce = (
-            _as_int(appeals[0].get("at_nonce"), 0) if isinstance(appeals[0], dict) else 0
-        )
+        appeal_nonce = _as_int(appeals[0].get("at_nonce"), 0) if isinstance(appeals[0], dict) else 0
         _install_appeal_panel(
             state,
             dispute,
@@ -3216,9 +3216,7 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
         d["appeal_conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
         d["appeal_panel_required_size"] = int(selection["required_panel_size"])
         d["appeal_substitute_required_count"] = int(selection["required_substitute_count"])
-        d["appeal_panel_available_candidate_count"] = int(
-            selection["available_candidate_count"]
-        )
+        d["appeal_panel_available_candidate_count"] = int(selection["available_candidate_count"])
         d["appeal_panel_blocked_reason"] = "insufficient_fresh_appeal_panel"
         d["appeal_pending_since_height"] = now_h
         # Keep original panel snapshots and ballots, but remove live jury duty.
