@@ -76,10 +76,9 @@ def test_all_fifteen_reviewed_archives_match_accepted_approval() -> None:
 def test_unverified_archived_source_must_block_review_packet_exit() -> None:
     packet = copy.deepcopy(build_packet())
     packet["transactions"][0]["archive_matches_accepted_digest"] = False
-    assert (
-        "prior_approval_material_unverified:" + packet["transactions"][0]["tx_type"]
-        in packet_integrity_blockers(packet)
-    )
+    assert "prior_approval_material_unverified:" + packet["transactions"][0][
+        "tx_type"
+    ] in packet_integrity_blockers(packet)
 
 
 def test_pretend_reviewer_signoff_and_replay_claims_are_rejected() -> None:
