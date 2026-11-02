@@ -90,3 +90,87 @@ The existing `tests/test_pr77_severe_account_finality_no_go.py` directly verifie
 This is an important provenance boundary: an untrusted duplicate marker is neither approval of an appeal nor authority for an account ban. These are synthetic applier tests; the real authenticated queue, committee evidence, old-height replay roots and chain-committed activation are not yet proven.
 
 The approved semantic review record remains untouched. A completed source/effect review, genuine replay fixtures and separate authorized approval are required before adopting a new V2 digest, releasing, or enabling severe sanction finality.
+
+
+## Nine role/reviewer transactions: source-to-runtime adjudication (2026-11-01)
+
+**Disposition: ALL NINE HAVE EXECUTABLE REGRESSIONS; NO SEMANTIC DIGEST ACCEPTED.**
+
+The remaining stale review rows are:
+`ROLE_JUROR_ENROLL`, `ROLE_JUROR_ACTIVATE`,
+`ROLE_JUROR_REINSTATE`, `ROLE_VALIDATOR_ACTIVATE`,
+`ROLE_NODE_OPERATOR_ACTIVATE`, `ROLE_EMISSARY_SEAT`,
+`ROLE_GOV_EXECUTOR_SET`, `REVIEWER_LANE_OPT_IN`, and
+`REVIEWER_LANE_OPT_OUT`.
+
+Every archived material digest still matches the corresponding previously
+accepted digest. For all nine rows, the current compiler reports precisely
+`failure_codes`, `state_reads` and `state_writes` as changed.
+Each current scanner failure-code delta is the same: the new generic
+`RolesApplyError:runtime_apply_failure` is added, and the four literal
+`forbidden` reasons `account_restricted`, `live_verification_required`,
+`reputation_insufficient` and `role_eligibility_revoked` disappear
+**from the static scanner's list**. This does **not** prove those four
+runtime refusals were removed.
+
+In `src/weall/runtime/apply/roles.py`, eight role/enrollment/activation/
+opt-in paths call `_require_role_activation_eligible`, whose shared
+`role_activation_reputation_decision` emits runtime-specific code/reason
+pairs. New
+`tests/test_pr77_roles_reviewer_semantic_adjudication.py` exercises all
+eight actual transaction dispatch paths with each of banned, locked,
+Tier1/non-live, explicit role revocation and insufficient scalar reputation
+under missing-version legacy v1, explicit v1 and explicit v2. It compares the
+pure predicate's exact rejection against the executed `RolesApplyError` and
+requires no state mutation under canonical bounded rollback. Invalid
+chain-committed gate version values fail closed. Separate
+`DISPUTE_JUROR_TIMED_OUT` and `VALIDATOR_DOUBLE_SIGN` event cases confirm
+that explicit v2 can further deny juror/validator activations using canonical
+reputation evidence; **v2 is not automatically activated** by these tests.
+This is bounded synthetic execution evidence, not independent old-ledger
+height-by-height replay or a source-level guarantee for all possible inputs.
+
+### Reviewer opt-out is a distinct entrypoint reachability decision
+
+The ninth TX, `REVIEWER_LANE_OPT_OUT`, **does not call** the activation
+predicate: the role applier permits withdrawing a previously enrolled
+`dispute_review` lane even when the user is banned, Tier1, manually revoked,
+or carries an invalid gate-version value. Opting out leaves the underlying
+whole Juror-role active set intact. Therefore the scanner's four
+`REVIEWER_LANE_OPT_OUT` removed failure-code entries must not be treated as
+evidence that a real former activation restriction went missing.
+
+**However**, canonical public ingress independently gates the *signer*:
+`tx_admission.py::_reputation_and_flags_ok` rejects banned and locked
+accounts before role-domain apply. The real `admit_tx` regressions confirm
+`gate_denied:banned` and `gate_denied:locked` on user-signed
+`REVIEWER_LANE_OPT_OUT`, even though invoking the isolated domain handler
+would permit that withdrawal. This is a **reachable-use/product-policy
+question**, not proof that public banned users can opt out or permission to
+bypass admission. Any change to admit withdrawal from restricted accounts
+must be separately versioned, reviewed and replay-proven; no change to
+admission or consensus behavior was made.
+
+### CI, corrections, and remaining gates
+
+The V2 packet push-workflow's two mistakenly merged
+`paths` patterns were repaired to individual filenames, and the new matrix
+was added to both triggering paths and strict Ruff/pytest execution.
+[Workflow 41376221249](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41376221249)
+passed **455 tests**, before admission checks were added.
+[Workflow 41376467329](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41376467329)
+passed **457 tests**, strict Ruff lint/format, and the entire source-bound
+packet: 236 registered TXs, 15 still-pending semantic approvals, zero new
+stale reviews, zero missing stable state IDs, zero prior approved-material
+digest mismatches, and zero packet-integrity blockers.
+
+The fifteen rows now each have *some* scoped executable source/runtime
+evidence, but depth and risk differ. The role changes are not automatically
+classified as harmless: explicit v2 event-derived eligibility is a
+consensus-relevant policy change; `state_reads` and `state_writes` require
+replay adjudication, especially through journaled rollback. The packet
+records **no** human or independent signoff, no historic replay proof and
+no authorization to update `semantic_reviews.json`. Keep V2 compiler,
+Backend, P1 and Reviewer Readiness fail-closed until the true review and
+activation prerequisites are met. Draft PR77 remains unmerged and release
+NO-GO.
