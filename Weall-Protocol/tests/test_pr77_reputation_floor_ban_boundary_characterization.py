@@ -58,9 +58,7 @@ def _delta_env() -> TxEnvelope:
     )
 
 
-@pytest.mark.parametrize(
-    "clock_enabled", [False, True], ids=["legacy", "constitutional-clock"]
-)
+@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
 def test_canonical_reputation_delta_floor_ban_occurs_in_both_modes(
     clock_enabled: bool,
 ) -> None:
@@ -81,9 +79,7 @@ def test_canonical_reputation_delta_floor_ban_occurs_in_both_modes(
     assert compute_state_root(bounded) == compute_state_root(reference)
 
 
-@pytest.mark.parametrize(
-    "clock_enabled", [False, True], ids=["legacy", "constitutional-clock"]
-)
+@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
 def test_exported_system_delta_helper_has_same_independent_ban_path(
     clock_enabled: bool,
 ) -> None:
