@@ -50,3 +50,25 @@ network, consensus, or historical-replay code was changed.
 This validates the candidate's **domain-format integration**; the prior
 full offline-replay witness still needs a genuine committed and replayable
 `DISPUTE_OPEN` before its positive end-to-end path can be claimed proven.
+
+
+## 2026-11-02 — Fallible payload-shape/forgery boundaries
+
+The actual `DISPUTE_OPEN` applier's `_mk_id("dispute", env, ...)` generates
+`dispute:<signer>:<nonce>` if the signed user payload omitted `dispute_id`.
+Likewise, the committed case target type, target ID and reason are normalized
+from raw signed payload fields by the applier. A verifier that required an
+explicit `dispute_id`, lowercase raw target type and untrimmed target ID would
+wrongly reject legitimate openings.
+
+The review-only candidate now mirrors those actual domain normalizations,
+requires the resulting case reason to match the **signed** reason, rejects a
+case ID already present in the supplied predecessor state, rejects non-boolean
+SYSTEM disguises, and rejects conflicting outer/nested signature bytes.
+Additional adversarial tests rebuild genuine ML-DSA signatures, transaction
+IDs, receipts and block commitments after changing raw payload, apply the
+actual `DISPUTE_OPEN` domain code, and require matching source observations
+without ever granting constitutional S4 or ban authority.
+
+The tests do not authenticate historical source identity, PoH issuance, BFT
+finality, independent juror adjudication or SYSTEM enforcement.

@@ -278,3 +278,101 @@ def test_actual_dispute_applier_marks_predecessor_height_not_block_height(
     assert all(observation["observations"].values())
     assert observation["constitutional_authorization"] == "NOT_ESTABLISHED"
     assert observation["may_enqueue_account_ban"] is False
+
+
+def _resign_and_rebind_opening(f: dict, keypair: dict, payload: dict) -> None:
+    """Rebuild every signature/ID/receipt/block commitment after payload change."""
+    tx = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN,
+            "network_id": NETWORK,
+            "tx_type": "DISPUTE_OPEN",
+            "signer": "@alice",
+            "nonce": 7,
+            "payload": payload,
+        },
+        privkey=keypair["privkey"],
+    )
+    tx_id = compute_tx_id_from_dict(CHAIN, tx)
+    tx["tx_id"] = tx_id
+    f["opening_tx_id"] = tx_id
+    block = f["block"]
+    block["txs"] = [tx]
+    block["receipts"] = [
+        {
+            "tx_id": tx_id,
+            "tx_type": "DISPUTE_OPEN",
+            "signer": "@alice",
+            "nonce": 7,
+            "ok": True,
+        }
+    ]
+    header = block["header"]
+    header["tx_ids"] = [tx_id]
+    header["receipts_root"] = compute_receipts_root(receipts=block["receipts"])
+    block["block_id"] = compute_block_id(
+        chain_id=CHAIN,
+        height=header["height"],
+        prev_block_id=block["prev_block_id"],
+        prev_block_hash=header["prev_block_hash"],
+        ts_ms=header["block_ts_ms"],
+        node_id=block["proposer"],
+        tx_ids=[tx_id],
+        receipts_root=header["receipts_root"],
+    )
+    block["block_hash"] = compute_block_hash(header=header)
+
+
+def test_domain_generated_case_id_and_normalized_target_are_source_bound(
+    keypair: dict,
+) -> None:
+    """Domain's _mk_id fallback and target normalization are canonical facts."""
+    from weall.runtime.apply.dispute import apply_dispute
+    from weall.runtime.tx_admission_types import TxEnvelope
+
+    f = _fixture(keypair)
+    _resign_and_rebind_opening(
+        f,
+        keypair,
+        {
+            "target_type": "ACCOUNT",
+            "target_id": "  @bob  ",
+            "reason": "  Review only  ",
+        },
+    )
+    prior = copy.deepcopy(f["pre_state"])
+    prior["accounts"]["@alice"]["poh_tier"] = 2
+    post = copy.deepcopy(prior)
+    apply_dispute(post, TxEnvelope.from_json(f["block"]["txs"][0]))
+    case = post["disputes_by_id"]["dispute:@alice:7"]
+    assert case["target_type"] == "account"
+    assert case["target_id"] == "@bob"
+    assert case["reason"] == "Review only"
+    assert case["opened_at_height"] == 6
+    f["pre_state"] = prior
+    f["case"] = case
+    verdict = _review(f)
+    assert all(verdict["observations"].values())
+    assert verdict["may_classify_canonical_case"] is False
+    assert verdict["may_enqueue_account_ban"] is False
+
+    altered = copy.deepcopy(f)
+    altered["case"]["reason"] = "Substituted allegations"
+    assert _review(altered)["observations"]["case_mutation_matches_signed_opening"] is False
+    altered = copy.deepcopy(f)
+    altered["case"]["id"] = "d1"
+    assert _review(altered)["observations"]["case_mutation_matches_signed_opening"] is False
+
+
+def test_signature_fields_and_preexisting_case_cannot_fake_opening(keypair: dict) -> None:
+    f = _fixture(keypair)
+    f["block"]["txs"][0]["signature"]["sig"] = "00" * 64
+    assert _review(f)["observations"]["opening_is_exact_canonical_tx"] is False
+
+    f = _fixture(keypair)
+    f["pre_state"]["disputes_by_id"] = {"d1": {"id": "d1"}}
+    assert _review(f)["observations"]["case_mutation_matches_signed_opening"] is False
+
+    f = _fixture(keypair)
+    f["block"]["txs"][0]["system"] = 0
+    assert _review(f)["observations"]["opening_is_exact_canonical_tx"] is False

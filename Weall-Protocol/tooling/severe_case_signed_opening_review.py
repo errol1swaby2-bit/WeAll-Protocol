@@ -61,6 +61,27 @@ def review_signed_dispute_opening(
     tx = _matching_one(b.get("txs"), opening_tx_id)
     rec = _matching_one(b.get("receipts"), opening_tx_id)
     payload = _map(tx.get("payload"))
+    raw_case_id = payload.get("dispute_id")
+    explicit_case_id = str(raw_case_id or "").strip()
+    canonical_case_id = explicit_case_id or (
+        f"dispute:{tx.get('signer')}:{tx.get('nonce')}"
+    )
+    raw_target_type = payload.get("target_type")
+    canonical_target_type = (
+        raw_target_type.strip().lower() if isinstance(raw_target_type, str) else ""
+    )
+    raw_target_id = payload.get("target_id")
+    canonical_target_id = raw_target_id.strip() if isinstance(raw_target_id, str) else ""
+    raw_reason = payload.get("reason")
+    canonical_reason = raw_reason.strip() if isinstance(raw_reason, str) else ""
+    nested_signature = tx.get("signature")
+    matching_signature_forms = (
+        nested_signature is None
+        or (
+            isinstance(nested_signature, Mapping)
+            and nested_signature.get("sig") == tx.get("sig")
+        )
+    )
 
     block_height = h.get("height")
     candidate_shape = (
@@ -69,7 +90,7 @@ def review_signed_dispute_opening(
         and opening_tx_id.startswith("tx:")
         and _str(tx.get("tx_type"))
         and tx.get("tx_type") == "DISPUTE_OPEN"
-        and tx.get("system") in (None, False)
+        and (tx.get("system") is None or tx.get("system") is False)
         and tx.get("parent") is None
         and _str(tx.get("signer"))
         and _height(tx.get("nonce"))
@@ -78,6 +99,7 @@ def review_signed_dispute_opening(
         and tx.get("chain_id") == chain_id
         and tx.get("sig_profile") == PQ_MLDSA_V1
         and _str(tx.get("sig"))
+        and matching_signature_forms
     )
 
     canonical_tx_id = ""
@@ -152,12 +174,14 @@ def review_signed_dispute_opening(
         ),
         "case_mutation_matches_signed_opening": bool(
             d.get("target_type") == "account"
+            and canonical_target_type == "account"
             and _str(d.get("id"))
             and _str(d.get("target_id"))
-            and d.get("id") == payload.get("dispute_id")
-            and payload.get("target_type") == "account"
-            and payload.get("target_id") == d.get("target_id")
+            and d.get("id") == canonical_case_id
+            and canonical_target_id == d.get("target_id")
+            and d.get("reason") == canonical_reason
             and d.get("opened_by") == tx.get("signer")
+            and d.get("id") not in _map(s.get("disputes_by_id"))
             and type(d.get("opened_at_nonce")) is int
             and d.get("opened_at_nonce") == tx.get("nonce")
             and type(d.get("opened_at_height")) is int
