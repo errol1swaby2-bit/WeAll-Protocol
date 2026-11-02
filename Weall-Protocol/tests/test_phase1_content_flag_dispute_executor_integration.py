@@ -141,8 +141,10 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
         cases = state.get("disputes_by_id") or {}
         if any(d.get("target_id") == POST_ID for d in cases.values()):
             break
-        next_block = source.produce_block(max_txs=2)
+        current_height = int(source.read_state()["height"])
+        next_block = source.produce_block(max_txs=2, allow_empty=True)
         assert next_block.ok is True, next_block.error
+        assert source.read_state()["height"] == current_height + 1
 
     state = source.read_state()
     matched = [
@@ -173,8 +175,10 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
             for receipt in block["receipts"]
         ):
             break
-        next_block = source.produce_block(max_txs=2)
+        current_height = int(source.read_state()["height"])
+        next_block = source.produce_block(max_txs=2, allow_empty=True)
         assert next_block.ok is True, next_block.error
+        assert source.read_state()["height"] == current_height + 1
 
     state = source.read_state()
     blocks = [source.get_block_by_height(h) for h in range(1, int(state["height"]) + 1)]

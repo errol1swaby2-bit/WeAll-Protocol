@@ -42,3 +42,17 @@ bans, and exact source/fresh-replay manifest equivalence.
 **Outcome:** Await pinned CI. If failed, preserve the exact failing boundary
 and correct only with focused evidence; do not change production gating merely
 to turn the check green.
+
+
+## Height-advancement diagnostic during CI
+
+The expanded audit-receipt assertion initially failed because the fixture called
+`produce_block()` **without** `allow_empty=True` after all signed user
+transactions had been committed. On a chain with no automatic empty-block
+production, this returns `ok=True` without advancing height; the
+`FLAG_ESCALATION_RECEIPT` remained correctly queued for the next height.
+No evidence was found of an early return in the content applier.
+The integration fixture now explicitly advances the controlled local
+block clock with `allow_empty=True` and asserts the new height for each
+rehearsal step. This does not change the production block-loop policy.
+Receipt-commit evidence remains subject to the next exact-head CI result.
