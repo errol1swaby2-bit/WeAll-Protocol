@@ -84,3 +84,20 @@ semantic contract. Replaying authentic retained old blocks under both pinned
 software versions and verifying original chain commitments remains mandatory
 before production activation. PR #77 is still Draft and must not be merged
 based on these synthetic results alone.
+
+## Source-derived refresh closure and final verification boundary
+
+The V1.5 four-row lifecycle manifest was refreshed separately by commit
+`78c64132788891d957e5185fb163d44872587818` after 248 current-version
+tests passed. The follow-up candidate comparison passed with no remaining
+row drift. The V1.5 derivative refresh then completed in commit
+`d6ba12ac6f878b3c6b92dbddc4420264f9246fdb`, updating only six
+source-bound proofs/reports: B528–B532, B534–B538, B567–B571, the
+failure-code registry, the release-evidence manifest, and the public-beta
+blocker report. The workflow changed no semantic-review approvals.
+
+This completion means generated evidence is synchronized to the current
+draft implementation. It **does not** prove that pre-correction finalized
+blocks replay unchanged, justify an unversioned mainnet transition, or
+replace the 15 required V2 semantic review decisions. Preserve PR #77 as
+Draft and keep the independent historical/reviewer readiness gates blocked.
