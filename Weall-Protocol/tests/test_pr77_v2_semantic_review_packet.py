@@ -164,9 +164,7 @@ def test_dispute_vote_submit_new_severe_appeal_guard_is_review_input_only() -> N
 
 def test_severe_final_receipt_new_guard_is_bound_to_exact_v2_drift() -> None:
     packet = build_packet()
-    row = next(
-        row for row in packet["transactions"] if row["tx_type"] == "DISPUTE_FINAL_RECEIPT"
-    )
+    row = next(row for row in packet["transactions"] if row["tx_type"] == "DISPUTE_FINAL_RECEIPT")
     assert row["archive_matches_accepted_digest"] is True
     assert row["archived_implementation_source"] == row["current_implementation_source"]
     assert row["changed_field_names"] == ["failure_codes", "state_reads"]
