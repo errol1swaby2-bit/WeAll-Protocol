@@ -75,3 +75,16 @@ does not waive any approval.
    authorization; eight public-beta blockers remain outstanding.
 
 **No merge or network activation on the current draft PR.**
+
+## Exact-head inventory update (2026-11-02)
+
+The preceding 15-row inventory records the earlier November 1 diagnostic. On current Draft head `ca9a4717a727fcd19e88b72777a223dd109514f6`, the compiler and exact-head CI logs report **17 stale transaction semantic-review digests**:
+
+`DISPUTE_OPEN`, `DISPUTE_JUROR_ASSIGN`, `DISPUTE_JUROR_ACCEPT`, `DISPUTE_VOTE_SUBMIT`, `DISPUTE_RESOLVE`, `DISPUTE_APPEAL`, `DISPUTE_FINAL_RECEIPT`, `ACCOUNT_BAN`, `ROLE_JUROR_ENROLL`, `ROLE_JUROR_ACTIVATE`, `ROLE_JUROR_REINSTATE`, `ROLE_VALIDATOR_ACTIVATE`, `ROLE_NODE_OPERATOR_ACTIVATE`, `ROLE_EMISSARY_SEAT`, `ROLE_GOV_EXECUTOR_SET`, `REVIEWER_LANE_OPT_IN`, and `REVIEWER_LANE_OPT_OUT`.
+
+The two additions beyond the older inventory are `DISPUTE_JUROR_ASSIGN` and `DISPUTE_JUROR_ACCEPT`. Their source-bound material now includes the reporter-recusal denial `forbidden:juror_conflict_reporter` and reads of reporter identity fields. `DISPUTE_VOTE_SUBMIT` also now includes reporter-recusal drift in addition to the severe-appeal guard. These are review inputs, not acceptance decisions.
+
+The read-only review-packet generator and tests are being aligned to this 17-row inventory so new stale rows are not incorrectly treated as an unexpected-inventory defect. This bookkeeping correction does **not** modify `specs/v2/source/semantic_reviews.json`, accept any current digest, assert historical replay, or weaken the compiler gate. Each affected row remains unsigned for the current digest and unproven for historical compatibility.
+
+Exact-head evidence: Backend CI run [41538354386](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41538354386), Reviewer Readiness run [41538354435](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41538354435), A01–A20 P1 Revalidation run [41538354663](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41538354663), and read-only semantic-drift diagnostic run [41538354489](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41538354489). The first three remain failed at the V2 review gate; the diagnostic reports zero missing state stable IDs. The P1 run recorded 411 passing tests and one failure at clean-checkout V2 compilation; Backend CI skipped the full backend pytest step after its early compile failure.
+

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make a read-only, source-bound packet for the 15 stale V2 TX reviews.
+"""Make a read-only, source-bound packet for the 17 stale V2 TX reviews.
 
 This report makes no approvals and does not replace historical replay,
 independent semantic review, or the V2 spec compiler's fail-closed gate.
@@ -21,6 +21,8 @@ import v2_spec_validation as validation  # noqa: E402
 KNOWN_STALE = frozenset(
     {
         "DISPUTE_OPEN",
+        "DISPUTE_JUROR_ASSIGN",
+        "DISPUTE_JUROR_ACCEPT",
         "DISPUTE_VOTE_SUBMIT",
         "DISPUTE_RESOLVE",
         "DISPUTE_APPEAL",
@@ -99,7 +101,7 @@ def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
         blockers.append("registered_transaction_count_changed")
     if packet.get("pending_count") != len(rows):
         blockers.append("pending_count_mismatch")
-    if packet.get("newly_stale_not_in_known_15"):
+    if packet.get("newly_stale_not_in_known_17"):
         blockers.append("unexpected_stale_transaction")
     if packet.get("missing_state_stable_ids"):
         blockers.append("missing_state_stable_ids")
@@ -197,7 +199,7 @@ def build_packet() -> dict[str, Any]:
         "previous_generated_shape": prior_shape,
         "registered_transaction_count": len(current_rows),
         "pending_count": len(pending),
-        "newly_stale_not_in_known_15": unexpected,
+        "newly_stale_not_in_known_17": unexpected,
         "known_stale_now_resolved": sorted(KNOWN_STALE - {item["tx_type"] for item in pending}),
         "missing_state_stable_ids": missing_stable_ids,
         "independent_human_approval_recorded_by_this_packet": False,
@@ -225,7 +227,7 @@ def main() -> int:
         json.dumps(
             {
                 "pending_count": packet["pending_count"],
-                "newly_stale_not_in_known_15": packet["newly_stale_not_in_known_15"],
+                "newly_stale_not_in_known_17": packet["newly_stale_not_in_known_17"],
                 "known_stale_now_resolved": packet["known_stale_now_resolved"],
                 "missing_state_stable_ids": packet["missing_state_stable_ids"],
                 "review_material_archive_does_not_match_prior_approval": [

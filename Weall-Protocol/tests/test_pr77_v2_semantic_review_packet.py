@@ -22,12 +22,12 @@ def test_review_diff_distinguishes_absent_from_null() -> None:
     assert diff[2]["current_present"] is True
 
 
-def test_v2_stale_review_packet_does_not_approve_15_affected_transactions() -> None:
+def test_v2_stale_review_packet_does_not_approve_17_affected_transactions() -> None:
     packet = build_packet()
     assert packet["registered_transaction_count"] == 236
-    assert packet["pending_count"] == 15
+    assert packet["pending_count"] == 17
     assert {row["tx_type"] for row in packet["transactions"]} == KNOWN_STALE
-    assert packet["newly_stale_not_in_known_15"] == []
+    assert packet["newly_stale_not_in_known_17"] == []
     assert packet["known_stale_now_resolved"] == []
     assert packet["missing_state_stable_ids"] == []
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
@@ -62,9 +62,9 @@ def test_failure_code_comparison_fails_closed_on_malformed_material(invalid: obj
         failure_code_deltas([], invalid)
 
 
-def test_all_fifteen_reviewed_archives_match_accepted_approval() -> None:
+def test_all_seventeen_reviewed_archives_match_accepted_approval() -> None:
     packet = build_packet()
-    assert packet["pending_count"] == 15
+    assert packet["pending_count"] == 17
     assert all(row["archive_matches_accepted_digest"] is True for row in packet["transactions"])
     assert all(
         row["archived_compiled_material_digest"] == row["accepted_review_digest"]
@@ -129,7 +129,7 @@ def test_review_packet_shows_exact_rejection_code_delta_per_lane() -> None:
 
 def test_review_packet_integrity_blocks_unexpected_inventory_changes() -> None:
     packet = copy.deepcopy(build_packet())
-    packet["newly_stale_not_in_known_15"] = ["UNKNOWN_NEW_TX"]
+    packet["newly_stale_not_in_known_17"] = ["UNKNOWN_NEW_TX"]
     packet["missing_state_stable_ids"] = ["missing:state:field"]
     errors = packet_integrity_blockers(packet)
     assert "unexpected_stale_transaction" in errors
@@ -143,23 +143,43 @@ def test_dispute_vote_submit_new_severe_appeal_guard_is_review_input_only() -> N
     assert len(rows) == 1
     row = rows[0]
 
-    # This transaction's compiler drift is restricted to the newly visible
-    # severe-appeal denial, unlike DISPUTE_OPEN's broad-dispatcher rebind.
-    assert row["changed_field_names"] == ["failure_codes"]
+    # The severe-appeal guard and reporter-recusal guard both change this
+    # transaction's source-bound contract. Neither delta is a review approval.
+    assert row["changed_field_names"] == ["failure_codes", "state_reads"]
     assert row["archive_matches_accepted_digest"] is True
     assert row["archived_implementation_source"] == row["current_implementation_source"]
     assert row["failure_code_deltas"] == {
         "added": [
+            {"code": "forbidden", "reason": "juror_conflict_reporter"},
             {
                 "code": "forbidden",
                 "reason": "severe_appeal_fresh_panel_unverified",
-            }
+            },
         ],
         "removed": [],
     }
     assert row["signed_off_for_current_digest"] is False
     assert row["historical_replay_proven"] is False
     assert packet["must_not_update_semantic_reviews_automatically"] is True
+
+
+@pytest.mark.parametrize("tx_type", ["DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_ACCEPT"])
+def test_reporter_recusal_drift_is_bound_to_juror_assignment_and_acceptance(tx_type: str) -> None:
+    packet = build_packet()
+    row = next(row for row in packet["transactions"] if row["tx_type"] == tx_type)
+    assert row["archive_matches_accepted_digest"] is True
+    assert row["archived_implementation_source"] == row["current_implementation_source"]
+    assert row["changed_field_names"] == ["failure_codes", "state_reads"]
+    assert row["failure_code_deltas"] == {
+        "added": [{"code": "forbidden", "reason": "juror_conflict_reporter"}],
+        "removed": [],
+    }
+    state_reads = next(change for change in row["changed_fields"] if change["field"] == "state_reads")
+    assert {"key:flagged_by", "key:reported_by", "key:reporter"}.issubset(
+        set(state_reads["current"])
+    )
+    assert row["signed_off_for_current_digest"] is False
+    assert row["historical_replay_proven"] is False
 
 
 def test_severe_final_receipt_new_guard_is_bound_to_exact_v2_drift() -> None:
