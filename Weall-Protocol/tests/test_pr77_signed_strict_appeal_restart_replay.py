@@ -96,6 +96,13 @@ def _fixture_environment(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(key, raising=False)
 
 
+def _without_local_shutdown_diagnostic(state: dict) -> dict:
+    """Normalize only the non-consensus startup diagnostic across executors."""
+    stable = deepcopy(state)
+    stable["meta"].pop("last_shutdown_clean", None)
+    return stable
+
+
 def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -282,7 +289,11 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         chain_id=CHAIN,
         tx_index_path=str(index),
     )
-    assert restarted.read_state() == state
+    # Constructor may revise the local last_shutdown_clean diagnostic while
+    # validating its on-disk snapshot. It is excluded from state-root hashing.
+    assert _without_local_shutdown_diagnostic(
+        restarted.read_state()
+    ) == _without_local_shutdown_diagnostic(state)
     assert compute_state_root(restarted.read_state()) == source_root
     assert restarted.get_block_by_height(appeal_height) == source_blocks[appeal_height - 1]
 
@@ -299,7 +310,9 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         assert independent.get_block_by_height(height) == block
         assert compute_state_root(independent.read_state()) == block["header"]["state_root"]
 
-    assert independent.read_state() == restarted.read_state()
+    assert _without_local_shutdown_diagnostic(
+        independent.read_state()
+    ) == _without_local_shutdown_diagnostic(restarted.read_state())
     assert compute_state_root(independent.read_state()) == source_root
     assert (
         compare_replay_manifests(
