@@ -94,3 +94,105 @@ Do not enable severe bans, approve the new semantic digest, modify
 historical state, or assert a two-node replay from a synthetic
 single-node queue fixture. Independent replay of authentic old blocks
 and signed, queue-bound severe case material is still required.
+
+
+## Completed synthetic 25/20 initial + fresh 25/20 appeal: still NO AUTHORITY (2026-11-01)
+
+**Verified on the current PR77 draft; no production activation or semantic
+review signoff.** New executable regression
+`tests/test_pr77_complete_severe_appeal_no_authority.py` extends the
+earlier split initial-vote and fresh-appeal safety tests with one
+continuous in-memory constitutional-clock story:
+
+1. Seed 25 distinct initial jurors, five substitutes, 20 affirmative
+   initial final-ballot nullifiers, a claimed S4 account case, and an
+   explicitly enabled **synthetic controlled-testnet** ballot profile.
+   Such fixture fields do **not** independently authenticate a real
+   case, jury, cryptographic ballot, signed source receipt, or chain.
+2. Run the **real** `DISPUTE_RESOLVE` domain handler with a 20/25
+   initial result, and the default-off experimental automatic severe
+   appeal assignment switched on only in this synthetic state.
+3. Verify a new 25-member appeal panel and five substitutes, disjoint
+   from the original 30 identities. Execute 20 actual
+   `DISPUTE_JUROR_ACCEPT` and 20 `DISPUTE_VOTE_SUBMIT` domain
+   calls and observe `appeal_vote_counts={"uphold":20}` and
+   `stage="appeal_resolved"`. These calls are not signed public
+   transaction admission or BFT consensus evidence.
+4. Run `tick_dispute_lifecycle` and confirm **no** queued
+   `DISPUTE_FINAL_RECEIPT` or `ACCOUNT_BAN`, including with
+   user-asserted waiver material.
+5. Submit a forged final-receipt-shaped `SYSTEM` envelope claiming
+   an `ACCOUNT_BAN` action. The dispute applier rejects it with
+   `forbidden:severe_sanction_automatic_appeal_unimplemented`,
+   without changing the state.
+6. Submit a direct synthetic `SYSTEM ACCOUNT_BAN` with a case ID,
+   apparent 20+20 tallies, appeal panel commitment, waiver assertion,
+   and queue ID string. Both bounded-rollback and reference deepcopy
+   domain execution reject
+   `forbidden:severe_sanction_authorization_unimplemented`.
+   The target remains unbanned and the state root is preserved.
+
+**Additional real `DISPUTE_OPEN` boundary:** A distinct three-case
+regression supplies client-claimed `severity="severe"`,
+`sanction_class="S4"`, or nested `rules` class/severity on an
+otherwise accepted account-targeted `DISPUTE_OPEN`. The resulting
+canonical dispute record contains no `severity`, `sanction_class`
+or `rules` classification. The existing opener does not promote
+untrusted caller labels into source-backed severe authority.
+**However, there is still no positive, authenticated canonical
+severe-case classification producer**. A synthetic fixture can set
+an S4 field, but that is not proof that an actual submitted case can
+legitimately reach this class. This gap must be resolved before
+enabling any severe sanction.
+
+[Focused GitHub Actions run 41381332705](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41381332705)
+**PASS** at test source commit
+`e10f7befa67edb18a6ab64af98b0e683262cd32b`:
+the new eight tests passed, along with the five existing workflow
+suites (**38 + 4 + 6 + 13 + 10 tests**, plus four subtests), strict
+Ruff lint and format. No protocol default, canonical receipt
+applier, disputed review digest, or historical state was modified.
+
+### Source-backed producer implementation order — STILL BLOCKED
+
+The next actual producer cannot safely be created merely by
+`enqueue_system_tx("ACCOUNT_BAN")`. At minimum, the separately
+reviewed and **versioned** design must specify and prove:
+
+- **Case origin and classification:** an authenticated, non-spoofable
+  severe/S4 account-target decision bound to the exact case, account,
+  evidence, opening transaction and applicable constitutional version.
+  The current `DISPUTE_OPEN` does not produce it.
+- **Initial jury and ballots:** verifiable 25-person assignment,
+  identity uniqueness, conflicts, eligibility, panel commitment, at
+  least 20 genuine affirmative juror ballots, and deterministic
+  finality—not merely read-model counts or claimed nullifiers.
+- **Automatic appeal:** exactly one properly initiated,
+  non-overlapping fresh 25-member panel; valid 20-vote result; and
+  the constitutional waiver exception only if separately authenticated
+  *after* the full reasoned outcome is provided. The default-off
+  experimental panel transition is not the complete producer.
+- **Final decision/authorization:** a deterministic, idempotent final
+  authority record tying decision, appeal, target, reasoned outcome,
+  deadlines, restoration/restitution and predecessor receipt.
+  `DISPUTE_FINAL_RECEIPT` is presently held for recognized severe
+  cases, even after a synthetic appeal has finished.
+- **Queue and execution trust:** an actual authorized producer must
+  bind its source certificate to the `SYSTEM` queue item, parent,
+  payload and exact finalized height, with the same check repeated
+  by followers at `ACCOUNT_BAN` execution. Queue hash binding
+  alone does not prove the source decision.
+- **Reputation and replay:** separately adjudicate the already known
+  alternate reputation-floor automatic exclusion, discordant
+  reinstatement/ban index, pre-activation ledgers, receipt roots,
+  historical V2 semantic digests and independently operated nodes.
+  A green negative regression is **not** a claim that all alternative
+  paths are non-excluding.
+
+**Disposition:** this round increases source-bound *negative*
+evidence for the complete synthetic case and identifies a concrete
+authentic-classification prerequisite. It neither implements nor
+authorizes the severe-sanction producer. Keep all 15 V2 semantic
+review approvals pending, retain constitutional-clock ban rejection,
+preserve historical compatibility, leave PR77 Draft/unmerged and
+release **NO-GO**.
