@@ -78,6 +78,7 @@ def _generate_test_only_opening(
             "signer": "@alice",
             "nonce": 1,
             "payload": {
+                "dispute_id": CASE_ID,
                 "target_type": "ACCOUNT",
                 "target_id": "  @bob ",
                 "reason": " Synthetic signed dispute ",
