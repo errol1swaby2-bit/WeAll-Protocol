@@ -45,6 +45,8 @@ jobs:
       - name: Assert the review cannot authorize or enqueue a ban
         working-directory: Weall-Protocol
         run: |
+          set -Eeuo pipefail
+          export PYTHONPATH="${PWD}/src:${PWD}${PYTHONPATH:+:${PYTHONPATH}}"
           python - <<'PY'
           from tooling.severe_sanction_candidate_review import review_severe_sanction_candidate
           from tooling.severe_case_origin_candidate import review_severe_case_origin
