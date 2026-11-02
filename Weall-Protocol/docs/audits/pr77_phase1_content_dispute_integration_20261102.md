@@ -259,3 +259,45 @@ test's intent is to prove explicit per-lane selection, not reporter self-review.
 The fixture now names a separate reporter and asserts the reporter stays
 excluded while the independent content reviewer receives assignment.
 The previous failure is retained in this audit; the revised test awaits CI.
+
+
+## 2026-11-02 — confirmed integrated safety boundary
+
+**Verified code head:** `2240c2d4bf10604df8e565f003946f60e12a46af`.
+[Focused phase-1 CI run #41507955308](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41507955308):
+**22 passed**, Ruff lint PASS, Ruff format PASS (six checked files).
+
+The regression set includes signed two-party content report and a third signed
+reviewer, report escalation + audit receipt, opt-in and final signed ballot,
+later reporter opt-in exclusion, a distinct signer subsequently receiving the
+unassigned case, negative reporter acceptance even with both active lanes,
+duplicate signed ballot rejection with failed canonical receipt, system
+finalization in a separate block, and fresh executor replay of the full chain.
+Neighboring review assignment, juror strict-gate, acceptance API, review outcome
+and content-review UI contract tests also passed. Alias tests cover both
+`@account` and `account` for reporter conflict.
+
+**Implementation corrections in this review branch:**
+1. `runtime/apply/roles.py` now excludes reporters from local fallback review
+   reassignment and allows later independent reviewers to recover a case
+   blocked by an earlier reporter/owner conflict.
+2. `runtime/apply/content.py` explicitly excludes reporter identity variants
+   at initial panel selection even under legacy/local selection.
+3. `runtime/apply/dispute.py` independently blocks reporter juror accept/vote
+   despite active lane consent or a stale historical assignment.
+
+**Historical consistency caution:** these reviewer conflict checks change
+local/legacy consensus-observable behavior and supersede fixtures that
+expected reporter self-review. The clean-genesis replacement plan means old
+development-chain replay is not the testnet release gate, but divergence from
+older semantics remains transparently documented and must be addressed in the
+architecture/documentation reconciliation stage. No legacy evidence is
+misrepresented as refreshed by this focused synthetic run.
+
+**Open/unproven:** full cross-revision compatibility, strict M3 7/15/25 plus
+substitutes under adversarial concurrency, completed appeal and fresh appeal
+panels, deattributed production ballot activation, frontend exact-lane UI
+and receipt reconciliation, restart under independent operators, verified
+real-human PoH and two-machine BFT finality. Severe sanction authority
+(`ACCOUNT_BAN`) and V2 review digest signoff remain gated. Full testnet
+rehearsal and evidence regeneration have not begun.
