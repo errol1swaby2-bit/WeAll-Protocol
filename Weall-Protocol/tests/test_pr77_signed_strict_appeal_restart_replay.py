@@ -433,42 +433,47 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
 
     # A single signer, repeated arbitrarily, is never a quorum.
     no_quorum = HotStuffBFT(chain_id=CHAIN)
-    assert no_quorum.accept_vote(
+    result = no_quorum.accept_vote(
         vote_json=signer_votes[0],
         validators=validators,
         vpub=pubkeys,
         verified_admission=matches_replayed_appeal,
-    ) is None
-    assert no_quorum.accept_vote(
+    )
+    assert result is None
+    result = no_quorum.accept_vote(
         vote_json=signer_votes[0],
         validators=validators,
         vpub=pubkeys,
         verified_admission=matches_replayed_appeal,
-    ) is None
-    assert no_quorum.accept_vote(
+    )
+    assert result is None
+    result = no_quorum.accept_vote(
         vote_json=signer_votes[1],
         validators=validators,
         vpub=pubkeys,
         verified_admission=matches_replayed_appeal,
-    ) is None
+    )
+    assert result is None
 
     # Distinct in-memory collectors verify the same three signed votes using
     # the same explicit validator registry. Neither is a live remote node.
     collectors = (HotStuffBFT(chain_id=CHAIN), HotStuffBFT(chain_id=CHAIN))
     qcs = []
     for collector in collectors:
-        assert collector.accept_vote(
+        result = collector.accept_vote(
             vote_json=signer_votes[0],
             validators=validators,
             vpub=pubkeys,
             verified_admission=matches_replayed_appeal,
-        ) is None
-        assert collector.accept_vote(
+        )
+        assert result is None
+        result = collector.accept_vote(
             vote_json=signer_votes[1],
             validators=validators,
             vpub=pubkeys,
             verified_admission=matches_replayed_appeal,
-        ) is None
+        )
+        assert result is None
         qc = collector.accept_vote(
             vote_json=signer_votes[2],
             validators=validators,
@@ -501,12 +506,13 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     rejected = HotStuffBFT(chain_id=CHAIN)
     bad_sig = deepcopy(signer_votes[0])
     bad_sig["sig"] = "00" * 64
-    assert rejected.accept_vote(
+    result = rejected.accept_vote(
         vote_json=bad_sig,
         validators=validators,
         vpub=pubkeys,
         verified_admission=matches_replayed_appeal,
-    ) is None
+    )
+    assert result is None
     for forged in (
         make_signed_vote(validators[0], vote_epoch=epoch + 1),
         make_signed_vote(validators[1], voted_hash="0" * 64),
@@ -517,12 +523,13 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
             )[1],
         ),
     ):
-        assert rejected.accept_vote(
+        result = rejected.accept_vote(
             vote_json=forged,
             validators=validators,
             vpub=pubkeys,
             verified_admission=matches_replayed_appeal,
-        ) is None
+        )
+        assert result is None
 
     assert compute_state_root(restarted.read_state()) == source_root
     assert compute_state_root(independent.read_state()) == source_root
