@@ -196,9 +196,9 @@ def test_unsigned_dev_policy_cannot_bypass_real_crypto(
 def test_signed_wrong_key_does_not_prove_sender(keypair: dict) -> None:
     f = _fixture(keypair)
     other = generate_mldsa65_keypair()
-    f["pre_state"]["accounts"]["@alice"]["keys"]["by_id"]["fixture-key"]["pubkeys"][
-        "mldsa"
-    ] = other["pubkey"]
+    f["pre_state"]["accounts"]["@alice"]["keys"]["by_id"]["fixture-key"]["pubkeys"]["mldsa"] = (
+        other["pubkey"]
+    )
     assert _review(f)["observations"]["signed_against_supplied_prestate_key"] is False
 
 
