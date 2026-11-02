@@ -531,6 +531,78 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         )
         assert result is None
 
+    # Upgrade the QC test from two standalone HotStuff engines to two
+    # independent SQLite-backed WeAllExecutor instances. Seed the simulated
+    # validator registry explicitly; doing so is NOT on-chain validator
+    # activation or evidence of peer-to-peer network communication.
+    monkeypatch.setenv("WEALL_BFT_STRICT_EPOCH_BINDING", "1")
+    auditors = []
+    for n in range(2):
+        auditor_path = tmp_path / f"pr77-qc-auditor-{n}.sqlite"
+        auditor = WeAllExecutor(
+            db_path=str(auditor_path),
+            node_id=f"pr77-qc-auditor-{n}",
+            chain_id=CHAIN,
+            tx_index_path=str(index),
+        )
+        configured = deepcopy(auditor.read_state())
+        configured.setdefault("roles", {}).setdefault("validators", {})[
+            "active_set"
+        ] = list(validators)
+        consensus = configured.setdefault("consensus", {})
+        consensus.setdefault("phase", {})["current"] = "bft_active"
+        registry = consensus.setdefault("validators", {}).setdefault("registry", {})
+        for vid in validators:
+            registry[vid] = {
+                "pubkey": pubkeys[vid],
+                "sig_profile": PQ_MLDSA_V1,
+                "status": "active",
+            }
+        active_set = consensus.setdefault("validator_set", {})
+        active_set["active_set"] = list(validators)
+        active_set["epoch"] = epoch
+        active_set["set_hash"] = vset_hash
+        auditor._ledger_store.write(configured)
+        auditor.state = auditor._ledger_store.read()
+        auditor._bft.load_from_state(auditor.state)
+        assert auditor._active_validators() == validators
+        assert auditor._validator_epoch() == (epoch, vset_hash)
+        assert auditor.bft_verify_qc_json(qcs[0].to_json()) is not None
+        assert auditor.bft_verify_qc_json(
+            replace(qcs[0], validator_epoch=epoch + 1).to_json()
+        ) is None
+        assert auditor.bft_verify_qc_json(
+            replace(qcs[0], block_hash="0" * 64).to_json()
+        ) is None
+
+        # Feed real, authenticated signatures through the production-facing
+        # runtime vote ingress rather than HotStuffBFT.accept_vote directly.
+        assert auditor.bft_handle_vote(signer_votes[0]) is None
+        assert auditor.bft_handle_vote(signer_votes[0]) is None
+        assert auditor.bft_handle_vote(signer_votes[1]) is None
+        formed = auditor.bft_handle_vote(signer_votes[2])
+        assert formed is not None
+        assert formed.to_json() == qcs[0].to_json()
+        assert auditor.bft_verify_qc_json(formed.to_json()) is not None
+        auditors.append((auditor_path, auditor))
+
+    # Restart both independently persisted BFT validators. Their epoch-bound
+    # canonical registry and acceptance of the signed QC must survive a
+    # process-local executor reinitialization.
+    for path, prior_auditor in auditors:
+        restarted_auditor = WeAllExecutor(
+            db_path=str(path),
+            node_id=prior_auditor.node_id,
+            chain_id=CHAIN,
+            tx_index_path=str(index),
+        )
+        assert restarted_auditor._validator_epoch() == (epoch, vset_hash)
+        assert restarted_auditor._active_validators() == validators
+        assert restarted_auditor.bft_verify_qc_json(qcs[0].to_json()) is not None
+        assert restarted_auditor.bft_verify_qc_json(
+            replace(qcs[0], validator_epoch=epoch + 1).to_json()
+        ) is None
+
     assert compute_state_root(restarted.read_state()) == source_root
     assert compute_state_root(independent.read_state()) == source_root
     # This is a signed-QC candidate check against a stored ordinary appeal,
