@@ -39,9 +39,9 @@ bans, and exact source/fresh-replay manifest equivalence.
 - Phase 1 requires a full subsystem inventory and additional integrated flows.
   This is just one representative path, not a completeness certification.
 
-**Outcome:** Await pinned CI. If failed, preserve the exact failing boundary
-and correct only with focused evidence; do not change production gating merely
-to turn the check green.
+**Original baseline result:** Verified separately below. Later reviewer lifecycle
+extensions have their own exact-commit CI and do not supersede the original
+baseline evidence or establish broader release authority.
 
 
 ## Height-advancement diagnostic during CI
@@ -123,3 +123,40 @@ positive sequence uses actual admission and persisted blocks. It is not proof
 that a standalone content-review permission ought to be insufficient under
 the final product design. That policy/UX decision remains open for
 specification reconciliation.
+
+
+## Signed third-reviewer continuation — exact-head verified
+
+The upgraded local-only integration fixture **PASSED** on
+`cb59e10144533fab0f6395adca15f148e70be896`:
+[PR77 phase-1 content/dispute workflow #41504204822](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41504204822)
+(pinned Ruff lint PASS, pinned Ruff format PASS, **1 focused end-to-end
+executor/replay test PASS**). This extends the older green baseline without
+claiming additional real-world identities or an independent validator.
+
+The same committed chain now includes a third independently signed account:
+`ACCOUNT_REGISTER`, explicit synthetic
+`POH_BOOTSTRAP_TIER2_GRANT`, `REVIEWER_LANE_OPT_IN` for
+`content_review`, case reassignment out of `unassigned`, separate
+`REVIEWER_LANE_OPT_IN` for `dispute_review`,
+`DISPUTE_JUROR_ACCEPT`, and `DISPUTE_VOTE_SUBMIT` ("no"). The exact
+persisted account/dispute/juror state, attendance, deattributed ballot-admission
+receipt, and entire recorded transaction history replay identically in a fresh
+executor. The original target owner/reporter do not become reviewers and none
+of the three synthetic accounts is banned.
+
+**Important unresolved design/UX mismatch:** the implementation requires
+two separate reviewer-lane opt-ins to complete one content-report review.
+`content_review` alone assigns the report, while `dispute_review` is also
+needed for `DISPUTE_JUROR_ACCEPT` and voting. A mutation-free negative
+regression confirms the current domain gate rejects the content-only reviewer
+with `reviewer_responsibility_not_active`. This proves existing behavior,
+**not** that two consents are the constitutionally correct final design. It
+requires explicit architecture/product adjudication; this pass did not widen
+authority or silently merge the lanes.
+
+Remaining outside this evidence: actual independent-human verification,
+25+5 constitutional panels and 20-vote severe adjudication, appeal/automatic
+fresh panel, real browser/API UX, cross-machine quorum and BFT finality,
+restarts, independent external review and final clean-genesis protocol run.
+This is not a production or public testnet launch gate closure.
