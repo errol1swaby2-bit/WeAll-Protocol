@@ -387,3 +387,54 @@ requires architecture/constitutional review before implementation.
 No automatic severe fresh-panel scheme or `ACCOUNT_BAN` authority is
 activated. Real PoH, browser-signed appeal UI, validator-operated BFT and
 new-genesis all-subsystem evidence remain unproven.
+
+## 2026-11-02 — recorded appeals wait for a full fresh constitutional panel
+
+**Product decision applied to the draft PR77 branch:** a valid, on-time
+appeal survives a shortage of unconflicted jurors. The previous strict
+`DISPUTE_APPEAL` failure `insufficient_fresh_appeal_panel` is replaced
+by successful admission with persisted stage `appeal_pending_panel`.
+Original jurors, substitutes, reporter identities and material-conflict
+identities remain excluded. The prior complete constitutional 7/15/25-person
+panel plus substitutes and original quorum are **not reduced**.
+
+During pending, the state retains the appeal signer, signed transaction
+nonce, filing height, and the original panel and substitute snapshot. It
+records the incomplete panel status, required panel size, required substitute
+count and available reviewer count. No active appeal jury is installed.
+The constitutional block-height scheduler deterministically retries from
+replicated `dispute_review` eligibility on each produced block; once a
+complete fresh panel is available, the case enters `appeal_review` and
+records the assignment height without changing its original filing height.
+An existing appeal never expires just because panel formation takes longer
+than the original filing window. The final-receipt applier independently
+rejects stale `DISPUTE_FINAL_RECEIPT` while
+`appeal_pending_panel` persists, before writing any receipt.
+
+**Pinned validation:** implementation/test head
+`e4138676b54557b1cbe1aa309fd70700cd5c982c`,
+[phase-1 focused workflow #41519892377](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41519892377):
+**43 tests passed**, Ruff lint PASS, Ruff format PASS. Strict synthetic
+domain tests check shortage (8 candidates when 9 are required), durable
+filing, deadline-crossing hold, rejected direct forged/stale receipt with
+no state changes, duplicate filing rejection, independence of initial and
+appeal jurors, and exact state parity across two independent state copies
+when a ninth fresh reviewer later becomes eligible. Existing local-dev
+signed executor + fresh-executor replay evidence remains separately covered
+by the same workflow, but it does **not** demonstrate signed strict-clock
+pending appeal processing across independent validators.
+
+**Semantic provenance:** the V2 material review now registers a change in
+appeal state writes and removal of the old
+`insufficient_fresh_appeal_panel` rejection code. The regression checks
+that the current digest differs from the previously accepted digest, rather
+than treating old signoff as automatically applicable to new code. New
+human ratification and protocol documentation reconciliation remain required.
+
+**Remaining barriers:** browser/API read-model and reviewer-eligibility
+presentation for the new pending stage, explicit canonical strict-clock
+signed transaction and persisted restart/replay proof, independent
+two-node BFT concurrency and partition testing, complete panel signing/
+privacy activation, time-of-height eligibility and adversarial reviewer
+entry/exit, and all severe-sanction authority gates. No `ACCOUNT_BAN`
+authority is enabled. PR77 remains Draft and testnet/public release NO-GO.
