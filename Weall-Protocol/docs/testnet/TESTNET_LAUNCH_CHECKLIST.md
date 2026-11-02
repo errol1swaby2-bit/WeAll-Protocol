@@ -14,6 +14,19 @@ NO-GO: public beta readiness, public observer launch claim while `AUD-628-P1-001
 
 Current tx-canon count/version must be read from `generated/tx_index.json`; this checklist intentionally does not duplicate mutable canon totals.
 
+## Clean replacement-chain evidence gate (planned; not yet satisfied)
+
+Before declaring the new testnet ready, regenerate the full current
+protocol-evidence inventory from a **fresh genesis and new chain identity**.
+Do not carry over old development-chain transactions or assume that
+historical old-chain replay is a launch prerequisite. See
+[`FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md`](FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md).
+
+The new-chain complete evidence gate remains **NO-GO** until actual
+fresh-run artifacts, independent replay/consensus checks and required
+separate adjudications are recorded. Individual synthetic CI passes are
+only components of that larger acceptance process.
+
 ## Repository-side checks
 
 ```bash

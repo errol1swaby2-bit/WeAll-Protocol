@@ -1,3 +1,12 @@
+> **Pre-testnet scope correction (2026-11-02):** The upcoming testnet will replace
+> all old development chain identity and transaction history with a new
+> clean-run genesis and recomputed protocol evidence. Preserving/replaying
+> development-chain history is **not** a testnet launch prerequisite.
+> This retained-history intake remains optional forensic/external-history
+> tooling. The actual pre-launch evidence requirement is
+> [fresh-genesis complete evidence regeneration](../testnet/FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md).
+> It must replay and verify the **new chain's** own transactions and state.
+
 # PR77 retained-history replay intake — NOT COMPLETE
 
 Status: **BLOCKED until authentic retained chain data is supplied.** This is an
