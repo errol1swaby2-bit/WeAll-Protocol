@@ -58,8 +58,12 @@ def _delta_env() -> TxEnvelope:
     )
 
 
-@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
-def test_canonical_reputation_delta_floor_ban_occurs_in_both_modes(clock_enabled: bool) -> None:
+@pytest.mark.parametrize(
+    "clock_enabled", [False, True], ids=["legacy", "constitutional-clock"]
+)
+def test_canonical_reputation_delta_floor_ban_occurs_in_both_modes(
+    clock_enabled: bool,
+) -> None:
     """Known behavior, NOT an authorization assertion or a desired future contract."""
     baseline = _state(clock_enabled=clock_enabled)
     bounded = copy.deepcopy(baseline)
@@ -77,8 +81,12 @@ def test_canonical_reputation_delta_floor_ban_occurs_in_both_modes(clock_enabled
     assert compute_state_root(bounded) == compute_state_root(reference)
 
 
-@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
-def test_exported_system_delta_helper_has_same_independent_ban_path(clock_enabled: bool) -> None:
+@pytest.mark.parametrize(
+    "clock_enabled", [False, True], ids=["legacy", "constitutional-clock"]
+)
+def test_exported_system_delta_helper_has_same_independent_ban_path(
+    clock_enabled: bool,
+) -> None:
     """The in-process SYSTEM helper also sets banned without ACCOUNT_BAN."""
     state = _state(clock_enabled=clock_enabled)
     result = apply_reputation_delta_system(
