@@ -348,3 +348,42 @@ strict constitutional profiles retain all existing material-conflict checks.
 **Pending exact-head CI.** Legacy/local mode does not impose the production
 constitutional appeal window, so this exercise is not strict-clock signed
 appeal or 7/15/25 panel evidence.
+
+
+## 2026-11-02 — pinned appeal/fresh-panel test completion
+
+The strict fresh-panel atomicity patch and signed local fresh-reviewer appeal
+were both run in [focused GitHub Actions #41510157854](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41510157854)
+against implementation commit `b76184752ce4b1b53f32b6ace149a51ce5beeb44`:
+**40 passed**, Ruff lint PASS, Ruff format PASS. The prior strict-only focused
+run [#41509851966](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41509851966)
+also passed 40 tests before the local signed-appeal extension.
+
+The strict constitutional-clock fixture (synthetic direct-domain, not
+production identity or independently finalized consensus) verifies that a
+7-member review plus 2 substitutes receives a completely fresh disjoint
+7+2 appeal panel *only* with nine eligible additional reviewers, and that
+an eight-member fresh pool fails without writing an appeal record or panel
+state. A duplicate appeal, unrelated appellant, or expired deadline fails
+without mutation.
+
+The separate signed executor fixture (legacy/local-dev, **not** strict-clock
+appeal-window coverage) verifies the real signed content author files
+`DISPUTE_APPEAL`, a newly opted-in independent reviewer forms a fresh
+appeal panel, prior reviewer and original reporter are excluded, and a
+separate scratch executor reproduces the complete chain. A safety correction
+was necessary because the non-strict appeal selector previously excluded
+original jurors/substitutes but could select the original reporter. Explicit
+reporter exclusion now prevents a conflict from entering that panel;
+no severity or sanction authority changed.
+
+**Open governance/product issue:** a strict appeal can be rejected when
+the independent pool lacks sufficient fresh humans, leaving the legitimate
+appellant no durable appeal record and the original appeal deadline
+unchanged. This test proves atomic rejection, **not** a fair mechanism for
+preserving appeal rights during pool shortages. Policy for suspending
+finalization, durable appeal intent, and deterministic roster replenishment
+requires architecture/constitutional review before implementation.
+No automatic severe fresh-panel scheme or `ACCOUNT_BAN` authority is
+activated. Real PoH, browser-signed appeal UI, validator-operated BFT and
+new-genesis all-subsystem evidence remain unproven.
