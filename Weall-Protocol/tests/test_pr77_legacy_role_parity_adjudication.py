@@ -88,9 +88,7 @@ def test_only_six_named_legacy_metadata_deltas_have_equal_canonical_receipts() -
         ("changed_known_scenario", "unclassified_legacy_difference"),
     ],
 )
-def test_unclassified_changes_never_pass(
-    mutation: str, error: str
-) -> None:
+def test_unclassified_changes_never_pass(mutation: str, error: str) -> None:
     base, candidate = _reports()
     row = candidate["cases"][0]
     if mutation == "lost_case":
