@@ -1588,7 +1588,7 @@
       "http_status": 404,
       "sample_reason": "Dispute not found",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 514
+      "source_lineno": 564
     },
     {
       "code": "not_found",
