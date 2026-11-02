@@ -7,8 +7,8 @@ import pytest
 from scripts.pr77_v2_semantic_review_packet import (
     KNOWN_STALE,
     build_packet,
-    field_differences,
     failure_code_deltas,
+    field_differences,
     packet_integrity_blockers,
 )
 
