@@ -9,6 +9,8 @@ on:
       - 'Weall-Protocol/src/weall/runtime/apply/reputation.py'
       - 'Weall-Protocol/tests/test_pr77_reputation_floor_ban_boundary_characterization.py'
       - 'Weall-Protocol/tests/test_pr77_account_reinstatement_state_consistency.py'
+      - 'Weall-Protocol/tooling/ban_state_contract_candidate.py'
+      - 'Weall-Protocol/tests/test_pr77_ban_state_contract_candidate.py'
       - 'Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py'
       - '.github/workflows/pr77-severe-account-finality-no-go.yml'
 
@@ -50,3 +52,10 @@ jobs:
           ruff check tests/test_pr77_account_reinstatement_state_consistency.py
           ruff format --check tests/test_pr77_account_reinstatement_state_consistency.py
           pytest -q tests/test_pr77_account_reinstatement_state_consistency.py
+      - name: Verify review-only ban-status model never authorizes state changes
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py
+          ruff format --check tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py
+          pytest -q tests/test_pr77_ban_state_contract_candidate.py
