@@ -263,6 +263,7 @@ def test_actual_dispute_applier_marks_predecessor_height_not_block_height(
     # This is a domain-only controlled fixture; no authenticated PoH issuance
     # or network consensus is inferred from this manually seeded account.
     state["accounts"]["@alice"]["poh_tier"] = 2
+    predecessor_state = copy.deepcopy(state)
     opening = TxEnvelope.from_json(f["block"]["txs"][0])
     result = apply_dispute(state, opening)
     assert result["applied"] == "DISPUTE_OPEN"
@@ -270,7 +271,8 @@ def test_actual_dispute_applier_marks_predecessor_height_not_block_height(
     assert case["opened_at_height"] == 6
     assert f["block"]["header"]["height"] == 7
 
-    f["pre_state"] = state
+    assert "d1" not in predecessor_state.get("disputes_by_id", {})
+    f["pre_state"] = predecessor_state
     f["case"] = case
     observation = _review(f)
     assert all(observation["observations"].values())
