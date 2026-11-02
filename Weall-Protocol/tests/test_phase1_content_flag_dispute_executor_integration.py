@@ -162,8 +162,23 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     assert not state["accounts"]["@alice"].get("banned", False)
     assert not state["accounts"]["@bob"].get("banned", False)
 
-    # The system escalation itself must be present as a successful canonical
-    # block receipt, not merely a state mutation made by a test helper.
+    # Escalation must also commit its follow-up receipt. Merely enqueueing a
+    # receipt is insufficient to prove the content -> dispute lifecycle.
+    for _ in range(4):
+        current = source.read_state()
+        recent = [
+            source.get_block_by_height(h) for h in range(1, int(current["height"]) + 1)
+        ]
+        if any(
+            receipt.get("tx_type") == "FLAG_ESCALATION_RECEIPT"
+            for block in recent
+            for receipt in block["receipts"]
+        ):
+            break
+        next_block = source.produce_block(max_txs=2)
+        assert next_block.ok is True, next_block.error
+
+    state = source.read_state()
     blocks = [source.get_block_by_height(h) for h in range(1, int(state["height"]) + 1)]
     assert all(isinstance(block, dict) for block in blocks)
     matching_receipts = [
@@ -175,6 +190,18 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     assert len(matching_receipts) == 1
     assert matching_receipts[0]["ok"] is True
     assert matching_receipts[0]["signer"] == "SYSTEM"
+    receipt_audit = [
+        receipt
+        for block in blocks
+        for receipt in block["receipts"]
+        if receipt.get("tx_type") == "FLAG_ESCALATION_RECEIPT"
+    ]
+    assert len(receipt_audit) == 1
+    assert receipt_audit[0]["ok"] is True
+    assert receipt_audit[0]["signer"] == "SYSTEM"
+    assert state["content"]["moderation"]["targets"][POST_ID].get(
+        "flag_escalation_receipt_at_nonce"
+    ) is not None
 
     replay = WeAllExecutor(
         db_path=str(tmp_path / "flag-replay.sqlite"),
