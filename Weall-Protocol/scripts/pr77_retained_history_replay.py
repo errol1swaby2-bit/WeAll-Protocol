@@ -25,7 +25,6 @@ from weall.runtime.block_commitment_validation import (
 )
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
-from tooling.severe_case_signed_opening_review import review_signed_dispute_opening
 
 Json = dict[str, Any]
 _SHA256 = re.compile(r"[0-9a-fA-F]{64}\Z")
@@ -208,6 +207,18 @@ def replay_offline_source(
             case = cases.get(opening_case_id) if isinstance(cases, dict) else None
             if not isinstance(case, dict):
                 raise ReplayEvidenceError("opening_witness_case_not_in_replayed_state")
+            # A direct "python scripts/..." invocation does not necessarily
+            # include the sibling review-only tooling directory on sys.path.
+            # Resolve only this pinned checkout; do not use user-provided paths.
+            import sys
+
+            checkout_root = str(Path(__file__).resolve().parents[1])
+            if checkout_root not in sys.path:
+                sys.path.insert(0, checkout_root)
+            from tooling.severe_case_signed_opening_review import (
+                review_signed_dispute_opening,
+            )
+
             review = review_signed_dispute_opening(
                 case=case,
                 block=current,
