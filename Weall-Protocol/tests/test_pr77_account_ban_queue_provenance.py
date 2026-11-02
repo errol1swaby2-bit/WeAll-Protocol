@@ -30,7 +30,6 @@ from weall.runtime.system_tx_engine import (
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.tx.canon import TxIndex
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
