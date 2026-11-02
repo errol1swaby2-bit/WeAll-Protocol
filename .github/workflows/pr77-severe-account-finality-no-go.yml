@@ -40,6 +40,5 @@ jobs:
         run: |
           set -Eeuo pipefail
           ruff check tests/test_pr77_reputation_floor_ban_boundary_characterization.py
-          ruff format --diff tests/test_pr77_reputation_floor_ban_boundary_characterization.py
           ruff format --check tests/test_pr77_reputation_floor_ban_boundary_characterization.py
           pytest -q tests/test_pr77_reputation_floor_ban_boundary_characterization.py
