@@ -501,7 +501,8 @@ def _redact_dispute_detail_maps(
         normalized["target_author"] = target_owner
     normalized["appeal_allowed_accounts"] = _appeal_allowed_accounts(st, obj)
     normalized["appeal_eligibility"] = _appeal_eligibility(st, obj, viewer=viewer)
-    normalized["appeal_panel_readiness"] = _appeal_panel_readiness(obj)    if _viewer_can_see_appeal_snapshot(st, obj, viewer=viewer):
+    normalized["appeal_panel_readiness"] = _appeal_panel_readiness(obj)
+    if _viewer_can_see_appeal_snapshot(st, obj, viewer=viewer):
         snap = _content_target_snapshot(
             st,
             target_type=str(obj.get("target_type") or "content"),
