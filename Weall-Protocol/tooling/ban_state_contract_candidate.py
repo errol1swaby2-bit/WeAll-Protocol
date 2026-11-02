@@ -33,9 +33,7 @@ def _bool_field(mapping: Mapping[str, Any], field: str) -> bool | None:
     return value if type(value) is bool else None
 
 
-def review_ban_state_candidate(
-    state: Mapping[str, Any], *, account_id: str
-) -> dict[str, Any]:
+def review_ban_state_candidate(state: Mapping[str, Any], *, account_id: str) -> dict[str, Any]:
     """Inspect the account flag and mutable ban index, without changing either.
 
     The flag is presently consulted by transaction admission; the separate
