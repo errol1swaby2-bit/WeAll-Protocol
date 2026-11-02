@@ -165,6 +165,60 @@ def test_synthetic_stored_blocks_replay_through_real_executor(
     assert report["independent_two_node_consensus_proven"] is False
 
 
+def test_opening_witness_requires_both_identifiers_before_io(tmp_path: Path) -> None:
+    for opening_tx_id, opening_case_id, expected in (
+        ("tx:" + "a" * 64, None, "opening_witness_requires_tx_id_and_case_id"),
+        (None, "d1", "opening_witness_requires_tx_id_and_case_id"),
+        ("not-a-tx-id", "d1", "opening_witness_tx_id_invalid"),
+        ("tx:" + "a" * 64, "", "opening_witness_case_id_invalid"),
+    ):
+        with pytest.raises(ReplayEvidenceError, match=expected):
+            replay_offline_source(
+                source=tmp_path / "missing-source",
+                source_sha256="a" * 64,
+                chain_id="test-chain",
+                scratch_dir=tmp_path / "missing-scratch",
+                tx_index=tmp_path / "missing-index",
+                tx_index_sha256="b" * 64,
+                expected_commit="c" * 40,
+                opening_tx_id=opening_tx_id,
+                opening_case_id=opening_case_id,
+            )
+
+
+def test_offline_replay_missing_opening_never_claims_source_authority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Real executor replay of synthetic account registration is not a dispute."""
+    import subprocess
+
+    from weall.runtime.replay_consistency import build_sample_chain
+
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_REQUIRE_VRF", "0")
+    sample = build_sample_chain(
+        work_dir=str(tmp_path / "synthetic"), chain_id_prefix="pr77-opening-absence"
+    )
+    assert sample["ok"] is True
+    source = Path(sample["source_db"])
+    scratch = tmp_path / "scratch-missing"
+    scratch.mkdir()
+    tx_index = Path(__file__).resolve().parents[1] / "generated" / "tx_index.json"
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    with pytest.raises(ReplayEvidenceError, match="opening_witness_tx_id_not_found"):
+        replay_offline_source(
+            source=source,
+            source_sha256=file_sha256(source),
+            chain_id=sample["chain_id"],
+            scratch_dir=scratch,
+            tx_index=tx_index,
+            tx_index_sha256=file_sha256(tx_index),
+            expected_commit=commit,
+            opening_tx_id="tx:" + "a" * 64,
+            opening_case_id="d1",
+        )
+
+
 def test_report_destination_never_overwrites_source_or_pinned_tx_index(
     tmp_path: Path,
 ) -> None:

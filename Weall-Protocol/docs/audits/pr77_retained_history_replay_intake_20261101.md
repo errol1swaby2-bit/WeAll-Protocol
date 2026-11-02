@@ -277,3 +277,44 @@ or historical block was changed. All 15 V2 reviews remain outstanding;
 real old-chain role/dispute/severe-case history, per-height committed
 receipt/state-root checks, independent nodes and an authenticated
 severe-sanction producer remain release blockers.
+
+
+## Replay-bound signed-opening observation (2026-11-02; review only)
+
+Optional offline-only arguments `--opening-tx-id tx:<64-lowercase-hex>`
+and `--opening-case-id <canonical-dispute-id>` must be provided **together**.
+The replay tool then locates the one opening transaction by the retained
+block's canonical header transaction IDs, captures the replay-executor
+**predecessor state** immediately before applying the containing block, and
+verifies that the predecessor root equals the previously replayed block's
+committed state root. Height-one openings fail closed: there is no replayed
+predecessor; a separately authenticated genesis anchor is still needed.
+
+After ordinary full block replay, the tool requires the stored and re-executed
+block to agree, checks the post-state root against the committed header and
+source snapshot, loads the actual case from the replayed post-state, and runs
+the existing genuine-ML-DSA signed-opening/source-commitment reviewer.
+Any missing case, claimed ID not found, duplicate ID, root mismatch, invalid
+signature, or inconsistent case/receipt source causes the optional witness
+request to **fail**. The successful report contains only the opening ID,
+case ID, height, block ID/hash, predecessor and post-state roots, and boolean
+observations. It does **not** export account keys, evidence contents,
+signatures, unredacted dispute state, or the original database.
+
+The opt-in witness is a stricter *single-revision replay-relative* link; it
+is **not** an external chain provenance certificate. The source SQLite copy,
+its initial/retained genesis lineage and BFT finalization must still be
+authenticated independently. The witness always returns
+`constitutional_authorization=NOT_ESTABLISHED`,
+`may_classify_canonical_case=false`, and
+`may_enqueue_account_ban=false`. The existing replay report retains
+`historical_provenance_verified=false`,
+`old_version_compatibility_proven=false`, and
+`independent_two_node_consensus_proven=false`.
+
+**Test coverage:** the new optional path has fail-closed regression cases for
+malformed or incomplete identifiers before any source read and an actual
+synthetic three-block executor replay proving that an absent opening ID cannot
+produce a witness. No authentic historical DISPUTE_OPEN ledger was available,
+so the positive runtime integration of this optional path remains **unproven**
+and must be tested with a preserved genuine opening once available.

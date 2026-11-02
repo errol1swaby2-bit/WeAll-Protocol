@@ -25,6 +25,7 @@ from weall.runtime.block_commitment_validation import (
 )
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
+from tooling.severe_case_signed_opening_review import review_signed_dispute_opening
 
 Json = dict[str, Any]
 _SHA256 = re.compile(r"[0-9a-fA-F]{64}\Z")
@@ -115,8 +116,23 @@ def replay_offline_source(
     tx_index: Path,
     tx_index_sha256: str,
     expected_commit: str,
+    opening_tx_id: str | None = None,
+    opening_case_id: str | None = None,
 ) -> Json:
-    """Compare each recorded block and state root with fresh-executor replay."""
+    """Compare blocks and optionally observe one signed opening during replay.
+
+    The optional witness is derived only from re-executed predecessor/resulting
+    states; it does not establish the supplied archive's external provenance.
+    """
+    if (opening_tx_id is None) != (opening_case_id is None):
+        raise ReplayEvidenceError("opening_witness_requires_tx_id_and_case_id")
+    if opening_tx_id is not None:
+        if not isinstance(opening_tx_id, str) or not re.fullmatch(
+            r"tx:[0-9a-f]{64}", opening_tx_id
+        ):
+            raise ReplayEvidenceError("opening_witness_tx_id_invalid")
+        if not isinstance(opening_case_id, str) or not opening_case_id.strip():
+            raise ReplayEvidenceError("opening_witness_case_id_invalid")
     if not _GIT_SHA.fullmatch(expected_commit):
         raise ReplayEvidenceError("invalid_expected_commit")
     if not _SHA256.fullmatch(tx_index_sha256):
@@ -144,7 +160,22 @@ def replay_offline_source(
     if int(executor.read_state().get("height") or 0) != 0:
         raise ReplayEvidenceError("scratch_executor_not_at_genesis")
     per_height_commitments: list[Json] = []
+    opening_witness: Json | None = None
     for height, block in enumerate(blocks, start=1):
+        tx_ids = block.get("header", {}).get("tx_ids")
+        matches = (
+            tx_ids.count(opening_tx_id)
+            if opening_tx_id is not None and isinstance(tx_ids, list)
+            else 0
+        )
+        if matches > 1 or (matches and opening_witness is not None):
+            raise ReplayEvidenceError("opening_witness_duplicate_tx_id")
+        if matches and height == 1:
+            raise ReplayEvidenceError("opening_witness_no_replayed_predecessor")
+        pre_state = copy.deepcopy(dict(executor.read_state())) if matches else None
+        pre_root = compute_state_root(pre_state) if pre_state is not None else ""
+        if matches and pre_root != per_height_commitments[-1]["state_root"]:
+            raise ReplayEvidenceError("opening_witness_predecessor_root_mismatch")
         meta = executor.apply_block(copy.deepcopy(block))
         if not bool(meta.ok):
             raise ReplayEvidenceError(f"historical_apply_rejected:{height}:{str(meta.error)[:120]}")
@@ -171,6 +202,42 @@ def replay_offline_source(
                 "receipts_root": str(header["receipts_root"]),
             }
         )
+        if matches:
+            post_state = dict(executor.read_state())
+            cases = post_state.get("disputes_by_id")
+            case = cases.get(opening_case_id) if isinstance(cases, dict) else None
+            if not isinstance(case, dict):
+                raise ReplayEvidenceError("opening_witness_case_not_in_replayed_state")
+            review = review_signed_dispute_opening(
+                case=case,
+                block=current,
+                pre_state=pre_state,
+                chain_id=chain_id,
+                opening_tx_id=opening_tx_id,
+            )
+            missing = [
+                key for key, observed in review["observations"].items() if observed is not True
+            ]
+            if missing:
+                raise ReplayEvidenceError(
+                    "opening_witness_not_source_bound:" + ",".join(sorted(missing))
+                )
+            opening_witness = {
+                "schema": "weall.pr77.replayed_signed_opening_observation.v0",
+                "height": height,
+                "opening_tx_id": opening_tx_id,
+                "case_id": opening_case_id,
+                "block_id": str(original["block_id"]),
+                "block_hash": str(original["block_hash"]),
+                "pre_state_root": pre_root,
+                "post_state_root": root,
+                "observations": dict(review["observations"]),
+                "constitutional_authorization": "NOT_ESTABLISHED",
+                "may_classify_canonical_case": False,
+                "may_enqueue_account_ban": False,
+            }
+    if opening_tx_id is not None and opening_witness is None:
+        raise ReplayEvidenceError("opening_witness_tx_id_not_found")
     final_root = compute_state_root(dict(executor.read_state()))
     if final_root != compute_state_root(source_state):
         raise ReplayEvidenceError("retained_head_state_root_mismatch")
@@ -187,6 +254,7 @@ def replay_offline_source(
         "final_state_root": final_root,
         "per_height_commitments": per_height_commitments,
         "proof_scope": "single_revision_replay_against_recorded_commitments",
+        **({"signed_opening_witness": opening_witness} if opening_witness else {}),
         "historical_provenance_verified": False,
         "old_version_compatibility_proven": False,
         "independent_two_node_consensus_proven": False,
@@ -224,6 +292,8 @@ def main() -> int:
     parser.add_argument("--tx-index", type=Path, required=True)
     parser.add_argument("--tx-index-sha256", required=True)
     parser.add_argument("--expected-commit", required=True)
+    parser.add_argument("--opening-tx-id", default=None)
+    parser.add_argument("--opening-case-id", default=None)
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
     safe_report = False
@@ -241,6 +311,8 @@ def main() -> int:
             tx_index=args.tx_index,
             tx_index_sha256=args.tx_index_sha256,
             expected_commit=args.expected_commit,
+            opening_tx_id=args.opening_tx_id,
+            opening_case_id=args.opening_case_id,
         )
     except (ReplayEvidenceError, OSError, subprocess.CalledProcessError) as exc:
         result = {
