@@ -15,6 +15,10 @@ import pytest
 
 from weall.crypto.sig import sign_signature_for_profile, sign_tx_envelope_dict
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
+from weall.runtime.ballot_policy import (
+    CONTROLLED_TESTNET_BALLOT_PROFILE,
+    ballot_profile_status,
+)
 from weall.runtime.bft_hotstuff import (
     BftVote,
     HotStuffBFT,
@@ -22,10 +26,6 @@ from weall.runtime.bft_hotstuff import (
     quorum_threshold,
     validator_set_hash,
     verify_qc,
-)
-from weall.runtime.ballot_policy import (
-    CONTROLLED_TESTNET_BALLOT_PROFILE,
-    ballot_profile_status,
 )
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.executor import WeAllExecutor
@@ -415,28 +415,23 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
 
     assert quorum_threshold(len(validators)) == 3
     signer_votes = [make_signed_vote(v) for v in validators]
-    assert all(BftVote(
-        chain_id=v["chain_id"],
-        view=v["view"],
-        block_id=v["block_id"],
-        block_hash=v["block_hash"],
-        parent_id=v["parent_id"],
-        signer=v["signer"],
-        pubkey=v["pubkey"],
-        sig=v["sig"],
-        sig_profile=v["sig_profile"],
-        validator_epoch=v["validator_epoch"],
-        validator_set_hash=v["validator_set_hash"],
-    ).verify() for v in signer_votes)
+    for v in signer_votes:
+        signed_vote = BftVote(
+            chain_id=v["chain_id"],
+            view=v["view"],
+            block_id=v["block_id"],
+            block_hash=v["block_hash"],
+            parent_id=v["parent_id"],
+            signer=v["signer"],
+            pubkey=v["pubkey"],
+            sig=v["sig"],
+            sig_profile=v["sig_profile"],
+            validator_epoch=v["validator_epoch"],
+            validator_set_hash=v["validator_set_hash"],
+        )
+        assert signed_vote.verify()
 
     # A single signer, repeated arbitrarily, is never a quorum.
-    for _ in range(4):
-        assert HotStuffBFT(chain_id=CHAIN).accept_vote(
-            vote_json=signer_votes[0],
-            validators=validators,
-            vpub=pubkeys,
-            verified_admission=matches_replayed_appeal,
-        ) is None
     no_quorum = HotStuffBFT(chain_id=CHAIN)
     assert no_quorum.accept_vote(
         vote_json=signer_votes[0],
