@@ -114,3 +114,36 @@ public or two-machine consensus workflow.
 The missing authentic old-chain database remains the **hard gate**. Do not
 rename this result as a historical replay, update any V2 digest, or merge
 from a green synthetic compatibility check.
+
+
+## Controlled two-node rehearsal on review head — passed (2026-11-01)
+
+The existing `pr77-local-two-node-restart-catchup.yml` workflow
+was updated to trigger on changes to the executor, block builder,
+block replay, system queue, roles, reputation, and dispute runtime
+modules, in addition to changes to the rehearsal scripts. This is
+a **test scheduling correction**, not a consensus rule change.
+
+[Run 41377414524](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41377414524)
+**PASS** at commit `9bd8ac7a71af95f2c1b1c1cdcece71e42cc875c7`.
+The CI ran two controlled-devnet processes with independent local
+SQLite stores on the **same ephemeral runner**, performed the
+signed-transaction cross-node convergence probe, synchronized node 2
+from node 1, and compared canonical roots.
+
+- Both nodes reached parity after initial convergence.
+- Following persisted-state restart of **node 2**, catch-up reached
+  parity on **attempt 1**.
+- Following persisted-state restart of **node 1**, catch-up again
+  reached parity on **attempt 1**.
+- The workflow uploaded non-secret comparison, sync and convergence
+  logs but not node databases or operator keys.
+
+This independent process-state observation complements but does not
+merge with the pinned-main synthetic three-height replay result.
+The exercise does **not** represent two separate machines or operators,
+remote open-network BFT, production-identity/PoH enrollment, severe
+juror/appeal finality, BFT adversarial partition convergence, or
+retained historical state-root compatibility. Public-genesis
+rehearsal and V2 semantics are still blocked; preserve PR77 Draft
+NO-GO and do not refresh stale review digests.
