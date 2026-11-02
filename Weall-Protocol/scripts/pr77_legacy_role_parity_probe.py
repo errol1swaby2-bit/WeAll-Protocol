@@ -69,9 +69,7 @@ def input_state(*, role: str, condition: str, explicit_v1: bool) -> dict[str, An
                         "enrolled": True,
                         "active": True,
                         "responsibilities": {
-                            "reviewer": {
-                                "dispute_review": {"active": True, "opted_in": True}
-                            }
+                            "reviewer": {"dispute_review": {"active": True, "opted_in": True}}
                         },
                     }
                 },
@@ -93,9 +91,7 @@ def input_state(*, role: str, condition: str, explicit_v1: bool) -> dict[str, An
     elif condition == "tier1":
         account["poh_tier"] = 1
     elif condition == "revoked":
-        state["reputation"] = {
-            "role_eligibility": {"@alice": {"roles": {role: False}}}
-        }
+        state["reputation"] = {"role_eligibility": {"@alice": {"roles": {role: False}}}}
     elif condition == "low_reputation":
         account["reputation"] = "1"
         account["reputation_milli"] = 1000
@@ -131,9 +127,7 @@ def probe_one(tx_type: str, role: str, condition: str, explicit_v1: bool) -> dic
         "version": 1 if explicit_v1 else "absent",
     }
     try:
-        metadata, _ = run_with_bounded_rollback(
-            state, lambda ledger: apply_roles(ledger, env)
-        )
+        metadata, _ = run_with_bounded_rollback(state, lambda ledger: apply_roles(ledger, env))
         output["status"] = "accepted"
         output["metadata"] = metadata
     except RolesApplyError as exc:
@@ -162,7 +156,9 @@ def main() -> int:
     parser.add_argument("--expected-package-root", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args()
-    expected = (args.expected_package_root.resolve() / "src" / "weall" / "runtime" / "apply" / "roles.py")
+    expected = (
+        args.expected_package_root.resolve() / "src" / "weall" / "runtime" / "apply" / "roles.py"
+    )
     if Path(role_module.__file__).resolve() != expected:
         raise SystemExit("wrong_installed_checkout:role_module_not_from_expected_revision")
     if args.report.exists() or not args.report.parent.is_dir():
