@@ -1,0 +1,37 @@
+name: PR77 phase1 content-to-dispute executor integration (synthetic only)
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - Weall-Protocol/tests/test_phase1_content_flag_dispute_executor_integration.py
+      - Weall-Protocol/docs/audits/pr77_phase1_content_dispute_integration_20261102.md
+      - .github/workflows/pr77-phase1-content-dispute-integration.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-content-dispute:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Actual signed executor, system queue, and replay test
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_phase1_content_flag_dispute_executor_integration.py
+          ruff format --check tests/test_phase1_content_flag_dispute_executor_integration.py
+          python -m pytest -q tests/test_phase1_content_flag_dispute_executor_integration.py
+          echo 'Synthetic local genesis, not independently final BFT or verified global humanity.'
