@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import audit_v2_semantic_review_drift as audit  # noqa: E402
 import v2_spec_validation as validation  # noqa: E402
+
 KNOWN_STALE = frozenset(
     {
         "DISPUTE_OPEN",
