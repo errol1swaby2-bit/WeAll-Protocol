@@ -157,9 +157,7 @@ def adjudicate(base: Json, candidate: Json) -> Json:
         for name in _ALLOWED_DEDUPE_TYPES
         for version in _ALLOWED_VERSION_VALUES
     }
-    actual_deltas = {
-        (case["tx_type"], case["version"], case["condition"]) for case in known_deltas
-    }
+    actual_deltas = {(case["tx_type"], case["version"], case["condition"]) for case in known_deltas}
     if actual_deltas != expected_deltas or len(known_deltas) != 6:
         raise ParityAdjudicationError("documented_metadata_difference_inventory_changed")
 
@@ -209,14 +207,19 @@ def main() -> int:
     with args.report.open("x", encoding="utf-8") as stream:
         json.dump(result, stream, sort_keys=True, indent=2)
         stream.write("\n")
-    print(json.dumps({
-        "ok": True,
-        "cases": result["case_count"],
-        "noncommitted_known_deltas": result["known_noncommitted_metadata_difference_count"],
-        "synthetic_receipts_root_equal": result["per_case_synthetic_receipts_root_parity"],
-        "historical_approval": False,
-        "release_ready": False,
-    }, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "cases": result["case_count"],
+                "noncommitted_known_deltas": result["known_noncommitted_metadata_difference_count"],
+                "synthetic_receipts_root_equal": result["per_case_synthetic_receipts_root_parity"],
+                "historical_approval": False,
+                "release_ready": False,
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 
