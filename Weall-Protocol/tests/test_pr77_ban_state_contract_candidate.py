@@ -48,7 +48,9 @@ class BanStateCandidateTests(unittest.TestCase):
         for banned in (False, True):
             with self.subTest(banned=banned):
                 result = _check(_state(account_banned=banned, index_banned=banned))
-                self.assertEqual(result["classification"], "CONSISTENT_ACTIVE" if banned else "CONSISTENT_CLEAR")
+                self.assertEqual(
+                    result["classification"], "CONSISTENT_ACTIVE" if banned else "CONSISTENT_CLEAR"
+                )
                 self.assertEqual(result["constitutional_authorization"], "NOT_ESTABLISHED")
                 self.assertFalse(result["may_enqueue_system_tx"])
                 self.assertFalse(result["may_activate_new_policy"])
