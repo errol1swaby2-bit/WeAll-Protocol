@@ -6,6 +6,8 @@ on:
       - 'Weall-Protocol/src/weall/runtime/severe_sanction_boundary.py'
       - 'Weall-Protocol/src/weall/runtime/dispute_engine.py'
       - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
+      - 'Weall-Protocol/src/weall/runtime/apply/reputation.py'
+      - 'Weall-Protocol/tests/test_pr77_reputation_floor_ban_boundary_characterization.py'
       - 'Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py'
       - '.github/workflows/pr77-severe-account-finality-no-go.yml'
 
@@ -33,3 +35,10 @@ jobs:
           ruff check src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/dispute.py tests/test_pr77_severe_account_finality_no_go.py
           pytest -q tests/test_pr77_severe_account_finality_no_go.py tests/test_stage23_account_ban_severe_sanction_no_go.py tests/test_constitutional_procedure_clock.py tests/test_dispute_followups.py
           python -m py_compile src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/dispute.py
+      - name: Characterize reputation-floor alternate ban path (NOT constitutional approval)
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_reputation_floor_ban_boundary_characterization.py
+          ruff format --check tests/test_pr77_reputation_floor_ban_boundary_characterization.py
+          pytest -q tests/test_pr77_reputation_floor_ban_boundary_characterization.py
