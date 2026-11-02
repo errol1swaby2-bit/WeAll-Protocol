@@ -164,7 +164,9 @@ def test_dispute_vote_submit_new_severe_appeal_guard_is_review_input_only() -> N
 
 
 @pytest.mark.parametrize("tx_type", ["DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_ACCEPT"])
-def test_reporter_recusal_drift_is_bound_to_juror_assignment_and_acceptance(tx_type: str) -> None:
+def test_reporter_recusal_drift_is_bound_to_juror_assignment_and_acceptance(
+    tx_type: str,
+) -> None:
     packet = build_packet()
     row = next(row for row in packet["transactions"] if row["tx_type"] == tx_type)
     assert row["archive_matches_accepted_digest"] is True
@@ -174,7 +176,9 @@ def test_reporter_recusal_drift_is_bound_to_juror_assignment_and_acceptance(tx_t
         "added": [{"code": "forbidden", "reason": "juror_conflict_reporter"}],
         "removed": [],
     }
-    state_reads = next(change for change in row["changed_fields"] if change["field"] == "state_reads")
+    state_reads = next(
+        change for change in row["changed_fields"] if change["field"] == "state_reads"
+    )
     assert {"key:flagged_by", "key:reported_by", "key:reporter"}.issubset(
         set(state_reads["current"])
     )
