@@ -17,6 +17,7 @@ from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.domain_apply import apply_tx_atomic_meta, apply_tx_atomic_meta_deepcopy
 from weall.runtime.errors import ApplyError
 from weall.runtime.state_hash import compute_state_root
+from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
 from weall.runtime.tx_admission import TxEnvelope
 
 
@@ -223,3 +224,47 @@ def test_complete_synthetic_appeal_never_authorizes_direct_system_ban(applier) -
     )
     assert snapshot == original
     assert compute_state_root(snapshot) == root
+
+
+@pytest.mark.parametrize(
+    "forged_label",
+    [
+        {"severity": "severe"},
+        {"sanction_class": "S4"},
+        {"rules": {"severity": "critical", "sanction_class": "S4"}},
+    ],
+)
+def test_public_dispute_open_claim_does_not_create_authenticated_severe_class(
+    forged_label: dict,
+) -> None:
+    """Current canonical DISPUTE_OPEN has no source-authenticated S4 classifier.
+
+    A user's claimed S4/severe fields are not authority. The lack of a
+    verified classification producer is a blocking design gap, not a
+    license to promote these untrusted labels to constitutional truth.
+    """
+    state = _state()
+    result = dispute.apply_dispute(
+        state,
+        _env(
+            "DISPUTE_OPEN",
+            signer="@juror-031",
+            nonce=2,
+            payload={
+                "dispute_id": "untrusted-severe-claim",
+                "target_type": "account",
+                "target_id": "@target",
+                "reason": "synthetic disputed conduct",
+                **forged_label,
+            },
+        ),
+    )
+    assert result["applied"] == "DISPUTE_OPEN"
+    opened = state["disputes_by_id"]["untrusted-severe-claim"]
+    assert opened["target_type"] == "account"
+    assert opened["target_id"] == "@target"
+    assert "severity" not in opened
+    assert "sanction_class" not in opened
+    assert "rules" not in opened
+    assert is_explicit_severe_account_sanction(opened) is False
+    assert not any(q.get("tx_type") == "ACCOUNT_BAN" for q in state["system_queue"])
