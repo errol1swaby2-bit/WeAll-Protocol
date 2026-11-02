@@ -14,10 +14,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "scripts"
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
-
+sys.path.insert(0, str(ROOT / "scripts"))
 import audit_v2_semantic_review_drift as audit  # noqa: E402
 import v2_spec_validation as validation  # noqa: E402
 KNOWN_STALE = frozenset(
