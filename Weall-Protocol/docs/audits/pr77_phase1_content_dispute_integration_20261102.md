@@ -214,3 +214,25 @@ must not assign its own case; a subsequent independent eligible signer must
 still assign and complete it. Two direct role-flow tests separately cover
 reporter and target-owner conflict followed by legitimate reviewer opt-in.
 **Status pending exact-head CI; no release or independent consensus claim.**
+
+
+## Reporter self-review: initial panel and direct accept/vote boundary (candidate)
+
+The initial content escalation selected a legacy/local panel without explicitly
+excluding the reporter, although comments promised that reporters never review
+their own reports. The shared strict panel selector already excludes material
+conflicts; the local selector excluded only the content owner. This patch
+explicitly passes reporter identity in `exclude_ids` to the shared selector.
+
+The dispute acceptance/voting boundary now separately rejects a
+`reported_by`, `flagged_by` or `reporter` identity with
+`juror_conflict_reporter`, even if a legacy state has stale assignment or
+both exact reviewer-lane consents. The signed fixture tests this rule against
+a copy of the real committed state, without mutation. Unit tests check
+prior-opt-in reporters cannot be selected on initial escalation while a
+distinct opted-in participant may be selected. A legacy test that had
+explicitly expected a reporter to adjudicate their own report has been
+rewritten to test an independent reporter instead.
+
+**Pending exact-head CI.** The patch does not ratify historical semantic
+digests, grant severe sanctions, or claim full constitutional finality.

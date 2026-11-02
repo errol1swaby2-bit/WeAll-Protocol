@@ -786,6 +786,21 @@ def _require_dispute_reviewer_lane(
             "juror_conflict_target_owner",
             {"juror": acct, "target_owner": _dispute_target_owner(state, dispute)},
         )
+    if dispute is not None and acct:
+        # Independently enforce the report-party conflict at acceptance/vote;
+        # old/local states may retain a stale assignment or eligible snapshot.
+        reported = [
+            dispute.get("reported_by"),
+            dispute.get("flagged_by"),
+            dispute.get("reporter"),
+        ]
+        actor_variants = set(_identity_variants(acct))
+        if any(actor_variants.intersection(_identity_variants(value)) for value in reported):
+            raise DisputeApplyError(
+                "forbidden",
+                "juror_conflict_reporter",
+                {"juror": acct, "dispute_id": dispute.get("id") or dispute.get("dispute_id")},
+            )
     if not acct or not reviewer_lane_active(state, acct, DISPUTE_REVIEW_LANE):
         raise DisputeApplyError(
             "forbidden",

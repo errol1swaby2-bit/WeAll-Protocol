@@ -240,6 +240,30 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     assert reporter_case["jurors"] == {}
     assert reporter_case["assignment_blocked_reason"] == "reporter_cannot_review_own_report"
 
+    # Additional dispute-review consent cannot override the reporter conflict.
+    _commit_signed(
+        source,
+        tx_type="REVIEWER_LANE_OPT_IN",
+        signer="@bob",
+        nonce=5,
+        payload={"account_id": "@bob", "lane": "dispute_review"},
+    )
+    reporter_prestate = source.read_state()
+    reporter_scratch = deepcopy(reporter_prestate)
+    signed_accept = TxEnvelope.from_any(
+        _signed(
+            tx_type="DISPUTE_JUROR_ACCEPT",
+            signer="@bob",
+            nonce=6,
+            payload={"dispute_id": case["id"]},
+        )
+    )
+    with pytest.raises(DisputeApplyError) as reporter_denial:
+        apply_dispute(reporter_scratch, signed_accept)
+    assert reporter_denial.value.reason == "juror_conflict_reporter"
+    assert reporter_scratch == reporter_prestate
+    assert source.read_state() == reporter_prestate
+
     # A separate signer has to opt into explicit responsibility rather than
     # gaining reviewer duties from Tier-2 or validator/operator identity.
     charlie_pub, _ = _deterministic_replay_fixture_keypair(label="@charlie")

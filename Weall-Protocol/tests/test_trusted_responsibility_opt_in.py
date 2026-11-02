@@ -119,7 +119,7 @@ def test_content_report_assignment_uses_opted_in_errol_and_excludes_original_pos
                 "target_type": "content",
                 "target_id": "post:@genesis:1",
                 "reason": "policy",
-                "reported_by": "@errol",
+                "reported_by": "@reporter",
             },
             system=True,
         ),
@@ -130,3 +130,35 @@ def test_content_report_assignment_uses_opted_in_errol_and_excludes_original_pos
     assert dispute["target_owner"] == "@genesis"
     assert dispute["assigned_jurors"] == ["@errol"]
     assert "@genesis" not in dispute["assigned_jurors"]
+    assert "@reporter" not in dispute["assigned_jurors"]
+
+
+def test_content_report_initial_selection_excludes_opted_in_reporter() -> None:
+    st = _state()
+    apply_tx(st, _env("ROLE_JUROR_ENROLL", "@errol", 1, {"account_id": "@errol"}))
+    apply_tx(
+        st,
+        _env(
+            "REVIEWER_LANE_OPT_IN", "@errol", 2, {"account_id": "@errol", "lane": "content_review"}
+        ),
+    )
+    apply_tx(
+        st,
+        _env(
+            "CONTENT_ESCALATE_TO_DISPUTE",
+            "SYSTEM",
+            4,
+            {
+                "target_type": "content",
+                "target_id": "post:@genesis:1",
+                "reason": "policy",
+                "reported_by": "@errol",
+            },
+            system=True,
+        ),
+    )
+    dispute = next(iter(st["disputes_by_id"].values()))
+    assert dispute["stage"] == "unassigned"
+    assert dispute["assigned_jurors"] == []
+    assert dispute["eligible_juror_ids"] == []
+    assert dispute["jurors"] == {}

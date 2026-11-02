@@ -1697,11 +1697,14 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     # dispute panel selector.
     dispute_obj["reported_by"] = payload.get("flagged_by") or payload.get("reported_by")
     dispute_obj["flagged_by"] = payload.get("flagged_by") or payload.get("reported_by")
+    # Even the legacy/local selector must exclude the reporter from reviewing
+    # their own complaint, regardless of prior content-review opt-in.
     selection = select_dispute_panel(
         state,
         dispute_obj,
         reviewer_candidates,
         round_no=1,
+        exclude_ids=[_as_str(dispute_obj.get("reported_by") or "").strip()],
     )
     assigned_jurors = list(selection["panel"])
     dispute_obj["panel_round"] = 1
