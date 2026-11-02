@@ -194,10 +194,11 @@ def test_severe_final_receipt_new_guard_is_bound_to_exact_v2_drift() -> None:
     assert row["changed_field_names"] == ["failure_codes", "state_reads"]
     assert row["failure_code_deltas"] == {
         "added": [
+            {"code": "forbidden", "reason": "appeal_pending_panel"},
             {
                 "code": "forbidden",
                 "reason": "severe_sanction_automatic_appeal_unimplemented",
-            }
+            },
         ],
         "removed": [],
     }
