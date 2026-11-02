@@ -391,7 +391,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1830
+      "source_lineno": 1851
     },
     {
       "code": "bad_request",
@@ -679,7 +679,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1763
+      "source_lineno": 1784
     },
     {
       "code": "executor_missing",
@@ -877,7 +877,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 225
+      "source_lineno": 246
     },
     {
       "code": "forbidden",
@@ -1111,7 +1111,7 @@
       "http_status": null,
       "sample_reason": "helper_reputation_threshold_policy_mismatch",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 558
+      "source_lineno": 579
     },
     {
       "code": "invalid_payload",
@@ -1723,7 +1723,7 @@
       "http_status": null,
       "sample_reason": "account_not_found",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 247
+      "source_lineno": 268
     },
     {
       "code": "not_found",
