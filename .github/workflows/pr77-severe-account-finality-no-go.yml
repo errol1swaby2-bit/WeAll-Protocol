@@ -8,6 +8,7 @@ on:
       - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
       - 'Weall-Protocol/src/weall/runtime/apply/reputation.py'
       - 'Weall-Protocol/tests/test_pr77_reputation_floor_ban_boundary_characterization.py'
+      - 'Weall-Protocol/tests/test_pr77_account_reinstatement_state_consistency.py'
       - 'Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py'
       - '.github/workflows/pr77-severe-account-finality-no-go.yml'
 
@@ -42,3 +43,10 @@ jobs:
           ruff check tests/test_pr77_reputation_floor_ban_boundary_characterization.py
           ruff format --check tests/test_pr77_reputation_floor_ban_boundary_characterization.py
           pytest -q tests/test_pr77_reputation_floor_ban_boundary_characterization.py
+      - name: Characterize inline reinstatement ban-index inconsistency (NO-GO review input)
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_account_reinstatement_state_consistency.py
+          ruff format --check tests/test_pr77_account_reinstatement_state_consistency.py
+          pytest -q tests/test_pr77_account_reinstatement_state_consistency.py
