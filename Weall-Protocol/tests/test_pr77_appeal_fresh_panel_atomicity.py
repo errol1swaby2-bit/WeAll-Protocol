@@ -147,10 +147,7 @@ def test_pending_appeal_assigns_complete_fresh_panel_when_pool_grows() -> None:
     assert len(set(fresh)) == 9
     assert "@subject" not in fresh
     assert case["assigned_jurors"] == case["appeal_panel_juror_ids"]
-    assert all(
-        record["assigned_at_nonce"] == 1
-        for record in case["jurors"].values()
-    )
+    assert all(record["assigned_at_nonce"] == 1 for record in case["jurors"].values())
     before_repeat = deepcopy(state)
     assert tick_dispute_lifecycle(state, next_height=83) == 0
     assert state == before_repeat
