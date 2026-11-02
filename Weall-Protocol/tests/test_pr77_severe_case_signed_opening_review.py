@@ -146,8 +146,16 @@ def test_genuine_pq_signature_and_self_bound_block_still_not_authority(keypair: 
         (("block", "block_id"), "forged-block", "block_self_commitments_match"),
         (("block", "block_hash"), "bad-hash", "block_self_commitments_match"),
         (("pre_state", "height"), 7, "prestate_height_tip_chain_and_signature_policy_match"),
-        (("pre_state", "tip"), "wrong-parent", "prestate_height_tip_chain_and_signature_policy_match"),
-        (("pre_state", "chain_id"), "other-chain", "prestate_height_tip_chain_and_signature_policy_match"),
+        (
+            ("pre_state", "tip"),
+            "wrong-parent",
+            "prestate_height_tip_chain_and_signature_policy_match",
+        ),
+        (
+            ("pre_state", "chain_id"),
+            "other-chain",
+            "prestate_height_tip_chain_and_signature_policy_match",
+        ),
         (("case", "target_id"), "@charlie", "case_mutation_matches_signed_opening"),
         (("case", "opened_by"), "@other", "case_mutation_matches_signed_opening"),
         (("case", "opened_at_nonce"), 8, "case_mutation_matches_signed_opening"),

@@ -35,11 +35,7 @@ def _height(value: Any) -> bool:
 def _matching_one(items: Any, tx_id: str) -> Mapping[str, Any]:
     if not isinstance(items, list):
         return {}
-    found = [
-        item
-        for item in items
-        if isinstance(item, Mapping) and item.get("tx_id") == tx_id
-    ]
+    found = [item for item in items if isinstance(item, Mapping) and item.get("tx_id") == tx_id]
     return found[0] if len(found) == 1 else {}
 
 
@@ -106,9 +102,8 @@ def review_signed_dispute_opening(
         except (TypeError, ValueError, OverflowError):
             block_bound = False
 
-    same_network = (
-        s.get("network_id") == tx.get("network_id")
-        and isinstance(s.get("network_id"), str)
+    same_network = s.get("network_id") == tx.get("network_id") and isinstance(
+        s.get("network_id"), str
     )
     prestate_context = (
         _height(s.get("height"))
@@ -143,9 +138,7 @@ def review_signed_dispute_opening(
             signed = False
 
     observations = {
-        "opening_is_exact_canonical_tx": bool(
-            candidate_shape and canonical_tx_id == opening_tx_id
-        ),
+        "opening_is_exact_canonical_tx": bool(candidate_shape and canonical_tx_id == opening_tx_id),
         "block_self_commitments_match": block_bound,
         "prestate_height_tip_chain_and_signature_policy_match": bool(prestate_context),
         "signed_against_supplied_prestate_key": bool(signed),
