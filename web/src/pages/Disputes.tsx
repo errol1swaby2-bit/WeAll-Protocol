@@ -55,6 +55,10 @@ function queueNextAction(params: {
 }): { label: string; hint: string; href: string } {
   const { account, dispute } = params;
   const status = account ? disputeJurorStatus(dispute, account) : "unassigned";
+  if (String(dispute?.stage || "").trim().toLowerCase() === "appeal_pending_panel") {
+    const id = encodeURIComponent(String(dispute?.id || ""));
+    return { label: "View pending appeal", hint: "An appeal is filed and awaiting a fresh independent panel; no reviewer assignment is active.", href: `/reports/${id}` };
+  }
   const present = account ? disputeAttendancePresent(dispute, account) : false;
   const currentVote = account ? disputeCurrentVote(dispute, account) : "";
   const id = encodeURIComponent(String(dispute?.id || ""));
@@ -305,6 +309,12 @@ export default function Disputes(): JSX.Element {
 
                 {item?.reported_by || item?.flagged_by ? (
                   <div className="cardDesc">Reported by: <span className="mono">{String(item.reported_by || item.flagged_by)}</span></div>
+                ) : null}
+                {String(item?.stage || "").toLowerCase() === "appeal_pending_panel" ? (
+                  <div className="calloutInfo" role="status">
+                    Appeal recorded; awaiting enough eligible, unconflicted jurors for the full fresh panel.
+                    The appeal cannot expire solely because its juror pool is incomplete, and final enforcement remains held.
+                  </div>
                 ) : null}
                 {String(item?.stage || "").toLowerCase() === "unassigned" ? (
                   <div className="calloutInfo" role="status">

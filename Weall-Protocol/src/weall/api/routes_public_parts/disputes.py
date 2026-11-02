@@ -200,14 +200,57 @@ def _appeal_eligibility(st: dict[str, Any], obj: dict[str, Any], *, viewer: str)
     stage = str(obj.get("stage") or "open").strip().lower()
     can_window = stage in {"appeal_window", "appealed", "appeal_review"}
     can_actor = bool(viewer and allowed and any(_same_identity(viewer, acct) for acct in allowed))
+    appeals = obj.get("appeals") if isinstance(obj.get("appeals"), list) else []
+    already_filed = any(
+        isinstance(entry, dict) and _same_identity(viewer, entry.get("by"))
+        for entry in appeals
+    ) if viewer else False
+    deadline = int(obj.get("appeal_deadline_height") or 0)
+    current_height = int(st.get("height") or 0)
+    expired = deadline > 0 and current_height > deadline
+    can_file = bool(can_window and can_actor and not already_filed and not expired)
+    if already_filed:
+        reason = "appeal_already_filed"
+    elif stage == "appeal_pending_panel":
+        reason = "appeal_pending_panel"
+    elif not can_window:
+        reason = "appeal_window_not_open"
+    elif expired:
+        reason = "appeal_window_closed"
+    elif not can_actor:
+        reason = "not_target_owner" if allowed else "appeal_actor_unresolved"
+    else:
+        reason = "eligible_target_owner"
     return {
         "viewer": viewer or None,
-        "can_file": bool(can_window and can_actor),
-        "reason": "eligible_target_owner"
-        if can_window and can_actor
-        else ("not_target_owner" if can_window and allowed else "appeal_window_not_open"),
+        "can_file": can_file,
+        "already_filed": already_filed,
+        "reason": reason,
         "allowed_accounts": allowed,
         "target_owner": allowed[0] if allowed else None,
+        "filing_deadline_height": deadline,
+        "current_procedure_height": current_height,
+    }
+
+
+def _appeal_panel_readiness(obj: dict[str, Any]) -> dict[str, Any]:
+    """Aggregate canonical appeal progress, never juror identities or evidence."""
+    stage = str(obj.get("stage") or "open").strip().lower()
+    appeals = obj.get("appeals") if isinstance(obj.get("appeals"), list) else []
+    first = next((a for a in appeals if isinstance(a, dict)), None)
+    pending = stage == "appeal_pending_panel"
+    return {
+        "pending": pending,
+        "enforcement_held": pending,
+        "status": str(obj.get("appeal_panel_status") or ("pending" if pending else "")).strip(),
+        "appeal_filed_at_height": int(first.get("height") or 0) if first else 0,
+        "pending_since_height": int(obj.get("appeal_pending_since_height") or 0),
+        "assigned_at_height": int(obj.get("appeal_panel_assigned_at_height") or 0),
+        "required_panel_size": int(obj.get("appeal_panel_required_size") or 0),
+        "required_substitute_count": int(obj.get("appeal_substitute_required_count") or 0),
+        "available_candidate_count": int(obj.get("appeal_panel_available_candidate_count") or 0),
+        "blocked_reason": str(obj.get("appeal_panel_blocked_reason") or "").strip() if pending else "",
+        "next_action": "await_independent_jurors" if pending else "",
     }
 
 
@@ -458,7 +501,7 @@ def _redact_dispute_detail_maps(
         normalized["target_author"] = target_owner
     normalized["appeal_allowed_accounts"] = _appeal_allowed_accounts(st, obj)
     normalized["appeal_eligibility"] = _appeal_eligibility(st, obj, viewer=viewer)
-    if _viewer_can_see_appeal_snapshot(st, obj, viewer=viewer):
+    normalized["appeal_panel_readiness"] = _appeal_panel_readiness(obj)    if _viewer_can_see_appeal_snapshot(st, obj, viewer=viewer):
         snap = _content_target_snapshot(
             st,
             target_type=str(obj.get("target_type") or "content"),
@@ -495,6 +538,7 @@ def _redact_dispute_detail_for_viewer(
         normalized["target_author"] = target_owner
     normalized["appeal_allowed_accounts"] = _appeal_allowed_accounts(st, obj)
     normalized["appeal_eligibility"] = _appeal_eligibility(st, obj, viewer=viewer)
+    normalized["appeal_panel_readiness"] = _appeal_panel_readiness(obj)
     if _viewer_can_see_appeal_snapshot(st, obj, viewer=viewer):
         snap = _content_target_snapshot(
             st,
@@ -542,6 +586,9 @@ def _dispute_ineligibility_reasons(
         reasons.append("account_session_required")
         return reasons
     normalized = _normalize_dispute(obj)
+    if str(normalized.get("stage") or "").strip().lower() == "appeal_pending_panel":
+        # There is no assigned appellate jury. Never advertise reviewer work.
+        return ["appeal_pending_panel"]
     if not _is_active_stage(str(normalized.get("stage") or "open")):
         reasons.append("dispute_not_active")
     opened_by = str(normalized.get("opened_by") or normalized.get("reporter") or "").strip()

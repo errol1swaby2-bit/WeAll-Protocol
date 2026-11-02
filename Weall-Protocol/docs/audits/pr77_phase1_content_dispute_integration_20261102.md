@@ -438,3 +438,23 @@ two-node BFT concurrency and partition testing, complete panel signing/
 privacy activation, time-of-height eligibility and adversarial reviewer
 entry/exit, and all severe-sanction authority gates. No `ACCOUNT_BAN`
 authority is enabled. PR77 remains Draft and testnet/public release NO-GO.
+
+## 2026-11-02 — pending appellate panel public/API and frontend contract (candidate)
+
+The dispute API now exposes `appeal_panel_readiness` as aggregate canonical
+read-model status: pending/held, filed and assignment block heights, required
+panel and substitutes, eligible candidate count and shortage reason. Raw
+appeal payloads stay redacted and `appeal_total` is the canonical count;
+the frontend does not attempt to render a redacted `appeals` list.
+
+The affected owner's appeal eligibility is read from backend block height and
+prior filing (with account-alias normalization). A recorded appeal is not
+offered as a second filing, and an expired window is not presented as open.
+Reviewer work queues exclude `appeal_pending_panel` cases with no assigned
+juror. Queue and detail pages show the held-pending state, reviewer shortage
+and the fact that the original filing deadline is not an appeal-decision
+deadline. No raw juror mappings or appeal reasons were added to the UI.
+**Pending exact-head CI.**
+
+The state transition remains a constitutional semantic deviation requiring
+independent review; API/frontend visibility is not end-to-end BFT proof.

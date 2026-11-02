@@ -11,6 +11,13 @@ on:
       - Weall-Protocol/tests/test_content_reviewer_selection_and_surface.py
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
       - Weall-Protocol/src/weall/runtime/dispute_engine.py
+      - Weall-Protocol/src/weall/api/routes_public_parts/disputes.py
+      - Weall-Protocol/tests/test_p2_dispute_appeal_actor.py
+      - Weall-Protocol/tests/test_disputes_api_surface.py
+      - web/src/pages/DisputeDetail.tsx
+      - web/src/pages/Disputes.tsx
+      - web/src/lib/userLanguage.ts
+      - web/scripts/test_pr77_pending_appeal_surface_source.mjs
       - Weall-Protocol/tests/test_pr77_appeal_fresh_panel_atomicity.py
       - Weall-Protocol/tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py
       - Weall-Protocol/src/weall/runtime/apply/content.py
@@ -40,8 +47,11 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff check tests/test_phase1_content_flag_dispute_executor_integration.py tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py tests/test_trusted_responsibility_opt_in.py src/weall/runtime/apply/roles.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/content.py tests/test_pr77_appeal_fresh_panel_atomicity.py tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py
+          ruff check tests/test_phase1_content_flag_dispute_executor_integration.py tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py tests/test_trusted_responsibility_opt_in.py src/weall/runtime/apply/roles.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/api/routes_public_parts/disputes.py src/weall/runtime/apply/content.py tests/test_pr77_appeal_fresh_panel_atomicity.py tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py
           ruff format --diff tests/test_pr77_appeal_fresh_panel_atomicity.py tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py
           ruff format --check tests/test_phase1_content_flag_dispute_executor_integration.py tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py tests/test_trusted_responsibility_opt_in.py src/weall/runtime/apply/roles.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/content.py tests/test_pr77_appeal_fresh_panel_atomicity.py tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py
-          python -m pytest -q tests/test_phase1_content_flag_dispute_executor_integration.py tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py tests/test_trusted_responsibility_opt_in.py tests/test_content_reviewer_selection_and_surface.py tests/test_dispute_auto_juror_assignment.py tests/test_dispute_requires_explicit_juror_strict.py tests/test_dispute_juror_vote_acceptance_gate.py tests/test_dispute_review_outcome_semantics.py tests/test_pr77_appeal_fresh_panel_atomicity.py tests/test_p2_dispute_appeal_actor.py tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py
+          python -m pytest -q tests/test_phase1_content_flag_dispute_executor_integration.py tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py tests/test_trusted_responsibility_opt_in.py tests/test_content_reviewer_selection_and_surface.py tests/test_dispute_auto_juror_assignment.py tests/test_dispute_requires_explicit_juror_strict.py tests/test_dispute_juror_vote_acceptance_gate.py tests/test_dispute_review_outcome_semantics.py tests/test_pr77_appeal_fresh_panel_atomicity.py tests/test_p2_dispute_appeal_actor.py tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py tests/test_disputes_api_surface.py
           echo 'Synthetic local genesis, not independently final BFT or verified global humanity.'
+      - name: Validate pending appeal frontend source contract
+        working-directory: web
+        run: node scripts/test_pr77_pending_appeal_surface_source.mjs
