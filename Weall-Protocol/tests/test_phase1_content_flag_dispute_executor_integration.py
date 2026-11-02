@@ -7,11 +7,15 @@ readiness. Every transaction passes the actual executor admission/block path.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
 
 from weall.crypto.sig import sign_tx_envelope_dict
+from weall.runtime.apply.dispute import DisputeApplyError, apply_dispute
+from weall.runtime.reviewer_responsibilities import reviewer_lane_active
+from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.replay_consistency import (
     _deterministic_replay_fixture_keypair,
@@ -252,6 +256,27 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     assert assigned["assigned_jurors"] == ["@charlie"]
     assert assigned["jurors"]["@charlie"]["status"] == "assigned"
     assert assigned["votes"] == {}
+
+    # Check the exact *persisted* post-content-only state in a copy. Even
+    # though the content lane assigned this reviewer, it cannot authorize
+    # dispute acceptance by itself; the failure must be mutation-free.
+    pre_dispute_opt_in = source.read_state()
+    assert reviewer_lane_active(pre_dispute_opt_in, "@charlie", "content_review")
+    assert not reviewer_lane_active(pre_dispute_opt_in, "@charlie", "dispute_review")
+    isolated = deepcopy(pre_dispute_opt_in)
+    unauthorized_accept = TxEnvelope.from_any(
+        _signed(
+            tx_type="DISPUTE_JUROR_ACCEPT",
+            signer="@charlie",
+            nonce=4,
+            payload={"dispute_id": case["id"]},
+        )
+    )
+    with pytest.raises(DisputeApplyError) as denial:
+        apply_dispute(isolated, unauthorized_accept)
+    assert denial.value.reason == "reviewer_responsibility_not_active"
+    assert isolated == pre_dispute_opt_in
+    assert source.read_state() == pre_dispute_opt_in
 
     # The domain currently requires *separate* dispute_review consent for
     # accept/vote even when content_review has assigned a content report.

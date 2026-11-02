@@ -108,3 +108,18 @@ The integration fixture does not bypass consent; it makes both explicit
 so the combined path can be observed and the product contract can later be
 adjudicated in the dedicated architecture/documentation phase. No new
 constitutional authority or severe-sanction completion is claimed.
+
+
+### Exact two-lane consent behavior — tested on a persisted pre-state
+
+To avoid silently widening reviewer authority, the expanded fixture also
+extracts the **actual committed state** after `content_review` assignment
+but before `dispute_review` opt-in. On a deep-copied state it invokes the
+domain accept operation with the third account's real signed envelope and
+requires `reviewer_responsibility_not_active` **without mutation**, then
+performs the second explicit opt-in through the canonical executor and proves
+accept/vote/replay afterward. This negative check is domain-level, while the
+positive sequence uses actual admission and persisted blocks. It is not proof
+that a standalone content-review permission ought to be insufficient under
+the final product design. That policy/UX decision remains open for
+specification reconciliation.
