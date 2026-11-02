@@ -1,0 +1,162 @@
+name: PR77 pinned-main to review-head replay (synthetic only)
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - .github/workflows/pr77-cross-revision-synthetic-replay.yml
+      - Weall-Protocol/scripts/pr77_retained_history_replay.py
+      - Weall-Protocol/scripts/replay_consistency_audit.py
+      - Weall-Protocol/src/weall/runtime/block_replay.py
+      - Weall-Protocol/src/weall/runtime/apply/roles.py
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/runtime/apply/reputation.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-main-to-review-replay:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      BASE_COMMIT: 2f35cfb5823cc083a3cb833798cf60a1b1895377
+      WEALL_MODE: testnet
+      WEALL_REQUIRE_VRF: '0'
+    steps:
+      - name: Checkout pinned pre-review main revision
+        uses: actions/checkout@v4
+        with:
+          ref: 2f35cfb5823cc083a3cb833798cf60a1b1895377
+          path: historical
+
+      - name: Checkout exact review revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: candidate
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate pinned revision identities and identical fixture index
+        run: |
+          set -Eeuo pipefail
+          test "$(git -C historical rev-parse HEAD)" = "$BASE_COMMIT"
+          test "$(git -C candidate rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$BASE_COMMIT" != "$GITHUB_SHA"
+          cmp historical/Weall-Protocol/generated/tx_index.json candidate/Weall-Protocol/generated/tx_index.json
+          cmp historical/Weall-Protocol/src/weall/runtime/replay_consistency.py candidate/Weall-Protocol/src/weall/runtime/replay_consistency.py
+          test ! -e "$RUNNER_TEMP/pr77-crossrev-base"
+          test ! -e "$RUNNER_TEMP/pr77-crossrev-replay"
+          mkdir -p "$RUNNER_TEMP/pr77-crossrev-base" "$RUNNER_TEMP/pr77-crossrev-replay" cross-revision-artifacts
+          echo "BASE_COMMIT=$BASE_COMMIT"
+          echo "REVIEW_COMMIT=$GITHUB_SHA"
+
+      - name: Build signed three-block synthetic chain under pinned main
+        run: |
+          set -Eeuo pipefail
+          python -m venv "$RUNNER_TEMP/pr77-base-venv"
+          "$RUNNER_TEMP/pr77-base-venv/bin/python" -m pip install --require-hashes -r historical/Weall-Protocol/requirements-dev.lock
+          "$RUNNER_TEMP/pr77-base-venv/bin/python" -m pip install -e historical/Weall-Protocol --no-deps
+          "$RUNNER_TEMP/pr77-base-venv/bin/python" historical/Weall-Protocol/scripts/replay_consistency_audit.py \
+            --work-dir "$RUNNER_TEMP/pr77-crossrev-base" \
+            --chain-id-prefix pr77-pinned-main-crossrev \
+            --json > cross-revision-artifacts/pinned-main-synthetic-source.json
+          "$RUNNER_TEMP/pr77-base-venv/bin/python" - <<'PY'
+          import json
+          from pathlib import Path
+          source = json.loads(Path("cross-revision-artifacts/pinned-main-synthetic-source.json").read_text())
+          assert source["ok"] is True
+          assert source["source_manifest"]["height"] == 3
+          assert source["source_manifest"]["computed_state_root"] == source["replay_manifest"]["computed_state_root"]
+          assert len(source["source_manifest"]["blocks"]) == 3
+          print("Base signed synthetic three-block source generated successfully.")
+          PY
+
+      - name: Replay preserved base database through new review executor
+        run: |
+          set -Eeuo pipefail
+          python -m venv "$RUNNER_TEMP/pr77-head-venv"
+          "$RUNNER_TEMP/pr77-head-venv/bin/python" -m pip install --require-hashes -r candidate/Weall-Protocol/requirements-dev.lock
+          "$RUNNER_TEMP/pr77-head-venv/bin/python" -m pip install -e candidate/Weall-Protocol --no-deps
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          base = json.loads(Path("cross-revision-artifacts/pinned-main-synthetic-source.json").read_text())
+          source = Path(base["source_db"])
+          index = Path("candidate/Weall-Protocol/generated/tx_index.json").resolve()
+          def sha(path):
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+          obj = {
+              "source": str(source.resolve()),
+              "source_sha256": sha(source),
+              "tx_index": str(index),
+              "tx_index_sha256": sha(index),
+              "chain_id": base["chain_id"],
+          }
+          Path("cross-revision-artifacts/replay-input.json").write_text(json.dumps(obj, sort_keys=True))
+          PY
+          cd candidate/Weall-Protocol
+          "$RUNNER_TEMP/pr77-head-venv/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.pr77_retained_history_replay import replay_offline_source
+          root = Path("../..").resolve()
+          base = json.loads((root / "cross-revision-artifacts/pinned-main-synthetic-source.json").read_text())
+          args = json.loads((root / "cross-revision-artifacts/replay-input.json").read_text())
+          output = replay_offline_source(
+              source=Path(args["source"]),
+              source_sha256=args["source_sha256"],
+              chain_id=args["chain_id"],
+              scratch_dir=Path(os.environ["RUNNER_TEMP"]) / "pr77-crossrev-replay",
+              tx_index=Path(args["tx_index"]),
+              tx_index_sha256=args["tx_index_sha256"],
+              expected_commit=os.environ["GITHUB_SHA"],
+          )
+          assert output["ok"] is True
+          assert output["block_count"] == 3
+          assert output["final_state_root"] == base["source_manifest"]["computed_state_root"]
+          assert [e["height"] for e in output["per_height_commitments"]] == [1, 2, 3]
+          assert [e["block_id"] for e in output["per_height_commitments"]] == [
+              e["block_id"] for e in base["source_manifest"]["blocks"]
+          ]
+          for item, old in zip(output["per_height_commitments"], base["source_manifest"]["blocks"], strict=True):
+              assert item["block_hash"] == old["block_hash"]
+          assert output["historical_provenance_verified"] is False
+          assert output["old_version_compatibility_proven"] is False
+          assert output["independent_two_node_consensus_proven"] is False
+          output["source_generator_commit"] = os.environ["BASE_COMMIT"]
+          output["synthetic_cross_revision_replay_proven"] = True
+          output["source_is_renegotiated_history"] = False
+          output["real_retained_ledger_proven"] = False
+          (root / "cross-revision-artifacts/synthetic-cross-revision-replay.json").write_text(
+              json.dumps(output, sort_keys=True, indent=2) + "\n"
+          )
+          print("PASS: pinned-main synthetic blocks replay under PR77 exact revision.")
+          print("NO-GO: no historical retained node ledger, prior consensus activation, or independent-node attestation.")
+          PY
+          cd ../..
+          rm cross-revision-artifacts/replay-input.json
+
+      - name: Upload non-secret synthetic replay summaries (never databases or keys)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-pinned-main-to-head-synthetic-replay-not-history
+          path: |
+            cross-revision-artifacts/pinned-main-synthetic-source.json
+            cross-revision-artifacts/synthetic-cross-revision-replay.json
+          if-no-files-found: warn
+          retention-days: 14
