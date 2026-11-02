@@ -59,6 +59,73 @@ def field_differences(previous: dict[str, Any], current: dict[str, Any]) -> list
     return changes
 
 
+
+def failure_code_deltas(
+    previous: Any, current: Any
+) -> dict[str, list[dict[str, str]]]:
+    """Show exact code/reason additions and removals without interpreting them."""
+
+    def pairs(value: Any) -> set[tuple[str, str]]:
+        if not isinstance(value, list):
+            raise ValueError("v2_review_packet_failure_codes_not_list")
+        out: set[tuple[str, str]] = set()
+        for row in value:
+            if (
+                not isinstance(row, dict)
+                or not isinstance(row.get("code"), str)
+                or not isinstance(row.get("reason"), str)
+            ):
+                raise ValueError("v2_review_packet_failure_code_invalid_shape")
+            out.add((row["code"], row["reason"]))
+        return out
+
+    old = pairs(previous)
+    new = pairs(current)
+
+    def records(values: set[tuple[str, str]]) -> list[dict[str, str]]:
+        return [{"code": code, "reason": reason} for code, reason in sorted(values)]
+
+    return {"added": records(new - old), "removed": records(old - new)}
+
+
+def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
+    """Make prior approved-material binding an actual fail-closed gate.
+
+    Failure does not authorize a new digest or mutate any source file. A
+    diagnostic packet may still be emitted so the exact mismatch is visible.
+    """
+    rows = packet.get("transactions")
+    if not isinstance(rows, list):
+        return ["transactions_not_list"]
+    blockers: list[str] = []
+    if packet.get("registered_transaction_count") != 236:
+        blockers.append("registered_transaction_count_changed")
+    if packet.get("pending_count") != len(rows):
+        blockers.append("pending_count_mismatch")
+    if packet.get("newly_stale_not_in_known_15"):
+        blockers.append("unexpected_stale_transaction")
+    if packet.get("missing_state_stable_ids"):
+        blockers.append("missing_state_stable_ids")
+    if len({row.get("tx_type") for row in rows if isinstance(row, dict)}) != len(rows):
+        blockers.append("duplicate_pending_transaction")
+    for row in rows:
+        if not isinstance(row, dict):
+            blockers.append("invalid_pending_transaction_row")
+            continue
+        tx_type = str(row.get("tx_type") or "")
+        if row.get("archive_matches_accepted_digest") is not True:
+            blockers.append(f"prior_approval_material_unverified:{tx_type}")
+        if row.get("signed_off_for_current_digest") is not False:
+            blockers.append(f"current_semantic_signoff_must_remain_false:{tx_type}")
+        if row.get("historical_replay_proven") is not False:
+            blockers.append(f"historical_replay_unproven:{tx_type}")
+    if packet.get("must_not_update_semantic_reviews_automatically") is not True:
+        blockers.append("automatic_semantic_approval_not_forbidden")
+    if packet.get("independent_human_approval_recorded_by_this_packet") is not False:
+        blockers.append("review_packet_must_not_claim_human_approval")
+    return blockers
+
+
 def build_packet() -> dict[str, Any]:
     current_rows, stable_ids, sources = audit._current_rows()
     prior_rows, prior_shape = audit._prior_rows()
@@ -92,6 +159,9 @@ def build_packet() -> dict[str, Any]:
         old_material = validation.tx_review_material(previous[tx_type])
         old_digest = validation.compact_digest(old_material)
         diffs = field_differences(old_material, current_material)
+        failure_deltas = failure_code_deltas(
+            old_material.get("failure_codes"), current_material.get("failure_codes")
+        )
         if tx_type == "DISPUTE_OPEN":
             review_lane = "handler_source_attribution_and_derived_contract"
         elif tx_type == "ACCOUNT_BAN":
@@ -113,6 +183,7 @@ def build_packet() -> dict[str, Any]:
                 "current_implementation_source": current_material.get("implementation_source"),
                 "changed_fields": diffs,
                 "changed_field_names": [item["field"] for item in diffs],
+                "failure_code_deltas": failure_deltas,
                 "current_material_has_unexplained_delta": not bool(diffs),
                 "reviewer_on_record": review.get("reviewer"),
                 "reviewed_at_on_record": review.get("reviewed_at"),
@@ -148,6 +219,8 @@ def main() -> int:
     if path.exists() or path.is_symlink() or not path.parent.is_dir():
         raise SystemExit("report_destination_must_be_new_regular_file")
     packet = build_packet()
+    integrity_blockers = packet_integrity_blockers(packet)
+    packet["packet_integrity_blockers"] = integrity_blockers
     with path.open("x", encoding="utf-8") as output:
         json.dump(packet, output, sort_keys=True, indent=2)
         output.write("\n")
@@ -166,13 +239,18 @@ def main() -> int:
                 "changed_fields_by_tx": {
                     item["tx_type"]: item["changed_field_names"] for item in packet["transactions"]
                 },
+                "packet_integrity_blockers": integrity_blockers,
+                "failure_code_deltas_by_tx": {
+                    item["tx_type"]: item["failure_code_deltas"]
+                    for item in packet["transactions"]
+                },
                 "approvals_modified": False,
             },
             sort_keys=True,
             indent=2,
         )
     )
-    if packet["newly_stale_not_in_known_15"] or packet["missing_state_stable_ids"]:
+    if integrity_blockers:
         return 2
     return 0
 
