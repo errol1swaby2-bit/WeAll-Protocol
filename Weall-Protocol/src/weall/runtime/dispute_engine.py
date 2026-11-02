@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.apply.dispute import assign_pending_appeal_panels
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.severe_juror_replenishment import replenish_severe_juror_pool
 from weall.runtime.severe_sanction_boundary import requires_severe_sanction_finality_hold
@@ -114,6 +115,11 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
             state, dispute_id=str(did), dispute=dispute, next_height=int(next_height)
         )
         stage = str(dispute.get("stage") or "").strip().lower()
+        if stage == "appeal_pending_panel":
+            # Deterministic replicated-state assignment; no queued SYSTEM
+            # receipt and no expiry of a timely recorded appeal.
+            assign_pending_appeal_panels(state, next_height=int(next_height))
+            continue
         if stage not in {"appeal_window", "appealed", "appeal_review", "appeal_resolved"}:
             continue
         # A conventional window-expiry or apparently resolved appeal is not
