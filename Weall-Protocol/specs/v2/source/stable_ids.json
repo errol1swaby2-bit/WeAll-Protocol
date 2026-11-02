@@ -21381,6 +21381,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Dispute:appeal_substitute_required_count",
+      "kind": "state",
+      "stable_id": "STATE-69CF2E5B0ACC6783",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Moderation:pending_escalations",
       "kind": "state",
       "stable_id": "STATE-69D1D6B41CDB4BC5",
@@ -22056,6 +22063,13 @@
       "canonical_key": "Dispute:case_type",
       "kind": "state",
       "stable_id": "STATE-7D84ACA0181BB836",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:appeal_pending_since_height",
+      "kind": "state",
+      "stable_id": "STATE-7E3BD7FC64CE4E0B",
       "status": "active"
     },
     {
@@ -22753,6 +22767,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Dispute:appeal_panel_required_size",
+      "kind": "state",
+      "stable_id": "STATE-95517CDD3F679E3F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Roles:opted_in",
       "kind": "state",
       "stable_id": "STATE-95583993B8EF7A9C",
@@ -23428,6 +23449,13 @@
       "canonical_key": "Economics:tips_by_creator",
       "kind": "state",
       "stable_id": "STATE-AABEFF9087C61C5F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:appeal_panel_available_candidate_count",
+      "kind": "state",
+      "stable_id": "STATE-AAD39F0F875F9213",
       "status": "active"
     },
     {
@@ -25388,6 +25416,13 @@
       "canonical_key": "Consensus:finalized",
       "kind": "state",
       "stable_id": "STATE-E4969C771EF2A215",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:appeal_panel_blocked_reason",
+      "kind": "state",
+      "stable_id": "STATE-E4B9F53D79A88458",
       "status": "active"
     },
     {
