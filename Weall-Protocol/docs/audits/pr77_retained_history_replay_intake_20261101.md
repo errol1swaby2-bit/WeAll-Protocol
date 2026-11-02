@@ -211,3 +211,14 @@ This is a synthetic applier matrix: no signed historical role blocks,
 historical external node ledger, historical activate/opt-out roots,
 cryptographic SYSTEM queue origin, or independent BFT replay is established.
 PR77 stays Draft/unmerged and public-testnet NO-GO.
+
+
+The historical base and current review candidate also have **identical
+tracked Git blob IDs** for both canonical commit/replay implementations:
+`block_builder.py` =
+`65081c2da6cb56c4c699454f0faf12f68d9a9381`, and
+`block_replay.py` =
+`57f35d90d8dafb64ff6e698b7cc09ab519882991`.
+This pins the above success-receipt shape to *both code revisions*, not
+just to the new candidate. It does not establish the behavior of
+untracked historical software or data.
