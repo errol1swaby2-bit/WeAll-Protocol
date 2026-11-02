@@ -39,6 +39,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           ruff check tests/test_phase1_content_flag_dispute_executor_integration.py tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py tests/test_trusted_responsibility_opt_in.py src/weall/runtime/apply/roles.py src/weall/runtime/apply/dispute.py src/weall/runtime/apply/content.py tests/test_pr77_appeal_fresh_panel_atomicity.py
+          ruff format --diff tests/test_pr77_appeal_fresh_panel_atomicity.py
           ruff format --check tests/test_phase1_content_flag_dispute_executor_integration.py tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py tests/test_trusted_responsibility_opt_in.py src/weall/runtime/apply/roles.py src/weall/runtime/apply/dispute.py src/weall/runtime/apply/content.py tests/test_pr77_appeal_fresh_panel_atomicity.py
           python -m pytest -q tests/test_phase1_content_flag_dispute_executor_integration.py tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py tests/test_trusted_responsibility_opt_in.py tests/test_content_reviewer_selection_and_surface.py tests/test_dispute_auto_juror_assignment.py tests/test_dispute_requires_explicit_juror_strict.py tests/test_dispute_juror_vote_acceptance_gate.py tests/test_dispute_review_outcome_semantics.py tests/test_pr77_appeal_fresh_panel_atomicity.py tests/test_p2_dispute_appeal_actor.py tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py
           echo 'Synthetic local genesis, not independently final BFT or verified global humanity.'
