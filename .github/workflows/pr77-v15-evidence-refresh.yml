@@ -12,6 +12,7 @@ on:
       - Weall-Protocol/tests/test_issue72_versioned_role_gate.py
       - Weall-Protocol/tests/test_pr77_severe_sanction_clock_no_go.py
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/api/routes_public_parts/disputes.py
       - Weall-Protocol/src/weall/runtime/dispute_engine.py
       - Weall-Protocol/src/weall/runtime/severe_sanction_boundary.py
       - Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py
@@ -72,6 +73,8 @@ jobs:
           python scripts/gen_api_contract_map.py
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --verify-live
           python scripts/gen_b534_b538_completion_proof_v1_5.py
           python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
           python scripts/gen_release_evidence_manifest_v1_5.py
