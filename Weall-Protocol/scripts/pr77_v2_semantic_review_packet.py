@@ -9,13 +9,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
-import audit_v2_semantic_review_drift as audit
-import v2_spec_validation as validation
-
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+
+import audit_v2_semantic_review_drift as audit  # noqa: E402
+import v2_spec_validation as validation  # noqa: E402
 KNOWN_STALE = frozenset(
     {
         "DISPUTE_OPEN",
