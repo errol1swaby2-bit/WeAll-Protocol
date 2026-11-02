@@ -209,3 +209,44 @@ def test_legacy_clock_preserves_incoming_ban_action_filter() -> None:
     assert result["applied"] == "DISPUTE_FINAL_RECEIPT"
     assert not result["enforcement_applied"]
     assert state["dispute_enforcement_rejections"][0]["tx_type"] == "ACCOUNT_BAN"
+
+
+def test_existing_receipt_id_cannot_bypass_constitutional_severe_hold() -> None:
+    """A forged duplicate receipt must not bypass the severe check."""
+    state = _state(enabled=True)
+    state["dispute_receipts"] = {
+        "synthetic-final": {
+            "receipt_id": "synthetic-final",
+            "tx_type": "DISPUTE_FINAL_RECEIPT",
+            "at_nonce": 8,
+            "payload": {"dispute_id": "case-1"},
+            "appeal_finalization": {"appealed": False, "decision": "none"},
+            "enforcement_applied": [],
+        }
+    }
+    before = copy.deepcopy(state)
+    with pytest.raises(dispute.DisputeApplyError) as raised:
+        dispute.apply_dispute(state, _receipt())
+    assert raised.value.code == "forbidden"
+    assert raised.value.reason == "severe_sanction_automatic_appeal_unimplemented"
+    assert state == before
+
+
+def test_legacy_duplicate_final_receipt_keeps_existing_dedupe_contract() -> None:
+    """Historical compatibility is not permission to finalize new severe cases."""
+    state = _state(enabled=False)
+    state["dispute_receipts"] = {
+        "synthetic-final": {
+            "receipt_id": "synthetic-final",
+            "tx_type": "DISPUTE_FINAL_RECEIPT",
+            "at_nonce": 8,
+            "payload": {"dispute_id": "case-1"},
+            "appeal_finalization": {"appealed": False, "decision": "none"},
+            "enforcement_applied": [],
+        }
+    }
+    before = copy.deepcopy(state)
+    result = dispute.apply_dispute(state, _receipt())
+    assert result["deduped"] is True
+    assert result["applied"] == "DISPUTE_FINAL_RECEIPT"
+    assert state == before
