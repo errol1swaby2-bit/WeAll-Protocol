@@ -113,13 +113,24 @@ def review_signed_dispute_opening(
                 valid
                 and binding is not None
                 and b.get("block_id") == binding.block_id
-                and b.get("block_hash") == binding.block_hash
+                and b.get("block_hash") in (None, "", binding.block_hash)
             )
         except (TypeError, ValueError, OverflowError):
             block_bound = False
 
-    same_network = s.get("network_id") == tx.get("network_id") and isinstance(
-        s.get("network_id"), str
+    # Canonical signed transactions can bind just chain_id, without a
+    # separately configured network_id. If either explicitly supplies one,
+    # require exact agreement; never accept only one side naming a network.
+    state_network = s.get("network_id")
+    tx_network = tx.get("network_id")
+    same_network = (
+        isinstance(state_network, str)
+        and bool(state_network.strip())
+        and state_network == tx_network
+    ) or (state_network in (None, "") and tx_network in (None, ""))
+    params = _map(s.get("params"))
+    required_policy = params.get("require_signatures") is True or (
+        params.get("block_tx_signature_policy") == "required"
     )
     prestate_context = (
         _height(s.get("height"))
@@ -129,7 +140,7 @@ def review_signed_dispute_opening(
         and s.get("tip") == b.get("prev_block_id")
         and s.get("chain_id") == chain_id
         and same_network
-        and _map(s.get("params")).get("require_signatures") is True
+        and required_policy
         and isinstance(s.get("accounts"), dict)
         and isinstance(_map(s.get("accounts")).get(tx.get("signer")), dict)
     )

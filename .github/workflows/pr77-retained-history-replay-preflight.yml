@@ -7,6 +7,9 @@ on:
     paths:
       - Weall-Protocol/scripts/pr77_retained_history_replay.py
       - Weall-Protocol/tests/test_pr77_retained_history_replay.py
+      - Weall-Protocol/tests/test_pr77_signed_opening_synthetic_replay.py
+      - Weall-Protocol/tooling/severe_case_signed_opening_review.py
+      - Weall-Protocol/docs/audits/pr77_retained_history_replay_intake_20261101.md
       - .github/workflows/pr77-retained-history-replay-preflight.yml
   workflow_dispatch:
 
@@ -31,7 +34,7 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff check scripts/pr77_retained_history_replay.py tests/test_pr77_retained_history_replay.py
-          ruff format --check scripts/pr77_retained_history_replay.py tests/test_pr77_retained_history_replay.py
-          python -m pytest -q tests/test_pr77_retained_history_replay.py
+          ruff check scripts/pr77_retained_history_replay.py tests/test_pr77_retained_history_replay.py tests/test_pr77_signed_opening_synthetic_replay.py tooling/severe_case_signed_opening_review.py
+          ruff format --check scripts/pr77_retained_history_replay.py tests/test_pr77_retained_history_replay.py tests/test_pr77_signed_opening_synthetic_replay.py tooling/severe_case_signed_opening_review.py
+          python -m pytest -q tests/test_pr77_retained_history_replay.py tests/test_pr77_signed_opening_synthetic_replay.py
           echo 'Historical compatibility NOT proven: no retained ledger supplied.'

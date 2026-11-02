@@ -318,3 +318,45 @@ synthetic three-block executor replay proving that an absent opening ID cannot
 produce a witness. No authentic historical DISPUTE_OPEN ledger was available,
 so the positive runtime integration of this optional path remains **unproven**
 and must be tested with a preserved genuine opening once available.
+
+
+## Positive *synthetic* committed-opening replay (2026-11-02; not historical proof)
+
+The preflight workflow now invokes
+`tests/test_pr77_signed_opening_synthetic_replay.py`, which configures an
+**explicit, deterministic test-only genesis bootstrap** for `@alice` on a
+controlled-devnet chain. The bootstrap profile is part of the initialized
+state; it is not inserted into the ledger after the first block. The test
+submits and commits a genuinely signed `@bob` account registration at
+height 1, then submits and commits a genuinely signed `@alice`
+`DISPUTE_OPEN` at height 2 using the real mempool, producer and domain
+applier. The opening deliberately omits `dispute_id` so the applier
+derives the canonical case ID; its account target and public reason are
+normalized from the signature-covered payload.
+
+The original SQLite is then opened read-only by the existing
+`replay_offline_source`, and a fresh scratch executor reconstructs
+the recorded chain from the same deterministic genesis. The opt-in
+witness checks the previous block's state root, replays the disputed
+block, loads the canonical case **from the replayed post-state**, and
+verifies its original signed opening with ML-DSA, complete block
+commitments and the recorded success receipt. Wrong-case substitution
+must fail closed. Neither the fixture's genesis private key nor the
+source SQLite is uploaded to CI artifacts.
+
+The review-only verifier now recognizes both actual chain-bound
+signature policy representations (`require_signatures=true` and
+`block_tx_signature_policy=required`) and separately handles the
+canonical chain-only signature domain with **no network_id** in either
+transaction or state. A single-sided claimed network is still rejected.
+Missing top-level `block_hash` is accepted **only** when the
+existing complete-block validator recomputes and checks the hash
+from the committed header. Actual signature verification is always
+performed and cannot be bypassed by testnet policy switches.
+
+A passing test proves only **single-revision, locally generated
+synthetic signed-opening replay compatibility**. It is not a retained
+external historical ledger, independently finalized BFT/QC ancestry,
+cross-version compatibility, authentic PoH uniqueness evidence or a
+constitutionally authorized S4 opening or penalty. The witness and
+overall replay report remain fail-closed on every authority field.
