@@ -40,3 +40,57 @@ The PR77-specific V1.5 evidence refresh GitHub Actions run `41317562729` passed 
 5. Run complete backend, multisystem and clean-clone two-node validation, independent security review where required, and close remaining public-beta blockers.
 
 **Do not merge or launch based on the no-go safeguard.** It is an interim defense, not a substitute for the constitutional producer or complete authorization lifecycle.
+
+
+## Source-to-queue authority trace (November 1, 2026; not semantic signoff)
+
+The real block path has a deterministic SYSTEM queue boundary. A node's
+`system_tx_emitter` emits a `TxEnvelope(system=True)` with the canonical
+`_system_queue_id`, `_due_height`, and parent reference from a queue item.
+`validate_system_tx_queue_binding` matches that receipt against the
+canonical queue's type, hash-bound payload, signer, parent, phase, due
+height, and emission height. The block builder and follower replay each
+call this validator; the public admission entrypoint prohibits SYSTEM
+traffic. These are **execution provenance** constraints.
+
+But `enqueue_system_tx` is deliberately a general internal scheduler:
+its queue ID commits to the queued fields, **not to a constitutional
+judgment**. A test can enqueue an `ACCOUNT_BAN` with a synthetic parent
+reference and receive an exactly queue-bound emitted envelope. The
+queue signature/hash does not by itself establish a source-backed
+`DISPUTE_RESOLVE`, 25 independently eligible jurors, 20 recorded
+approvals, a fresh appeal panel, valid appeal finality, or a lawful
+post-outcome waiver.
+
+The default governance action allowlist does not include
+`ACCOUNT_BAN`, and ordinary dispute enforcement explicitly rejects
+ban actions. Neither fact is proof that every possible future dynamic
+configuration or direct internal producer is safe. A legitimate
+constitutional severe-sanction producer remains **unverified**.
+
+New source-bound regression
+`tests/test_pr77_account_ban_queue_provenance.py` checks:
+- An intact, actually emitted `ACCOUNT_BAN` matches both the direct
+  queue and the validated lookup-cache binding path, but the applier
+  rejects the receipt in constitutional-clock mode without changing
+  state or state root, under both bounded rollback and deepcopy.
+- Changed `_system_queue_id`, target account, synthetic appeal proof,
+  due height, parent, signer or transaction type cannot match the
+  existing scheduled item; wrong phase/height also fail binding.
+- Legacy-clock behavior is observed only as compatibility evidence,
+  not as proof of lawful severe-sanction provenance.
+- The real `WeAllExecutor.build_block_candidate` path is exercised
+  against the deliberately injected queue entry; its result must be
+  adjudicated from CI rather than inferred from applier-only tests.
+- The V2 `ACCOUNT_BAN` prior archived semantic digest remains verified,
+  and its two changed reviewed fields remain `failure_codes` and
+  `state_reads`. The exact new rejection reasons are
+  `conflicting_receipt:duplicate_ban_receipt_conflict` and
+  `forbidden:severe_sanction_authorization_unimplemented`.
+
+**No AUTHORITY transition is implemented.** The queue-source trace
+does not make an arbitrary `SYSTEM` flag a cryptographic credential.
+Do not enable severe bans, approve the new semantic digest, modify
+historical state, or assert a two-node replay from a synthetic
+single-node queue fixture. Independent replay of authentic old blocks
+and signed, queue-bound severe case material is still required.
