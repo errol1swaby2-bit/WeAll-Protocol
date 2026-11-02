@@ -60,3 +60,27 @@ executor policy, select and review a chain-committed version/activation
 boundary if required, and verify both success and failure receipts and
 post-height state roots. Keep the full-transaction rollback CI check red
 until the state is restored exactly.
+
+## Corrective implementation and regression closure (2026-11-01)
+
+The draft branch now restores original child-container identity when a
+journaled parent key is replaced. Earlier descendant undo records therefore
+restore the same reattached object. All four domain hash helpers materialize
+journal-backed inputs before JSON serialization. The previously documented
+root mismatch and missing voter entry above are **pre-fix evidence**, not
+current observations.
+
+The dedicated full-TX CI at
+https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41364359127
+passed **5 tests**, including the successful legacy migration, duplicate vote
+failure atomicity and minimal parent/child rollback ordering. No XFAIL marker
+remains on these tests. The guarded lifecycle generator refreshed exactly the
+four known V1.5 role-derived fields in commit
+`78c64132788891d957e5185fb163d44872587818` after 248 current-fixture
+checks passed. The follow-up lifecycle comparison produced zero drift.
+
+Historical compatibility is NOT proven, and this does not approve any V2
+semantic contract. Replaying authentic retained old blocks under both pinned
+software versions and verifying original chain commitments remains mandatory
+before production activation. PR #77 is still Draft and must not be merged
+based on these synthetic results alone.
