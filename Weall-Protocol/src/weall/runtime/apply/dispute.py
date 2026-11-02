@@ -3150,6 +3150,20 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
             "automatic_severe_appeal_already_assigned",
             {"dispute_id": dispute_id},
         )
+    # A recorded appeal retains its original signer even when the panel is
+    # unavailable and the stage is not open for a second filing.
+    # Keep duplicate rejection stable before the pending-stage check.
+    prior_appeals = d.get("appeals")
+    if isinstance(prior_appeals, list):
+        for existing in prior_appeals:
+            if isinstance(existing, dict) and set(
+                _identity_variants(existing.get("by"))
+            ).intersection(_identity_variants(env.signer)):
+                raise DisputeApplyError(
+                    "conflict",
+                    "appeal_already_filed",
+                    {"dispute_id": dispute_id, "appellant": env.signer},
+                )
     if _constitutional_clock_enabled(state):
         if stage not in {"appeal_window", "appealed", "appeal_review"}:
             raise DisputeApplyError(
@@ -3167,16 +3181,6 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     appeals = d.get("appeals")
     if not isinstance(appeals, list):
         appeals = []
-    for existing in appeals:
-        if isinstance(existing, dict) and set(_identity_variants(existing.get("by"))).intersection(
-            _identity_variants(env.signer)
-        ):
-            raise DisputeApplyError(
-                "conflict",
-                "appeal_already_filed",
-                {"dispute_id": dispute_id, "appellant": env.signer},
-            )
-
     # Defer any appeal-state mutation until independent fresh-panel selection
     # succeeds. Strict profiles must leave an insufficient-pool application
     # failure completely unchanged, including an existing mutable appeals list.

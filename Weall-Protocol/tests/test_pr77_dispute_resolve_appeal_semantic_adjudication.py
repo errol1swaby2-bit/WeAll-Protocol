@@ -122,7 +122,12 @@ def test_v2_review_material_binds_exact_resolve_appeal_deltas(
     assert row["archive_matches_accepted_digest"] is True
     assert row["current_material_digest"] != row["accepted_review_digest"]
     assert row["archived_implementation_source"] == row["current_implementation_source"]
-    assert row["changed_field_names"] == ["failure_codes", "state_reads"]
+    # Durable pending appeal records add canonical writes. This is a material
+    # source delta, not an accepted semantic-review or human signoff.
+    expected_fields = ["failure_codes", "state_reads"]
+    if tx_type == "DISPUTE_APPEAL":
+        expected_fields.append("state_writes")
+    assert row["changed_field_names"] == expected_fields
     assert {
         (entry["code"], entry["reason"]) for entry in row["failure_code_deltas"]["added"]
     } == expected_added
