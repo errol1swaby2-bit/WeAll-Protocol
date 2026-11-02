@@ -92,9 +92,7 @@ def review_severe_case_origin(
             and type(o.get("nonce")) is int
             and o.get("nonce") == nonce
         ),
-        "opening_chain_bound": (
-            _identifier(chain_id) and o.get("chain_id") == chain_id
-        ),
+        "opening_chain_bound": (_identifier(chain_id) and o.get("chain_id") == chain_id),
         "classification_separate_record_shape_observed": (
             c.get("record_kind") == CANDIDATE_KIND
             and _digest(c.get("record_id"))
@@ -114,13 +112,10 @@ def review_severe_case_origin(
             and _identifier(c.get("alleged_violation_class"))
         ),
         "evidence_and_policy_commitment_shapes_observed": (
-            _digest(c.get("evidence_root"))
-            and _digest(c.get("policy_digest"))
+            _digest(c.get("evidence_root")) and _digest(c.get("policy_digest"))
         ),
         "classification_not_before_opening": (
-            type(c.get("height")) is int
-            and type(opened_at) is int
-            and c.get("height") >= opened_at
+            type(c.get("height")) is int and type(opened_at) is int and c.get("height") >= opened_at
         ),
         "reasoned_admission_claim_observed": _identifier(c.get("reason")),
     }

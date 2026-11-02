@@ -103,8 +103,16 @@ class SevereCaseOriginReviewTests(unittest.TestCase):
     def test_cross_case_and_cross_chain_splicing_fails(self) -> None:
         for path, value, key in (
             (("opening", "chain_id"), "other-chain", "opening_chain_bound"),
-            (("classification", "chain_id"), "other-chain", "classification_matches_origin_and_target"),
-            (("classification", "opening_tx_id"), "f" * 64, "classification_matches_origin_and_target"),
+            (
+                ("classification", "chain_id"),
+                "other-chain",
+                "classification_matches_origin_and_target",
+            ),
+            (
+                ("classification", "opening_tx_id"),
+                "f" * 64,
+                "classification_matches_origin_and_target",
+            ),
             (("classification", "dispute_id"), "d2", "classification_matches_origin_and_target"),
             (("classification", "target_id"), "@other", "classification_matches_origin_and_target"),
             (("opening", "payload", "dispute_id"), "d2", "opening_matches_case_fields"),
@@ -129,15 +137,35 @@ class SevereCaseOriginReviewTests(unittest.TestCase):
             (("opening", "tx_id"), "A" * 64, "opening_envelope_shape_observed"),
             (("opening", "tx_id"), "0" * 64, "opening_envelope_shape_observed"),
             (("opening", "tx_id"), "abc", "opening_envelope_shape_observed"),
-            (("classification", "record_id"), OPEN_ID, "classification_separate_record_shape_observed"),
-            (("classification", "record_id"), "b" * 63, "classification_separate_record_shape_observed"),
-            (("classification", "evidence_root"), "0" * 64, "evidence_and_policy_commitment_shapes_observed"),
-            (("classification", "policy_digest"), "bad", "evidence_and_policy_commitment_shapes_observed"),
+            (
+                ("classification", "record_id"),
+                OPEN_ID,
+                "classification_separate_record_shape_observed",
+            ),
+            (
+                ("classification", "record_id"),
+                "b" * 63,
+                "classification_separate_record_shape_observed",
+            ),
+            (
+                ("classification", "evidence_root"),
+                "0" * 64,
+                "evidence_and_policy_commitment_shapes_observed",
+            ),
+            (
+                ("classification", "policy_digest"),
+                "bad",
+                "evidence_and_policy_commitment_shapes_observed",
+            ),
             (("classification", "height"), 99, "classification_not_before_opening"),
             (("classification", "height"), True, "classification_separate_record_shape_observed"),
             (("opening", "nonce"), True, "opening_envelope_shape_observed"),
             (("classification", "sanction_class"), "S3", "explicit_s4_claim_observed"),
-            (("classification", "record_kind"), "DISPUTE_OPEN", "classification_separate_record_shape_observed"),
+            (
+                ("classification", "record_kind"),
+                "DISPUTE_OPEN",
+                "classification_separate_record_shape_observed",
+            ),
             (("classification", "reason"), "", "reasoned_admission_claim_observed"),
         ):
             with self.subTest(path=path):
