@@ -412,6 +412,53 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     assert after_duplicate["accounts"]["@charlie"]["nonce"] == 7
     state = after_duplicate
 
+    # A separate signed appeal reviewer joins before the affected content
+    # owner files an appeal. Bob has active dispute_review consent but was the
+    # original reporter; Charlie served on the original panel. Neither can
+    # reappear on the fresh appeal panel, even in this legacy/local test mode.
+    dana_pub, _ = _deterministic_replay_fixture_keypair(label="@dana")
+    _commit_signed(
+        source,
+        tx_type="ACCOUNT_REGISTER",
+        signer="@dana",
+        nonce=1,
+        payload={"pubkey": dana_pub},
+    )
+    _commit_signed(
+        source,
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
+        signer="@dana",
+        nonce=2,
+        payload={"account_id": "@dana"},
+    )
+    _commit_signed(
+        source,
+        tx_type="REVIEWER_LANE_OPT_IN",
+        signer="@dana",
+        nonce=3,
+        payload={"account_id": "@dana", "lane": "dispute_review"},
+    )
+    _commit_signed(
+        source,
+        tx_type="DISPUTE_APPEAL",
+        signer="@alice",
+        nonce=2,
+        payload={"dispute_id": case["id"], "reason": "Synthetic independent appeal"},
+    )
+    state = source.read_state()
+    appeal = state["disputes_by_id"][case["id"]]
+    assert appeal["stage"] == "appeal_review"
+    assert appeal["appeals"][0]["by"] == "@alice"
+    assert appeal["original_panel_juror_ids"] == ["@charlie"]
+    assert appeal["appeal_panel_round"] == 2
+    assert appeal["assigned_jurors"] == ["@dana"]
+    assert appeal["appeal_panel_juror_ids"] == ["@dana"]
+    assert "@charlie" not in appeal["assigned_jurors"]
+    assert "@bob" not in appeal["assigned_jurors"]
+    assert "@alice" not in appeal["assigned_jurors"]
+    assert not state["accounts"]["@alice"].get("banned", False)
+    assert not state["accounts"]["@bob"].get("banned", False)
+
     # Replay the entire continuation, including failed duplicate admission
     # at application time, not just the pre-review opening blocks.
     blocks = [source.get_block_by_height(h) for h in range(1, int(state["height"]) + 1)]

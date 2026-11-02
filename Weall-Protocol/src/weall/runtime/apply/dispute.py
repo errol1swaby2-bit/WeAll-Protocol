@@ -3073,12 +3073,21 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     original_substitutes = _normalized_str_list(d.get("substitute_juror_ids"))
     appeal_round = int(d.get("appeal_panel_round") or 1)
     candidates = eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE)
+    # Even in non-strict compatibility mode, an original reporter is an
+    # interested party and cannot serve on the fresh appeal panel. Strict
+    # profiles additionally apply their full material-conflict rules.
+    reporter_conflicts = _normalized_str_list(
+        [
+            _resolve_account_identity(state, d.get(key))
+            for key in ("reported_by", "flagged_by", "reporter")
+        ]
+    )
     selection = select_dispute_panel(
         state,
         d,
         candidates,
         round_no=appeal_round + 1,
-        exclude_ids=original_panel + original_substitutes,
+        exclude_ids=original_panel + original_substitutes + reporter_conflicts,
     )
     appeal_panel = list(selection["panel"])
     if bool(selection.get("strict")) and selection.get("status") != "assigned":

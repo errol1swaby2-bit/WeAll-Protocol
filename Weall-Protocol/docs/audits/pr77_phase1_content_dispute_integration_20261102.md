@@ -327,3 +327,24 @@ rejected (not durably recorded), the product policy for preserving appellant
 rights when the pool is depleted remains an architectural decision and
 possible lifecycle gap; this patch does not create automatic panel or extend
 constitutional deadlines. **Pending pinned CI.**
+
+
+## Signed local appeal and independent fresh reviewer (candidate)
+
+After the previous signed report, review, final receipt and rejected duplicate
+vote, a fourth independent signed account opts into `dispute_review`.
+The original content author submits a real signed `DISPUTE_APPEAL` through
+`WeAllExecutor.submit_tx` on the local-development/legacy profile, and a
+fresh executor replays the entire augmented chain. The test demands a fresh
+reviewer and excludes the original panel juror, original reporter and content
+author.
+
+Inspection revealed the non-strict appeal selector excluded original jurors
+and substitutes but not `reported_by`/`flagged_by`. A reporter who already
+had dispute-review consent could therefore be reselected on appeal, making
+acceptance impossible under the explicit reporter-recusal guard. The patch
+now excludes resolved reporter IDs from legacy/local fresh-panel selection;
+strict constitutional profiles retain all existing material-conflict checks.
+**Pending exact-head CI.** Legacy/local mode does not impose the production
+constitutional appeal window, so this exercise is not strict-clock signed
+appeal or 7/15/25 panel evidence.
