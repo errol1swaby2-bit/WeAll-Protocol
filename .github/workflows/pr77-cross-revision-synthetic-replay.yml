@@ -11,6 +11,8 @@ on:
       - Weall-Protocol/src/weall/runtime/block_replay.py
       - Weall-Protocol/src/weall/runtime/apply/roles.py
       - Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py
+      - Weall-Protocol/scripts/pr77_legacy_role_parity_adjudication.py
+      - Weall-Protocol/tests/test_pr77_legacy_role_parity_adjudication.py
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
       - Weall-Protocol/src/weall/runtime/apply/reputation.py
   workflow_dispatch:
@@ -53,6 +55,8 @@ jobs:
           test "$BASE_COMMIT" != "$GITHUB_SHA"
           cmp historical/Weall-Protocol/generated/tx_index.json candidate/Weall-Protocol/generated/tx_index.json
           cmp historical/Weall-Protocol/src/weall/runtime/replay_consistency.py candidate/Weall-Protocol/src/weall/runtime/replay_consistency.py
+          cmp historical/Weall-Protocol/src/weall/runtime/block_builder.py candidate/Weall-Protocol/src/weall/runtime/block_builder.py
+          cmp historical/Weall-Protocol/src/weall/runtime/block_replay.py candidate/Weall-Protocol/src/weall/runtime/block_replay.py
           test ! -e "$RUNNER_TEMP/pr77-crossrev-base"
           test ! -e "$RUNNER_TEMP/pr77-crossrev-replay"
           mkdir -p "$RUNNER_TEMP/pr77-crossrev-base" "$RUNNER_TEMP/pr77-crossrev-replay" cross-revision-artifacts
@@ -88,6 +92,9 @@ jobs:
           "$RUNNER_TEMP/pr77-head-venv/bin/python" -m pip install -e candidate/Weall-Protocol --no-deps
           "$RUNNER_TEMP/pr77-head-venv/bin/ruff" check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py
           "$RUNNER_TEMP/pr77-head-venv/bin/ruff" format --check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py
+          "$RUNNER_TEMP/pr77-head-venv/bin/ruff" check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_adjudication.py candidate/Weall-Protocol/tests/test_pr77_legacy_role_parity_adjudication.py
+          "$RUNNER_TEMP/pr77-head-venv/bin/ruff" format --check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_adjudication.py candidate/Weall-Protocol/tests/test_pr77_legacy_role_parity_adjudication.py
+          (cd candidate/Weall-Protocol && "$RUNNER_TEMP/pr77-head-venv/bin/python" -m pytest -q tests/test_pr77_legacy_role_parity_adjudication.py)
           python - <<'PY'
           import hashlib
           import json
@@ -162,70 +169,14 @@ jobs:
           "$RUNNER_TEMP/pr77-head-venv/bin/python" candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py \
             --expected-package-root candidate/Weall-Protocol \
             --report cross-revision-artifacts/review-head-legacy-role-outcomes.json
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root = Path("cross-revision-artifacts")
-          old = json.loads((root / "pinned-main-legacy-role-outcomes.json").read_text())
-          new = json.loads((root / "review-head-legacy-role-outcomes.json").read_text())
-          assert old["case_count"] == new["case_count"] == 126
-          assert len(old["cases"]) == len(new["cases"]) == 126
-          differences = []
-          for number, (before, after) in enumerate(zip(old["cases"], new["cases"], strict=True), 1):
-              if before == after:
-                  continue
-              changed_fields = sorted(set(before) | set(after))
-              changed_fields = [field for field in changed_fields if before.get(field) != after.get(field)]
-              differences.append({
-                  "case_index": number,
-                  "tx_type": before["tx_type"],
-                  "condition": before["condition"],
-                  "version": before["version"],
-                  "changed_fields": changed_fields,
-                  "state_root_changed": before["state_root"] != after["state_root"],
-                  "pinned_main": before,
-                  "candidate": after,
-              })
-          if differences:
-              report = {
-                  "ok": False,
-                  "schema": "weall.pr77.synthetic_legacy_role_parity.v1",
-                  "base_commit": "2f35cfb5823cc083a3cb833798cf60a1b1895377",
-                  "candidate_commit": __import__("os").environ["GITHUB_SHA"],
-                  "case_count": 126,
-                  "divergence_count": len(differences),
-                  "state_root_divergence_count": sum(int(d["state_root_changed"]) for d in differences),
-                  "differences": differences,
-                  "real_retained_ledger_proven": False,
-                  "old_version_compatibility_proven": False,
-                  "independent_two_node_consensus_proven": False,
-              }
-              (root / "legacy-role-cross-revision-parity.json").write_text(
-                  json.dumps(report, indent=2, sort_keys=True) + "\\n"
-              )
-              for diff in differences:
-                  print(json.dumps(diff, sort_keys=True))
-              print(f"NO-GO: {len(differences)} cross-revision role parity divergences; no semantic approval.")
-              raise SystemExit(1)
-          summary = {
-              "ok": True,
-              "schema": "weall.pr77.synthetic_legacy_role_parity.v1",
-              "base_commit": "2f35cfb5823cc083a3cb833798cf60a1b1895377",
-              "candidate_commit": __import__("os").environ["GITHUB_SHA"],
-              "case_count": 126,
-              "case_scenario": "nine_role_reviewer_txs_legacy_default_and_v1_seven_conditions",
-              "source": "synthetic_bounded_rollback_applier_not_blocks",
-              "per_case_code_reason_details_metadata_and_state_root_match": True,
-              "real_retained_ledger_proven": False,
-              "old_version_compatibility_proven": False,
-              "independent_two_node_consensus_proven": False,
-          }
-          (root / "legacy-role-cross-revision-parity.json").write_text(
-              json.dumps(summary, indent=2, sort_keys=True) + "\n"
-          )
-          print("PASS: 126 same-scenario legacy role and reviewer outcomes and state roots match.")
-          print("NO-GO: no signed historical role ledger; no production version activation proof.")
-          PY
+          PYTHONPATH=candidate/Weall-Protocol "$RUNNER_TEMP/pr77-head-venv/bin/python" \
+            candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_adjudication.py \
+            --old cross-revision-artifacts/pinned-main-legacy-role-outcomes.json \
+            --candidate cross-revision-artifacts/review-head-legacy-role-outcomes.json \
+            --report cross-revision-artifacts/legacy-role-cross-revision-parity.json
+          echo 'PASS: 126 synthetic old/new role cases have equal canonical receipt and state roots.'
+          echo 'KNOWN: exactly six uncommitted deduped metadata changes; no semantic signoff.'
+          echo 'NO-GO: no retained historical role/dispute blocks or independent validator evidence.'
 
       - name: Upload non-secret synthetic replay summaries (never databases or keys)
         if: always()
