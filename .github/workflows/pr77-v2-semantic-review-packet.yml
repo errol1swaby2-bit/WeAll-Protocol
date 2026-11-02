@@ -8,9 +8,10 @@ on:
       - Weall-Protocol/scripts/pr77_v2_semantic_review_packet.py
       - Weall-Protocol/tests/test_pr77_v2_semantic_review_packet.py
       - Weall-Protocol/tests/test_issue72_versioned_role_gate.py
-      - Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py tests/test_pr77_severe_account_finality_no_go.py
-      - Weall-Protocol/tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py tests/test_pr77_severe_account_finality_no_go.py
+      - Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py
+      - Weall-Protocol/tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py
       - Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py
+      - Weall-Protocol/tests/test_pr77_roles_reviewer_semantic_adjudication.py
       - .github/workflows/pr77-v2-semantic-review-packet.yml
   workflow_dispatch:
 
