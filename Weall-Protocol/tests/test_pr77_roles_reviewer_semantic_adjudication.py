@@ -13,11 +13,13 @@ import copy
 import pytest
 
 from scripts.pr77_v2_semantic_review_packet import build_packet
+from weall.ledger.state import LedgerView
 from weall.runtime.apply.roles import RolesApplyError, apply_roles
 from weall.runtime.bounded_rollback import run_with_bounded_rollback
 from weall.runtime.reputation_events import append_reputation_event
 from weall.runtime.reputation_role_gate import role_activation_reputation_decision
-from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.tx_admission import TxEnvelope, admit_tx
+from weall.tx.canon import TxIndex
 
 # All nine stale role/reviewer contracts use the same implementation module,
 # but one of them (OPT_OUT) deliberately does NOT invoke the activation gate.
@@ -267,3 +269,43 @@ def test_reviewer_opt_out_is_not_pretend_activation_rejection() -> None:
     result = _apply_atomically(state, "REVIEWER_LANE_OPT_OUT")
     assert result["applied"] == "REVIEWER_LANE_OPT_OUT"
     assert state["accounts"]["@alice"]["banned"] is True
+
+
+@pytest.mark.parametrize(("account_flag", "reason"), [
+    ("banned", "banned"),
+    ("locked", "locked"),
+])
+def test_public_reviewer_opt_out_reaches_admission_restriction_before_applier(
+    monkeypatch: pytest.MonkeyPatch, account_flag: str, reason: str
+) -> None:
+    """Do not claim a banned/locked user can withdraw through public ingress.
+
+    The domain handler intentionally permits opting out, but public admission
+    enforces the signer's ban/lock before any domain apply. This is an explicit
+    architecture/product-policy review item, not permission to change admission.
+    """
+    monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
+    monkeypatch.setenv("WEALL_SIGVERIFY", "0")
+    state = _state(gate_version=2)
+    state["accounts"]["@alice"][account_flag] = True
+    ledger = LedgerView(
+        accounts=state["accounts"],
+        roles=state["roles"],
+        params=state["params"],
+    )
+    tx_index = TxIndex.load_from_file(
+        str(__import__("pathlib").Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    )
+    tx = TxEnvelope(
+        tx_type="REVIEWER_LANE_OPT_OUT",
+        signer="@alice",
+        nonce=1,
+        payload={"account_id": "@alice", "reviewer_lanes": ["dispute_review"]},
+        sig="synthetic-not-authenticated",
+    )
+    before = copy.deepcopy(state)
+    verdict = admit_tx(tx.to_json(), ledger, tx_index, context="mempool")
+    assert verdict.ok is False
+    assert verdict.code == "gate_denied"
+    assert verdict.reason == reason
+    assert state == before
