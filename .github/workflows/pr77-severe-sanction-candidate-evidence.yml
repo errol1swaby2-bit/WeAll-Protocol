@@ -33,6 +33,7 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           ruff check tooling/severe_case_origin_candidate.py tests/test_pr77_severe_case_origin_candidate.py tooling/severe_case_signed_opening_review.py tests/test_pr77_severe_case_signed_opening_review.py
+          ruff format --diff tests/test_pr77_severe_case_signed_opening_review.py || true
           ruff format --check tooling/severe_case_origin_candidate.py tests/test_pr77_severe_case_origin_candidate.py tooling/severe_case_signed_opening_review.py tests/test_pr77_severe_case_signed_opening_review.py
       - name: Validate pure candidate-only review invariants
         working-directory: Weall-Protocol
