@@ -316,6 +316,7 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     observed = build_replay_manifest(replay)
     assert compare_replay_manifests(expected, observed) == []
     assert replay.read_state()["disputes_by_id"] == state["disputes_by_id"]
-    assert replay.read_state()["dispute_ballot_admission_receipts"] == state[
-        "dispute_ballot_admission_receipts"
-    ]
+    assert (
+        replay.read_state()["dispute_ballot_admission_receipts"]
+        == state["dispute_ballot_admission_receipts"]
+    )
