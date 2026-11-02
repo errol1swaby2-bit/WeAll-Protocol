@@ -161,7 +161,10 @@ def review_signed_dispute_opening(
             and type(d.get("opened_at_nonce")) is int
             and d.get("opened_at_nonce") == tx.get("nonce")
             and type(d.get("opened_at_height")) is int
-            and d.get("opened_at_height") == block_height
+            # DISPUTE_OPEN executes against the predecessor's working state.
+            # Builder and follower set state["height"] to the new block height
+            # only AFTER applying transactions, so this marker is H-1.
+            and d.get("opened_at_height") == s.get("height")
         ),
     }
     blockers = [k for k, v in observations.items() if not v]

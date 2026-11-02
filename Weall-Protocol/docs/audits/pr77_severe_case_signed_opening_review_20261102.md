@@ -28,3 +28,25 @@ The API returns `constitutional_authorization=NOT_ESTABLISHED`, `may_classify_ca
 A future trusted adapter must retrieve pinned, independently replayed **historical pre-state**, verify actual persisted block and consensus finalized ancestry/QC at a named height, bind the accepted opening receipt and then apply an **approved** versioned constitutional S4 admission rule and signed decision certificate. The admission authority, objective evidence taxonomy mapping to SAN-006, identity/conflict rules, reasoned decisions, appeal finality, restoration and activation/replay semantics all require explicit approval.
 
 This incremental verification does not refresh the 15 stale V2 semantic reviews or change network consensus. Keep PR #77 Draft/unmerged and release NO-GO.
+
+
+## 2026-11-02 — Canonical opening-height correction
+
+A fresh domain/source trace found a review-only off-by-one error. The
+`dispute_open` applier uses `_current_height(state)`, which reads the
+`state["height"]` of the *predecessor* during transaction execution.
+Both `block_builder` and `block_replay` set the new block height after
+applying the transaction. Thus the canonical case's `opened_at_height`
+is **H−1** for a signed opening included in a block with header height H.
+
+The candidate verifier now binds the case marker to its supplied predecessor
+state's height, and separately requires predecessor height+1=header height.
+A real `apply_dispute` domain-applier test now creates the case using a
+controlled PoH-tier fixture (not a claim of real PoH provenance), then verifies
+the matching ML-DSA signed opening and its synthetic block commitments.
+Adversarial wrong-height 5 and 7 values for H=7 both fail. No live domain,
+network, consensus, or historical-replay code was changed.
+
+This validates the candidate's **domain-format integration**; the prior
+full offline-replay witness still needs a genuine committed and replayable
+`DISPUTE_OPEN` before its positive end-to-end path can be claimed proven.

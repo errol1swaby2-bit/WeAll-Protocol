@@ -97,7 +97,7 @@ def _fixture(keypair: dict) -> dict:
             "target_type": "account",
             "target_id": "@bob",
             "opened_by": "@alice",
-            "opened_at_height": 7,
+            "opened_at_height": 6,
             "opened_at_nonce": 7,
         },
         "block": block,
@@ -159,6 +159,8 @@ def test_genuine_pq_signature_and_self_bound_block_still_not_authority(keypair: 
         (("case", "target_id"), "@charlie", "case_mutation_matches_signed_opening"),
         (("case", "opened_by"), "@other", "case_mutation_matches_signed_opening"),
         (("case", "opened_at_nonce"), 8, "case_mutation_matches_signed_opening"),
+        (("case", "opened_at_height"), 7, "case_mutation_matches_signed_opening"),
+        (("case", "opened_at_height"), 5, "case_mutation_matches_signed_opening"),
     ],
 )
 def test_mismatched_sources_fail_relevant_observation(
@@ -247,3 +249,30 @@ def test_self_consistent_crypto_is_not_network_finality(keypair: dict) -> None:
     assert all(out["observations"].values())
     assert "supplied_block_not_authenticated_as_network_finalized" in out["blocking_reasons"]
     assert out["constitutional_authorization"] == "NOT_ESTABLISHED"
+
+
+def test_actual_dispute_applier_marks_predecessor_height_not_block_height(
+    keypair: dict,
+) -> None:
+    """Exercise the real domain applier, not a hand-written matching case."""
+    from weall.runtime.apply.dispute import apply_dispute
+    from weall.runtime.tx_admission_types import TxEnvelope
+
+    f = _fixture(keypair)
+    state = copy.deepcopy(f["pre_state"])
+    # This is a domain-only controlled fixture; no authenticated PoH issuance
+    # or network consensus is inferred from this manually seeded account.
+    state["accounts"]["@alice"]["poh_tier"] = 2
+    opening = TxEnvelope.from_json(f["block"]["txs"][0])
+    result = apply_dispute(state, opening)
+    assert result["applied"] == "DISPUTE_OPEN"
+    case = state["disputes_by_id"]["d1"]
+    assert case["opened_at_height"] == 6
+    assert f["block"]["header"]["height"] == 7
+
+    f["pre_state"] = state
+    f["case"] = case
+    observation = _review(f)
+    assert all(observation["observations"].values())
+    assert observation["constitutional_authorization"] == "NOT_ESTABLISHED"
+    assert observation["may_enqueue_account_ban"] is False
