@@ -14,14 +14,14 @@ import pytest
 
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.apply.dispute import DisputeApplyError, apply_dispute
-from weall.runtime.reviewer_responsibilities import reviewer_lane_active
-from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.replay_consistency import (
     _deterministic_replay_fixture_keypair,
     build_replay_manifest,
     compare_replay_manifests,
 )
+from weall.runtime.reviewer_responsibilities import reviewer_lane_active
+from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_id import compute_tx_id_from_dict
 
 CHAIN = "weall-controlled-devnet"
