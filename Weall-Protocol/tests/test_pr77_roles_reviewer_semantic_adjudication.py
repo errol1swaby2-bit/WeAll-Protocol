@@ -9,6 +9,7 @@ the old runtime rejection disappeared. No semantic digest is approved here.
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import pytest
 
@@ -271,10 +272,13 @@ def test_reviewer_opt_out_is_not_pretend_activation_rejection() -> None:
     assert state["accounts"]["@alice"]["banned"] is True
 
 
-@pytest.mark.parametrize(("account_flag", "reason"), [
-    ("banned", "banned"),
-    ("locked", "locked"),
-])
+@pytest.mark.parametrize(
+    ("account_flag", "reason"),
+    [
+        ("banned", "banned"),
+        ("locked", "locked"),
+    ],
+)
 def test_public_reviewer_opt_out_reaches_admission_restriction_before_applier(
     monkeypatch: pytest.MonkeyPatch, account_flag: str, reason: str
 ) -> None:
@@ -294,7 +298,7 @@ def test_public_reviewer_opt_out_reaches_admission_restriction_before_applier(
         params=state["params"],
     )
     tx_index = TxIndex.load_from_file(
-        str(__import__("pathlib").Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+        str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
     )
     tx = TxEnvelope(
         tx_type="REVIEWER_LANE_OPT_OUT",
