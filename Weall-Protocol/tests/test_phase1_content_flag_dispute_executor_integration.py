@@ -323,7 +323,43 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     assert len(ballot_receipts) == 1
     assert ballot_receipts[0]["final"] is True
 
-    # Replay the entire continuation, not just the pre-review opening blocks.
+    # A second distinct signed ballot with a fresh nonce must never count twice.
+    # It should be included as a failed block receipt, with no mutation to the
+    # existing case, ballot commitments, reviewer status or reputation events.
+    before_duplicate = source.read_state()
+    before_case = deepcopy(before_duplicate["disputes_by_id"][case["id"]])
+    before_ballots = deepcopy(before_duplicate["dispute_ballot_admission_receipts"])
+    before_reputation = deepcopy(before_duplicate.get("reputation", {}))
+    duplicate = _signed(
+        tx_type="DISPUTE_VOTE_SUBMIT",
+        signer="@charlie",
+        nonce=7,
+        payload={"dispute_id": case["id"], "vote": "yes"},
+    )
+    duplicate_id = compute_tx_id_from_dict(CHAIN, duplicate)
+    admitted_duplicate = source.submit_tx(duplicate)
+    assert admitted_duplicate["ok"] is True, admitted_duplicate
+    next_height = int(before_duplicate["height"]) + 1
+    duplicate_block_meta = source.produce_block(max_txs=1)
+    assert duplicate_block_meta.ok is True, duplicate_block_meta.error
+    duplicate_block = source.get_block_by_height(next_height)
+    assert isinstance(duplicate_block, dict)
+    assert duplicate_id in duplicate_block["header"]["tx_ids"]
+    rejected_ballot = [
+        receipt for receipt in duplicate_block["receipts"] if receipt.get("tx_id") == duplicate_id
+    ]
+    assert len(rejected_ballot) == 1
+    assert rejected_ballot[0]["ok"] is False
+    assert rejected_ballot[0]["reason"] == "dispute_ballot_already_final", rejected_ballot[0]
+    after_duplicate = source.read_state()
+    assert after_duplicate["disputes_by_id"][case["id"]] == before_case
+    assert after_duplicate["dispute_ballot_admission_receipts"] == before_ballots
+    assert after_duplicate.get("reputation", {}) == before_reputation
+    assert after_duplicate["accounts"]["@charlie"]["nonce"] == 7
+    state = after_duplicate
+
+    # Replay the entire continuation, including failed duplicate admission
+    # at application time, not just the pre-review opening blocks.
     blocks = [source.get_block_by_height(h) for h in range(1, int(state["height"]) + 1)]
     assert all(isinstance(block, dict) for block in blocks)
 

@@ -160,3 +160,18 @@ Remaining outside this evidence: actual independent-human verification,
 fresh panel, real browser/API UX, cross-machine quorum and BFT finality,
 restarts, independent external review and final clean-genesis protocol run.
 This is not a production or public testnet launch gate closure.
+
+
+## Duplicate-ballot executor boundary (new candidate)
+
+Extended the controlled local-source/scratch-replay integration fixture with a
+**second distinct correctly signed** `DISPUTE_VOTE_SUBMIT` from the same juror
+after the first ballot had finalized, using the next canonical account nonce.
+The test demands one canonical **failed** block receipt
+(`dispute_ballot_already_final`), no additional recorded vote or ballot receipt,
+no case-state or reputation modification, expected nonce progression, and
+matching fresh-executor replay of the rejected transaction itself.
+
+This new assertion must **not** be marked verified until the exact-head
+pinned CI has passed. It is unrelated to changing sealed-ballot profile
+activation, 25-member juries, or severe sanction authority.
