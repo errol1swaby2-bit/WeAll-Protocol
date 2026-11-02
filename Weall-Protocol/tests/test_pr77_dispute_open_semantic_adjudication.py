@@ -97,7 +97,7 @@ def test_dispute_open_review_binds_verified_archived_and_current_material() -> N
         ("duplicate", "dispute_id_exists"),
     }.issubset(added)
     removed = {(entry["code"], entry["reason"]) for entry in row["failure_code_deltas"]["removed"]}
-    assert ("forbidden", "severe_sanction_initial_twenty_votes_unverified") in removed
+    assert ("conflict", "appeal_already_filed") in removed
     assert row["signed_off_for_current_digest"] is False
     assert row["historical_replay_proven"] is False
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
@@ -109,7 +109,7 @@ def test_dispute_open_review_binds_verified_archived_and_current_material() -> N
     ("target_type", "target_id"),
     [
         ("content", "post-1"),
-        ("proposal", "p-final"),
+        ("account", "alice"),
     ],
 )
 def test_dispute_open_direct_and_dispatcher_identical_success(
@@ -139,13 +139,35 @@ def test_dispute_open_direct_and_dispatcher_identical_success(
     [
         ("content", "", "alice", False, ("invalid_payload", "missing_target")),
         ("content", "post-1", "unverified", False, ("forbidden", "tier1_required_for_dispute")),
-        ("proposal", "p-missing", "alice", False, ("not_found", "proposal_not_found")),
+        # The static analyzer sees proposal error codes inside an unreachable
+        # branch: all three proposal aliases are rejected by the allowlist first.
+        (
+            "proposal",
+            "p-missing",
+            "alice",
+            False,
+            ("forbidden", "unsupported_dispute_target_type"),
+        ),
         (
             "proposal",
             "p-active",
             "alice",
             False,
-            ("forbidden", "active_proposal_dispute_protected"),
+            ("forbidden", "unsupported_dispute_target_type"),
+        ),
+        (
+            "governance",
+            "p-final",
+            "alice",
+            False,
+            ("forbidden", "unsupported_dispute_target_type"),
+        ),
+        (
+            "governance_proposal",
+            "p-final",
+            "alice",
+            False,
+            ("forbidden", "unsupported_dispute_target_type"),
         ),
         ("content", "post-1", "alice", True, ("duplicate", "dispute_id_exists")),
         (
@@ -184,3 +206,24 @@ def test_dispute_open_direct_and_dispatcher_identical_rejection(
     assert direct["disputes_by_id"] == seed["disputes_by_id"]
     assert direct["system_queue"] == seed["system_queue"]
     assert direct["accounts"] == seed["accounts"]
+
+
+@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
+def test_proposal_branch_scanner_reasons_are_currently_unreachable(clock_enabled: bool) -> None:
+    """Current proposal allowlist precedes its later status checks.
+
+    This reproduces existing MAIN behavior, not a normative statement that
+    governance proposals must never be subject to constitutional appeals.
+    """
+    state = _state(clock_enabled=clock_enabled)
+    for target in ("proposal", "governance", "governance_proposal"):
+        for proposal_id in ("p-active", "p-final", "p-missing"):
+            with pytest.raises(DisputeApplyError) as exc:
+                apply_dispute(
+                    state,
+                    _env(target_type=target, target_id=proposal_id),
+                )
+            assert exc.value.code == "forbidden"
+            assert exc.value.reason == "unsupported_dispute_target_type"
+    assert state["disputes_by_id"] == {}
+    assert state["system_queue"] == []
