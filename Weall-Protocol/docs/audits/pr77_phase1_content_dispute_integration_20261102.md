@@ -1,6 +1,6 @@
 # PR77 phase-1 content report → dispute pipeline integration
 
-**Status: EXPERIMENTAL / CI VALIDATION REQUIRED.** Not final protocol, user-facing
+**Status: BOUNDED SYNTHETIC EXECUTOR/REPLAY TEST PASSED; WHOLE SUBSYSTEM NOT CERTIFIED.** Not final protocol, user-facing
 E2E, global PoH, independent BFT, S4 case classification, or testnet evidence.
 
 ## Why this check exists
@@ -56,3 +56,37 @@ The integration fixture now explicitly advances the controlled local
 block clock with `allow_empty=True` and asserts the new height for each
 rehearsal step. This does not change the production block-loop policy.
 Receipt-commit evidence remains subject to the next exact-head CI result.
+
+
+## Verified exact-commit CI result
+
+The enhanced test passed on commit `d1de0733283b6097c47f45f8841502ae9ecacfbf`
+in [PR77 phase1 content-to-dispute CI run #41502322410](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41502322410):
+pinned Ruff lint PASS, pinned Ruff format PASS and **1 integration test PASS**.
+The run exercises source and scratch executor histories against the same
+software revision and explicit synthetic test-only genesis parameters.
+
+| Integrated boundary | What the regression actually confirms |
+| --- | --- |
+| Account identity and signatures | Two independently signed accounts; real account registration and explicit local PoH bootstrap transaction accepted and committed |
+| User content creation and reporting | Signed `CONTENT_POST_CREATE` and `CONTENT_FLAG` accepted with successful persisted block receipts |
+| System escalation and case identity | A successful canonical `CONTENT_ESCALATE_TO_DISPUTE` system receipt creates the account-attributed report and links the moderation target |
+| Responsibility/party conflict | Target author and reporter excluded from any assigned review panel; unassigned case remains visible without inventing jurors |
+| Follow-up audit | A successful `FLAG_ESCALATION_RECEIPT` is committed after explicitly producing a next-height block |
+| Determinism | A fresh executor replays the persisted blocks with matching per-height commitments and final dispute state |
+| Safety posture | Neither participating account was banned by escalation; no constitutional severe-sanction authority inferred |
+
+This result is not a completed client UI journey, independent multi-node
+HotStuff/BFT finality, adversarial network partition test, cryptographic audit,
+real-human PoH, completed appeal pipeline or full review of every content and
+dispute transaction type. Frontend reporting currently submits `CONTENT_FLAG`;
+the separate account-target `DISPUTE_OPEN` fixture is not proof that an
+account-target reporting screen exists.
+
+**Unresolved phase-1 follow-ups:** trace assigned juror opt-in + accept/vote
+through real block admission and restart; exercise failed/retry and duplicate
+escalation across block boundaries; verify public dispute read-model and
+frontend reconciliation under asynchronous inclusion; account for
+constitutional-clock/empty-block scheduling in operator configuration; test
+independent node convergence and failure/partition recovery in phase 2.
+These are work items, not implied PASS results.
