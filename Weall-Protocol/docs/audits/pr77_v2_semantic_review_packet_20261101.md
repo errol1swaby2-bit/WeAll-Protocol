@@ -77,3 +77,16 @@ The direct-applier regressions prove the following current synthetic cases: fewe
 The strict `PR77 V2 decision packet (no semantic approval)` run [41373403927](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41373403927) passed **252 tests**, Ruff lint and format, and reported **15 still-stale TX reviews**, zero newly stale TXs, zero missing state stable IDs, zero archived approval digest mismatches, zero packet integrity blockers, and **no altered approvals**.
 
 **Next blockers:** real queue-bound signed receipts, pinned historical ledger replay across legacy and activated profiles, constitutional adjudication of severe cases and separate authorized maintainer/independent reviewer acceptance of both current V2 digests. The compiler must remain fail closed until those requirements are satisfied.
+
+
+## DISPUTE_FINAL_RECEIPT: version-sensitive finality/no-bypass adjudication (2026-11-01)
+
+**Disposition: READ/EXECUTION EVIDENCE ONLY; NO SEVERE SANCTION AUTHORIZATION.**
+
+The exact accepted V2 `DISPUTE_FINAL_RECEIPT` archive digest still binds to the same `implementation_source` as the current scanner. Exactly two semantic-review material fields have drifted: `failure_codes` and `state_reads`. The sole added rejection is `forbidden:severe_sanction_automatic_appeal_unimplemented`, with no removed failure reasons.
+
+The existing `tests/test_pr77_severe_account_finality_no_go.py` directly verifies that under the constitutional clock an explicitly severe account case or incoming unclassified `ACCOUNT_BAN` cannot finalize, while ordinary content/lock cases retain their distinct path and legacy-clock behavior remains separate. The new regression adds an **already-present final-receipt ID** to the case, then attempts an identical `DISPUTE_FINAL_RECEIPT` under constitutional clock: the severe hold must reject before the deduplication shortcut, without any mutation. An equivalent legacy-clock duplicate must continue to return `deduped=True` and leave state unchanged.
+
+This is an important provenance boundary: an untrusted duplicate marker is neither approval of an appeal nor authority for an account ban. These are synthetic applier tests; the real authenticated queue, committee evidence, old-height replay roots and chain-committed activation are not yet proven.
+
+The approved semantic review record remains untouched. A completed source/effect review, genuine replay fixtures and separate authorized approval are required before adopting a new V2 digest, releasing, or enabling severe sanction finality.
