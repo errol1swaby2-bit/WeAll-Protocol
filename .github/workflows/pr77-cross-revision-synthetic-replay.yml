@@ -168,15 +168,43 @@ jobs:
           new = json.loads((root / "review-head-legacy-role-outcomes.json").read_text())
           assert old["case_count"] == new["case_count"] == 126
           assert len(old["cases"]) == len(new["cases"]) == 126
+          differences = []
           for number, (before, after) in enumerate(zip(old["cases"], new["cases"], strict=True), 1):
-              if before != after:
-                  print(json.dumps({
-                      "ok": False,
-                      "first_divergent_case": number,
-                      "pinned_main": before,
-                      "candidate": after,
-                  }, sort_keys=True))
-                  raise SystemExit(1)
+              if before == after:
+                  continue
+              changed_fields = sorted(set(before) | set(after))
+              changed_fields = [field for field in changed_fields if before.get(field) != after.get(field)]
+              differences.append({
+                  "case_index": number,
+                  "tx_type": before["tx_type"],
+                  "condition": before["condition"],
+                  "version": before["version"],
+                  "changed_fields": changed_fields,
+                  "state_root_changed": before["state_root"] != after["state_root"],
+                  "pinned_main": before,
+                  "candidate": after,
+              })
+          if differences:
+              report = {
+                  "ok": False,
+                  "schema": "weall.pr77.synthetic_legacy_role_parity.v1",
+                  "base_commit": "2f35cfb5823cc083a3cb833798cf60a1b1895377",
+                  "candidate_commit": __import__("os").environ["GITHUB_SHA"],
+                  "case_count": 126,
+                  "divergence_count": len(differences),
+                  "state_root_divergence_count": sum(int(d["state_root_changed"]) for d in differences),
+                  "differences": differences,
+                  "real_retained_ledger_proven": False,
+                  "old_version_compatibility_proven": False,
+                  "independent_two_node_consensus_proven": False,
+              }
+              (root / "legacy-role-cross-revision-parity.json").write_text(
+                  json.dumps(report, indent=2, sort_keys=True) + "\\n"
+              )
+              for diff in differences:
+                  print(json.dumps(diff, sort_keys=True))
+              print(f"NO-GO: {len(differences)} cross-revision role parity divergences; no semantic approval.")
+              raise SystemExit(1)
           summary = {
               "ok": True,
               "schema": "weall.pr77.synthetic_legacy_role_parity.v1",
