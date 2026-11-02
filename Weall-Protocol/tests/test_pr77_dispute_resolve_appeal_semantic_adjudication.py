@@ -131,7 +131,14 @@ def test_v2_review_material_binds_exact_resolve_appeal_deltas(
     assert {
         (entry["code"], entry["reason"]) for entry in row["failure_code_deltas"]["added"]
     } == expected_added
-    assert row["failure_code_deltas"]["removed"] == []
+    # The former insufficient-panel *rejection* was intentionally removed.
+    # Its replacement is durable appeal_pending_panel, not release authority.
+    expected_removed = (
+        [{"code": "forbidden", "reason": "insufficient_fresh_appeal_panel"}]
+        if tx_type == "DISPUTE_APPEAL"
+        else []
+    )
+    assert row["failure_code_deltas"]["removed"] == expected_removed
     state_read_diff = next(
         change for change in row["changed_fields"] if change["field"] == "state_reads"
     )
