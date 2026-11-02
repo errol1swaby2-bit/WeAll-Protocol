@@ -164,10 +164,7 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
 
     # The system escalation itself must be present as a successful canonical
     # block receipt, not merely a state mutation made by a test helper.
-    blocks = [
-        source.get_block_by_height(h)
-        for h in range(1, int(state["height"]) + 1)
-    ]
+    blocks = [source.get_block_by_height(h) for h in range(1, int(state["height"]) + 1)]
     assert all(isinstance(block, dict) for block in blocks)
     matching_receipts = [
         receipt
