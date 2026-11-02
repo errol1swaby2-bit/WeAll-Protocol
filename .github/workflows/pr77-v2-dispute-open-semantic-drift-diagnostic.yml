@@ -9,6 +9,8 @@ on:
       - 'Weall-Protocol/specs/v2/source/tx_appliers.json'
       - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
       - 'Weall-Protocol/tests/test_pr77_dispute_open_v2_source_attribution.py'
+      - 'Weall-Protocol/tests/test_pr77_dispute_open_semantic_adjudication.py'
+      - 'Weall-Protocol/scripts/pr77_v2_semantic_review_packet.py'
       - '.github/workflows/pr77-v2-dispute-open-semantic-drift-diagnostic.yml'
 
 permissions:
@@ -32,9 +34,10 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff check scripts/audit_v2_semantic_review_drift.py scripts/v2_spec_validation.py tests/test_pr77_dispute_open_v2_source_attribution.py
-          ruff format --check scripts/audit_v2_semantic_review_drift.py scripts/v2_spec_validation.py tests/test_pr77_dispute_open_v2_source_attribution.py
-          pytest -q tests/test_pr77_dispute_open_v2_source_attribution.py
+          ruff check scripts/audit_v2_semantic_review_drift.py scripts/v2_spec_validation.py tests/test_pr77_dispute_open_v2_source_attribution.py tests/test_pr77_dispute_open_semantic_adjudication.py
+          ruff format --diff tests/test_pr77_dispute_open_semantic_adjudication.py || true
+          ruff format --check scripts/audit_v2_semantic_review_drift.py scripts/v2_spec_validation.py tests/test_pr77_dispute_open_v2_source_attribution.py tests/test_pr77_dispute_open_semantic_adjudication.py
+          python -m pytest -q tests/test_pr77_dispute_open_v2_source_attribution.py tests/test_pr77_dispute_open_semantic_adjudication.py
       - name: Report mismatches without updating accepted semantic reviews
         working-directory: Weall-Protocol
         run: |
