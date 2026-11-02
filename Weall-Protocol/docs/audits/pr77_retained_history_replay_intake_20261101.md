@@ -147,3 +147,67 @@ juror/appeal finality, BFT adversarial partition convergence, or
 retained historical state-root compatibility. Public-genesis
 rehearsal and V2 semantics are still blocked; preserve PR77 Draft
 NO-GO and do not refresh stale review digests.
+
+
+## Legacy role cross-revision outcome probe — six metadata differences (2026-11-01)
+
+The first `pinned-main → PR77` synthetic replay workflow was extended to
+run an **identical 126-case legacy role/reviewer transaction matrix** inside
+each pinned revision's separately installed environment. The single source
+script, `scripts/pr77_legacy_role_parity_probe.py`, verifies that its
+`weall.runtime.apply.roles` import actually comes from the requested
+checkout. The matrix includes 9 TX types, two parameter states (missing
+`reputation_role_gate_version` and explicit integer v1), and seven
+synthetic conditions (normal, banned, locked, Tier1, manually revoked, low
+scalar reputation, absent account). Both sides invoke the actual
+`run_with_bounded_rollback` role dispatcher and capture exact result
+metadata or exception code/reason/details, plus input and output consensus
+state roots. Rejected transactions must roll back their state.
+
+**Finding: exact outcome parity FAILS in six of 126 synthetic cases**;
+the other 120 match. All six have the same input state root, output state
+root, admission-independent status and all other metadata. The **sole
+difference** is the `deduped` value:
+
+| Transaction | State | Pinned main | PR77 |
+| --- | --- | --- | --- |
+| `ROLE_JUROR_ACTIVATE` | Already active; missing version and explicit v1 | `false` | `true` |
+| `ROLE_JUROR_REINSTATE` | Already active; missing version and explicit v1 | `false` | `true` |
+| `ROLE_NODE_OPERATOR_ACTIVATE` | Already active; missing version and explicit v1 | `false` | `true` |
+
+**Zero state-root differences** were observed across all 126.
+The known source-level mechanism is the `JournaledList` proxy in
+`bounded_rollback.py`. Pinned main inherits C-level list membership from
+the empty underlying proxy list; PR77 now overrides `__contains__` to
+query the actually persisted target list. This fixes the proxy's observable
+semantics and the previously proven discrepancy against deepcopy, but also
+changes returned `deduped` metadata when a role is already active.
+
+**Consensus receipt-root scope:** Both current block construction
+(`block_builder.py`) and follower replay (`block_replay.py`) produce
+successful canonical receipts from `tx_id`, `tx_type`, `signer`,
+`nonce` and `ok`; they do **not** serialize the role applier's
+`deduped` field into the success receipt. Therefore these six
+`deduped` differences alone do **not** change the current canonical
+receipt root or state root. This observation does not establish that all
+possible metadata consumers, earlier historical receipt schemas, or
+other list operations are equivalent. A real retained old ledger and
+source-specific replay remain required.
+
+[Discovery run 41378027258](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41378027258)
+first stopped at the already-active juror difference. The expanded
+diagnostic [run 41378163352](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41378163352)
+printed the **six complete mismatches** and preserved old/current case
+summaries and machine-readable variance in a non-secret Actions artifact.
+The cross-revision *block replay* step independently passed in these
+workflows; the overall job is red **specifically because exact applier
+metadata parity was required**. Do not relabel the job as a replay failure
+or silently forgive the differences. Whether to add a reviewed
+versioned compatibility policy for auxiliary metadata needs a
+distinct, explicit decision; no runtime or semantic digest change was
+authorized by this probe.
+
+This is a synthetic applier matrix: no signed historical role blocks,
+historical external node ledger, historical activate/opt-out roots,
+cryptographic SYSTEM queue origin, or independent BFT replay is established.
+PR77 stays Draft/unmerged and public-testnet NO-GO.
