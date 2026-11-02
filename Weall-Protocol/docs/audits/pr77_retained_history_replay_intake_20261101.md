@@ -66,3 +66,51 @@ A green run demonstrates the single-runner devnet path, **not** historical
 compatibility, machine independence, a third-party attestation, decentralized
 validator consensus or public testnet readiness. It cannot close either the
 retained-history archive prerequisite or external two-machine review gate.
+
+
+## Pinned-main-to-review synthetic cross-revision replay — positive bounded evidence (2026-11-01)
+
+**PASS, but STILL NOT HISTORICAL-LEDGER REPLAY.** New read-only CI
+`.github/workflows/pr77-cross-revision-synthetic-replay.yml` checks out
+two independently pinned code revisions into separate directories and Python
+environments:
+
+- Base: `main` commit `2f35cfb5823cc083a3cb833798cf60a1b1895377`.
+- Candidate: PR77 commit `f7aa3460f17a056a09a08188005449695ff73898`
+  for the first verified run.
+- Both use Python 3.12 and their respective hashed dev dependency locks.
+- GitHub verifies checkout HEAD identities, distinct revisions, identical
+  tracked synthetic fixture generator and transaction index.
+- The base produces and stores a **three-block synthetic testnet ledger**
+  with six signed `ACCOUNT_REGISTER` submissions, replayed by a second base
+  executor. The retained base SQLite DB is hashed and treated as offline
+  source input to the PR77 historical-intake verifier.
+- The PR77 verifier replays **the base-produced stored blocks** in a fresh
+  scratch executor. It independently checks the hash-bound source and TX
+  index, each block's commitment, each per-height state root and final state
+  root. The workflow also compares the three produced block IDs and hashes to
+  the base manifest and asserts the final state root matches exactly.
+- No databases, operator keys or key files are uploaded to Actions
+  artifacts; only a synthetic-source JSON manifest and a replay result JSON.
+
+[Successful run 41377240939](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41377240939)
+includes the [non-secret dual-report artifact](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41377240939/artifacts/13112121006).
+Both selected code revisions successfully executed on the separate Python
+environments and passed the three-height checks. The generated report
+preserves `historical_provenance_verified=false`,
+`old_version_compatibility_proven=false` and
+`independent_two_node_consensus_proven=false`; the workflow adds only
+`synthetic_cross_revision_replay_proven=true`.
+
+This evidence narrows uncertainty about *ordinary signed account
+registration block compatibility* between the pinned main revision and the
+review branch. It does not exercise severe dispute votes, the initial
+20/25-juror outcome, fresh appeal assignment, ACCOUNT_BAN receipt
+authorization, reviewer-lane opt-out admission, or explicit v2 reputation
+role-gate activation. It cannot show that an **independently captured,
+historically retained** old ledger will replay, and does not certify any
+public or two-machine consensus workflow.
+
+The missing authentic old-chain database remains the **hard gate**. Do not
+rename this result as a historical replay, update any V2 digest, or merge
+from a green synthetic compatibility check.
