@@ -225,6 +225,21 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
         is not None
     )
 
+    # Reporter cannot claim review duty on the case they opened, even when
+    # they later opt into the exact content lane via a valid signed tx.
+    _commit_signed(
+        source,
+        tx_type="REVIEWER_LANE_OPT_IN",
+        signer="@bob",
+        nonce=4,
+        payload={"account_id": "@bob", "lane": "content_review"},
+    )
+    reporter_case = source.read_state()["disputes_by_id"][case["id"]]
+    assert reporter_case["stage"] == "unassigned"
+    assert reporter_case["assigned_jurors"] == []
+    assert reporter_case["jurors"] == {}
+    assert reporter_case["assignment_blocked_reason"] == "reporter_cannot_review_own_report"
+
     # A separate signer has to opt into explicit responsibility rather than
     # gaining reviewer duties from Tier-2 or validator/operator identity.
     charlie_pub, _ = _deterministic_replay_fixture_keypair(label="@charlie")

@@ -190,3 +190,27 @@ explicitly height-advancing empty block, demands its successful canonical
 receipt and `finalized` case stage, **then** submits the signed duplicate
 and compares finalized-case and ballot/reputation evidence before/after.
 Status: pending revised exact-head CI. No production runtime changed.
+
+
+## Local fallback reassignment: report-party conflict and retry (new candidate)
+
+An inspection of `runtime/apply/roles.py::_assign_unassigned_content_reviews_to_juror`
+found that the non-strict single-reviewer reassignment branch excluded the
+target owner but **not the reporter**. This allowed a reporter who opted into
+`content_review` after their report was opened to receive their own case.
+The same branch treated a prior
+`target_owner_cannot_review_own_content` blocked reason as permanently
+non-retryable, so a later unrelated reviewer could not clear the case.
+
+The focused patch adds reporter exclusion using the same normalized account
+matching already used for target owners, emits explicit
+`reporter_cannot_review_own_report` blocked state, and makes these two
+conflict-specific reasons retryable **only when a later reviewer without
+those conflicts opts in**. It leaves strict constitutional panel selection,
+account authority, severe sanctions and ballot profiles unchanged.
+
+Regressions: an actual signed reporter opt-in following a committed flag
+must not assign its own case; a subsequent independent eligible signer must
+still assign and complete it. Two direct role-flow tests separately cover
+reporter and target-owner conflict followed by legitimate reviewer opt-in.
+**Status pending exact-head CI; no release or independent consensus claim.**

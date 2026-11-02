@@ -166,12 +166,33 @@ def _assign_unassigned_content_reviews_to_juror(ledger: Json, acct: str, *, nonc
             continue
         if _active_assigned_jurors(dispute):
             continue
-        if blocked and blocked != "no_unconflicted_content_reviewer":
+        # A prior conflicting applicant must not permanently block a case
+        # from being assigned to a later unconflicted opt-in reviewer.
+        retryable_blocks = {
+            "no_unconflicted_content_reviewer",
+            "target_owner_cannot_review_own_content",
+            "reporter_cannot_review_own_report",
+        }
+        if blocked and blocked not in retryable_blocks:
             continue
         target_owner = _content_target_owner_for_dispute(ledger, dispute)
         if target_owner and _same_account(target_owner, acct):
             dispute["target_owner"] = target_owner
             dispute["assignment_blocked_reason"] = "target_owner_cannot_review_own_content"
+            disputes[dispute_id] = dispute
+            continue
+
+        # A reporter is a material party to their own content challenge.
+        # The strict-profile constitutional panel is selected elsewhere;
+        # the legacy/local single-reviewer fallback must enforce the same
+        # self-review exclusion rather than granting duty on opt-in alone.
+        reporter_ids = [
+            dispute.get("reported_by"),
+            dispute.get("flagged_by"),
+            dispute.get("reporter"),
+        ]
+        if any(_same_account(reporter, acct) for reporter in reporter_ids):
+            dispute["assignment_blocked_reason"] = "reporter_cannot_review_own_report"
             disputes[dispute_id] = dispute
             continue
 
