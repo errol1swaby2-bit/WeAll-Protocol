@@ -323,9 +323,24 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     assert len(ballot_receipts) == 1
     assert ballot_receipts[0]["final"] is True
 
+    # Let the already-scheduled final receipt commit in its own block first.
+    # Otherwise a valid scheduled resolved -> finalized transition coincides
+    # with the rejected duplicate and invalidates a naive case-diff assertion.
+    height_before_final = int(source.read_state()["height"])
+    final_meta = source.produce_block(max_txs=2, allow_empty=True)
+    assert final_meta.ok is True, final_meta.error
+    assert source.read_state()["height"] == height_before_final + 1
+    final_block = source.get_block_by_height(height_before_final + 1)
+    assert isinstance(final_block, dict)
+    assert any(
+        receipt["ok"] is True and receipt["tx_type"] == "DISPUTE_FINAL_RECEIPT"
+        for receipt in final_block["receipts"]
+    ), final_block["receipts"]
+    assert source.read_state()["disputes_by_id"][case["id"]]["stage"] == "finalized"
+
     # A second distinct signed ballot with a fresh nonce must never count twice.
     # It should be included as a failed block receipt, with no mutation to the
-    # existing case, ballot commitments, reviewer status or reputation events.
+    # existing finalized case, ballot commitments or reputation events.
     before_duplicate = source.read_state()
     before_case = deepcopy(before_duplicate["disputes_by_id"][case["id"]])
     before_ballots = deepcopy(before_duplicate["dispute_ballot_admission_receipts"])

@@ -175,3 +175,18 @@ matching fresh-executor replay of the rejected transaction itself.
 This new assertion must **not** be marked verified until the exact-head
 pinned CI has passed. It is unrelated to changing sealed-ballot profile
 activation, 25-member juries, or severe sanction authority.
+
+
+### Duplicate-ballot CI diagnostic: scheduled finality is not ballot mutation
+
+Initial focused workflow [#41506003529](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41506003529)
+confirmed a **failed signed duplicate ballot block receipt** with reason
+`dispute_ballot_already_final`. The test then wrongly treated the already
+queued `DISPUTE_FINAL_RECEIPT` transition (`resolved` →
+`finalized`) as mutation caused by the rejected ballot. This is a *fixture
+comparison error*, not evidence that duplicate voting changed the result.
+The revised test first commits the expected final receipt in a separate
+explicitly height-advancing empty block, demands its successful canonical
+receipt and `finalized` case stage, **then** submits the signed duplicate
+and compares finalized-case and ballot/reputation evidence before/after.
+Status: pending revised exact-head CI. No production runtime changed.
