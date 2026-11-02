@@ -194,7 +194,22 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
         for receipt in block["receipts"]
         if receipt.get("tx_type") == "FLAG_ESCALATION_RECEIPT"
     ]
-    assert len(receipt_audit) == 1
+    assert len(receipt_audit) == 1, {
+        "height": state["height"],
+        "system_queue": [
+            {
+                "tx_type": item.get("tx_type"),
+                "due_height": item.get("due_height"),
+                "emitted_height": item.get("emitted_height"),
+                "phase": item.get("phase"),
+                "parent": item.get("parent"),
+            }
+            for item in state.get("system_queue", [])
+        ],
+        "block_tx_types": [
+            [receipt.get("tx_type") for receipt in block["receipts"]] for block in blocks
+        ],
+    }
     assert receipt_audit[0]["ok"] is True
     assert receipt_audit[0]["signer"] == "SYSTEM"
     assert (
