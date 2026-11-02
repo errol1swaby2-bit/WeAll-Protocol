@@ -88,3 +88,32 @@ The read-only review-packet generator and tests are being aligned to this 17-row
 
 Exact-head evidence: Backend CI run [41538354386](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41538354386), Reviewer Readiness run [41538354435](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41538354435), A01–A20 P1 Revalidation run [41538354663](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41538354663), and read-only semantic-drift diagnostic run [41538354489](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41538354489). The first three remain failed at the V2 review gate; the diagnostic reports zero missing state stable IDs. The P1 run recorded 411 passing tests and one failure at clean-checkout V2 compilation; Backend CI skipped the full backend pytest step after its early compile failure.
 
+## Technical adjudication snapshot (2026-11-02; no semantic sign-off)
+
+Reviewed runtime source and focused regression evidence at implementation head `3df8d67bd00b2c6e1d0c50bb86275c8196833211`. This section records technical conclusions only. It does not authorize, sign, or update any accepted semantic-review digest.
+
+### Source-backed behavior supported by focused tests
+
+- `DISPUTE_JUROR_ASSIGN`, `DISPUTE_JUROR_ACCEPT`, and `DISPUTE_VOTE_SUBMIT`: `_require_dispute_reviewer_lane` checks target-owner and report-party conflicts using identity variants across `reported_by`, `flagged_by`, and `reporter`. The integration test verifies the reporter remains unassigned and that a reporter's signed accept rejection leaves both scratch and canonical state unchanged. The vote path separately rejects an unverified severe appeal panel before vote mutation.
+- `DISPUTE_RESOLVE`: the implementation binds constitutional severe resolution to the verified initial 20-of-25 threshold, rejects a system-supplied outcome that disagrees with the stored verdict, and rejects a conflicting automatic-appeal record when the experimental flow is active. Focused tests exercise all three denial reasons and the legacy-clock boundary.
+- `DISPUTE_APPEAL`: the implementation records a valid appeal as `appeal_pending_panel` when the strict fresh-panel pool is insufficient, clears live jury duty, and preserves the original panel snapshots. It rejects replacement of an already recorded automatic severe appeal. `DISPUTE_FINAL_RECEIPT` blocks pending appeals and blocks constitutional severe-sanction finality while automatic appeal authorization is unimplemented.
+- `ACCOUNT_BAN`: under the enabled constitutional policy, the applier rejects the transaction with `severe_sanction_authorization_unimplemented`; the legacy/dev path remains separate. The same-nonce dedupe path rejects a conflicting receipt instead of silently deduping it.
+
+These are supported implementation findings, not a declaration that the protocol is deployable. In particular, the severe-account path remains deliberately fail-closed and does not establish an operational automatic-appeal or sanction-authority system.
+
+### Contract-accuracy holds before digest acceptance
+
+- `DISPUTE_OPEN`: the handler binding to `dispute_open` is the correct transaction-specific source, and direct-call/dispatcher parity tests cover success and rejection in both clock modes. However, `dispute_open` calls `_validate_dispute_target_type` before its proposal-specific status branch. The allowlist currently rejects `proposal`, `governance`, and `governance_proposal`, so the generated current contract's `proposal_not_found` and `active_proposal_dispute_protected` failure entries, plus `key:gov_proposals_by_id`, describe currently unreachable branches. The branch may be future defense-in-depth, but the review packet must not treat these as currently reachable runtime outcomes without an explicit adjudication note.
+- The eight activation/opt-in rows—`ROLE_JUROR_ENROLL`, `ROLE_JUROR_ACTIVATE`, `ROLE_JUROR_REINSTATE`, `ROLE_VALIDATOR_ACTIVATE`, `ROLE_NODE_OPERATOR_ACTIVATE`, `ROLE_EMISSARY_SEAT`, `ROLE_GOV_EXECUTOR_SET`, and `REVIEWER_LANE_OPT_IN`—call `_require_role_activation_eligible`, which delegates to `role_activation_reputation_decision` and raises dynamic `RolesApplyError(code, reason, details)`. The compiler's literal-only `_extract_failures` therefore emits `RolesApplyError:runtime_apply_failure` and misses the actual dynamic reason set. The runtime tests cover default/v1/v2 behavior, banned/locked accounts, PoH tier, manual revocation, scalar reputation, malformed versions, and canonical penalties for mapped juror/validator roles. The generated delta is not proof that the old runtime rejections disappeared.
+- `REVIEWER_LANE_OPT_OUT`: this transaction calls the shared `_apply_reviewer_lane_update(..., active=False)` branch. That branch does not call the activation predicate; it permits the withdrawal operation even if the activation predicate would reject. Tests explicitly verify this for banned, Tier-1, revoked, and malformed-version states. Public admission separately blocks banned/locked signers before apply. The current generated role-gate delta is therefore a shared-function/static-analysis artifact, not a runtime change to the opt-out path.
+
+### Verification at this head
+
+- The read-only review-packet workflow passed: 459 tests, Ruff checks and formatting passed, `pending_count=17`, no unexpected stale rows, no missing stable IDs, and no packet-integrity blockers. Its output explicitly remains NO-GO for semantic approval.
+- The separate `DISPUTE_OPEN` semantic-drift diagnostic passed, as did the focused severe-appeal threshold, initial 20-vote guard, and severe-account finality fail-closed workflows.
+- Backend CI, Reviewer Readiness, and A01–A20 P1 Revalidation still fail at the V2 semantic-review gate for the same 17 transaction types. In the P1 run, 411 tests passed and one clean-checkout compiler test failed on the stale-digest gate; Backend CI stops before the full backend pytest step.
+
+### Next admissible action
+
+Do not regenerate or accept all 17 digests as a batch. First resolve the two contract-accuracy holds above in the review record (either improve the source-derived contract material or explicitly adjudicate the known scanner limitations), then request explicit maintainer acceptance for the exact current digest of each row. Keep PR #77 Draft and unmerged until the required compiler, readiness, and P1 gates pass.
+
