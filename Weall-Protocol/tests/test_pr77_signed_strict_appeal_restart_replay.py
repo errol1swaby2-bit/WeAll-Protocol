@@ -161,6 +161,33 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
             payload={"account_id": reviewer, "lane": "dispute_review"},
         )
 
+    # Admission rejects client-claimed S4 labels before a case can be
+    # committed. Even a genuinely signed allegation is not classification.
+    _, reporter_private = _deterministic_replay_fixture_keypair(label=REPORTER)
+    untrusted = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN,
+            "tx_type": "DISPUTE_OPEN",
+            "signer": REPORTER,
+            "nonce": 1,
+            "payload": {
+                "dispute_id": CASE_ID,
+                "target_type": "account",
+                "target_id": TARGET,
+                "reason": "Controlled synthetic ordinary case",
+                "sanction_class": "S4",
+                "severity": "severe",
+            },
+        },
+        privkey=reporter_private,
+        encoding="hex",
+    )
+    prior_height = source.read_state()["height"]
+    refused = source.submit_tx(untrusted)
+    assert refused["ok"] is False
+    assert refused["reason"] == "schema_validation_failed"
+    assert source.read_state()["height"] == prior_height
+
     opening_height, opening_tx_id = _commit_signed(
         source,
         tx_type="DISPUTE_OPEN",
@@ -171,8 +198,6 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
             "target_type": "account",
             "target_id": TARGET,
             "reason": "Controlled synthetic ordinary case",
-            "sanction_class": "S4",
-            "severity": "severe",
         },
     )
     opened = source.read_state()["disputes_by_id"][CASE_ID]
@@ -236,16 +261,12 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     assert TARGET not in fresh + fresh_subs
     assert appeal["assigned_jurors"] == fresh
     assert not state["accounts"][TARGET].get("banned", False)
-    assert not any(
-        entry.get("tx_type") == "ACCOUNT_BAN"
-        for entry in state.get("system_queue", [])
-    )
+    assert not any(entry.get("tx_type") == "ACCOUNT_BAN" for entry in state.get("system_queue", []))
 
     source_height = int(state["height"])
     source_root = compute_state_root(state)
     source_blocks = [
-        deepcopy(source.get_block_by_height(height))
-        for height in range(1, source_height + 1)
+        deepcopy(source.get_block_by_height(height)) for height in range(1, source_height + 1)
     ]
     assert all(isinstance(block, dict) for block in source_blocks)
     assert opening_tx_id in source_blocks[opening_height - 1]["header"]["tx_ids"]
@@ -278,10 +299,13 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
 
     assert independent.read_state() == restarted.read_state()
     assert compute_state_root(independent.read_state()) == source_root
-    assert compare_replay_manifests(
-        build_replay_manifest(restarted),
-        build_replay_manifest(independent),
-    ) == []
+    assert (
+        compare_replay_manifests(
+            build_replay_manifest(restarted),
+            build_replay_manifest(independent),
+        )
+        == []
+    )
     assert independent.read_state()["disputes_by_id"][CASE_ID] == appeal
 
     # These are offline execution/restart observations, never a BFT QC,
