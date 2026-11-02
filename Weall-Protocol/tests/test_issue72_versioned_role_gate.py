@@ -471,9 +471,7 @@ def test_juror_reinstate_explicit_v2_enforces_role_event_policy(
         assert raised.value.reason == expected
         assert state == before
     else:
-        (metadata, _) = run_with_bounded_rollback(
-            state, lambda target: apply_roles(target, env)
-        )
+        (metadata, _) = run_with_bounded_rollback(state, lambda target: apply_roles(target, env))
         assert metadata["account_id"] == "@alice"
         assert state["roles"]["jurors"]["by_id"]["@alice"]["active"] is True
 
@@ -510,11 +508,12 @@ def test_reviewer_lane_opt_out_never_requires_reputation_eligibility(
         payload={"account_id": "@alice", "reviewer_lanes": ["dispute_review"]},
         sig="sig",
     )
-    (metadata, _) = run_with_bounded_rollback(
-        state, lambda target: apply_roles(target, env)
-    )
+    (metadata, _) = run_with_bounded_rollback(state, lambda target: apply_roles(target, env))
     assert metadata["applied"] == "REVIEWER_LANE_OPT_OUT"
-    assert state["roles"]["jurors"]["by_id"]["@alice"]["responsibilities"]["reviewer"][
-        "dispute_review"
-    ]["active"] is False
+    assert (
+        state["roles"]["jurors"]["by_id"]["@alice"]["responsibilities"]["reviewer"][
+            "dispute_review"
+        ]["active"]
+        is False
+    )
     assert state["roles"]["jurors"]["active_set"] == ["@alice"]
