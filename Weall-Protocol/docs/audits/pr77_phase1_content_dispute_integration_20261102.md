@@ -458,3 +458,48 @@ deadline. No raw juror mappings or appeal reasons were added to the UI.
 
 The state transition remains a constitutional semantic deviation requiring
 independent review; API/frontend visibility is not end-to-end BFT proof.
+
+## 2026-11-02 — pending appeal API/frontend integration exact-source checkpoint
+
+The redacted public dispute read model now returns an aggregate
+`appeal_panel_readiness` object, including pending/enforcement-hold status,
+original appeal filing block, panel and substitute requirements, candidate
+count and optional deterministic later-assignment block. The raw appeals
+array continues to be absent from broad list/detail responses; the
+frontend now uses `appeal_total` rather than mistakenly treating a
+redacted list as zero appeals.
+
+`_appeal_eligibility` is now explicitly bound to backend block height,
+the persisted filing deadline and duplicate account-alias filings. It
+returns `can_file=false` for the pending state and for already-filed
+or expired claims. The detail form now requires backend `can_file=true`
+rather than inferring signing authority from owning the content. The
+reviewer-eligible feed explicitly excludes `appeal_pending_panel` cases
+without juror assignment. List and detail screens identify a held,
+durable appeal and the need to wait for a complete independent panel.
+Source assertions check that no raw appeal array is rendered.
+
+**Pinned validation:** implementation/CI head
+`3106ceaf0b49cb292f6ca0409a064388d2baf8f9`,
+[PR77 workflow #41522387212](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41522387212):
+**47 focused and neighboring backend tests passed**, Ruff lint and format
+PASS, pinned Node 22/npm lock install PASS, `npm run typecheck` PASS,
+new pending-appeal source contract PASS, existing rendered-dispute-journey
+source assertions PASS. No screenshot-based browser automation or
+independently operated two-node BFT verification is implied by source checks
+or the TypeScript compiler.
+
+The reviewed backend continues to require the full original
+constitutional 7/15/25-member panel plus substitutes; no reduced
+bootstrap juror quorum, automatic severe sanction authority, private
+ballot activation or `ACCOUNT_BAN` authorization was enabled.
+
+**Next high-risk gate:** produce/replay a genuine *signed* strict
+constitutional-clock appeal transaction through durable executor blocks,
+persisted restart, eligibility changes, deterministic selection and
+full follower re-execution on fresh state. This differs from the existing
+signed **legacy/local** flow and from synthetic strict-clock domain
+tests. Follow with rendered browser appeal behavior and two-node
+independent BFT confirmation. Historical V2 semantic signoff remains
+pending because the appeal state write/read signature has materially
+changed.
