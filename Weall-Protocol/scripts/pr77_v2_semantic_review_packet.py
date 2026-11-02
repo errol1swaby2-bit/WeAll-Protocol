@@ -64,9 +64,7 @@ def build_packet() -> dict[str, Any]:
         (ROOT / "specs/v2/source/semantic_reviews.json").read_text(encoding="utf-8")
     )
     reviews = {
-        str(row["tx_type"]): row
-        for row in review_source["transactions"]
-        if isinstance(row, dict)
+        str(row["tx_type"]): row for row in review_source["transactions"] if isinstance(row, dict)
     }
     previous = {str(row["tx_type"]): row for row in prior_rows}
     if len(current_rows) != 236 or len(reviews) != 236 or len(previous) != 236:
@@ -130,9 +128,7 @@ def build_packet() -> dict[str, Any]:
         "registered_transaction_count": len(current_rows),
         "pending_count": len(pending),
         "newly_stale_not_in_known_15": unexpected,
-        "known_stale_now_resolved": sorted(
-            KNOWN_STALE - {item["tx_type"] for item in pending}
-        ),
+        "known_stale_now_resolved": sorted(KNOWN_STALE - {item["tx_type"] for item in pending}),
         "missing_state_stable_ids": missing_stable_ids,
         "independent_human_approval_recorded_by_this_packet": False,
         "production_or_testnet_authority": False,
@@ -166,8 +162,7 @@ def main() -> int:
                     if not item["archive_matches_accepted_digest"]
                 ],
                 "changed_fields_by_tx": {
-                    item["tx_type"]: item["changed_field_names"]
-                    for item in packet["transactions"]
+                    item["tx_type"]: item["changed_field_names"] for item in packet["transactions"]
                 },
                 "approvals_modified": False,
             },
