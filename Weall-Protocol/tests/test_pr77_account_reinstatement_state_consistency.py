@@ -146,3 +146,47 @@ def test_account_ban_canonical_handler_is_reputation_not_legacy_identity() -> No
     """The identity module contains an old function but is not its canon route."""
     assert handler_claims_for_tx_type("ACCOUNT_BAN") == ["reputation"]
     assert handler_name_for_tx_type("ACCOUNT_BAN") == "reputation"
+
+
+@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
+def test_synthetic_reputation_delta_can_reban_after_inline_reinstatement(
+    clock_enabled: bool,
+) -> None:
+    """A zero delta at the -100 floor revives exclusion after a remedy.
+
+    This is an executor-only synthetic chain, NOT proof of an authenticated
+    reputation-delta SYSTEM producer, constitutional ban, or live exploit.
+    """
+    seed = _state(clock_enabled=clock_enabled)
+    bounded = copy.deepcopy(seed)
+    reference = copy.deepcopy(seed)
+    apply_tx_atomic_meta(bounded, _final_receipt())
+    apply_tx_atomic_meta_deepcopy(reference, _final_receipt())
+
+    assert bounded["accounts"]["@target"]["banned"] is False
+    assert bounded["reputation"]["bans"]["@target"]["banned"] is True
+
+    delta = TxEnvelope(
+        tx_type="REPUTATION_DELTA_APPLY",
+        signer="SYSTEM",
+        nonce=22,
+        system=True,
+        parent="synthetic:unverified-delta-parent",
+        sig="synthetic-not-authenticated",
+        payload={
+            "account_id": "@target",
+            "delta_milli": 0,
+            "delta_id": "pr77:synthetic-reban-after-reinstatement",
+            "reason": "synthetic_zero_delta",
+        },
+    )
+    bounded_result = apply_tx_atomic_meta(bounded, delta)
+    reference_result = apply_tx_atomic_meta_deepcopy(reference, delta)
+
+    assert bounded_result == reference_result
+    assert bounded == reference
+    assert compute_state_root(bounded) == compute_state_root(reference)
+    assert bounded_result["newly_banned"] is True
+    assert bounded["accounts"]["@target"]["banned"] is True
+    assert bounded["reputation"]["bans"]["@target"]["banned"] is True
+    assert bounded["reputation"]["bans"]["@target"]["set_at_nonce"] == 22
