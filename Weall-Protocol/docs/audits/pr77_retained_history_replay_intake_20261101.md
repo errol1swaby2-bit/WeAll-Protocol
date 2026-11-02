@@ -375,3 +375,21 @@ canonical external transaction ingress. The repaired positive fixture supplies
 an explicit signed `dispute_id`. Independent semantic-review approval of the
 DISPUTE_OPEN schema remains pending; this change **does not** loosen the
 admission gate or change consensus.
+
+
+### Reviewer key-layout correction — 2026-11-02
+
+A positive synthetic replay exposed a mismatch in the *reviewer*, not
+in consensus signature admission. The initial helper used
+`weall.crypto.sig.verify_tx_sig_against_any_key`, whose separate
+`extract_active_account_pubkeys` only supports account key **lists**.
+Canonical genesis bootstrap writes active keys into `keys.by_id` (a mapping).
+The actual runtime's `weall.runtime.sigverify._extract_active_keys`
+supports both formats. The reviewer now uses that existing active-key
+extraction, but verifies the exact ML-DSA signature through
+`canonical_tx_message` and `verify_signature_for_profile` directly.
+It deliberately avoids runtime `verify_tx_signature`'s
+`WEALL_UNSAFE_DEV` fallback and never substitutes a caller-authored
+`verified=true` flag. It continues to require signed transaction chain
+identity, matching predecessor signer keys, and complete block commitments.
+This is read-only review tooling; consensus verification is unchanged.

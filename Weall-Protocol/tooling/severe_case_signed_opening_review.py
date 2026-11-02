@@ -11,9 +11,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from weall.crypto.sig import verify_tx_sig_against_any_key
+from weall.crypto.sig import canonical_tx_message, verify_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.runtime.block_commitment_validation import validate_complete_block_commitments
+from weall.runtime.sigverify import _extract_active_keys
 from weall.runtime.tx_id import compute_tx_id_from_dict
 
 SCHEMA = "weall.review-only.signed-dispute-opening.v0"
@@ -148,18 +149,30 @@ def review_signed_dispute_opening(
     signed = False
     if candidate_shape and prestate_context:
         try:
-            signed, _verification = verify_tx_sig_against_any_key(
-                ledger=dict(s),
+            # Runtime genesis accounts use keys.by_id while some legacy
+            # fixtures use a list. Reuse the runtime's active-key extraction
+            # but NOT verify_tx_signature(): its testnet unsafe-dev fallback
+            # can return True when no active key exists.
+            account = s["accounts"][tx["signer"]]
+            keys = _extract_active_keys(account, sig_profile=PQ_MLDSA_V1)
+            message = canonical_tx_message(
+                chain_id=chain_id,
+                network_id=tx.get("network_id"),
+                sig_profile=PQ_MLDSA_V1,
                 tx_type="DISPUTE_OPEN",
                 signer=tx["signer"],
                 nonce=tx["nonce"],
                 payload=dict(payload),
-                sig=tx["sig"],
                 parent=None,
-                chain_id=chain_id,
-                network_id=tx.get("network_id"),
-                sig_profile=tx["sig_profile"],
-                chain_config=dict(_map(s.get("chain_config"))),
+            )
+            signed = any(
+                verify_signature_for_profile(
+                    sig_profile=PQ_MLDSA_V1,
+                    message=message,
+                    sig=tx["sig"],
+                    pubkey=pubkey,
+                )
+                for pubkey in keys
             )
         except (TypeError, ValueError, OverflowError):
             signed = False
