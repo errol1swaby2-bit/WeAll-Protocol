@@ -250,8 +250,10 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     assert appeal["appeals"][0]["by"] == TARGET
     assert appeal["appeals"][0]["at_nonce"] == 3
     assert appeal["appeals"][0]["height"] == appeal_height - 1
-    assert appeal["original_panel_juror_ids"] == original
-    assert appeal["original_substitute_juror_ids"] == original_subs
+    # The appeal snapshot canonicalizes reviewer IDs into sorted order.
+    # Compare membership rather than mistaking that for panel reassignment.
+    assert set(appeal["original_panel_juror_ids"]) == set(original)
+    assert set(appeal["original_substitute_juror_ids"]) == set(original_subs)
     fresh = list(appeal["appeal_panel_juror_ids"])
     fresh_subs = list(appeal["appeal_substitute_juror_ids"])
     assert len(fresh) == 7
