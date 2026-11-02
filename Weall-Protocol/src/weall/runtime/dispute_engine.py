@@ -92,6 +92,9 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
     disputes = state.get("disputes_by_id")
     if not isinstance(disputes, dict) or not disputes:
         return 0
+    # Run once for the entire replicated state, not once per pending case.
+    # A valid appeal remains pending if the fresh pool is still too small.
+    assign_pending_appeal_panels(state, next_height=int(next_height))
     enq = 0
     for did, dispute in sorted(disputes.items(), key=lambda item: str(item[0])):
         if not isinstance(dispute, dict):
@@ -116,9 +119,7 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
         )
         stage = str(dispute.get("stage") or "").strip().lower()
         if stage == "appeal_pending_panel":
-            # Deterministic replicated-state assignment; no queued SYSTEM
-            # receipt and no expiry of a timely recorded appeal.
-            assign_pending_appeal_panels(state, next_height=int(next_height))
+            # The deadline applies to filing, not to panel availability.
             continue
         if stage not in {"appeal_window", "appealed", "appeal_review", "appeal_resolved"}:
             continue
