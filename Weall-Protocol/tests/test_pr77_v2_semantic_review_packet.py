@@ -134,3 +134,29 @@ def test_review_packet_integrity_blocks_unexpected_inventory_changes() -> None:
     errors = packet_integrity_blockers(packet)
     assert "unexpected_stale_transaction" in errors
     assert "missing_state_stable_ids" in errors
+
+
+def test_dispute_vote_submit_new_severe_appeal_guard_is_review_input_only() -> None:
+    """An executable guard still needs real semantic review and replay proof."""
+    packet = build_packet()
+    rows = [row for row in packet["transactions"] if row["tx_type"] == "DISPUTE_VOTE_SUBMIT"]
+    assert len(rows) == 1
+    row = rows[0]
+
+    # This transaction's compiler drift is restricted to the newly visible
+    # severe-appeal denial, unlike DISPUTE_OPEN's broad-dispatcher rebind.
+    assert row["changed_field_names"] == ["failure_codes"]
+    assert row["archive_matches_accepted_digest"] is True
+    assert row["archived_implementation_source"] == row["current_implementation_source"]
+    assert row["failure_code_deltas"] == {
+        "added": [
+            {
+                "code": "forbidden",
+                "reason": "severe_appeal_fresh_panel_unverified",
+            }
+        ],
+        "removed": [],
+    }
+    assert row["signed_off_for_current_digest"] is False
+    assert row["historical_replay_proven"] is False
+    assert packet["must_not_update_semantic_reviews_automatically"] is True
