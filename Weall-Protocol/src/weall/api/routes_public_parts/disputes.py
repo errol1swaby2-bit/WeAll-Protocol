@@ -201,10 +201,13 @@ def _appeal_eligibility(st: dict[str, Any], obj: dict[str, Any], *, viewer: str)
     can_window = stage in {"appeal_window", "appealed", "appeal_review"}
     can_actor = bool(viewer and allowed and any(_same_identity(viewer, acct) for acct in allowed))
     appeals = obj.get("appeals") if isinstance(obj.get("appeals"), list) else []
-    already_filed = any(
-        isinstance(entry, dict) and _same_identity(viewer, entry.get("by"))
-        for entry in appeals
-    ) if viewer else False
+    already_filed = (
+        any(
+            isinstance(entry, dict) and _same_identity(viewer, entry.get("by")) for entry in appeals
+        )
+        if viewer
+        else False
+    )
     deadline = int(obj.get("appeal_deadline_height") or 0)
     current_height = int(st.get("height") or 0)
     expired = deadline > 0 and current_height > deadline
@@ -249,7 +252,9 @@ def _appeal_panel_readiness(obj: dict[str, Any]) -> dict[str, Any]:
         "required_panel_size": int(obj.get("appeal_panel_required_size") or 0),
         "required_substitute_count": int(obj.get("appeal_substitute_required_count") or 0),
         "available_candidate_count": int(obj.get("appeal_panel_available_candidate_count") or 0),
-        "blocked_reason": str(obj.get("appeal_panel_blocked_reason") or "").strip() if pending else "",
+        "blocked_reason": str(obj.get("appeal_panel_blocked_reason") or "").strip()
+        if pending
+        else "",
         "next_action": "await_independent_jurors" if pending else "",
     }
 
