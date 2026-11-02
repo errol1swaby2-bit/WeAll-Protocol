@@ -2,6 +2,19 @@
 
 **Status: PLANNED / NOT SATISFIED.** This is a pre-testnet acceptance specification, not evidence that a clean run has already succeeded. The development chain's prior transaction history is deliberately **not** the testnet's canonical chain history.
 
+## Development sequence before the clean-genesis gate
+
+The fresh-genesis acceptance steps below are **future release steps**, not the immediate work queue. The development completion order is:
+
+1. **Complete and connect all missing or incorrectly wired backend and protocol subsystems.** Preserve unresolved constitutional semantics and security gates rather than silently implementing speculative authority.
+2. **Exercise canonical end-to-end integrations** across protocol domains, transaction admission, executor, consensus, networking, persistence and storage.
+3. **Revise and connect the frontend**, including layout, navigation, accessibility, browser signing, backend integration and actual user/operator journeys.
+4. **Reconcile and comprehensively update all documentation against the revised architecture, implemented behavior and explicit decisions** using [the architecture/documentation reconciliation gate](../reviewer/ARCHITECTURE_DOCUMENTATION_RECONCILIATION_GATE.md). This is a distinct required phase **after frontend completion and before full-system audit**, not a final cosmetic cleanup.
+5. **Conduct a full protocol and constitutional audit** against the newly reconciled design, running system, tests and UX. Any audit repairs that change architecture or behavior reopen impacted documentation and verification.
+6. **Freeze reviewed software and candidate genesis**, then perform the fresh clean-chain, complete evidence regeneration and independent replay/consensus checks defined below before launch.
+
+Phases 4–6 are not completed; the documentation inventory and final audit must not be labeled complete simply because existing documentation or focused tests exist.
+
 ## Authoritative scope decision
 
 The protocol implementation, not historical developmental test-ledger state, is what must be reproducible. Before testnet activation:
