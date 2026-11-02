@@ -9,6 +9,13 @@ on:
       - Weall-Protocol/scripts/devnet_restart_catchup_live.sh
       - Weall-Protocol/scripts/devnet_cross_node_convergence.py
       - Weall-Protocol/scripts/devnet_sync_from_peer.sh
+      - Weall-Protocol/src/weall/runtime/executor.py
+      - Weall-Protocol/src/weall/runtime/block_builder.py
+      - Weall-Protocol/src/weall/runtime/block_replay.py
+      - Weall-Protocol/src/weall/runtime/system_tx_engine.py
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/runtime/apply/reputation.py
+      - Weall-Protocol/src/weall/runtime/apply/roles.py
   workflow_dispatch:
 
 permissions:
