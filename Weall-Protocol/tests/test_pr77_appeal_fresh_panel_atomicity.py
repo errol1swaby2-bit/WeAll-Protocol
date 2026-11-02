@@ -19,9 +19,7 @@ def _state(*, jurors: int = 17) -> dict:
     roster = [f"@juror-{n:02d}" for n in range(jurors)]
     active = {
         "active": True,
-        "responsibilities": {
-            "reviewer": {"dispute_review": {"active": True, "opted_in": True}}
-        },
+        "responsibilities": {"reviewer": {"dispute_review": {"active": True, "opted_in": True}}},
     }
     return {
         "chain_id": "strict-local-appeal-fixture",
@@ -34,10 +32,7 @@ def _state(*, jurors: int = 17) -> dict:
         "accounts": {
             "@subject": {"poh_tier": 2, "banned": False, "locked": False},
             "@outsider": {"poh_tier": 2, "banned": False, "locked": False},
-            **{
-                account: {"poh_tier": 2, "banned": False, "locked": False}
-                for account in roster
-            },
+            **{account: {"poh_tier": 2, "banned": False, "locked": False} for account in roster},
         },
         "roles": {
             "jurors": {
