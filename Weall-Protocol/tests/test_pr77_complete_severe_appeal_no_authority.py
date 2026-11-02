@@ -145,7 +145,9 @@ def _complete_experimental_appeal(state: dict) -> None:
     assert case["appeal_panel_result"]["reached"] is True
 
 
-@pytest.mark.parametrize("claimed_waiver", [None, True, {"signed": True, "received_reasoned_outcome": True}])
+@pytest.mark.parametrize(
+    "claimed_waiver", [None, True, {"signed": True, "received_reasoned_outcome": True}]
+)
 def test_complete_synthetic_appeal_never_unlocks_severe_finalization(
     claimed_waiver: object,
 ) -> None:
@@ -170,9 +172,7 @@ def test_complete_synthetic_appeal_never_unlocks_severe_finalization(
             "receipt_id": "synthetic-not-authorized-final",
             "appeal_resolution": {
                 "decision": "uphold",
-                "actions": [
-                    {"tx_type": "ACCOUNT_BAN", "payload": {"account_id": "@target"}}
-                ],
+                "actions": [{"tx_type": "ACCOUNT_BAN", "payload": {"account_id": "@target"}}],
             },
         },
     )
