@@ -222,3 +222,58 @@ tracked Git blob IDs** for both canonical commit/replay implementations:
 This pins the above success-receipt shape to *both code revisions*, not
 just to the new candidate. It does not establish the behavior of
 untracked historical software or data.
+
+
+## Strict receipt-boundary classification of the six legacy dedupe deltas
+
+**Result: PASS in scoped synthetic cross-revision execution; not semantic
+approval or authentic historical replay.** The prior full-applier-output
+comparison identified six old `deduped=false` vs new `deduped=true`
+outcomes (three already-active role operations under missing and explicit
+v1 gate versions), even though 126/126 pre/post state roots matched.
+
+A new strict classifier
+`scripts/pr77_legacy_role_parity_adjudication.py` compares both
+126-case transcripts. It requires all cases to remain correctly ordered,
+identically initialized, with identical outcome status, error/rejection
+information, input and post-execution state roots, and canonical
+receipt-shaped objects hashed by the actual `compute_receipts_root`.
+It permits **only six exact** differences in the *auxiliary* `deduped`
+metadata for already-active `ROLE_JUROR_ACTIVATE`,
+`ROLE_JUROR_REINSTATE`, and `ROLE_NODE_OPERATOR_ACTIVATE` in the
+two legacy policy-version configurations. Any extra, missing, reversed
+or modified difference fails. Twelve adversarial unit tests test the
+unclassified-change and state/receipt fail-closed behavior.
+
+The workflow verifies byte-identical pinned-main/PR77 sources for
+`block_builder.py` and `block_replay.py` before the comparison.
+Both implementations construct successful receipts without the
+`deduped` metadata. In the parity matrix, each receipt is
+**reconstructed with a synthetic test-only transaction ID**; it is
+not an admitted, signed, committed historical role transaction.
+Therefore matching synthetic receipt roots support the limited
+conclusion that the six metadata-only deltas cannot affect **that
+canonical success-receipt shape**, not that an authentic historical
+role/dispute ledger has replayed.
+
+[Run 41379560860](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41379560860)
+**PASS** at commit `fdb05165842dd8826b6cff392f0abe055ec1aa81`:
+pinned-main three-block signed synthetic-chain replay passed;
+strict Ruff checks and format passed; **12 adversarial tests passed**;
+and the two 126-case transcripts had identical synthetic receipt roots
+and state roots, with exactly six documented auxiliary metadata differences.
+[Non-secret artifact 13112289802](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41379560860/artifacts/13112289802)
+contains both transcripts, the scoped adjudication result and synthetic
+replay summary, not database/key material.
+
+The strict **consensus-boundary diagnostic** can now pass without
+pretending full applier metadata parity or allowing new differences.
+The machine-readable results explicitly retain:
+`strict_full_applier_metadata_parity=false`,
+`authentic_retained_history_proven=false`,
+`v2_semantic_review_approved=false`, and `release_ready=false`.
+No consensus rule, existing V2 semantic-review acceptance digest,
+or historical block was changed. All 15 V2 reviews remain outstanding;
+real old-chain role/dispute/severe-case history, per-height committed
+receipt/state-root checks, independent nodes and an authenticated
+severe-sanction producer remain release blockers.
