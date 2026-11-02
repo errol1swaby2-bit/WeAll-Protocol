@@ -87,3 +87,34 @@ no partial transaction-row mutation when stale, and retained route
 rejection.
 
 This is a diagnostic usability repair, **not** a gate bypass.
+
+
+## Exact-head DISPUTE_OPEN execution adjudication (2026-11-01 continuation)
+
+**Disposition: RUNTIME EVIDENCE IDENTIFIED; NEW SEMANTIC APPROVAL STILL NO-GO.**
+
+The prior/current comparison is anchored to the current read-only V2 packet: `DISPUTE_OPEN` (stable ID `TX-0200`) had the *accepted historical* function `apply_dispute`, but the current source registry now names the actual `dispute_open` function. Its changes are the six review-material fields `implementation_source`, `failure_codes`, `receipt_contract`, `state_reads`, `state_writes`, and `system_followups`. The prior generated material digest matches the on-record accepted digest; the present digest **does not**, and remains unsigned.
+
+A fresh GitHub comparison of the full `def dispute_open` and `def apply_dispute` function bodies between `main` and current Draft PR77 on 2026-11-01 found **byte-identical function text**, even though the full `dispute.py` file differs elsewhere. This is strong source-attribution evidence for the scanner rebind, **not proof** that all called helper semantics, registry behavior, final receipts or historical chain replay are unchanged.
+
+### Newly identified static-analysis overclaim: unreachable proposal paths
+
+The current `dispute_open` first invokes `_validate_dispute_target_type`, which rejects target types absent from `_ALLOWED_DISPUTE_TARGET_TYPES` **before** the proposal-status section. That allowlist currently contains:
+
+`account`, `comment`, `content`, `group`, `membership`, `moderator`, `poh`, `post`, `reviewer`.
+
+It **does not contain** any of `proposal`, `governance`, or `governance_proposal`. Nonetheless `dispute_open` has later code that would raise `not_found:proposal_not_found` and `forbidden:active_proposal_dispute_protected` for those targets. These later branches are unreachable through this handler in the current version. The V2 scanner's new `DISPUTE_OPEN` `failure_codes` includes both reasons because it does not prove control-flow reachability. They must not be signed off as **currently exercisable denial receipts**.
+
+The full synthetic direct-handler/dispatcher comparison added in `tests/test_pr77_dispute_open_semantic_adjudication.py` exercises both constitutional-clock on/off modes, success for permitted targets, absent target, unverified signer, duplicate opening, unsupported target, and all three proposal aliases across existing/missing/finalized targets. No synthetic `SYSTEM` envelope is claimed to be authenticated. The comparison is about exact current execution semantics, not live network admission or a real old-ledger replay.
+
+**Impact:** it is not currently possible to open a proposal-targeted dispute *using this `DISPUTE_OPEN` path*. This does **not** prove that all governance correction mechanisms are absent elsewhere in the protocol, nor is it evidence that allowing disputes against live proposals would be constitutional. It presents a real design decision: how final governance/proposal outcomes are challenged without permitting active-proposal suppression.
+
+### Proposed decision, not a code activation
+
+1. Keep the current target allowlist and legacy historical execution unchanged until the constitutionally appropriate scope, finality boundary and appeal authority are specified.
+2. If proposal challenges are meant to use `DISPUTE_OPEN`, define a **chain-committed versioned** eligibility rule: terminal governance outcomes may be challengeable, active proposals require a separate, explicitly authorized protection/review policy. Authenticate the target's finalized status at consensus height.
+3. If proposal challenges belong exclusively to another existing mechanism, formally identify that mechanism and remove/make explicit the dead code and scanner-only code/reason observations in a reviewed source-contract revision. Do not make this decision from an AST diff alone.
+4. Verify the actual upstream source, helper reachability, all success/denial cases and historical height-by-height roots using authentic pre-change ledger and software. An independent reviewer must accept each new V2 digest before generated derivatives change.
+5. Continue to reject `ACCOUNT_BAN` without authenticated severe-appeal evidence; changes here confer no sanction power.
+
+**No alteration to runtime behavior, accepted `semantic_reviews.json`, state root, governance activation, or V2 reviewer identity is made by this review.**
