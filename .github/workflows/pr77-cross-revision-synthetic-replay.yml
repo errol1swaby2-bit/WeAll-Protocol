@@ -10,6 +10,7 @@ on:
       - Weall-Protocol/scripts/replay_consistency_audit.py
       - Weall-Protocol/src/weall/runtime/block_replay.py
       - Weall-Protocol/src/weall/runtime/apply/roles.py
+      - Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
       - Weall-Protocol/src/weall/runtime/apply/reputation.py
   workflow_dispatch:
@@ -150,6 +151,52 @@ jobs:
           cd ../..
           rm cross-revision-artifacts/replay-input.json
 
+      - name: Compare old and current legacy role/reviewer outcomes on 126 synthetic cases
+        run: |
+          set -Eeuo pipefail
+          "$RUNNER_TEMP/pr77-base-venv/bin/python" candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py \
+            --expected-package-root historical/Weall-Protocol \
+            --report cross-revision-artifacts/pinned-main-legacy-role-outcomes.json
+          "$RUNNER_TEMP/pr77-head-venv/bin/python" candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py \
+            --expected-package-root candidate/Weall-Protocol \
+            --report cross-revision-artifacts/review-head-legacy-role-outcomes.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("cross-revision-artifacts")
+          old = json.loads((root / "pinned-main-legacy-role-outcomes.json").read_text())
+          new = json.loads((root / "review-head-legacy-role-outcomes.json").read_text())
+          assert old["case_count"] == new["case_count"] == 126
+          assert len(old["cases"]) == len(new["cases"]) == 126
+          for number, (before, after) in enumerate(zip(old["cases"], new["cases"], strict=True), 1):
+              if before != after:
+                  print(json.dumps({
+                      "ok": False,
+                      "first_divergent_case": number,
+                      "pinned_main": before,
+                      "candidate": after,
+                  }, sort_keys=True))
+                  raise SystemExit(1)
+          summary = {
+              "ok": True,
+              "schema": "weall.pr77.synthetic_legacy_role_parity.v1",
+              "base_commit": "2f35cfb5823cc083a3cb833798cf60a1b1895377",
+              "candidate_commit": __import__("os").environ["GITHUB_SHA"],
+              "case_count": 126,
+              "case_scenario": "nine_role_reviewer_txs_legacy_default_and_v1_seven_conditions",
+              "source": "synthetic_bounded_rollback_applier_not_blocks",
+              "per_case_code_reason_details_metadata_and_state_root_match": True,
+              "real_retained_ledger_proven": False,
+              "old_version_compatibility_proven": False,
+              "independent_two_node_consensus_proven": False,
+          }
+          (root / "legacy-role-cross-revision-parity.json").write_text(
+              json.dumps(summary, indent=2, sort_keys=True) + "\n"
+          )
+          print("PASS: 126 same-scenario legacy role and reviewer outcomes and state roots match.")
+          print("NO-GO: no signed historical role ledger; no production version activation proof.")
+          PY
+
       - name: Upload non-secret synthetic replay summaries (never databases or keys)
         if: always()
         uses: actions/upload-artifact@v4
@@ -158,5 +205,8 @@ jobs:
           path: |
             cross-revision-artifacts/pinned-main-synthetic-source.json
             cross-revision-artifacts/synthetic-cross-revision-replay.json
+            cross-revision-artifacts/pinned-main-legacy-role-outcomes.json
+            cross-revision-artifacts/review-head-legacy-role-outcomes.json
+            cross-revision-artifacts/legacy-role-cross-revision-parity.json
           if-no-files-found: warn
           retention-days: 14
