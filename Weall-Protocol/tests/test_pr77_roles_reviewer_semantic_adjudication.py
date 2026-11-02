@@ -31,9 +31,7 @@ GATED_TX_ROLES = (
     ("ROLE_GOV_EXECUTOR_SET", "gov_executor"),
     ("REVIEWER_LANE_OPT_IN", "juror"),
 )
-ALL_REVIEWED_TX_TYPES = tuple(tx for tx, _role in GATED_TX_ROLES) + (
-    "REVIEWER_LANE_OPT_OUT",
-)
+ALL_REVIEWED_TX_TYPES = tuple(tx for tx, _role in GATED_TX_ROLES) + ("REVIEWER_LANE_OPT_OUT",)
 SYSTEM_ORIGIN_TX_TYPES = frozenset(
     {
         "ROLE_VALIDATOR_ACTIVATE",
@@ -103,9 +101,9 @@ def _envelope(tx_type: str) -> TxEnvelope:
 
 
 def _apply_atomically(state: dict, tx_type: str) -> dict:
-    return run_with_bounded_rollback(
-        state, lambda ledger: apply_roles(ledger, _envelope(tx_type))
-    )[0]
+    return run_with_bounded_rollback(state, lambda ledger: apply_roles(ledger, _envelope(tx_type)))[
+        0
+    ]
 
 
 @pytest.mark.parametrize("tx_type", ALL_REVIEWED_TX_TYPES)
@@ -193,13 +191,16 @@ def test_malformed_role_gate_version_cannot_activate_role(
     assert state == before
 
 
-@pytest.mark.parametrize("tx_type,role,event_code", [
-    ("ROLE_JUROR_ENROLL", "juror", "DISPUTE_JUROR_TIMED_OUT"),
-    ("ROLE_JUROR_ACTIVATE", "juror", "DISPUTE_JUROR_TIMED_OUT"),
-    ("ROLE_JUROR_REINSTATE", "juror", "DISPUTE_JUROR_TIMED_OUT"),
-    ("REVIEWER_LANE_OPT_IN", "juror", "DISPUTE_JUROR_TIMED_OUT"),
-    ("ROLE_VALIDATOR_ACTIVATE", "validator", "VALIDATOR_DOUBLE_SIGN"),
-])
+@pytest.mark.parametrize(
+    "tx_type,role,event_code",
+    [
+        ("ROLE_JUROR_ENROLL", "juror", "DISPUTE_JUROR_TIMED_OUT"),
+        ("ROLE_JUROR_ACTIVATE", "juror", "DISPUTE_JUROR_TIMED_OUT"),
+        ("ROLE_JUROR_REINSTATE", "juror", "DISPUTE_JUROR_TIMED_OUT"),
+        ("REVIEWER_LANE_OPT_IN", "juror", "DISPUTE_JUROR_TIMED_OUT"),
+        ("ROLE_VALIDATOR_ACTIVATE", "validator", "VALIDATOR_DOUBLE_SIGN"),
+    ],
+)
 def test_canonical_penalty_only_blocks_explicit_v2_gate(
     tx_type: str, role: str, event_code: str
 ) -> None:
@@ -235,14 +236,15 @@ def test_reviewer_opt_out_stays_possible_when_activation_gate_rejects(
     elif restriction == "tier1":
         state["accounts"]["@alice"]["poh_tier"] = 1
     elif restriction == "revoked":
-        state["reputation"] = {
-            "role_eligibility": {"@alice": {"roles": {"juror": False}}}
-        }
+        state["reputation"] = {"role_eligibility": {"@alice": {"roles": {"juror": False}}}}
     else:
         state.setdefault("params", {})["reputation_role_gate_version"] = "2"
-    assert role_activation_reputation_decision(
-        state, "@alice", role="juror", minimum_reputation_milli=5000
-    )["eligible"] is False
+    assert (
+        role_activation_reputation_decision(
+            state, "@alice", role="juror", minimum_reputation_milli=5000
+        )["eligible"]
+        is False
+    )
     old = copy.deepcopy(state)
     result = _apply_atomically(state, "REVIEWER_LANE_OPT_OUT")
     assert result["applied"] == "REVIEWER_LANE_OPT_OUT"
