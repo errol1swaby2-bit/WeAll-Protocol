@@ -3066,16 +3066,9 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
                 {"dispute_id": dispute_id, "appellant": env.signer},
             )
 
-    appeals.append(
-        {
-            "by": env.signer,
-            "at_nonce": int(env.nonce),
-            "height": int(state.get("height", 0) or 0),
-            "payload": payload,
-        }
-    )
-    d["appeals"] = appeals
-
+    # Defer any appeal-state mutation until independent fresh-panel selection
+    # succeeds. Strict profiles must leave an insufficient-pool application
+    # failure completely unchanged, including an existing mutable appeals list.
     original_panel = _normalized_str_list(d.get("assigned_jurors"))
     original_substitutes = _normalized_str_list(d.get("substitute_juror_ids"))
     appeal_round = int(d.get("appeal_panel_round") or 1)
@@ -3099,6 +3092,18 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
                 "available_candidate_count": selection.get("available_candidate_count"),
             },
         )
+
+    # The strict fresh-panel completeness gate above is the last failing
+    # selection boundary. Only now append the authenticated actor's appeal.
+    appeals.append(
+        {
+            "by": env.signer,
+            "at_nonce": int(env.nonce),
+            "height": int(state.get("height", 0) or 0),
+            "payload": payload,
+        }
+    )
+    d["appeals"] = appeals
 
     now_h = int(state.get("height", 0) or 0)
     d["original_panel_juror_ids"] = list(original_panel)

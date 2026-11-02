@@ -301,3 +301,29 @@ and receipt reconciliation, restart under independent operators, verified
 real-human PoH and two-machine BFT finality. Severe sanction authority
 (`ACCOUNT_BAN`) and V2 review digest signoff remain gated. Full testnet
 rehearsal and evidence regeneration have not begun.
+
+
+## 2026-11-02 — strict appeal fresh-panel failure atomicity (candidate)
+
+In `runtime/apply/dispute.py::_apply_dispute_appeal` an appeal was appended
+to the live case's existing `appeals` list **before** strict
+`select_dispute_panel` verified sufficient fresh reviewers. When a
+7+2 strict ordinary appeal had only eight fresh unconflicted reviewers,
+the applier raised `insufficient_fresh_appeal_panel` but left the
+appellant's appeal recorded in caller-visible state. The surrounding
+canonical rollback machinery may undo changes on executor failure, but direct
+domain callers and future alternate integrations must not depend on that.
+
+The focused patch delays adding the appeal until after a successful strict
+panel completeness decision. Synthetic direct-domain tests require: failed
+8-of-9 available fresh pool leaves case and queue byte-for-byte equivalent;
+9-of-9 available produces a deterministic fresh 7+2 panel disjoint from
+original 7+2, records exactly one authorized appeal; an unauthorized or
+duplicate appellant and an expired window each fail without mutation.
+
+These tests **do not** prove real-human PoH, independent BFT, or strict
+public ballot activation. Because a strict insufficient-pool attempt is
+rejected (not durably recorded), the product policy for preserving appellant
+rights when the pool is depleted remains an architectural decision and
+possible lifecycle gap; this patch does not create automatic panel or extend
+constitutional deadlines. **Pending pinned CI.**
