@@ -87,6 +87,7 @@ jobs:
           "$RUNNER_TEMP/pr77-head-venv/bin/python" -m pip install --require-hashes -r candidate/Weall-Protocol/requirements-dev.lock
           "$RUNNER_TEMP/pr77-head-venv/bin/python" -m pip install -e candidate/Weall-Protocol --no-deps
           "$RUNNER_TEMP/pr77-head-venv/bin/ruff" check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py
+          "$RUNNER_TEMP/pr77-head-venv/bin/ruff" format --diff candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py || true
           "$RUNNER_TEMP/pr77-head-venv/bin/ruff" format --check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py
           python - <<'PY'
           import hashlib
