@@ -57,3 +57,23 @@ The previously accepted `DISPUTE_VOTE_SUBMIT` material remains anchored by its a
 The pre-existing `tests/test_pr77_severe_appeal_twenty_vote_guard.py` exercises the exposed executable behavior: seven malformed second-panel fields reject without state mutation; 17 ordinary votes cannot finalize a 20-vote severe appeal; the 20th structurally valid vote reaches only `appeal_resolved` and does **not** emit an `ACCOUNT_BAN` or `DISPUTE_FINAL_RECEIPT`; legacy-clock voting retains its current compatibility behavior. The associated new packet regression requires that this be the **sole V2 field and rejection-code change** for `DISPUTE_VOTE_SUBMIT`. Dedicated V2 packet CI now executes the existing runtime guard tests alongside all 15 diff checks.
 
 **Limit:** these are synthetic current-runtime tests. A structurally correct panel does not authenticate ballot signatures, an automatically selected independent appeal, valid SYSTEM queue provenance, or historical replay across versions. Adding this rejection changes replay-observable behavior under the constitutional clock; it must be explicitly reviewed with real old-height evidence. The accepted digest in `semantic_reviews.json` has **not** been replaced; no reviewer/waiver/activation authority is inferred.
+
+
+## DISPUTE_RESOLVE / DISPUTE_APPEAL: source-bound adjudication evidence (2026-11-01)
+
+**Disposition: EXECUTION CHARACTERIZED; V2 REVIEW STILL UNAPPROVED.**
+
+The new `tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py` pins both rows to their previously accepted V2 digests and confirms each has precisely two changed review-material fields: `failure_codes` and `state_reads`. The compiler's `implementation_source` remains identical to its accepted review in both cases; no current digest has been accepted.
+
+| Transaction | Added rejection reasons | Removed reasons |
+| --- | --- | --- |
+| `DISPUTE_RESOLVE` | `conflict:automatic_severe_appeal_already_assigned`, `forbidden:severe_sanction_initial_outcome_mismatch`, `forbidden:severe_sanction_initial_twenty_votes_unverified` | None |
+| `DISPUTE_APPEAL` | `conflict:automatic_severe_appeal_already_assigned` | None |
+
+The direct-applier regressions prove the following current synthetic cases: fewer than twenty structurally accepted first-panel yes votes cannot resolve a severe account case; a SYSTEM-labeled resolution whose outcome contradicts those votes is denied; an existing automatic panel record blocks duplicate experimental resolution; an existing automatic panel record also blocks manual replacement even after the experimental selection flag is disabled. Each of these denials is asserted to leave the entire supplied test state unchanged. Legacy-clock resolution is separately checked to preserve its historical local behavior. A resolution outside the experimental path remains appealable and does not emit ban/final receipt merely from stored vote metadata.
+
+**Important distinction:** The synthetic `TxEnvelope(system=True)` is not evidence of an authenticated SYSTEM queue producer, valid cryptographic ballot signatures, panel provenance or consensus scheduler finality. Nor does a source-observed `state_reads` change prove historical replay equivalence. The experimental automatic-appeal flag remains a test-only behavior; this review does not establish lawful automatic appeal, quorum, sanction authority or public network eligibility.
+
+The strict `PR77 V2 decision packet (no semantic approval)` run [41373403927](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41373403927) passed **252 tests**, Ruff lint and format, and reported **15 still-stale TX reviews**, zero newly stale TXs, zero missing state stable IDs, zero archived approval digest mismatches, zero packet integrity blockers, and **no altered approvals**.
+
+**Next blockers:** real queue-bound signed receipts, pinned historical ledger replay across legacy and activated profiles, constitutional adjudication of severe cases and separate authorized maintainer/independent reviewer acceptance of both current V2 digests. The compiler must remain fail closed until those requirements are satisfied.
