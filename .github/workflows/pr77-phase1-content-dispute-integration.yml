@@ -8,6 +8,7 @@ on:
       - Weall-Protocol/tests/test_phase1_content_flag_dispute_executor_integration.py
       - Weall-Protocol/tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py
       - Weall-Protocol/tests/test_trusted_responsibility_opt_in.py
+      - Weall-Protocol/tests/test_content_reviewer_selection_and_surface.py
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
       - Weall-Protocol/src/weall/runtime/apply/content.py
       - Weall-Protocol/src/weall/runtime/apply/roles.py

@@ -246,3 +246,16 @@ parameterized unit coverage tests both. Focused CI includes previously existing
 reviewer-selection, dispute assignment, strict juror gating, vote acceptance,
 and review-outcome suites in addition to the signed executor/replay path.
 **Status pending pinned CI; no release authority claimed.**
+
+
+### Adjacent legacy test corrected (pending rerun)
+
+Expanded CI [#41507682922](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41507682922)
+ran **21 passed, 1 failed**. The failure was a contradictory old test
+`test_content_review_selection_requires_exact_content_review_lane_not_generic_juror`:
+it defined the opted-in reviewer as the case's own `reported_by`/
+`flagged_by` but expected that reviewer to receive the case. The
+test's intent is to prove explicit per-lane selection, not reporter self-review.
+The fixture now names a separate reporter and asserts the reporter stays
+excluded while the independent content reviewer receives assignment.
+The previous failure is retained in this audit; the revised test awaits CI.
