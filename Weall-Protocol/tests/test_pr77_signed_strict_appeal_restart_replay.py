@@ -8,11 +8,21 @@ BFT finality, a severe S4 classification, or authority to ban an account.
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from weall.crypto.sig import sign_tx_envelope_dict
+from weall.crypto.sig import sign_signature_for_profile, sign_tx_envelope_dict
+from weall.crypto.signature_profiles import PQ_MLDSA_V1
+from weall.runtime.bft_hotstuff import (
+    BftVote,
+    HotStuffBFT,
+    canonical_vote_message,
+    quorum_threshold,
+    validator_set_hash,
+    verify_qc,
+)
 from weall.runtime.ballot_policy import (
     CONTROLLED_TESTNET_BALLOT_PROFILE,
     ballot_profile_status,
@@ -327,3 +337,200 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     # independently issued PoH, severe-sanction authority or launch approval.
     assert "sanction_class" not in appeal
     assert not independent.read_state()["accounts"][TARGET].get("banned", False)
+
+    # This BFT cryptographic preflight uses the very same persisted, signed
+    # appeal block that independently replayed above. Unlike the TCP count-only
+    # rehearsal, each vote is an actual ML-DSA signature verified against a
+    # fixed validator registry by TWO fresh HotStuff vote collectors. This is
+    # deliberately NOT validator-network finality: votes here are generated
+    # by a controlled test harness, not independently transported or witnessed.
+    for bypass in ("WEALL_UNSAFE_DEV", "WEALL_BFT_ALLOW_QC_LESS_BLOCKS"):
+        monkeypatch.delenv(bypass, raising=False)
+    monkeypatch.setenv("WEALL_SIGVERIFY", "1")
+
+    appeal_block = source_blocks[appeal_height - 1]
+    proposal_block_id = appeal_block["block_id"]
+    proposal_hash = appeal_block["block_hash"]
+    proposal_parent = appeal_block["prev_block_id"]
+    assert appeal_tx_id in appeal_block["header"]["tx_ids"]
+    view = 77
+    epoch = 7
+    validators = [f"pr77-qc-validator-{n}" for n in range(4)]
+    vset_hash = validator_set_hash(validators)
+    pubkeys: dict[str, str] = {}
+    secrets: dict[str, str] = {}
+    for vid in validators:
+        pubkeys[vid], secrets[vid] = _deterministic_replay_fixture_keypair(label=vid)
+
+    def make_signed_vote(
+        signer: str,
+        *,
+        vote_epoch: int = epoch,
+        voted_hash: str = proposal_hash,
+        signing_secret: str | None = None,
+    ) -> dict:
+        msg = canonical_vote_message(
+            chain_id=CHAIN,
+            view=view,
+            block_id=proposal_block_id,
+            block_hash=voted_hash,
+            parent_id=proposal_parent,
+            signer=signer,
+            validator_epoch=vote_epoch,
+            validator_set_hash=vset_hash,
+            sig_profile=PQ_MLDSA_V1,
+        )
+        sig = sign_signature_for_profile(
+            sig_profile=PQ_MLDSA_V1,
+            message=msg,
+            privkey=signing_secret or secrets[signer],
+        )
+        return BftVote(
+            chain_id=CHAIN,
+            view=view,
+            block_id=proposal_block_id,
+            block_hash=voted_hash,
+            parent_id=proposal_parent,
+            signer=signer,
+            pubkey=pubkeys[signer],
+            sig=sig,
+            sig_profile=PQ_MLDSA_V1,
+            validator_epoch=vote_epoch,
+            validator_set_hash=vset_hash,
+        ).to_json()
+
+    def matches_replayed_appeal(vote: dict) -> bool:
+        # The candidate has already been checked by BOTH persisted block
+        # executors. Pin exact block identity, parent, epoch and validator set
+        # before allowing its signed vote into either collector.
+        return (
+            vote.get("chain_id") == CHAIN
+            and vote.get("block_id") == proposal_block_id
+            and vote.get("block_hash") == proposal_hash
+            and vote.get("parent_id") == proposal_parent
+            and vote.get("view") == view
+            and vote.get("validator_epoch") == epoch
+            and vote.get("validator_set_hash") == vset_hash
+        )
+
+    assert quorum_threshold(len(validators)) == 3
+    signer_votes = [make_signed_vote(v) for v in validators]
+    assert all(BftVote(
+        chain_id=v["chain_id"],
+        view=v["view"],
+        block_id=v["block_id"],
+        block_hash=v["block_hash"],
+        parent_id=v["parent_id"],
+        signer=v["signer"],
+        pubkey=v["pubkey"],
+        sig=v["sig"],
+        sig_profile=v["sig_profile"],
+        validator_epoch=v["validator_epoch"],
+        validator_set_hash=v["validator_set_hash"],
+    ).verify() for v in signer_votes)
+
+    # A single signer, repeated arbitrarily, is never a quorum.
+    for _ in range(4):
+        assert HotStuffBFT(chain_id=CHAIN).accept_vote(
+            vote_json=signer_votes[0],
+            validators=validators,
+            vpub=pubkeys,
+            verified_admission=matches_replayed_appeal,
+        ) is None
+    no_quorum = HotStuffBFT(chain_id=CHAIN)
+    assert no_quorum.accept_vote(
+        vote_json=signer_votes[0],
+        validators=validators,
+        vpub=pubkeys,
+        verified_admission=matches_replayed_appeal,
+    ) is None
+    assert no_quorum.accept_vote(
+        vote_json=signer_votes[0],
+        validators=validators,
+        vpub=pubkeys,
+        verified_admission=matches_replayed_appeal,
+    ) is None
+    assert no_quorum.accept_vote(
+        vote_json=signer_votes[1],
+        validators=validators,
+        vpub=pubkeys,
+        verified_admission=matches_replayed_appeal,
+    ) is None
+
+    # Distinct in-memory collectors verify the same three signed votes using
+    # the same explicit validator registry. Neither is a live remote node.
+    collectors = (HotStuffBFT(chain_id=CHAIN), HotStuffBFT(chain_id=CHAIN))
+    qcs = []
+    for collector in collectors:
+        assert collector.accept_vote(
+            vote_json=signer_votes[0],
+            validators=validators,
+            vpub=pubkeys,
+            verified_admission=matches_replayed_appeal,
+        ) is None
+        assert collector.accept_vote(
+            vote_json=signer_votes[1],
+            validators=validators,
+            vpub=pubkeys,
+            verified_admission=matches_replayed_appeal,
+        ) is None
+        qc = collector.accept_vote(
+            vote_json=signer_votes[2],
+            validators=validators,
+            vpub=pubkeys,
+            verified_admission=matches_replayed_appeal,
+        )
+        assert qc is not None
+        assert verify_qc(qc=qc, validators=validators, vpub=pubkeys)
+        assert qc.block_id == proposal_block_id
+        assert qc.block_hash == proposal_hash
+        assert qc.parent_id == proposal_parent
+        assert qc.validator_epoch == epoch
+        assert qc.validator_set_hash == vset_hash
+        qcs.append(qc)
+    assert qcs[0].to_json() == qcs[1].to_json()
+
+    # Changed QC envelope metadata cannot borrow signatures from the signed
+    # original block. A self-consistently signed wrong-epoch/wrong-block vote
+    # is also refused by the anchored admission callback.
+    assert not verify_qc(
+        qc=replace(qcs[0], block_hash="0" * 64),
+        validators=validators,
+        vpub=pubkeys,
+    )
+    assert not verify_qc(
+        qc=replace(qcs[0], validator_epoch=epoch + 1),
+        validators=validators,
+        vpub=pubkeys,
+    )
+    rejected = HotStuffBFT(chain_id=CHAIN)
+    bad_sig = deepcopy(signer_votes[0])
+    bad_sig["sig"] = "00" * 64
+    assert rejected.accept_vote(
+        vote_json=bad_sig,
+        validators=validators,
+        vpub=pubkeys,
+        verified_admission=matches_replayed_appeal,
+    ) is None
+    for forged in (
+        make_signed_vote(validators[0], vote_epoch=epoch + 1),
+        make_signed_vote(validators[1], voted_hash="0" * 64),
+        make_signed_vote(
+            validators[2],
+            signing_secret=_deterministic_replay_fixture_keypair(
+                label="pr77-unregistered-validator"
+            )[1],
+        ),
+    ):
+        assert rejected.accept_vote(
+            vote_json=forged,
+            validators=validators,
+            vpub=pubkeys,
+            verified_admission=matches_replayed_appeal,
+        ) is None
+
+    assert compute_state_root(restarted.read_state()) == source_root
+    assert compute_state_root(independent.read_state()) == source_root
+    # This is a signed-QC candidate check against a stored ordinary appeal,
+    # NOT production proposer/voter transport, QC-driven block commit,
+    # externally sourced PoH, network finality, or S4 ban authority.
