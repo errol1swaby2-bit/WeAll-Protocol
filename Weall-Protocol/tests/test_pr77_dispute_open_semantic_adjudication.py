@@ -88,10 +88,7 @@ def test_dispute_open_review_binds_verified_archived_and_current_material() -> N
         "state_writes",
         "system_followups",
     }
-    added = {
-        (entry["code"], entry["reason"])
-        for entry in row["failure_code_deltas"]["added"]
-    }
+    added = {(entry["code"], entry["reason"]) for entry in row["failure_code_deltas"]["added"]}
     assert {
         ("invalid_payload", "missing_target"),
         ("forbidden", "tier1_required_for_dispute"),
@@ -99,10 +96,7 @@ def test_dispute_open_review_binds_verified_archived_and_current_material() -> N
         ("forbidden", "active_proposal_dispute_protected"),
         ("duplicate", "dispute_id_exists"),
     }.issubset(added)
-    removed = {
-        (entry["code"], entry["reason"])
-        for entry in row["failure_code_deltas"]["removed"]
-    }
+    removed = {(entry["code"], entry["reason"]) for entry in row["failure_code_deltas"]["removed"]}
     assert ("forbidden", "severe_sanction_initial_twenty_votes_unverified") in removed
     assert row["signed_off_for_current_digest"] is False
     assert row["historical_replay_proven"] is False
@@ -126,10 +120,14 @@ def test_dispute_open_direct_and_dispatcher_identical_success(
         st, _env(target_type=target_type, target_id=target_id)
     )
     assert direct == dispatched
-    assert direct_meta == dispatch_meta == {
-        "applied": "DISPUTE_OPEN",
-        "dispute_id": "pr77-open",
-    }
+    assert (
+        direct_meta
+        == dispatch_meta
+        == {
+            "applied": "DISPUTE_OPEN",
+            "dispute_id": "pr77-open",
+        }
+    )
     assert direct["disputes_by_id"]["pr77-open"]["target_type"] == target_type
     assert direct["disputes_by_id"]["pr77-open"]["target_id"] == target_id
     assert direct["disputes_by_id"]["pr77-open"]["opened_at_height"] == 25
