@@ -236,3 +236,13 @@ rewritten to test an independent reporter instead.
 
 **Pending exact-head CI.** The patch does not ratify historical semantic
 digests, grant severe sanctions, or claim full constitutional finality.
+
+
+## Reporter alias regression and adjacent suite (candidate)
+
+The initial-selection reporter exclusion now uses the existing account identity
+variant helper, protecting `@account` and `account` aliases. New
+parameterized unit coverage tests both. Focused CI includes previously existing
+reviewer-selection, dispute assignment, strict juror gating, vote acceptance,
+and review-outcome suites in addition to the signed executor/replay path.
+**Status pending pinned CI; no release authority claimed.**

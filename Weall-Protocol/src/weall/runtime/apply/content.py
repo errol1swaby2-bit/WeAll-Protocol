@@ -1704,7 +1704,7 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
         dispute_obj,
         reviewer_candidates,
         round_no=1,
-        exclude_ids=[_as_str(dispute_obj.get("reported_by") or "").strip()],
+        exclude_ids=_identity_variants(dispute_obj.get("reported_by")),
     )
     assigned_jurors = list(selection["panel"])
     dispute_obj["panel_round"] = 1

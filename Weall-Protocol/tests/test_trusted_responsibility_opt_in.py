@@ -133,7 +133,8 @@ def test_content_report_assignment_uses_opted_in_errol_and_excludes_original_pos
     assert "@reporter" not in dispute["assigned_jurors"]
 
 
-def test_content_report_initial_selection_excludes_opted_in_reporter() -> None:
+@pytest.mark.parametrize("reported_by", ["@errol", "errol"])
+def test_content_report_initial_selection_excludes_opted_in_reporter(reported_by: str) -> None:
     st = _state()
     apply_tx(st, _env("ROLE_JUROR_ENROLL", "@errol", 1, {"account_id": "@errol"}))
     apply_tx(
@@ -152,7 +153,7 @@ def test_content_report_initial_selection_excludes_opted_in_reporter() -> None:
                 "target_type": "content",
                 "target_id": "post:@genesis:1",
                 "reason": "policy",
-                "reported_by": "@errol",
+                "reported_by": reported_by,
             },
             system=True,
         ),
