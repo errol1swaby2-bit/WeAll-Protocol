@@ -59,10 +59,7 @@ def field_differences(previous: dict[str, Any], current: dict[str, Any]) -> list
     return changes
 
 
-
-def failure_code_deltas(
-    previous: Any, current: Any
-) -> dict[str, list[dict[str, str]]]:
+def failure_code_deltas(previous: Any, current: Any) -> dict[str, list[dict[str, str]]]:
     """Show exact code/reason additions and removals without interpreting them."""
 
     def pairs(value: Any) -> set[tuple[str, str]]:
@@ -241,8 +238,7 @@ def main() -> int:
                 },
                 "packet_integrity_blockers": integrity_blockers,
                 "failure_code_deltas_by_tx": {
-                    item["tx_type"]: item["failure_code_deltas"]
-                    for item in packet["transactions"]
+                    item["tx_type"]: item["failure_code_deltas"] for item in packet["transactions"]
                 },
                 "approvals_modified": False,
             },
