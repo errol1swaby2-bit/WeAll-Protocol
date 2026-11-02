@@ -3191,7 +3191,6 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
         round_no=appeal_round + 1,
         exclude_ids=_appeal_excluded_ids(state, d, original_panel, original_substitutes),
     )
-    appeal_panel = list(selection["panel"])
 
     # The right to lodge an otherwise valid appeal does not depend on today's
     # number of fresh unconflicted reviewers.
