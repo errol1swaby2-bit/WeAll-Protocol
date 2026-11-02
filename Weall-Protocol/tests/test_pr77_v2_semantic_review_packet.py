@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import copy
+
+import pytest
+
 from scripts.pr77_v2_semantic_review_packet import (
     KNOWN_STALE,
     build_packet,
     field_differences,
+    failure_code_deltas,
+    packet_integrity_blockers,
 )
 
 
@@ -27,9 +33,105 @@ def test_v2_stale_review_packet_does_not_approve_15_affected_transactions() -> N
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
     assert packet["historical_compatibility_proven"] is False
     assert packet["must_not_update_semantic_reviews_automatically"] is True
+    assert packet_integrity_blockers(packet) == []
     for row in packet["transactions"]:
         assert row["accepted_review_digest"] != row["current_material_digest"]
         assert row["review_lane"]
         assert row["stable_id"]
         assert row["signed_off_for_current_digest"] is False
         assert row["classification_not_semantic_approval"] is True
+
+
+def test_failure_code_comparison_preserves_exact_added_and_removed_reasons() -> None:
+    before = [
+        {"code": "forbidden", "reason": "old"},
+        {"code": "invalid_payload", "reason": "unchanged"},
+    ]
+    after = [
+        {"code": "forbidden", "reason": "new"},
+        {"code": "invalid_payload", "reason": "unchanged"},
+    ]
+    delta = failure_code_deltas(before, after)
+    assert delta["added"] == [{"code": "forbidden", "reason": "new"}]
+    assert delta["removed"] == [{"code": "forbidden", "reason": "old"}]
+
+
+@pytest.mark.parametrize("invalid", [None, "forbidden", [{"code": "x"}], [1]])
+def test_failure_code_comparison_fails_closed_on_malformed_material(invalid: object) -> None:
+    with pytest.raises(ValueError, match="v2_review_packet_failure_code"):
+        failure_code_deltas([], invalid)
+
+
+def test_all_fifteen_reviewed_archives_match_accepted_approval() -> None:
+    packet = build_packet()
+    assert packet["pending_count"] == 15
+    assert all(row["archive_matches_accepted_digest"] is True for row in packet["transactions"])
+    assert all(
+        row["archived_compiled_material_digest"] == row["accepted_review_digest"]
+        for row in packet["transactions"]
+    )
+    assert packet_integrity_blockers(packet) == []
+
+
+def test_unverified_archived_source_must_block_review_packet_exit() -> None:
+    packet = copy.deepcopy(build_packet())
+    packet["transactions"][0]["archive_matches_accepted_digest"] = False
+    assert (
+        "prior_approval_material_unverified:" + packet["transactions"][0]["tx_type"]
+        in packet_integrity_blockers(packet)
+    )
+
+
+def test_pretend_reviewer_signoff_and_replay_claims_are_rejected() -> None:
+    packet = copy.deepcopy(build_packet())
+    packet["transactions"][0]["signed_off_for_current_digest"] = True
+    packet["transactions"][0]["historical_replay_proven"] = True
+    errors = packet_integrity_blockers(packet)
+    tx_type = packet["transactions"][0]["tx_type"]
+    assert f"current_semantic_signoff_must_remain_false:{tx_type}" in errors
+    assert f"historical_replay_unproven:{tx_type}" in errors
+
+
+def test_review_packet_shows_exact_rejection_code_delta_per_lane() -> None:
+    packet = build_packet()
+    rows = {row["tx_type"]: row for row in packet["transactions"]}
+
+    ban_delta = rows["ACCOUNT_BAN"]["failure_code_deltas"]
+    assert {
+        "code": "forbidden",
+        "reason": "severe_sanction_authorization_unimplemented",
+    } in ban_delta["added"]
+    assert {
+        "code": "conflicting_receipt",
+        "reason": "duplicate_ban_receipt_conflict",
+    } in ban_delta["added"]
+
+    # The old DISPUTE_OPEN scanner traversed the entire dispatcher. Its
+    # removed codes must not be mistaken for proof that a real guard vanished.
+    open_delta = rows["DISPUTE_OPEN"]["failure_code_deltas"]
+    assert {
+        "code": "invalid_payload",
+        "reason": "missing_target",
+    } in open_delta["added"]
+    assert {"code": "forbidden", "reason": "system_only"} in open_delta["removed"]
+
+    # The role helper now produces dynamic error code/reason pairs: this
+    # analyzer visibility loss does not assert that runtime rejects changed.
+    role_delta = rows["ROLE_JUROR_ACTIVATE"]["failure_code_deltas"]
+    assert {
+        "code": "RolesApplyError",
+        "reason": "runtime_apply_failure",
+    } in role_delta["added"]
+    assert {
+        "code": "forbidden",
+        "reason": "account_restricted",
+    } in role_delta["removed"]
+
+
+def test_review_packet_integrity_blocks_unexpected_inventory_changes() -> None:
+    packet = copy.deepcopy(build_packet())
+    packet["newly_stale_not_in_known_15"] = ["UNKNOWN_NEW_TX"]
+    packet["missing_state_stable_ids"] = ["missing:state:field"]
+    errors = packet_integrity_blockers(packet)
+    assert "unexpected_stale_transaction" in errors
+    assert "missing_state_stable_ids" in errors
