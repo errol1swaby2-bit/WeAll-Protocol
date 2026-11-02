@@ -150,9 +150,7 @@ def _mutated(
         ("wrong_type", "system_queue_tx_type_mismatch"),
     ],
 )
-def test_forged_system_ban_receipt_fails_queue_binding(
-    mutation: str, expected: str
-) -> None:
+def test_forged_system_ban_receipt_fails_queue_binding(mutation: str, expected: str) -> None:
     state, canon, emitted = _queued()
     if mutation == "missing_queue_id":
         forged = _mutated(emitted, discard="_system_queue_id")
@@ -172,9 +170,7 @@ def test_forged_system_ban_receipt_fails_queue_binding(
         forged = _mutated(emitted, tx_type="ACCOUNT_REINSTATE")
 
     before = copy.deepcopy(state)
-    ok, why = validate_system_tx_queue_binding(
-        state, canon, forged, next_height=21, phase="post"
-    )
+    ok, why = validate_system_tx_queue_binding(state, canon, forged, next_height=21, phase="post")
     assert (ok, why) == (False, expected)
     assert state == before
 
@@ -188,9 +184,10 @@ def test_queue_phase_and_height_binding_does_not_bypass_application(
     assert validate_system_tx_queue_binding(
         state, canon, emitted, next_height=20, phase="post"
     ) == (False, "system_queue_due_height_mismatch")
-    assert validate_system_tx_queue_binding(
-        state, canon, emitted, next_height=21, phase="pre"
-    ) == (False, "system_queue_phase_mismatch")
+    assert validate_system_tx_queue_binding(state, canon, emitted, next_height=21, phase="pre") == (
+        False,
+        "system_queue_phase_mismatch",
+    )
     assert state == before
 
     result_state = copy.deepcopy(state)
@@ -225,9 +222,10 @@ def test_node_builder_rejects_queue_bound_ban_without_severe_authority(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     state, canon, emitted = _queued(clock_enabled=True, height=0)
-    assert validate_system_tx_queue_binding(
-        state, canon, emitted, next_height=1, phase="post"
-    ) == (True, "")
+    assert validate_system_tx_queue_binding(state, canon, emitted, next_height=1, phase="post") == (
+        True,
+        "",
+    )
     # The leader candidate builder starts from the pre-emission canonical
     # snapshot, not the already-emitted queue marker.
     state["system_queue"][0].pop("emitted_height", None)
