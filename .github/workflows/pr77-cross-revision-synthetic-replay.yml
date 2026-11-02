@@ -93,6 +93,7 @@ jobs:
           "$RUNNER_TEMP/pr77-head-venv/bin/ruff" check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py
           "$RUNNER_TEMP/pr77-head-venv/bin/ruff" format --check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_probe.py
           "$RUNNER_TEMP/pr77-head-venv/bin/ruff" check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_adjudication.py candidate/Weall-Protocol/tests/test_pr77_legacy_role_parity_adjudication.py
+          "$RUNNER_TEMP/pr77-head-venv/bin/ruff" format --diff candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_adjudication.py candidate/Weall-Protocol/tests/test_pr77_legacy_role_parity_adjudication.py || true
           "$RUNNER_TEMP/pr77-head-venv/bin/ruff" format --check candidate/Weall-Protocol/scripts/pr77_legacy_role_parity_adjudication.py candidate/Weall-Protocol/tests/test_pr77_legacy_role_parity_adjudication.py
           (cd candidate/Weall-Protocol && "$RUNNER_TEMP/pr77-head-venv/bin/python" -m pytest -q tests/test_pr77_legacy_role_parity_adjudication.py)
           python - <<'PY'
