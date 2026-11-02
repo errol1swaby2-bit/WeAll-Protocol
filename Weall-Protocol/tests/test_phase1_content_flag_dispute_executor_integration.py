@@ -221,6 +221,87 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
         is not None
     )
 
+    # A separate signer has to opt into explicit responsibility rather than
+    # gaining reviewer duties from Tier-2 or validator/operator identity.
+    charlie_pub, _ = _deterministic_replay_fixture_keypair(label="@charlie")
+    _commit_signed(
+        source,
+        tx_type="ACCOUNT_REGISTER",
+        signer="@charlie",
+        nonce=1,
+        payload={"pubkey": charlie_pub},
+    )
+    _commit_signed(
+        source,
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
+        signer="@charlie",
+        nonce=2,
+        payload={"account_id": "@charlie"},
+    )
+    assert source.read_state()["disputes_by_id"][case["id"]]["stage"] == "unassigned"
+
+    _commit_signed(
+        source,
+        tx_type="REVIEWER_LANE_OPT_IN",
+        signer="@charlie",
+        nonce=3,
+        payload={"account_id": "@charlie", "lane": "content_review"},
+    )
+    assigned = source.read_state()["disputes_by_id"][case["id"]]
+    assert assigned["stage"] == "juror_review", assigned
+    assert assigned["assigned_jurors"] == ["@charlie"]
+    assert assigned["jurors"]["@charlie"]["status"] == "assigned"
+    assert assigned["votes"] == {}
+
+    # The domain currently requires *separate* dispute_review consent for
+    # accept/vote even when content_review has assigned a content report.
+    # Preserve both explicit consents rather than bypassing the gate.
+    _commit_signed(
+        source,
+        tx_type="REVIEWER_LANE_OPT_IN",
+        signer="@charlie",
+        nonce=4,
+        payload={"account_id": "@charlie", "lane": "dispute_review"},
+    )
+    roles = source.read_state()["roles"]["jurors"]["by_id"]["@charlie"]
+    lanes = roles["responsibilities"]["reviewer"]
+    assert lanes["content_review"]["active"] is True
+    assert lanes["dispute_review"]["active"] is True
+
+    _commit_signed(
+        source,
+        tx_type="DISPUTE_JUROR_ACCEPT",
+        signer="@charlie",
+        nonce=5,
+        payload={"dispute_id": case["id"]},
+    )
+    accepted = source.read_state()["disputes_by_id"][case["id"]]
+    assert accepted["jurors"]["@charlie"]["status"] == "accepted"
+    assert accepted["jurors"]["@charlie"]["attendance"]["present"] is True
+
+    _commit_signed(
+        source,
+        tx_type="DISPUTE_VOTE_SUBMIT",
+        signer="@charlie",
+        nonce=6,
+        payload={"dispute_id": case["id"], "vote": "no"},
+    )
+    state = source.read_state()
+    voted = state["disputes_by_id"][case["id"]]
+    assert voted["jurors"]["@charlie"]["status"] == "completed"
+    assert not state["accounts"]["@alice"].get("banned", False)
+    assert not state["accounts"]["@bob"].get("banned", False)
+    assert not state["accounts"]["@charlie"].get("banned", False)
+    ballot_receipts = [
+        r for r in state["dispute_ballot_admission_receipts"] if r["dispute_id"] == case["id"]
+    ]
+    assert len(ballot_receipts) == 1
+    assert ballot_receipts[0]["final"] is True
+
+    # Replay the entire continuation, not just the pre-review opening blocks.
+    blocks = [source.get_block_by_height(h) for h in range(1, int(state["height"]) + 1)]
+    assert all(isinstance(block, dict) for block in blocks)
+
     replay = WeAllExecutor(
         db_path=str(tmp_path / "flag-replay.sqlite"),
         node_id="phase1-fresh-replay",
@@ -235,3 +316,6 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     observed = build_replay_manifest(replay)
     assert compare_replay_manifests(expected, observed) == []
     assert replay.read_state()["disputes_by_id"] == state["disputes_by_id"]
+    assert replay.read_state()["dispute_ballot_admission_receipts"] == state[
+        "dispute_ballot_admission_receipts"
+    ]

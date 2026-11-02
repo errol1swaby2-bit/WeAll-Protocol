@@ -90,3 +90,21 @@ frontend reconciliation under asynchronous inclusion; account for
 constitutional-clock/empty-block scheduling in operator configuration; test
 independent node convergence and failure/partition recovery in phase 2.
 These are work items, not implied PASS results.
+
+
+## 2026-11-02 — Signed reviewer responsibility, acceptance and ballot continuation (candidate)
+
+The same end-to-end test now **attempts** a third account's actual signed
+registration, controlled-local PoH bootstrap, separate opt-in to
+`content_review` and `dispute_review`, automatic reassignment of the
+unassigned content case, `DISPUTE_JUROR_ACCEPT` and a `DISPUTE_VOTE_SUBMIT`
+"no" ballot, including persisted ballot admission receipts and full
+fresh-executor replay. Its status remains **UNVERIFIED until pinned CI**.
+
+The runtime currently requires `dispute_review` consent for dispute accept
+and vote even when `content_review` opt-in assigned the content review case.
+This is a **potential participant-journey architecture/UX mismatch**.
+The integration fixture does not bypass consent; it makes both explicit
+so the combined path can be observed and the product contract can later be
+adjudicated in the dedicated architecture/documentation phase. No new
+constitutional authority or severe-sanction completion is claimed.
