@@ -62,7 +62,7 @@ def review_signed_dispute_opening(
     rec = _matching_one(b.get("receipts"), opening_tx_id)
     payload = _map(tx.get("payload"))
     raw_case_id = payload.get("dispute_id")
-    explicit_case_id = str(raw_case_id or "").strip()
+    explicit_case_id = raw_case_id.strip() if isinstance(raw_case_id, str) else ""
     canonical_case_id = explicit_case_id or (f"dispute:{tx.get('signer')}:{tx.get('nonce')}")
     raw_target_type = payload.get("target_type")
     canonical_target_type = (

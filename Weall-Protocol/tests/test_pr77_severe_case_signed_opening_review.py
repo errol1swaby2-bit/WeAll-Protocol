@@ -96,6 +96,7 @@ def _fixture(keypair: dict) -> dict:
             "id": "d1",
             "target_type": "account",
             "target_id": "@bob",
+            "reason": "Review only",
             "opened_by": "@alice",
             "opened_at_height": 6,
             "opened_at_nonce": 7,
