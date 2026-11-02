@@ -16,8 +16,8 @@ from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE
 from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.domain_apply import apply_tx_atomic_meta, apply_tx_atomic_meta_deepcopy
 from weall.runtime.errors import ApplyError
-from weall.runtime.state_hash import compute_state_root
 from weall.runtime.severe_sanction_boundary import is_explicit_severe_account_sanction
+from weall.runtime.state_hash import compute_state_root
 from weall.runtime.tx_admission import TxEnvelope
 
 
