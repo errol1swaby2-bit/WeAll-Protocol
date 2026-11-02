@@ -166,9 +166,7 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     # receipt is insufficient to prove the content -> dispute lifecycle.
     for _ in range(4):
         current = source.read_state()
-        recent = [
-            source.get_block_by_height(h) for h in range(1, int(current["height"]) + 1)
-        ]
+        recent = [source.get_block_by_height(h) for h in range(1, int(current["height"]) + 1)]
         if any(
             receipt.get("tx_type") == "FLAG_ESCALATION_RECEIPT"
             for block in recent
@@ -199,9 +197,10 @@ def test_signed_flag_creates_canonical_dispute_and_replays(
     assert len(receipt_audit) == 1
     assert receipt_audit[0]["ok"] is True
     assert receipt_audit[0]["signer"] == "SYSTEM"
-    assert state["content"]["moderation"]["targets"][POST_ID].get(
-        "flag_escalation_receipt_at_nonce"
-    ) is not None
+    assert (
+        state["content"]["moderation"]["targets"][POST_ID].get("flag_escalation_receipt_at_nonce")
+        is not None
+    )
 
     replay = WeAllExecutor(
         db_path=str(tmp_path / "flag-replay.sqlite"),
