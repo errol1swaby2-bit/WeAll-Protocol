@@ -546,9 +546,9 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
             tx_index_path=str(index),
         )
         configured = deepcopy(auditor.read_state())
-        configured.setdefault("roles", {}).setdefault("validators", {})[
-            "active_set"
-        ] = list(validators)
+        configured.setdefault("roles", {}).setdefault("validators", {})["active_set"] = list(
+            validators
+        )
         consensus = configured.setdefault("consensus", {})
         consensus.setdefault("phase", {})["current"] = "bft_active"
         registry = consensus.setdefault("validators", {}).setdefault("registry", {})
@@ -568,12 +568,10 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         assert auditor._active_validators() == validators
         assert auditor._validator_epoch() == (epoch, vset_hash)
         assert auditor.bft_verify_qc_json(qcs[0].to_json()) is not None
-        assert auditor.bft_verify_qc_json(
-            replace(qcs[0], validator_epoch=epoch + 1).to_json()
-        ) is None
-        assert auditor.bft_verify_qc_json(
-            replace(qcs[0], block_hash="0" * 64).to_json()
-        ) is None
+        assert (
+            auditor.bft_verify_qc_json(replace(qcs[0], validator_epoch=epoch + 1).to_json()) is None
+        )
+        assert auditor.bft_verify_qc_json(replace(qcs[0], block_hash="0" * 64).to_json()) is None
 
         # Feed real, authenticated signatures through the production-facing
         # runtime vote ingress rather than HotStuffBFT.accept_vote directly.
@@ -599,9 +597,12 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         assert restarted_auditor._validator_epoch() == (epoch, vset_hash)
         assert restarted_auditor._active_validators() == validators
         assert restarted_auditor.bft_verify_qc_json(qcs[0].to_json()) is not None
-        assert restarted_auditor.bft_verify_qc_json(
-            replace(qcs[0], validator_epoch=epoch + 1).to_json()
-        ) is None
+        assert (
+            restarted_auditor.bft_verify_qc_json(
+                replace(qcs[0], validator_epoch=epoch + 1).to_json()
+            )
+            is None
+        )
 
     assert compute_state_root(restarted.read_state()) == source_root
     assert compute_state_root(independent.read_state()) == source_root
