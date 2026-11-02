@@ -12,6 +12,7 @@ import copy
 import pytest
 
 from weall.runtime.apply import dispute
+from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE
 from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.domain_apply import apply_tx_atomic_meta, apply_tx_atomic_meta_deepcopy
 from weall.runtime.errors import ApplyError
@@ -37,6 +38,7 @@ def _state() -> dict:
         "height": 11,
         "chain_id": "pr77-synthetic-complete-appeal",
         "meta": {"constitutional_clock": {"enabled": True}},
+        "ballot_profile": {"profile_id": CONTROLLED_TESTNET_BALLOT_PROFILE, "active": True},
         "params": {
             "mode": "controlled-testnet",
             "m3_civic_governance_strict": True,
