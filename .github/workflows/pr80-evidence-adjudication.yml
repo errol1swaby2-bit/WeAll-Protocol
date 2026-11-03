@@ -11,9 +11,8 @@ on:
       - Weall-Protocol/tests/test_current_document_registry.py
       - Weall-Protocol/tests/test_pr77_v2_semantic_review_packet.py
       - .github/workflows/pr80-evidence-adjudication.yml
-  push:
-    branches:
-      - integration/pr77-pr78-frontend-candidate-20261103
+  # A stacked PR is validated against the current PR77 base. Its standalone
+  # integration branch intentionally predates subsequent PR77 source changes.
   workflow_dispatch:
 
 permissions:
