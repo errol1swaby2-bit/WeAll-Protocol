@@ -241,3 +241,41 @@ test("independent browser bearer cannot borrow another browser session's approva
   ), "unavailable");
   assert.ok(!sessionCalls.some((call) => call.host === "unlisted.test"));
 });
+
+test("unlisted existing node cannot receive session bearer without explicit per-tab consent", async () => {
+  reset();
+  selected = "https://unlisted.test";
+  localSession = { account: "@alice", sessionKey: "fixture-secret", expiresAtMs: Date.now() + 60_000 };
+  const result = await connector.connectPublicTestnetBrowser();
+  assert.equal(result.state, "connected");
+  assert.equal(result.baseUrl, "https://healthy.test");
+  assert.ok(!sessionCalls.some((call) => call.host === "unlisted.test"),
+    "localStorage URL is not consent to disclose bearer to a backend hint");
+});
+
+test("explicit per-tab approval allows a compatible custom HTTPS node after session recognition", async () => {
+  reset();
+  const state = new Map();
+  globalThis.sessionStorage = {
+    getItem: (key) => state.get(key) ?? null,
+    setItem: (key, value) => state.set(key, String(value)),
+    removeItem: (key) => state.delete(key),
+  };
+  try {
+    assert.equal(browserSession.hasManualNodeConsent("https://unlisted.test"), false);
+    assert.throws(() => browserSession.rememberManualNodeConsent("http://unlisted.test"));
+    browserSession.rememberManualNodeConsent("https://unlisted.test");
+    assert.equal(browserSession.hasManualNodeConsent("https://unlisted.test"), true);
+    assert.equal(browserSession.hasManualNodeConsent("https://backup.test"), false);
+
+    selected = "https://unlisted.test";
+    localSession = { account: "@alice", sessionKey: "fixture-secret", expiresAtMs: Date.now() + 60_000 };
+    recognized.add("unlisted.test");
+    const result = await connector.connectPublicTestnetBrowser();
+    assert.deepEqual(result, { state: "connected", baseUrl: "https://unlisted.test", changed: false });
+    assert.ok(sessionCalls.some((call) => call.host === "unlisted.test"));
+    assert.equal(browserSession.isBrowserSessionApproved(selected, "@alice", "fixture-secret"), true);
+  } finally {
+    delete globalThis.sessionStorage;
+  }
+});
