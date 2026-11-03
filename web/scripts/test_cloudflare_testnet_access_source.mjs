@@ -43,6 +43,11 @@ assert.ok(session.includes('state: "node_unverified"'), "missing node recognitio
 assert.ok(recognition.includes('"/v1/session/me"'), "read-only canonical session challenge must be present");
 assert.ok(recognition.includes('credentials: "omit"'), "cross-origin node session probing must avoid unrelated cookies");
 assert.ok(recognition.includes('redirect: "error"'), "session bearer must not follow node redirects");
+assert.ok(recognition.includes("rememberManualNodeConsent("), "explicit tab-scoped node consent must be available");
+assert.ok(recognition.includes("sessionStorage.setItem(MANUAL_NODE_CONSENT_KEY"), "unlisted node consent must be tab-scoped");
+assert.ok(connector.includes("hasManualNodeConsent(current.baseUrl)"), "explicit current manual node choice should survive same-tab reload");
+assert.ok(panel.includes("window.confirm(") && panel.includes("rememberManualNodeConsent("), "unlisted user-selected nodes require informed opt-in");
+assert.ok(settings.includes("window.confirm(") && settings.includes("applyCompatibilityBaseline([raw], baseline)"), "raw manual URL must be checked against pinned commitments before opt-in");
 assert.ok(connector.includes("verifyBrowserSessionOnNode("), "automatic failover must be session-aware");
 assert.ok(connector.includes("current.listedInSeedManifest"), "current node cannot bypass manifest restriction");
 assert.ok(manager.includes("probe.listedInSeedManifest === true"), "public switching must require published endpoints");
