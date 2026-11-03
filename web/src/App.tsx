@@ -183,8 +183,12 @@ export default function App(): JSX.Element {
   const session = useMemo(() => getSession(), [authVersion, path]);
   const account = session?.account || "";
   const keypair = useMemo(() => (account ? getKeypair(account) : null), [account, authVersion]);
-  const readyForApp = !!session?.account && !!keypair?.secretKeyB64;
   const sessionHealth = useSessionHealth(authVersion);
+  // Hosted clients may have a local signer while the selected node has not
+  // synchronized this tab's session. Keep protected routes in recovery posture
+  // rather than permitting actions from a stale network-auth assumption.
+  const readyForApp = !!session?.account && !!keypair?.secretKeyB64 &&
+    sessionHealth.state !== "node_unverified";
   const showAdvancedMode = config.enableDevTools && settings.showAdvancedMode;
 
   useEffect(() => {

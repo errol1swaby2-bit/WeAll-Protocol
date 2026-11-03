@@ -9,6 +9,8 @@ export type SeedNode = {
   label?: string;
   description?: string;
   trusted?: boolean;
+  // Listed in the deployment's static manifest; not an in-browser signature verification.
+  listedInSeedManifest?: boolean;
 };
 
 export type NodeProbePhase = "healthy" | "syncing" | "incompatible" | "offline";
@@ -49,7 +51,22 @@ export type NodeProbe = {
   status?: any;
   readyz?: any;
   consensus?: any;
+  chainIdentity?: any;
+  listedInSeedManifest?: boolean;
 };
+
+/** Browser-facing node APIs must be HTTPS origins, never credential-bearing URLs. */
+export function isPublicApiOrigin(value: string): boolean {
+  try {
+    const url = new URL(String(value || "").trim());
+    return url.protocol === "https:" &&
+      !!url.hostname && !url.username && !url.password &&
+      (url.pathname === "/" || url.pathname === "") &&
+      !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
 
 function normalizeBase(value: string): string | null {
   const validation = validateApiBaseInput(String(value || "").trim());
@@ -101,7 +118,7 @@ function seedFromUnknown(raw: unknown): SeedNode | null {
   }
   if (typeof raw !== "object" || Array.isArray(raw)) return null;
   const rec = raw as Record<string, unknown>;
-  const url = normalizeBase(String(rec.url || rec.api_base || rec.apiBase || rec.base || ""));
+  const url = normalizeBase(String(rec.url || rec.api_base || rec.base_url || rec.apiBase || rec.base || ""));
   if (!url) return null;
   return {
     url,
@@ -234,8 +251,15 @@ export async function discoverCandidateNodes(): Promise<SeedNode[]> {
     seedFromUnknown({ url: config.defaultApiBase, label: "Build default", description: "The backend configured for this frontend build." }),
   ].filter((x): x is SeedNode => !!x);
   const backendSeeds = await loadBackendSeedNodes(current);
-  const manifestSeeds = await loadSeedNodes();
-  return dedupeSeeds([...defaults, ...backendSeeds, ...manifestSeeds]);
+  const manifestSeeds = (await loadSeedNodes()).map((seed) => ({ ...seed, listedInSeedManifest: true }));
+
+  if (!config.publicTestnet) return dedupeSeeds([...defaults, ...backendSeeds, ...manifestSeeds]);
+
+  // The backend is a discovery hint, never a browser credential trust root.
+  // Public auto/manual selection is restricted to the published seed manifest.
+  // Keep a previously chosen HTTPS current node visible for inspection.
+  const isHttps = (seed: SeedNode): boolean => isPublicApiOrigin(seed.url);
+  return dedupeSeeds([...manifestSeeds, ...defaults, ...backendSeeds].filter(isHttps));
 }
 
 function safeStr(value: unknown): string | undefined {
@@ -404,6 +428,7 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
   let status: any = null;
   let readyz: any = null;
   let consensus: any = null;
+  let chainIdentity: any = null;
 
   try {
     status = await fetchJsonWithTimeout(endpoint(baseUrl, "/v1/status"), timeoutMs);
@@ -423,16 +448,31 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
     } catch {
       // Consensus diagnostics are helpful but not required for normal user access.
     }
+    try {
+      chainIdentity = await fetchJsonWithTimeout(endpoint(baseUrl, "/v1/chain/identity"), Math.min(timeoutMs, 2200));
+    } catch {
+      // Missing chain identity is not a fallback to unpinned trust. Public
+      // builds reject candidates missing the required genesis commitment.
+    }
   }
 
   const latencyMs = Math.max(1, Math.round(performance.now() - started));
   const reachable = !!status;
   const statusOk = statusReady(status);
-  const ready = statusReady(readyz) || statusOk;
-  const chainId = safeStr(status?.chain_id || consensus?.chain_id);
-  const genesisHash = safeStr(status?.genesis_hash || consensus?.genesis_hash || status?.chain_manifest?.genesis_hash);
+  // A responsive status endpoint cannot override a failed/missing readiness probe.
+  const ready = statusReady(readyz);
+  const chainId = safeStr(status?.chain_id || chainIdentity?.chain_id || consensus?.chain_id);
+  const genesisHash = safeStr(
+    chainIdentity?.chain_manifest?.genesis_hash ||
+    chainIdentity?.genesis_hash ||
+    status?.genesis_hash ||
+    consensus?.genesis_hash ||
+    status?.chain_manifest?.genesis_hash,
+  );
   const height = safeNumber(status?.height ?? consensus?.height);
-  const { txIndexHash, protocolProfileHash } = extractConsensusHash(consensus, status);
+  const extracted = extractConsensusHash(consensus, status);
+  const txIndexHash = extracted.txIndexHash || safeStr(chainIdentity?.tx_index_hash);
+  const protocolProfileHash = extracted.protocolProfileHash || safeStr(chainIdentity?.protocol_profile_hash);
 
   const phase = classifyProbe({ reachable, statusOk, ready, chainId, txIndexHash, protocolProfileHash, errors });
   return {
@@ -457,6 +497,8 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
     status,
     readyz,
     consensus,
+    chainIdentity,
+    listedInSeedManifest: seed.listedInSeedManifest === true,
   };
 }
 
@@ -473,7 +515,8 @@ export async function discoverNodeProbes(opts?: { timeoutMs?: number }): Promise
 }
 
 export function canSwitchToNode(probe: NodeProbe): boolean {
-  return !!probe && !probe.isCurrent && probe.phase === "healthy" && probe.ok === true;
+  return !!probe && !probe.isCurrent && probe.phase === "healthy" && probe.ok === true &&
+    (!config.publicTestnet || (isPublicApiOrigin(probe.baseUrl) && probe.listedInSeedManifest === true));
 }
 
 export function switchToNode(baseUrl: string): string {

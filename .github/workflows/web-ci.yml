@@ -11,7 +11,8 @@ concurrency:
 
 jobs:
   web:
-    runs-on: ubuntu-latest
+    # Playwright 1.59.1 Chromium installation does not support ubuntu-26.04.
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
@@ -85,13 +86,30 @@ jobs:
         run: |
           npm ci
 
-      - name: Dependency audit
-        run: |
-          npm run dependency-audit
-
       - name: Typecheck
         run: |
           npm run typecheck
+
+      - name: Cloudflare static testnet source guards
+        run: |
+          node scripts/test_cloudflare_testnet_access_source.mjs
+
+      - name: Cloudflare testnet node-selection behavioral regression
+        run: |
+          node scripts/test_cloudflare_testnet_behavior.mjs
+
+      - name: HTTPS node API and CORS deployment preflight regression
+        run: |
+          node scripts/test_https_node_api_preflight.mjs
+
+      - name: Existing node manager and account custody source invariants
+        run: |
+          npm run test:node-manager
+          npm run test:account-custody-source
+
+      - name: Dependency audit
+        run: |
+          npm run dependency-audit
 
       - name: Account custody cryptographic source gate
         run: |
@@ -171,6 +189,12 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
         run: |
           npm run test:production-deployment-csp
+
+      - name: Compiled browser custody isolation across independent profiles
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npx playwright test tests/e2e/production_browser_storage_isolation.spec.ts --config=playwright.production.config.ts
 
       - name: Stop production Nginx deployment
         if: always()
