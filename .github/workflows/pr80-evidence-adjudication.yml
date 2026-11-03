@@ -1,0 +1,72 @@
+name: PR80 claims registry and V2 review packet (no approval)
+
+on:
+  pull_request:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - Weall-Protocol/docs/CURRENT_DOCUMENT_REGISTRY.json
+      - Weall-Protocol/docs/testnet/FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md
+      - Weall-Protocol/scripts/pr77_v2_semantic_review_packet.py
+      - Weall-Protocol/tests/test_current_document_registry.py
+      - Weall-Protocol/tests/test_pr77_v2_semantic_review_packet.py
+      - .github/workflows/pr80-evidence-adjudication.yml
+  push:
+    branches:
+      - integration/pr77-pr78-frontend-candidate-20261103
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  truthful-review-inventory:
+    name: Current document coverage + unapproved V2 semantic packet
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked review dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Source formatting, static checks and guarded registry
+        run: |
+          ruff check scripts/pr77_v2_semantic_review_packet.py tests/test_current_document_registry.py tests/test_pr77_v2_semantic_review_packet.py
+          ruff format --check scripts/pr77_v2_semantic_review_packet.py tests/test_current_document_registry.py tests/test_pr77_v2_semantic_review_packet.py
+          python scripts/check_public_claim_freshness.py
+      - name: Guard registry and 18 unapproved semantic contract records
+        run: |
+          python -m pytest -q tests/test_current_document_registry.py tests/test_pr77_v2_semantic_review_packet.py
+      - name: Emit review packet without modifying semantic approvals
+        run: |
+          python scripts/pr77_v2_semantic_review_packet.py --report pr80_unapproved_semantic_review_packet.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          packet=json.loads(Path("pr80_unapproved_semantic_review_packet.json").read_text(encoding="utf-8"))
+          assert packet["schema"] == "weall.pr77.v2_semantic_review_decision_packet.v2"
+          assert packet["pending_count"] == 18
+          assert len(packet["transactions"]) == 18
+          assert "CONTENT_FLAG" in {row["tx_type"] for row in packet["transactions"]}
+          assert packet["packet_integrity_blockers"] == []
+          assert packet["must_not_update_semantic_reviews_automatically"] is True
+          assert packet["independent_human_approval_recorded_by_this_packet"] is False
+          assert all(row["signed_off_for_current_digest"] is False for row in packet["transactions"])
+          assert all(row["historical_replay_proven"] is False for row in packet["transactions"])
+          PY
+          echo 'NO-GO: semantic review inventory checked, no current digest approvals granted.'
+      - name: Archive unapproved current material comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr80-v2-review-packet-no-semantic-approval
+          path: Weall-Protocol/pr80_unapproved_semantic_review_packet.json
+          if-no-files-found: warn
