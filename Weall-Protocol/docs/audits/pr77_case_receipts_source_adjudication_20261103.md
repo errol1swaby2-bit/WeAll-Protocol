@@ -43,3 +43,27 @@ This narrower correction changes only the **compiler static-analysis source sele
 - `tests/test_pr77_case_receipt_adversarial_diagnostic.py` reproduces both direct-handler **HOLDs**: conflicting duplicate CASE binding can return a receipt inconsistent with stored binding, and invalid/missing payload can mutate previously uninitialized `cases` state before throwing. It also tests valid registration and verifies a non-SYSTEM envelope fails before mutation.
 - These tests use synthetic `TxEnvelope` instances calling `apply_dispute` directly. They **do not establish** that canonical schema, authentication, journal rollback, historical block replay or BFT finality accepts those invalid envelopes or persists their effects. The next gate is proving or repairing these invariants at the canonical executor and versioned activation boundary.
 - The workflow prints explicit `HOLD` and `NO-GO` conclusions. No accepted `semantic_reviews.json` digest changed.
+
+
+## Canonical boundary and synthetic durable replay — verified at 11b50eb (2026-11-03)
+
+[Exact-head CI run 41741976777](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41741976777) **PASS**: 22 existing canonical admission, atomic rollback and source-extractor tests, plus **3/3 new synthetic producer/follower durability cases**; 25 focused tests total, Ruff lint/format PASS, 18 semantic-review contracts still pending, CASE utility-scan false positives absent.
+
+**What is now established:**
+
+- Canonical block and public transaction admission reject SYSTEM CASE envelopes at the wrong ingress, while the block-context schema rejects missing required fields. Direct WeAllExecutor.submit_tx at HTTP ingress does not persist forged SYSTEM CASE submissions.
+- Both bounded journal and deepcopy reference apply paths restore state and state root after invalid CASE application. The raw direct handler can still mutate before throwing; that observed mutation **is not committed** through these tested canonical paths.
+- Real system_tx_emitter and validate_system_tx_queue_binding recognize exact queued payloads and reject forged parent/payload substitutions. A synthetic SYSTEM flag alone does not establish queue provenance.
+- Two disposable WeAllExecutor instances with matching **synthetically injected** queues demonstrate block builder, SQLite commit, follower apply_block, and restart/readback. One binding and two conflicting bindings both produce committed, successful SYSTEM transaction receipts. The executors match committed blocks and state roots after restart.
+- **Confirmed bounded synthetic consensus-path HOLD:** when two CASE_BIND_TO_DISPUTE items use the same case_id and different dispute_id values, both transactions are acknowledged as successful, but committed cases.bindings retains the first dispute ID. On-chain receipt records contain an ok status, not a complete dispute_id field; the discrepancy is between the second successful transaction's submitted payload and durable binding—not an invented second receipt dispute_id field.
+- A malformed queued CASE binding without dispute_id causes produce_block to fail without committing height 1 or changing consensus CASE state, including after restart. The node-local meta.last_shutdown_clean crash-recovery marker changes when reopening SQLite while the first executor remains alive; the test excludes only that field for restart-state comparison.
+
+**What remains unproven:**
+
+- Whether an authentically authorized scheduler can enqueue those conflicting CASE records in real history. Both test executors directly seeded matching queue state and deliberately bypassed upstream scheduler authority.
+- Live two-physical-machine BFT finality, production historical provenance, cross-version deterministic replay, and constitutional release authorization.
+- Whether changing duplicate semantics would preserve state roots for older committed blocks. The current synthetic path is deterministic **despite** its semantic inconsistency.
+
+**Recommended adjudication, not a runtime patch:** Decide whether identical bindings are idempotent and conflicting rebindings must be rejected, or whether a separate versioned rebinding action is authorized. Mandatory queued SYSTEM failures abort candidate construction: any new conflict rejection must coordinate with the scheduler so it does not repeatedly enqueue conflicting work and stall blocks. Before changing the CASE applier or accepting a digest, require replay of retained older history using its original semantics and a versioned activation boundary, then new-version proposer/follower/restart evidence. Prevalidating required fields before state initialization would remove direct-handler intermediate mutations, but bounded rollback already protects tested canonical rejections; assess historical determinism before changing order.
+
+**Tests:** tests/test_pr77_case_canonical_rollback_admission.py, tests/test_pr77_case_synthetic_executor_replay.py, tests/test_pr77_case_receipt_adversarial_diagnostic.py. **Release gate remains NO-GO.**
