@@ -926,9 +926,7 @@ def _tx_function_analysis(
         # in the same branch (for example _as_str) are not handler targets.
         returned = []
         for statement in branch.body:
-            if not isinstance(statement, ast.Return) or not isinstance(
-                statement.value, ast.Call
-            ):
+            if not isinstance(statement, ast.Return) or not isinstance(statement.value, ast.Call):
                 continue
             callee = statement.value.func
             name = callee.id if isinstance(callee, ast.Name) else None
