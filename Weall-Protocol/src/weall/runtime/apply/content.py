@@ -653,6 +653,9 @@ def repair_pending_content_escalations(state: Json, *, next_height: int) -> int:
         rec = pending.get(flag_id)
         if not isinstance(rec, dict) or _as_str(rec.get("status")) not in {"pending", "retry"}:
             continue
+        due_height = _as_int(rec.get("next_retry_height"), 0)
+        if due_height > int(next_height):
+            continue
         if strict_provenance:
             accepted = flags.get(flag_id) if isinstance(flags, dict) else None
             if (
@@ -667,9 +670,6 @@ def repair_pending_content_escalations(state: Json, *, next_height: int) -> int:
             rec["target_id"] = _as_str(accepted.get("target_id")).strip()
             rec["flagged_by"] = _as_str(accepted.get("by")).strip()
             rec["reason"] = _as_str(accepted.get("reason"))
-        due_height = _as_int(rec.get("next_retry_height"), 0)
-        if due_height > int(next_height):
-            continue
         try:
             queue_id = enqueue_system_tx(
                 state,
