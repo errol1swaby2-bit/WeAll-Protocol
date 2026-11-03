@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, setApiBaseUrl, validateApiBaseInput } from "../api/weall";
-import { verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
-import { discoverNodeProbes, switchToNode } from "../lib/nodeConnectionManager";
+import { hasManualNodeConsent, rememberManualNodeConsent, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
+import { applyCompatibilityBaseline, discoverNodeProbes, loadExpectedCompatibilityBaseline, probeNode, switchToNode } from "../lib/nodeConnectionManager";
 import NodeConnectionPanel from "../components/NodeConnectionPanel";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
@@ -114,9 +114,23 @@ export default function Settings(): JSX.Element {
           throw new Error("Public testnet access requires a published HTTPS node URL.");
         }
         const probes = await discoverNodeProbes({ timeoutMs: 3000 });
-        const probe = probes.find((item) => item.baseUrl === validation.normalized);
-        if (!probe || !probe.listedInSeedManifest || probe.phase !== "healthy" || !probe.ok) {
-          throw new Error("This is not a healthy, compatible API in the deployed testnet manifest.");
+        let probe = probes.find((item) => item.baseUrl === validation.normalized);
+        if (!probe) {
+          // Explicit custom URL: inspect its public chain identity without
+          // transmitting any bearer before the user consents.
+          const baseline = await loadExpectedCompatibilityBaseline();
+          const raw = await probeNode({ url: validation.normalized, label: "Manual HTTPS API" }, { timeoutMs: 3000 });
+          probe = applyCompatibilityBaseline([raw], baseline)[0];
+        }
+        if (!probe || probe.phase !== "healthy" || !probe.ok) {
+          throw new Error("The requested HTTPS API is not ready or does not match the pinned testnet chain.");
+        }
+        const consentRequired = !probe.listedInSeedManifest && !hasManualNodeConsent(probe.baseUrl);
+        if (consentRequired) {
+          const allowed = window.confirm(
+            "This compatible HTTPS node is not in WeAll's published seed manifest. Its operator may observe your API requests and session bearer. Approve connecting to this specific address in this browser tab?",
+          );
+          if (!allowed) return;
         }
         const existing = getSession();
         if (existing?.sessionKey) {
@@ -127,6 +141,7 @@ export default function Settings(): JSX.Element {
             throw new Error("The destination has not recognized this browser session; the previous connection was preserved.");
           }
         }
+        if (consentRequired) rememberManualNodeConsent(probe.baseUrl);
         const runtimeBase = switchToNode(probe.baseUrl);
         setApiBase(probe.baseUrl);
         flash(runtimeBase ? "Verified connection target saved." : "Connection target saved.");
