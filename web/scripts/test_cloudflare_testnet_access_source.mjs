@@ -32,6 +32,7 @@ assert.ok(connector.includes('state: "unavailable"'), "missing compatible nodes 
 
 // Account and bearer custody are local, but hosted API access also requires
 // the destination node to recognize the active canonical session.
+const app = readWeb("src/App.tsx");
 const session = readWeb("src/auth/session.ts");
 const recognition = readWeb("src/lib/browserNodeSession.ts");
 const panel = readWeb("src/components/NodeConnectionPanel.tsx");
@@ -40,6 +41,7 @@ assert.ok(session.includes("SS_SESSION_BEARER"), "bearer must remain in tab-scop
 assert.ok(session.includes("sessionStorage.setItem("), "session key custody cannot regress to persistent localStorage");
 assert.ok(session.includes("isBrowserSessionApproved(getApiBaseUrl()"), "protected auth headers must require per-node session recognition");
 assert.ok(session.includes('state: "node_unverified"'), "missing node recognition must remain visible");
+assert.ok(app.includes('sessionHealth.state !== "node_unverified"'), "protected app routes must remain unavailable until node recognizes session");
 assert.ok(recognition.includes('"/v1/session/me"'), "read-only canonical session challenge must be present");
 assert.ok(recognition.includes('credentials: "omit"'), "cross-origin node session probing must avoid unrelated cookies");
 assert.ok(recognition.includes('redirect: "error"'), "session bearer must not follow node redirects");
