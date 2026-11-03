@@ -1064,7 +1064,8 @@ def _withdraw_unvoted_content_assignments(ledger: Json, acct: str, *, nonce: int
         votes = dispute.get("votes")
         if (
             any(key in assignment for key in ("vote", "verdict", "voted_at_height"))
-            or (isinstance(votes, dict) and acct in votes)
+            or (isinstance(votes, dict) and any(_same_account(j, acct) for j in votes))
+            or (isinstance(votes, list) and acct in votes)
             or (
                 isinstance(votes, list)
                 and any(
