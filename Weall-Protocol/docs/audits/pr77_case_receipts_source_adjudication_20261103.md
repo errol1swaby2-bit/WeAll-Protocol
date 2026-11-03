@@ -35,3 +35,11 @@ This narrower correction changes only the **compiler static-analysis source sele
 - `.github/workflows/pr77-case-handler-extraction-no-approval.yml`: source regression and unapproved drift report
 
 **Boundary:** read-only technical adjudication and compiler analysis precision. No consensus activation, approval, historical compatibility, live PoH, HTTPS, or two-node finality is established here.
+
+
+## Executed exact-head diagnostic — 2026-11-03
+
+- [GitHub Actions run 41734002434](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/41734002434) **PASS**, 10/10 focused tests, Ruff lint and format checks passed, and the read-only compiler diagnostic reports **18 stale review contracts**, with neither `CASE_TYPE_REGISTER` nor `CASE_BIND_TO_DISPUTE` included.
+- `tests/test_pr77_case_receipt_adversarial_diagnostic.py` reproduces both direct-handler **HOLDs**: conflicting duplicate CASE binding can return a receipt inconsistent with stored binding, and invalid/missing payload can mutate previously uninitialized `cases` state before throwing. It also tests valid registration and verifies a non-SYSTEM envelope fails before mutation.
+- These tests use synthetic `TxEnvelope` instances calling `apply_dispute` directly. They **do not establish** that canonical schema, authentication, journal rollback, historical block replay or BFT finality accepts those invalid envelopes or persists their effects. The next gate is proving or repairing these invariants at the canonical executor and versioned activation boundary.
+- The workflow prints explicit `HOLD` and `NO-GO` conclusions. No accepted `semantic_reviews.json` digest changed.
