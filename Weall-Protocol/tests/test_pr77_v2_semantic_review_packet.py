@@ -22,12 +22,12 @@ def test_review_diff_distinguishes_absent_from_null() -> None:
     assert diff[2]["current_present"] is True
 
 
-def test_v2_stale_review_packet_does_not_approve_17_affected_transactions() -> None:
+def test_v2_stale_review_packet_does_not_approve_20_affected_transactions() -> None:
     packet = build_packet()
     assert packet["registered_transaction_count"] == 236
-    assert packet["pending_count"] == 17
+    assert packet["pending_count"] == 20
     assert {row["tx_type"] for row in packet["transactions"]} == KNOWN_STALE
-    assert packet["newly_stale_not_in_known_17"] == []
+    assert packet["newly_stale_not_in_known_inventory"] == []
     assert packet["known_stale_now_resolved"] == []
     assert packet["missing_state_stable_ids"] == []
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
@@ -62,9 +62,9 @@ def test_failure_code_comparison_fails_closed_on_malformed_material(invalid: obj
         failure_code_deltas([], invalid)
 
 
-def test_all_seventeen_reviewed_archives_match_accepted_approval() -> None:
+def test_all_twenty_reviewed_archives_match_accepted_approval() -> None:
     packet = build_packet()
-    assert packet["pending_count"] == 17
+    assert packet["pending_count"] == 20
     assert all(row["archive_matches_accepted_digest"] is True for row in packet["transactions"])
     assert all(
         row["archived_compiled_material_digest"] == row["accepted_review_digest"]
@@ -129,7 +129,7 @@ def test_review_packet_shows_exact_rejection_code_delta_per_lane() -> None:
 
 def test_review_packet_integrity_blocks_unexpected_inventory_changes() -> None:
     packet = copy.deepcopy(build_packet())
-    packet["newly_stale_not_in_known_17"] = ["UNKNOWN_NEW_TX"]
+    packet["newly_stale_not_in_known_inventory"] = ["UNKNOWN_NEW_TX"]
     packet["missing_state_stable_ids"] = ["missing:state:field"]
     errors = packet_integrity_blockers(packet)
     assert "unexpected_stale_transaction" in errors
