@@ -148,6 +148,20 @@ function reset() {
   browserSession.clearApprovedBrowserSession();
 }
 
+test("published and manual browser API URLs must be plain HTTPS origins", () => {
+  assert.equal(manager.isPublicApiOrigin("https://api.weallprotocol.xyz"), true);
+  for (const invalid of [
+    "http://api.weallprotocol.xyz",
+    "https://user:password@api.weallprotocol.xyz",
+    "https://api.weallprotocol.xyz/v1",
+    "https://api.weallprotocol.xyz/?auth=key",
+    "https://api.weallprotocol.xyz/#state",
+    "/",
+  ]) {
+    assert.equal(manager.isPublicApiOrigin(invalid), false, "unsafe browser API origin: " + invalid);
+  }
+});
+
 test("bootstrap reads base_url and rejects non-HTTPS, wrong-chain and unready candidates", async () => {
   reset();
   const backendHints = await manager.loadBackendSeedNodes("https://seed.test");
