@@ -144,10 +144,14 @@ def test_canonical_public_ingress_rejects_system_cases_without_mutation(
 ) -> None:
     ledger = _ledger()
     before = copy.deepcopy(ledger)
-    payload = {"case_type": "review"} if tx_type == "CASE_TYPE_REGISTER" else {
-        "case_id": "case-a",
-        "dispute_id": "d1",
-    }
+    payload = (
+        {"case_type": "review"}
+        if tx_type == "CASE_TYPE_REGISTER"
+        else {
+            "case_id": "case-a",
+            "dispute_id": "d1",
+        }
+    )
     for context in ("mempool", "gossip", "peer", "http", "operator"):
         env = _case_env(tx_type, payload)
         verdict = admit_tx(env, ledger, _canon(), context=context)
@@ -216,9 +220,7 @@ def test_block_system_nonce_and_queue_binding_are_fail_closed() -> None:
         ledger, _canon(), genuine, next_height=1, phase="post"
     )
     assert valid is True, reason
-    forged = genuine.model_copy(
-        update={"payload": {**genuine.payload, "dispute_id": "d2"}}
-    )
+    forged = genuine.model_copy(update={"payload": {**genuine.payload, "dispute_id": "d2"}})
     valid, reason = validate_system_tx_queue_binding(
         ledger, _canon(), forged, next_height=1, phase="post"
     )
@@ -233,6 +235,7 @@ def test_http_executor_rejects_system_case_before_persistence_and_after_restart(
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_REQUIRE_VRF", "0")
     db_path = str(tmp_path / ("case-" + tx_type.lower() + ".sqlite"))
+
     def new_executor() -> WeAllExecutor:
         return WeAllExecutor(
             db_path=db_path,
@@ -243,10 +246,14 @@ def test_http_executor_rejects_system_case_before_persistence_and_after_restart(
 
     ex = new_executor()
     before = ex.read_state()
-    payload = {"case_type": "review"} if tx_type == "CASE_TYPE_REGISTER" else {
-        "case_id": "case-a",
-        "dispute_id": "d1",
-    }
+    payload = (
+        {"case_type": "review"}
+        if tx_type == "CASE_TYPE_REGISTER"
+        else {
+            "case_id": "case-a",
+            "dispute_id": "d1",
+        }
+    )
     forbidden = ex.submit_tx(_case_env(tx_type, payload).to_json(), ingress="http")
     assert forbidden["ok"] is False
     assert forbidden["error"] == "system_tx_forbidden"
