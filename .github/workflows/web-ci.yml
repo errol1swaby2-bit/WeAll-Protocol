@@ -85,10 +85,6 @@ jobs:
         run: |
           npm ci
 
-      - name: Dependency audit
-        run: |
-          npm run dependency-audit
-
       - name: Typecheck
         run: |
           npm run typecheck
@@ -96,6 +92,10 @@ jobs:
       - name: Cloudflare static testnet source guards
         run: |
           node scripts/test_cloudflare_testnet_access_source.mjs
+
+      - name: Dependency audit
+        run: |
+          npm run dependency-audit
 
       - name: Account custody cryptographic source gate
         run: |
