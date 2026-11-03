@@ -5,6 +5,7 @@ These are executable checks of existing boundaries, not semantic sign-off.
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import pytest
 
@@ -16,7 +17,11 @@ from weall.runtime.system_tx_engine import (
     validate_system_tx_queue_binding,
 )
 from weall.runtime.tx_admission_types import TxEnvelope
-from weall.tx.canon import load_canon_index
+from weall.tx.canon import load_tx_index_json
+
+
+def _canon():
+    return load_tx_index_json(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
 
 
 def _env(tx_type: str, account: str, *, system: bool = True, parent: str | None = None) -> TxEnvelope:
@@ -67,7 +72,7 @@ def test_rejected_system_role_activation_is_fail_atomic(tx_type: str) -> None:
 
 
 def test_role_queue_binding_rejects_parent_substitution() -> None:
-    canon = load_canon_index()
+    canon = _canon()
     state = {"system_queue": []}
     enqueue_system_tx(
         state,
@@ -103,7 +108,7 @@ def test_role_queue_binding_rejects_parent_substitution() -> None:
 
 
 def test_role_queue_binding_rejects_target_substitution() -> None:
-    canon = load_canon_index()
+    canon = _canon()
     state = {"system_queue": []}
     enqueue_system_tx(
         state,
