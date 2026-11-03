@@ -390,3 +390,11 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - Under an explicitly activated gate, `REVIEWER_LANE_OPT_OUT` for `content_review` withdraws unvoted legacy content juror assignments, preserves the case's existing `required_votes`, and marks an empty panel `unassigned` with `reviewer_withdrawn_pending_replacement`.
 - Strict-profile constitutional panels, other lanes, voted jurors, and severe-account disputes are deliberately **not** altered. Automatic constitutional panel replacement and post-vote accountability are still open WP-05 decisions.
 - These commits are **candidate implementation, not closure**. Focused CI, historical replay, state-root comparison, and semantic digest adjudication are pending.
+
+### Lifecycle diagnostic adjudication (2026-11-03)
+
+- The diagnostic workflow `41693667585` passed and produced artifact `pr77-lifecycle-drift-no-approval` (artifact ID `13260300337`).
+- Both tracked and regenerated manifests contained 236 transaction vectors. Exactly two rows differed: `REVIEWER_LANE_OPT_IN` and `REVIEWER_LANE_OPT_OUT`. **Only** `successful_execution.apply_expected.metadata` changed: the candidate added `withdrawn_content_reviews: 0` to both receipts. State roots, nonces, admission, and other lifecycle fields matched. Source-input digests matched.
+- This extra field was introduced even when the withdrawal activation gate was unset. Commit `1295dbaaee963d8564dfe97ac31603d4d14d9285` now returns the extra field only for opt-out with the explicit height gate active. Historical receipt shape remains unchanged.
+- This correction is based on the downloaded full before/after diagnostic evidence, **not** an indiscriminate manifest refresh. Verify CI and historical replay before claiming closure.
+- The separate 18 V2 semantic-review digests remain unapproved and must not be automatically refreshed.
