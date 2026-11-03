@@ -1,0 +1,85 @@
+name: PR77 lifecycle drift diagnostic (no approval)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle-drift:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Rebuild and compare lifecycle evidence without changing tracked files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p artifacts/pr77-lifecycle-drift
+          cp generated/tx_lifecycle_assurance_v1_5.json artifacts/pr77-lifecycle-drift/tracked.json
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py
+          cp generated/tx_lifecycle_assurance_v1_5.json artifacts/pr77-lifecycle-drift/regenerated.json
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          folder = Path("artifacts/pr77-lifecycle-drift")
+          before = json.loads((folder / "tracked.json").read_text())
+          after = json.loads((folder / "regenerated.json").read_text())
+          def by_type(payload):
+              return {row["tx_type"]: row for row in payload.get("rows", [])}
+          a, b = by_type(before), by_type(after)
+          changed = []
+          for name in sorted(a.keys() | b.keys()):
+              old, new = a.get(name), b.get(name)
+              if old != new:
+                  keys = sorted(
+                      key for key in set(old or {}) | set(new or {})
+                      if (old or {}).get(key) != (new or {}).get(key)
+                  )
+                  changed.append({"tx_type": name, "changed_top_level_fields": keys,
+                                  "before": old, "after": new})
+          def sha(name):
+              return hashlib.sha256((folder / name).read_bytes()).hexdigest()
+          summary = {
+              "status": "diagnostic_only_not_semantic_approval",
+              "tracked_sha256": sha("tracked.json"),
+              "regenerated_sha256": sha("regenerated.json"),
+              "tracked_rows": len(a),
+              "regenerated_rows": len(b),
+              "changed_rows": len(changed),
+              "changed_tx_types": [r["tx_type"] for r in changed],
+              "source_input_changes": {
+                  k: {"before": before.get("source_inputs", {}).get(k),
+                      "after": after.get("source_inputs", {}).get(k)}
+                  for k in sorted(set(before.get("source_inputs", {}))
+                                  | set(after.get("source_inputs", {})))
+                  if before.get("source_inputs", {}).get(k)
+                     != after.get("source_inputs", {}).get(k)
+              },
+          }
+          (folder / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+          (folder / "changed_rows.json").write_text(json.dumps(changed, indent=2, sort_keys=True) + "\n")
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          PY
+          git diff --exit-code -- scripts/gen_tx_lifecycle_assurance_v1_5.py
+      - name: Upload inspectable comparison, even if generation fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-lifecycle-drift-no-approval
+          path: Weall-Protocol/artifacts/pr77-lifecycle-drift/
+          if-no-files-found: warn
