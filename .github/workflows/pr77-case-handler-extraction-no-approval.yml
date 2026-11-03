@@ -41,6 +41,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           ruff check scripts/compile_v2_spec.py tests/test_pr77_v2_dispute_open_dispatch_extraction.py
+          ruff format --diff tests/test_pr77_v2_dispute_open_dispatch_extraction.py || true
           ruff format --check scripts/compile_v2_spec.py tests/test_pr77_v2_dispute_open_dispatch_extraction.py
           python -m pytest -q tests/test_pr77_v2_dispute_open_dispatch_extraction.py
       - name: Report exact stale semantic inventory without changing approvals
