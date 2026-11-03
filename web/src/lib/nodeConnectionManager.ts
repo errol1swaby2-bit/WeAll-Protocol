@@ -101,7 +101,7 @@ function seedFromUnknown(raw: unknown): SeedNode | null {
   }
   if (typeof raw !== "object" || Array.isArray(raw)) return null;
   const rec = raw as Record<string, unknown>;
-  const url = normalizeBase(String(rec.url || rec.api_base || rec.apiBase || rec.base || ""));
+  const url = normalizeBase(String(rec.url || rec.api_base || rec.base_url || rec.apiBase || rec.base || ""));
   if (!url) return null;
   return {
     url,
