@@ -328,3 +328,10 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - **Validation status:** GitHub source writes succeeded. Focused tests, Ruff and CI have **not yet been executed or verified** for these commits. In particular verify actual content-root layout, acceptance of legitimate queue envelopes, schema/canon compatibility, legacy replay, direct and canonical rollback, pending repair corruption, two-node equality and post-activation behavior. Do not claim test pass.
 - **Disposition:** A3 IMPLEMENTED / UNVERIFIED, A4 adversarial matrix partially authored but not executed; WP-01 HOLD. The 17 semantic digests remain untouched. Next action: inspect new CI run results, fix any test or formatting failure, extend repair/restart tests, and freeze/authorize activation boundary before closing WP-01.
 
+### A4 adversarial regression expansion (2026-11-03)
+
+- Test extension commit `ed02b956535e7a06a904c77f49ef64187bd807e1`: corrected dedup fixture to the actual `content.moderation.targets` surface, added genuine dedup after provenance validation, accepted flag-record ID tampering rejection, and explicit pre-activation legacy dedup compatibility. Earlier negative tests cover forged reporter aliases, missing/substituted flag, target mismatch and wrong parent.
+- At the time of inspection, GitHub Actions for the prior audit head `e364468ded2584abd3ba7b29de24505678968cf7` had Backend CI run `41673949983` **in progress**, A01–A20 P1 run `41673949952` **in progress**, Reviewer Readiness run `41673949947` **pending**. No pass/fail can be claimed for the new test-extension commit. Recheck exact latest head after CI completes.
+- Remaining A4 work: execute focused pytest with exact command and environment, add queue-produced genuine escalation and pending-repair corruption tests, check direct-applier and canonical fail atomicity, Ruff format/check, versioned activation boundary, historical replay and independent two-node equality. Do not treat test presence as passing evidence.
+- **Disposition:** A4 TESTS EXPANDED / EXECUTION PENDING. WP-01 HOLD; 17 semantic digests untouched; no PR merge authorization.
+
