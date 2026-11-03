@@ -398,3 +398,10 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - This extra field was introduced even when the withdrawal activation gate was unset. Commit `1295dbaaee963d8564dfe97ac31603d4d14d9285` now returns the extra field only for opt-out with the explicit height gate active. Historical receipt shape remains unchanged.
 - This correction is based on the downloaded full before/after diagnostic evidence, **not** an indiscriminate manifest refresh. Verify CI and historical replay before claiming closure.
 - The separate 18 V2 semantic-review digests remain unapproved and must not be automatically refreshed.
+
+### B528 proof digest adjudication (2026-11-03)
+
+- CI run `41701457913` succeeded in re-running the real B528-B532 validator, DB replay, and API lifecycle rehearsals; artifact `pr77-b528-proof-no-approval` (ID `13263123732`) includes tracked and regenerated JSON.
+- Comparison showed the **only** changed top-level field was `freshness`; all rehearsal results, `ok: true`, and locked boundaries were identical. The old input digest was `e8c6168fc4c622ab1d73795f60dbf75d3500041c7d5ba55932223f6eed316de0`; the new input digest is `9a16da40d4ddd0f1363529bb82b2705915b1387f0b5ffa32b262db469f2cdeef`.
+- Byte-level comparison of the full downloaded tracked and regenerated JSON confirmed exact equality after replacing this single digest string. Commit `37168f009d936aaf58bd5bb3e6b70ab86a1ef121` updates only that digest in the tracked proof.
+- This is not authorization to activate locked production boundaries or approve any of the 18 stale V2 transaction semantic reviews. Fresh CI validation remains required.
