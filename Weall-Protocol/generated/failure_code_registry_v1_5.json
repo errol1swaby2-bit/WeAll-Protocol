@@ -3,7 +3,7 @@
     "api": 108,
     "launch_readiness": 32,
     "runtime": 8,
-    "runtime_apply": 76
+    "runtime_apply": 77
   },
   "codes": [
     {
@@ -391,7 +391,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1851
+      "source_lineno": 1934
     },
     {
       "code": "bad_request",
@@ -567,6 +567,15 @@
     {
       "code": "conflict",
       "domain": "runtime_apply",
+      "family": "ContentApplyError",
+      "http_status": null,
+      "sample_reason": "duplicate_flag_id",
+      "source": "src/weall/runtime/apply/content.py",
+      "source_lineno": 1171
+    },
+    {
+      "code": "conflict",
+      "domain": "runtime_apply",
       "family": "DisputeApplyError",
       "http_status": null,
       "sample_reason": "dispute_ballot_already_final",
@@ -661,7 +670,7 @@
       "http_status": null,
       "sample_reason": "system_followup_enqueue_failed",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 1784
+      "source_lineno": 1855
     },
     {
       "code": "duplicate",
@@ -679,7 +688,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1784
+      "source_lineno": 1867
     },
     {
       "code": "executor_missing",
@@ -2023,7 +2032,7 @@
       "source_lineno": 128
     }
   ],
-  "entry_count": 224,
+  "entry_count": 225,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
