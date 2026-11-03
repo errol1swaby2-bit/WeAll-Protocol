@@ -172,6 +172,7 @@ def _assign_unassigned_content_reviews_to_juror(ledger: Json, acct: str, *, nonc
             "no_unconflicted_content_reviewer",
             "target_owner_cannot_review_own_content",
             "reporter_cannot_review_own_report",
+            "reviewer_withdrawn_pending_replacement",
         }
         if blocked and blocked not in retryable_blocks:
             continue
