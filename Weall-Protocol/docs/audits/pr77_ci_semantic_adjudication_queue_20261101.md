@@ -291,3 +291,18 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - **Outstanding baseline capture:** workflow failure logs and exact stale-digest count at this head; chain-committed policy parameters and activation flags; prior canonical state roots, historical replay fixture hashes, independent two-node evidence. Do not mark A1 complete until these are captured or explicitly recorded as unavailable.
 - **Disposition:** A1 **IN PROGRESS**, no code modification, no semantic digest acceptance. Next action: inspect failing workflow logs and baseline config/fixture evidence, then advance to A2.
 
+### A1 CI triage and forward-only sequencing (2026-11-03)
+
+**User instruction:** If CI is blocked only by generated/review artifacts, continue the next substantive fix before regenerating or resetting; never waive semantic authorization.
+
+**Exact baseline workflow logs inspected:**
+- Backend CI run `41671591479`, job `126041088375`: fails at **Ruff changed Python files**, specifically `ruff format --check` after a `ruff format --diff` that reports formatting differences. This is a separate source-formatting failure, **not** merely stale generated artifacts. Full backend pytest did not run in this job.
+- Reviewer Readiness run `41671591117`, job `126041087066`: transaction canon is synchronized (`236` tx types, `1.25.0`); fails V2 compiler because **17 semantic-review digests are stale** (the exact 17-row ledger above). This is an authorization/review hold, not permission to regenerate or accept all digests.
+- A01–A20 P1 Revalidation run `41671591046`, job `126041086063`: **411 passed, 1 failed** (`test_a17_f001_archive_reproducible_v2_gate_executes`), because clean-checkout V2 compilation encounters the same 17 stale digests. Canon lint, tx index, V1.5 semantic vectors and lifecycle vectors passed their current-artifact checks.
+
+**Disposition:** No evidence of an independent new functional failure in the P1 test set, but this does not establish complete backend health because Backend CI stopped at Ruff and V2 compilation remains blocked. The Ruff formatting defect is independently actionable. Do **not** reset semantic digests, regenerate them as acceptance, or declare green CI. Proceed to **Batch A2 reporter provenance invariant and WP-01 bounded correction** while retaining the CI failures as tracked closure items. Format the affected Python files as a separately evidenced cleanup before the final CI gate.
+
+**A2 acceptance invariant (normative design, not yet implemented):** accepted signed content flag reporter must equal escalation reporter and dispute reporter; the SYSTEM scheduler opener is distinct from the complainant. Consumer must bind accepted `flag_id`, `target_id`, reporter and `CONTENT_FLAG:<flag_id>` parent before deduplication or any state mutation. Preserve historical queue/replay compatibility and version any consensus behavior change.
+
+**Next step:** inspect exact producer/consumer branches and existing adversarial tests, then implement a minimal provenance correction and focused tests only after determining compatibility and activation boundary. Keep all 17 semantic reviews on HOLD.
+
