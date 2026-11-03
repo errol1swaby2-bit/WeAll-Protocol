@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make a read-only, source-bound packet for the 17 stale V2 TX reviews.
+"""Make a read-only, source-bound packet for stale V2 TX reviews.
 
 This report makes no approvals and does not replace historical replay,
 independent semantic review, or the V2 spec compiler's fail-closed gate.
@@ -27,6 +27,9 @@ KNOWN_STALE = frozenset(
         "DISPUTE_RESOLVE",
         "DISPUTE_APPEAL",
         "DISPUTE_FINAL_RECEIPT",
+        "CONTENT_FLAG",
+        "CASE_TYPE_REGISTER",
+        "CASE_BIND_TO_DISPUTE",
         "ACCOUNT_BAN",
         "ROLE_JUROR_ENROLL",
         "ROLE_JUROR_ACTIVATE",
@@ -101,7 +104,7 @@ def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
         blockers.append("registered_transaction_count_changed")
     if packet.get("pending_count") != len(rows):
         blockers.append("pending_count_mismatch")
-    if packet.get("newly_stale_not_in_known_17"):
+    if packet.get("newly_stale_not_in_known_inventory"):
         blockers.append("unexpected_stale_transaction")
     if packet.get("missing_state_stable_ids"):
         blockers.append("missing_state_stable_ids")
@@ -163,6 +166,10 @@ def build_packet() -> dict[str, Any]:
         )
         if tx_type == "DISPUTE_OPEN":
             review_lane = "handler_source_attribution_and_derived_contract"
+        elif tx_type in {"CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"}:
+            review_lane = "case_receipt_compiler_attribution"
+        elif tx_type == "CONTENT_FLAG":
+            review_lane = "content_flag_duplicate_identity_guard"
         elif tx_type == "ACCOUNT_BAN":
             review_lane = "account_sanction_authority_and_finality"
         elif tx_type.startswith("DISPUTE_"):
