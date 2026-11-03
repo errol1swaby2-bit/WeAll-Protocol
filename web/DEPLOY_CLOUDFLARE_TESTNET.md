@@ -78,7 +78,8 @@ can deploy subsequent reviewed commits.
 3. Node probes verify readiness and the pinned
    chain/genesis/tx-index/protocol-profile commitments. In a public build,
    only HTTPS APIs from the shipped static seed manifest are eligible for
-   automatic or normal manual switching; backend hints are non-authoritative.
+   automatic switching; independent compatible HTTPS nodes require explicit
+   informed manual approval.
 4. A listed healthy existing node is retained. If there is a saved session,
    the target must recognize it before selection. Otherwise the browser
    chooses a listed healthy compatible node; unavailable sessions or chain
@@ -97,12 +98,21 @@ single profile may share public metadata, and `sessionStorage` can be
 initially copied in some opener-created tabs. For independent-account PoH,
 use separate browser profiles/contexts, not merely two tabs.
 
-For public-testnet builds, automatic and normal manual node selection now
-uses only **HTTPS APIs included in the published static seed manifest**.
-Other nodes returned by a backend's `/v1/nodes/seeds` remain discovery
-hints; their self-reported chain identity is not sufficient to entrust
-them with a browser's bearer. The existing current node is retained only
-when listed, compatible and healthy.
+For public-testnet builds, **automatic failover** uses only **HTTPS APIs
+included in the published static seed manifest**. Backend entries from
+`/v1/nodes/seeds` remain discovery hints rather than credential trust roots.
+
+To preserve user choice and the ability to reach independently operated
+nodes, the connection panel and Settings also offer **explicitly manual**
+HTTPS selection outside that manifest. The browser first checks pinned chain
+compatibility **without a bearer**, clearly warns that the unlisted operator
+may see the user's session bearer and API traffic, and requires an affirmative
+operator-trust confirmation. If an active bearer exists, the destination
+must independently recognize that session before switching. Consent is kept
+in **tab-scoped sessionStorage** and is never inferred from backend gossip
+or propagated to every browser profile. A compatible current custom node
+may be retained across reloads only with that prior tab approval.
+A declined or failed session check preserves the existing node.
 
 When an active session bearer is present, the browser requests the
 destination's read-only `GET /v1/session/me` using the existing
