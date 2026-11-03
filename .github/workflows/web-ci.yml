@@ -93,6 +93,10 @@ jobs:
         run: |
           npm run typecheck
 
+      - name: Cloudflare static testnet source guards
+        run: |
+          node scripts/test_cloudflare_testnet_access_source.mjs
+
       - name: Account custody cryptographic source gate
         run: |
           npm run test:account-custody-crypto-source
