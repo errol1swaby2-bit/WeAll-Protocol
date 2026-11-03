@@ -24,6 +24,28 @@ function normalizeBase(base: string): string {
   return String(base || "").trim().replace(/\/+$/, "");
 }
 
+// User-granted exception for a specifically chosen HTTPS node. Per-tab only:
+// unlike the static bootstrap manifest this permission is never inferred from
+// backend gossip, never propagated to other browser profiles, and never grants
+// protocol authority. Session recognition is still checked separately.
+const MANUAL_NODE_CONSENT_KEY = "weall_manual_https_node_consent_v1";
+
+export function hasManualNodeConsent(baseUrl: string): boolean {
+  const base = normalizeBase(baseUrl);
+  if (!base.startsWith("https://")) return false;
+  try {
+    return sessionStorage.getItem(MANUAL_NODE_CONSENT_KEY) === base;
+  } catch {
+    return false;
+  }
+}
+
+export function rememberManualNodeConsent(baseUrl: string): void {
+  const base = normalizeBase(baseUrl);
+  if (!base.startsWith("https://")) throw new Error("manual_node_consent_requires_https");
+  sessionStorage.setItem(MANUAL_NODE_CONSENT_KEY, base);
+}
+
 export function clearApprovedBrowserSession(): void {
   approved = null;
   announceSessionCheck();
