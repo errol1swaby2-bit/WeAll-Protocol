@@ -43,7 +43,8 @@ def _env(payload: dict | None = None, *, parent: str = "CONTENT_FLAG:flag:alice:
         signer="SYSTEM",
         nonce=0,
         payload=payload
-        or {
+        if payload is not None
+        else {
             "flag_id": "flag:alice:1",
             "target_id": "post:one",
             "target_type": "content",
@@ -95,15 +96,16 @@ def test_forged_provenance_fails_without_mutating_state(
 
 def test_dedup_does_not_bypass_provenance_check() -> None:
     state = _state()
-    state["content"]["moderation"] = {"targets": {
-        "post:one": {"dispute_id": "dispute:existing"}
-    }}
+    state["content"]["moderation"] = {
+        "targets": {"post:one": {"dispute_id": "dispute:existing"}}
+    }
     original = copy.deepcopy(state)
     payload = dict(_env().payload)
     payload["flagged_by"] = "mallory"
     with pytest.raises(ContentApplyError):
         _apply_content_escalate_to_dispute(state, _env(payload))
     assert state == original
+
 
 def test_valid_dedup_uses_existing_dispute_after_provenance_check() -> None:
     state = _state()
