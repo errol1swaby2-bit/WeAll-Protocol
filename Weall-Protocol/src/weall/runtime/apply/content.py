@@ -1167,6 +1167,13 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
         raise ContentApplyError("invalid_payload", "missing_target_id", {})
 
     flag_id = _as_str(payload.get("flag_id")).strip() or f"flag:{env.signer}:{env.nonce}"
+    # The accepted flag is the provenance authority for a later escalation.
+    # Once strict provenance is active, an ID must not be reused to replace
+    # that authority with a different reporter or target.
+    if _content_escalation_provenance_active(state) and flag_id in flags:
+        raise ContentApplyError(
+            "conflict", "duplicate_flag_id", {"flag_id": flag_id}
+        )
     reason = _as_str(payload.get("reason"))
     flags[flag_id] = {
         "flag_id": flag_id,
