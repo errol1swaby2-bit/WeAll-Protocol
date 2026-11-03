@@ -50,3 +50,19 @@ def test_direct_branch_dispatch_is_not_restricted_to_apply_prefix(tmp_path) -> N
     assert result["function"] == "open_case"
     assert "key:case" in result["state_writes"]
     assert "key:closed" not in result["state_writes"]
+
+def test_case_receipt_dispatch_does_not_select_as_str_utility() -> None:
+    source = compiler.ROOT / "src" / "weall" / "runtime" / "apply" / "dispute.py"
+    for tx_type in ("CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"):
+        result = compiler._tx_function_analysis(
+            tx_type,
+            source,
+            "apply_dispute",
+            {"CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE", "CASE_OUTCOME_RECEIPT"},
+            set(),
+            ["cases"],
+        )
+        assert result["function"] == "_apply_case_receipt"
+        assert {"code": "forbidden", "reason": "system_only"} in result["failure_codes"]
+        assert "key:cases" in result["state_reads"]
+        assert "applied" in result["return_keys"]
