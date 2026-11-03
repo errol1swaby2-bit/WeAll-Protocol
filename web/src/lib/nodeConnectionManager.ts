@@ -9,6 +9,8 @@ export type SeedNode = {
   label?: string;
   description?: string;
   trusted?: boolean;
+  // Listed in the deployment's static manifest; not an in-browser signature verification.
+  listedInSeedManifest?: boolean;
 };
 
 export type NodeProbePhase = "healthy" | "syncing" | "incompatible" | "offline";
@@ -50,6 +52,7 @@ export type NodeProbe = {
   readyz?: any;
   consensus?: any;
   chainIdentity?: any;
+  listedInSeedManifest?: boolean;
 };
 
 function normalizeBase(value: string): string | null {
@@ -235,8 +238,15 @@ export async function discoverCandidateNodes(): Promise<SeedNode[]> {
     seedFromUnknown({ url: config.defaultApiBase, label: "Build default", description: "The backend configured for this frontend build." }),
   ].filter((x): x is SeedNode => !!x);
   const backendSeeds = await loadBackendSeedNodes(current);
-  const manifestSeeds = await loadSeedNodes();
-  return dedupeSeeds([...defaults, ...backendSeeds, ...manifestSeeds]);
+  const manifestSeeds = (await loadSeedNodes()).map((seed) => ({ ...seed, listedInSeedManifest: true }));
+
+  if (!config.publicTestnet) return dedupeSeeds([...defaults, ...backendSeeds, ...manifestSeeds]);
+
+  // The backend is a discovery hint, never a browser credential trust root.
+  // Public auto/manual selection is restricted to the published seed manifest.
+  // Keep a previously chosen HTTPS current node visible for inspection.
+  const isHttps = (seed: SeedNode): boolean => seed.url.startsWith("https://");
+  return dedupeSeeds([...manifestSeeds, ...defaults, ...backendSeeds].filter(isHttps));
 }
 
 function safeStr(value: unknown): string | undefined {
@@ -475,6 +485,7 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
     readyz,
     consensus,
     chainIdentity,
+    listedInSeedManifest: seed.listedInSeedManifest === true,
   };
 }
 
@@ -491,7 +502,8 @@ export async function discoverNodeProbes(opts?: { timeoutMs?: number }): Promise
 }
 
 export function canSwitchToNode(probe: NodeProbe): boolean {
-  return !!probe && !probe.isCurrent && probe.phase === "healthy" && probe.ok === true;
+  return !!probe && !probe.isCurrent && probe.phase === "healthy" && probe.ok === true &&
+    (!config.publicTestnet || probe.listedInSeedManifest === true);
 }
 
 export function switchToNode(baseUrl: string): string {
