@@ -47,7 +47,8 @@ def _seed_queued_case(executor: WeAllExecutor, *, payloads: list[dict]) -> None:
 
 def _case_txs(block: dict) -> list[dict]:
     return [
-        tx for tx in block["txs"]
+        tx
+        for tx in block["txs"]
         if isinstance(tx, dict) and tx.get("tx_type") == "CASE_BIND_TO_DISPUTE"
     ]
 
@@ -81,8 +82,12 @@ def test_synthetic_queued_case_receipts_commit_replay_and_restart(
     assert isinstance(block, dict)
     cases = _case_txs(block)
     assert len(cases) == len(payloads)
-    assert len([r for r in block["receipts"] if r.get("tx_type") == "CASE_BIND_TO_DISPUTE"]) == len(payloads)
-    assert all(r.get("ok") is True for r in block["receipts"] if r.get("tx_type") == "CASE_BIND_TO_DISPUTE")
+    assert len([r for r in block["receipts"] if r.get("tx_type") == "CASE_BIND_TO_DISPUTE"]) == len(
+        payloads
+    )
+    assert all(
+        r.get("ok") is True for r in block["receipts"] if r.get("tx_type") == "CASE_BIND_TO_DISPUTE"
+    )
 
     stored = source.read_state()["cases"]["bindings"]["case-a"]
     assert stored["dispute_id"] == "dispute-original"
