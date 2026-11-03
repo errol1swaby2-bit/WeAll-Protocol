@@ -1066,11 +1066,14 @@ def _withdraw_unvoted_content_assignments(ledger: Json, acct: str, *, nonce: int
         if (
             any(key in assignment for key in ("vote", "verdict", "voted_at_height"))
             or (isinstance(votes, dict) and acct in votes)
-            or (isinstance(votes, list) and any(
-                isinstance(v, dict)
-                and _same_account(v.get("juror") or v.get("account_id"), acct)
-                for v in votes
-            ))
+            or (
+                isinstance(votes, list)
+                and any(
+                    isinstance(v, dict)
+                    and _same_account(v.get("juror") or v.get("account_id"), acct)
+                    for v in votes
+                )
+            )
         ):
             continue
         assignment["status"] = "withdrawn"
