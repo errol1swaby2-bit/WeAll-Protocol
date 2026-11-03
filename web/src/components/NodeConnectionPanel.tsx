@@ -10,6 +10,7 @@ import {
   NodeProbe,
   canSwitchToNode,
   switchToNode,
+  isPublicApiOrigin,
 } from "../lib/nodeConnectionManager";
 
 function phaseClass(phase: NodeProbe["phase"]): string {
@@ -53,7 +54,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
     try {
       const listed = canSwitchToNode(probe);
       const manualEligible = config.publicTestnet && !probe.isCurrent &&
-        probe.phase === "healthy" && probe.ok && probe.baseUrl.startsWith("https://");
+        probe.phase === "healthy" && probe.ok && isPublicApiOrigin(probe.baseUrl);
       if (!listed && !manualEligible) {
         throw new Error("Only healthy chain-compatible nodes can be selected.");
       }
@@ -186,7 +187,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
                     Switch to this node
                   </button>
                 ) : config.publicTestnet && !probe.isCurrent && probe.phase === "healthy" &&
-                    probe.ok && probe.baseUrl.startsWith("https://") ? (
+                    probe.ok && isPublicApiOrigin(probe.baseUrl) ? (
                   <button className="btn" onClick={() => void chooseNode(probe)}>
                     {hasManualNodeConsent(probe.baseUrl) ? "Use approved node" : "Approve unlisted HTTPS node"}
                   </button>
