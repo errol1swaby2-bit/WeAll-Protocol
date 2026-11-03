@@ -25,8 +25,8 @@ function requireHttpsEndpoint(value) {
     host.startsWith("127.") ||
     host.startsWith("10.") ||
     host.startsWith("192.168.") ||
-    /^172\\.(1[6-9]|2[0-9]|3[01])\\./.test(host) ||
-    /\\.(example|invalid|localhost|local|test)$/.test(host);
+    /^172[.](1[6-9]|2[0-9]|3[01])[.]/.test(host) ||
+    /[.](example|invalid|localhost|local|test)$/.test(host);
   assert.ok(!nonPublicHost, "placeholder, loopback, or private seed not allowed");
   assert.ok(!url.search && !url.hash, "seed must not contain query or fragment");
   const normalized = url.toString();
