@@ -13,6 +13,7 @@ import ipaddress
 import json
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -69,6 +70,32 @@ def _git(*args: str) -> str:
         return ""
 
 
+def machine_capabilities() -> dict[str, Any]:
+    """Non-identifying capacity hints, not benchmarks or service health proof."""
+    ram_mb = None
+    try:
+        for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
+            if line.startswith("MemTotal:"):
+                ram_mb = int(line.split()[1]) // 1024
+                break
+    except (FileNotFoundError, OSError, ValueError, IndexError):
+        pass
+    try:
+        free_gb = round(shutil.disk_usage(ROOT).free / (1024 ** 3), 2)
+    except OSError:
+        free_gb = None
+    return {
+        "logical_cpu_count": os.cpu_count(),
+        "ram_mb": ram_mb,
+        "available_storage_gb": free_gb,
+        "wsl_environment_detected": "microsoft" in platform.release().lower(),
+        "command_available": {name: shutil.which(name) is not None for name in (
+            "git", "python3", "node", "npm", "docker", "ipfs", "curl",
+        )},
+        "note": "Tool availability is not proof the Docker daemon or an IPFS node is running.",
+    }
+
+
 def repo_identity() -> dict[str, Any]:
     return {
         "commit": _git("rev-parse", "HEAD"),
@@ -105,7 +132,7 @@ def parse_api_base(raw: str, *, remote: bool, allow_lan: bool = False) -> str:
         ip = None
     if ip is not None:
         is_loopback = ip.is_loopback
-        if ip.is_unspecified or ip.is_link_local or ip.is_multicast or ip.is_reserved:
+        if ip.is_unspecified or ip.is_link_local or ip.is_multicast or (ip.is_reserved and not is_loopback and not ip.is_private):
             raise ValueError("non_dialable_or_special_api_address")
         private = ip.is_private
 
@@ -454,6 +481,7 @@ def main(argv: list[str] | None = None) -> int:
                 "repository": repo_identity(),
                 "os_family": platform.system(),
                 "python_version": platform.python_version(),
+                "capabilities": machine_capabilities(),
                 "read_only": True,
                 "physical_isolation_independently_verified": False,
                 "non_claims": dict(NON_CLAIMS),
