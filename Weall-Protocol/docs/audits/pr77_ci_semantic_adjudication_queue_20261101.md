@@ -181,3 +181,103 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 **Batch C proof matrix.** Juror: self-enrollment, activation/reinstatement, tier/reputation/version failures. Validator: operator enrollment, readiness receipt, expiry, registered node key, SYSTEM producer. Node operator: scheduler eligibility and parentless automatic activation; suspended reinstatement parent provenance. Emissary: vote/nomination support vs approved governance appointment and treasury signer sync. Gov executor: governance appointment scope and replacement authorization. Reviewer opt-in: self-authorization, eligibility, previously unassigned review assignment, failed transaction rollback. For all seven pending rows: dynamic `RolesApplyError` rejection extraction, exact-commit positive/negative tests, deterministic two-node/restart replay, and explicit semantic-review acceptance after blockers close.
 
 **Current result:** No proven unauthorized appointment from this inspection, but default appointment-path unreachability and unproven approval-to-application binding remain explicit HOLDs. Source inspection only; no runtime tests executed.
+
+## Batch A–D consolidated PR #77 execution runbook (2026-11-03)
+
+**Status: OPEN / HOLD.** This is the controlling remaining-work queue for Draft PR #77, not semantic acceptance, constitutional activation, or permission to merge. Preserve all previous source findings and exact-head evidence above. User-directed design intent is not proof of implemented runtime behavior.
+
+### Confirmed user-directed architecture
+
+1. **Severe appeal jurisdiction:** select the independent appeal panel from the **protocol-wide juror electorate**, never solely from the electorate of the group where the infraction occurred. This is a selected juror panel, not a referendum of the entire electorate. Retain the current working 25 jurors plus five substitutes, disjoint from the original panel and substitutes; preserve the existing verified **initial** 20-of-25 rule. The appeal vote threshold, finality and waiver policy still require explicit normative decisions.
+2. **Governance election method:** **STV (Single Transferable Vote)** for multi-seat ranked ballots, not single-winner instant runoff or the existing multi-option plurality. The required pipeline is candidate nomination, candidate qualification polling, ranked multi-selection ballots, deterministic STV tally, election certification, then exact approved governance appointment. Quota, transfer arithmetic, ties, exhausted ballots, electorate, nomination/qualification thresholds, seats and timing are not yet frozen.
+3. **Reviewer withdrawal:** opting out of a reviewer lane must automatically case-withdraw the reviewer from **all open/nonfinal cases attributed or assigned to that reviewer in the affected lane(s)**, not unrelated lanes. Process deterministically and atomically, initiate substitute/replacement or pending state, preserve committed votes and applicable accountability. The current case-specific withdrawal path rejects post-vote withdrawal; define its reconciliation with automatic opt-out before implementing.
+4. **Do not conflate authority:** SYSTEM queue binding proves deterministic emission, not constitutional sanction or appointment authority. Preserve parentless canonical node-operator/validator scheduler activations. Do not relax fail-closed severe-ban and final-receipt guards.
+
+### Bounded work packages
+
+| ID | Batch | Priority | Work and code surface | Exit proof | Disposition |
+| --- | --- | --- | --- | --- | --- |
+| WP-01 | A | P0 | Content flag provenance in apply/content.py; dispute opening/recusal in apply/dispute.py. Bind accepted flag ID, target, original reporter and CONTENT_FLAG parent **before dedup or state mutation**. | Forged reporter/target/parent rejected without state-root change; genuine queue and repair, restart/replay. | HOLD |
+| WP-02 | B | P0 | Initial verdict and appeal selection in apply/dispute.py. Fresh 25+5 appeal panel drawn from protocol-wide juror electorate, independently of originating group. | Verified initial 20/25; candidate-pool provenance; disjoint panel; conflicts excluded; insufficient pool pending; deterministic replay. | HOLD |
+| WP-03 | B | P0 | Final receipt in apply/dispute.py and ACCOUNT_BAN in apply/reputation.py. Authenticated verdict -> independent appeal or constitutionally authorized waiver -> finality -> exact sanction. | No forged SYSTEM/waiver/receipt; correct target; no premature ban; legacy replay; explicit activation. | HOLD — constitutional ban remains disabled |
+| WP-04A | C | P0 dependency | Nomination, qualification polling, ranked multi-selection ballot; governance/ballot schema. Existing binary/plurality flow is not STV. | Eligibility, ballot uniqueness, deterministic shortlist, poll thresholds, replay. | SPEC NEEDED |
+| WP-04B | C | P0 dependency | Multi-seat STV tally and certification; GOV_EXECUTE-to-ROLE_EMISSARY_SEAT/ROLE_GOV_EXECUTOR_SET authority; default allowlist/canon alignment. | Exact quota/transfer/tie specification, deterministic certified winners, protocol-scope election, proposal-to-queue-to-appointment payload binding. | SPEC NEEDED |
+| WP-05 | D | P1 | Automatic open-case withdrawal on REVIEWER_LANE_OPT_OUT in apply/roles.py, dispute/content assignments and reviewer_responsibilities.py. | Every affected case withdrawn or explicitly blocked under defined policy; no unauthorized further votes; penalties/replacements; atomicity/replay. | HOLD |
+| WP-06 | A–D | P1 | tx_schema, tx_canon, V2 semantic compiler/review packet, CI. Fix unreachable DISPUTE_OPEN contract branches and dynamic role rejection extraction. | 17 separately adjudicated contracts, no missing stable IDs, exact-commit focused/full CI and two-node replay. | HOLD |
+
+**Scope control:** WP-04A/B are election-system architectural dependencies, potentially larger than the original PR #77 semantic-review repair. Do not silently expand PR #77 into an unbounded election implementation. If separately tracked, keep dependent appointment reviews on HOLD and record the blocking reference here.
+
+### Batch A execution checklist
+
+- [ ] A1: Pin exact current HEAD, file blobs, canonical parameters, test baseline, historical fixtures.
+- [ ] A2: Define invariant: original signed flag reporter equals queued escalation reporter equals dispute reporter; SYSTEM opener is not the complainant.
+- [ ] A3: Authenticate flag ID, target, reporter and parent before escalation dedup, dispute creation, reviewer selection or receipt mutation.
+- [ ] A4: Negative tests for substituted reporter, mismatched flag/target, missing/wrong parent; positive queue/repair; fail-atomic state roots; recusal across open/assign/accept/vote.
+- [ ] A5: Verify activation and historical replay; record each affected semantic-review disposition, without approving dependent digests prematurely.
+
+### Batch B execution checklist
+
+- [ ] B1: Specify and verify protocol-wide juror candidate source for severe appeal; preserve disjoint original and appeal 25+5 panels and conflict exclusions.
+- [ ] B2: Verify authenticated original ballots, 20-of-25 initial approval, and resolution outcome binding; reject forged tallies and false SYSTEM resolutions.
+- [ ] B3: Freeze appeal voting threshold, finality, panel shortage retry and any waiver policy; complete authenticated mandatory independent appeal. Existing default-off experimental automatic appeal is **not** constitutional authorization.
+- [ ] B4: Bind exact final receipt and sanction target to final appeal result; retain severe_sanction_automatic_appeal_unimplemented and severe_sanction_authorization_unimplemented until replacement proven.
+- [ ] B5: Test duplicate/conflicting receipts, SYSTEM metadata forgery, queue/parent substitution, legacy replay, restart and independent two-node state roots.
+
+### Batch C execution checklist
+
+- [ ] C1: Test role activation v1/v2, explicit chain activation, dynamic RolesApplyError reasons and rollback after preliminary role-state touches.
+- [ ] C2: Prove parentless scheduler-origin node-operator/validator activations and authenticated suspended reinstatement; preserve readiness/identity gates.
+- [ ] C3: Freeze STV normative choices: electorate, nomination/qualification polling, seats, Droop-or-other quota, surplus transfer and arithmetic, ties, exhausted ballots, nullifiers, deadlines and certification.
+- [ ] C4: Implement/test ranked multi-selection ballots, deterministic STV tally, certified winner-to-exact approved governance action, SYSTEM queue/parent and appointment binding.
+- [ ] C5: Verify group-scope appointment denial, fabricated election certificate, candidate substitution, default/overridden action allowlist, treasury signer synchronization and replay.
+- [ ] C6: Keep ROLE_EMISSARY_SEAT and ROLE_GOV_EXECUTOR_SET on HOLD until certification and execution authority are real; do not mistake existing multi-option plurality for STV.
+
+### Batch D execution checklist
+
+- [ ] D1: Inventory all open dispute/content case assignment surfaces, accepted duty, substitutes, existing votes and legacy inferred lane consent.
+- [ ] D2: Define exact open-case attribution and automatic withdrawal semantics for each affected lane; process stable sorted case IDs in one canonical atomic transaction.
+- [ ] D3: Resolve post-vote withdrawal, safe/late reputation penalty and replacement/insufficient-pool behavior without erasing committed ballots.
+- [ ] D4: Test multiple lanes/cases, no open cases, post-vote cases, unavailable replacements, admission for banned/locked signer versus apply-time opt-out, rollback and restart.
+- [ ] D5: Verify withdrawn reviewers cannot receive new affected-lane assignments or submit unauthorized later votes; preserve unrelated lanes and juror role.
+
+### Seventeen transaction review ledger
+
+| Transaction | Batch / package | Acceptance focus | Status |
+| --- | --- | --- | --- |
+| DISPUTE_OPEN | A / WP-01,06 | Accepted reporter provenance, recusal, reachable error contract | HOLD |
+| DISPUTE_JUROR_ASSIGN | A,B / WP-01,02 | Conflict-free authenticated assignment, panel commitment | HOLD |
+| DISPUTE_JUROR_ACCEPT | A,B / WP-01,02 | Assigned actor, reporter recusal, fail-atomic rejection | HOLD |
+| DISPUTE_VOTE_SUBMIT | A,B / WP-01,02 | Unique valid juror and panel/round-bound vote | HOLD |
+| DISPUTE_RESOLVE | B / WP-02,03 | Verified original 20/25 and exact outcome | HOLD |
+| DISPUTE_APPEAL | B / WP-02 | Protocol-wide independent panel, deadline, pending pool | HOLD |
+| DISPUTE_FINAL_RECEIPT | B / WP-03 | Authenticated finality; no hidden severe sanction | HOLD |
+| ACCOUNT_BAN | B / WP-03 | Exact authorized sanction; constitutional fail-closed until proven | HOLD |
+| ROLE_JUROR_ENROLL | C / WP-06 | Self-enrollment and versioned eligibility | HOLD |
+| ROLE_JUROR_ACTIVATE | C / WP-06 | Enrollment, gate and rollback | HOLD |
+| ROLE_JUROR_REINSTATE | C / WP-06 | Authorized reinstatement | HOLD |
+| ROLE_VALIDATOR_ACTIVATE | C / WP-06 | Scheduler, operator, readiness and identity | HOLD |
+| ROLE_NODE_OPERATOR_ACTIVATE | C / WP-06 | Scheduler authority and suspended reinstatement | HOLD |
+| ROLE_EMISSARY_SEAT | C / WP-04B,06 | Certified STV winner, exact GOV_EXECUTE authority | HOLD |
+| ROLE_GOV_EXECUTOR_SET | C / WP-04B,06 | Certified appointment, exact GOV_EXECUTE authority | HOLD |
+| REVIEWER_LANE_OPT_IN | C,D / WP-05,06 | Exact lane consent, eligibility and assignment | HOLD |
+| REVIEWER_LANE_OPT_OUT | D / WP-05,06 | All open affected cases auto-withdrawn, accountable replacement | HOLD |
+
+### Runbook gates — mandatory after each package
+
+1. **Baseline:** exact commit, branch, blob SHAs, policy flags, canonical state root and prior evidence.
+2. **Normative freeze:** separate user-directed intent, source-observed behavior and unresolved decisions; version all consensus-semantic changes.
+3. **Minimal implementation:** only bounded package changes; no blanket digest refresh, guard bypass or unsupported election/sanction claims.
+4. **Focused proof:** positive and adversarial tests, precise errors, fail-atomicity, queue/receipt provenance, duplicates and malformed state.
+5. **Replay proof:** historical pre-activation equivalence, activated restart/snapshot, independent two-node matching state roots.
+6. **Evidence log:** exact commit, test commands, outputs, CI run IDs, environment, state hashes and remaining gaps.
+7. **Semantic adjudication:** review each of 17 current reachable contracts separately; authorized maintainer acceptance before updating its digest and derivatives.
+8. **Final gate:** full V2 compiler, Backend CI, Reviewer Readiness, A01–A20 P1, clean checkout and two-node rehearsal; Draft/no merge until all PR closure requirements are met. Public-beta blockers are separate.
+
+### Decisions still open — do not infer
+
+- Severe appeal vote threshold and finality, waiver authority if any, and indefinite insufficient protocol-wide juror pool.
+- STV seat count, candidate nomination/polling thresholds, electorate, quota, transfer arithmetic, ties, exhaustion, invalid ballots and certification.
+- Auto opt-out for already-voted cases, case-specific penalties, substitute ordering and legacy inferred-consent migration.
+- Activation height/version and historical replay/migration for every consensus-affecting change.
+
+**Next action:** A1 exact-head baseline; update this runbook after each bounded step. Do not accept stale digests or merge PR #77 solely because this documentation was updated.
