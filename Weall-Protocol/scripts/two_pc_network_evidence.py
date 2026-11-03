@@ -278,6 +278,20 @@ def _compatible(a: dict[str, Any], b: dict[str, Any]) -> bool:
                for k in COMMIT_FIELDS)
 
 
+def load_expected_commitments(path: str) -> dict[str, str]:
+    """Read external/bundled chain pins; no network-provided first-node trust."""
+    file = Path(path).expanduser()
+    if file.stat().st_size > 262_144:
+        raise ValueError("oversize_expected_commitments")
+    payload = json.loads(file.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("expected_commitments_must_be_object")
+    expected = {name: _string(payload.get(name)) for name in COMMIT_FIELDS}
+    if not all(expected.values()):
+        raise ValueError("expected_commitments_incomplete")
+    return expected
+
+
 def _ready(endpoint: dict[str, Any]) -> bool:
     chain = _as_dict(endpoint.get("chain"))
     return (
@@ -289,7 +303,8 @@ def _ready(endpoint: dict[str, Any]) -> bool:
 
 
 def capture_machine(machine_id: str, local_api: str, remote_api: str, *,
-                    allow_lan: bool = False, operator_peer_debug: bool = False
+                    allow_lan: bool = False, operator_peer_debug: bool = False,
+                    expected_commitments: dict[str, str] | None = None,
                     ) -> dict[str, Any]:
     if not machine_id.strip() or len(machine_id) > 100:
         raise ValueError("machine_id_required_1_to_100_characters")
@@ -312,11 +327,17 @@ def capture_machine(machine_id: str, local_api: str, remote_api: str, *,
             and local["network"]["identity_pubkey"] != remote["network"]["identity_pubkey"]
         ),
     }
+    if expected_commitments is not None:
+        checks["matches_operator_pinned_chain"] = (
+            _compatible(local_chain, expected_commitments)
+            and _compatible(remote_chain, expected_commitments)
+        )
     return {
         "schema": SCHEMA,
         "captured_utc": _utc_now(),
         "machine_id": machine_id.strip(),
         "capture_mode": "lan" if allow_lan else "public_https",
+        "expected_commitments_digest": _sha(expected_commitments) if expected_commitments is not None else None,
         "machine": {
             "os_family": platform.system(),
             "python_version": platform.python_version(),
@@ -393,6 +414,17 @@ def compare_packets(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
         "local_apis_ready": _ready(al) and _ready(bl),
         "bidirectional_remote_api_ready": _ready(ax) and _ready(bx),
         "same_chain_commitments": _compatible(ac, bc),
+        "same_expected_commitments_digest": bool(
+            (a.get("expected_commitments_digest") is None and b.get("expected_commitments_digest") is None)
+            or (isinstance(a.get("expected_commitments_digest"), str)
+                and a.get("expected_commitments_digest")
+                == b.get("expected_commitments_digest"))
+        ),
+        "both_match_expected_commitments_if_supplied": bool(
+            (a.get("expected_commitments_digest") is None and b.get("expected_commitments_digest") is None)
+            or (a.get("checks", {}).get("matches_operator_pinned_chain") is True
+                and b.get("checks", {}).get("matches_operator_pinned_chain") is True)
+        ),
         "distinct_node_peer_ids": bool(
             _string(_as_dict(al.get("network")).get("peer_id"))
             and _string(_as_dict(bl.get("network")).get("peer_id"))
@@ -413,7 +445,8 @@ def compare_packets(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
         "distinct_machine_labels_operator_asserted",
         "same_exact_git_commit_and_tree", "both_tracked_trees_clean",
         "local_apis_ready", "bidirectional_remote_api_ready",
-        "same_chain_commitments", "distinct_node_peer_ids",
+        "same_chain_commitments", "same_expected_commitments_digest",
+        "both_match_expected_commitments_if_supplied", "distinct_node_peer_ids",
         "distinct_node_public_keys", "a_observed_b_identity", "b_observed_a_identity",
     )
     return {
@@ -470,6 +503,8 @@ def main(argv: list[str] | None = None) -> int:
     capture.add_argument("--local-api", default="http://127.0.0.1:8000")
     capture.add_argument("--remote-api", required=True)
     capture.add_argument("--allow-lan", action="store_true", help="permit explicit private LAN HTTP address")
+    capture.add_argument("--expected-commitments",
+                         help="locally pinned chain commitments JSON (not discovered from a node)")
     capture.add_argument("--operator-peer-debug", action="store_true",
                          help="read local /v1/net/peers only if independently enabled and locally restricted")
     capture.add_argument("--out", required=True)
@@ -505,6 +540,8 @@ def main(argv: list[str] | None = None) -> int:
             result = capture_machine(
                 args.machine_id, args.local_api, args.remote_api,
                 allow_lan=args.allow_lan, operator_peer_debug=args.operator_peer_debug,
+                expected_commitments=(load_expected_commitments(args.expected_commitments)
+                                      if args.expected_commitments else None),
             )
             _write_packet(args.out, result)
             print(json.dumps({"out": args.out, "checks": result["checks"]}, sort_keys=True))
