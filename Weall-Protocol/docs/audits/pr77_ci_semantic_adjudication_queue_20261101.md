@@ -281,3 +281,13 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - Activation height/version and historical replay/migration for every consensus-affecting change.
 
 **Next action:** A1 exact-head baseline; update this runbook after each bounded step. Do not accept stale digests or merge PR #77 solely because this documentation was updated.
+
+### A1 exact-head baseline evidence (2026-11-03)
+
+- **Pinned commit:** `737d4842d8b2bd0b52bdf7b798aa915a9436c934` on `review/pr70-pr75-pr76-consolidation-stage23-20261031`. GitHub commit metadata shows only this audit document changed in that commit; no runtime patch.
+- **Source blob inventory at pinned commit:** `apply/content.py` `07b043cd103d3e6b323fc3ebfd514aba8456038f`; `apply/dispute.py` `f9014e936c45d627cdd9c39ea27d5c884755c8ef`; `apply/roles.py` `4d50b798317279ebb273bed2079dacfcc859eb51`; `apply/governance.py` `5e6bd68522f0c903572dcbd520c75f146a773313`; `apply/reputation.py` `c788f9711a6a45b6c3f20ce02fe9d00d2dfb376c`; `runtime/tx_schema.py` `73989607ae1e3f59b770b29c5dc9faf1038fdc52`; `runtime/system_tx_engine.py` `6138c87fc4dfdfc6c276b1b5e4630507dd873383`; `specs/tx_canon/tx_canon.yaml` `8d530c835b77b47401120bfe5003d89de0b136a6`.
+- **Audit blob at baseline:** `f4a30fbd3450fefd11d7fe1aa28c71661948f281` (prior to this A1 evidence append).
+- **Completed GitHub Actions for pinned commit:** Backend CI `41671591479` **failure**; Reviewer Readiness `41671591117` **failure**; A01–A20 P1 Revalidation `41671591046` **failure**; Web CI `41671591017` **success**; PR77 severe appeal threshold/fresh-panel safety `41671591151` **success**; severe-account finality fail-closed validation `41671591173` **success**; V2 DISPUTE_OPEN semantic-drift diagnostic `41671591019` **success**. These are observed workflow conclusions, not proof of why a failed workflow failed.
+- **Outstanding baseline capture:** workflow failure logs and exact stale-digest count at this head; chain-committed policy parameters and activation flags; prior canonical state roots, historical replay fixture hashes, independent two-node evidence. Do not mark A1 complete until these are captured or explicitly recorded as unavailable.
+- **Disposition:** A1 **IN PROGRESS**, no code modification, no semantic digest acceptance. Next action: inspect failing workflow logs and baseline config/fixture evidence, then advance to A2.
+
