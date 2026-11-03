@@ -51,6 +51,7 @@ def test_direct_branch_dispatch_is_not_restricted_to_apply_prefix(tmp_path) -> N
     assert "key:case" in result["state_writes"]
     assert "key:closed" not in result["state_writes"]
 
+
 def test_case_receipt_dispatch_does_not_select_as_str_utility() -> None:
     source = compiler.ROOT / "src" / "weall" / "runtime" / "apply" / "dispute.py"
     for tx_type in ("CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"):
