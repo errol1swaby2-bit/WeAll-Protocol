@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import ast
-
 from scripts import compile_v2_spec as compiler
 
 
@@ -33,17 +31,17 @@ def test_dispute_open_selects_direct_leaf_not_shared_dispatcher() -> None:
 def test_direct_branch_dispatch_is_not_restricted_to_apply_prefix(tmp_path) -> None:
     source = tmp_path / "synthetic_dispatch.py"
     source.write_text(
-        "def open_case(state, env):\\n"
-        "    state['case'] = 1\\n"
-        "    return {'applied': 'CASE_OPEN'}\\n"
-        "def close_case(state, env):\\n"
-        "    state['closed'] = 1\\n"
-        "    return {'applied': 'CASE_CLOSE'}\\n"
-        "def apply_cases(state, env):\\n"
-        "    if env.tx_type == 'CASE_OPEN':\\n"
-        "        return open_case(state, env)\\n"
-        "    if env.tx_type == 'CASE_CLOSE':\\n"
-        "        return close_case(state, env)\\n",
+        "def open_case(state, env):\n"
+        "    state['case'] = 1\n"
+        "    return {'applied': 'CASE_OPEN'}\n"
+        "def close_case(state, env):\n"
+        "    state['closed'] = 1\n"
+        "    return {'applied': 'CASE_CLOSE'}\n"
+        "def apply_cases(state, env):\n"
+        "    if env.tx_type == 'CASE_OPEN':\n"
+        "        return open_case(state, env)\n"
+        "    if env.tx_type == 'CASE_CLOSE':\n"
+        "        return close_case(state, env)\n",
         encoding="utf-8",
     )
     result = compiler._tx_function_analysis(
