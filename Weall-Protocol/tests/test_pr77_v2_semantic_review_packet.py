@@ -5,15 +5,15 @@ import json
 
 import pytest
 
-from scripts import audit_v2_semantic_review_drift as audit
-from scripts import v2_spec_validation as validation
 
 from scripts.pr77_v2_semantic_review_packet import (
     KNOWN_STALE,
+    audit,
     build_packet,
     failure_code_deltas,
     field_differences,
     packet_integrity_blockers,
+    validation,
 )
 
 
