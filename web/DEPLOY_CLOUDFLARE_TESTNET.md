@@ -76,12 +76,77 @@ can deploy subsequent reviewed commits.
    seed candidates, combining the build default, known current API and the
    backend's `/v1/nodes/seeds` response when reachable.
 3. Node probes verify readiness and the pinned
-   chain/genesis/tx-index/protocol-profile commitments.
-4. Existing healthy user-selected nodes remain selected. Otherwise the
-   browser selects a healthy compatible node; if there is none, it does not
-   silently pick an incompatible node.
+   chain/genesis/tx-index/protocol-profile commitments. In a public build,
+   only HTTPS APIs from the shipped static seed manifest are eligible for
+   automatic or normal manual switching; backend hints are non-authoritative.
+4. A listed healthy existing node is retained. If there is a saved session,
+   the target must recognize it before selection. Otherwise the browser
+   chooses a listed healthy compatible node; unavailable sessions or chain
+   mismatches fail closed.
 5. Normal API requests go **directly** to the chosen node origin. The
    connection panel remains available for manual inspection and switching.
+
+## Authenticated browser sessions and HTTPS node changes
+
+The browser stores account/public signer metadata and its selected API origin
+in `localStorage`, while the active session bearer and ML-DSA-65 signing seed
+are held in `sessionStorage`. These are scoped to the frontend's website
+origin; a new browser profile, device or custom domain does **not** inherit
+the existing session or signing seed automatically. Multiple tabs in a
+single profile may share public metadata, and `sessionStorage` can be
+initially copied in some opener-created tabs. For independent-account PoH,
+use separate browser profiles/contexts, not merely two tabs.
+
+For public-testnet builds, automatic and normal manual node selection now
+uses only **HTTPS APIs included in the published static seed manifest**.
+Other nodes returned by a backend's `/v1/nodes/seeds` remain discovery
+hints; their self-reported chain identity is not sufficient to entrust
+them with a browser's bearer. The existing current node is retained only
+when listed, compatible and healthy.
+
+When an active session bearer is present, the browser requests the
+destination's read-only `GET /v1/session/me` using the existing
+`X-WeAll-Account` and `X-WeAll-Session-Key` headers, and requires
+`authenticated=true`, the same account, and an active unexpired session.
+This happens **after** chain-compatibility validation and **before** committing
+an API-base switch. If a compatible node is behind on session records,
+the browser keeps the current base, reports `node_unverified` in the
+session-health UI, and withholds protected auth headers. It never creates
+a new session automatically on that node or treats missing records as
+proof of successful login. A user can retry from the connection panel
+once the destination catches up, or perform normal account session
+recovery. The session check does not prove cross-node synchronization
+or on-chain transaction finality.
+
+This is deliberately a conservative **startup/manual** selection policy,
+not continuous in-flight transaction failover. On a new hostname, do not
+copy bearer/session storage from another domain.
+
+## Read-only node HTTPS and CORS preflight
+
+Once a real public API HTTPS hostname is configured, run from the `web`
+directory:
+
+```bash
+node scripts/check_https_node_api.mjs \
+  --api-base https://YOUR-NODE-API-HOST \
+  --frontend-origin https://YOUR-CLOUDFLARE-FRONTEND-HOST \
+  --commitments ../Weall-Protocol/configs/public_testnet_chain_commitments.json
+```
+
+The checker uses Node's normal TLS certificate validation, rejects
+HTTP/placeholder URLs, requires healthy status/readiness/chain identity
+matching local pinned commitments, and tests cross-origin GET plus
+`OPTIONS` preflight for both session headers and signed-transaction
+submission. It sends **no real bearer, key, transaction or PoH media**.
+A passing check only establishes endpoint reachability, TLS and CORS
+configuration at that moment; it does not verify ML-DSA signatures,
+two physical machines, real PoH, P2P ports or live economics.
+
+Run the same check with the real production hostname and every preview
+origin you intend to allow. Never set wildcard production CORS simply to
+make the preflight pass. Node HTTPS and CORS configuration remain the
+node operator's responsibility, not Cloudflare Pages' responsibility.
 
 ## Validation before inviting testers
 
