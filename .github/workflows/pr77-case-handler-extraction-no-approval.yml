@@ -8,8 +8,8 @@ on:
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
       - Weall-Protocol/tests/test_pr77_v2_dispute_open_dispatch_extraction.py
       - Weall-Protocol/tests/test_pr77_case_receipt_adversarial_diagnostic.py
-      - Weall-Protocol/tests/test_pr77_case_canonical_boundary_diagnostic.py
       - Weall-Protocol/tests/test_pr77_case_canonical_rollback_admission.py
+      - Weall-Protocol/tests/test_pr77_case_synthetic_executor_replay.py
       - .github/workflows/pr77-case-handler-extraction-no-approval.yml
   push:
     branches:
@@ -19,8 +19,8 @@ on:
       - Weall-Protocol/specs/v2/source/tx_appliers.json
       - Weall-Protocol/tests/test_pr77_v2_dispute_open_dispatch_extraction.py
       - Weall-Protocol/tests/test_pr77_case_receipt_adversarial_diagnostic.py
-      - Weall-Protocol/tests/test_pr77_case_canonical_boundary_diagnostic.py
       - Weall-Protocol/tests/test_pr77_case_canonical_rollback_admission.py
+      - Weall-Protocol/tests/test_pr77_case_synthetic_executor_replay.py
       - .github/workflows/pr77-case-handler-extraction-no-approval.yml
   workflow_dispatch:
 
@@ -53,13 +53,14 @@ jobs:
           ruff format --check scripts/compile_v2_spec.py tests/test_pr77_v2_dispute_open_dispatch_extraction.py tests/test_pr77_case_receipt_adversarial_diagnostic.py tests/test_pr77_case_canonical_rollback_admission.py
           python -m pytest -q tests/test_pr77_v2_dispute_open_dispatch_extraction.py tests/test_pr77_case_receipt_adversarial_diagnostic.py tests/test_pr77_case_canonical_rollback_admission.py
           echo 'HOLD: duplicate CASE binding receipts can contradict stored state; direct invalid-receipt calls can mutate before rejection. Both must be adjudicated under canonical replay.'
-      - name: Canonical CASE admission, rollback and deterministic queue boundary
+      - name: CASE synthetic producer/follower durability diagnostics
         run: |
           set -Eeuo pipefail
-          ruff check tests/test_pr77_case_canonical_boundary_diagnostic.py
-          ruff format --check tests/test_pr77_case_canonical_boundary_diagnostic.py
-          python -m pytest -q tests/test_pr77_case_canonical_boundary_diagnostic.py
-          echo 'HOLD: direct duplicate binding receipt/state discrepancy still exists; no runtime semantics approved.'
+          ruff check tests/test_pr77_case_synthetic_executor_replay.py
+          ruff format --diff tests/test_pr77_case_synthetic_executor_replay.py || true
+          ruff format --check tests/test_pr77_case_synthetic_executor_replay.py
+          python -m pytest -q tests/test_pr77_case_synthetic_executor_replay.py
+          echo 'HOLD: synthetic SYSTEM queue injection is not constitutional authority or historical replay.'
 
       - name: Report exact stale semantic inventory without changing approvals
         run: |
