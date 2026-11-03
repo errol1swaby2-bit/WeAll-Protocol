@@ -43,6 +43,20 @@ jobs:
           ruff format --diff tests/test_current_document_registry.py || true
           ruff format --check scripts/pr77_v2_semantic_review_packet.py tests/test_current_document_registry.py tests/test_pr77_v2_semantic_review_packet.py
           python scripts/check_public_claim_freshness.py
+      - name: Diagnose source-scanner review inventory without acceptance
+        run: |
+          python - <<'PY'
+          from scripts.pr77_v2_semantic_review_packet import build_packet, KNOWN_STALE
+          packet=build_packet()
+          pending={row["tx_type"] for row in packet["transactions"]}
+          print("observed_pending_count:",packet["pending_count"])
+          print("known_inventory:",sorted(KNOWN_STALE))
+          print("observed_pending:",sorted(pending))
+          print("unexpected:",sorted(pending-set(KNOWN_STALE)))
+          print("resolved:",sorted(set(KNOWN_STALE)-pending))
+          print("non_approving:",packet["must_not_update_semantic_reviews_automatically"])
+          PY
+
       - name: Guard registry and 18 unapproved semantic contract records
         run: |
           python -m pytest -q tests/test_current_document_registry.py tests/test_pr77_v2_semantic_review_packet.py
