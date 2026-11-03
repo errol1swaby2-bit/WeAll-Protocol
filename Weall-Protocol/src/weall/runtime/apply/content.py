@@ -644,10 +644,29 @@ def repair_pending_content_escalations(state: Json, *, next_height: int) -> int:
 
     pending = _pending_escalation_root(state)
     repaired = 0
+    # After activation, retry payloads must derive from the immutable accepted
+    # flag, not from the potentially stale or corrupted pending record.
+    strict_provenance = _content_escalation_provenance_active(state)
+    content = state.get("content")
+    flags = content.get("flags") if isinstance(content, dict) else None
     for flag_id in sorted(pending):
         rec = pending.get(flag_id)
         if not isinstance(rec, dict) or _as_str(rec.get("status")) not in {"pending", "retry"}:
             continue
+        if strict_provenance:
+            accepted = flags.get(flag_id) if isinstance(flags, dict) else None
+            if (
+                not isinstance(accepted, dict)
+                or _as_str(accepted.get("flag_id")).strip() != flag_id
+                or not _as_str(accepted.get("target_id")).strip()
+                or not _as_str(accepted.get("by")).strip()
+            ):
+                # Do not queue an unauthenticated escalation; leave the record
+                # intact for deterministic operator inspection.
+                continue
+            rec["target_id"] = _as_str(accepted.get("target_id")).strip()
+            rec["flagged_by"] = _as_str(accepted.get("by")).strip()
+            rec["reason"] = _as_str(accepted.get("reason"))
         due_height = _as_int(rec.get("next_retry_height"), 0)
         if due_height > int(next_height):
             continue
