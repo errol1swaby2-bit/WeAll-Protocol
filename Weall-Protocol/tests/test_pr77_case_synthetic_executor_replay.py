@@ -124,4 +124,13 @@ def test_malformed_queued_system_case_never_commits_partial_block(
     assert compute_state_root(source.read_state()) == original_root
     restarted = _executor(tmp_path, "bad-queue")
     assert restarted.get_block_by_height(1) is None
-    assert restarted.read_state() == original
+    # Opening a second executor while the first is still alive updates the
+    # local crash-recovery marker, not consensus CASE state. Exclude only that
+    # lifecycle field when comparing the durable pre/post rejection snapshot.
+    before = copy.deepcopy(original)
+    after = restarted.read_state()
+    assert after["meta"].get("last_shutdown_clean") is False
+    before["meta"].pop("last_shutdown_clean", None)
+    after["meta"].pop("last_shutdown_clean", None)
+    assert after == before
+    assert compute_state_root(after) == compute_state_root(before)
