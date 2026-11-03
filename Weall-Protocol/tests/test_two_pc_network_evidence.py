@@ -79,6 +79,26 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "local_api_must_be_loopback"):
             tool.parse_api_base("http://192.168.1.50:8000", remote=False)
 
+    def test_local_ipv6_loopback_allowed_but_remote_rejected(self) -> None:
+        self.assertEqual(
+            tool.parse_api_base("http://[::1]:8000", remote=False),
+            "http://[::1]:8000",
+        )
+        with self.assertRaisesRegex(ValueError, "remote_api_cannot_be_loopback"):
+            tool.parse_api_base("http://[::1]:8000", remote=True)
+
+    def test_safe_inventory_exposes_hardware_hints_without_host_identity(self) -> None:
+        hints = tool.machine_capabilities()
+        self.assertIn("logical_cpu_count", hints)
+        self.assertIn("ram_mb", hints)
+        self.assertIn("available_storage_gb", hints)
+        self.assertIn("wsl_environment_detected", hints)
+        self.assertIn("docker", hints["command_available"])
+        self.assertIn("ipfs", hints["command_available"])
+        text = json.dumps(hints).lower()
+        self.assertNotIn("hostname", text)
+        self.assertNotIn("mac_address", text)
+
     def test_lan_requires_explicit_flag(self) -> None:
         with self.assertRaisesRegex(ValueError, "private_remote_api_requires_allow_lan"):
             tool.parse_api_base("http://192.168.1.70:8000", remote=True)
