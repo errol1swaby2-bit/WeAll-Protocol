@@ -934,9 +934,12 @@ def _tx_function_analysis(
                 returned.append(name)
         if len(returned) == 1:
             target = functions[returned[0]]
-        elif not returned and len(candidates) == 1:
-            target = functions[candidates[0]]
         elif not returned:
+            # A unique helper call is not necessarily a dispatch target:
+            # _apply_case_receipt's CASE branches call _as_str for validation.
+            # Preserve the declared handler unless a sole explicit apply_
+            # callee exists. Otherwise a utility can silently replace the
+            # semantic contract under review.
             preferred = [
                 name
                 for name in candidates
