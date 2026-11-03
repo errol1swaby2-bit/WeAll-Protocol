@@ -335,3 +335,19 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - Remaining A4 work: execute focused pytest with exact command and environment, add queue-produced genuine escalation and pending-repair corruption tests, check direct-applier and canonical fail atomicity, Ruff format/check, versioned activation boundary, historical replay and independent two-node equality. Do not treat test presence as passing evidence.
 - **Disposition:** A4 TESTS EXPANDED / EXECUTION PENDING. WP-01 HOLD; 17 semantic digests untouched; no PR merge authorization.
 
+### Consolidated correction/closure pass directive (2026-11-03)
+
+**User instruction:** Close all currently known PR #77 corrections in the next consolidated pass, rather than serial tiny checkpoints. This directive authorizes bounded implementation and evidence collection for all documented Batch A–D issues; it does **not** waive constitutional design choices, permit unauthorized semantic-review digest acceptance, or permit a merge.
+
+**Pre-pass exact-head observation:** branch head `e0f8293ebdc6e3dc40825dd7b2798f9e8d6633be`. GitHub Actions: Backend CI `41674188906` failed at Ruff changed Python files; Reviewer Readiness `41674188983` failed at the 17 known stale V2 transaction semantic-review digests; A01–A20 P1 `41674189129` had **411 passed, 1 failed**, with the failure due to the same clean-checkout V2 stale-digest gate. Focused severe-appeal safety and experimental automatic severe-appeal fail-closed workflows succeeded. This is not complete CI or two-node proof.
+
+**Single consolidated implementation sequence and stop rules:**
+1. **WP-01 / Batch A:** finish and execute accepted-flag reporter/target/parent provenance tests, genuine queue and pending repair, direct/canonical atomicity, historical activation and replay; resolve source formatting. Record activation policy as pending unless constitutionally approved.
+2. **WP-02 + WP-03 / Batch B:** implement/prove protocol-wide independent appeal panel, authenticated 20-of-25 initial verdict, automatic appeal lifecycle, final receipt and ban authorization only after normative appeal threshold/finality/waiver decisions are frozen. Until then retain severe ban fail-closed and label as blocked, not closed.
+3. **WP-04A + WP-04B / Batch C:** freeze nomination/poll qualification, ranked multi-selection STV election algorithm, seats, electorate, quota/transfer/tie/exhaustion/certification; implement deterministic tally and authenticated GOV_EXECUTE appointments. If scope exceeds PR #77, create explicit tracked dependency and keep appointment rows on HOLD; never substitute plurality for STV.
+4. **WP-05 / Batch D:** implement automatic all-open-case reviewer lane withdrawal, deterministic replacement/pending, no erased votes, correct safe/late accountability; resolve post-vote withdrawal rule before semantic activation.
+5. **WP-06 / cross-batch:** fix compiler source reachability, dynamic role failures, canonical schemas and version gates, Ruff, tests, historical replay, restart, independent two-node state roots. Refresh derived artifacts only after source semantics stabilize; each of 17 transaction digests needs separately evidenced maintainer approval.
+6. **Closure report:** record each WP as `CLOSED — PATCHED AND PROVEN`, `IMPLEMENTED — UNVERIFIED`, or `BLOCKED — NORMATIVE DECISION/EVIDENCE`, with exact commit, commands, outputs, CI run, source blobs, replay and remaining failures. PR stays Draft until all required gates genuinely pass.
+
+**Critical distinction:** user requests a consolidated pass, not a false blanket closure. A documentation update or passing narrow test cannot close WP-02/03/04/05/06 by itself.
+
