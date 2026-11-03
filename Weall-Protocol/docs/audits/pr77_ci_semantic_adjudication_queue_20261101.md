@@ -319,3 +319,12 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 **Adversarial matrix to implement:** genuine first escalation; genuine already-escalated dedup; forged reporter with valid queue binding; substituted flag ID; mismatched target; wrong parent; missing flag; `reported_by` versus `flagged_by` disagreement; corrupted pending repair record; duplicate flag ID/replayed queue; historical pre-activation replay; post-activation two-node state root and restart equality.
 
 **Disposition:** A2 source inspection complete; A3 runtime fix **NOT APPLIED**. Existing 17 semantic-review holds and Ruff cleanup remain tracked.
+
+### A3 implementation checkpoint (2026-11-03)
+
+- Runtime source commit `16418a0d91804c2e31e5737f0d89616d0c624df2` modifies only `src/weall/runtime/apply/content.py`: adds `_content_escalation_provenance_active` and `_verify_content_escalation_provenance`, called **before** the existing escalation dedup. The new validator checks original accepted flag record, target, signer-derived reporter, both reporter aliases when present, SYSTEM status and exact `CONTENT_FLAG:<flag_id>` parent. It uses read-only lookups before rejection.
+- Test commit `fe3d92b27f7126bb1b93b233a0aa8e67e839306e` adds `tests/test_pr77_content_escalation_flag_provenance.py` with gate, genuine binding, forged reporter/flag/target/parent, and dedup-bypass negative tests.
+- **Activation:** new opt-in `params.content_escalation_provenance_v1_activation_height` integer, default absent/inactive. **No governance activation or canonical policy version is approved**. Existing replay semantics remain when unset. This is a staged patch, **not** completed WP-01 closure.
+- **Validation status:** GitHub source writes succeeded. Focused tests, Ruff and CI have **not yet been executed or verified** for these commits. In particular verify actual content-root layout, acceptance of legitimate queue envelopes, schema/canon compatibility, legacy replay, direct and canonical rollback, pending repair corruption, two-node equality and post-activation behavior. Do not claim test pass.
+- **Disposition:** A3 IMPLEMENTED / UNVERIFIED, A4 adversarial matrix partially authored but not executed; WP-01 HOLD. The 17 semantic digests remain untouched. Next action: inspect new CI run results, fix any test or formatting failure, extend repair/restart tests, and freeze/authorize activation boundary before closing WP-01.
+
