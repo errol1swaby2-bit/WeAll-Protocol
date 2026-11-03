@@ -1026,6 +1026,76 @@ def _reviewer_lane_values(payload: Json) -> list[str]:
     return lanes
 
 
+
+def _reviewer_withdrawal_v1_active(ledger: Json) -> bool:
+    """An explicit height gate keeps historical reviewer-lane replay unchanged."""
+    params = _as_dict(ledger.get("params"))
+    activation = params.get("reviewer_withdrawal_v1_activation_height")
+    return (
+        isinstance(activation, int)
+        and not isinstance(activation, bool)
+        and activation >= 0
+        and _as_int(ledger.get("height"), -1) >= activation
+    )
+
+
+def _withdraw_unvoted_content_assignments(ledger: Json, acct: str, *, nonce: int) -> int:
+    """Withdraw only pre-vote legacy content assignments; retain voted panels.
+
+    Strict constitutional panels and any case with a recorded vote require
+    their own reviewed replacement/finality rules and are never modified here.
+    """
+    if strict_civic_governance_enabled(ledger):
+        return 0
+    disputes = _as_dict(ledger.get("disputes_by_id"))
+    withdrawn = 0
+    for dispute_id in sorted(disputes):
+        dispute = disputes.get(dispute_id)
+        if not isinstance(dispute, dict) or not _is_content_review_dispute(ledger, dispute):
+            continue
+        if _as_str(dispute.get("stage")).lower() not in {"open", "juror_review", "unassigned"}:
+            continue
+        jurors = _as_dict(dispute.get("jurors"))
+        assignment = jurors.get(acct)
+        if not isinstance(assignment, dict):
+            continue
+        if _as_str(assignment.get("status")).lower() not in {"assigned", "accepted", "attended"}:
+            continue
+        # Never erase a submitted vote, even when a stale status says assigned.
+        votes = dispute.get("votes")
+        if (
+            any(key in assignment for key in ("vote", "verdict", "voted_at_height"))
+            or (isinstance(votes, dict) and acct in votes)
+            or (isinstance(votes, list) and any(
+                isinstance(v, dict)
+                and _same_account(v.get("juror") or v.get("account_id"), acct)
+                for v in votes
+            ))
+        ):
+            continue
+        assignment["status"] = "withdrawn"
+        assignment["withdrawn_at_nonce"] = int(nonce)
+        assignment["withdrawal_reason"] = "reviewer_lane_opt_out"
+        jurors[acct] = assignment
+        dispute["jurors"] = jurors
+        dispute["assigned_jurors"] = [
+            j for j in _as_list(dispute.get("assigned_jurors"))
+            if not _same_account(j, acct)
+        ]
+        dispute["eligible_juror_ids"] = [
+            j for j in _as_list(dispute.get("eligible_juror_ids"))
+            if not _same_account(j, acct)
+        ]
+        if not _active_assigned_jurors(dispute):
+            dispute["stage"] = "unassigned"
+            dispute["assignment_blocked_reason"] = "reviewer_withdrawn_pending_replacement"
+            dispute["eligible_validator_count"] = 0
+            dispute["required_votes"] = 0
+        disputes[dispute_id] = dispute
+        withdrawn += 1
+    return withdrawn
+
+
 def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) -> Json:
     roles = _ensure_roles(ledger)
     jur = roles.get("jurors")
@@ -1099,8 +1169,17 @@ def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) 
     jur["active_set"] = aset
     jur["by_id"] = by_id
     reassigned_reviews = 0
+    withdrawn_reviews = 0
     if active and "content_review" in lanes:
         reassigned_reviews = _assign_unassigned_content_reviews_to_juror(
+            ledger, acct, nonce=int(env.nonce)
+        )
+    elif (
+        not active
+        and "content_review" in lanes
+        and _reviewer_withdrawal_v1_active(ledger)
+    ):
+        withdrawn_reviews = _withdraw_unvoted_content_assignments(
             ledger, acct, nonce=int(env.nonce)
         )
     return {
@@ -1108,6 +1187,7 @@ def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) 
         "account_id": acct,
         "lanes": lanes,
         "reassigned_content_reviews": reassigned_reviews,
+        "withdrawn_content_reviews": withdrawn_reviews,
     }
 
 
