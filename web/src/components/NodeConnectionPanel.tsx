@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getSession } from "../auth/session";
-import { verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
+import { hasManualNodeConsent, rememberManualNodeConsent, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
 import { config } from "../lib/config";
 
 import {
@@ -51,8 +51,18 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
   async function chooseNode(probe: NodeProbe): Promise<void> {
     setErr("");
     try {
-      if (!canSwitchToNode(probe)) {
-        throw new Error("Only healthy, compatible, published HTTPS nodes can be selected from the public connection manager.");
+      const listed = canSwitchToNode(probe);
+      const manualEligible = config.publicTestnet && !probe.isCurrent &&
+        probe.phase === "healthy" && probe.ok && probe.baseUrl.startsWith("https://");
+      if (!listed && !manualEligible) {
+        throw new Error("Only healthy chain-compatible nodes can be selected.");
+      }
+      const requiresManualConsent = manualEligible && !probe.listedInSeedManifest && !hasManualNodeConsent(probe.baseUrl);
+      if (requiresManualConsent) {
+        const accepted = window.confirm(
+          "This HTTPS node is not in the published WeAll seed manifest. Its operator may observe API requests and your session bearer. Connect to this specific address only if you trust its operator. This choice is limited to this browser tab. Continue?",
+        );
+        if (!accepted) return;
       }
       const session = getSession();
       if (config.publicTestnet && session?.sessionKey) {
@@ -63,6 +73,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
           throw new Error("This node has not recognized the current browser session. It may still be syncing; retry when the session record is available, or recover/login independently. Your existing connection was preserved.");
         }
       }
+      if (requiresManualConsent) rememberManualNodeConsent(probe.baseUrl);
       switchToNode(probe.baseUrl);
       setSwitchedTo(probe.baseUrl);
       await refresh();
@@ -74,7 +85,9 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
   async function recheckCurrentSession(): Promise<void> {
     const currentProbe = probes.find((probe) => probe.isCurrent);
     const currentSession = getSession();
-    if (!currentProbe || currentProbe.phase !== "healthy" || !currentProbe.listedInSeedManifest || !currentSession?.sessionKey) {
+    if (!currentProbe || currentProbe.phase !== "healthy" ||
+      (!currentProbe.listedInSeedManifest && !hasManualNodeConsent(currentProbe.baseUrl)) ||
+      !currentSession?.sessionKey) {
       setSessionCheck("There is no reachable current node and saved bearer to verify. Open session recovery if needed.");
       return;
     }
@@ -143,7 +156,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
                 <strong>{probe.label}</strong>
                 <span className="mono" style={{ wordBreak: "break-word" }}>{probe.baseUrl}</span>
                 <span className="cardDesc">{nodePhaseHint(probe)}</span>
-                {config.publicTestnet ? <span className="cardDesc">{probe.listedInSeedManifest ? "Published testnet API candidate" : "Not listed in the published testnet seed manifest; automatic switching disabled"}</span> : null}
+                {config.publicTestnet ? <span className="cardDesc">{probe.listedInSeedManifest ? "Published testnet API candidate" : hasManualNodeConsent(probe.baseUrl) ? "This tab explicitly approved this unlisted HTTPS node" : "Unlisted node: manual operator consent required; never selected automatically"}</span> : null}
                 <span className="cardDesc">
                   Chain <span className="mono">{probe.chainId || "—"}</span> · Height <span className="mono">{probe.height ?? "—"}</span> · Latency <span className="mono">{probe.latencyMs ? `${probe.latencyMs}ms` : "—"}</span>
                 </span>
@@ -171,6 +184,11 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
                 {canSwitchToNode(probe) ? (
                   <button className="btn btnPrimary" onClick={() => void chooseNode(probe)}>
                     Switch to this node
+                  </button>
+                ) : config.publicTestnet && !probe.isCurrent && probe.phase === "healthy" &&
+                    probe.ok && probe.baseUrl.startsWith("https://") ? (
+                  <button className="btn" onClick={() => void chooseNode(probe)}>
+                    {hasManualNodeConsent(probe.baseUrl) ? "Use approved node" : "Approve unlisted HTTPS node"}
                   </button>
                 ) : !probe.isCurrent ? (
                   <span className="statusPill warn">Switch blocked</span>
