@@ -151,6 +151,13 @@ def build_packet() -> dict[str, Any]:
         if tx_type not in reviews or tx_type not in previous:
             raise ValueError(f"v2_review_packet_missing_review_or_baseline:{tx_type}")
         review = reviews[tx_type]
+        # The compiler binds review authority by stable ID. A diagnostic that
+        # joins only by display transaction type must prove both identities
+        # refer to the same canonical contract before comparing digests.
+        if str(review.get("stable_id") or "") != str(row.get("stable_id") or ""):
+            raise ValueError(f"v2_review_packet_review_identity_mismatch:{tx_type}")
+        if str(previous[tx_type].get("stable_id") or "") != str(row.get("stable_id") or ""):
+            raise ValueError(f"v2_review_packet_archive_identity_mismatch:{tx_type}")
         accepted_digest = str(review.get("review_digest") or "")
         current_material = validation.tx_review_material(row)
         current_digest = validation.compact_digest(current_material)
