@@ -363,3 +363,9 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - Applied the logged Ruff changes directly, without regenerating semantic reviews: runtime format commit `fa590d8d6f65668dedabb96708facebde4109532`; WP-01 test format commit `5267f1317b1288603cba8b995f080df8675d286c`; Batch C test format commit `b612480c97ba7812b6b6baab5114c3e5787f2a85`.
 - **Status:** formatting differences corrected at source; post-commit Ruff and focused pytest results are not yet verified. The other V2 semantic review hold remains independent. No WP-01/02/03/04/05/06 closure is claimed.
 
+### WP-01 repair-path provenance correction (2026-11-03)
+
+- Runtime commit `c7de0b8764e1e3c30d8b949acb8796827fc1d788` changes `repair_pending_content_escalations`: under the explicitly configured activation height, derive retry reporter, target and reason from the accepted flag record, not mutable pending metadata; if no valid accepted flag exists, do not enqueue. The historical preactivation retry path remains unchanged.
+- Regression commit `0d4742f9cd804b8996fa53e9865ee4b8a4e66db2` adds forged pending reporter/target/reason correction, missing original flag suppression, and legacy retry behavior tests.
+- **Status:** committed but unverified by CI. Existing replay/activation gate is not yet approved; runtime behavior is still opt-in. The source has not been demonstrated to pass full pytest, two-node restart or reviewer readiness. WP-01 remains IMPLEMENTED / UNVERIFIED, not closed.
+
