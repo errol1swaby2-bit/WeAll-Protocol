@@ -1614,9 +1614,7 @@ def _verify_content_escalation_provenance(
     expected_parent = f"CONTENT_FLAG:{flag_id}"
     actual_parent = _as_str(getattr(env, "parent", "") or "").strip()
     supplied_reporters = [
-        _as_str(payload.get(key)).strip()
-        for key in ("flagged_by", "reported_by")
-        if key in payload
+        _as_str(payload.get(key)).strip() for key in ("flagged_by", "reported_by") if key in payload
     ]
     if (
         _as_str(accepted.get("flag_id")).strip() != flag_id
