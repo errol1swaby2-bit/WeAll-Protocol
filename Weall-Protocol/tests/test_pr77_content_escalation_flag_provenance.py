@@ -13,6 +13,7 @@ import pytest
 from weall.runtime.apply.content import (
     ContentApplyError,
     _apply_content_escalate_to_dispute,
+    _apply_content_flag,
     _content_escalation_provenance_active,
     _verify_content_escalation_provenance,
     repair_pending_content_escalations,
@@ -219,3 +220,45 @@ def test_not_due_repair_does_not_mutate_pending_state(monkeypatch) -> None:
     monkeypatch.setattr("weall.runtime.apply.content.enqueue_system_tx", unexpected_enqueue)
     assert repair_pending_content_escalations(state, next_height=20) == 0
     assert state == original
+
+
+def test_activated_duplicate_flag_id_cannot_replace_provenance() -> None:
+    state = _state()
+    original = copy.deepcopy(state)
+    env = TxEnvelope(
+        tx_type="CONTENT_FLAG",
+        signer="SYSTEM",
+        nonce=99,
+        payload={
+            "flag_id": "flag:alice:1",
+            "target_id": "post:forged",
+            "reason": "overwrite",
+        },
+        system=True,
+    )
+    with pytest.raises(ContentApplyError) as exc:
+        _apply_content_flag(state, env)
+    assert exc.value.reason == "duplicate_flag_id"
+    assert state == original
+
+
+def test_legacy_duplicate_flag_id_retains_prior_overwrite_behavior(monkeypatch) -> None:
+    state = _state()
+    state["height"] = 19
+    env = TxEnvelope(
+        tx_type="CONTENT_FLAG",
+        signer="SYSTEM",
+        nonce=99,
+        payload={
+            "flag_id": "flag:alice:1",
+            "target_id": "post:legacy",
+            "reason": "legacy",
+        },
+        system=True,
+    )
+    monkeypatch.setattr(
+        "weall.runtime.apply.content.enqueue_system_tx",
+        lambda _state, **kwargs: "queue:legacy",
+    )
+    _apply_content_flag(state, env)
+    assert state["content"]["flags"]["flag:alice:1"]["target_id"] == "post:legacy"
