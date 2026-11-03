@@ -43,13 +43,9 @@ def test_fresh_genesis_release_gate_is_current_scanned_and_explicitly_unmet() ->
     registry = json.loads(
         (ROOT / "docs/CURRENT_DOCUMENT_REGISTRY.json").read_text(encoding="utf-8")
     )
-    target = (
-        "Weall-Protocol/docs/testnet/FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md"
-    )
+    target = "Weall-Protocol/docs/testnet/FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md"
     matching = [entry for entry in registry["documents"] if entry["path"] == target]
-    assert matching == [
-        {"claim_scan": True, "classification": "CURRENT", "path": target}
-    ]
+    assert matching == [{"claim_scan": True, "classification": "CURRENT", "path": target}]
     content = (REPO_ROOT / target).read_text(encoding="utf-8")
     assert "**Status: PLANNED / NOT SATISFIED.**" in content
     assert "**Release decision at creation: NO-GO" in content
