@@ -224,6 +224,39 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         self.assertFalse(result["bidirectional_api_preflight_pass"])
         self.assertFalse(result["non_claims"]["physical_machine_isolation_independently_verified"])
 
+    def test_locally_pinned_commitments_require_complete_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "commitments.json"
+            path.write_text(json.dumps(CHAIN), encoding="utf-8")
+            self.assertEqual(tool.load_expected_commitments(str(path)), CHAIN)
+            path.write_text(json.dumps({"chain_id": CHAIN["chain_id"]}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "expected_commitments_incomplete"):
+                tool.load_expected_commitments(str(path))
+
+    def test_pinned_manifest_must_agree_across_both_packets(self) -> None:
+        a, b = packets()
+        for packet in (a, b):
+            packet["expected_commitments_digest"] = tool._sha(CHAIN)
+            packet["checks"] = {"matches_operator_pinned_chain": True}
+        result = tool.compare_packets(a, b)
+        self.assertTrue(result["bidirectional_api_preflight_pass"])
+        b["checks"]["matches_operator_pinned_chain"] = False
+        self.assertFalse(tool.compare_packets(a, b)["bidirectional_api_preflight_pass"])
+        b["checks"]["matches_operator_pinned_chain"] = True
+        b["expected_commitments_digest"] = tool._sha({"wrong": "pins"})
+        self.assertFalse(tool.compare_packets(a, b)["bidirectional_api_preflight_pass"])
+
+    def test_capture_detects_wrong_external_pins(self) -> None:
+        a, b = packets()
+        wrong = {**CHAIN, "genesis_hash": "incorrect"}
+        with patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]), \\
+             patch.object(tool, "repo_identity", return_value=a["repository"]):
+            report = tool.capture_machine(
+                "machine-A", "http://127.0.0.1:8000", "http://192.168.1.15:8000",
+                allow_lan=True, expected_commitments=wrong,
+            )
+        self.assertFalse(report["checks"]["matches_operator_pinned_chain"])
+
     def test_capture_projects_only_safe_api_fields(self) -> None:
         a, b = packets()
         with patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]), \
