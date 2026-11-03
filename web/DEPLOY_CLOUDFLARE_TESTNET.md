@@ -47,7 +47,7 @@ Create a Cloudflare Pages project linked to this repository. Configure:
 | Production branch | the chosen release branch after review |
 | Build command | `node scripts/buildCloudflareTestnet.mjs` |
 | Output directory | `dist` |
-| Node.js | 22 (supported by `web/package.json`) |
+| Node.js | 22; set Cloudflare Pages build environment variable `NODE_VERSION=22` |
 
 The build script reads:
 
