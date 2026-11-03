@@ -918,13 +918,20 @@ def _tx_function_analysis(
     target = dispatch
     if branch is not None:
         calls = _direct_local_calls(branch, set(functions))
-        preferred = [
-            name
-            for name in calls
-            if name != dispatch.name and (name.startswith("apply_") or name.startswith("_apply_"))
-        ]
-        if preferred:
-            target = functions[preferred[0]]
+        # A branch-local direct call is a more precise transaction entrypoint
+        # than the multi-transaction dispatcher, regardless of its name.
+        # Do not guess when a branch calls multiple distinct local functions.
+        candidates = [name for name in calls if name != dispatch.name]
+        if len(candidates) == 1:
+            target = functions[candidates[0]]
+        elif len(candidates) > 1:
+            preferred = [
+                name
+                for name in candidates
+                if name.startswith("apply_") or name.startswith("_apply_")
+            ]
+            if len(preferred) == 1:
+                target = functions[preferred[0]]
 
     queue = [target.name]
     visited: set[str] = set()
