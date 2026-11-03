@@ -98,6 +98,10 @@ jobs:
         run: |
           node scripts/test_cloudflare_testnet_behavior.mjs
 
+      - name: HTTPS node API and CORS deployment preflight regression
+        run: |
+          node scripts/test_https_node_api_preflight.mjs
+
       - name: Dependency audit
         run: |
           npm run dependency-audit
