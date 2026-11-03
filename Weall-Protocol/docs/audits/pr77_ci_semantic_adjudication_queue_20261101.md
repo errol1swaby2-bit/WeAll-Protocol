@@ -369,3 +369,9 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - Regression commit `0d4742f9cd804b8996fa53e9865ee4b8a4e66db2` adds forged pending reporter/target/reason correction, missing original flag suppression, and legacy retry behavior tests.
 - **Status:** committed but unverified by CI. Existing replay/activation gate is not yet approved; runtime behavior is still opt-in. The source has not been demonstrated to pass full pytest, two-node restart or reviewer readiness. WP-01 remains IMPLEMENTED / UNVERIFIED, not closed.
 
+### WP-01 repair mutation-order regression (2026-11-03)
+
+- Identified that the first accepted-flag repair change overwrote pending reporter/target/reason even when `next_retry_height` was in the future. Commit `ab3dad1ce54c2b4922b831e63c3e5dd41bae1e70` moves the due-height check ahead of provenance-derived record updates.
+- Commit `05154cfaef06554785db38e499679f65ac1cfad7` adds a not-due retry regression requiring zero enqueue and byte-equivalent state after invocation.
+- **Disposition:** code and test committed; focused test, canonical replay and two-node proof still outstanding. All WP closure claims remain on HOLD.
+
