@@ -204,6 +204,19 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         self.assertFalse(result["checks"]["distinct_node_peer_ids"])
         self.assertFalse(result["bidirectional_api_preflight_pass"])
 
+    def test_cloned_node_pubkey_rejected_even_if_peer_ids_differ(self) -> None:
+        a, b = packets()
+        b["local"]["network"]["identity_pubkey"] = a["local"]["network"]["identity_pubkey"]
+        result = tool.compare_packets(a, b)
+        self.assertFalse(result["checks"]["distinct_node_public_keys"])
+        self.assertFalse(result["bidirectional_api_preflight_pass"])
+
+    def test_git_failure_cannot_be_reported_as_clean(self) -> None:
+        with patch.object(tool, "_git", return_value=None):
+            identity = tool.repo_identity()
+        self.assertEqual(identity["commit"], "")
+        self.assertFalse(identity["tracked_tree_clean"])
+
     def test_machine_labels_are_not_independent_hardware_proof(self) -> None:
         a, b = packets()
         b["machine_id"] = a["machine_id"]
