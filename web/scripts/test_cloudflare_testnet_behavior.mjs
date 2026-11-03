@@ -253,6 +253,12 @@ test("independent browser bearer cannot borrow another browser session's approva
   assert.equal(await browserSession.verifyBrowserSessionOnNode(
     "http://127.0.0.1:8000", "@alice", "tab-1-key",
   ), "unavailable");
+  assert.equal(await browserSession.verifyBrowserSessionOnNode(
+    "https://name:secret@healthy.test", "@alice", "tab-1-key",
+  ), "unavailable");
+  assert.equal(await browserSession.verifyBrowserSessionOnNode(
+    "https://healthy.test/v1", "@alice", "tab-1-key",
+  ), "unavailable");
   assert.ok(!sessionCalls.some((call) => call.host === "unlisted.test"));
 });
 
