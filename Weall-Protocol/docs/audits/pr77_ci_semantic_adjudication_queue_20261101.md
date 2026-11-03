@@ -382,3 +382,11 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - WP-01 regression commit `bb76f32a2be1cc29cc077da2a1e20b910a0cd58b` tests the activated collision and legacy boundary. This is a new consensus behavior and requires activation approval, focused test execution, historical replay, and independent two-node evidence before closure.
 - WP-05 inspection: `_apply_reviewer_lane_update` currently updates reviewer opt-in records but does not remove the reviewer from open dispute juror assignments. The remedy must distinguish pre-vote withdrawal from post-vote accountability, maintain deterministic replacement, and fail closed if quorum is unavailable. **No unapproved withdrawal semantics have been committed.**
 - Do not refresh V2 semantic digests or edit source-bound proof digests merely to make CI green. Regenerate proof artifacts by executing their source-bound harnesses and validate outputs.
+
+### WP-05 bounded candidate (2026-11-03)
+
+- Candidate source: `368a5e392ee969ec64b1001ab9e6e310dc08094a`; tests: `aaa3dd2e84f443c8c86aaaea9bcabb339087a69d`.
+- `reviewer_withdrawal_v1_activation_height` is **unset by default**, so historical execution remains unchanged until explicit constitutional/activation approval.
+- Under an explicitly activated gate, `REVIEWER_LANE_OPT_OUT` for `content_review` withdraws unvoted legacy content juror assignments, preserves the case's existing `required_votes`, and marks an empty panel `unassigned` with `reviewer_withdrawn_pending_replacement`.
+- Strict-profile constitutional panels, other lanes, voted jurors, and severe-account disputes are deliberately **not** altered. Automatic constitutional panel replacement and post-vote accountability are still open WP-05 decisions.
+- These commits are **candidate implementation, not closure**. Focused CI, historical replay, state-root comparison, and semantic digest adjudication are pending.
