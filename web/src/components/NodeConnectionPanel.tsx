@@ -29,6 +29,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
   const [busy, setBusy] = useState<boolean>(false);
   const [err, setErr] = useState<string>("");
   const [switchedTo, setSwitchedTo] = useState<string>("");
+  const [sessionCheck, setSessionCheck] = useState<string>("");
 
   async function refresh(): Promise<void> {
     setBusy(true);
@@ -70,6 +71,26 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
     }
   }
 
+  async function recheckCurrentSession(): Promise<void> {
+    const currentProbe = probes.find((probe) => probe.isCurrent);
+    const currentSession = getSession();
+    if (!currentProbe || currentProbe.phase !== "healthy" || !currentSession?.sessionKey) {
+      setSessionCheck("There is no reachable current node and saved bearer to verify. Open session recovery if needed.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const recognition = await verifyBrowserSessionOnNode(
+        currentProbe.baseUrl, currentSession.account, currentSession.sessionKey, { attempts: 3 },
+      );
+      setSessionCheck(recognition === "verified"
+        ? "The selected node recognizes this browser session."
+        : "Session recognition is still unavailable. The browser will not send protected session headers until it is recognized.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const current = probes.find((probe) => probe.isCurrent) || probes[0] || null;
   const healthyAlternates = probes.filter((probe) => !probe.isCurrent && probe.phase === "healthy");
   const currentIsWeak = !!current && current.phase !== "healthy";
@@ -92,6 +113,12 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
         </div>
 
         {err ? <div className="calloutWarn"><strong>Node check failed.</strong> {err}</div> : null}
+        {sessionCheck ? <div className="calloutInfo">{sessionCheck}</div> : null}
+        {config.publicTestnet && getSession()?.sessionKey ? (
+          <button className="btn" onClick={() => void recheckCurrentSession()} disabled={busy}>
+            Recheck session on current node
+          </button>
+        ) : null}
         {switchedTo ? <div className="calloutInfo"><strong>Connection target changed.</strong> This browser now points at <span className="mono">{switchedTo}</span>. Your account keys and on-chain identity were not changed.</div> : null}
         {currentIsWeak && healthyAlternates.length ? (
           <div className="calloutWarn">
