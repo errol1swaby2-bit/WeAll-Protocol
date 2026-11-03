@@ -42,14 +42,16 @@ def _env(payload: dict | None = None, *, parent: str = "CONTENT_FLAG:flag:alice:
         tx_type="CONTENT_ESCALATE_TO_DISPUTE",
         signer="SYSTEM",
         nonce=0,
-        payload=payload
-        if payload is not None
-        else {
+        payload=(
+            payload
+            if payload is not None
+            else {
             "flag_id": "flag:alice:1",
             "target_id": "post:one",
             "target_type": "content",
-            "flagged_by": "alice",
-        },
+                "flagged_by": "alice",
+            }
+        ),
         system=True,
         parent=parent,
     )
