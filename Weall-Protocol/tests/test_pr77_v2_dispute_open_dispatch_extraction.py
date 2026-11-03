@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+import sys
+from pathlib import Path
 
-from scripts import compile_v2_spec as compiler
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+import compile_v2_spec as compiler  # noqa: E402
 
 
 def test_dispute_open_selects_direct_leaf_not_shared_dispatcher() -> None:
