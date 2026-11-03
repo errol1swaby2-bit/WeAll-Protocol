@@ -74,7 +74,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
   async function recheckCurrentSession(): Promise<void> {
     const currentProbe = probes.find((probe) => probe.isCurrent);
     const currentSession = getSession();
-    if (!currentProbe || currentProbe.phase !== "healthy" || !currentSession?.sessionKey) {
+    if (!currentProbe || currentProbe.phase !== "healthy" || !currentProbe.listedInSeedManifest || !currentSession?.sessionKey) {
       setSessionCheck("There is no reachable current node and saved bearer to verify. Open session recovery if needed.");
       return;
     }
