@@ -1171,9 +1171,7 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
     # Once strict provenance is active, an ID must not be reused to replace
     # that authority with a different reporter or target.
     if _content_escalation_provenance_active(state) and flag_id in flags:
-        raise ContentApplyError(
-            "conflict", "duplicate_flag_id", {"flag_id": flag_id}
-        )
+        raise ContentApplyError("conflict", "duplicate_flag_id", {"flag_id": flag_id})
     reason = _as_str(payload.get("reason"))
     flags[flag_id] = {
         "flag_id": flag_id,
