@@ -16,9 +16,10 @@ function requireHttpsEndpoint(value) {
   const url = new URL(String(value));
   assert.equal(url.protocol, "https:", "public browser seed must use HTTPS");
   assert.ok(url.hostname && !url.username && !url.password, "seed must be a public URL without credentials");
-  assert.ok(!/^(localhost|127\\.|0\\.|.*\\.example)$/i.test(url.hostname), "placeholder or loopback seed not allowed");
+  assert.ok(!/^(localhost|127[.]|0[.]|.*[.]example)$/i.test(url.hostname), "placeholder or loopback seed not allowed");
   assert.ok(!url.search && !url.hash, "seed must not contain query or fragment");
-  return url.toString().replace(/\\/$/, "");
+  const normalized = url.toString();
+  return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
 }
 
 function main() {
