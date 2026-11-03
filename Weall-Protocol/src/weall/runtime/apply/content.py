@@ -1585,6 +1585,53 @@ def _content_escalation_collision_dispute_id(
     return f"dispute:content:{commitment}"
 
 
+def _content_escalation_provenance_active(state: Json) -> bool:
+    """Opt-in, height-bound consensus activation; legacy blocks retain old semantics."""
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return False
+    height = params.get("content_escalation_provenance_v1_activation_height")
+    if type(height) is not int or height < 0:
+        return False
+    return _as_int(state.get("height"), 0) >= height
+
+
+def _verify_content_escalation_provenance(
+    state: Json, env: TxEnvelope, payload: Json, *, target_id: str
+) -> None:
+    """Bind SYSTEM escalation to its accepted flag before dedup or mutation."""
+    flag_id = _as_str(payload.get("flag_id")).strip()
+    if not flag_id:
+        raise ContentApplyError("forbidden", "escalation_flag_id_required", {})
+    content = state.get("content")
+    flags = content.get("flags") if isinstance(content, dict) else None
+    accepted = flags.get(flag_id) if isinstance(flags, dict) else None
+    if not isinstance(accepted, dict):
+        raise ContentApplyError(
+            "forbidden", "escalation_accepted_flag_missing", {"flag_id": flag_id}
+        )
+    reporter = _as_str(accepted.get("by")).strip()
+    expected_parent = f"CONTENT_FLAG:{flag_id}"
+    actual_parent = _as_str(getattr(env, "parent", "") or "").strip()
+    supplied_reporters = [
+        _as_str(payload.get(key)).strip()
+        for key in ("flagged_by", "reported_by")
+        if key in payload
+    ]
+    if (
+        _as_str(accepted.get("flag_id")).strip() != flag_id
+        or _as_str(accepted.get("target_id")).strip() != target_id
+        or not reporter
+        or not supplied_reporters
+        or any(value != reporter for value in supplied_reporters)
+        or actual_parent != expected_parent
+        or not bool(getattr(env, "system", False))
+    ):
+        raise ContentApplyError(
+            "forbidden", "escalation_flag_provenance_mismatch", {"flag_id": flag_id}
+        )
+
+
 def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     """Escalate a content target to the dispute system.
 
@@ -1614,6 +1661,9 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
 
     if not target_id:
         raise ContentApplyError("invalid_payload", "missing_target_id", {"tx_type": env.tx_type})
+
+    if _content_escalation_provenance_active(state):
+        _verify_content_escalation_provenance(state, env, payload, target_id=target_id)
 
     # Dedup: if target already has a dispute_id, do not open another.
     targets = _mod_targets(state)
