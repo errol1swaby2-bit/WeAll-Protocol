@@ -49,6 +49,7 @@ export type NodeProbe = {
   status?: any;
   readyz?: any;
   consensus?: any;
+  chainIdentity?: any;
 };
 
 function normalizeBase(value: string): string | null {
