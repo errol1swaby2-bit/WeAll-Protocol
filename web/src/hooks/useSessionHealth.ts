@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getSessionHealth, type SessionHealth } from "../auth/session";
+import { BROWSER_NODE_SESSION_CHECKED_EVENT } from "../lib/browserNodeSession";
 import { ACCOUNT_REFRESH_INTERVAL_MS, refreshTouches, subscribeGlobalRefresh } from "../lib/revalidation";
 
 export function useSessionHealth(version?: number): SessionHealth {
@@ -34,6 +35,7 @@ export function useSessionHealth(version?: number): SessionHealth {
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", refresh);
+    window.addEventListener(BROWSER_NODE_SESSION_CHECKED_EVENT, refresh);
     document.addEventListener("visibilitychange", refresh);
 
     return () => {
@@ -41,6 +43,7 @@ export function useSessionHealth(version?: number): SessionHealth {
       window.clearInterval(intervalId);
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", refresh);
+      window.removeEventListener(BROWSER_NODE_SESSION_CHECKED_EVENT, refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
   }, []);
