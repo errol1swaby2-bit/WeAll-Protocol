@@ -6,6 +6,7 @@ import copy
 
 from weall.runtime.apply.roles import (
     _reviewer_withdrawal_v1_active,
+    _assign_unassigned_content_reviews_to_juror,
     _withdraw_unvoted_content_assignments,
 )
 
@@ -78,3 +79,31 @@ def test_noncontent_dispute_untouched() -> None:
     before = copy.deepcopy(state)
     assert _withdraw_unvoted_content_assignments(state, "alice", nonce=7) == 0
     assert state == before
+
+
+def test_replacement_reviewer_can_reclaim_withdrawn_unvoted_case() -> None:
+    state = _state()
+    assert _withdraw_unvoted_content_assignments(state, "alice", nonce=7) == 1
+    assert _assign_unassigned_content_reviews_to_juror(state, "bob", nonce=8) == 1
+    dispute = state["disputes_by_id"]["case:one"]
+    assert dispute["stage"] == "juror_review"
+    assert dispute["assignment_blocked_reason"] == ""
+    assert dispute["jurors"]["alice"]["status"] == "withdrawn"
+    assert dispute["jurors"]["bob"]["status"] == "assigned"
+    assert dispute["assigned_jurors"] == ["bob"]
+    assert dispute["eligible_juror_ids"] == ["bob"]
+    assert dispute["required_votes"] == 1
+    assert dispute["eligible_validator_count"] == 1
+
+
+def test_replacement_reviewer_cannot_be_case_reporter() -> None:
+    state = _state()
+    state["disputes_by_id"]["case:one"]["reported_by"] = "bob"
+    assert _withdraw_unvoted_content_assignments(state, "alice", nonce=7) == 1
+    assert _assign_unassigned_content_reviews_to_juror(state, "bob", nonce=8) == 0
+    dispute = state["disputes_by_id"]["case:one"]
+    assert dispute["stage"] == "unassigned"
+    assert dispute["assignment_blocked_reason"] == "reporter_cannot_review_own_report"
+    assert dispute["required_votes"] == 1
+    assert dispute["jurors"]["alice"]["status"] == "withdrawn"
+    assert "bob" not in dispute["jurors"]
