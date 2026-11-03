@@ -351,3 +351,9 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 
 **Critical distinction:** user requests a consolidated pass, not a false blanket closure. A documentation update or passing narrow test cannot close WP-02/03/04/05/06 by itself.
 
+### Consolidated pass progress — WP-01 test harness cleanup (2026-11-03)
+
+- Commits `c9d46970095a1c7b7e56c5ce4339d0d7fb9989ad`, `9c2fdc39a902c009a8e7370b3b3894defa8fe138`, and `4987495ab4e34b708f55285c66af8dbe9010aba9` correct the new WP-01 test fixture's moderation-target formatting and explicit-empty-payload construction/indentation. These are **test-only edits**, not runtime closure.
+- Baseline workflow runs at `b4b87f6610b9480a389df6cca5c8c2b55f3cef3b`: Backend CI `41674657540` failure, Reviewer Readiness `41674657577` failure, P1 Revalidation `41674657275` failure, severe appeal safety `41674657525` success. No evidence yet of full green CI.
+- **Important:** The consolidated pass is **IN PROGRESS**. WP-01 is not proven; WP-02/03/04/05/06 have not been implemented or closed by this pass. The required source fixes, tests, activation decisions, review approvals, replay and two-node evidence remain. Do not interpret this audit checkpoint as the requested all-corrections closure.
+
