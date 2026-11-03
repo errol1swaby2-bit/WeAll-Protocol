@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, setApiBaseUrl, validateApiBaseInput } from "../api/weall";
 import { hasManualNodeConsent, rememberManualNodeConsent, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
-import { applyCompatibilityBaseline, discoverNodeProbes, loadExpectedCompatibilityBaseline, probeNode, switchToNode } from "../lib/nodeConnectionManager";
+import { applyCompatibilityBaseline, discoverNodeProbes, isPublicApiOrigin, loadExpectedCompatibilityBaseline, probeNode, switchToNode } from "../lib/nodeConnectionManager";
 import NodeConnectionPanel from "../components/NodeConnectionPanel";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
@@ -110,7 +110,7 @@ export default function Settings(): JSX.Element {
     try {
       if (config.publicTestnet) {
         // No bypass from this raw URL field to an unlisted or unsynced node.
-        if (!validation.normalized.startsWith("https://")) {
+        if (!isPublicApiOrigin(validation.normalized)) {
           throw new Error("Public testnet access requires a published HTTPS node URL.");
         }
         const probes = await discoverNodeProbes({ timeoutMs: 3000 });
