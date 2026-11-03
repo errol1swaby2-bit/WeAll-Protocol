@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import copy
+import json
 
 import pytest
+
+from scripts import audit_v2_semantic_review_drift as audit
+from scripts import v2_spec_validation as validation
 
 from scripts.pr77_v2_semantic_review_packet import (
     KNOWN_STALE,
@@ -11,6 +15,29 @@ from scripts.pr77_v2_semantic_review_packet import (
     field_differences,
     packet_integrity_blockers,
 )
+
+
+def test_packet_stale_set_matches_compiler_stable_id_authority() -> None:
+    """The diagnostic may not diverge from the compiler's canonical ID join."""
+    rows, _, _ = audit._current_rows()
+    reviews = json.loads(
+        (audit.ROOT / "specs/v2/source/semantic_reviews.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    by_id = {item["stable_id"]: item for item in reviews["transactions"]}
+    assert len(by_id) == len(rows) == 236
+    compiler_stale = {
+        row["tx_type"]
+        for row in rows
+        if validation.compact_digest(validation.tx_review_material(row))
+        != by_id[row["stable_id"]]["review_digest"]
+    }
+    packet = build_packet()
+    packet_stale = {row["tx_type"] for row in packet["transactions"]}
+    assert packet_stale == compiler_stale
+    assert len(compiler_stale) == 18
+    assert packet["independent_human_approval_recorded_by_this_packet"] is False
 
 
 def test_review_diff_distinguishes_absent_from_null() -> None:
