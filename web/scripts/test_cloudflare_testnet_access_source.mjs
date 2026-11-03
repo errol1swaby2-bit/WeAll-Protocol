@@ -30,6 +30,28 @@ assert.ok(connector.includes("canSwitchToNode(probe)"), "only classified healthy
 assert.ok(connector.includes('current?.phase === "healthy"'), "keep healthy selected node");
 assert.ok(connector.includes('state: "unavailable"'), "missing compatible nodes must fail closed");
 
+// Account and bearer custody are local, but hosted API access also requires
+// the destination node to recognize the active canonical session.
+const session = readWeb("src/auth/session.ts");
+const recognition = readWeb("src/lib/browserNodeSession.ts");
+const panel = readWeb("src/components/NodeConnectionPanel.tsx");
+const settings = readWeb("src/pages/Settings.tsx");
+assert.ok(session.includes("SS_SESSION_BEARER"), "bearer must remain in tab-scoped storage");
+assert.ok(session.includes("sessionStorage.setItem("), "session key custody cannot regress to persistent localStorage");
+assert.ok(session.includes("isBrowserSessionApproved(getApiBaseUrl()"), "protected auth headers must require per-node session recognition");
+assert.ok(session.includes('state: "node_unverified"'), "missing node recognition must remain visible");
+assert.ok(recognition.includes('"/v1/session/me"'), "read-only canonical session challenge must be present");
+assert.ok(recognition.includes('credentials: "omit"'), "cross-origin node session probing must avoid unrelated cookies");
+assert.ok(recognition.includes('redirect: "error"'), "session bearer must not follow node redirects");
+assert.ok(connector.includes("verifyBrowserSessionOnNode("), "automatic failover must be session-aware");
+assert.ok(connector.includes("current.listedInSeedManifest"), "current node cannot bypass manifest restriction");
+assert.ok(manager.includes("probe.listedInSeedManifest === true"), "public switching must require published endpoints");
+assert.ok(panel.includes("verifyBrowserSessionOnNode("), "manual connection changes must check session recognition");
+assert.ok(settings.includes("discoverNodeProbes(") && settings.includes("verifyBrowserSessionOnNode("),
+  "Settings raw URL selection must not bypass HTTPS/session validation");
+assert.ok(readWeb("scripts/check_https_node_api.mjs").includes("cors_frontend_origin_mismatch"),
+  "HTTPS/CORS operator preflight must exist");
+
 // No Cloudflare gateway. Testnet launch fails when registry is unsigned/stale.
 assert.ok(build.includes("seed_registry_rotation_required"), "rotation gate missing");
 assert.ok(build.includes("pq_resign_required_before_public_testnet"), "re-sign gate missing");
