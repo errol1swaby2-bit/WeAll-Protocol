@@ -375,3 +375,10 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - Commit `05154cfaef06554785db38e499679f65ac1cfad7` adds a not-due retry regression requiring zero enqueue and byte-equivalent state after invocation.
 - **Disposition:** code and test committed; focused test, canonical replay and two-node proof still outstanding. All WP closure claims remain on HOLD.
 
+### CI and WP-01 collision guard follow-up (2026-11-03)
+
+- At commit `390fb1bce08f43555ae21660e755a6e3a1f3d532`, specialized severe-appeal workflows passed. Backend CI failed at `gen_b528_b532_completion_proof_v1_5.py --check` because the source-bound B528 artifact input digest is stale; this is **not** proof that its live rehearsals passed. A01-A20 and Reviewer Readiness remain blocked by the 17 unadjudicated V2 semantic-review digests.
+- WP-01 source change `f53a3a0aa40e4f9461eafae4268de79031775059` rejects an already-accepted flag ID at activated heights **before state normalization**; preactivation overwrite behavior remains unchanged for historical replay.
+- WP-01 regression commit `bb76f32a2be1cc29cc077da2a1e20b910a0cd58b` tests the activated collision and legacy boundary. This is a new consensus behavior and requires activation approval, focused test execution, historical replay, and independent two-node evidence before closure.
+- WP-05 inspection: `_apply_reviewer_lane_update` currently updates reviewer opt-in records but does not remove the reviewer from open dispute juror assignments. The remedy must distinguish pre-vote withdrawal from post-vote accountability, maintain deterministic replacement, and fail closed if quorum is unavailable. **No unapproved withdrawal semantics have been committed.**
+- Do not refresh V2 semantic digests or edit source-bound proof digests merely to make CI green. Regenerate proof artifacts by executing their source-bound harnesses and validate outputs.
