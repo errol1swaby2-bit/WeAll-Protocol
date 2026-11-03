@@ -2,6 +2,15 @@
 // Never accepts a node's identity without the caller first verifying its pinned
 // chain/genesis/tx-index/profile commitments.
 export type SessionRecognition = "verified" | "rejected" | "unavailable";
+export const BROWSER_NODE_SESSION_CHECKED_EVENT = "weall-browser-node-session-checked";
+
+function announceSessionCheck(): void {
+  try {
+    window.dispatchEvent(new Event(BROWSER_NODE_SESSION_CHECKED_EVENT));
+  } catch {
+    // Non-browser tests may not have a DOM event dispatcher.
+  }
+}
 
 type ApprovedSession = {
   baseUrl: string;
@@ -17,6 +26,7 @@ function normalizeBase(base: string): string {
 
 export function clearApprovedBrowserSession(): void {
   approved = null;
+  announceSessionCheck();
 }
 
 export function isBrowserSessionApproved(baseUrl: string, account: string, sessionKey: string): boolean {
@@ -82,6 +92,7 @@ export async function verifyBrowserSessionOnNode(
           record.session.expired !== true
         ) {
           approved = { baseUrl: base, account: acct, sessionKey: bearer };
+          announceSessionCheck();
           return "verified";
         }
         outcome = "rejected";
@@ -97,5 +108,6 @@ export async function verifyBrowserSessionOnNode(
   }
 
   if (isBrowserSessionApproved(base, acct, bearer)) approved = null;
+  announceSessionCheck();
   return outcome;
 }
