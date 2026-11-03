@@ -33,7 +33,7 @@ def test_packet_stale_set_matches_compiler_stable_id_authority() -> None:
     packet = build_packet()
     packet_stale = {row["tx_type"] for row in packet["transactions"]}
     assert packet_stale == compiler_stale
-    assert len(compiler_stale) == 18
+    assert len(compiler_stale) == 20
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
 
 
@@ -46,10 +46,10 @@ def test_review_diff_distinguishes_absent_from_null() -> None:
     assert diff[2]["current_present"] is True
 
 
-def test_v2_stale_review_packet_does_not_approve_18_affected_transactions() -> None:
+def test_v2_stale_review_packet_does_not_approve_20_affected_transactions() -> None:
     packet = build_packet()
     assert packet["registered_transaction_count"] == 236
-    assert packet["pending_count"] == 18
+    assert packet["pending_count"] == 20
     assert {row["tx_type"] for row in packet["transactions"]} == KNOWN_STALE
     assert packet["newly_stale_not_in_known_inventory"] == []
     assert packet["known_stale_now_resolved"] == []
@@ -79,6 +79,19 @@ def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None
     assert packet["must_not_update_semantic_reviews_automatically"] is True
 
 
+def test_new_case_handler_extraction_deltas_remain_unapproved() -> None:
+    packet = build_packet()
+    by_type = {row["tx_type"]: row for row in packet["transactions"]}
+    for tx_type in ("CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"):
+        row = by_type[tx_type]
+        assert row["review_lane"] == "case_receipt_handler_extraction_and_semantics"
+        assert row["accepted_review_digest"] != row["current_material_digest"]
+        assert row["changed_fields"]
+        assert row["archive_matches_accepted_digest"] is True
+        assert row["signed_off_for_current_digest"] is False
+        assert row["historical_replay_proven"] is False
+
+
 def test_failure_code_comparison_preserves_exact_added_and_removed_reasons() -> None:
     before = [
         {"code": "forbidden", "reason": "old"},
@@ -99,9 +112,9 @@ def test_failure_code_comparison_fails_closed_on_malformed_material(invalid: obj
         failure_code_deltas([], invalid)
 
 
-def test_all_eighteen_reviewed_archives_match_accepted_approval() -> None:
+def test_all_twenty_reviewed_archives_match_accepted_approval() -> None:
     packet = build_packet()
-    assert packet["pending_count"] == 18
+    assert packet["pending_count"] == 20
     assert all(row["archive_matches_accepted_digest"] is True for row in packet["transactions"])
     assert all(
         row["archived_compiled_material_digest"] == row["accepted_review_digest"]
