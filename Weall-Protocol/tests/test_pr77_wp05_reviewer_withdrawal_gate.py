@@ -5,8 +5,8 @@ from __future__ import annotations
 import copy
 
 from weall.runtime.apply.roles import (
-    _reviewer_withdrawal_v1_active,
     _assign_unassigned_content_reviews_to_juror,
+    _reviewer_withdrawal_v1_active,
     _withdraw_unvoted_content_assignments,
 )
 
