@@ -306,3 +306,16 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 
 **Next step:** inspect exact producer/consumer branches and existing adversarial tests, then implement a minimal provenance correction and focused tests only after determining compatibility and activation boundary. Keep all 17 semantic reviews on HOLD.
 
+### A2 producer/consumer inspection — source findings (2026-11-03)
+
+**Observed (not fixed):**
+- `apply/content.py::_apply_content_flag` writes `content.flags[flag_id]` with signer-derived `by`, `target_id`, `reason`, nonce and queues `CONTENT_ESCALATE_TO_DISPUTE` with `flag_id`, `flagged_by`, `target_id` and `parent=CONTENT_FLAG:<flag_id>`. Queue failure creates a pending repair record with the same copied reporter.
+- `repair_pending_content_escalations` reconstructs escalation payload from pending record; it does not independently compare pending `flagged_by` and `target_id` against the accepted flag. Both queue producers therefore require consumer-side authenticated flag comparison, including repair and historical records.
+- `_apply_content_escalate_to_dispute` currently deduplicates on `moderation_targets[target_id].dispute_id` **before** authenticating any accepted flag; later forwards `payload.flagged_by`/`reported_by` into `dispute_open` and writes that same unverified reporter onto dispute fields and panel exclusions. `dispute_open` stores reporter from payload while `opened_by` remains SYSTEM. This is a confirmed missing provenance check, not proof of a successful unauthorized transaction through the full block admission pipeline.
+- `validate_system_tx_queue_binding` verifies queue ID, tx type, parent, signer, phase, due height and payload hash, but a queue item constructed from a corrupted or historically inconsistent pending record can still have internally consistent queue binding. Queue authenticity alone is not original-flag provenance.
+
+**Minimal correction design, pending implementation:** introduce a single fail-closed accepted-flag provenance validator before the escalation dedup branch. For a flagged escalation, require nonempty flag ID, canonical flag record, matching target ID and original `by` reporter, and exact `CONTENT_FLAG:<flag_id>` parent; check payload aliases consistently and reject mismatches. Explicitly define how pre-activation unflagged/historical queued escalations replay without silently changing old blocks. Avoid reading `_mod_targets` or `_ensure_root` for mutation before rejection; rely on canonical transaction rollback and test direct-applier failure atomicity separately.
+
+**Adversarial matrix to implement:** genuine first escalation; genuine already-escalated dedup; forged reporter with valid queue binding; substituted flag ID; mismatched target; wrong parent; missing flag; `reported_by` versus `flagged_by` disagreement; corrupted pending repair record; duplicate flag ID/replayed queue; historical pre-activation replay; post-activation two-node state root and restart equality.
+
+**Disposition:** A2 source inspection complete; A3 runtime fix **NOT APPLIED**. Existing 17 semantic-review holds and Ruff cleanup remain tracked.
