@@ -30,9 +30,21 @@ function normalizeBase(base: string): string {
 // protocol authority. Session recognition is still checked separately.
 const MANUAL_NODE_CONSENT_KEY = "weall_manual_https_node_consent_v1";
 
+function isSecureApiOrigin(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" &&
+      !!url.hostname && !url.username && !url.password &&
+      (url.pathname === "/" || url.pathname === "") &&
+      !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
 export function hasManualNodeConsent(baseUrl: string): boolean {
   const base = normalizeBase(baseUrl);
-  if (!base.startsWith("https://")) return false;
+  if (!isSecureApiOrigin(base)) return false;
   try {
     return sessionStorage.getItem(MANUAL_NODE_CONSENT_KEY) === base;
   } catch {
@@ -42,7 +54,7 @@ export function hasManualNodeConsent(baseUrl: string): boolean {
 
 export function rememberManualNodeConsent(baseUrl: string): void {
   const base = normalizeBase(baseUrl);
-  if (!base.startsWith("https://")) throw new Error("manual_node_consent_requires_https");
+  if (!isSecureApiOrigin(base)) throw new Error("manual_node_consent_requires_https");
   sessionStorage.setItem(MANUAL_NODE_CONSENT_KEY, base);
 }
 
@@ -76,7 +88,7 @@ export async function verifyBrowserSessionOnNode(
   const base = normalizeBase(baseUrl);
   const acct = String(account || "").trim();
   const bearer = String(sessionKey || "").trim();
-  if (!base.startsWith("https://") || !acct || !bearer) return "unavailable";
+  if (!isSecureApiOrigin(base) || !acct || !bearer) return "unavailable";
 
   const attempts = Math.max(1, Math.min(3, Math.trunc(opts?.attempts ?? 2)));
   const timeoutMs = Math.max(500, Math.min(5000, opts?.timeoutMs ?? 1800));
