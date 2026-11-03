@@ -126,6 +126,19 @@ of operational facts. It never stores raw secrets, HTTP headers or private
 keys. Loopback is disallowed as a remote target. Public HTTP is rejected.
 A private LAN HTTP target requires the explicit --allow-lan flag.
 
+When testing the **signed public observer testnet**, also pass the identical
+locally pinned chain commitments file to the capture on BOTH machines:
+
+    --expected-commitments configs/public_testnet_chain_commitments.json
+
+That flag compares chain/genesis/transaction-index/profile commitments
+against repo-pinned values instead of trusting the first reachable API.
+The packet comparison requires the same expected-commitments digest from
+both computers. It does **not** cryptographically validate the ML-DSA
+seed registry; the existing signed-registry boot and verifier remain
+mandatory. A disposable reviewer chain will normally use different
+commitments, so do not accidentally pin it to the public testnet values.
+
 Transfer packets via a trusted channel, then compare:
 
     python3 scripts/two_pc_network_evidence.py compare \
