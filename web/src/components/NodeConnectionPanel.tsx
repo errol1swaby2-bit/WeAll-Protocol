@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { getSession } from "../auth/session";
+import { verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
+import { config } from "../lib/config";
 
 import {
   discoverNodeProbes,
@@ -48,7 +51,16 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
     setErr("");
     try {
       if (!canSwitchToNode(probe)) {
-        throw new Error("Only healthy, compatible nodes can be selected from the normal connection manager.");
+        throw new Error("Only healthy, compatible, published HTTPS nodes can be selected from the public connection manager.");
+      }
+      const session = getSession();
+      if (config.publicTestnet && session?.sessionKey) {
+        const recognition = await verifyBrowserSessionOnNode(
+          probe.baseUrl, session.account, session.sessionKey, { attempts: 3 },
+        );
+        if (recognition !== "verified") {
+          throw new Error("This node has not recognized the current browser session. It may still be syncing; retry when the session record is available, or recover/login independently. Your existing connection was preserved.");
+        }
       }
       switchToNode(probe.baseUrl);
       setSwitchedTo(probe.baseUrl);
@@ -87,7 +99,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
           </div>
         ) : null}
         <div className="calloutInfo">
-          <strong>Switching rule:</strong> only healthy compatible nodes may be selected. Incompatible chain id, genesis hash, tx index hash, or protocol profile hash should be treated as a chain mismatch incident, not as a normal fallback.
+          <strong>Switching rule:</strong> only healthy compatible nodes may be selected. Public testnet selections must also be HTTPS endpoints listed by the deployed seed manifest. An active session must be recognized by the destination before the browser switches; pending synchronization is not proof of login. Chain mismatches remain blocked.
         </div>
 
         {probes.length === 0 && !busy ? (
@@ -104,6 +116,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
                 <strong>{probe.label}</strong>
                 <span className="mono" style={{ wordBreak: "break-word" }}>{probe.baseUrl}</span>
                 <span className="cardDesc">{nodePhaseHint(probe)}</span>
+                {config.publicTestnet ? <span className="cardDesc">{probe.listedInSeedManifest ? "Published testnet API candidate" : "Not listed in the published testnet seed manifest; automatic switching disabled"}</span> : null}
                 <span className="cardDesc">
                   Chain <span className="mono">{probe.chainId || "—"}</span> · Height <span className="mono">{probe.height ?? "—"}</span> · Latency <span className="mono">{probe.latencyMs ? `${probe.latencyMs}ms` : "—"}</span>
                 </span>
