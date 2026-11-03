@@ -30,7 +30,9 @@ jobs:
           mkdir -p artifacts/pr77-v2-semantic-fields
           python - <<'PY'
           import json
+          import sys
           from pathlib import Path
+          sys.path.insert(0, str(Path('scripts').resolve()))
 
           import compile_v2_spec as compiler
           from v2_spec_validation import compact_digest, tx_review_material
@@ -52,7 +54,7 @@ jobs:
               stable_ids, sources["transaction_appliers"]
           )
           reviews = {str(x["stable_id"]): x for x in sources["semantic_reviews"]["transactions"]}
-          previous = json.loads((compiler.OUT_ROOT / "transaction_contracts.json").read_text())
+          previous = json.loads((compiler.OUT_ROOT / "tx_contract_matrix.json").read_text())
           previous_rows = {str(x["stable_id"]): x for x in previous.get("rows", [])}
           output = []
           for row in rows:
