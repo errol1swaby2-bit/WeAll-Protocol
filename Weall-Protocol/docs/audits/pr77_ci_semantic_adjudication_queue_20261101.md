@@ -405,3 +405,11 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - Comparison showed the **only** changed top-level field was `freshness`; all rehearsal results, `ok: true`, and locked boundaries were identical. The old input digest was `e8c6168fc4c622ab1d73795f60dbf75d3500041c7d5ba55932223f6eed316de0`; the new input digest is `9a16da40d4ddd0f1363529bb82b2705915b1387f0b5ffa32b262db469f2cdeef`.
 - Byte-level comparison of the full downloaded tracked and regenerated JSON confirmed exact equality after replacing this single digest string. Commit `37168f009d936aaf58bd5bb3e6b70ab86a1ef121` updates only that digest in the tracked proof.
 - This is not authorization to activate locked production boundaries or approve any of the 18 stale V2 transaction semantic reviews. Fresh CI validation remains required.
+
+### B534 and B567 proof-digest adjudication (2026-11-03)
+
+- CI diagnostic run `41703131344` passed with real rehearsals and uploaded `pr77-b534-b567-proof-no-approval` (artifact ID `13264161748`).
+- Both `b534_b538_completion_proof_v1_5` and `b567_b571_autonomous_mechanics_proof_v1_5` had `ok: true` before and after regeneration. The only changed top-level field was `freshness`; rehearsal results and production claim boundaries were unchanged.
+- B534 input digest changed from `b909e2cecb9df526bcf3fcff194d0f15eaddae4bc01d4366651af04d370fe010` to `e207c8274da6ef55a1df56bfb5e9c5b0f7ad84b6afd18ac7ef81184d182fb6a5`; proof commit `f24b09d8f484a577cb97d4d8e7b40557a02d885e`.
+- B567 input digest changed from `da8cab5383c253aa1e12501b3602a74d567f64dcaf8b9bec7573bbb4c2ca7802` to `4f8440b377671c508df4472f0aa0dc0518afe3aa583988304ab3eeadc67b1cab`; proof commit `8ce27a9fc0458b74a9c05f1908fc98eb71b53ed2`.
+- Neither change approves the 18 V2 semantic reviews or changes locked production activation. Await fresh CI before claiming generated-artifact gate closure.
