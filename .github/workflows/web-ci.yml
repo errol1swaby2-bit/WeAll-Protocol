@@ -102,6 +102,11 @@ jobs:
         run: |
           node scripts/test_https_node_api_preflight.mjs
 
+      - name: Existing node manager and account custody source invariants
+        run: |
+          npm run test:node-manager
+          npm run test:account-custody-source
+
       - name: Dependency audit
         run: |
           npm run dependency-audit
@@ -184,6 +189,12 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
         run: |
           npm run test:production-deployment-csp
+
+      - name: Compiled browser custody isolation across independent profiles
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npx playwright test tests/e2e/production_browser_storage_isolation.spec.ts --config=playwright.production.config.ts
 
       - name: Stop production Nginx deployment
         if: always()
