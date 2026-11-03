@@ -249,8 +249,10 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
     def test_capture_detects_wrong_external_pins(self) -> None:
         a, b = packets()
         wrong = {**CHAIN, "genesis_hash": "incorrect"}
-        with patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]), \\
-             patch.object(tool, "repo_identity", return_value=a["repository"]):
+        with (
+            patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
+            patch.object(tool, "repo_identity", return_value=a["repository"]),
+        ):
             report = tool.capture_machine(
                 "machine-A", "http://127.0.0.1:8000", "http://192.168.1.15:8000",
                 allow_lan=True, expected_commitments=wrong,
