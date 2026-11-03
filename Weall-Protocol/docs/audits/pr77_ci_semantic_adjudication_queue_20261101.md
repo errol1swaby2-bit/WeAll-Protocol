@@ -357,3 +357,9 @@ Do not regenerate or accept all 17 digests as a batch. First resolve the two con
 - Baseline workflow runs at `b4b87f6610b9480a389df6cca5c8c2b55f3cef3b`: Backend CI `41674657540` failure, Reviewer Readiness `41674657577` failure, P1 Revalidation `41674657275` failure, severe appeal safety `41674657525` success. No evidence yet of full green CI.
 - **Important:** The consolidated pass is **IN PROGRESS**. WP-01 is not proven; WP-02/03/04/05/06 have not been implemented or closed by this pass. The required source fixes, tests, activation decisions, review approvals, replay and two-node evidence remain. Do not interpret this audit checkpoint as the requested all-corrections closure.
 
+### Consolidated pass: exact Ruff formatting repair (2026-11-03)
+
+- GitHub Backend CI run `41675146989`, job `126053655703`, emitted actionable `ruff format --diff` for exactly three files (3 would be reformatted, 91 already formatted): `src/weall/runtime/apply/content.py`, `tests/test_pr77_batch_c_authority_and_rollback.py`, `tests/test_pr77_content_escalation_flag_provenance.py`.
+- Applied the logged Ruff changes directly, without regenerating semantic reviews: runtime format commit `fa590d8d6f65668dedabb96708facebde4109532`; WP-01 test format commit `5267f1317b1288603cba8b995f080df8675d286c`; Batch C test format commit `b612480c97ba7812b6b6baab5114c3e5787f2a85`.
+- **Status:** formatting differences corrected at source; post-commit Ruff and focused pytest results are not yet verified. The other V2 semantic review hold remains independent. No WP-01/02/03/04/05/06 closure is claimed.
+
