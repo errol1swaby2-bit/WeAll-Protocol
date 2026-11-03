@@ -136,7 +136,6 @@ def test_malformed_queued_system_case_never_commits_partial_block(
     assert compute_state_root(after) == compute_state_root(before)
 
 
-
 def test_governance_default_disallows_case_binding_but_explicit_allowlist_changes_gate() -> None:
     """A matching synthetic queue is not proof current governance may emit it."""
     from weall.runtime.apply.governance import (
