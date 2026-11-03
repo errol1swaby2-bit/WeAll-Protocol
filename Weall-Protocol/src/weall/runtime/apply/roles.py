@@ -1026,7 +1026,6 @@ def _reviewer_lane_values(payload: Json) -> list[str]:
     return lanes
 
 
-
 def _reviewer_withdrawal_v1_active(ledger: Json) -> bool:
     """An explicit height gate keeps historical reviewer-lane replay unchanged."""
     params = _as_dict(ledger.get("params"))
@@ -1082,12 +1081,10 @@ def _withdraw_unvoted_content_assignments(ledger: Json, acct: str, *, nonce: int
         jurors[acct] = assignment
         dispute["jurors"] = jurors
         dispute["assigned_jurors"] = [
-            j for j in _as_list(dispute.get("assigned_jurors"))
-            if not _same_account(j, acct)
+            j for j in _as_list(dispute.get("assigned_jurors")) if not _same_account(j, acct)
         ]
         dispute["eligible_juror_ids"] = [
-            j for j in _as_list(dispute.get("eligible_juror_ids"))
-            if not _same_account(j, acct)
+            j for j in _as_list(dispute.get("eligible_juror_ids")) if not _same_account(j, acct)
         ]
         if not _active_assigned_jurors(dispute):
             dispute["stage"] = "unassigned"
@@ -1177,11 +1174,7 @@ def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) 
         reassigned_reviews = _assign_unassigned_content_reviews_to_juror(
             ledger, acct, nonce=int(env.nonce)
         )
-    elif (
-        not active
-        and "content_review" in lanes
-        and _reviewer_withdrawal_v1_active(ledger)
-    ):
+    elif not active and "content_review" in lanes and _reviewer_withdrawal_v1_active(ledger):
         withdrawn_reviews = _withdraw_unvoted_content_assignments(
             ledger, acct, nonce=int(env.nonce)
         )
