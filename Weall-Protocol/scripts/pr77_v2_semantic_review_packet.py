@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make a read-only, source-bound packet for the 20 currently stale V2 TX reviews.
+"""Make a read-only, source-bound packet for the 18 currently stale V2 TX reviews.
 
 This report makes no approvals and does not replace historical replay,
 independent semantic review, or the V2 spec compiler's fail-closed gate.
@@ -22,8 +22,6 @@ KNOWN_STALE = frozenset(
     {
         "DISPUTE_OPEN",
         "CONTENT_FLAG",
-        "CASE_TYPE_REGISTER",
-        "CASE_BIND_TO_DISPUTE",
         "DISPUTE_JUROR_ASSIGN",
         "DISPUTE_JUROR_ACCEPT",
         "DISPUTE_VOTE_SUBMIT",
@@ -171,9 +169,7 @@ def build_packet() -> dict[str, Any]:
         failure_deltas = failure_code_deltas(
             old_material.get("failure_codes"), current_material.get("failure_codes")
         )
-        if tx_type in {"CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"}:
-            review_lane = "case_receipt_handler_extraction_and_semantics"
-        elif tx_type == "CONTENT_FLAG":
+        if tx_type == "CONTENT_FLAG":
             review_lane = "content_flag_provenance_and_escalation"
         elif tx_type == "DISPUTE_OPEN":
             review_lane = "handler_source_attribution_and_derived_contract"
