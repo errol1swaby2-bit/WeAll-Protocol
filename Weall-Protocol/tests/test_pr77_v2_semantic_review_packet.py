@@ -20,9 +20,7 @@ def test_packet_stale_set_matches_compiler_stable_id_authority() -> None:
     """The diagnostic may not diverge from the compiler's canonical ID join."""
     rows, _, _ = audit._current_rows()
     reviews = json.loads(
-        (audit.ROOT / "specs/v2/source/semantic_reviews.json").read_text(
-            encoding="utf-8"
-        )
+        (audit.ROOT / "specs/v2/source/semantic_reviews.json").read_text(encoding="utf-8")
     )
     by_id = {item["stable_id"]: item for item in reviews["transactions"]}
     assert len(by_id) == len(rows) == 236
