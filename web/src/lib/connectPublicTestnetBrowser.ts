@@ -1,6 +1,6 @@
 // Optional public testnet browser entrypoint; never consensus or identity authority.
 import { getSession } from "../auth/session";
-import { clearApprovedBrowserSession, verifyBrowserSessionOnNode } from "./browserNodeSession";
+import { clearApprovedBrowserSession, hasManualNodeConsent, verifyBrowserSessionOnNode } from "./browserNodeSession";
 import { config } from "./config";
 import { canSwitchToNode, discoverNodeProbes, switchToNode, type NodeProbe } from "./nodeConnectionManager";
 
@@ -30,7 +30,8 @@ export async function connectPublicTestnetBrowser(): Promise<PublicTestnetConnec
 
   if (session?.sessionKey) {
     const ordered: NodeProbe[] = [];
-    if (current?.phase === "healthy" && current.ok && current.listedInSeedManifest) ordered.push(current);
+    if (current?.phase === "healthy" && current.ok &&
+    (current.listedInSeedManifest || hasManualNodeConsent(current.baseUrl))) ordered.push(current);
     ordered.push(...probes.filter((probe) => canSwitchToNode(probe)));
 
     for (const probe of ordered) {
@@ -53,7 +54,8 @@ export async function connectPublicTestnetBrowser(): Promise<PublicTestnetConnec
     return { state: "unavailable", reason: "session_not_recognized" };
   }
 
-  if (current?.phase === "healthy" && current.ok && current.listedInSeedManifest) {
+  if (current?.phase === "healthy" && current.ok &&
+    (current.listedInSeedManifest || hasManualNodeConsent(current.baseUrl))) {
     return { state: "connected", baseUrl: current.baseUrl, changed: false };
   }
 
