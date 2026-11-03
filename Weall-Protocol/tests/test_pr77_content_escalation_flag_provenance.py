@@ -199,3 +199,23 @@ def test_legacy_repair_keeps_original_pending_fields(monkeypatch) -> None:
     assert repair_pending_content_escalations(state, next_height=20) == 1
     assert queued[0]["payload"]["target_id"] == "post:legacy"
     assert queued[0]["payload"]["flagged_by"] == "legacy-reporter"
+
+
+def test_not_due_repair_does_not_mutate_pending_state(monkeypatch) -> None:
+    state = _state()
+    state["content"]["pending_escalations"] = {
+        "flag:alice:1": {
+            "status": "pending",
+            "next_retry_height": 30,
+            "target_id": "post:stale",
+            "flagged_by": "stale-reporter",
+        }
+    }
+    original = copy.deepcopy(state)
+
+    def unexpected_enqueue(_state, **kwargs):
+        raise AssertionError("not-due escalation must not be enqueued")
+
+    monkeypatch.setattr("weall.runtime.apply.content.enqueue_system_tx", unexpected_enqueue)
+    assert repair_pending_content_escalations(state, next_height=20) == 0
+    assert state == original
