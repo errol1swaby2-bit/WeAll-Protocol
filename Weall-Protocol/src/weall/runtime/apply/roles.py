@@ -1184,7 +1184,11 @@ def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) 
         "account_id": acct,
         "lanes": lanes,
         "reassigned_content_reviews": reassigned_reviews,
-        "withdrawn_content_reviews": withdrawn_reviews,
+        **(
+            {"withdrawn_content_reviews": withdrawn_reviews}
+            if not active and _reviewer_withdrawal_v1_active(ledger)
+            else {}
+        ),
     }
 
 
