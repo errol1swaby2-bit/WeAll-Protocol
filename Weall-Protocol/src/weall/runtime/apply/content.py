@@ -1159,19 +1159,18 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
         _require_min_poh_tier(state, signer=env.signer, min_tier=1, action="content_flag")
 
     payload = _as_dict(env.payload)
-    content = _ensure_root(state)
-    flags = content["flags"]
-
     target_id = _as_str(payload.get("target_id")).strip()
     if not target_id:
         raise ContentApplyError("invalid_payload", "missing_target_id", {})
 
     flag_id = _as_str(payload.get("flag_id")).strip() or f"flag:{env.signer}:{env.nonce}"
-    # The accepted flag is the provenance authority for a later escalation.
-    # Once strict provenance is active, an ID must not be reused to replace
-    # that authority with a different reporter or target.
-    if _content_escalation_provenance_active(state) and flag_id in flags:
+    # Reject collisions before any root/schema normalization mutates state.
+    # The accepted flag is the provenance authority for later escalation.
+    existing_flags = _as_dict(_as_dict(state.get("content")).get("flags"))
+    if _content_escalation_provenance_active(state) and flag_id in existing_flags:
         raise ContentApplyError("conflict", "duplicate_flag_id", {"flag_id": flag_id})
+    content = _ensure_root(state)
+    flags = content["flags"]
     reason = _as_str(payload.get("reason"))
     flags[flag_id] = {
         "flag_id": flag_id,
