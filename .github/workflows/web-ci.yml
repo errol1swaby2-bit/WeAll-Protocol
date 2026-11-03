@@ -93,6 +93,10 @@ jobs:
         run: |
           node scripts/test_cloudflare_testnet_access_source.mjs
 
+      - name: Cloudflare testnet node-selection behavioral regression
+        run: |
+          node scripts/test_cloudflare_testnet_behavior.mjs
+
       - name: Dependency audit
         run: |
           npm run dependency-audit
