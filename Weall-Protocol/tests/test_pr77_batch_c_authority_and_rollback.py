@@ -69,7 +69,7 @@ def test_rejected_system_role_activation_is_fail_atomic(tx_type: str) -> None:
     # A SYSTEM marker does not make a nonexistent account eligible.
     state = {"accounts": {}, "roles": {}}
     before = copy.deepcopy(state)
-    with pytest.raises(Exception):
+    with pytest.raises(RolesApplyError):
         apply_tx(state, _env(tx_type, "@missing"))
     assert state == before
 
