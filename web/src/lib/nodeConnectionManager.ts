@@ -55,6 +55,19 @@ export type NodeProbe = {
   listedInSeedManifest?: boolean;
 };
 
+/** Browser-facing node APIs must be HTTPS origins, never credential-bearing URLs. */
+export function isPublicApiOrigin(value: string): boolean {
+  try {
+    const url = new URL(String(value || "").trim());
+    return url.protocol === "https:" &&
+      !!url.hostname && !url.username && !url.password &&
+      (url.pathname === "/" || url.pathname === "") &&
+      !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeBase(value: string): string | null {
   const validation = validateApiBaseInput(String(value || "").trim());
   return validation.ok ? validation.normalized : null;
@@ -245,7 +258,7 @@ export async function discoverCandidateNodes(): Promise<SeedNode[]> {
   // The backend is a discovery hint, never a browser credential trust root.
   // Public auto/manual selection is restricted to the published seed manifest.
   // Keep a previously chosen HTTPS current node visible for inspection.
-  const isHttps = (seed: SeedNode): boolean => seed.url.startsWith("https://");
+  const isHttps = (seed: SeedNode): boolean => isPublicApiOrigin(seed.url);
   return dedupeSeeds([...manifestSeeds, ...defaults, ...backendSeeds].filter(isHttps));
 }
 
@@ -503,7 +516,7 @@ export async function discoverNodeProbes(opts?: { timeoutMs?: number }): Promise
 
 export function canSwitchToNode(probe: NodeProbe): boolean {
   return !!probe && !probe.isCurrent && probe.phase === "healthy" && probe.ok === true &&
-    (!config.publicTestnet || probe.listedInSeedManifest === true);
+    (!config.publicTestnet || (isPublicApiOrigin(probe.baseUrl) && probe.listedInSeedManifest === true));
 }
 
 export function switchToNode(baseUrl: string): string {
