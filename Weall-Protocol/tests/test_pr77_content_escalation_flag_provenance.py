@@ -67,9 +67,7 @@ def test_provenance_gate_requires_explicit_activation_height() -> None:
 
 
 def test_accepted_flag_matches_escalation_reporter_and_parent() -> None:
-    _verify_content_escalation_provenance(
-        _state(), _env(), _env().payload, target_id="post:one"
-    )
+    _verify_content_escalation_provenance(_state(), _env(), _env().payload, target_id="post:one")
 
 
 @pytest.mark.parametrize(
@@ -98,9 +96,7 @@ def test_forged_provenance_fails_without_mutating_state(
 
 def test_dedup_does_not_bypass_provenance_check() -> None:
     state = _state()
-    state["content"]["moderation"] = {
-        "targets": {"post:one": {"dispute_id": "dispute:existing"}}
-    }
+    state["content"]["moderation"] = {"targets": {"post:one": {"dispute_id": "dispute:existing"}}}
     original = copy.deepcopy(state)
     payload = dict(_env().payload)
     payload["flagged_by"] = "mallory"
@@ -111,9 +107,7 @@ def test_dedup_does_not_bypass_provenance_check() -> None:
 
 def test_valid_dedup_uses_existing_dispute_after_provenance_check() -> None:
     state = _state()
-    state["content"]["moderation"] = {
-        "targets": {"post:one": {"dispute_id": "dispute:existing"}}
-    }
+    state["content"]["moderation"] = {"targets": {"post:one": {"dispute_id": "dispute:existing"}}}
     result = _apply_content_escalate_to_dispute(state, _env())
     assert result["deduped"] is True
     assert result["dispute_id"] == "dispute:existing"
@@ -124,9 +118,7 @@ def test_accepted_flag_record_itself_must_match_flag_id() -> None:
     state["content"]["flags"]["flag:alice:1"]["flag_id"] = "flag:other"
     before = copy.deepcopy(state)
     with pytest.raises(ContentApplyError) as exc:
-        _verify_content_escalation_provenance(
-            state, _env(), _env().payload, target_id="post:one"
-        )
+        _verify_content_escalation_provenance(state, _env(), _env().payload, target_id="post:one")
     assert exc.value.reason == "escalation_flag_provenance_mismatch"
     assert state == before
 
@@ -134,9 +126,7 @@ def test_accepted_flag_record_itself_must_match_flag_id() -> None:
 def test_legacy_height_keeps_original_dedup_path() -> None:
     state = _state()
     state["height"] = 19
-    state["content"]["moderation"] = {
-        "targets": {"post:one": {"dispute_id": "dispute:existing"}}
-    }
+    state["content"]["moderation"] = {"targets": {"post:one": {"dispute_id": "dispute:existing"}}}
     payload = dict(_env().payload)
     payload["flagged_by"] = "legacy-unverified-reporter"
     result = _apply_content_escalate_to_dispute(state, _env(payload))
