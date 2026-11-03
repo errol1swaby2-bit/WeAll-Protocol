@@ -404,6 +404,7 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
   let status: any = null;
   let readyz: any = null;
   let consensus: any = null;
+  let chainIdentity: any = null;
 
   try {
     status = await fetchJsonWithTimeout(endpoint(baseUrl, "/v1/status"), timeoutMs);
@@ -423,6 +424,12 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
     } catch {
       // Consensus diagnostics are helpful but not required for normal user access.
     }
+    try {
+      chainIdentity = await fetchJsonWithTimeout(endpoint(baseUrl, "/v1/chain/identity"), Math.min(timeoutMs, 2200));
+    } catch {
+      // Missing chain identity is not a fallback to unpinned trust. Public
+      // builds reject candidates missing the required genesis commitment.
+    }
   }
 
   const latencyMs = Math.max(1, Math.round(performance.now() - started));
@@ -430,10 +437,18 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
   const statusOk = statusReady(status);
   // A responsive status endpoint cannot override a failed/missing readiness probe.
   const ready = statusReady(readyz);
-  const chainId = safeStr(status?.chain_id || consensus?.chain_id);
-  const genesisHash = safeStr(status?.genesis_hash || consensus?.genesis_hash || status?.chain_manifest?.genesis_hash);
+  const chainId = safeStr(status?.chain_id || chainIdentity?.chain_id || consensus?.chain_id);
+  const genesisHash = safeStr(
+    chainIdentity?.chain_manifest?.genesis_hash ||
+    chainIdentity?.genesis_hash ||
+    status?.genesis_hash ||
+    consensus?.genesis_hash ||
+    status?.chain_manifest?.genesis_hash,
+  );
   const height = safeNumber(status?.height ?? consensus?.height);
-  const { txIndexHash, protocolProfileHash } = extractConsensusHash(consensus, status);
+  const extracted = extractConsensusHash(consensus, status);
+  const txIndexHash = extracted.txIndexHash || safeStr(chainIdentity?.tx_index_hash);
+  const protocolProfileHash = extracted.protocolProfileHash || safeStr(chainIdentity?.protocol_profile_hash);
 
   const phase = classifyProbe({ reachable, statusOk, ready, chainId, txIndexHash, protocolProfileHash, errors });
   return {
@@ -458,6 +473,7 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
     status,
     readyz,
     consensus,
+    chainIdentity,
   };
 }
 
