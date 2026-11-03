@@ -60,14 +60,14 @@ def _sha(obj: Any) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _git(*args: str) -> str:
+def _git(*args: str) -> str | None:
     try:
         return subprocess.check_output(
             ["git", "-C", str(ROOT), *args],
             text=True, stderr=subprocess.DEVNULL, timeout=8,
         ).strip()
     except (OSError, subprocess.SubprocessError):
-        return ""
+        return None
 
 
 def machine_capabilities() -> dict[str, Any]:
@@ -97,10 +97,14 @@ def machine_capabilities() -> dict[str, Any]:
 
 
 def repo_identity() -> dict[str, Any]:
+    commit = _git("rev-parse", "HEAD") or ""
+    tree = _git("rev-parse", "HEAD^{tree}") or ""
+    tracked_status = _git("status", "--porcelain", "--untracked-files=no")
     return {
-        "commit": _git("rev-parse", "HEAD"),
-        "tree": _git("rev-parse", "HEAD^{tree}"),
-        "tracked_tree_clean": not bool(_git("status", "--porcelain", "--untracked-files=no")),
+        "commit": commit,
+        "tree": tree,
+        # A failed git command is not a clean checkout.
+        "tracked_tree_clean": bool(commit and tree) and tracked_status == "",
     }
 
 
@@ -303,6 +307,9 @@ def capture_machine(machine_id: str, local_api: str, remote_api: str, *,
             _string(local["network"].get("peer_id"))
             and _string(remote["network"].get("peer_id"))
             and local["network"]["peer_id"] != remote["network"]["peer_id"]
+            and _string(local["network"].get("identity_pubkey"))
+            and _string(remote["network"].get("identity_pubkey"))
+            and local["network"]["identity_pubkey"] != remote["network"]["identity_pubkey"]
         ),
     }
     return {
@@ -391,6 +398,11 @@ def compare_packets(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
             and _string(_as_dict(bl.get("network")).get("peer_id"))
             and _as_dict(al.get("network")).get("peer_id") != _as_dict(bl.get("network")).get("peer_id")
         ),
+        "distinct_node_public_keys": bool(
+            _string(_as_dict(al.get("network")).get("identity_pubkey"))
+            and _string(_as_dict(bl.get("network")).get("identity_pubkey"))
+            and _as_dict(al.get("network")).get("identity_pubkey") != _as_dict(bl.get("network")).get("identity_pubkey")
+        ),
         "a_observed_b_identity": _exact_node(ax, bl),
         "b_observed_a_identity": _exact_node(bx, al),
         "reciprocal_authenticated_p2p_peer_entries": _peer_link(al, bl) and _peer_link(bl, al),
@@ -402,7 +414,7 @@ def compare_packets(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
         "same_exact_git_commit_and_tree", "both_tracked_trees_clean",
         "local_apis_ready", "bidirectional_remote_api_ready",
         "same_chain_commitments", "distinct_node_peer_ids",
-        "a_observed_b_identity", "b_observed_a_identity",
+        "distinct_node_public_keys", "a_observed_b_identity", "b_observed_a_identity",
     )
     return {
         "schema": COMPARISON_SCHEMA,
