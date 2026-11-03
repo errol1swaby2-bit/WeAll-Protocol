@@ -46,9 +46,9 @@ def _env(payload: dict | None = None, *, parent: str = "CONTENT_FLAG:flag:alice:
             payload
             if payload is not None
             else {
-            "flag_id": "flag:alice:1",
-            "target_id": "post:one",
-            "target_type": "content",
+                "flag_id": "flag:alice:1",
+                "target_id": "post:one",
+                "target_type": "content",
                 "flagged_by": "alice",
             }
         ),
