@@ -1090,7 +1090,7 @@ def _withdraw_unvoted_content_assignments(ledger: Json, acct: str, *, nonce: int
             dispute["stage"] = "unassigned"
             dispute["assignment_blocked_reason"] = "reviewer_withdrawn_pending_replacement"
             dispute["eligible_validator_count"] = 0
-            dispute["required_votes"] = 0
+            # Never lower the case's voting threshold to zero.
         disputes[dispute_id] = dispute
         withdrawn += 1
     return withdrawn
