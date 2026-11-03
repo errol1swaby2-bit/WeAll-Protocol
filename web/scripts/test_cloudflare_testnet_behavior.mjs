@@ -168,17 +168,21 @@ test("bootstrap reads base_url and rejects non-HTTPS, wrong-chain and unready ca
 
   selected = "/";
   const first = await connector.connectPublicTestnetBrowser();
-  assert.deepEqual(first, { state: "connected", baseUrl: "https://healthy.test", changed: true });
-  assert.equal(selected, "https://healthy.test");
+  assert.equal(first.state, "connected");
+  assert.equal(first.changed, true);
+  assert.ok(["https://healthy.test", "https://backup.test"].includes(first.baseUrl),
+    "a fast published compatible API is chosen, never an arbitrary backend hint");
+  const chosen = first.baseUrl;
+  assert.equal(selected, chosen);
   assert.equal(changes, 1);
   const again = await connector.connectPublicTestnetBrowser();
-  assert.deepEqual(again, { state: "connected", baseUrl: "https://healthy.test", changed: false });
+  assert.deepEqual(again, { state: "connected", baseUrl: chosen, changed: false });
   assert.equal(changes, 1);
   live.clear();
   const down = await connector.connectPublicTestnetBrowser();
   assert.deepEqual(down, { state: "unavailable", reason: "no_compatible_node" });
   assert.equal(changes, 1, "offline nodes never change the saved access base");
-  assert.equal(selected, "https://healthy.test");
+  assert.equal(selected, chosen);
 });
 
 test("session bearer only goes to compatible, published HTTPS candidates", async () => {
