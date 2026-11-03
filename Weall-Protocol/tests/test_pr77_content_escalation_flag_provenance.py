@@ -15,6 +15,7 @@ from weall.runtime.apply.content import (
     _apply_content_escalate_to_dispute,
     _content_escalation_provenance_active,
     _verify_content_escalation_provenance,
+    repair_pending_content_escalations,
 )
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -131,3 +132,70 @@ def test_legacy_height_keeps_original_dedup_path() -> None:
     payload["flagged_by"] = "legacy-unverified-reporter"
     result = _apply_content_escalate_to_dispute(state, _env(payload))
     assert result["deduped"] is True
+
+
+def test_repair_uses_original_flag_not_corrupted_pending_reporter(monkeypatch) -> None:
+    state = _state()
+    state["content"]["pending_escalations"] = {
+        "flag:alice:1": {
+            "status": "pending",
+            "next_retry_height": 20,
+            "target_id": "post:forged",
+            "flagged_by": "mallory",
+            "reason": "forged reason",
+        }
+    }
+    queued: list[dict] = []
+
+    def fake_enqueue(_state, **kwargs):
+        queued.append(kwargs)
+        return "queue:verified"
+
+    monkeypatch.setattr("weall.runtime.apply.content.enqueue_system_tx", fake_enqueue)
+    assert repair_pending_content_escalations(state, next_height=20) == 1
+    assert len(queued) == 1
+    assert queued[0]["payload"]["target_id"] == "post:one"
+    assert queued[0]["payload"]["flagged_by"] == "alice"
+    assert queued[0]["payload"]["reason"] == "spam"
+    assert queued[0]["parent"] == "CONTENT_FLAG:flag:alice:1"
+
+
+def test_repair_missing_accepted_flag_never_queues(monkeypatch) -> None:
+    state = _state()
+    state["content"]["flags"] = {}
+    state["content"]["pending_escalations"] = {
+        "flag:alice:1": {"status": "pending", "next_retry_height": 20}
+    }
+    queued: list[dict] = []
+
+    def fake_enqueue(_state, **kwargs):
+        queued.append(kwargs)
+        return "queue:unexpected"
+
+    monkeypatch.setattr("weall.runtime.apply.content.enqueue_system_tx", fake_enqueue)
+    assert repair_pending_content_escalations(state, next_height=20) == 0
+    assert queued == []
+
+
+def test_legacy_repair_keeps_original_pending_fields(monkeypatch) -> None:
+    state = _state()
+    state["height"] = 19
+    state["content"]["pending_escalations"] = {
+        "flag:alice:1": {
+            "status": "pending",
+            "next_retry_height": 20,
+            "target_id": "post:legacy",
+            "flagged_by": "legacy-reporter",
+            "reason": "legacy reason",
+        }
+    }
+    queued: list[dict] = []
+
+    def fake_enqueue(_state, **kwargs):
+        queued.append(kwargs)
+        return "queue:legacy"
+
+    monkeypatch.setattr("weall.runtime.apply.content.enqueue_system_tx", fake_enqueue)
+    assert repair_pending_content_escalations(state, next_height=20) == 1
+    assert queued[0]["payload"]["target_id"] == "post:legacy"
+    assert queued[0]["payload"]["flagged_by"] == "legacy-reporter"
