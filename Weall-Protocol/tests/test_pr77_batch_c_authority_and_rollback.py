@@ -2,6 +2,7 @@
 
 These are executable checks of existing boundaries, not semantic sign-off.
 """
+
 from __future__ import annotations
 
 import copy
@@ -24,7 +25,9 @@ def _canon():
     return load_tx_index_json(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
 
 
-def _env(tx_type: str, account: str, *, system: bool = True, parent: str | None = None) -> TxEnvelope:
+def _env(
+    tx_type: str, account: str, *, system: bool = True, parent: str | None = None
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer="SYSTEM" if system else account,
@@ -100,9 +103,7 @@ def test_role_queue_binding_rejects_parent_substitution() -> None:
         parent="proposal:forged",
         chain_id="weall-testnet-v1",
     )
-    ok, reason = validate_system_tx_queue_binding(
-        state, canon, forged, next_height=7, phase="post"
-    )
+    ok, reason = validate_system_tx_queue_binding(state, canon, forged, next_height=7, phase="post")
     assert not ok
     assert reason == "system_queue_parent_mismatch"
 
@@ -131,8 +132,6 @@ def test_role_queue_binding_rejects_target_substitution() -> None:
         parent=genuine.parent,
         chain_id="weall-testnet-v1",
     )
-    ok, reason = validate_system_tx_queue_binding(
-        state, canon, forged, next_height=7, phase="post"
-    )
+    ok, reason = validate_system_tx_queue_binding(state, canon, forged, next_height=7, phase="post")
     assert not ok
     assert reason == "system_queue_payload_mismatch"
