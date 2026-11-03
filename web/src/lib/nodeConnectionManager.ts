@@ -428,7 +428,8 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
   const latencyMs = Math.max(1, Math.round(performance.now() - started));
   const reachable = !!status;
   const statusOk = statusReady(status);
-  const ready = statusReady(readyz) || statusOk;
+  // A responsive status endpoint cannot override a failed/missing readiness probe.
+  const ready = statusReady(readyz);
   const chainId = safeStr(status?.chain_id || consensus?.chain_id);
   const genesisHash = safeStr(status?.genesis_hash || consensus?.genesis_hash || status?.chain_manifest?.genesis_hash);
   const height = safeNumber(status?.height ?? consensus?.height);
