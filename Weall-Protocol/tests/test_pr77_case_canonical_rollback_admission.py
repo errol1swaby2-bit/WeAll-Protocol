@@ -260,5 +260,15 @@ def test_http_executor_rejects_system_case_before_persistence_and_after_restart(
     assert ex.read_state() == before
     assert not ex.read_mempool()
     restarted = new_executor()
-    assert restarted.read_state() == before
+    after_restart = restarted.read_state()
+    # Opening the same SQLite ledger while the first executor remains alive
+    # updates the local crash-recovery marker, not the committed CASE state.
+    # Compare every other key and prohibit unrelated restart mutations.
+    assert after_restart["meta"].get("last_shutdown_clean") is False
+    expected = copy.deepcopy(before)
+    actual = copy.deepcopy(after_restart)
+    expected["meta"].pop("last_shutdown_clean", None)
+    actual["meta"].pop("last_shutdown_clean", None)
+    assert actual == expected
+    assert compute_state_root(actual) == compute_state_root(expected)
     assert not restarted.read_mempool()
