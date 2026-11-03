@@ -134,3 +134,32 @@ def test_malformed_queued_system_case_never_commits_partial_block(
     after["meta"].pop("last_shutdown_clean", None)
     assert after == before
     assert compute_state_root(after) == compute_state_root(before)
+
+
+
+def test_governance_default_disallows_case_binding_but_explicit_allowlist_changes_gate() -> None:
+    """A matching synthetic queue is not proof current governance may emit it."""
+    from weall.runtime.apply.governance import (
+        _allowed_gov_action_types,
+        _assert_governance_actions_allowed,
+    )
+    from weall.runtime.domain_apply import ApplyError
+
+    state = {"params": {"system_signer": "SYSTEM"}}
+    action = {
+        "tx_type": "CASE_BIND_TO_DISPUTE",
+        "payload": {"case_id": "case-a", "dispute_id": "dispute-a"},
+    }
+    assert "CASE_BIND_TO_DISPUTE" not in _allowed_gov_action_types(state)
+    with pytest.raises(ApplyError) as failure:
+        _assert_governance_actions_allowed(state, [action])
+    assert (failure.value.code, failure.value.reason) == (
+        "forbidden",
+        "governance_action_not_allowed",
+    )
+
+    # This is a conditional boundary only: it does not establish that any
+    # actual authorized proposal or constitutional process can set the list.
+    state["params"]["gov_action_allowlist"] = ["CASE_BIND_TO_DISPUTE"]
+    assert "CASE_BIND_TO_DISPUTE" in _allowed_gov_action_types(state)
+    _assert_governance_actions_allowed(state, [action])
