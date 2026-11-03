@@ -153,6 +153,8 @@ test("bootstrap reads base_url and rejects non-HTTPS, wrong-chain and unready ca
   const backendHints = await manager.loadBackendSeedNodes("https://seed.test");
   assert.deepEqual(backendHints.map((item) => item.url), ["https://unlisted.test"],
     "actual backend base_url schema must be parsed");
+  // Backend gossip is only available once the current API is a real node.
+  selected = "https://healthy.test";
   const probes = await manager.discoverNodeProbes();
   assert.equal(probes.find((x) => x.baseUrl === "https://healthy.test")?.phase, "healthy");
   assert.equal(probes.find((x) => x.baseUrl === "https://healthy.test")?.genesisHash, chain.genesis_hash);
@@ -164,6 +166,7 @@ test("bootstrap reads base_url and rejects non-HTTPS, wrong-chain and unready ca
   assert.equal(manager.canSwitchToNode(discoveredOnly), false,
     "backend-suggested candidate is a hint, not session credential trust");
 
+  selected = "/";
   const first = await connector.connectPublicTestnetBrowser();
   assert.deepEqual(first, { state: "connected", baseUrl: "https://healthy.test", changed: true });
   assert.equal(selected, "https://healthy.test");
