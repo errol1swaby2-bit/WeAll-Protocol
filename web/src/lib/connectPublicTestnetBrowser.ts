@@ -30,7 +30,7 @@ export async function connectPublicTestnetBrowser(): Promise<PublicTestnetConnec
 
   if (session?.sessionKey) {
     const ordered: NodeProbe[] = [];
-    if (current?.phase === "healthy" && current.ok) ordered.push(current);
+    if (current?.phase === "healthy" && current.ok && current.listedInSeedManifest) ordered.push(current);
     ordered.push(...probes.filter((probe) => canSwitchToNode(probe)));
 
     for (const probe of ordered) {
@@ -53,7 +53,7 @@ export async function connectPublicTestnetBrowser(): Promise<PublicTestnetConnec
     return { state: "unavailable", reason: "session_not_recognized" };
   }
 
-  if (current?.phase === "healthy" && current.ok) {
+  if (current?.phase === "healthy" && current.ok && current.listedInSeedManifest) {
     return { state: "connected", baseUrl: current.baseUrl, changed: false };
   }
 
