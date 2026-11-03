@@ -38,6 +38,6 @@ assert.ok(build.includes("trustRoots.seed_registry_pubkeys.includes(registry.see
 assert.ok(build.includes('VITE_WEALL_API_BASE: "/"'), "host must not assume same-origin API proxy");
 assert.ok(build.includes('resolve(webRoot, "dist/seeds.json")'), "dist seed manifest replacement required");
 assert.ok(headers.includes("connect-src 'self' https: wss:"), "remote HTTPS node access must be allowed");
-assert.ok(!/camera=\\(\\)|microphone=\\(\\)/.test(headers), "live PoH devices must not be disabled");
+assert.ok(!headers.includes("camera=()") && !headers.includes("microphone=()"), "live PoH devices must not be disabled");
 execFileSync(process.execPath, ["--check", buildScript], { stdio: "pipe" });
 console.log("Cloudflare testnet frontend integration source checks passed");
