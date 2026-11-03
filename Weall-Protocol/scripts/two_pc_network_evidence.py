@@ -422,8 +422,8 @@ def compare_packets(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
         ),
         "both_match_expected_commitments_if_supplied": bool(
             (a.get("expected_commitments_digest") is None and b.get("expected_commitments_digest") is None)
-            or (a.get("checks", {}).get("matches_operator_pinned_chain") is True
-                and b.get("checks", {}).get("matches_operator_pinned_chain") is True)
+            or (_as_dict(a.get("checks")).get("matches_operator_pinned_chain") is True
+                and _as_dict(b.get("checks")).get("matches_operator_pinned_chain") is True)
         ),
         "distinct_node_peer_ids": bool(
             _string(_as_dict(al.get("network")).get("peer_id"))
