@@ -162,7 +162,9 @@ def build_packet() -> dict[str, Any]:
         failure_deltas = failure_code_deltas(
             old_material.get("failure_codes"), current_material.get("failure_codes")
         )
-        if tx_type == "DISPUTE_OPEN":
+        if tx_type == "CONTENT_FLAG":
+            review_lane = "content_flag_provenance_and_escalation"
+        elif tx_type == "DISPUTE_OPEN":
             review_lane = "handler_source_attribution_and_derived_contract"
         elif tx_type == "ACCOUNT_BAN":
             review_lane = "account_sanction_authority_and_finality"
