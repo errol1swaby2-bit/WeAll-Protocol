@@ -70,6 +70,7 @@ def test_case_receipt_dispatch_does_not_select_as_str_utility() -> None:
         assert "key:cases" in result["state_reads"]
         assert "applied" in result["return_keys"]
 
+
 def test_canonical_case_receipt_dispatch_preserves_handler_not_as_str_utility() -> None:
     """Canonical CASE appliers declare the shared receipt function, not apply_dispute."""
     appliers = json.loads(
