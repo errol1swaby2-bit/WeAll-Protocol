@@ -5,7 +5,6 @@ import json
 
 import pytest
 
-
 from scripts.pr77_v2_semantic_review_packet import (
     KNOWN_STALE,
     audit,
