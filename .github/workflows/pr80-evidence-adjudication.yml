@@ -40,6 +40,7 @@ jobs:
       - name: Source formatting, static checks and guarded registry
         run: |
           ruff check scripts/pr77_v2_semantic_review_packet.py tests/test_current_document_registry.py tests/test_pr77_v2_semantic_review_packet.py
+          ruff format --diff tests/test_current_document_registry.py || true
           ruff format --check scripts/pr77_v2_semantic_review_packet.py tests/test_current_document_registry.py tests/test_pr77_v2_semantic_review_packet.py
           python scripts/check_public_claim_freshness.py
       - name: Guard registry and 18 unapproved semantic contract records
