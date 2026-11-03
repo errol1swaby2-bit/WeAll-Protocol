@@ -75,20 +75,21 @@ async function fakeFetch(input) {
   const host = url.startsWith("/") ? "unavailable" : new URL(url).hostname;
   if (host === "unavailable") return response({}, 404);
   if (host === "healthy.test" && !available.healthy) return response({}, 503);
-  if (host === "wrong.test") {
-    if (url.endsWith("/v1/status")) return response({ ok: true, ...chain, chain_id: "other-network" });
-    if (url.endsWith("/v1/readyz")) return response({ ok: true });
-    return response({ ok: true });
-  }
-  if (host === "notready.test") {
-    if (url.endsWith("/v1/status")) return response({ ok: true, ...chain });
-    if (url.endsWith("/v1/readyz")) return response({ ok: false });
-    return response({ ok: true });
-  }
-  if (host === "healthy.test") {
-    if (url.endsWith("/v1/status")) return response({ ok: true, ...chain, height: 42 });
-    if (url.endsWith("/v1/readyz")) return response({ ok: true });
-    return response({ ok: true });
+  if (host === "wrong.test" || host === "notready.test" || host === "healthy.test") {
+    const identity = host === "wrong.test" ? { ...chain, chain_id: "other-network" } : chain;
+    // Match the real backend: /v1/status has chain/tx/profile, while
+    // /v1/chain/identity carries the genesis hash in chain_manifest.
+    const { genesis_hash, ...statusIdentity } = identity;
+    if (url.endsWith("/v1/status")) {
+      return response({ ok: true, ...statusIdentity, height: 42 });
+    }
+    if (url.endsWith("/v1/chain/identity")) {
+      return response({ ok: true, ...statusIdentity, chain_manifest: { genesis_hash } });
+    }
+    if (url.endsWith("/v1/readyz")) {
+      return response({ ok: host !== "notready.test" });
+    }
+    return response({ ok: true, ...statusIdentity });
   }
   return response({}, 404);
 }
@@ -143,6 +144,8 @@ test("hosted public testnet discovery only selects healthy, compatible nodes", a
 
   const probes = await manager.discoverNodeProbes();
   assert.equal(probes.find((x) => x.baseUrl === "https://healthy.test")?.phase, "healthy");
+  assert.equal(probes.find((x) => x.baseUrl === "https://healthy.test")?.genesisHash, chain.genesis_hash,
+    "the compatible genesis hash must be read from /v1/chain/identity");
   assert.equal(probes.find((x) => x.baseUrl === "https://wrong.test")?.phase, "incompatible");
   assert.equal(probes.find((x) => x.baseUrl === "https://notready.test")?.phase, "syncing");
 
