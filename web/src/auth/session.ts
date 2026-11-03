@@ -9,7 +9,9 @@
 //   - tx submission (/v1/tx/submit)
 
 import { getChainId, getEnvChainId } from "../lib/chain";
-import { createBrowserSession, weall } from "../api/weall";
+import { createBrowserSession, getApiBaseUrl, weall } from "../api/weall";
+import { config } from "../lib/config";
+import { clearApprovedBrowserSession, isBrowserSessionApproved, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
 
 import {
   KeypairB64,
@@ -32,7 +34,7 @@ export type SessionV1 = {
   expiresAtMs: number;
 };
 
-export type SessionHealthState = "anonymous" | "active" | "expiring_soon" | "expired" | "missing_local_signer" | "invalid";
+export type SessionHealthState = "anonymous" | "active" | "expiring_soon" | "expired" | "missing_local_signer" | "node_unverified" | "invalid";
 
 export type SessionHealth = {
   state: SessionHealthState;
@@ -257,6 +259,21 @@ export function getSessionHealth(): SessionHealth {
     };
   }
 
+  // Hosted frontends must not treat local bearer possession as proof that the
+  // currently selected node recognizes the canonical on-chain session.
+  if (config.publicTestnet && sessionKeyPresent && !isBrowserSessionApproved(getApiBaseUrl(), account, String(raw?.sessionKey || ""))) {
+    return {
+      state: "node_unverified",
+      account,
+      sessionKeyPresent,
+      expiresAtMs,
+      msRemaining,
+      hasLocalSigner,
+      recoverableAccount,
+      message: "The selected node has not confirmed this browser session. Protected operations remain unavailable until session recognition or recovery.",
+    };
+  }
+
   if (msRemaining <= 10 * 60 * 1000) {
     return {
       state: "expiring_soon",
@@ -308,6 +325,8 @@ export function getSession(): SessionV1 | null {
 }
 
 export function setSession(s: SessionV1): void {
+  // A new bearer requires a fresh per-node recognition check.
+  clearApprovedBrowserSession();
   const account = normalizeAccount(s.account);
   const expiresAtMs = Number(s.expiresAtMs || 0);
   if (!account) throw new Error("invalid_session_account");
@@ -352,6 +371,7 @@ function readSessionAccountForCleanup(): string {
 }
 
 export function endSession(): void {
+  clearApprovedBrowserSession();
   const acct = readSessionAccountForCleanup();
   try {
     localStorage.removeItem(LS_SESSION);
@@ -437,6 +457,7 @@ export function getAuthHeaders(account?: string): Record<string, string> {
   const acct = normalizeAccount(account || sessionAccount);
   if (!acct || !sessionAccount || acct !== sessionAccount) return {};
   if (!s.sessionKey) return {};
+  if (config.publicTestnet && !isBrowserSessionApproved(getApiBaseUrl(), sessionAccount, s.sessionKey)) return {};
   return {
     "x-weall-account": sessionAccount,
     "x-weall-session-key": String(s.sessionKey),
@@ -1153,6 +1174,9 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
       sessionKey: requestedSessionKey,
       expiresAtMs: Date.now() + ttlSeconds * 1000,
     });
+    if (config.publicTestnet) {
+      await verifyBrowserSessionOnNode(args.base || getApiBaseUrl(), acct, requestedSessionKey, { attempts: 3 });
+    }
     return response;
   } catch (error) {
     if (!isDirectSessionMutationForbidden(error)) throw error;
@@ -1207,6 +1231,9 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
     sessionKey: requestedSessionKey,
     expiresAtMs: Date.now() + ttlSeconds * 1000,
   });
+  if (config.publicTestnet) {
+    await verifyBrowserSessionOnNode(args.base || getApiBaseUrl(), acct, requestedSessionKey, { attempts: 3 });
+  }
 
   return {
     ok: true,
@@ -1318,5 +1345,8 @@ export async function issueFreshSessionKey(args?: { ttlSeconds?: number; base?: 
     sessionKey,
     expiresAtMs: Date.now() + ttlSeconds * 1000,
   });
+  if (config.publicTestnet) {
+    await verifyBrowserSessionOnNode(args?.base || getApiBaseUrl(), acct, sessionKey, { attempts: 3 });
+  }
   return result;
 }

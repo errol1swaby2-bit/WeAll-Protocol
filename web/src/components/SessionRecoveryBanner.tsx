@@ -16,6 +16,8 @@ function titleForState(health: SessionHealth): string {
       return "Session expired";
     case "missing_local_signer":
       return "Signer missing on this device";
+    case "node_unverified":
+      return "Node has not recognized this session";
     case "invalid":
       return "Session needs recovery";
     case "anonymous":
@@ -31,6 +33,7 @@ function toneForState(health: SessionHealth): "ok" | "warning" | "danger" | "neu
     case "active":
       return "ok";
     case "expiring_soon":
+    case "node_unverified":
       return "warning";
     case "expired":
     case "missing_local_signer":
