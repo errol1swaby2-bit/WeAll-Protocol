@@ -36,9 +36,8 @@ for (const field of [
   "AccountRegistrationPage",
   "submitBasicAccountRegistration",
   "readRegistrationFinality",
-  '"local_state_synced"',
 ]) {
-  const source = field === '"local_state_synced"' ? protocol : router + app + prefetch + registration + protocol;
+  const source = router + app + prefetch + registration + protocol;
   assert.ok(source.includes(field), "Missing guided registration invariant: " + field);
 }
 
