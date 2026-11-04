@@ -84,6 +84,15 @@ completed self-service account creation or PoH. To evaluate an ordinary new
 participant, explicitly test creation and recovery of an additional account
 using a clean browser profile; record which steps are actually possible.
 
+**Transaction-status boundary:** Genesis and the observer must have separate
+durable transaction-queue paths. Genesis reports committed transaction status
+from its own ledger, not from observer outbound queue metadata. The observer
+must separately prove upstream confirmation and local-state synchronization:
+a matching account nonce or local tx index is not sufficient. On an existing
+rehearsal, restart the backend processes to load updated code/environment.
+Preserve the ledger and keys; do not use a reset merely to hide a reconciliation
+failure. Record any remaining `upstream_not_confirmed` findings as blockers.
+
 The launcher may encounter a Docker Desktop/WSL IPFS port-forward error at
 5001/8080, retry and use 15001/18080. The run is successful only if the
 final readiness checks pass. An intermediate observer account-registration
