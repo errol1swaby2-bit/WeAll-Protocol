@@ -466,6 +466,7 @@ export default function LoginPage() {
       return
     }
 
+    let restoredSessionIssued = false
     setBusy(true)
     try {
       const bundle = stagedRecoveryBundle
@@ -486,6 +487,7 @@ export default function LoginPage() {
         account: restoreAccount,
         secretKeyB64: recoveryKeyInput.trim(),
       })
+      restoredSessionIssued = true
       if (restored.keypair.pubkeyB64 !== expectedSigner) {
         throw new Error("The restored signing key is not authorized for this account.")
       }
@@ -515,6 +517,7 @@ export default function LoginPage() {
       setNotice("Signed in on this device.")
       nav(consumeReturnTo("/home"))
     } catch (err) {
+      if (restoredSessionIssued) endSession()
       setError(humanizeApiError(err, "Could not sign in with that recovery key."))
     } finally {
       setBusy(false)
