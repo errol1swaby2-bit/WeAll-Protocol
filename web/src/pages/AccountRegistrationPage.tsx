@@ -53,7 +53,18 @@ export default function AccountRegistrationPage(): JSX.Element {
     try {
       const next = await readAccountRegistrationStatus(account, base);
       setRegistration(next);
-      if (transactionId) {
+      if (transactionId === "submission_unknown") {
+        if (next === "registered") {
+          setSynced(true);
+          setRejected(false);
+          setError("");
+          setMessage("Your account is registered on this node. The original submission receipt was not preserved.");
+          rememberPendingTransaction(account, "");
+        } else {
+          setSynced(false);
+          setMessage("The previous registration attempt has an unknown outcome. Do not submit again until the network confirms its status.");
+        }
+      } else if (transactionId) {
         const finality = await readRegistrationFinality(transactionId, base);
         if (finality === "rejected") {
           setRejected(true);
