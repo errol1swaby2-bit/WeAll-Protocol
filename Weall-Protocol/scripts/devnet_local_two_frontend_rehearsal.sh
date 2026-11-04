@@ -17,6 +17,10 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_ROOT="$(cd "${REPO_ROOT}/.." && pwd)"
 WEB_ROOT="${WEALL_WEB_ROOT:-${WORKSPACE_ROOT}/web}"
+# Runtime public bootstrap manifests must not overwrite tracked source templates.
+# This directory contains only public bootstrap metadata; signing material
+# remains under the private .weall-devnet/generated tree.
+BOOTSTRAP_PUBLIC_DIR="${WEB_ROOT}/public/weall-local-rehearsal"
 DEVNET_DIR="${WEALL_DEVNET_DIR:-${REPO_ROOT}/.weall-devnet}"
 RUNTIME_DIR="${WEALL_RUNTIME_DIR:-${DEVNET_DIR}/runtime}"
 TX_QUEUE_PATH="${WEALL_TX_QUEUE_PATH:-${RUNTIME_DIR}/observer_tx_queue.json}"
@@ -735,8 +739,8 @@ node "${WEB_ROOT}/scripts/generate_m2_actor_keys.mjs" "${OBSERVER_KEYFILE}" >/de
 
 GENESIS_SECRET="${GENERATED_DIR}/dev-bootstrap-genesis-secret.json"
 OBSERVER_SECRET="${GENERATED_DIR}/dev-bootstrap-observer-secret.json"
-GENESIS_MANIFEST="${WEB_ROOT}/public/dev-bootstrap-genesis.json"
-OBSERVER_MANIFEST="${WEB_ROOT}/public/dev-bootstrap-observer.json"
+GENESIS_MANIFEST="${BOOTSTRAP_PUBLIC_DIR}/dev-bootstrap-genesis.json"
+OBSERVER_MANIFEST="${BOOTSTRAP_PUBLIC_DIR}/dev-bootstrap-observer.json"
 _write_secret_and_manifest "${GENESIS_ACCOUNT}" "${GENESIS_KEYFILE}" "${GENESIS_SECRET}" "${GENESIS_MANIFEST}" "local-controlled-devnet-genesis" "0"
 _write_secret_and_manifest "${OBSERVER_ACCOUNT}" "${OBSERVER_KEYFILE}" "${OBSERVER_SECRET}" "${OBSERVER_MANIFEST}" "local-controlled-devnet-observer" "1"
 
@@ -1013,7 +1017,7 @@ echo "==> Starting observer frontend on http://${FRONTEND_PUBLIC_HOST}:${OBSERVE
   export VITE_WEALL_API_BASE="/"
   export VITE_WEALL_DEV_PROXY_TARGET="${NODE2_API}"
   export VITE_WEALL_ENABLE_DEV_BOOTSTRAP=1
-  export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/dev-bootstrap-observer.json"
+  export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-observer.json"
   export VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE="${LIVE_ROOM_TRANSPORT_MODE}"
   export VITE_WEALL_LIVE_ROOM_BASE_URL="${LIVE_ROOM_BASE_URL}"
   export VITE_WEALL_LIVE_ROOM_EMBED="${LIVE_ROOM_EMBED}"
@@ -1027,7 +1031,7 @@ echo "==> Starting genesis frontend on http://${FRONTEND_PUBLIC_HOST}:${GENESIS_
   export VITE_WEALL_API_BASE="/"
   export VITE_WEALL_DEV_PROXY_TARGET="${NODE1_API}"
   export VITE_WEALL_ENABLE_DEV_BOOTSTRAP=1
-  export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/dev-bootstrap-genesis.json"
+  export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-genesis.json"
   export VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE="${LIVE_ROOM_TRANSPORT_MODE}"
   export VITE_WEALL_LIVE_ROOM_BASE_URL="${LIVE_ROOM_BASE_URL}"
   export VITE_WEALL_LIVE_ROOM_EMBED="${LIVE_ROOM_EMBED}"
