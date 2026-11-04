@@ -1,3 +1,21 @@
+> **Current-scope correction (2026-11-04):** The historical 15-review
+> discussion below is a dated snapshot. At integrated draft PR #80
+> `9de38ef90e2509161583d3fc8ce9e2015c609546`, the read-only source
+> packet tracks **18** still-unapproved TX contracts. Older development-chain
+> SQLite replay is **optional forensic work** for the planned *replacement-chain*
+> testnet, not a pretestnet prerequisite. The actual launch evidence is a new,
+> separately identified genesis and replay of **that new chain**, under
+> `docs/testnet/FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md`.
+> The 18 semantic reviews, constitutional activation holds, and fresh-genesis
+> proof remain separate unresolved gates. No review digest is accepted here.
+>
+> Packet-hardening follow-up: the diagnostic now rejects a shortened or forged
+> 18-row inventory even if its row count is consistently reduced, duplicate or
+> blank stable IDs, malformed or contradictory material digests, missing
+> field deltas, and false approval/release-authorization claims. This only
+> strengthens the existing read-only packet and does **not** rewrite compiler
+> acceptance or grant authority.
+
 # PR77 V2 semantic decision packet — NOT a review approval
 
 The V2 compiler correctly fails closed for 15 stale semantic-review digests.

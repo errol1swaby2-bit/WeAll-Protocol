@@ -191,6 +191,83 @@ def test_review_packet_integrity_blocks_unexpected_inventory_changes() -> None:
     assert "missing_state_stable_ids" in errors
 
 
+@pytest.mark.parametrize(
+    "mutation,expected",
+    [
+        (
+            lambda packet: packet["transactions"].pop(),
+            "pending_count_mismatch",
+        ),
+        (
+            lambda packet: packet["transactions"].__setitem__(
+                0, copy.deepcopy(packet["transactions"][1])
+            ),
+            "duplicate_pending_transaction",
+        ),
+        (
+            lambda packet: packet["transactions"][0].__setitem__(
+                "stable_id", packet["transactions"][1]["stable_id"]
+            ),
+            "duplicate_pending_stable_id",
+        ),
+        (
+            lambda packet: packet["transactions"][0].__setitem__(
+                "current_material_digest",
+                packet["transactions"][0]["accepted_review_digest"],
+            ),
+            "already_approved_digest_in_pending",
+        ),
+        (
+            lambda packet: packet["transactions"][0].__setitem__(
+                "changed_field_names", []
+            ),
+            "changed_material_fields_incomplete",
+        ),
+        (
+            lambda packet: packet["transactions"][0].__setitem__(
+                "classification_not_semantic_approval", False
+            ),
+            "review_classification_not_advisory",
+        ),
+        (
+            lambda packet: packet.__setitem__("production_or_testnet_authority", True),
+            "review_packet_must_not_claim_release_authority",
+        ),
+    ],
+)
+def test_review_packet_fails_closed_on_forged_or_omitted_evidence(mutation, expected: str) -> None:
+    packet = copy.deepcopy(build_packet())
+    mutation(packet)
+    # A bad actor cannot conceal a removed row by adjusting both counters.
+    packet["pending_count"] = len(packet["transactions"])
+    blockers = packet_integrity_blockers(packet)
+    assert any(blocker == expected or blocker.startswith(expected + ":") for blocker in blockers)
+    if len(packet["transactions"]) != len(KNOWN_STALE):
+        assert "stale_inventory_mismatch" in blockers
+
+
+def test_review_packet_rejects_forged_inventory_resolution() -> None:
+    packet = copy.deepcopy(build_packet())
+    packet["transactions"] = packet["transactions"][:-1]
+    packet["pending_count"] = len(packet["transactions"])
+    packet["known_stale_now_resolved"] = [next(iter(KNOWN_STALE - {
+        row["tx_type"] for row in packet["transactions"]
+    }))]
+    blockers = packet_integrity_blockers(packet)
+    assert "unreviewed_inventory_resolution" in blockers
+    assert "stale_inventory_mismatch" in blockers
+
+
+def test_review_packet_rejects_unexplained_delta_and_invalid_digest() -> None:
+    packet = copy.deepcopy(build_packet())
+    row = packet["transactions"][0]
+    row["current_material_has_unexplained_delta"] = True
+    row["accepted_review_digest"] = "not-a-digest"
+    blockers = packet_integrity_blockers(packet)
+    assert f"unexplained_review_material_delta:{row['tx_type']}" in blockers
+    assert f"invalid_review_material_digest:{row['tx_type']}:accepted_review_digest" in blockers
+
+
 def test_dispute_vote_submit_new_severe_appeal_guard_is_review_input_only() -> None:
     """An executable guard still needs real semantic review and replay proof."""
     packet = build_packet()
