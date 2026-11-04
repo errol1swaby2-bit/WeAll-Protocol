@@ -195,6 +195,10 @@ export function loadRecoveryAuthorityKeypair(account: string): KeypairB64 | null
 export function ensureRecoveryAuthorityKeypair(account: string): KeypairB64 {
   const existing = loadRecoveryAuthorityKeypair(account);
   if (existing) return existing;
+  const normalized = normalizeAccount(account);
+  if (normalized && localStorage.getItem(recoveryAuthorityPublicKey(normalized)) !== null) {
+    throw new Error("existing_recovery_authority_requires_recovery");
+  }
   const pair = generateKeypair();
   saveRecoveryAuthorityKeypair(account, pair);
   return pair;
@@ -293,6 +297,12 @@ export function loadKeypair(account: string): KeypairB64 | null {
   const valid = validateKeypair(pubkeyB64, secretKeyB64);
   if (!valid.ok) return null;
   return { pubkeyB64, secretKeyB64 };
+}
+
+/** Public account metadata may outlive a tab-scoped signing seed. */
+export function hasStoredKeypairMetadata(account: string): boolean {
+  const normalized = normalizeAccount(account);
+  return !!normalized && localStorage.getItem(keyStorageKey(normalized)) !== null;
 }
 
 export function getKeypair(account: string): KeypairB64 | null {
