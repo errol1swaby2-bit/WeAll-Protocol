@@ -89,40 +89,106 @@ def failure_code_deltas(previous: Any, current: Any) -> dict[str, list[dict[str,
 
 
 def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
-    """Make prior approved-material binding an actual fail-closed gate.
+    """Fail closed on omitted or forged review rows, never grant approval.
 
-    Failure does not authorize a new digest or mutate any source file. A
-    diagnostic packet may still be emitted so the exact mismatch is visible.
+    This is a source-bound review diagnostic, not an authority ledger. In this
+    frozen candidate inventory, *all* 18 known stale rows must remain visible.
+    A changed inventory requires an explicit, independently reviewed update,
+    not silently dropping a row or accepting an empty packet.
     """
     rows = packet.get("transactions")
     if not isinstance(rows, list):
         return ["transactions_not_list"]
+
     blockers: list[str] = []
+    if packet.get("schema") != "weall.pr77.v2_semantic_review_decision_packet.v2":
+        blockers.append("review_packet_schema_mismatch")
     if packet.get("registered_transaction_count") != 236:
         blockers.append("registered_transaction_count_changed")
-    if packet.get("pending_count") != len(rows):
+    if packet.get("pending_count") != len(rows) or len(rows) != len(KNOWN_STALE):
         blockers.append("pending_count_mismatch")
+
+    names = [row.get("tx_type") if isinstance(row, dict) else None for row in rows]
+    valid_names = [name for name in names if isinstance(name, str) and name.strip()]
+    present = set(valid_names)
+    if len(valid_names) != len(rows):
+        blockers.append("invalid_pending_transaction_identity")
+    if len(present) != len(valid_names):
+        blockers.append("duplicate_pending_transaction")
+    if present != KNOWN_STALE:
+        blockers.append("stale_inventory_mismatch")
     if packet.get("newly_stale_not_in_known_inventory"):
         blockers.append("unexpected_stale_transaction")
+    if packet.get("known_stale_now_resolved") != sorted(KNOWN_STALE - present):
+        blockers.append("resolved_inventory_claim_mismatch")
+    if packet.get("known_stale_now_resolved"):
+        blockers.append("unreviewed_inventory_resolution")
     if packet.get("missing_state_stable_ids"):
         blockers.append("missing_state_stable_ids")
-    if len({row.get("tx_type") for row in rows if isinstance(row, dict)}) != len(rows):
-        blockers.append("duplicate_pending_transaction")
+
+    stable_ids = [row.get("stable_id") if isinstance(row, dict) else None for row in rows]
+    if any(not isinstance(sid, str) or not sid.strip() for sid in stable_ids):
+        blockers.append("invalid_pending_stable_id")
+    if len({sid for sid in stable_ids if isinstance(sid, str)}) != len(rows):
+        blockers.append("duplicate_pending_stable_id")
+
     for row in rows:
         if not isinstance(row, dict):
             blockers.append("invalid_pending_transaction_row")
             continue
         tx_type = str(row.get("tx_type") or "")
-        if row.get("archive_matches_accepted_digest") is not True:
+        if not isinstance(row.get("review_lane"), str) or not row["review_lane"]:
+            blockers.append(f"review_lane_missing:{tx_type}")
+        for key in (
+            "accepted_review_digest",
+            "archived_compiled_material_digest",
+            "current_material_digest",
+        ):
+            digest = row.get(key)
+            if (
+                not isinstance(digest, str)
+                or len(digest) != 64
+                or any(c not in "0123456789abcdef" for c in digest)
+            ):
+                blockers.append(f"invalid_review_material_digest:{tx_type}:{key}")
+        if row.get("archive_matches_accepted_digest") is not True or (
+            row.get("accepted_review_digest") != row.get("archived_compiled_material_digest")
+        ):
             blockers.append(f"prior_approval_material_unverified:{tx_type}")
+        if row.get("current_material_digest") == row.get("accepted_review_digest"):
+            blockers.append(f"already_approved_digest_in_pending:{tx_type}")
+        if row.get("current_material_has_unexplained_delta") is not False:
+            blockers.append(f"unexplained_review_material_delta:{tx_type}")
+        changes = row.get("changed_fields")
+        names_recorded = row.get("changed_field_names")
+        if (
+            not isinstance(changes, list)
+            or not changes
+            or any(
+                not isinstance(change, dict)
+                or not isinstance(change.get("field"), str)
+                or not change["field"]
+                for change in changes
+            )
+            or not isinstance(names_recorded, list)
+            or [change["field"] for change in changes] != names_recorded
+        ):
+            blockers.append(f"changed_material_fields_incomplete:{tx_type}")
+        if row.get("classification_not_semantic_approval") is not True:
+            blockers.append(f"review_classification_not_advisory:{tx_type}")
         if row.get("signed_off_for_current_digest") is not False:
             blockers.append(f"current_semantic_signoff_must_remain_false:{tx_type}")
         if row.get("historical_replay_proven") is not False:
             blockers.append(f"historical_replay_unproven:{tx_type}")
+
     if packet.get("must_not_update_semantic_reviews_automatically") is not True:
         blockers.append("automatic_semantic_approval_not_forbidden")
     if packet.get("independent_human_approval_recorded_by_this_packet") is not False:
         blockers.append("review_packet_must_not_claim_human_approval")
+    if packet.get("production_or_testnet_authority") is not False:
+        blockers.append("review_packet_must_not_claim_release_authority")
+    if packet.get("historical_compatibility_proven") is not False:
+        blockers.append("review_packet_must_not_claim_historical_compatibility")
     return blockers
 
 
@@ -144,6 +210,17 @@ def build_packet() -> dict[str, Any]:
     ):
         raise ValueError("v2_review_packet_has_duplicate_tx_type")
 
+    if (
+        any(
+            not isinstance(row.get("stable_id"), str) or not row["stable_id"]
+            for row in current_rows
+        )
+        or len({row["stable_id"] for row in current_rows}) != 236
+        or len({row.get("stable_id") for row in review_source["transactions"]}) != 236
+        or len({row.get("stable_id") for row in prior_rows}) != 236
+    ):
+        raise ValueError("v2_review_packet_has_duplicate_or_missing_stable_id")
+
     missing_stable_ids = audit._missing_state_ids(current_rows, stable_ids, sources)
     pending = []
     for row in sorted(current_rows, key=lambda item: str(item["tx_type"])):
@@ -151,6 +228,11 @@ def build_packet() -> dict[str, Any]:
         if tx_type not in reviews or tx_type not in previous:
             raise ValueError(f"v2_review_packet_missing_review_or_baseline:{tx_type}")
         review = reviews[tx_type]
+        # Match the canonical compiler's stable-ID authority, not display type alone.
+        if str(review.get("stable_id") or "") != str(row.get("stable_id") or ""):
+            raise ValueError(f"v2_review_packet_review_identity_mismatch:{tx_type}")
+        if str(previous[tx_type].get("stable_id") or "") != str(row.get("stable_id") or ""):
+            raise ValueError(f"v2_review_packet_archive_identity_mismatch:{tx_type}")
         accepted_digest = str(review.get("review_digest") or "")
         current_material = validation.tx_review_material(row)
         current_digest = validation.compact_digest(current_material)
@@ -199,7 +281,7 @@ def build_packet() -> dict[str, Any]:
         )
     unexpected = sorted({item["tx_type"] for item in pending} - KNOWN_STALE)
     return {
-        "schema": "weall.pr77.v2_semantic_review_decision_packet.v1",
+        "schema": "weall.pr77.v2_semantic_review_decision_packet.v2",
         "kind": "read_only_implementation_comparison",
         "previous_generated_shape": prior_shape,
         "registered_transaction_count": len(current_rows),

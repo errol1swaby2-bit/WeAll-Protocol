@@ -1,16 +1,40 @@
 from __future__ import annotations
 
 import copy
+import json
 
 import pytest
 
 from scripts.pr77_v2_semantic_review_packet import (
     KNOWN_STALE,
+    audit,
     build_packet,
     failure_code_deltas,
     field_differences,
     packet_integrity_blockers,
+    validation,
 )
+
+
+def test_packet_stale_set_matches_compiler_stable_id_authority() -> None:
+    """The diagnostic may not diverge from the compiler's canonical ID join."""
+    rows, _, _ = audit._current_rows()
+    reviews = json.loads(
+        (audit.ROOT / "specs/v2/source/semantic_reviews.json").read_text(encoding="utf-8")
+    )
+    by_id = {item["stable_id"]: item for item in reviews["transactions"]}
+    assert len(by_id) == len(rows) == 236
+    compiler_stale = {
+        row["tx_type"]
+        for row in rows
+        if validation.compact_digest(validation.tx_review_material(row))
+        != by_id[row["stable_id"]]["review_digest"]
+    }
+    packet = build_packet()
+    packet_stale = {row["tx_type"] for row in packet["transactions"]}
+    assert packet_stale == compiler_stale
+    assert len(compiler_stale) == 18
+    assert packet["independent_human_approval_recorded_by_this_packet"] is False
 
 
 def test_review_diff_distinguishes_absent_from_null() -> None:
@@ -40,6 +64,28 @@ def test_v2_stale_review_packet_does_not_approve_18_affected_transactions() -> N
         assert row["stable_id"]
         assert row["signed_off_for_current_digest"] is False
         assert row["classification_not_semantic_approval"] is True
+
+
+def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None:
+    packet = build_packet()
+    assert packet["schema"] == "weall.pr77.v2_semantic_review_decision_packet.v2"
+    rows = {row["tx_type"]: row for row in packet["transactions"]}
+    content_flag = rows["CONTENT_FLAG"]
+    assert content_flag["changed_field_names"] == ["failure_codes"]
+    assert content_flag["archive_matches_accepted_digest"] is True
+    assert content_flag["accepted_review_digest"] != content_flag["current_material_digest"]
+    assert content_flag["signed_off_for_current_digest"] is False
+    assert content_flag["historical_replay_proven"] is False
+    assert packet["must_not_update_semantic_reviews_automatically"] is True
+
+
+def test_case_handler_utility_extraction_does_not_require_false_approval() -> None:
+    packet = build_packet()
+    names = {row["tx_type"] for row in packet["transactions"]}
+    assert "CASE_TYPE_REGISTER" not in names
+    assert "CASE_BIND_TO_DISPUTE" not in names
+    assert "CONTENT_FLAG" in names
+    assert packet["must_not_update_semantic_reviews_automatically"] is True
 
 
 def test_failure_code_comparison_preserves_exact_added_and_removed_reasons() -> None:
@@ -143,6 +189,81 @@ def test_review_packet_integrity_blocks_unexpected_inventory_changes() -> None:
     errors = packet_integrity_blockers(packet)
     assert "unexpected_stale_transaction" in errors
     assert "missing_state_stable_ids" in errors
+
+
+@pytest.mark.parametrize(
+    "mutation,expected",
+    [
+        (
+            lambda packet: packet["transactions"].pop(),
+            "pending_count_mismatch",
+        ),
+        (
+            lambda packet: packet["transactions"].__setitem__(
+                0, copy.deepcopy(packet["transactions"][1])
+            ),
+            "duplicate_pending_transaction",
+        ),
+        (
+            lambda packet: packet["transactions"][0].__setitem__(
+                "stable_id", packet["transactions"][1]["stable_id"]
+            ),
+            "duplicate_pending_stable_id",
+        ),
+        (
+            lambda packet: packet["transactions"][0].__setitem__(
+                "current_material_digest",
+                packet["transactions"][0]["accepted_review_digest"],
+            ),
+            "already_approved_digest_in_pending",
+        ),
+        (
+            lambda packet: packet["transactions"][0].__setitem__("changed_field_names", []),
+            "changed_material_fields_incomplete",
+        ),
+        (
+            lambda packet: packet["transactions"][0].__setitem__(
+                "classification_not_semantic_approval", False
+            ),
+            "review_classification_not_advisory",
+        ),
+        (
+            lambda packet: packet.__setitem__("production_or_testnet_authority", True),
+            "review_packet_must_not_claim_release_authority",
+        ),
+    ],
+)
+def test_review_packet_fails_closed_on_forged_or_omitted_evidence(mutation, expected: str) -> None:
+    packet = copy.deepcopy(build_packet())
+    mutation(packet)
+    # A bad actor cannot conceal a removed row by adjusting both counters.
+    packet["pending_count"] = len(packet["transactions"])
+    blockers = packet_integrity_blockers(packet)
+    assert any(blocker == expected or blocker.startswith(expected + ":") for blocker in blockers)
+    if len(packet["transactions"]) != len(KNOWN_STALE):
+        assert "stale_inventory_mismatch" in blockers
+
+
+def test_review_packet_rejects_forged_inventory_resolution() -> None:
+    packet = copy.deepcopy(build_packet())
+    packet["transactions"] = packet["transactions"][:-1]
+    packet["pending_count"] = len(packet["transactions"])
+    packet["known_stale_now_resolved"] = [
+        next(iter(KNOWN_STALE - {row["tx_type"] for row in packet["transactions"]}))
+    ]
+    blockers = packet_integrity_blockers(packet)
+    assert "unreviewed_inventory_resolution" in blockers
+    assert "stale_inventory_mismatch" in blockers
+
+
+def test_review_packet_rejects_unexplained_delta_and_invalid_digest() -> None:
+    packet = copy.deepcopy(build_packet())
+    row = packet["transactions"][0]
+    row["current_material_has_unexplained_delta"] = True
+    row["accepted_review_digest"] = "not-a-digest"
+    blockers = packet_integrity_blockers(packet)
+    assert f"unexplained_review_material_delta:{row['tx_type']}" in blockers
+    assert f"invalid_review_material_digest:{row['tx_type']}:accepted_review_digest" in blockers
 
 
 def test_dispute_vote_submit_new_severe_appeal_guard_is_review_input_only() -> None:

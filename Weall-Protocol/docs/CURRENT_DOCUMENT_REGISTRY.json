@@ -281,6 +281,11 @@
     {
       "claim_scan": true,
       "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/testnet/FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
       "path": "Weall-Protocol/docs/testnet/FIRST_15_MINUTES.md"
     },
     {
