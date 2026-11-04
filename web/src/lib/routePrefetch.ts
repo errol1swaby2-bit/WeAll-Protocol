@@ -1,5 +1,6 @@
 const routePrefetchers: Record<string, () => Promise<unknown>> = {
   "/login": () => import("../pages/LoginPage"),
+  "/onboarding/register": () => import("../pages/AccountRegistrationPage"),
   "/home": () => import("../pages/HomeDashboard"),
   "/feed": () => import("../pages/Feed"),
   "/activity": () => import("../pages/Activity"),

@@ -65,6 +65,7 @@ export type RouteMeta = {
 
 export type RouteMatch =
   | { path: "/login" }
+  | { path: "/onboarding/register" }
   | { path: "/home" }
   | { path: "/feed" }
   | { path: "/create" }
@@ -130,6 +131,25 @@ function contract(overrides: Partial<RouteDataContract>): RouteDataContract {
 }
 
 const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
+  "/onboarding/register": {
+    section: "Start",
+    label: "Register account",
+    title: "Finish account registration",
+    description: "Register your saved account key on the network and check confirmed synchronization.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "login",
+    normalNav: false,
+    breadcrumbs: [{ label: "Sign in", href: "/login" }],
+    dataContract: contract({
+      primaryObject: "Account registration",
+      contextPanelData: "Account creation progress and confirmed network status",
+      blockingDependencies: ["Verified recovery", "Local signer", "Registration transaction", "Synchronized account state"],
+    }),
+  },
   "/login": {
     section: "Start",
     label: "Sign in",
@@ -688,6 +708,7 @@ export function matchRoute(path: string): RouteMatch {
   const r = path.split("?")[0];
 
   if (r === "/" || r === "/login") return { path: "/login" };
+  if (r === "/onboarding/register") return { path: "/onboarding/register" };
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };
   if (r === "/create") return { path: "/create" };

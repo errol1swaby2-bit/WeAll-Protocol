@@ -85,10 +85,6 @@ jobs:
         run: |
           npm ci
 
-      - name: Dependency audit
-        run: |
-          npm run dependency-audit
-
       - name: Typecheck
         run: |
           npm run typecheck
@@ -96,6 +92,10 @@ jobs:
       - name: Account custody cryptographic source gate
         run: |
           npm run test:account-custody-crypto-source
+
+      - name: Guided account registration source gate
+        run: |
+          npm run test:guided-account-registration-source
 
       - name: Focused shell navigation and drawer source gate
         run: |
@@ -128,6 +128,10 @@ jobs:
       - name: Build
         run: |
           npm run build
+
+      - name: Dependency audit (must pass before deployment tests)
+        run: |
+          npm run dependency-audit
 
       - name: Install production deployment test dependencies
         run: |
