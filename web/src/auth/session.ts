@@ -1258,6 +1258,15 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
     parent: null,
     base: args.base,
   });
+  const receiptId = String(issueResult?.result?.tx_id || issueResult?.result?.result?.tx_id || "").trim();
+  const confirmed = await waitForConfirmedSessionTransaction({
+    txId: receiptId,
+    base: args.base,
+    timeoutMs: 30_000,
+  });
+  if (!confirmed) {
+    throw new Error("Session issuance has no confirmed canonical receipt yet. Login remains incomplete; check the transaction before trying again.");
+  }
   const sessionSynced = await waitForLocalAccountNonceAtLeast({
     account: acct,
     minNonce: issueResult.env.nonce,
