@@ -1404,18 +1404,20 @@ export async function logoutCurrentDevice(args?: { base?: string; forgetSigner?:
   }
 
   let result: any = { ok: true, local_only: true };
-  if (s.sessionKey) {
-    result = await revokeCurrentSessionKey({ base: args?.base });
+  try {
+    if (s.sessionKey) {
+      result = await revokeCurrentSessionKey({ base: args?.base });
+    }
+    return result;
+  } finally {
+    // Local logout must happen even if the network cannot confirm revocation.
+    // In that case the error propagates: remote revocation is NOT claimed.
+    const account = s.account;
+    endSession();
+    clearNonceReservation(account);
+    clearSignerLock(account);
+    if (args?.forgetSigner) clearKeypair(account);
   }
-
-  const account = s.account;
-  endSession();
-  clearNonceReservation(account);
-  clearSignerLock(account);
-  if (args?.forgetSigner) {
-    clearKeypair(account);
-  }
-  return result;
 }
 
 export async function issueFreshSessionKey(args?: { ttlSeconds?: number; base?: string }): Promise<any> {
