@@ -25,6 +25,11 @@ def test_mldsa_sign_verify_positive_and_negative_paths():
     assert len(bytes.fromhex(sig)) == MLDSA65_SIGNATURE_BYTES
     assert verify_mldsa65_signature(message=b"weall-pq-test", sig=sig, pubkey=kp["pubkey"])
     assert not verify_mldsa65_signature(message=b"tampered", sig=sig, pubkey=kp["pubkey"])
+    # Flip a bit so that the negative case is a *real* mutation even when
+    # the original signature already starts with a 0x00 byte.
+    tampered_sig = bytearray.fromhex(sig)
+    tampered_sig[0] ^= 0x01
+    assert tampered_sig.hex() != sig
     assert not verify_mldsa65_signature(
-        message=b"weall-pq-test", sig="00" + sig[2:], pubkey=kp["pubkey"]
+        message=b"weall-pq-test", sig=tampered_sig.hex(), pubkey=kp["pubkey"]
     )

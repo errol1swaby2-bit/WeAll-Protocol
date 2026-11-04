@@ -1,0 +1,42 @@
+name: Issue 68 devnet/IPFS deletion safety
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/scripts/devnet_safe_paths.py'
+      - 'Weall-Protocol/scripts/devnet_reset_state.sh'
+      - 'Weall-Protocol/scripts/devnet_local_two_frontend_rehearsal.sh'
+      - 'Weall-Protocol/tests/test_issue68_delete_boundaries.py'
+      - '.github/workflows/issue68-devnet-delete-safety.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  disposable-negative-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Shell syntax
+        run: |
+          bash -n Weall-Protocol/scripts/devnet_reset_state.sh
+          bash -n Weall-Protocol/scripts/devnet_local_two_frontend_rehearsal.sh
+      - name: Disposable-fixture deletion safety and negative tests
+        run: |
+          python -m unittest discover -s Weall-Protocol/tests \
+            -p 'test_issue68_delete_boundaries.py' -v
+      - name: Assert no auto-delete of IPFS partition remains
+        run: |
+          if grep -Fq 'rm -rf "${IPFS_PARTITION_PATH}"' Weall-Protocol/scripts/devnet_local_two_frontend_rehearsal.sh; then
+            echo 'UNSAFE: implicit IPFS partition deletion remains' >&2
+            exit 1
+          fi

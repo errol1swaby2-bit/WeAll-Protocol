@@ -204,6 +204,17 @@
         "presentation"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ActiveDeliberations.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "../web/src/components/AppRightRail.tsx",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
@@ -6061,6 +6072,204 @@
         "mechanisms",
         "evidence"
       ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/CANDIDATE_STATUS.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "authoritative_spec_maintenance_tooling",
+      "path": "tooling/constitutional_change_gate/policies/requirements.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/PR62_REVIEW.md",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/README.md",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/field_trace.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/reconcile_v2.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/reference/LOCAL_TEST_RESULTS.txt",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/reference/pinned_domain_names.txt",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/reference/pinned_domain_requirement_preview.csv",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/reference/PR61_changed_files.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/reference/REMOTE_PR61_RECONCILIATION.md",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/reference/REMOTE_RECONCILIATION_OBSERVATIONS.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/constitutional_change_gate/SHA256SUMS.txt",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/tests/__init__.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/tests/test_change_gate.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/tests/test_field_trace.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/tests/test_v2_reconciliation.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/validate_pr61_isolated.sh",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/weall_change_gate.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
       "classification": "authoritative_or_launch_critical",
       "path": "tooling/gen_helper_contract_map.py",
       "primary_mechanism_id": "M-076",
@@ -6074,6 +6283,142 @@
       "classification": "authoritative_or_launch_critical",
       "path": "tooling/gen_tx_contract_map.py",
       "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/repository_coverage.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/tests/test_repository_coverage.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/semantic_impact_candidates.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/tests/test_semantic_impact_candidates.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/operational_impact.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence",
+        "requirement_traceability",
+        "tx_contract_matrix"
+      ],
+      "classification": "verification_tooling",
+      "path": "tooling/constitutional_change_gate/operational_boundary_review.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_safe_paths.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_local_two_frontend_rehearsal.sh",
+      "primary_mechanism_id": "M-076",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_reset_state.sh",
+      "primary_mechanism_id": "M-074",
+      "review_status": "candidate_unverified_pending_independent_review"
+    },
+    {
+      "path": "../web/src/components/ActivityBell.tsx",
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "path": "../web/src/lib/activityReadState.ts",
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "path": "src/weall/runtime/reputation_role_gate.py",
+      "affected_registers": [
+        "transactions",
+        "mechanisms",
+        "activation",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "primary_mechanism_id": "M-054",
       "review_status": "mapped_current_snapshot"
     }
   ],

@@ -86,8 +86,8 @@ def test_content_review_selection_requires_exact_content_review_lane_not_generic
                 "target_type": "content",
                 "target_id": "post:@genesis:1",
                 "reason": "policy",
-                "reported_by": "@errol",
-                "flagged_by": "@errol",
+                "reported_by": "@reporter",
+                "flagged_by": "@reporter",
             },
             system=True,
         ),
@@ -115,6 +115,7 @@ def test_content_review_selection_requires_exact_content_review_lane_not_generic
     assert dispute["eligible_juror_ids"] == ["@errol"]
     assert dispute["jurors"]["@errol"]["assignment_source"] == "reviewer_responsibility_opt_in"
     assert "@genesis" not in dispute["assigned_jurors"]
+    assert "@reporter" not in dispute["assigned_jurors"]
 
 
 def test_frontend_surfaces_content_review_opt_in_and_juror_review_queue_stage() -> None:

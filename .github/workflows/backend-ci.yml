@@ -127,13 +127,17 @@ jobs:
           cat artifacts/p0-assurance/a15-f003-registration-attack.json
 
       - name: P0 property and mutation assurance
+        id: p0_assurance
         run: |
           python tests/p0_assurance.py gate \
             --report artifacts/p0-assurance/p0_assurance_report.json \
             --timeout-seconds 120
 
       - name: Upload P0 closure assurance evidence
-        if: always()
+        # Upload the full (including failed) P0 assurance report once that
+        # producer has actually run. If an earlier required V2 gate aborts
+        # execution, no P0 artifact exists; avoid a misleading second failure.
+        if: ${{ always() && steps.p0_assurance.outcome != 'skipped' }}
         uses: actions/upload-artifact@v4
         with:
           name: p0-closure-assurance-evidence

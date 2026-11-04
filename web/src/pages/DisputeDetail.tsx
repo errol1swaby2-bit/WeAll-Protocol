@@ -188,8 +188,12 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   const disputeProcedureHeight = currentProcedureHeight(dispute);
   const disputeDeadline = disputeDeadlineHeight(dispute);
   const disputeIntervalMs = targetBlockIntervalMs(dispute);
-  const appealCount = Array.isArray(dispute?.appeals) ? dispute.appeals.length : 0;
+  // The API deliberately redacts the raw appeals array. Aggregate count and
+  // pending-panel readiness come from the canonical public read model.
+  const appealCount = Number(dispute?.appeal_total ?? dispute?.counts_total?.appeals ?? 0);
+  const appealReadiness = asRecord(dispute?.appeal_panel_readiness);
   const disputeStage = String(dispute?.stage || "open").toLowerCase();
+  const appealPendingPanel = disputeStage === "appeal_pending_panel";
   const appealWindowOpen = disputeStage === "appeal_window" || disputeStage === "appealed" || disputeStage === "appeal_review";
   const appealDeadlinePassed = Number(dispute?.appeal_deadline_height || 0) > 0 && disputeProcedureHeight > Number(dispute?.appeal_deadline_height || 0);
   const appealEligibility = asRecord(dispute?.appeal_eligibility);
@@ -207,7 +211,9 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   const appealActorEligible =
     appealEligibility?.can_file === true ||
     (!!account && !!targetOwner && sameAccount(account, targetOwner));
-  const canFileAppeal = !!dispute && !!account && tierGate.ok && !signerSubmission.busy && appealWindowOpen && !appealDeadlinePassed && appealActorEligible;
+  // The backend owns the filing decision: a target owner with an existing
+  // pending appeal must not see a second enabled filing action.
+  const canFileAppeal = !!dispute && !!account && tierGate.ok && !signerSubmission.busy && appealEligibility?.can_file === true && appealWindowOpen && !appealDeadlinePassed;
 
   const detailCtaLabel = currentVote
     ? "Open recorded review"
@@ -313,7 +319,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         deadlineHeight={disputeDeadline}
         targetBlockIntervalMs={disputeIntervalMs}
         authorityLabel="Dispute review uses backend block height as authority. Wall-clock time is only a display estimate and cannot trigger timeout, appeal, or finalization."
-        nextAction={String(dispute?.stage || "").toLowerCase() === "appeal_window" ? "Appeals are open until the deadline block. Sanctions should not finalize before that window closes." : hint}
+        nextAction={appealPendingPanel ? "Appeal recorded. Final enforcement is held until a complete independent appellate panel becomes available." : disputeStage === "appeal_window" ? "Appeals are open until the deadline block. Sanctions should not finalize before that window closes." : hint}
       >
         <div className="summaryCardGrid">
           <article className="summaryCard">
@@ -339,18 +345,29 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         </div>
       </ProcedureTimeline>
 
-      {(appealActorEligible || appealCount > 0) ? (
+      {appealPendingPanel ? (
+        <section className="calloutInfo" role="status">
+          <strong>Appeal accepted — awaiting independent jurors.</strong>
+          <div>The filing remains recorded even after the original filing deadline. Final enforcement is held while the required fresh, nonconflicting panel is unavailable.</div>
+          <div className="mono">Filing block: {Number(appealReadiness.appeal_filed_at_height || 0) || "—"} · Required jurors: {Number(appealReadiness.required_panel_size || 0)} + {Number(appealReadiness.required_substitute_count || 0)} substitutes · Available: {Number(appealReadiness.available_candidate_count || 0)}</div>
+          <div>No smaller bootstrap quorum is substituted. Assignment and finality depend on backend block-height state.</div>
+        </section>
+      ) : null}
+
+      {(appealActorEligible || appealCount > 0 || appealPendingPanel) ? (
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Appeal</div>
-              <h2 className="cardTitle">{appealActorEligible ? "File an appeal during the appeal window" : "Appeal history"}</h2>
+              <h2 className="cardTitle">{appealPendingPanel ? "Appeal recorded — awaiting panel" : appealActorEligible && canFileAppeal ? "File an appeal during the appeal window" : "Appeal history"}</h2>
             </div>
             <div className="statusSummary">
               <span className={`statusPill ${appealWindowOpen && !appealDeadlinePassed && appealActorEligible ? "ok" : ""}`}>
-                {appealActorEligible
-                  ? (appealWindowOpen && !appealDeadlinePassed ? "Appeal filing open" : "Appeal filing closed")
+                {appealPendingPanel ? "Appeal pending independent jurors"
+                  : appealEligibility?.already_filed === true ? "Appeal already filed"
+                  : canFileAppeal ? "Appeal filing open"
+                  : appealActorEligible ? "Appeal filing closed"
                   : "Creator-only action"}
               </span>
             </div>
@@ -359,7 +376,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             Appeals are signed protocol actions for the affected content creator. Reviewers can inspect appeal history, but reviewer accounts do not get the filing control unless they also created the content.
           </div>
 
-          {appealActorEligible ? (
+          {canFileAppeal ? (
             <>
               <label className="fieldLabel">
                 Appeal reason
@@ -382,20 +399,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             </>
           ) : null}
 
-          {Array.isArray(dispute?.appeals) && dispute.appeals.length > 0 ? (
-            <div className="pageStack">
-              {dispute.appeals.map((appeal: any, idx: number) => (
-                <article key={String(appeal?.appeal_id || idx)} className="summaryCard">
-                  <div className="summaryCardLabel mono">{String(appeal?.by || "unknown")}</div>
-                  <div className="summaryCardValue">Appeal #{idx + 1}</div>
-                  <div className="summaryCardText">Block {Number(appeal?.height || 0) || "—"}</div>
-                  <div className="feedBodyText">{String(appeal?.payload?.reason || appeal?.reason || appeal?.payload?.note || appeal?.note || "")}</div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="cardDesc">No appeal has been filed on this report yet.</div>
-          )}
+          <div className="cardDesc">{appealCount > 0 ? `${appealCount} appeal record(s) confirmed by the backend. Detailed appeal payloads and identities are not exposed in this broad read model.` : "No appeal has been filed on this report yet."}</div>
         </div>
       </section>
       ) : null}

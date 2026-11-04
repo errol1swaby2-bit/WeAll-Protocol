@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.apply.dispute import assign_pending_appeal_panels
 from weall.runtime.constitutional_clock import policy_from_state
+from weall.runtime.severe_juror_replenishment import replenish_severe_juror_pool
+from weall.runtime.severe_sanction_boundary import requires_severe_sanction_finality_hold
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = dict[str, Any]
@@ -89,6 +92,9 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
     disputes = state.get("disputes_by_id")
     if not isinstance(disputes, dict) or not disputes:
         return 0
+    # Run once for the entire replicated state, not once per pending case.
+    # A valid appeal remains pending if the fresh pool is still too small.
+    assign_pending_appeal_panels(state, next_height=int(next_height))
     enq = 0
     for did, dispute in sorted(disputes.items(), key=lambda item: str(item[0])):
         if not isinstance(dispute, dict):
@@ -105,8 +111,22 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
                     next_height=int(next_height),
                 ):
                     enq += 1
+        # Default-off, replicated-state experimental replenishment. These are
+        # direct deterministic panel-state transitions, not queued SYSTEM txs;
+        # the return value continues to count only enqueued receipts.
+        replenish_severe_juror_pool(
+            state, dispute_id=str(did), dispute=dispute, next_height=int(next_height)
+        )
         stage = str(dispute.get("stage") or "").strip().lower()
+        if stage == "appeal_pending_panel":
+            # The deadline applies to filing, not to panel availability.
+            continue
         if stage not in {"appeal_window", "appealed", "appeal_review", "appeal_resolved"}:
+            continue
+        # A conventional window-expiry or apparently resolved appeal is not
+        # an authenticated automatic fresh-panel appeal for severe sanctions.
+        # Block final-receipt production until that lifecycle is implemented.
+        if requires_severe_sanction_finality_hold(dispute):
             continue
         if stage == "appeal_resolved":
             panel_result = _d(dispute.get("appeal_panel_result"))

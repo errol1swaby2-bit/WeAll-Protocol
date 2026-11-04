@@ -1,0 +1,30 @@
+name: PR77 CASE binding candidate — read-only
+
+on:
+  pull_request:
+    paths:
+      - "Weall-Protocol/tooling/case_binding_policy_candidate.py"
+      - "Weall-Protocol/tests/test_pr77_case_binding_policy_candidate.py"
+      - "Weall-Protocol/docs/audits/pr77_case_binding_versioned_policy_candidate_20261104.md"
+      - ".github/workflows/pr77-case-binding-policy-candidate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-only:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile and run read-only policy candidate tests
+        working-directory: Weall-Protocol
+        run: |
+          python -m py_compile tooling/case_binding_policy_candidate.py tests/test_pr77_case_binding_policy_candidate.py
+          python -m unittest discover -s tests -p test_pr77_case_binding_policy_candidate.py -v
+      - name: Report non-approval
+        run: |
+          echo "REVIEW ONLY: no consensus activation, scheduler authorization, historical replay proof, semantic sign-off, or release approval."

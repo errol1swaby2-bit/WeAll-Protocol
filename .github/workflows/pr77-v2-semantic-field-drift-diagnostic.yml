@@ -1,0 +1,102 @@
+name: PR77 V2 semantic field drift diagnostic (no approval)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-field-drift:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Build unapproved semantic-material comparison without bypassing acceptance
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p artifacts/pr77-v2-semantic-fields
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path('scripts').resolve()))
+
+          import compile_v2_spec as compiler
+          from v2_spec_validation import compact_digest, tx_review_material
+
+          root = Path("artifacts/pr77-v2-semantic-fields")
+          sources = compiler._load_sources()
+          stable_ids = compiler.StableIdRegistry.from_payload(sources["stable_ids"])
+          canon = sources["transaction_canon"]
+          tx_names = {str(x.get("name") or "").upper() for x in canon.get("txs", [])}
+          frontend_files = compiler._scan_files(compiler.WORKSPACE_ROOT / "web" / "src", {".ts", ".tsx"})
+          test_files = compiler._scan_files(compiler.ROOT / "tests", {".py"})
+          routes = compiler._scan_route_contracts(
+              tx_names, frontend_files, test_files,
+              sources["contract_overrides"], stable_ids
+          )
+          rows = compiler._scan_transaction_contracts(
+              canon, sources["activation_profiles"], sources["protocol_registry"],
+              sources["contract_overrides"], routes, frontend_files, test_files,
+              stable_ids, sources["transaction_appliers"]
+          )
+          reviews = {str(x["stable_id"]): x for x in sources["semantic_reviews"]["transactions"]}
+          previous = json.loads((compiler.OUT_ROOT / "tx_contract_matrix.json").read_text())
+          previous_rows = {str(x["stable_id"]): x for x in previous.get("rows", [])}
+          output = []
+          for row in rows:
+              tx = str(row["tx_type"])
+              review = reviews[str(row["stable_id"])]
+              current = tx_review_material(row)
+              digest = compact_digest(current)
+              if digest == review["review_digest"]:
+                  continue
+              old_row = previous_rows.get(str(row["stable_id"]))
+              old = tx_review_material(old_row) if old_row is not None else None
+              changed_fields = (
+                  {k: {"tracked": old.get(k), "current": current.get(k)}
+                   for k in sorted(set(old) | set(current)) if old.get(k) != current.get(k)}
+                  if old is not None else None
+              )
+              output.append({
+                  "tx_type": tx,
+                  "stable_id": row["stable_id"],
+                  "accepted_digest": review["review_digest"],
+                  "candidate_digest_not_approved": digest,
+                  "changed_fields_against_checked_in_contract": changed_fields,
+                  "tracked_contract_available": old is not None,
+                  "review_disposition_unchanged": review.get("disposition"),
+              })
+          summary = {
+              "status": "diagnostic_only_not_approval",
+              "total_transactions": len(rows),
+              "stale_count": len(output),
+              "stale_tx_types": [x["tx_type"] for x in output],
+              "tracked_contract_rows": len(previous_rows),
+              "tracked_contract_source": "generated/v2/transaction_contracts.json",
+              "semantic_review_records_modified": False,
+          }
+          (root / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+          (root / "changed_fields.json").write_text(json.dumps(output, indent=2, sort_keys=True) + "\n")
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          PY
+      - name: Upload inspectable diagnostic, never approvals
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-v2-semantic-field-drift-no-approval
+          path: Weall-Protocol/artifacts/pr77-v2-semantic-fields/
+          if-no-files-found: warn

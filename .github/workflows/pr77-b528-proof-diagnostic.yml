@@ -1,0 +1,69 @@
+name: PR77 B528 proof diagnostic (no approval)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  b528-diagnostic:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Rehearse and compare B528 proof without altering committed evidence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p artifacts/pr77-b528-diagnostic
+          cp generated/b528_b532_completion_proof_v1_5.json artifacts/pr77-b528-diagnostic/tracked.json
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          cp generated/b528_b532_completion_proof_v1_5.json artifacts/pr77-b528-diagnostic/regenerated.json
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          folder = Path("artifacts/pr77-b528-diagnostic")
+          before = json.loads((folder / "tracked.json").read_text())
+          after = json.loads((folder / "regenerated.json").read_text())
+          def sha(name):
+              return hashlib.sha256((folder / name).read_bytes()).hexdigest()
+          changed = {
+              k: {"before": before.get(k), "after": after.get(k)}
+              for k in sorted(set(before) | set(after))
+              if before.get(k) != after.get(k)
+          }
+          summary = {
+              "status": "diagnostic_only_not_approval",
+              "tracked_sha256": sha("tracked.json"),
+              "regenerated_sha256": sha("regenerated.json"),
+              "tracked_ok": before.get("ok"),
+              "regenerated_ok": after.get("ok"),
+              "changed_top_level_fields": sorted(changed),
+              "locked_boundaries_unchanged": before.get("locked_boundaries") == after.get("locked_boundaries"),
+              "freshness_only": sorted(changed) == ["freshness"],
+          }
+          (folder / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+          (folder / "changed_fields.json").write_text(json.dumps(changed, indent=2, sort_keys=True) + "\n")
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          PY
+      - name: Upload evidence, including partial diagnostics on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-b528-proof-no-approval
+          path: Weall-Protocol/artifacts/pr77-b528-diagnostic/
+          if-no-files-found: warn

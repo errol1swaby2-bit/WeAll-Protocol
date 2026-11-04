@@ -10,7 +10,7 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
-import { reconcileMembershipPending, reconcileMembershipState } from "../lib/groupsRevalidation";
+import { reconcileMembershipDecision, reconcileMembershipPending, reconcileMembershipState } from "../lib/groupsRevalidation";
 import { refreshMutationSlices, requestGlobalRefresh } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 
@@ -59,7 +59,8 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const { refresh: refreshAccountContext } = useAccount();
 
   const membershipGate = useMemo(
-    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
+    // GROUP_MEMBERSHIP_REQUEST is canonically Tier1+; actual authority remains backend checked.
+    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 1 }),
     [acct, canSign, acctState],
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
@@ -158,6 +159,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       return;
     }
 
+    const approvalRequired = String(detail?.membership_mode || detail?.meta?.membership_mode || "open").trim().toLowerCase() === "approval_required";
     setBusy(true);
     try {
       const headers = getAuthHeaders(acct);
@@ -182,18 +184,22 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         title: kind === "join" ? "Join group" : "Leave group",
         pendingKey: txPendingKey(["group-membership", kind, selected, acct]),
         pendingMessage: kind === "join" ? "Joining group…" : "Leaving group…",
-        successMessage: kind === "join" ? "Joined group." : "Left group.",
+        successMessage: kind === "join"
+          ? (approvalRequired ? "Membership request submitted; moderator approval is still required." : "Joined group.")
+          : "Left group.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
           mutation: { entityType: "group", entityId: selected, account: acct || undefined, routeHint: `/groups/${encodeURIComponent(selected)}`, txType: String(skeletonTx.tx_type) },
-          reconcile: async () => reconcileMembershipState({
-            groupId: selected,
-            account: acct,
-            expectMember: kind === "join",
-            base,
-          }),
+          reconcile: async () => kind === "join" && approvalRequired
+            ? reconcileMembershipPending({ groupId: selected, account: acct, base })
+            : reconcileMembershipState({
+                groupId: selected,
+                account: acct,
+                expectMember: kind === "join",
+                base,
+              }),
         },
         task: async () =>
           submitSignedTx({
@@ -210,6 +216,40 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         loadMembershipStatus,
         refreshAccountContext,
       );
+      requestGlobalRefresh({ reason: "group-membership-updated", scopes: ["account", "pending_work", "route"] });
+    } catch (e: any) {
+      setErr(prettyErr(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function decideMembership(member: string, decision: "accept" | "reject"): Promise<void> {
+    if (!selected || !acct || !canSign || !canModerate || busy || signerSubmission.busy) return;
+    setErr(null);
+    setBusy(true);
+    try {
+      await tx.runTx({
+        title: decision === "accept" ? "Approve membership" : "Reject membership",
+        pendingKey: txPendingKey(["group-membership-decision", selected, member, decision, acct]),
+        pendingMessage: "Submitting signed membership decision…",
+        successMessage: "Membership decision submitted; verify its inclusion and canonical group state.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          timeoutMs: 16000,
+          mutation: { entityType: "group", entityId: selected, account: acct, routeHint: currentGroupRoute, txType: "GROUP_MEMBERSHIP_DECIDE" },
+          reconcile: async () => reconcileMembershipDecision({ groupId: selected, account: member, decision, base }),
+        },
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: "GROUP_MEMBERSHIP_DECIDE",
+          payload: { group_id: selected, account: member, decision },
+          parent: null,
+          base,
+        }),
+      });
+      await refreshMutationSlices(refreshSelected, loadMembershipStatus, refreshAccountContext);
       requestGlobalRefresh({ reason: "group-membership-updated", scopes: ["account", "pending_work", "route"] });
     } catch (e: any) {
       setErr(prettyErr(e));
@@ -291,6 +331,17 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   );
   const detailDescription = String(
     detail?.charter?.description || detail?.meta?.description || detail?.description || detailCharterParts.slice(1).join("\n\n") || "",
+  );
+  const membershipMode = String(detail?.membership_mode || detail?.meta?.membership_mode || "open").trim().toLowerCase();
+  const pendingMembershipAccounts = detail?.membership_requests && typeof detail.membership_requests === "object"
+    && !Array.isArray(detail.membership_requests)
+    ? Object.keys(detail.membership_requests).sort() : [];
+  const moderatorAccounts = Array.isArray(detail?.moderators)
+    ? detail.moderators : Array.isArray(detail?.roles?.moderators) ? detail.roles.moderators : [];
+  // The backend is authoritative: revoked moderators cannot approve even if
+  // the local role cache has not refreshed.
+  const canModerate = !!acct && moderatorAccounts.some((member: unknown) =>
+    String(member || "").trim().toLowerCase() === acct.toLowerCase(),
   );
   const membershipPhase = String(membershipStatus?.phase || "").trim().toLowerCase();
   const isPendingMembership = membershipPhase === "pending";
@@ -498,6 +549,27 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         onRetry={() => void refreshMutationSlices(refreshSelected, loadAccountState, refreshAccountContext)}
         onDismiss={() => setErr(null)}
       />
+
+      {membershipMode === "approval_required" && canModerate ? (
+        <section className="card" aria-label="Group membership approvals">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Moderator responsibility</div>
+                <h2 className="cardTitle">Membership requests</h2>
+                <div className="cardDesc">Only an included, authorized moderator-signed decision can accept or reject a pending request.</div>
+              </div>
+            </div>
+            {pendingMembershipAccounts.length ? pendingMembershipAccounts.map((member) => (
+              <div className="buttonRow buttonRowWide" key={member}>
+                <span className="mono">{member}</span>
+                <button className="btn btnPrimary" disabled={busy || signerSubmission.busy || !canSign} onClick={() => void decideMembership(member, "accept")}>Approve</button>
+                <button className="btn" disabled={busy || signerSubmission.busy || !canSign} onClick={() => void decideMembership(member, "reject")}>Reject</button>
+              </div>
+            )) : <div className="cardDesc">No pending membership requests are visible in the current canonical group read model.</div>}
+          </div>
+        </section>
+      ) : null}
 
       {reportInfo ? (
         <section className="card">

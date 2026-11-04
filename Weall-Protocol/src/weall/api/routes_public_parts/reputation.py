@@ -100,6 +100,7 @@ def v1_reputation_eligibility(account: str, request: Request) -> Json:
         "account_id": account,
         "deterministic": True,
         "eligibility": matrix.get("eligibility") or derive_role_eligibility(st, account),
+        "operative_role_activation": matrix.get("operative_role_activation", {}),
         "canonical_dimensions": matrix.get("canonical_dimensions", {}),
     }
 

@@ -541,10 +541,19 @@ def apply_semantic_reviews(
         )
     if set(route_reviews) != {str(row["stable_id"]) for row in route_rows}:
         raise ValueError("route semantic-review inventory does not exactly cover current rows")
+    # Report all stale transactions, not merely the first. This preserves the
+    # exact fail-closed acceptance requirement and avoids silently blessing
+    # other changed domains once an earlier review is repaired.
+    stale_tx = [
+        str(row["tx_type"])
+        for row in tx_rows
+        if compact_digest(tx_review_material(row))
+        != str(tx_reviews[str(row["stable_id"])].get("review_digest") or "")
+    ]
+    if stale_tx:
+        raise ValueError("transaction semantic-review digest is stale: " + ", ".join(stale_tx))
     for row in tx_rows:
         review = tx_reviews[str(row["stable_id"])]
-        if compact_digest(tx_review_material(row)) != str(review.get("review_digest") or ""):
-            raise ValueError(f"transaction semantic-review digest is stale: {row['tx_type']}")
         if review.get("disposition") != "accepted_current_semantic_contract":
             raise ValueError(f"transaction semantic review not accepted: {row['tx_type']}")
         row["semantic_derivation"] = row.get("semantic_precision")
@@ -557,10 +566,16 @@ def apply_semantic_reviews(
             "independent_review": bool(review.get("independent_review")),
             "authority_effect": review["authority_effect"],
         }
+    stale_routes = [
+        str(row["route_key"])
+        for row in route_rows
+        if compact_digest(route_review_material(row))
+        != str(route_reviews[str(row["stable_id"])].get("review_digest") or "")
+    ]
+    if stale_routes:
+        raise ValueError("route semantic-review digest is stale: " + ", ".join(stale_routes))
     for row in route_rows:
         review = route_reviews[str(row["stable_id"])]
-        if compact_digest(route_review_material(row)) != str(review.get("review_digest") or ""):
-            raise ValueError(f"route semantic-review digest is stale: {row['route_key']}")
         if review.get("disposition") != "accepted_current_semantic_contract":
             raise ValueError(f"route semantic review not accepted: {row['route_key']}")
         row["semantic_derivation"] = row.get("semantic_precision")

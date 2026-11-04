@@ -195,15 +195,16 @@ _prepare_local_ipfs_repo_dirs() {
   # Kubo must create its own blockstore layout during `ipfs init`.
   # Do not pre-create blocks/ or blocks/temp before initialization; doing so
   # produces: "directory missing SHARDING file: /data/ipfs/blocks".
+  # Validate before mkdir/chmod. An overridden partition must remain a direct
+  # child of the dedicated devnet; symlinked ancestors are rejected.
+  python3 scripts/devnet_safe_paths.py check-ipfs "${DEVNET_DIR}" "${IPFS_PARTITION_PATH}" >/dev/null || return 2
+  if [[ -d "${IPFS_PARTITION_PATH}/blocks" && ! -f "${IPFS_PARTITION_PATH}/blocks/SHARDING" ]]; then
+    echo "ERROR: local IPFS blocks/ has no SHARDING file. Preserving the repository; no automatic deletion." >&2
+    echo "Inspect the configured partition before an explicit disposable-devnet reset." >&2
+    return 2
+  fi
   mkdir -p "${IPFS_PARTITION_PATH}"
   chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" 2>/dev/null || true
-
-  if [[ -d "${IPFS_PARTITION_PATH}/blocks" && ! -f "${IPFS_PARTITION_PATH}/blocks/SHARDING" ]]; then
-    echo "==> Resetting corrupt local IPFS repo: blocks/ exists without SHARDING"
-    rm -rf "${IPFS_PARTITION_PATH}"
-    mkdir -p "${IPFS_PARTITION_PATH}"
-    chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" 2>/dev/null || true
-  fi
 
   # Batch 388 compatibility/safety: after Kubo has initialized a valid
   # sharded blockstore, make sure its transient batch directory exists and is
@@ -466,6 +467,7 @@ _start_local_ipfs_daemon() {
 
   if command -v ipfs >/dev/null 2>&1; then
     export IPFS_PATH="${WEALL_IPFS_PATH:-${DEVNET_DIR}/ipfs}"
+    python3 scripts/devnet_safe_paths.py check-ipfs "${DEVNET_DIR}" "${IPFS_PATH}" >/dev/null
     mkdir -p "${IPFS_PATH}" "${IPFS_PATH}/blocks" "${IPFS_PATH}/blocks/temp"
     if [[ ! -f "${IPFS_PATH}/config" ]]; then
       ipfs init --profile=server >/dev/null
@@ -685,6 +687,8 @@ PY
 }
 
 activate_repo_venv
+# Fail before creating any controlled-devnet content through an unsafe path.
+python3 scripts/devnet_safe_paths.py check-devnet "${DEVNET_DIR}" >/dev/null
 mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public" "${RUNTIME_DIR}"
 
 # Browser and backend PoH review must share persistent, independently generated

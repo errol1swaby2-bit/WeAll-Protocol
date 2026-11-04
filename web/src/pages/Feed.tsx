@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import FeedView from "../components/FeedView";
+import ActiveDeliberations from "../components/ActiveDeliberations";
 import { getApiBaseUrl, weall } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
@@ -140,6 +141,8 @@ export default function Feed(): JSX.Element {
           </div>
         </div>
       </section>
+
+      {tab === "global" ? <ActiveDeliberations base={base} maxItems={3} title="Community decisions being discussed" /> : null}
 
       <FeedView
         title={title}

@@ -1,0 +1,68 @@
+name: PR77 severe-sanction candidate evidence (non-authoritative)
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/tooling/severe_sanction_candidate_review.py'
+      - 'Weall-Protocol/tooling/severe_case_origin_candidate.py'
+      - 'Weall-Protocol/tooling/severe_case_signed_opening_review.py'
+      - 'Weall-Protocol/tests/test_pr77_severe_case_signed_opening_review.py'
+      - 'Weall-Protocol/docs/audits/pr77_severe_case_signed_opening_review_20261102.md'
+      - 'Weall-Protocol/tests/test_pr77_severe_case_origin_candidate.py'
+      - 'Weall-Protocol/docs/audits/pr77_severe_case_origin_candidate_20261102.md'
+      - 'Weall-Protocol/tests/test_pr77_severe_sanction_candidate_review.py'
+      - '.github/workflows/pr77-severe-sanction-candidate-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dev verification dependencies
+        working-directory: Weall-Protocol
+        run: python -m pip install -r requirements-dev.lock
+      - name: Enforce Ruff on review-only candidate and its tests
+        working-directory: Weall-Protocol
+        run: |
+          ruff check tooling/severe_case_origin_candidate.py tests/test_pr77_severe_case_origin_candidate.py tooling/severe_case_signed_opening_review.py tests/test_pr77_severe_case_signed_opening_review.py
+          ruff format --diff tests/test_pr77_severe_case_signed_opening_review.py || true
+          ruff format --check tooling/severe_case_origin_candidate.py tests/test_pr77_severe_case_origin_candidate.py tooling/severe_case_signed_opening_review.py tests/test_pr77_severe_case_signed_opening_review.py
+      - name: Validate pure candidate-only review invariants
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m py_compile tooling/severe_sanction_candidate_review.py tests/test_pr77_severe_sanction_candidate_review.py tooling/severe_case_origin_candidate.py tests/test_pr77_severe_case_origin_candidate.py
+          python -m unittest discover -s tests -p test_pr77_severe_sanction_candidate_review.py -v
+          python -m unittest discover -s tests -p test_pr77_severe_case_origin_candidate.py -v
+          python -m pytest -q tests/test_pr77_severe_case_signed_opening_review.py
+      - name: Assert the review cannot authorize or enqueue a ban
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          export PYTHONPATH="${PWD}/src:${PWD}${PYTHONPATH:+:${PYTHONPATH}}"
+          python - <<'PY'
+          from tooling.severe_sanction_candidate_review import review_severe_sanction_candidate
+          from tooling.severe_case_origin_candidate import review_severe_case_origin
+          from tooling.severe_case_signed_opening_review import review_signed_dispute_opening
+          result = review_severe_sanction_candidate({}, dispute_id="missing", account_id="@none")
+          assert result["constitutional_authorization"] == "NOT_ESTABLISHED"
+          assert result["may_enqueue_account_ban"] is False
+          assert result["blocking_reasons"]
+          origin = review_severe_case_origin(case={}, opening={}, classification={}, chain_id="review")
+          assert origin["constitutional_authorization"] == "NOT_ESTABLISHED"
+          assert origin["may_classify_canonical_case"] is False
+          assert origin["may_enqueue_account_ban"] is False
+          signed = review_signed_dispute_opening(case={}, block={}, pre_state={}, chain_id="", opening_tx_id="")
+          assert signed["constitutional_authorization"] == "NOT_ESTABLISHED"
+          assert signed["may_classify_canonical_case"] is False
+          assert signed["may_enqueue_account_ban"] is False
+          print("Candidate review only; production authorization remains BLOCKED")
+          PY

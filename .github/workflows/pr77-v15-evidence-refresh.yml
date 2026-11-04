@@ -1,0 +1,135 @@
+name: PR77 bounded V1.5 evidence refresh
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - Weall-Protocol/src/weall/runtime/apply/reputation.py
+      - Weall-Protocol/src/weall/runtime/apply/roles.py
+      - Weall-Protocol/src/weall/runtime/bounded_rollback.py
+      - Weall-Protocol/tests/test_bounded_rollback_equivalence.py
+      - Weall-Protocol/tests/test_issue72_versioned_role_gate.py
+      - Weall-Protocol/tests/test_pr77_severe_sanction_clock_no_go.py
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/api/routes_public_parts/disputes.py
+      - Weall-Protocol/src/weall/runtime/dispute_engine.py
+      - Weall-Protocol/src/weall/runtime/severe_sanction_boundary.py
+      - Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py
+      - Weall-Protocol/src/weall/runtime/severe_appeal_candidate.py
+      - Weall-Protocol/tests/test_pr77_fresh_severe_appeal_preview.py
+      - Weall-Protocol/tests/test_pr77_severe_initial_20_vote_guard.py
+      - Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py
+      - Weall-Protocol/tests/test_pr77_experimental_automatic_severe_appeal.py
+      - Weall-Protocol/src/weall/runtime/severe_juror_replenishment.py
+      - Weall-Protocol/tests/test_pr77_experimental_juror_timeout_replenishment.py
+      - Weall-Protocol/scripts/audit_v2_semantic_review_drift.py
+      - Weall-Protocol/tests/test_pr77_dispute_open_v2_source_attribution.py
+      - .github/workflows/pr77-v15-evidence-refresh.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr77-v15-evidence-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact consolidation branch
+        uses: actions/checkout@v4
+        with:
+          ref: review/pr70-pr75-pr76-consolidation-stage23-20261031
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+
+      - name: Validate narrow no-go behavior
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py src/weall/runtime/severe_juror_replenishment.py tests/test_pr77_experimental_juror_timeout_replenishment.py scripts/audit_v2_semantic_review_drift.py tests/test_pr77_dispute_open_v2_source_attribution.py src/weall/runtime/bounded_rollback.py tests/test_bounded_rollback_equivalence.py
+          ruff check src/weall/runtime/apply/reputation.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py src/weall/runtime/severe_juror_replenishment.py tests/test_pr77_experimental_juror_timeout_replenishment.py scripts/audit_v2_semantic_review_drift.py tests/test_pr77_dispute_open_v2_source_attribution.py src/weall/runtime/bounded_rollback.py tests/test_bounded_rollback_equivalence.py
+          ruff format --check src/weall/runtime/apply/reputation.py src/weall/runtime/apply/dispute.py src/weall/runtime/dispute_engine.py src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/severe_appeal_candidate.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_experimental_automatic_severe_appeal.py src/weall/runtime/severe_juror_replenishment.py tests/test_pr77_experimental_juror_timeout_replenishment.py scripts/audit_v2_semantic_review_drift.py tests/test_pr77_dispute_open_v2_source_attribution.py src/weall/runtime/bounded_rollback.py tests/test_bounded_rollback_equivalence.py
+          pytest -q tests/test_pr77_experimental_juror_timeout_replenishment.py tests/test_pr77_experimental_automatic_severe_appeal.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_severe_sanction_clock_no_go.py tests/test_pr73_account_ban_atomic_duplicate.py tests/test_stage23_account_ban_severe_sanction_no_go.py tests/test_constitutional_procedure_clock.py tests/test_dispute_followups.py tests/test_issue72_versioned_role_gate.py tests/test_bounded_rollback_equivalence.py::test_journaled_list_membership_is_read_only_and_target_backed tests/test_bounded_rollback_equivalence.py::test_journaled_list_inherited_reads_match_raw_list_without_journaling tests/test_bounded_rollback_equivalence.py::test_journaled_dict_reads_and_union_match_persisted_target_without_snapshots tests/test_bounded_rollback_equivalence.py::test_journaled_nested_augmented_assignments_are_atomic_and_match_raw_list tests/test_bounded_rollback_equivalence.py::test_journaled_list_self_extend_and_self_iadd_are_finite_and_reversible tests/test_bounded_rollback_equivalence.py::test_journaled_parent_augmented_assignments_do_not_snapshot_post_mutation tests/test_bounded_rollback_equivalence.py::test_lifecycle_role_change_vectors_match_independent_deepcopy_executor
+
+      - name: Regenerate only the seven V1.5 source-bound artifacts
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_api_contract_map.py
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --verify-live
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_release_hygiene_v1_5.py --allow-dirty
+
+      - name: Commit ONLY reviewed V1.5 artifacts, without V2 attestation changes
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          python - <<'PY'
+          from subprocess import check_output
+          allowed = {
+              "Weall-Protocol/src/weall/runtime/apply/dispute.py",
+              "Weall-Protocol/src/weall/runtime/dispute_engine.py",
+              "Weall-Protocol/src/weall/runtime/severe_sanction_boundary.py",
+              "Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py",
+              "Weall-Protocol/src/weall/runtime/severe_appeal_candidate.py",
+              "Weall-Protocol/tests/test_pr77_fresh_severe_appeal_preview.py",
+              "Weall-Protocol/tests/test_pr77_severe_initial_20_vote_guard.py",
+              "Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py",
+              "Weall-Protocol/tests/test_pr77_experimental_automatic_severe_appeal.py",
+              "Weall-Protocol/src/weall/runtime/severe_juror_replenishment.py",
+              "Weall-Protocol/tests/test_pr77_experimental_juror_timeout_replenishment.py",
+              "Weall-Protocol/scripts/audit_v2_semantic_review_drift.py",
+              "Weall-Protocol/tests/test_pr77_dispute_open_v2_source_attribution.py",
+              "Weall-Protocol/src/weall/runtime/bounded_rollback.py",
+              "Weall-Protocol/tests/test_bounded_rollback_equivalence.py",
+              "Weall-Protocol/tests/test_pr77_severe_sanction_clock_no_go.py",
+              "Weall-Protocol/generated/api_contract_map_v1_5.json",
+              "Weall-Protocol/generated/failure_code_registry_v1_5.json",
+              "Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json",
+              "Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json",
+              "Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
+              "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+              "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
+          }
+          changed = set(check_output(["git", "diff", "--name-only"], text=True).splitlines())
+          assert changed <= allowed, f"Unexpected derivative changes: {sorted(changed - allowed)}"
+          print("V1.5 derived edits:", sorted(changed))
+          PY
+          git add -u -- Weall-Protocol/src/weall/runtime/apply/dispute.py Weall-Protocol/src/weall/runtime/dispute_engine.py Weall-Protocol/src/weall/runtime/severe_sanction_boundary.py Weall-Protocol/src/weall/runtime/severe_appeal_candidate.py Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py Weall-Protocol/tests/test_pr77_severe_sanction_clock_no_go.py Weall-Protocol/tests/test_pr77_fresh_severe_appeal_preview.py Weall-Protocol/tests/test_pr77_severe_initial_20_vote_guard.py Weall-Protocol/tests/test_pr77_severe_appeal_twenty_vote_guard.py Weall-Protocol/tests/test_pr77_experimental_automatic_severe_appeal.py Weall-Protocol/src/weall/runtime/severe_juror_replenishment.py Weall-Protocol/tests/test_pr77_experimental_juror_timeout_replenishment.py Weall-Protocol/scripts/audit_v2_semantic_review_drift.py Weall-Protocol/tests/test_pr77_dispute_open_v2_source_attribution.py Weall-Protocol/src/weall/runtime/bounded_rollback.py Weall-Protocol/tests/test_bounded_rollback_equivalence.py \
+            Weall-Protocol/generated/api_contract_map_v1_5.json \
+            Weall-Protocol/generated/failure_code_registry_v1_5.json \
+            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json \
+            Weall-Protocol/generated/release_evidence_manifest_v1_5.json \
+            Weall-Protocol/generated/public_beta_blocker_report_v1_5.json
+          if git diff --cached --quiet; then
+            echo 'Seven bounded V1.5 artifacts already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(pr77): format rollback-membership parity and refresh V1.5 evidence'
+          git push origin HEAD:review/pr70-pr75-pr76-consolidation-stage23-20261031

@@ -1270,6 +1270,10 @@ class GovProposalCreatePayload(_StrictModel):
     # Optional human-friendly metadata (used by web UI / API responses)
     title: str | None = None
     body: str | None = None
+    # Canonical group IDs are explicit; a geographic-sounding name grants nothing.
+    group_id: str | None = Field(default=None, min_length=1)
+    scope_id: str | None = Field(default=None, min_length=1)
+    electorate_scope: str | None = Field(default=None, min_length=1)
 
     # Governance engine fields
     rules: Json | None = None
@@ -1447,10 +1451,19 @@ class DisputeStageSetPayload(_StrictModel):
 
 class DisputeJurorAssignPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
-    juror_id: str = Field(
-        ...,
-        min_length=1,
-    )
+    # Historic CONTENT_ESCALATE_TO_DISPUTE emits `juror` and persists that
+    # envelope in the consensus SYSTEM queue before its next-height inclusion.
+    # Retain it for replay/restart; also accept the documented `juror_id` key.
+    juror_id: str | None = Field(default=None, min_length=1)
+    juror: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _require_consistent_juror(self) -> DisputeJurorAssignPayload:
+        if not (self.juror or self.juror_id):
+            raise ValueError("juror or juror_id is required")
+        if self.juror and self.juror_id and self.juror != self.juror_id:
+            raise ValueError("juror and juror_id must refer to the same account")
+        return self
 
 
 class DisputeJurorAcceptPayload(_StrictModel):
@@ -1598,6 +1611,10 @@ class ModActionReceiptPayload(_StrictModel):
 class FlagEscalationReceiptPayload(_StrictModel):
     target_id: str = Field(..., min_length=1)
     dispute_id: str = Field(..., min_length=1)
+    # The consensus SYSTEM queue persists the content-flag's public provenance.
+    # Reject unknown extras, but preserve these emitted fields during replay.
+    reason: str | None = None
+    by: str | None = None
 
 
 # ============================================================
