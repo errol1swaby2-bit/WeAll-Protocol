@@ -17,6 +17,8 @@ const keys = read("src/auth/keys.ts");
 const session = read("src/auth/session.ts");
 const evidence = read("src/auth/evidenceCrypto.ts");
 const sessionDevices = read("src/pages/SessionDevicesPage.tsx");
+const backendSessionRoute = read("../Weall-Protocol/src/weall/api/routes_public_parts/session.py");
+const publicRedaction = read("../Weall-Protocol/src/weall/api/public_redaction.py");
 
 function section(source, begin, end) {
   const start = source.indexOf(begin);
@@ -58,6 +60,9 @@ assert.ok(session.includes("submitAndVerifySessionRevocation("), "Revocation pat
 assert.ok(session.includes("if (!authorized)"), "Replacement session keys must be canonically authorized before activation");
 assert.ok(session.includes("} finally {\n    // Local logout must happen even if the network cannot confirm revocation."), "Local logout must not depend on remote revocation confirmation");
 assert.ok(session.includes('apiGet("/v1/session/me"'), "Do not rely on publicly redacted account session records");
+assert.ok(publicRedaction.includes('copied.pop("session_keys", None)'), "Public account views must not expose session keys");
+assert.ok(backendSessionRoute.includes('@router.get("/session/me")'), "Backend must provide the dedicated session authentication contract");
+assert.ok(backendSessionRoute.includes('"authenticated": bool(active and not expired)'), "Backend must explicitly authenticate active and unexpired sessions");
 const canonicalCheck = restoredLogin.indexOf("expectedSigner !== suppliedSigner");
 const recoveryAuthorityCheck = restoredLogin.indexOf("bundle.recoveryAuthorityPublicKeyB64 !== expectedRecovery");
 const loginMutation = restoredLogin.indexOf("await restoreAccountAndLoginOnThisDevice(");
