@@ -47,6 +47,13 @@ assert.ok(restoredLogin.includes("expectedSigner !== suppliedSigner"), "Restored
 assert.ok(restoredLogin.includes("restoredSessionIssued = true"), "Post-auth failures must be distinguishable");
 assert.ok(restoredLogin.includes("if (restoredSessionIssued) endSession()"), "Post-auth validation failure must not retain a local login");
 assert.ok(session.includes('if (!sessionSynced)'), "Canonical session issuance must fail closed on observer reconciliation timeout");
+assert.ok(session.includes("async function waitForAuthorizedSessionKey("), "Canonical session key must be checked in synchronized account state");
+assert.ok(session.includes("if (!sessionAuthorized)"), "Missing canonical key authorization must prevent active login");
+assert.ok(session.includes("entry.revoked !== true"), "Revoked session keys cannot authorize a browser login");
+const canonicalCheck = restoredLogin.indexOf("expectedSigner !== suppliedSigner");
+const recoveryAuthorityCheck = restoredLogin.indexOf("bundle.recoveryAuthorityPublicKeyB64 !== expectedRecovery");
+const loginMutation = restoredLogin.indexOf("await restoreAccountAndLoginOnThisDevice(");
+assert.ok(canonicalCheck >= 0 && recoveryAuthorityCheck > canonicalCheck && loginMutation > recoveryAuthorityCheck, "All recovered authorities must be verified before network login and local mutation");
 assert.ok(!sessionDevices.includes('>{session?.sessionKey || "Not present"}<'), "The session utility must not display raw bearer credentials");
 assert.ok(verifiedRecovery.includes('if (!recoveryVerified)'), "Recovery ceremony must fail closed");
 assert.ok(verifiedRecovery.includes("issueSessionFromSecretKey("), "Recovery completion should mint the login session");
