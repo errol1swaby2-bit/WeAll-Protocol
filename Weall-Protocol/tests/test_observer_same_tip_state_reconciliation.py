@@ -282,3 +282,83 @@ def test_changed_upstream_committed_block_revokes_prior_sync_proof(
     assert result["upstream_status"] == "confirmed"
     assert result["local_state_synced"] is False
     assert _queue_row(path)["confirmed_block_id"] == "changed-block"
+
+
+@pytest.mark.parametrize(
+    ("local_status", "local_block"),
+    [
+        (False, BLOCK_ID),
+        (True, "different-local-block"),
+    ],
+)
+def test_stored_sync_flag_requires_matching_successful_local_receipt(
+    monkeypatch, tmp_path: Path, local_status: bool, local_block: str
+) -> None:
+    path = _setup(monkeypatch, tmp_path, proof=True)
+    monkeypatch.setattr(
+        tx_routes,
+        "_locally_confirmed_tx",
+        lambda *_args: {
+            "tx_id": TX_ID,
+            "height": 3,
+            "block_id": local_block,
+            "apply_ok": local_status,
+        },
+    )
+    monkeypatch.setattr(
+        tx_routes,
+        "_reconcile_tx_queue_confirmation",
+        lambda _txid: {
+            "upstream_status": "confirmed",
+            "confirmed_height": 3,
+            "confirmed_block_id": BLOCK_ID,
+            "local_state_synced": True,
+        },
+    )
+    monkeypatch.setattr(
+        tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM]
+    )
+    monkeypatch.setattr(
+        tx_routes,
+        "_request_and_apply_state_sync_from_upstream",
+        lambda *_args, **_kwargs: {
+            "ok": False,
+            "error": "existing_tx_confirmation_not_proven",
+        },
+    )
+    result = tx_routes._reconcile_and_sync_local_state(object(), TX_ID)
+    assert result["ok"] is False
+    assert result["local_state_synced"] is False
+    assert result["error"] == "local_state_sync_failed"
+    assert _queue_row(path)["tx_id"] == TX_ID
+
+
+def test_valid_stored_sync_flag_can_short_circuit_redundant_sync(
+    monkeypatch, tmp_path: Path
+) -> None:
+    path = _setup(monkeypatch, tmp_path, proof=True)
+    monkeypatch.setattr(
+        tx_routes,
+        "_locally_confirmed_tx",
+        lambda *_args: {
+            "tx_id": TX_ID,
+            "height": 3,
+            "block_id": BLOCK_ID,
+            "apply_ok": True,
+        },
+    )
+    monkeypatch.setattr(
+        tx_routes,
+        "_reconcile_tx_queue_confirmation",
+        lambda _txid: {
+            "upstream_status": "confirmed",
+            "confirmed_height": 3,
+            "confirmed_block_id": BLOCK_ID,
+            "local_state_synced": True,
+        },
+    )
+    result = tx_routes._reconcile_and_sync_local_state(object(), TX_ID)
+    assert result["ok"] is True
+    assert result["local_state_synced"] is True
+    assert result["source"] == "already_synced"
+    assert _queue_row(path)["local_state_synced"] is True
