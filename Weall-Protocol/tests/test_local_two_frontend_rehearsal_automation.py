@@ -47,8 +47,8 @@ def test_one_command_rehearsal_starts_two_backends_two_frontends_and_reconcile_w
     assert "devnet_boot_genesis_node.sh" in src
     assert "devnet_boot_joining_node.sh" in src
     assert "devnet_observer_tx_queue_reconcile_loop.sh" in src
-    assert 'VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/dev-bootstrap-observer.json"' in src
-    assert 'VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/dev-bootstrap-genesis.json"' in src
+    assert 'VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-observer.json"' in src
+    assert 'VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-genesis.json"' in src
     assert 'VITE_WEALL_DEV_PROXY_TARGET="${NODE2_API}"' in src
     assert 'VITE_WEALL_DEV_PROXY_TARGET="${NODE1_API}"' in src
     assert 'RUNTIME_DIR="${WEALL_RUNTIME_DIR:-${DEVNET_DIR}/runtime}"' in src

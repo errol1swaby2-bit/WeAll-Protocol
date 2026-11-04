@@ -1270,10 +1270,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
           <div className="summaryCardGrid">
             <article className="summaryCard">
-              <div className="summaryCardLabel">Public aggregate</div>
+              <div className="summaryCardLabel">Canonical informational aggregate</div>
               <div className="summaryCardValue">{matrixAggregateScore}</div>
               <div className="summaryCardText">
-                Derived from canonical protocol state and public matrix dimensions only.
+                Computed only from canonical reputation event dimensions. Not a role-permission or transaction-authorization score.
               </div>
             </article>
             <article className="summaryCard">
@@ -1287,7 +1287,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <div className="summaryCardLabel">Private boundary</div>
               <div className="summaryCardValue">{reputationMatrix?.visibility?.restricted_revealed ? "Owner view" : "Public view"}</div>
               <div className="summaryCardText">
-                Internal abuse-risk signals stay hidden unless the account owner is authenticated.
+                Reputation dimensions, including abuse-risk indicators, are publicly inspectable. No owner-only reputation score exists.
               </div>
             </article>
           </div>
@@ -1304,6 +1304,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   </div>
                   <div className="infoCardText">
                     {num(row.score_milli, 0)} milli • {num(row.event_count, 0)} event{num(row.event_count, 0) === 1 ? "" : "s"}
+                    {" · "}
+                    {row.score_authority === "canonical_event_ledger"
+                      ? "Canonical event score"
+                      : "Legacy observation (not scored for protocol roles)"}
                   </div>
                 </div>
               ))

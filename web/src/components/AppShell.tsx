@@ -5,6 +5,7 @@ import SessionPill from "./SessionPill";
 import SidebarNav from "./SidebarNav";
 import AppRightRail from "./AppRightRail";
 import FabActionButton from "./FabActionButton";
+import ActivityBell from "./ActivityBell";
 import type { SessionHealth } from "../auth/session";
 import { getKeypair, getSession } from "../auth/session";
 import { getFabHref, nav, type RouteMatch, type RouteMeta } from "../lib/router";
@@ -234,6 +235,8 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
               <span className="appShellBrandMark" aria-hidden="true">W</span>
               <span>WeAll</span>
             </button>
+
+            <ActivityBell account={account} refreshToken={routeKey} />
 
             <button
               className="appShellInfoToggle"

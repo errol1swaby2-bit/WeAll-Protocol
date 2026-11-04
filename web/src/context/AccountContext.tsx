@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getAccount, weall } from "../api/weall";
 import { ACCOUNT_REFRESH_INTERVAL_MS, refreshTouches, subscribeGlobalRefresh } from "../lib/revalidation";
+import { WEALL_API_BASE_CHANGED_EVENT } from "../lib/nodeConnectionManager";
 
 type AccountState = {
   account?: string;
@@ -116,11 +117,13 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", refresh);
+    window.addEventListener(WEALL_API_BASE_CHANGED_EVENT, refresh);
 
     return () => {
       unsubscribe();
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", refresh);
+      window.removeEventListener(WEALL_API_BASE_CHANGED_EVENT, refresh);
       window.clearInterval(poll);
     };
   }, [refresh]);

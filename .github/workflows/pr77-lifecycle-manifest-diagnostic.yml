@@ -1,0 +1,58 @@
+name: PR77 lifecycle manifest drift diagnostic (no attestation)
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - Weall-Protocol/src/weall/runtime/bounded_rollback.py
+      - Weall-Protocol/src/weall/runtime/apply/roles.py
+      - Weall-Protocol/tests/test_bounded_rollback_equivalence.py
+      - Weall-Protocol/scripts/pr77_lifecycle_drift_audit.py
+      - Weall-Protocol/tests/test_pr77_lifecycle_drift_audit.py
+      - .github/workflows/pr77-lifecycle-manifest-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare-only:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact draft head
+        uses: actions/checkout@v4
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Validate diagnostic and independent oracle parity
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check scripts/pr77_lifecycle_drift_audit.py tests/test_pr77_lifecycle_drift_audit.py
+          ruff format --check scripts/pr77_lifecycle_drift_audit.py tests/test_pr77_lifecycle_drift_audit.py
+          python -m pytest -q tests/test_pr77_lifecycle_drift_audit.py
+      - name: Verify source-bound lifecycle manifest matches regenerated candidate
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          PYTHONDONTWRITEBYTECODE=1 python scripts/pr77_lifecycle_drift_audit.py \
+            --report pr77_lifecycle_drift_report.json \
+            --candidate pr77_lifecycle_candidate.json
+      - name: Upload unapproved candidate and review diagnostics on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-lifecycle-drift-no-approval
+          path: |
+            Weall-Protocol/pr77_lifecycle_drift_report.json
+            Weall-Protocol/pr77_lifecycle_candidate.json
+          if-no-files-found: warn

@@ -1,0 +1,33 @@
+name: PR77 experimental deterministic timeout juror replenishment
+
+on:
+  pull_request:
+    paths:
+      - Weall-Protocol/src/weall/runtime/severe_juror_replenishment.py
+      - Weall-Protocol/src/weall/runtime/dispute_engine.py
+      - Weall-Protocol/tests/test_pr77_experimental_juror_timeout_replenishment.py
+      - .github/workflows/pr77-juror-timeout-replenishment.yml
+
+permissions:
+  contents: read
+
+jobs:
+  timeout-backfill:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Validate replenishment plus dispute and severe finality
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check src/weall/runtime/severe_juror_replenishment.py src/weall/runtime/dispute_engine.py tests/test_pr77_experimental_juror_timeout_replenishment.py
+          pytest -q tests/test_pr77_experimental_juror_timeout_replenishment.py tests/test_pr77_experimental_automatic_severe_appeal.py tests/test_pr77_severe_appeal_twenty_vote_guard.py tests/test_pr77_severe_account_finality_no_go.py tests/test_constitutional_procedure_clock.py

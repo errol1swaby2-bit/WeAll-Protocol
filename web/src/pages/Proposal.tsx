@@ -54,6 +54,39 @@ function countFromMap(votes: VoteMap): { yes: number; no: number; abstain: numbe
   return { yes, no, abstain, total: yes + no + abstain };
 }
 
+function countFromAggregates(raw: any, fallback: VoteMap): { yes: number; no: number; abstain: number; total: number } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw) || !Object.keys(raw).length) {
+    return countFromMap(fallback);
+  }
+  const values = Object.values(raw) as unknown[];
+  const total = values.reduce<number>((sum, count) => {
+    const n = Number(count);
+    return sum + (Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0);
+  }, 0);
+  const value = (key: string): number => {
+    const n = Number(raw[key] || 0);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+  };
+  return { yes: value("yes"), no: value("no"), abstain: value("abstain"), total };
+}
+
+function optionCountsFromAggregates(
+  raw: any,
+  fallback: VoteMap,
+  options: Array<{ option_id: string; label: string }>,
+): { optionCounts: Record<string, number>; abstain: number; total: number } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw) || !Object.keys(raw).length) {
+    return optionCountsFromMap(fallback, options);
+  }
+  const totals = countFromAggregates(raw, fallback);
+  const optionCounts: Record<string, number> = {};
+  for (const option of options) {
+    const n = Number(raw[option.option_id] || 0);
+    optionCounts[option.option_id] = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+  }
+  return { optionCounts, abstain: totals.abstain, total: totals.total };
+}
+
 function pct(part: number, whole: number): string {
   if (!whole) return "0%";
   return `${Math.round((part / whole) * 100)}%`;
@@ -227,7 +260,10 @@ function hasUpgradeAction(proposal: any): boolean {
 function executionStateLabel(proposal: any, stage: string): string {
   if (hasUpgradeAction(proposal)) return "Record-only upgrade boundary";
   if (["draft", "poll", "revision", "validation", "voting", "vote", "closed"].includes(stage)) return "Not executable yet";
+  if (stage === "tallied" && governanceProposalResultOf(proposal).passed === false) return "Not approved — no execution";
+  if (stage === "tallied" && actionTxTypesOf(proposal).length === 0) return "Record-only decision — no protocol actions";
   if (stage === "tallied") return "Awaiting execution/finalization record";
+  if (stage === "executed" && actionTxTypesOf(proposal).length === 0) return "Recorded decision — no protocol actions";
   if (stage === "executed") return "Execution record visible";
   if (stage === "finalized") return "Finalized record visible";
   if (stage === "withdrawn") return "Withdrawn; execution disabled";
@@ -245,6 +281,8 @@ function cannotExecuteReason(params: { proposal: any; stage: string; deadlineHei
       : `Cannot execute yet: the proposal is in ${stage}; the backend has not exposed an execution deadline for this stage.`;
   }
   if (stage === "closed") return "Cannot execute yet: voting is closed, but the tally/final action record has not been published.";
+  if (stage === "tallied" && governanceProposalResultOf(proposal).passed === false) return "The tally did not authorize execution; canonical finalization, if any, still depends on backend state.";
+  if (stage === "tallied" && actionTxTypesOf(proposal).length === 0) return "No executable actions were supplied. A later executed stage is an internal record, not an external effect.";
   if (stage === "tallied") return "Execution may only happen through the backend governance path and must be reflected as a transaction/status record; the frontend cannot execute by itself.";
   if (stage === "executed") return "Execution has a visible record. Finalization still depends on backend state and cannot be forced by a browser timer.";
   if (stage === "finalized") return "Finalized: this page is read-only except for inspection and transaction/status review.";
@@ -348,7 +386,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     payload: any,
     toastTitle: string,
     successMessage: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     setAdminErr(null);
     setAdminRes(null);
 
@@ -384,9 +422,11 @@ export default function Proposal({ id }: Props): JSX.Element {
 
       setAdminRes(r);
       await refreshMutationSlices(load, loadAccountState, refreshAccountContext);
+      return true;
     } catch (e: any) {
       setAdminErr(prettyErr(e));
       setAdminRes(e?.data || e?.body || null);
+      return false;
     }
   }
 
@@ -462,13 +502,14 @@ export default function Proposal({ id }: Props): JSX.Element {
       setAdminErr({ msg: "Write a deliberation comment before submitting.", details: null });
       return;
     }
-    await doTx(
+    const submitted = await doTx(
       "GOV_PROPOSAL_COMMENT",
       { proposal_id: pid, body },
       "Add deliberation comment",
       "Deliberation comment submitted; confirm visibility through the decision lifecycle.",
     );
-    setCommentBody("");
+    // Retain the user's draft on a failed or rejected submission.
+    if (submitted) setCommentBody("");
   }
 
   const pollVotes = asVoteMap(proposalVotes?.poll_votes ?? proposal?.poll_votes);
@@ -477,17 +518,21 @@ export default function Proposal({ id }: Props): JSX.Element {
   const proposalResult = governanceProposalResultOf(proposal);
   const hasProposalOptions = proposalOptions.length > 0;
 
-  const pollCount = countFromMap(pollVotes);
-  const finalCount = countFromMap(finalVotes);
-  const displayedVoteMap = stage === "poll"
-    ? pollVotes
-    : finalCount.total > 0
-      ? finalVotes
-      : pollCount.total > 0
-        ? pollVotes
-        : finalVotes;
-  const activeCount = countFromMap(displayedVoteMap);
-  const activeOptionCounts = optionCountsFromMap(displayedVoteMap, proposalOptions);
+  // The canonical strict ballot profile publishes counts but deliberately
+  // does not expose signer-to-choice maps. Never infer zero turnout from a
+  // redacted vote map.
+  const pollAggregate = proposalVotes?.poll_counts ?? proposal?.poll_counts;
+  const finalAggregate = proposalVotes?.counts ?? proposal?.counts;
+  const pollCount = countFromAggregates(pollAggregate, pollVotes);
+  const finalCount = countFromAggregates(finalAggregate, finalVotes);
+  const displayPoll = stage === "poll" || (finalCount.total === 0 && pollCount.total > 0);
+  const displayedVoteMap = displayPoll ? pollVotes : finalVotes;
+  const activeCount = displayPoll ? pollCount : finalCount;
+  const activeOptionCounts = optionCountsFromAggregates(
+    displayPoll ? pollAggregate : finalAggregate,
+    displayedVoteMap,
+    proposalOptions,
+  );
   const selectedOptionId = String(proposalResult?.selected_option_id || "").trim();
 
   const yesPct = pct(activeCount.yes, activeCount.total);
@@ -498,13 +543,18 @@ export default function Proposal({ id }: Props): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(acct);
   const signerBusy = signerSubmission.busy;
   const voteWindowOpen = ["poll", "voting", "vote"].includes(stage);
-  const activeVoteMap = stage === "poll" ? pollVotes : displayedVoteMap;
-  const currentVoteRecord = acct ? (voteForAccount(activeVoteMap, acct) || voteForAccount(finalVotes, acct) || voteForAccount(pollVotes, acct)) : null;
+  // Preliminary poll votes are distinct from final ballots. The strict
+  // aggregate-only ballot profile intentionally hides voter-choice associations.
+  const activeVoteMap = stage === "poll" ? pollVotes : finalVotes;
+  const currentVoteRecord = acct ? voteForAccount(activeVoteMap, acct) : null;
   const currentChoice = voteChoiceOf(currentVoteRecord).trim().toLowerCase();
+  const immutableBallot = String(proposal?.ballot_finality_policy || "") === "first_admitted_final_ballot";
   const canVote = gate.ok && voteWindowOpen && !currentChoice;
   const isCreator = gate.ok && acct === String(proposal?.creator || "");
-  const canEdit = isCreator && ["draft", "poll", "revision", "validation", "voting", "vote"].includes(stage);
-  const canWithdraw = isCreator && !["withdrawn", "executed", "finalized"].includes(stage);
+  // The backend permits creator edits in draft and revision, not in poll,
+  // validation or strict voting. Do not expose a legacy voting-stage edit here.
+  const canEdit = isCreator && ["draft", "revision"].includes(stage);
+  const canWithdraw = isCreator && ["draft", "poll", "revision", "validation", "voting", "vote"].includes(stage);
   const voteModeLabel = votingWindowLabel(stage);
   const voteHelp = votingHelpText({
     stage,
@@ -515,7 +565,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     options: proposalOptions,
   });
   const readiness = actionReadinessLabel({ stage, canVote, canEdit, canWithdraw });
-  const canRevoke = gate.ok && !signerBusy && !!currentChoice && !["closed", "tallied", "executed", "finalized", "withdrawn"].includes(stage);
+  const canRevoke = gate.ok && !immutableBallot && !signerBusy && !!currentChoice && voteWindowOpen;
   const procedureCurrentHeight = currentProcedureHeight(proposal);
   const procedureDeadlineHeight = proposalDeadlineHeight(proposal);
   const procedureIntervalMs = targetBlockIntervalMs(proposal);
@@ -524,6 +574,20 @@ export default function Proposal({ id }: Props): JSX.Element {
   const proposalActionTxTypes = actionTxTypesOf(proposal);
   const upgradeRecordOnlyBoundary = hasUpgradeAction(proposal);
   const executionState = executionStateLabel(proposal, stage);
+  const noDecisionReason = String(proposal?.no_decision_reason || "").trim();
+  const tallyPassed = typeof proposalResult?.passed === "boolean" ? proposalResult.passed : null;
+  const decisionEffect = proposalActionTxTypes.length === 0
+    ? "Record-only decision: voting may record collective support, but this decision cannot itself alter protocol state or bind third parties."
+    : upgradeRecordOnlyBoundary
+      ? "Upgrade record-only: this record cannot install software, perform migrations, or activate economics."
+      : "An executable action was requested. Only the canonical backend may authorize and apply it; inspect the execution records.";
+  const decisionOutcome = noDecisionReason
+    ? "No decision: " + noDecisionReason
+    : tallyPassed === true
+      ? "Approved by recorded tally — execution is a separate step."
+      : tallyPassed === false
+        ? "Not approved — no execution should be authorized."
+        : "No authoritative final tally published yet.";
   const executionReason = cannotExecuteReason({
     proposal,
     stage,
@@ -667,6 +731,7 @@ export default function Proposal({ id }: Props): JSX.Element {
             Add deliberation comment
             <textarea
               rows={4}
+              maxLength={4000}
               value={commentBody}
               onChange={(e) => setCommentBody(e.target.value)}
               placeholder="Share a concern, suggested wording, or reason this decision should be revised before voting."
@@ -806,15 +871,23 @@ export default function Proposal({ id }: Props): JSX.Element {
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Eligibility</div>
-              <div className="summaryCardValue">{gate.ok ? "Eligible" : "Not ready"}</div>
+              <div className="summaryCardValue">{gate.ok ? "Tier2 ready — scope checked on submit" : "Not ready"}</div>
               <div className="summaryCardText">{accountSummary}</div>
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Your vote</div>
-              <div className="summaryCardValue">{choiceLabel(currentChoice, proposalOptions)}</div>
-              <div className="summaryCardText">Signer-keyed direct vote</div>
+              <div className="summaryCardValue">{immutableBallot ? "Not publicly disclosed" : choiceLabel(currentChoice, proposalOptions)}</div>
+              <div className="summaryCardText">{immutableBallot ? "Use transaction finality evidence, not a public signer-choice list." : "Signer-keyed direct vote"}</div>
             </article>
           </div>
+
+          {immutableBallot ? (
+            <div className="calloutInfo" role="note">
+              Final ballots are immutable on this network; revocation is not available. Personal choices may be redacted
+              from public aggregate results. Use Transactions to confirm submission. A preliminary poll vote is not
+              the later final ballot.
+            </div>
+          ) : null}
 
           {hasProposalOptions ? (
             <div className="pageStack">
@@ -918,6 +991,11 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="summaryCardLabel">What happens next</div>
               <div className="summaryCardValue">{readiness}</div>
               <div className="summaryCardText">Exact start/end boundaries come from backend state; repeated finalization must remain idempotent.</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Decision outcome</div>
+              <div className="summaryCardValue">{decisionOutcome}</div>
+              <div className="summaryCardText">{decisionEffect}</div>
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Applied changes</div>
@@ -1062,7 +1140,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               </div>
 
               <div className="cardDesc">
-                Withdrawal is only available while the decision is still editable and only to the original creator.
+                The creator may withdraw before voting closes, even after editing closes. Closed and later stages retain their public history.
               </div>
 
               <div className="buttonRow">

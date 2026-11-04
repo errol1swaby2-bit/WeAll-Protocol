@@ -97,3 +97,43 @@ def test_target_owner_opt_in_does_not_reassign_own_content_review() -> None:
     assert dispute["assigned_jurors"] == []
     assert dispute["jurors"] == {}
     assert dispute["assignment_blocked_reason"] == "target_owner_cannot_review_own_content"
+
+
+def test_reporter_opt_in_cannot_assign_own_content_report_then_eligible_reviewer_can() -> None:
+    state = _state()
+    state["accounts"]["@reporter"] = {
+        "nonce": 0,
+        "poh_tier": 2,
+        "banned": False,
+        "locked": False,
+        "reputation": 10,
+    }
+    dispute = state["disputes_by_id"]["dispute:SYSTEM:0"]
+    dispute["reported_by"] = "@reporter"
+    dispute["flagged_by"] = "reporter"
+
+    result = apply_tx(state, _role_env("@reporter"))
+    assert result["reassigned_content_reviews"] == 0
+    assert dispute["stage"] == "unassigned"
+    assert dispute["assigned_jurors"] == []
+    assert dispute["jurors"] == {}
+    assert dispute["assignment_blocked_reason"] == "reporter_cannot_review_own_report"
+
+    eligible = apply_tx(state, _role_env("@errol"))
+    assert eligible["reassigned_content_reviews"] == 1
+    assert dispute["stage"] == "juror_review"
+    assert dispute["assigned_jurors"] == ["@errol"]
+    assert dispute["assignment_blocked_reason"] == ""
+
+
+def test_target_owner_conflict_does_not_permanently_block_later_eligible_reviewer() -> None:
+    state = _state()
+    owner = apply_tx(state, _role_env("@devnet-genesis"))
+    assert owner["reassigned_content_reviews"] == 0
+    dispute = state["disputes_by_id"]["dispute:SYSTEM:0"]
+    assert dispute["assignment_blocked_reason"] == "target_owner_cannot_review_own_content"
+
+    eligible = apply_tx(state, _role_env("@errol"))
+    assert eligible["reassigned_content_reviews"] == 1
+    assert dispute["assigned_jurors"] == ["@errol"]
+    assert dispute["assignment_blocked_reason"] == ""

@@ -52,6 +52,18 @@ Proof-of-Humanity checkpoint: **Tier 0 = account only**. **Tier 1 = native async
 
 The checked-in public testnet seed registry is `configs/public_testnet_seed_registry.json`, the checked-in public testnet trust roots are `configs/public_testnet_trust_roots.json`, and the pinned testnet chain identity config is `configs/chains/weall-testnet-v1.json`. It is a repository-pinned discovery input for observer bootstrapping; it is not provider authority, validator authority, or proof of public beta readiness. The current checked-in registry is intentionally fail-closed after the latest chain-identity change: `seed_registry_rotation_required=true`, `pq_resign_required_before_public_testnet=true`, and `seed_registry_signature` is empty until the operator-held ML-DSA re-signing ceremony.
 
+## Choose the right first-run path
+
+**New participant or prospective node operator:** start with the [New Node Operator Quickstart](Weall-Protocol/docs/NEW_NODE_OPERATOR_QUICKSTART.md), not the reviewer command sequence below. It separates disposable local rehearsal from joining an operator-run network, account recovery, human verification, and eventual eligibility-gated node operation.
+
+**Ubuntu/WSL, IPFS, and download problems:** consult [Local IPFS prerequisite setup (Docker or native Kubo)](Weall-Protocol/docs/FIRST_RUN_WSL_IPFS.md). Docker is optional for the local two-frontend rehearsal when a compatible native Kubo executable is available; an unconditional `docker info` command is **not** a valid prerequisite check on that path.
+
+**External technical reviewer:** continue with the [Reviewer START_HERE decision guide](Weall-Protocol/docs/reviewer/START_HERE.md) and the exact-commit verification steps below. A passing README verification run does not establish first-time account creation, live human verification, external observer readiness, or public beta eligibility.
+
+**No public network to join yet:** the local two-frontend launcher provisions disposable developer identities and is not a public Genesis or independent-user bootstrapping service. Joining a real operator-run network requires the authentic matching public observer bundle, chain manifest and reachable Genesis API described in the quickstart; do not fabricate or disable those checks.
+
+---
+
 ## Verification path
 
 **Verification entry point:** start with [Technical verification: start here](Weall-Protocol/docs/reviewer/START_HERE.md). It distinguishes exact full-history verification, historyless source-archive checks, fresh-clone smoke, external observer/onboarding, and local developer/demo paths so their evidence strength is not conflated. For the current runtime/source-of-truth map, read [Current architecture and authority map](Weall-Protocol/docs/ARCHITECTURE.md).

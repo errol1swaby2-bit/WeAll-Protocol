@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, setApiBaseUrl, validateApiBaseInput } from "../api/weall";
+import { applyCompatibilityBaseline, discoverNodeProbes, isPublicApiOrigin, loadExpectedCompatibilityBaseline, probeNode } from "../lib/nodeConnectionManager";
+import { selectBrowserNode } from "../lib/browserNodeTransition";
 import NodeConnectionPanel from "../components/NodeConnectionPanel";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
@@ -77,6 +79,7 @@ export default function Settings(): JSX.Element {
   const [apiBase, setApiBase] = useState<string>(() => getApiBaseUrl());
   const [saved, setSaved] = useState<string>("");
   const [networkError, setNetworkError] = useState<string>("");
+  const [networkBusy, setNetworkBusy] = useState(false);
 
   useEffect(() => {
     applySettingsToDocument(settings);
@@ -95,7 +98,7 @@ export default function Settings(): JSX.Element {
     flash("Appearance settings saved.");
   }
 
-  function saveNetwork() {
+  async function saveNetwork() {
     const trimmed = String(apiBase || "").trim();
     const validation = validateApiBaseInput(trimmed);
     if (!validation.ok) {
@@ -103,9 +106,45 @@ export default function Settings(): JSX.Element {
       return;
     }
     setNetworkError("");
-    const runtimeBase = setApiBaseUrl(validation.normalized);
-    setApiBase(validation.normalized);
-    flash(runtimeBase ? "Connection target saved." : "Connection target saved for same-origin API.");
+    setNetworkBusy(true);
+    try {
+      if (config.publicTestnet) {
+        // No bypass from this raw URL field to an unlisted or unsynced node.
+        if (!isPublicApiOrigin(validation.normalized)) {
+          throw new Error("Public testnet access requires a published HTTPS node URL.");
+        }
+        const probes = await discoverNodeProbes({ timeoutMs: 3000 });
+        let probe = probes.find((item) => item.baseUrl === validation.normalized);
+        if (!probe) {
+          // Explicit custom URL: inspect its public chain identity without
+          // transmitting any bearer before the user consents.
+          const baseline = await loadExpectedCompatibilityBaseline();
+          const raw = await probeNode({ url: validation.normalized, label: "Manual HTTPS API" }, { timeoutMs: 3000 });
+          probe = applyCompatibilityBaseline([raw], baseline)[0];
+        }
+        if (!probe || probe.phase !== "healthy" || !probe.ok) {
+          throw new Error("The requested HTTPS API is not ready or does not match the pinned testnet chain.");
+        }
+        const connection = await selectBrowserNode(probe, {
+          intent: "manual",
+          allowCurrent: true,
+          confirmUnlisted: () => window.confirm(
+            "This compatible HTTPS node is not in WeAll's published seed manifest. Its operator may observe your API requests and session bearer. Approve connecting to this specific address in this browser tab?",
+          ),
+        });
+        if (!connection) return; // Declined; preserve the existing connection.
+        setApiBase(connection.baseUrl);
+        flash(connection.runtimeBase ? "Verified connection target saved." : "Connection target saved.");
+      } else {
+        const runtimeBase = setApiBaseUrl(validation.normalized);
+        setApiBase(validation.normalized);
+        flash(runtimeBase ? "Connection target saved." : "Connection target saved for same-origin API.");
+      }
+    } catch (error: unknown) {
+      setNetworkError(error instanceof Error ? error.message : "Could not verify the connection target.");
+    } finally {
+      setNetworkBusy(false);
+    }
   }
 
   function resetAppearance() {
@@ -149,8 +188,8 @@ export default function Settings(): JSX.Element {
           </div>
 
           <div className="heroActions">
-            <button className="btn btnPrimary" onClick={saveNetwork}>
-              Save connection target
+            <button className="btn btnPrimary" onClick={() => void saveNetwork()} disabled={networkBusy}>
+              {networkBusy ? "Verifying node…" : "Save connection target"}
             </button>
             <button className="btn" onClick={() => nav("/session")}>
               Open devices & sessions
@@ -221,7 +260,7 @@ export default function Settings(): JSX.Element {
             <input
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
-              placeholder="http://127.0.0.1:8000"
+              placeholder={config.publicTestnet ? "https://api.your-node.example" : "http://127.0.0.1:8000"}
             />
           </label>
 
@@ -249,12 +288,14 @@ export default function Settings(): JSX.Element {
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button className="btn btnPrimary" onClick={saveNetwork}>
-              Save connection target
+            <button className="btn btnPrimary" onClick={() => void saveNetwork()} disabled={networkBusy}>
+              {networkBusy ? "Verifying node…" : "Save connection target"}
             </button>
-            <button className="btn" onClick={() => setApiBase(config.defaultApiBase)}>
-              Use build default
-            </button>
+            {!config.publicTestnet ? (
+              <button className="btn" onClick={() => setApiBase(config.defaultApiBase)}>
+                Use build default
+              </button>
+            ) : null}
             {!config.isProduction ? (
               <button className="btn" onClick={() => setApiBase("http://127.0.0.1:8000")}>
                 Use local backend

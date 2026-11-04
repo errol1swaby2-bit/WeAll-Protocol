@@ -1,0 +1,78 @@
+name: PR77 severe-account finality fail-closed validation
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/src/weall/runtime/severe_sanction_boundary.py'
+      - 'Weall-Protocol/src/weall/runtime/dispute_engine.py'
+      - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
+      - 'Weall-Protocol/src/weall/runtime/apply/reputation.py'
+      - 'Weall-Protocol/tests/test_pr77_reputation_floor_ban_boundary_characterization.py'
+      - 'Weall-Protocol/tests/test_pr77_account_reinstatement_state_consistency.py'
+      - 'Weall-Protocol/tooling/ban_state_contract_candidate.py'
+      - 'Weall-Protocol/tests/test_pr77_ban_state_contract_candidate.py'
+      - 'Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py'
+      - 'Weall-Protocol/tests/test_pr77_account_ban_queue_provenance.py'
+      - 'Weall-Protocol/tests/test_pr77_complete_severe_appeal_no_authority.py'
+      - '.github/workflows/pr77-severe-account-finality-no-go.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  severe-finality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend test environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Verify severe-account finality fail-closed and legacy compatibility
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/dispute.py tests/test_pr77_severe_account_finality_no_go.py
+          pytest -q tests/test_pr77_severe_account_finality_no_go.py tests/test_stage23_account_ban_severe_sanction_no_go.py tests/test_constitutional_procedure_clock.py tests/test_dispute_followups.py
+          python -m py_compile src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/dispute.py
+      - name: Characterize reputation-floor alternate ban path (NOT constitutional approval)
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_reputation_floor_ban_boundary_characterization.py
+          ruff format --check tests/test_pr77_reputation_floor_ban_boundary_characterization.py
+          pytest -q tests/test_pr77_reputation_floor_ban_boundary_characterization.py
+      - name: Characterize inline reinstatement ban-index inconsistency (NO-GO review input)
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_account_reinstatement_state_consistency.py
+          ruff format --check tests/test_pr77_account_reinstatement_state_consistency.py
+          pytest -q tests/test_pr77_account_reinstatement_state_consistency.py
+      - name: Verify ACCOUNT_BAN system-queue binding is not severe-case authorization
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_account_ban_queue_provenance.py
+          ruff format --check tests/test_pr77_account_ban_queue_provenance.py
+          python -m pytest -q tests/test_pr77_account_ban_queue_provenance.py
+      - name: Verify review-only ban-status model never authorizes state changes
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py
+          ruff format --check tooling/ban_state_contract_candidate.py tests/test_pr77_ban_state_contract_candidate.py
+          python -m pytest -q tests/test_pr77_ban_state_contract_candidate.py
+      - name: Verify completed 25/20 experimental appeal still has no severe ban authority
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_complete_severe_appeal_no_authority.py
+          ruff format --diff tests/test_pr77_complete_severe_appeal_no_authority.py || true
+          ruff format --check tests/test_pr77_complete_severe_appeal_no_authority.py
+          python -m pytest -q tests/test_pr77_complete_severe_appeal_no_authority.py

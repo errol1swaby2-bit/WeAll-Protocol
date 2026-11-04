@@ -1,0 +1,32 @@
+name: PR77 severe initial 20 vote guard - no ban authority
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
+      - 'Weall-Protocol/tests/test_pr77_severe_initial_20_vote_guard.py'
+      - '.github/workflows/pr77-severe-initial-20-vote-guard.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  severe-initial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Initial severe decision guard plus prior finality tests
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check src/weall/runtime/apply/dispute.py tests/test_pr77_severe_initial_20_vote_guard.py
+          pytest -q tests/test_pr77_severe_initial_20_vote_guard.py tests/test_pr77_fresh_severe_appeal_preview.py tests/test_pr77_severe_account_finality_no_go.py tests/test_stage23_account_ban_severe_sanction_no_go.py tests/test_constitutional_procedure_clock.py

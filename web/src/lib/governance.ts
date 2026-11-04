@@ -38,6 +38,9 @@ export type GovernanceProposal = {
   counts_current: GovernanceVoteCounts;
   vote_window: "poll" | "final";
   is_active: boolean;
+  // Optional public proposal data retained for detail, discussions and procedure clocks.
+  comments?: Array<Record<string, any>>;
+  versions?: Array<Record<string, any>>;
   raw: any;
 };
 
@@ -177,6 +180,10 @@ export function normalizeGovernanceProposal(value: any): GovernanceProposal {
     : ((stage === "poll" || !(counts.yes || counts.no || counts.abstain)) && (poll_counts.yes || poll_counts.no || poll_counts.abstain) ? poll_counts : counts);
 
   return {
+    // Preserve public proposal state (comments, versions, rules, stage heights,
+    // frozen voting version and execution records) for the detail and feeds.
+    // Normalized compatibility fields below override their raw counterparts.
+    ...raw,
     id: proposal_id,
     proposal_id,
     title: governanceProposalTitleOf(raw),

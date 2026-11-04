@@ -1,0 +1,81 @@
+name: PR77 B534 and B567 proof diagnostics (no approval)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof-diagnostics:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Rehearse and compare B534 and B567 proofs without approval
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p artifacts/pr77-b534-b567-diagnostic
+          python - <<'PY'
+          import hashlib
+          import json
+          import subprocess
+          from pathlib import Path
+
+          folder = Path("artifacts/pr77-b534-b567-diagnostic")
+          cases = (
+              ("b534_b538_completion_proof_v1_5", "gen_b534_b538_completion_proof_v1_5.py"),
+              ("b567_b571_autonomous_mechanics_proof_v1_5", "gen_b567_b571_autonomous_mechanics_proof_v1_5.py"),
+          )
+          summaries = []
+          for name, script in cases:
+              source = Path("generated") / (name + ".json")
+              tracked = source.read_bytes()
+              (folder / (name + ".tracked.json")).write_bytes(tracked)
+              subprocess.run(["python", "scripts/" + script], check=True)
+              regenerated = source.read_bytes()
+              (folder / (name + ".regenerated.json")).write_bytes(regenerated)
+              old, new = json.loads(tracked), json.loads(regenerated)
+              changed = {
+                  key: {"before": old.get(key), "after": new.get(key)}
+                  for key in sorted(set(old) | set(new))
+                  if old.get(key) != new.get(key)
+              }
+              summary = {
+                  "proof": name,
+                  "status": "diagnostic_only_not_approval",
+                  "tracked_sha256": hashlib.sha256(tracked).hexdigest(),
+                  "regenerated_sha256": hashlib.sha256(regenerated).hexdigest(),
+                  "tracked_ok": old.get("ok"),
+                  "regenerated_ok": new.get("ok"),
+                  "changed_top_level_fields": sorted(changed),
+                  "freshness_only": sorted(changed) == ["freshness"],
+                  "locked_boundaries_unchanged": old.get("locked_boundaries") == new.get("locked_boundaries"),
+                  "claim_boundaries_unchanged": old.get("claim_boundaries") == new.get("claim_boundaries"),
+                  "tracked_input_digest": old.get("freshness", {}).get("input_digest_sha256"),
+                  "regenerated_input_digest": new.get("freshness", {}).get("input_digest_sha256"),
+              }
+              summaries.append(summary)
+              (folder / (name + ".changed_fields.json")).write_text(json.dumps(changed, indent=2, sort_keys=True) + "\n")
+              print(json.dumps(summary, indent=2, sort_keys=True), flush=True)
+          (folder / "summary.json").write_text(json.dumps(summaries, indent=2, sort_keys=True) + "\n")
+          PY
+      - name: Upload inspectable evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-b534-b567-proof-no-approval
+          path: Weall-Protocol/artifacts/pr77-b534-b567-diagnostic/
+          if-no-files-found: warn

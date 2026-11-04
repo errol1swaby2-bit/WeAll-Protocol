@@ -1304,18 +1304,35 @@ def _reconcile_tx_queue_confirmation(tx_id: str) -> Json | None:
         None,
     )
     if isinstance(confirmed, dict):
-        _update_tx_queue_record(
-            tx_id,
-            {
-                "upstream_status": "confirmed",
-                "confirmed_ms": _now_ms(),
-                "confirmed_height": int(confirmed.get("height") or 0),
-                "confirmed_block_id": str(confirmed.get("block_id") or ""),
-                "local_state_synced": False,
-                "last_result": {"status_reconciliation": results},
-                "last_error": "",
-            },
-        )
+        # This must be an atomic read/modify/write. A status poll can race with
+        # the reconcile worker completing a verified state proof in another
+        # process. Never clobber that proof merely by polling confirmation.
+        height = int(confirmed.get("height") or 0)
+        block_id = str(confirmed.get("block_id") or "")
+        with _tx_queue_lock():
+            rows = _load_tx_queue_unlocked()
+            current = _tx_queue_record_for(rows, tx_id)
+            if current is not None:
+                same_committed_tx = bool(
+                    height > 0
+                    and block_id
+                    and int(current.get("confirmed_height") or 0) == height
+                    and str(current.get("confirmed_block_id") or "") == block_id
+                )
+                keep_synced = current.get("local_state_synced") is True and same_committed_tx
+                current.update(
+                    {
+                        "upstream_status": "confirmed",
+                        "confirmed_ms": _now_ms(),
+                        "confirmed_height": height,
+                        "confirmed_block_id": block_id,
+                        "local_state_synced": keep_synced,
+                        "last_result": _compact_tx_queue_result({"status_reconciliation": results}),
+                        "last_error": "",
+                        "updated_ms": _now_ms(),
+                    }
+                )
+                _write_tx_queue_unlocked(rows)
         return _tx_queue_summary_for_tx(tx_id)
     _update_tx_queue_record(
         tx_id, {"last_status_probe_ms": _now_ms(), "last_status_probe": results}
@@ -1342,6 +1359,129 @@ def _locally_confirmed_tx(request: Request, tx_id: str) -> Json | None:
     return None
 
 
+def _prove_already_applied_tx_at_matching_tip(
+    request: Request,
+    url: str,
+    *,
+    tx_id: str,
+    target_height: int,
+    timeout_s: int,
+) -> Json:
+    """Prove observer-local inclusion agrees with the trusted current upstream tip.
+
+    This covers the case where independent downstream block sync already
+    applied the transaction before the observer outbound-queue worker tried
+    to reconcile it. A local tx-index hit alone is never sufficient.
+    """
+    upstream = _status_from_upstream(url, tx_id, timeout_s=timeout_s)
+    local_tx = _tx_index_lookup(request, tx_id)
+    queue = _tx_queue_summary_for_tx(tx_id) or {}
+
+    if (
+        not bool(upstream.get("ok"))
+        or str(upstream.get("tx_id") or "") != tx_id
+        or str(upstream.get("status") or "") != "confirmed"
+        or upstream.get("apply_ok") is not True
+        or not isinstance(local_tx, dict)
+        or str(local_tx.get("tx_id") or "") != tx_id
+        or local_tx.get("apply_ok") is not True
+    ):
+        return {"ok": False, "error": "existing_tx_confirmation_not_proven"}
+
+    height = int(upstream.get("height") or 0)
+    block_id = str(upstream.get("block_id") or "")
+    if (
+        height <= 0
+        or height != int(target_height)
+        or not block_id
+        or height != int(local_tx.get("height") or 0)
+        or block_id != str(local_tx.get("block_id") or "")
+        or height != int(queue.get("confirmed_height") or 0)
+        or block_id != str(queue.get("confirmed_block_id") or "")
+    ):
+        return {"ok": False, "error": "existing_tx_committed_block_mismatch"}
+
+    # Authenticated upstream identity was checked by the caller using the
+    # explicit operator-configured commitments. Compare the *current full
+    # state commitment*, not just matching historical transaction block IDs.
+    try:
+        from weall.api.routes_public_parts.status import _chain_identity_payload
+
+        local_before = _chain_identity_payload(request)
+        remote = _upstream_get_json(url, "/v1/chain/identity", timeout_s=timeout_s)
+        local_after = _chain_identity_payload(request)
+    except Exception as exc:  # noqa: BLE001 - bounded operator diagnostic
+        return {
+            "ok": False,
+            "error": "existing_tip_identity_unavailable",
+            "detail": type(exc).__name__,
+        }
+
+    fields = (
+        "chain_id",
+        "height",
+        "tip_hash",
+        "state_root",
+        "schema_version",
+        "tx_index_hash",
+        "protocol_profile_hash",
+    )
+    for key in fields:
+        before = local_before.get(key)
+        after = local_after.get(key)
+        upstream_value = remote.get(key)
+        if before is None or before == "" or before != after or before != upstream_value:
+            return {
+                "ok": False,
+                "error": "existing_tip_commitment_mismatch",
+                "field": key,
+            }
+    try:
+        if int(remote.get("height") or 0) < height:
+            return {"ok": False, "error": "existing_tip_below_tx_height"}
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "existing_tip_invalid_height"}
+
+    # Recheck inclusion after the identity sampling, not before only.
+    local_tx_after = _tx_index_lookup(request, tx_id)
+    if (
+        not isinstance(local_tx_after, dict)
+        or local_tx_after.get("apply_ok") is not True
+        or str(local_tx_after.get("tx_id") or "") != tx_id
+        or int(local_tx_after.get("height") or 0) != height
+        or str(local_tx_after.get("block_id") or "") != block_id
+    ):
+        return {"ok": False, "error": "existing_tx_index_changed"}
+
+    _update_tx_queue_record(
+        tx_id,
+        {
+            "upstream_status": "confirmed",
+            "confirmed_height": height,
+            "confirmed_block_id": block_id,
+            "local_state_synced": True,
+            "last_local_sync_ms": _now_ms(),
+            "last_error": "",
+            "local_sync_proof": {
+                "method": "matching_committed_tip_and_tx",
+                "height": int(remote["height"]),
+                "tip_hash": str(remote["tip_hash"]),
+                "state_root": str(remote["state_root"]),
+                "tx_height": height,
+                "tx_block_id": block_id,
+            },
+        },
+    )
+    return {
+        "ok": True,
+        "local_state_synced": True,
+        "source": "matching_committed_tip_and_tx",
+        "upstream": _redact_upstream_url(url),
+        "height": int(remote["height"]),
+        "state_root": str(remote["state_root"]),
+    }
+
+
 def _request_and_apply_state_sync_from_upstream(
     request: Request,
     url: str,
@@ -1351,7 +1491,7 @@ def _request_and_apply_state_sync_from_upstream(
     timeout_s: int,
 ) -> Json:
     ex = _safe_executor(request)
-    if ex is None or not callable(getattr(ex, "apply_state_sync_response", None)):
+    if ex is None:
         return {
             "ok": False,
             "error": "state_sync_apply_unavailable",
@@ -1372,14 +1512,35 @@ def _request_and_apply_state_sync_from_upstream(
 
     local_height = _local_height_for_request(request)
     if target_height and local_height >= int(target_height):
-        # We are already at or above the upstream-confirmed height but still did
-        # not find the tx locally. Avoid applying unrelated snapshots; surface
-        # the honest gap for the operator/frontend.
+        if isinstance(_tx_index_lookup(request, tx_id), dict):
+            # Background downstream sync can reach the same fully committed tip
+            # first. Require current matching state roots, identical tx receipt,
+            # trusted identity, and consistent local snapshots before marking
+            # the observer outbound row synchronized.
+            return _prove_already_applied_tx_at_matching_tip(
+                request,
+                url,
+                tx_id=tx_id,
+                target_height=target_height,
+                timeout_s=timeout_s,
+            )
+        # At or above target without a locally indexed tx is not sync proof.
+        # Avoid applying unrelated snapshots to paper over missing inclusion.
         return {
             "ok": False,
             "error": "local_height_at_or_above_target_without_tx",
             "local_height": int(local_height),
             "target_height": int(target_height),
+            "upstream": _redact_upstream_url(url),
+        }
+
+    # An already-applied matching canonical tip needs only read-only proof.
+    # An actually missing block still requires an executor capable of
+    # applying authenticated state-sync responses before any delta request.
+    if not callable(getattr(ex, "apply_state_sync_response", None)):
+        return {
+            "ok": False,
+            "error": "state_sync_apply_unavailable",
             "upstream": _redact_upstream_url(url),
         }
 
@@ -1505,13 +1666,23 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
             "outbound_propagation": outbound,
         }
 
-    if bool(outbound.get("local_state_synced")):
+    # Even a durable previously verified sync flag must not substitute for a
+    # locally indexed successful receipt of the SAME upstream-confirmed block.
+    # A missing/rejected/mismatched local receipt must pass the proof path again.
+    if (
+        bool(outbound.get("local_state_synced"))
+        and isinstance(local, dict)
+        and local.get("apply_ok") is True
+        and int(local.get("height") or 0) > 0
+        and int(local.get("height") or 0) == int(outbound.get("confirmed_height") or 0)
+        and str(local.get("block_id") or "") == str(outbound.get("confirmed_block_id") or "")
+    ):
         return {
             "ok": True,
             "tx_id": t,
             "local_state_synced": True,
             "source": "already_synced",
-            "local_confirmation": local or {},
+            "local_confirmation": local,
             "outbound_propagation": outbound,
         }
 
@@ -2131,7 +2302,11 @@ def tx_status(request: Request, tx_id: str) -> Json:
     if not t:
         raise ApiError.bad_request("bad_request", "missing tx_id", {})
 
-    outbound = _tx_queue_summary_for_tx(t)
+    # The outbound queue belongs to an observer edge, not a block producer.
+    # A shared or stale observer queue must never downgrade a canonical Genesis
+    # ledger confirmation. Observer edges still require an upstream confirmation
+    # AND reconciliation before reporting local_state_synced=true.
+    outbound = _tx_queue_summary_for_tx(t) if _observer_edge_mode() else None
 
     idx = _tx_index_lookup(request, t)
     if isinstance(idx, dict):

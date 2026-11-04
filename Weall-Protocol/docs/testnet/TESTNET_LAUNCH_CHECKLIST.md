@@ -14,6 +14,32 @@ NO-GO: public beta readiness, public observer launch claim while `AUD-628-P1-001
 
 Current tx-canon count/version must be read from `generated/tx_index.json`; this checklist intentionally does not duplicate mutable canon totals.
 
+## Documentation reconciliation before the full protocol audit
+
+After backend subsystem closure, end-to-end integration and frontend layout/
+workflow revision, carry out the [architecture and documentation reconciliation
+gate](../reviewer/ARCHITECTURE_DOCUMENTATION_RECONCILIATION_GATE.md).
+Update all in-scope architectural, product, operator, protocol, governance,
+developer and reviewer documentation to match the decided and implemented
+system. Keep conflicts and unratified semantics visible. Only **after** this
+phase should the comprehensive whole-protocol/constitutional audit establish
+the candidate basis for fresh genesis and evidence regeneration.
+
+**Status: planned / unsatisfied**, not a claim that old documents have been revised.
+
+## Clean replacement-chain evidence gate (planned; not yet satisfied)
+
+Before declaring the new testnet ready, regenerate the full current
+protocol-evidence inventory from a **fresh genesis and new chain identity**.
+Do not carry over old development-chain transactions or assume that
+historical old-chain replay is a launch prerequisite. See
+[`FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md`](FRESH_GENESIS_COMPLETE_EVIDENCE_REGENERATION_GATE.md).
+
+The new-chain complete evidence gate remains **NO-GO** until actual
+fresh-run artifacts, independent replay/consensus checks and required
+separate adjudications are recorded. Individual synthetic CI passes are
+only components of that larger acceptance process.
+
 ## Repository-side checks
 
 ```bash

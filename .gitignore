@@ -140,6 +140,9 @@ Weall-Protocol/generated/demo_bootstrap_secret.json
 
 # WeAll controlled devnet local runtime artifacts
 Weall-Protocol/.weall-devnet/
+# Serve per-run public bootstrap manifests without mutating tracked templates.
+# Only *public* manifests go here; private key material stays in .weall-devnet.
+web/public/weall-local-rehearsal/
 
 # Source package: do not confuse protocol storage code with runtime storage data.
 !Weall-Protocol/src/weall/storage/

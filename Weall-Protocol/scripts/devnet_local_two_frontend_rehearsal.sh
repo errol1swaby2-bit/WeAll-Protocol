@@ -17,9 +17,19 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_ROOT="$(cd "${REPO_ROOT}/.." && pwd)"
 WEB_ROOT="${WEALL_WEB_ROOT:-${WORKSPACE_ROOT}/web}"
+# Runtime public bootstrap manifests must not overwrite tracked source templates.
+# This directory contains only public bootstrap metadata; signing material
+# remains under the private .weall-devnet/generated tree.
+BOOTSTRAP_PUBLIC_DIR="${WEB_ROOT}/public/weall-local-rehearsal"
 DEVNET_DIR="${WEALL_DEVNET_DIR:-${REPO_ROOT}/.weall-devnet}"
 RUNTIME_DIR="${WEALL_RUNTIME_DIR:-${DEVNET_DIR}/runtime}"
 TX_QUEUE_PATH="${WEALL_TX_QUEUE_PATH:-${RUNTIME_DIR}/observer_tx_queue.json}"
+# Each backend needs independent queue metadata: only the observer forwards.
+GENESIS_TX_QUEUE_PATH="${RUNTIME_DIR}/genesis_tx_queue.json"
+if [[ "${TX_QUEUE_PATH}" == "${GENESIS_TX_QUEUE_PATH}" ]]; then
+  echo "ERROR: observer and Genesis queue paths must be distinct; refusing shared WEALL_TX_QUEUE_PATH" >&2
+  exit 2
+fi
 LOG_DIR="${WEALL_DEVNET_LOG_DIR:-${DEVNET_DIR}/logs}"
 GENERATED_DIR="${DEVNET_DIR}/generated"
 NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"
@@ -113,9 +123,10 @@ _cleanup() {
       fi
     done
   else
-    cat <<EOF2
+    if [[ -n "${NODE1_PID}" || -n "${NODE2_PID}" || -n "${RECONCILE_PID}" || -n "${DOWNSTREAM_SYNC_PID}" || -n "${FRONTEND_OBSERVER_PID}" || -n "${FRONTEND_GENESIS_PID}" ]]; then
+      cat <<EOF2
 
-==> Local rehearsal processes left running:
+==> Local rehearsal process IDs recorded (verify each is still running):
 node1_pid=${NODE1_PID:-}
 node2_pid=${NODE2_PID:-}
 reconcile_pid=${RECONCILE_PID:-}
@@ -124,6 +135,9 @@ observer_frontend_pid=${FRONTEND_OBSERVER_PID:-}
 genesis_frontend_pid=${FRONTEND_GENESIS_PID:-}
 logs=${LOG_DIR}
 EOF2
+    else
+      echo "==> Local rehearsal exited before starting any WeAll node/frontend processes (status ${status})" >&2
+    fi
   fi
   exit "${status}"
 }
@@ -195,15 +209,16 @@ _prepare_local_ipfs_repo_dirs() {
   # Kubo must create its own blockstore layout during `ipfs init`.
   # Do not pre-create blocks/ or blocks/temp before initialization; doing so
   # produces: "directory missing SHARDING file: /data/ipfs/blocks".
+  # Validate before mkdir/chmod. An overridden partition must remain a direct
+  # child of the dedicated devnet; symlinked ancestors are rejected.
+  python3 scripts/devnet_safe_paths.py check-ipfs "${DEVNET_DIR}" "${IPFS_PARTITION_PATH}" >/dev/null || return 2
+  if [[ -d "${IPFS_PARTITION_PATH}/blocks" && ! -f "${IPFS_PARTITION_PATH}/blocks/SHARDING" ]]; then
+    echo "ERROR: local IPFS blocks/ has no SHARDING file. Preserving the repository; no automatic deletion." >&2
+    echo "Inspect the configured partition before an explicit disposable-devnet reset." >&2
+    return 2
+  fi
   mkdir -p "${IPFS_PARTITION_PATH}"
   chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" 2>/dev/null || true
-
-  if [[ -d "${IPFS_PARTITION_PATH}/blocks" && ! -f "${IPFS_PARTITION_PATH}/blocks/SHARDING" ]]; then
-    echo "==> Resetting corrupt local IPFS repo: blocks/ exists without SHARDING"
-    rm -rf "${IPFS_PARTITION_PATH}"
-    mkdir -p "${IPFS_PARTITION_PATH}"
-    chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" 2>/dev/null || true
-  fi
 
   # Batch 388 compatibility/safety: after Kubo has initialized a valid
   # sharded blockstore, make sure its transient batch directory exists and is
@@ -466,6 +481,7 @@ _start_local_ipfs_daemon() {
 
   if command -v ipfs >/dev/null 2>&1; then
     export IPFS_PATH="${WEALL_IPFS_PATH:-${DEVNET_DIR}/ipfs}"
+    python3 scripts/devnet_safe_paths.py check-ipfs "${DEVNET_DIR}" "${IPFS_PATH}" >/dev/null
     mkdir -p "${IPFS_PATH}" "${IPFS_PATH}/blocks" "${IPFS_PATH}/blocks/temp"
     if [[ ! -f "${IPFS_PATH}/config" ]]; then
       ipfs init --profile=server >/dev/null
@@ -685,6 +701,10 @@ PY
 }
 
 activate_repo_venv
+# Fail before creating any controlled-devnet content through an unsafe path.
+python3 scripts/devnet_safe_paths.py check-devnet "${DEVNET_DIR}" >/dev/null
+# Detect a root-owned .weall-devnet before creating state; never repair ownership automatically.
+python3 scripts/devnet_safe_paths.py check-devnet-writable "${DEVNET_DIR}" >/dev/null
 mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public" "${RUNTIME_DIR}"
 
 # Browser and backend PoH review must share persistent, independently generated
@@ -719,8 +739,8 @@ node "${WEB_ROOT}/scripts/generate_m2_actor_keys.mjs" "${OBSERVER_KEYFILE}" >/de
 
 GENESIS_SECRET="${GENERATED_DIR}/dev-bootstrap-genesis-secret.json"
 OBSERVER_SECRET="${GENERATED_DIR}/dev-bootstrap-observer-secret.json"
-GENESIS_MANIFEST="${WEB_ROOT}/public/dev-bootstrap-genesis.json"
-OBSERVER_MANIFEST="${WEB_ROOT}/public/dev-bootstrap-observer.json"
+GENESIS_MANIFEST="${BOOTSTRAP_PUBLIC_DIR}/dev-bootstrap-genesis.json"
+OBSERVER_MANIFEST="${BOOTSTRAP_PUBLIC_DIR}/dev-bootstrap-observer.json"
 _write_secret_and_manifest "${GENESIS_ACCOUNT}" "${GENESIS_KEYFILE}" "${GENESIS_SECRET}" "${GENESIS_MANIFEST}" "local-controlled-devnet-genesis" "0"
 _write_secret_and_manifest "${OBSERVER_ACCOUNT}" "${OBSERVER_KEYFILE}" "${OBSERVER_SECRET}" "${OBSERVER_MANIFEST}" "local-controlled-devnet-observer" "1"
 
@@ -739,7 +759,7 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
   (
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
     export WEALL_RUNTIME_DIR="${RUNTIME_DIR}"
-    export WEALL_TX_QUEUE_PATH="${TX_QUEUE_PATH}"
+    export WEALL_TX_QUEUE_PATH="${GENESIS_TX_QUEUE_PATH}"
     export WEALL_MODE=controlled_devnet
     export WEALL_RUNTIME_PROFILE=controlled_devnet
     export WEALL_CHAIN_ID=weall-controlled-devnet
@@ -997,7 +1017,7 @@ echo "==> Starting observer frontend on http://${FRONTEND_PUBLIC_HOST}:${OBSERVE
   export VITE_WEALL_API_BASE="/"
   export VITE_WEALL_DEV_PROXY_TARGET="${NODE2_API}"
   export VITE_WEALL_ENABLE_DEV_BOOTSTRAP=1
-  export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/dev-bootstrap-observer.json"
+  export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-observer.json"
   export VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE="${LIVE_ROOM_TRANSPORT_MODE}"
   export VITE_WEALL_LIVE_ROOM_BASE_URL="${LIVE_ROOM_BASE_URL}"
   export VITE_WEALL_LIVE_ROOM_EMBED="${LIVE_ROOM_EMBED}"
@@ -1011,7 +1031,7 @@ echo "==> Starting genesis frontend on http://${FRONTEND_PUBLIC_HOST}:${GENESIS_
   export VITE_WEALL_API_BASE="/"
   export VITE_WEALL_DEV_PROXY_TARGET="${NODE1_API}"
   export VITE_WEALL_ENABLE_DEV_BOOTSTRAP=1
-  export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/dev-bootstrap-genesis.json"
+  export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-genesis.json"
   export VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE="${LIVE_ROOM_TRANSPORT_MODE}"
   export VITE_WEALL_LIVE_ROOM_BASE_URL="${LIVE_ROOM_BASE_URL}"
   export VITE_WEALL_LIVE_ROOM_EMBED="${LIVE_ROOM_EMBED}"

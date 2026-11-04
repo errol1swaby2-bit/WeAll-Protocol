@@ -1,0 +1,237 @@
+"""PR77 strict fresh appeal-panel formation and failed-appeal atomicity.
+
+These are deterministic domain transitions on synthetic ledger state. They do
+not authenticate a public PoH pool, signatures, independent BFT or S4 sanction
+authority. Signed executor replay is covered separately.
+"""
+
+from __future__ import annotations
+
+from copy import deepcopy
+
+import pytest
+
+from weall.runtime.apply.dispute import DisputeApplyError, apply_dispute
+from weall.runtime.dispute_engine import tick_dispute_lifecycle
+from weall.runtime.tx_admission_types import TxEnvelope
+
+
+def _state(*, jurors: int = 17) -> dict:
+    roster = [f"@juror-{n:02d}" for n in range(jurors)]
+    active = {
+        "active": True,
+        "responsibilities": {"reviewer": {"dispute_review": {"active": True, "opted_in": True}}},
+    }
+    return {
+        "chain_id": "strict-local-appeal-fixture",
+        "height": 25,
+        "meta": {"constitutional_clock": {"enabled": True}},
+        "params": {
+            "mode": "controlled-testnet",
+            "m3_civic_governance_strict": True,
+        },
+        "accounts": {
+            "@subject": {"poh_tier": 2, "banned": False, "locked": False},
+            "@outsider": {"poh_tier": 2, "banned": False, "locked": False},
+            **{account: {"poh_tier": 2, "banned": False, "locked": False} for account in roster},
+        },
+        "roles": {
+            "jurors": {
+                "active_set": list(roster),
+                "by_id": {account: deepcopy(active) for account in roster},
+            }
+        },
+        "disputes_by_id": {
+            "ordinary-account-review": {
+                "id": "ordinary-account-review",
+                "target_type": "account",
+                "target_id": "@subject",
+                "target_owner": "@subject",
+                "stage": "appeal_window",
+                "resolved": True,
+                "appeal_allowed_accounts": ["@subject"],
+                "appeal_deadline_height": 80,
+                "assigned_jurors": roster[:7],
+                "substitute_juror_ids": roster[7:9],
+                "panel_round": 1,
+                "appeals": [],
+                "votes": {},
+                "jurors": {},
+            }
+        },
+        "system_queue": [],
+    }
+
+
+def _appeal(signer: str = "@subject", *, nonce: int = 1) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type="DISPUTE_APPEAL",
+        signer=signer,
+        nonce=nonce,
+        payload={"dispute_id": "ordinary-account-review", "reason": "Synthetic independent appeal"},
+        sig="synthetic-not-verified",
+        system=False,
+    )
+
+
+def _case(state: dict) -> dict:
+    return state["disputes_by_id"]["ordinary-account-review"]
+
+
+def test_insufficient_fresh_strict_panel_records_pending_appeal() -> None:
+    # Seven original reviewers plus two substitutes leave only eight fresh
+    # candidates; nine are required. Filing remains valid and durable.
+    state = _state(jurors=17)
+    result = apply_dispute(state, _appeal())
+    case = _case(state)
+    assert result["applied"] == "DISPUTE_APPEAL"
+    assert result["appeal_panel_status"] == "insufficient_reviewer_pool"
+    assert case["stage"] == "appeal_pending_panel"
+    assert case["appeal_panel_blocked_reason"] == "insufficient_fresh_appeal_panel"
+    assert case["appeal_pending_since_height"] == 25
+    assert case["appeal_panel_required_size"] == 7
+    assert case["appeal_substitute_required_count"] == 2
+    assert case["appeal_panel_available_candidate_count"] == 8
+    assert case["appeals"][0]["by"] == "@subject"
+    assert case["appeals"][0]["at_nonce"] == 1
+    assert case["appeals"][0]["height"] == 25
+    assert case["original_panel_juror_ids"] == [f"@juror-{n:02d}" for n in range(7)]
+    assert case["original_substitute_juror_ids"] == ["@juror-07", "@juror-08"]
+    assert case["assigned_jurors"] == []
+    assert case["eligible_juror_ids"] == []
+    assert case["jurors"] == {}
+    assert state["system_queue"] == []
+
+    # Even long after the original filing deadline, a lodged appeal cannot
+    # automatically expire or enqueue the original-result final receipt.
+    state["height"] = 100
+    before = deepcopy(state)
+    assert tick_dispute_lifecycle(state, next_height=101) == 0
+    assert state == before
+    assert state["system_queue"] == []
+
+
+def test_pending_appeal_assigns_complete_fresh_panel_when_pool_grows() -> None:
+    state = _state(jurors=17)
+    apply_dispute(state, _appeal())
+    # Model an independent reviewer joining replicated role/account state.
+    state["height"] = 81
+    new_juror = "@juror-17"
+    state["accounts"][new_juror] = {
+        "poh_tier": 2,
+        "banned": False,
+        "locked": False,
+    }
+    state["roles"]["jurors"]["active_set"].append(new_juror)
+    state["roles"]["jurors"]["by_id"][new_juror] = deepcopy(
+        state["roles"]["jurors"]["by_id"]["@juror-00"]
+    )
+    replica = deepcopy(state)
+    assert tick_dispute_lifecycle(state, next_height=82) == 0
+    assert tick_dispute_lifecycle(replica, next_height=82) == 0
+    assert state == replica
+
+    case = _case(state)
+    assert case["stage"] == "appeal_review"
+    assert case["appeal_panel_status"] == "assigned"
+    assert case["appeal_panel_round"] == 2
+    assert case["appeal_panel_assigned_at_height"] == 82
+    assert case["appeal_pending_since_height"] == 25
+    assert case["appeals"][0]["height"] == 25
+    assert "appeal_panel_blocked_reason" not in case
+    assert len(case["appeal_panel_juror_ids"]) == 7
+    assert len(case["appeal_substitute_juror_ids"]) == 2
+    original = case["original_panel_juror_ids"] + case["original_substitute_juror_ids"]
+    fresh = case["appeal_panel_juror_ids"] + case["appeal_substitute_juror_ids"]
+    assert set(original).isdisjoint(fresh)
+    assert len(set(fresh)) == 9
+    assert "@subject" not in fresh
+    assert case["assigned_jurors"] == case["appeal_panel_juror_ids"]
+    assert all(record["assigned_at_nonce"] == 1 for record in case["jurors"].values())
+    before_repeat = deepcopy(state)
+    assert tick_dispute_lifecycle(state, next_height=83) == 0
+    assert state == before_repeat
+
+
+def test_pending_appeal_blocks_stale_system_final_receipt_without_mutation() -> None:
+    state = _state(jurors=17)
+    apply_dispute(state, _appeal())
+    state["height"] = 100
+    before = deepcopy(state)
+    forged = TxEnvelope(
+        tx_type="DISPUTE_FINAL_RECEIPT",
+        signer="SYSTEM",
+        nonce=101,
+        system=True,
+        payload={
+            "dispute_id": "ordinary-account-review",
+            "receipt_id": "stale-after-appeal",
+            "resolution": {"outcome": "report_upheld"},
+        },
+    )
+    with pytest.raises(DisputeApplyError) as exc:
+        apply_dispute(state, forged)
+    assert exc.value.reason == "appeal_pending_panel"
+    assert state == before
+    assert "dispute_receipts" not in state
+
+
+def test_fresh_strict_appeal_panel_is_disjoint_deterministic_and_recorded_once() -> None:
+    state = _state(jurors=18)
+    independent = deepcopy(state)
+    outcome = apply_dispute(state, _appeal())
+    second = apply_dispute(independent, _appeal())
+    assert outcome == second
+    assert state == independent
+    case = _case(state)
+    assert outcome["applied"] == "DISPUTE_APPEAL"
+    assert case["stage"] == "appeal_review"
+    assert case["appeal_panel_round"] == 2
+    assert case["appeal_panel_status"] == "assigned"
+    assert len(case["appeal_panel_juror_ids"]) == 7
+    assert len(case["appeal_substitute_juror_ids"]) == 2
+    assert len(set(case["appeal_panel_juror_ids"] + case["appeal_substitute_juror_ids"])) == 9
+    assert set(case["appeal_panel_juror_ids"] + case["appeal_substitute_juror_ids"]).isdisjoint(
+        set(case["original_panel_juror_ids"] + case["original_substitute_juror_ids"])
+    )
+    assert "@subject" not in case["appeal_panel_juror_ids"]
+    assert case["required_votes"] > 0
+    assert case["appeals"] == [
+        {
+            "by": "@subject",
+            "at_nonce": 1,
+            "height": 25,
+            "payload": {
+                "dispute_id": "ordinary-account-review",
+                "reason": "Synthetic independent appeal",
+            },
+        }
+    ]
+    assert state["system_queue"] == []
+
+
+@pytest.mark.parametrize("jurors", [17, 18])
+def test_duplicate_and_unauthorized_appeals_do_not_mutate_strict_state(jurors: int) -> None:
+    state = _state(jurors=jurors)
+    before = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as outsider:
+        apply_dispute(state, _appeal("@outsider"))
+    assert outsider.value.reason == "appeal_not_target_owner"
+    assert state == before
+
+    apply_dispute(state, _appeal())
+    after_first = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as duplicate:
+        apply_dispute(state, _appeal(nonce=2))
+    assert duplicate.value.reason == "appeal_already_filed"
+    assert state == after_first
+
+
+def test_expired_strict_appeal_window_does_not_mutate_state() -> None:
+    state = _state(jurors=18)
+    state["height"] = 81
+    before = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as exc:
+        apply_dispute(state, _appeal())
+    assert exc.value.reason == "appeal_window_closed"
+    assert state == before
