@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import type { FormEvent, ReactNode } from "react"
 
 import { ApiError, fetchStatus, getApiBase, setApiBase, weall } from "../api/weall"
-import { ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
+import { endSession, ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
 import { derivePublicKeyFromSecretKey, ensureRecoveryAuthorityKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
 import { ensureEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto"
 import { buildRecoveryKeyFile, downloadRecoveryKeyFile, parseRecoveryKeyFileText, readRecoveryKeyFile, recoveryFileText, verifyRecoveryKeyFileForAccount } from "../auth/recoveryFile"
