@@ -16,7 +16,7 @@ function pendingRegistrationKey(account: string): string {
 
 function readPendingTransaction(account: string): string {
   try {
-    return String(sessionStorage.getItem(pendingRegistrationKey(account)) || "").trim();
+    return String(localStorage.getItem(pendingRegistrationKey(account)) || "").trim();
   } catch {
     return "";
   }
@@ -25,8 +25,8 @@ function readPendingTransaction(account: string): string {
 function rememberPendingTransaction(account: string, txId: string): void {
   if (!account) return;
   try {
-    if (txId) sessionStorage.setItem(pendingRegistrationKey(account), txId);
-    else sessionStorage.removeItem(pendingRegistrationKey(account));
+    if (txId) localStorage.setItem(pendingRegistrationKey(account), txId);
+    else localStorage.removeItem(pendingRegistrationKey(account));
   } catch {
     // The current screen still holds the transaction ID when storage is blocked.
   }
