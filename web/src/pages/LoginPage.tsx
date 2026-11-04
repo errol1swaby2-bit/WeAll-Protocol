@@ -429,18 +429,7 @@ export default function LoginPage() {
       const parsed = await readRecoveryKeyFile(file)
       setRestoreAccountInput(parsed.account)
       setRecoveryKeyInput(parsed.secretKeyB64)
-      if (parsed.recoveryAuthorityPublicKeyB64 && parsed.recoveryAuthoritySecretKeyB64) {
-        saveRecoveryAuthorityKeypair(parsed.account, {
-          pubkeyB64: parsed.recoveryAuthorityPublicKeyB64,
-          secretKeyB64: parsed.recoveryAuthoritySecretKeyB64,
-        })
-      }
-      if (parsed.evidenceKemPublicKeyB64 && parsed.evidenceKemSecretKeyB64) {
-        saveEvidenceKemKeypair(parsed.account, {
-          publicKeyB64: parsed.evidenceKemPublicKeyB64,
-          secretKeyB64: parsed.evidenceKemSecretKeyB64,
-        })
-      }
+      setStagedRecoveryBundle(parsed)
       setNotice("Recovery file loaded. Review the handle, then sign in.")
     } catch (err) {
       setError(humanizeApiError(err, "Could not read that recovery file."))
