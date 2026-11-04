@@ -108,13 +108,8 @@ def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
     if packet.get("pending_count") != len(rows) or len(rows) != len(KNOWN_STALE):
         blockers.append("pending_count_mismatch")
 
-    names = [
-        row.get("tx_type") if isinstance(row, dict) else None
-        for row in rows
-    ]
-    valid_names = [
-        name for name in names if isinstance(name, str) and name.strip()
-    ]
+    names = [row.get("tx_type") if isinstance(row, dict) else None for row in rows]
+    valid_names = [name for name in names if isinstance(name, str) and name.strip()]
     present = set(valid_names)
     if len(valid_names) != len(rows):
         blockers.append("invalid_pending_transaction_identity")
@@ -131,10 +126,7 @@ def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
     if packet.get("missing_state_stable_ids"):
         blockers.append("missing_state_stable_ids")
 
-    stable_ids = [
-        row.get("stable_id") if isinstance(row, dict) else None
-        for row in rows
-    ]
+    stable_ids = [row.get("stable_id") if isinstance(row, dict) else None for row in rows]
     if any(not isinstance(sid, str) or not sid.strip() for sid in stable_ids):
         blockers.append("invalid_pending_stable_id")
     if len({sid for sid in stable_ids if isinstance(sid, str)}) != len(rows):
@@ -153,13 +145,14 @@ def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
             "current_material_digest",
         ):
             digest = row.get(key)
-            if not isinstance(digest, str) or len(digest) != 64 or any(
-                c not in "0123456789abcdef" for c in digest
+            if (
+                not isinstance(digest, str)
+                or len(digest) != 64
+                or any(c not in "0123456789abcdef" for c in digest)
             ):
                 blockers.append(f"invalid_review_material_digest:{tx_type}:{key}")
         if row.get("archive_matches_accepted_digest") is not True or (
-            row.get("accepted_review_digest")
-            != row.get("archived_compiled_material_digest")
+            row.get("accepted_review_digest") != row.get("archived_compiled_material_digest")
         ):
             blockers.append(f"prior_approval_material_unverified:{tx_type}")
         if row.get("current_material_digest") == row.get("accepted_review_digest"):
@@ -218,7 +211,10 @@ def build_packet() -> dict[str, Any]:
         raise ValueError("v2_review_packet_has_duplicate_tx_type")
 
     if (
-        any(not isinstance(row.get("stable_id"), str) or not row["stable_id"] for row in current_rows)
+        any(
+            not isinstance(row.get("stable_id"), str) or not row["stable_id"]
+            for row in current_rows
+        )
         or len({row["stable_id"] for row in current_rows}) != 236
         or len({row.get("stable_id") for row in review_source["transactions"]}) != 236
         or len({row.get("stable_id") for row in prior_rows}) != 236

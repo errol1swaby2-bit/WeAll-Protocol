@@ -218,9 +218,7 @@ def test_review_packet_integrity_blocks_unexpected_inventory_changes() -> None:
             "already_approved_digest_in_pending",
         ),
         (
-            lambda packet: packet["transactions"][0].__setitem__(
-                "changed_field_names", []
-            ),
+            lambda packet: packet["transactions"][0].__setitem__("changed_field_names", []),
             "changed_material_fields_incomplete",
         ),
         (
@@ -250,9 +248,9 @@ def test_review_packet_rejects_forged_inventory_resolution() -> None:
     packet = copy.deepcopy(build_packet())
     packet["transactions"] = packet["transactions"][:-1]
     packet["pending_count"] = len(packet["transactions"])
-    packet["known_stale_now_resolved"] = [next(iter(KNOWN_STALE - {
-        row["tx_type"] for row in packet["transactions"]
-    }))]
+    packet["known_stale_now_resolved"] = [
+        next(iter(KNOWN_STALE - {row["tx_type"] for row in packet["transactions"]}))
+    ]
     blockers = packet_integrity_blockers(packet)
     assert "unreviewed_inventory_resolution" in blockers
     assert "stale_inventory_mismatch" in blockers
