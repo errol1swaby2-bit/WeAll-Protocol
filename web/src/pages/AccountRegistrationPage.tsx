@@ -122,7 +122,7 @@ export default function AccountRegistrationPage(): JSX.Element {
           <p className="eyebrow">Create your account · Step 3 of 3</p>
           <h1 className="heroTitle heroTitleSm">Register your account</h1>
           <p className="heroText">
-            Your recovery file has been saved and verified. This final step records your
+            Your account key is available on this device. This final step records your
             account on the WeAll network so other people can recognize it.
           </p>
           <div className="statusRowWrap" aria-label="Account setup progress">
