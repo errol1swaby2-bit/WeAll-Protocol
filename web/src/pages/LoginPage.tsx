@@ -468,10 +468,17 @@ export default function LoginPage() {
 
     setBusy(true)
     try {
-      await restoreAccountAndLoginOnThisDevice({
+      const bundle = stagedRecoveryBundle
+      if (bundle && (bundle.account !== restoreAccount || bundle.secretKeyB64 !== recoveryKeyInput.trim())) {
+        throw new Error("The selected recovery file does not match this handle and signing key.")
+      }
+      const restored = await restoreAccountAndLoginOnThisDevice({
         account: restoreAccount,
         secretKeyB64: recoveryKeyInput.trim(),
       })
+      if (bundle && restored.keypair.pubkeyB64 !== bundle.publicKeyB64) {
+        throw new Error("The restored account key does not match the selected recovery file.")
+      }
       setNotice("Signed in on this device.")
       nav(consumeReturnTo("/home"))
     } catch (err) {
