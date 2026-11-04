@@ -59,6 +59,12 @@ envelope, registration-work policy, ML-DSA signing, offline recovery authority,
 and ML-KEM evidence-public-key binding. This is deliberately the same protocol
 operation previously exposed on the verification dashboard.
 
+The backend /v1/accounts/{account}/registered route measures Tier-2 posting
+eligibility, **not** whether a basic account exists. The onboarding page reads
+the canonical account state and requires its public key to match the local
+signer. A missing or unreachable account view fails closed rather than being
+misinterpreted as an unregistered handle.
+
 A newly submitted transaction can be shown as complete only if the node reports
 a confirmed transaction with local_state_synced=true **and** its account read
 model shows the same public account key registered. Accepted/mempool/unsynced
