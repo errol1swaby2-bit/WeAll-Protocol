@@ -7,28 +7,33 @@ import {
   solveAccountRegistrationWork,
 } from "./accountRegistrationWork";
 
-export type RegistrationStatus = "registered" | "not_registered" | "unavailable";
+export type RegistrationStatus = "registered" | "not_registered" | "key_mismatch" | "unavailable";
 
+/** Confirm both on-chain presence and the browser signer's bound public key. */
 export async function readAccountRegistrationStatus(account: string, base: string): Promise<RegistrationStatus> {
   const acct = normalizeAccount(account);
-  if (!acct) return "unavailable";
+  const keypair = acct ? getKeypair(acct) : null;
+  if (!acct || !keypair?.pubkeyB64) return "unavailable";
+
   try {
-    const response = await weall.accountRegistered(acct, base);
-    if (response?.registered === true) return "registered";
-    if (response?.registered === false) return "not_registered";
+    const registration = await weall.accountRegistered(acct, base);
+    if (registration?.registered === false) return "not_registered";
+    // Whether registered=true or not reported, inspect the canonical account
+    // public key. A different owner's handle must never become "your account".
   } catch {
-    // The account endpoint may not be available while a node is joining.
-    // A network error is not evidence that registration is absent.
+    // Do not interpret a temporarily unreachable node as an absent account.
   }
+
   try {
     const view = await weall.account(acct, base);
     const state = view?.account?.state ?? view?.state ?? null;
-    if (state && typeof state === "object") {
-      if (Number(state.nonce || 0) > 0 || String(state.pubkey || "").trim()) {
-        return "registered";
-      }
-    }
-    return "not_registered";
+    if (!state || typeof state !== "object") return "unavailable";
+    const pubkey = String(state.pubkey || "").trim();
+    if (!pubkey) return "unavailable";
+    if (pubkey !== keypair.pubkeyB64) return "key_mismatch";
+    const confirmedRecord = Number(state.nonce || 0) > 0 ||
+      (Array.isArray(state.pubkeys) && state.pubkeys.includes(pubkey));
+    return confirmedRecord ? "registered" : "unavailable";
   } catch {
     return "unavailable";
   }
