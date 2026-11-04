@@ -484,6 +484,18 @@ export default function LoginPage() {
       if (expectedSigner !== suppliedSigner || (bundle && suppliedSigner !== bundle.publicKeyB64)) {
         throw new Error("The recovery key does not match the registered account key.")
       }
+      // Validate every supplied authority against canonical state before
+      // issuing a session or writing any private material to this browser.
+      if (bundle) {
+        const expectedRecovery = String(state?.recovery?.offline_key?.pubkey || "").trim()
+        const expectedEvidence = String(state?.evidence_encryption?.public_key || "").trim()
+        if (bundle.recoveryAuthorityPublicKeyB64 && bundle.recoveryAuthorityPublicKeyB64 !== expectedRecovery) {
+          throw new Error("Recovery authority in the file does not match the registered account.")
+        }
+        if (bundle.evidenceKemPublicKeyB64 && bundle.evidenceKemPublicKeyB64 !== expectedEvidence) {
+          throw new Error("Evidence decryption key in the file does not match the registered account.")
+        }
+      }
       const restored = await restoreAccountAndLoginOnThisDevice({
         account: restoreAccount,
         secretKeyB64: recoveryKeyInput.trim(),
@@ -493,14 +505,6 @@ export default function LoginPage() {
         throw new Error("The restored signing key is not authorized for this account.")
       }
       if (bundle) {
-        const chainRecovery = String(state?.recovery?.offline_key?.pubkey || "").trim()
-        const chainEvidence = String(state?.evidence_encryption?.public_key || "").trim()
-        if (bundle.recoveryAuthorityPublicKeyB64 && bundle.recoveryAuthorityPublicKeyB64 !== chainRecovery) {
-          throw new Error("Recovery authority in the file does not match the registered account.")
-        }
-        if (bundle.evidenceKemPublicKeyB64 && bundle.evidenceKemPublicKeyB64 !== chainEvidence) {
-          throw new Error("Evidence decryption key in the file does not match the registered account.")
-        }
         if (bundle.recoveryAuthorityPublicKeyB64 && bundle.recoveryAuthoritySecretKeyB64) {
           saveRecoveryAuthorityKeypair(bundle.account, {
             pubkeyB64: bundle.recoveryAuthorityPublicKeyB64,
