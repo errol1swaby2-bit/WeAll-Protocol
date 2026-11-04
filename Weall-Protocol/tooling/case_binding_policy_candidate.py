@@ -3,7 +3,9 @@
 NOT imported by runtime, block production/replay, governance, or scheduler.
 Never grants authority or changes a consensus state transition.
 """
+
 from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any
 
@@ -16,10 +18,12 @@ BLOCKERS = (
     "semantic_review_and_public_release_no_go",
 )
 
+
 def _ident(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     return value.strip() or None
+
 
 def review_case_binding_candidate(
     state: Mapping[str, Any], *, case_id: str, dispute_id: str
@@ -59,6 +63,7 @@ def review_case_binding_candidate(
                         category = "IDENTICAL_TARGET"
                     else:
                         category = "CONFLICTING_TARGET"
+
     candidate_effect = {
         "UNBOUND": "FIRST_BIND_AFTER_AUTHORITY_CHECK",
         "IDENTICAL_TARGET": "IDEMPOTENT_AFTER_PROVENANCE_CHECK",
