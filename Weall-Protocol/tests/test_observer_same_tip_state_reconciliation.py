@@ -149,9 +149,7 @@ def test_tip_commitment_mismatch_never_claims_synced(
     path = _setup(monkeypatch, tmp_path)
     bad = dict(IDENTITY)
     bad[field] = mismatch
-    monkeypatch.setattr(
-        tx_routes, "_upstream_get_json", lambda *_args, **_kwargs: bad
-    )
+    monkeypatch.setattr(tx_routes, "_upstream_get_json", lambda *_args, **_kwargs: bad)
     result = _reconcile()
     assert result["ok"] is False
     assert result["error"] == "existing_tip_commitment_mismatch"
@@ -181,9 +179,7 @@ def test_upstream_tx_receipt_rejection_cannot_serve_as_sync_proof(
     assert _queue_row(path)["local_state_synced"] is False
 
 
-def test_local_tx_index_rejection_cannot_serve_as_sync_proof(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_local_tx_index_rejection_cannot_serve_as_sync_proof(monkeypatch, tmp_path: Path) -> None:
     path = _setup(monkeypatch, tmp_path)
     monkeypatch.setattr(
         tx_routes,
@@ -200,9 +196,7 @@ def test_local_tx_index_rejection_cannot_serve_as_sync_proof(
     assert _queue_row(path)["local_state_synced"] is False
 
 
-def test_committed_tx_block_disagreement_must_fail_closed(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_committed_tx_block_disagreement_must_fail_closed(monkeypatch, tmp_path: Path) -> None:
     path = _setup(monkeypatch, tmp_path)
     monkeypatch.setattr(
         tx_routes,
@@ -236,9 +230,7 @@ def test_observer_state_change_during_identity_sample_fails_closed(
     assert _queue_row(path)["local_state_synced"] is False
 
 
-def test_no_local_index_at_or_above_target_does_not_claim_sync(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_no_local_index_at_or_above_target_does_not_claim_sync(monkeypatch, tmp_path: Path) -> None:
     path = _setup(monkeypatch, tmp_path)
     monkeypatch.setattr(tx_routes, "_tx_index_lookup", lambda *_args: None)
     result = _reconcile()
@@ -250,9 +242,7 @@ def test_repeated_confirmed_poll_preserves_prior_matching_sync_proof(
     monkeypatch, tmp_path: Path
 ) -> None:
     path = _setup(monkeypatch, tmp_path, proof=True)
-    monkeypatch.setattr(
-        tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM]
-    )
+    monkeypatch.setattr(tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM])
     result = tx_routes._reconcile_tx_queue_confirmation(TX_ID)
     assert result["upstream_status"] == "confirmed"
     assert result["local_state_synced"] is True
@@ -263,9 +253,7 @@ def test_changed_upstream_committed_block_revokes_prior_sync_proof(
     monkeypatch, tmp_path: Path
 ) -> None:
     path = _setup(monkeypatch, tmp_path, proof=True)
-    monkeypatch.setattr(
-        tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM]
-    )
+    monkeypatch.setattr(tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM])
     monkeypatch.setattr(
         tx_routes,
         "_status_from_upstream",
@@ -315,9 +303,7 @@ def test_stored_sync_flag_requires_matching_successful_local_receipt(
             "local_state_synced": True,
         },
     )
-    monkeypatch.setattr(
-        tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM]
-    )
+    monkeypatch.setattr(tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM])
     monkeypatch.setattr(
         tx_routes,
         "_request_and_apply_state_sync_from_upstream",
@@ -368,9 +354,7 @@ def test_reconcile_route_and_status_converge_after_verified_existing_tip(
     monkeypatch, tmp_path: Path
 ) -> None:
     path = _setup(monkeypatch, tmp_path)
-    monkeypatch.setattr(
-        tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM]
-    )
+    monkeypatch.setattr(tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM])
     monkeypatch.setattr(
         tx_routes,
         "_locally_confirmed_tx",
@@ -397,9 +381,7 @@ def test_reconcile_route_and_status_converge_after_verified_existing_tip(
     assert _queue_row(path)["local_state_synced"] is True
 
 
-def test_existing_tip_can_be_proven_without_delta_apply_method(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_existing_tip_can_be_proven_without_delta_apply_method(monkeypatch, tmp_path: Path) -> None:
     # The synthetic executor intentionally lacks apply_state_sync_response.
     # Matching, already-applied tips require read-only proof, not another delta.
     path = _setup(monkeypatch, tmp_path)
@@ -419,9 +401,7 @@ def test_missing_state_requires_executor_delta_apply_capability(
     assert _queue_row(path)["local_state_synced"] is False
 
 
-def test_no_executor_fails_closed_even_when_height_matches(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_no_executor_fails_closed_even_when_height_matches(monkeypatch, tmp_path: Path) -> None:
     path = _setup(monkeypatch, tmp_path)
     monkeypatch.setattr(tx_routes, "_safe_executor", lambda _req: None)
     result = _reconcile()
