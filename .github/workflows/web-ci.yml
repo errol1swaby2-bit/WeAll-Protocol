@@ -85,10 +85,6 @@ jobs:
         run: |
           npm ci
 
-      - name: Dependency audit
-        run: |
-          npm run dependency-audit
-
       - name: Typecheck
         run: |
           npm run typecheck
@@ -132,6 +128,10 @@ jobs:
       - name: Build
         run: |
           npm run build
+
+      - name: Dependency audit (must pass before deployment tests)
+        run: |
+          npm run dependency-audit
 
       - name: Install production deployment test dependencies
         run: |
