@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from "react"
 
 import { ApiError, fetchStatus, getApiBase, setApiBase, weall } from "../api/weall"
 import { ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
-import { ensureRecoveryAuthorityKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
+import { derivePublicKeyFromSecretKey, ensureRecoveryAuthorityKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
 import { ensureEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto"
 import { buildRecoveryKeyFile, downloadRecoveryKeyFile, parseRecoveryKeyFileText, readRecoveryKeyFile, recoveryFileText, verifyRecoveryKeyFileForAccount } from "../auth/recoveryFile"
 import { confirmEasySignIn, getEasySignInForAccount, listEasySignInRecords, passkeysAvailable, registerEasySignIn } from "../auth/passkeys"
