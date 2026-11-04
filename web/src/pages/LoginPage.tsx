@@ -273,7 +273,14 @@ export default function LoginPage() {
       setEasySignInAdded(!!getEasySignInForAccount(account))
       setNotice("Step 1 complete. Save and verify your recovery file to protect your account before it is registered on the network.")
     } catch (err) {
-      setError(humanizeApiError(err, "Could not create your account key."))
+      const code = err instanceof Error ? err.message : ""
+      if (code === "existing_account_key_requires_recovery" || code === "existing_recovery_authority_requires_recovery" || code === "existing_evidence_key_requires_recovery") {
+        setMode("restore")
+        setRestoreAccountInput(account)
+        setError("This browser remembers keys for that handle, but one or more private keys are unavailable. Restore your saved recovery file. No replacement keys have been generated.")
+      } else {
+        setError(humanizeApiError(err, "Could not create your account key."))
+      }
     } finally {
       setBusy(false)
     }
