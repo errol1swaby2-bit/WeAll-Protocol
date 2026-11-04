@@ -194,6 +194,9 @@ test.describe("real browser account custody", () => {
       await expect(createAccountButton).toBeEnabled({ timeout: 30_000 });
       await createAccountButton.click();
       await expect(firstPage.getByTestId("recovery-save-step")).toBeVisible({ timeout: 30_000 });
+      // Locally generated keys are not an authenticated account. Signing in
+      // before checking the saved recovery material would bypass custody.
+      expect(await firstPage.evaluate(() => localStorage.getItem("weall_session_v1"))).toBeNull();
 
       const continueButton = firstPage.getByRole("button", { name: "Continue to network registration" });
       await expect(continueButton).toBeDisabled();
@@ -241,6 +244,7 @@ test.describe("real browser account custody", () => {
       await firstPage.getByTestId("verify-created-recovery-file").setInputFiles(recoveryPath);
       await expect(firstPage.getByTestId("recovery-verification-status")).toContainText("Recovery verified", { timeout: 30_000 });
       await expect(continueButton).toBeEnabled();
+      expect(await firstPage.evaluate(() => localStorage.getItem("weall_session_v1"))).toBeNull();
 
       const storageBeforeRegistration = await firstPage.evaluate((acct: string) => ({
         publicMetadata: localStorage.getItem(`weall_keypair::${acct}`),
@@ -264,6 +268,9 @@ test.describe("real browser account custody", () => {
 
       await continueButton.click();
       await firstPage.waitForURL(/#\/onboarding\/register$/);
+      await expect(firstPage.getByTestId("guided-account-registration")).toBeVisible();
+      const issuedSession = await firstPage.evaluate(() => localStorage.getItem("weall_session_v1"));
+      expect(issuedSession).toContain(account);
       const registerButton = firstPage.getByTestId("submit-basic-registration");
       await expect(registerButton).toBeEnabled({ timeout: 30_000 });
 
