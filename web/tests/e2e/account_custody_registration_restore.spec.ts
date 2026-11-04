@@ -195,7 +195,7 @@ test.describe("real browser account custody", () => {
       await createAccountButton.click();
       await expect(firstPage.getByTestId("recovery-save-step")).toBeVisible({ timeout: 30_000 });
 
-      const continueButton = firstPage.getByRole("button", { name: "Continue to account verification" });
+      const continueButton = firstPage.getByRole("button", { name: "Continue to network registration" });
       await expect(continueButton).toBeDisabled();
 
       const downloadPromise = firstPage.waitForEvent("download");
@@ -263,8 +263,8 @@ test.describe("real browser account custody", () => {
       expect(storageBeforeRegistration.evidenceSecretInSession).toBe(recovery.evidenceKemSecretKeyB64);
 
       await continueButton.click();
-      await firstPage.waitForURL(/#\/verification$/);
-      const registerButton = firstPage.getByRole("button", { name: "Register basic account" });
+      await firstPage.waitForURL(/#\/onboarding\/register$/);
+      const registerButton = firstPage.getByTestId("submit-basic-registration");
       await expect(registerButton).toBeEnabled({ timeout: 30_000 });
 
       const registerTxId = await captureSubmittedTx(firstPage, () => registerButton.click());
