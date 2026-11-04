@@ -1498,7 +1498,7 @@ def _request_and_apply_state_sync_from_upstream(
     timeout_s: int,
 ) -> Json:
     ex = _safe_executor(request)
-    if ex is None or not callable(getattr(ex, "apply_state_sync_response", None)):
+    if ex is None:
         return {
             "ok": False,
             "error": "state_sync_apply_unavailable",
@@ -1538,6 +1538,16 @@ def _request_and_apply_state_sync_from_upstream(
             "error": "local_height_at_or_above_target_without_tx",
             "local_height": int(local_height),
             "target_height": int(target_height),
+            "upstream": _redact_upstream_url(url),
+        }
+
+    # An already-applied matching canonical tip needs only read-only proof.
+    # An actually missing block still requires an executor capable of
+    # applying authenticated state-sync responses before any delta request.
+    if not callable(getattr(ex, "apply_state_sync_response", None)):
+        return {
+            "ok": False,
+            "error": "state_sync_apply_unavailable",
             "upstream": _redact_upstream_url(url),
         }
 
