@@ -1235,6 +1235,16 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
   if (!sessionSynced) {
     throw observerReconciliationPendingError("ACCOUNT_SESSION_KEY_ISSUE", issueResult.env.nonce);
   }
+  const sessionAuthorized = await waitForAuthorizedSessionKey({
+    account: acct,
+    sessionKey: requestedSessionKey,
+    minNonce: issueResult.env.nonce,
+    base: args.base,
+    timeoutMs: 30_000,
+  });
+  if (!sessionAuthorized) {
+    throw new Error("Canonical session-key authorization is not yet visible on this node. Login remains incomplete; do not reuse the pending session key.");
+  }
 
   setSession({
     version: 1,
