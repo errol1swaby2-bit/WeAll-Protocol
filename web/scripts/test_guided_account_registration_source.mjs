@@ -13,6 +13,9 @@ const router = read("src/lib/router.ts");
 const app = read("src/App.tsx");
 const prefetch = read("src/lib/routePrefetch.ts");
 const e2e = read("tests/e2e/account_custody_registration_restore.spec.ts");
+const keys = read("src/auth/keys.ts");
+const session = read("src/auth/session.ts");
+const evidence = read("src/auth/evidenceCrypto.ts");
 
 function section(source, begin, end) {
   const start = source.indexOf(begin);
@@ -25,6 +28,11 @@ const keyCreation = section(login, "async function handleCreateAccount(", "async
 const verifiedRecovery = section(login, "function handleContinueAfterRecovery(", "function verifyCreatedRecoveryFile(");
 
 assert.ok(!keyCreation.includes("issueSessionFromSecretKey("), "A locally created key cannot mint a login session before recovery verification");
+assert.ok(keys.includes("hasStoredKeypairMetadata("), "Existing public identity metadata must be detectable after browser secret loss");
+assert.ok(session.includes('if (hasStoredKeypairMetadata(acct)) throw new Error("existing_account_key_requires_recovery")'), "Missing signing seed must not trigger identity replacement");
+assert.ok(keys.includes('throw new Error("existing_recovery_authority_requires_recovery")'), "Recovery authority must not silently rotate");
+assert.ok(evidence.includes('throw new Error("existing_evidence_key_requires_recovery")'), "Evidence authority must not silently rotate");
+assert.ok(keyCreation.includes('setMode("restore")'), "Interrupted key custody must offer recovery route");
 assert.ok(verifiedRecovery.includes('if (!recoveryVerified)'), "Recovery ceremony must fail closed");
 assert.ok(verifiedRecovery.includes("issueSessionFromSecretKey("), "Recovery completion should mint the login session");
 assert.ok(verifiedRecovery.includes('nav("/onboarding/register")'), "New users must register from dedicated page");
