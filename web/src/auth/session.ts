@@ -724,6 +724,29 @@ async function waitForAuthorizedSessionKey(args: {
   return false;
 }
 
+async function waitForRevokedSessionKey(args: {
+  account: string;
+  sessionKey: string;
+  base?: string;
+  timeoutMs?: number;
+}): Promise<boolean> {
+  const deadline = Date.now() + Math.max(1_000, Math.min(120_000, args.timeoutMs ?? 30_000));
+  while (Date.now() <= deadline) {
+    try {
+      const view = await weall.account(args.account, args.base);
+      const state = view?.account?.state ?? view?.state;
+      const records = state?.session_keys?.by_id;
+      // A missing record is ambiguous: only explicit revocation is sufficient.
+      const entry = records?.[args.sessionKey];
+      if (entry && typeof entry === "object" && entry.revoked === true) return true;
+    } catch {
+      // Network errors are not evidence of revocation.
+    }
+    await sleep(500);
+  }
+  return false;
+}
+
 function observerReconciliationPendingError(txType: string, nonce: number): Error {
   const err = new Error(
     `The ${txType} action reached submission, but this local observer has not reconciled nonce ${nonce} yet. Keep the local observer reconciliation worker running and retry after it catches up.`,
