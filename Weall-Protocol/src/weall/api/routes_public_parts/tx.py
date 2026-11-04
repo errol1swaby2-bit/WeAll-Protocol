@@ -2131,7 +2131,11 @@ def tx_status(request: Request, tx_id: str) -> Json:
     if not t:
         raise ApiError.bad_request("bad_request", "missing tx_id", {})
 
-    outbound = _tx_queue_summary_for_tx(t)
+    # The outbound queue belongs to an observer edge, not a block producer.
+    # A shared or stale observer queue must never downgrade a canonical Genesis
+    # ledger confirmation. Observer edges still require an upstream confirmation
+    # AND reconciliation before reporting local_state_synced=true.
+    outbound = _tx_queue_summary_for_tx(t) if _observer_edge_mode() else None
 
     idx = _tx_index_lookup(request, t)
     if isinstance(idx, dict):
