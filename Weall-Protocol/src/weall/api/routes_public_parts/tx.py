@@ -1327,9 +1327,7 @@ def _reconcile_tx_queue_confirmation(tx_id: str) -> Json | None:
                         "confirmed_height": height,
                         "confirmed_block_id": block_id,
                         "local_state_synced": keep_synced,
-                        "last_result": _compact_tx_queue_result(
-                            {"status_reconciliation": results}
-                        ),
+                        "last_result": _compact_tx_queue_result({"status_reconciliation": results}),
                         "last_error": "",
                         "updated_ms": _now_ms(),
                     }
@@ -1432,12 +1430,7 @@ def _prove_already_applied_tx_at_matching_tip(
         before = local_before.get(key)
         after = local_after.get(key)
         upstream_value = remote.get(key)
-        if (
-            before is None
-            or before == ""
-            or before != after
-            or before != upstream_value
-        ):
+        if before is None or before == "" or before != after or before != upstream_value:
             return {
                 "ok": False,
                 "error": "existing_tip_commitment_mismatch",
@@ -1681,10 +1674,8 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
         and isinstance(local, dict)
         and local.get("apply_ok") is True
         and int(local.get("height") or 0) > 0
-        and int(local.get("height") or 0)
-        == int(outbound.get("confirmed_height") or 0)
-        and str(local.get("block_id") or "")
-        == str(outbound.get("confirmed_block_id") or "")
+        and int(local.get("height") or 0) == int(outbound.get("confirmed_height") or 0)
+        and str(local.get("block_id") or "") == str(outbound.get("confirmed_block_id") or "")
     ):
         return {
             "ok": True,
