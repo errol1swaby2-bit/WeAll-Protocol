@@ -52,6 +52,11 @@ assert.ok(session.includes("if (!sessionAuthorized)"), "Missing canonical key au
 assert.ok(session.includes("async function waitForConfirmedSessionTransaction("), "Session issuance must establish transaction finality independently of nonce");
 assert.ok(session.includes("if (!confirmed)"), "Missing canonical receipt must block login");
 assert.ok(session.includes('result?.local_state_synced === true'), "Session receipt must be synchronized with the canonical observer");
+assert.ok(session.includes("async function waitForRevokedSessionKey("), "Session revocation needs canonical state readback");
+assert.ok(session.includes("entry.revoked === true"), "Do not treat an absent record as proof of revocation");
+assert.ok(session.includes("submitAndVerifySessionRevocation("), "Revocation paths must use shared receipt verification");
+assert.ok(session.includes("if (!authorized)"), "Replacement session keys must be canonically authorized before activation");
+assert.ok(session.includes("} finally {\n    // Local logout must happen even if the network cannot confirm revocation."), "Local logout must not depend on remote revocation confirmation");
 assert.ok(session.includes("entry.revoked !== true"), "Revoked session keys cannot authorize a browser login");
 const canonicalCheck = restoredLogin.indexOf("expectedSigner !== suppliedSigner");
 const recoveryAuthorityCheck = restoredLogin.indexOf("bundle.recoveryAuthorityPublicKeyB64 !== expectedRecovery");
