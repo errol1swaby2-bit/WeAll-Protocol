@@ -362,3 +362,36 @@ def test_valid_stored_sync_flag_can_short_circuit_redundant_sync(
     assert result["local_state_synced"] is True
     assert result["source"] == "already_synced"
     assert _queue_row(path)["local_state_synced"] is True
+
+
+def test_reconcile_route_and_status_converge_after_verified_existing_tip(
+    monkeypatch, tmp_path: Path
+) -> None:
+    path = _setup(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        tx_routes, "_normalized_tx_upstream_urls", lambda *_args: [UPSTREAM]
+    )
+    monkeypatch.setattr(
+        tx_routes,
+        "_locally_confirmed_tx",
+        lambda *_args: {
+            "tx_id": TX_ID,
+            "height": 3,
+            "block_id": BLOCK_ID,
+            "apply_ok": True,
+        },
+    )
+
+    reconcile = tx_routes._reconcile_and_sync_local_state(object(), TX_ID)
+    assert reconcile["ok"] is True
+    assert reconcile["local_state_synced"] is True
+    assert reconcile["source"] == "state_sync"
+
+    # Public status will poll upstream again. That poll must not regress the
+    # newly proved observer state back to "not synced".
+    status = tx_routes.tx_status(object(), TX_ID)
+    assert status["status"] == "confirmed"
+    assert status["source"] == "upstream_synced"
+    assert status["local_state_synced"] is True
+    assert status["outbound_propagation"]["local_state_synced"] is True
+    assert _queue_row(path)["local_state_synced"] is True
