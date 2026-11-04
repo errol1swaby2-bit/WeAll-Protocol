@@ -15,26 +15,21 @@ export async function readAccountRegistrationStatus(account: string, base: strin
   const keypair = acct ? getKeypair(acct) : null;
   if (!acct || !keypair?.pubkeyB64) return "unavailable";
 
-  try {
-    const registration = await weall.accountRegistered(acct, base);
-    if (registration?.registered === false) return "not_registered";
-    // Whether registered=true or not reported, inspect the canonical account
-    // public key. A different owner's handle must never become "your account".
-  } catch {
-    // Do not interpret a temporarily unreachable node as an absent account.
-  }
-
+  // /v1/accounts/{account}/registered is a Tier-2 *posting eligibility*
+  // predicate, not a basic-account existence check. Read the actual account
+  // state and verify its bound public key instead.
   try {
     const view = await weall.account(acct, base);
     const state = view?.account?.state ?? view?.state ?? null;
     if (!state || typeof state !== "object") return "unavailable";
     const pubkey = String(state.pubkey || "").trim();
-    if (!pubkey) return "unavailable";
-    if (pubkey !== keypair.pubkeyB64) return "key_mismatch";
-    const confirmedRecord = Number(state.nonce || 0) > 0 ||
-      (Array.isArray(state.pubkeys) && state.pubkeys.includes(pubkey));
-    return confirmedRecord ? "registered" : "unavailable";
+    if (pubkey && pubkey !== keypair.pubkeyB64) return "key_mismatch";
+    const nonce = Number(state.nonce || 0);
+    if (pubkey && nonce > 0) return "registered";
+    if (nonce === 0 && !pubkey) return "not_registered";
+    return "unavailable";
   } catch {
+    // A failed read is not permission to submit a second registration.
     return "unavailable";
   }
 }
