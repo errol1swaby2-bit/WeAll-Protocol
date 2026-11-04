@@ -1197,12 +1197,15 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
     parent: null,
     base: args.base,
   });
-  await waitForLocalAccountNonceAtLeast({
+  const sessionSynced = await waitForLocalAccountNonceAtLeast({
     account: acct,
     minNonce: issueResult.env.nonce,
     base: args.base,
     timeoutMs: 30_000,
   });
+  if (!sessionSynced) {
+    throw observerReconciliationPendingError("ACCOUNT_SESSION_KEY_ISSUE", issueResult.env.nonce);
+  }
 
   setSession({
     version: 1,
