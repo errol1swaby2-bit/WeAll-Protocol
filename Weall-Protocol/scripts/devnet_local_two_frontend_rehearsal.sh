@@ -20,6 +20,12 @@ WEB_ROOT="${WEALL_WEB_ROOT:-${WORKSPACE_ROOT}/web}"
 DEVNET_DIR="${WEALL_DEVNET_DIR:-${REPO_ROOT}/.weall-devnet}"
 RUNTIME_DIR="${WEALL_RUNTIME_DIR:-${DEVNET_DIR}/runtime}"
 TX_QUEUE_PATH="${WEALL_TX_QUEUE_PATH:-${RUNTIME_DIR}/observer_tx_queue.json}"
+# Each backend needs independent queue metadata: only the observer forwards.
+GENESIS_TX_QUEUE_PATH="${RUNTIME_DIR}/genesis_tx_queue.json"
+if [[ "${TX_QUEUE_PATH}" == "${GENESIS_TX_QUEUE_PATH}" ]]; then
+  echo "ERROR: observer and Genesis queue paths must be distinct; refusing shared WEALL_TX_QUEUE_PATH" >&2
+  exit 2
+fi
 LOG_DIR="${WEALL_DEVNET_LOG_DIR:-${DEVNET_DIR}/logs}"
 GENERATED_DIR="${DEVNET_DIR}/generated"
 NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"
@@ -749,7 +755,7 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
   (
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
     export WEALL_RUNTIME_DIR="${RUNTIME_DIR}"
-    export WEALL_TX_QUEUE_PATH="${TX_QUEUE_PATH}"
+    export WEALL_TX_QUEUE_PATH="${GENESIS_TX_QUEUE_PATH}"
     export WEALL_MODE=controlled_devnet
     export WEALL_RUNTIME_PROFILE=controlled_devnet
     export WEALL_CHAIN_ID=weall-controlled-devnet
