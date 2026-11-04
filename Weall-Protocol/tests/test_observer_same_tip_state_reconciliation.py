@@ -395,3 +395,36 @@ def test_reconcile_route_and_status_converge_after_verified_existing_tip(
     assert status["local_state_synced"] is True
     assert status["outbound_propagation"]["local_state_synced"] is True
     assert _queue_row(path)["local_state_synced"] is True
+
+
+def test_existing_tip_can_be_proven_without_delta_apply_method(
+    monkeypatch, tmp_path: Path
+) -> None:
+    # The synthetic executor intentionally lacks apply_state_sync_response.
+    # Matching, already-applied tips require read-only proof, not another delta.
+    path = _setup(monkeypatch, tmp_path)
+    result = _reconcile()
+    assert result["ok"] is True
+    assert _queue_row(path)["local_state_synced"] is True
+
+
+def test_missing_state_requires_executor_delta_apply_capability(
+    monkeypatch, tmp_path: Path
+) -> None:
+    path = _setup(monkeypatch, tmp_path)
+    monkeypatch.setattr(tx_routes, "_local_height_for_request", lambda _req: 1)
+    result = _reconcile()
+    assert result["ok"] is False
+    assert result["error"] == "state_sync_apply_unavailable"
+    assert _queue_row(path)["local_state_synced"] is False
+
+
+def test_no_executor_fails_closed_even_when_height_matches(
+    monkeypatch, tmp_path: Path
+) -> None:
+    path = _setup(monkeypatch, tmp_path)
+    monkeypatch.setattr(tx_routes, "_safe_executor", lambda _req: None)
+    result = _reconcile()
+    assert result["ok"] is False
+    assert result["error"] == "state_sync_apply_unavailable"
+    assert _queue_row(path)["local_state_synced"] is False
