@@ -259,7 +259,6 @@ export default function LoginPage() {
       const evidenceKem = generateEvidenceKemKeypair()
       saveRecoveryAuthorityKeypair(account, recoveryAuthority)
       saveEvidenceKemKeypair(account, evidenceKem)
-      issueSessionFromSecretKey({ account, secretKeyB64: keypair.secretKeyB64 })
       setCreatedKey({
         account,
         pubkeyB64: keypair.pubkeyB64,
@@ -274,7 +273,7 @@ export default function LoginPage() {
       setRecoveryVerified(false)
       setRecoveryVerificationText("")
       setEasySignInAdded(!!getEasySignInForAccount(account))
-      setNotice("Your account key was created locally. Download your recovery file, then verify it before registering or continuing.")
+      setNotice("Step 1 complete. Save and verify your recovery file to protect your account before it is registered on the network.")
     } catch (err) {
       setError(humanizeApiError(err, "Could not create your account key."))
     } finally {
@@ -351,7 +350,14 @@ export default function LoginPage() {
       setError("Verify your saved recovery file or pasted recovery JSON before continuing.")
       return
     }
-    nav(consumeReturnTo("/verification"))
+    try {
+      // A browser key alone is not a completed account: create the session
+      // only after the saved recovery file has been cryptographically checked.
+      issueSessionFromSecretKey({ account: createdKey.account, secretKeyB64: createdKey.secretKeyB64 })
+      nav("/onboarding/register")
+    } catch (reason) {
+      setError(humanizeApiError(reason, "Could not open account registration."))
+    }
   }
 
   function verifyCreatedRecoveryFile(parsed: ReturnType<typeof parseRecoveryKeyFileText>) {
@@ -574,14 +580,14 @@ export default function LoginPage() {
         <div className="authHeroGrid">
           <div className="authHeroCopy">
             <p className="eyebrow">Welcome</p>
-            <h1>Sign in to WeAll</h1>
+            <h1>Create or access your WeAll account</h1>
             <p className="muted">
               Create an account key, verify your recovery file, then use easy sign-in on this device for faster access later.
             </p>
             <div className="statusRowWrap">
-              <StepPill done={!!createdKey || !!session?.account}>Account key</StepPill>
+              <StepPill done={!!createdKey || !!session?.account}>1. Account key</StepPill>
               <StepPill done={recoveryDownloaded}>Recovery downloaded</StepPill>
-              <StepPill done={recoveryVerified}>Recovery verified</StepPill>
+              <StepPill done={recoveryVerified}>2. Recovery verified</StepPill>
               <StepPill done={easySignInAdded || !!savedEasySignIns.length}>Easy sign-in optional</StepPill>
             </div>
           </div>
@@ -654,7 +660,7 @@ export default function LoginPage() {
                     <p className="eyebrow">Recovery key</p>
                     <h3>Save this before continuing</h3>
                     <p className="muted">
-                      This recovery key is how you sign in on another device. WeAll cannot reset it for you. You must verify the saved file before continuing.
+                      This private recovery file is the backup for your account. Keep it somewhere safe. WeAll cannot reset it for you. Verify that the saved copy works before continuing.
                     </p>
                   </div>
                   <div className="authMetaGrid">
@@ -710,7 +716,7 @@ export default function LoginPage() {
                       {easySignInBusy ? "Adding…" : easySignInAdded ? "Easy sign-in added" : "Add easy sign-in"}
                     </button>
                     <button type="button" onClick={handleContinueAfterRecovery} disabled={!recoveryVerified}>
-                      Continue to account verification
+                      Continue to network registration
                     </button>
                   </div>
                   {!passkeyReady ? <p className="muted">Easy sign-in is not available in this browser. Your recovery key still works.</p> : null}
