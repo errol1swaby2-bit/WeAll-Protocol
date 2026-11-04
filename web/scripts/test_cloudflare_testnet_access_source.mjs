@@ -36,6 +36,7 @@ const app = readWeb("src/App.tsx");
 const session = readWeb("src/auth/session.ts");
 const recognition = readWeb("src/lib/browserNodeSession.ts");
 const originPolicy = readWeb("src/lib/publicApiOrigin.ts");
+const transition = readWeb("src/lib/browserNodeTransition.ts");
 assert.ok(manager.includes('from "./publicApiOrigin"'), "node discovery must use the shared HTTPS origin validator");
 assert.ok(recognition.includes('from "./publicApiOrigin"'), "session consent must use the shared HTTPS origin validator");
 assert.ok(originPolicy.includes("export function isPublicApiOrigin("), "shared HTTPS origin validator missing");
@@ -53,14 +54,18 @@ assert.ok(recognition.includes('redirect: "error"'), "session bearer must not fo
 assert.ok(recognition.includes("rememberManualNodeConsent("), "explicit tab-scoped node consent must be available");
 assert.ok(recognition.includes("sessionStorage.setItem(MANUAL_NODE_CONSENT_KEY"), "unlisted node consent must be tab-scoped");
 assert.ok(connector.includes("hasManualNodeConsent(current.baseUrl)"), "explicit current manual node choice should survive same-tab reload");
-assert.ok(panel.includes("window.confirm(") && panel.includes("rememberManualNodeConsent("), "unlisted user-selected nodes require informed opt-in");
+assert.ok(panel.includes("window.confirm(") && panel.includes("selectBrowserNode(") && transition.includes("rememberManualNodeConsent("), "unlisted user-selected nodes require informed opt-in through the shared transition");
 assert.ok(settings.includes("window.confirm(") && settings.includes("applyCompatibilityBaseline([raw], baseline)"), "raw manual URL must be checked against pinned commitments before opt-in");
-assert.ok(connector.includes("verifyBrowserSessionOnNode("), "automatic failover must be session-aware");
+assert.ok(connector.includes("selectBrowserNode(") && transition.includes("verifyBrowserSessionOnNode("), "automatic failover must use the shared session-aware transition");
 assert.ok(connector.includes("current.listedInSeedManifest"), "current node cannot bypass manifest restriction");
 assert.ok(manager.includes("probe.listedInSeedManifest === true"), "public switching must require published endpoints");
-assert.ok(panel.includes("verifyBrowserSessionOnNode("), "manual connection changes must check session recognition");
-assert.ok(settings.includes("discoverNodeProbes(") && settings.includes("verifyBrowserSessionOnNode("),
+assert.ok(panel.includes("selectBrowserNode(") && transition.includes("verifyBrowserSessionOnNode("), "manual connection changes must check session recognition");
+assert.ok(settings.includes("discoverNodeProbes(") && settings.includes("selectBrowserNode("),
   "Settings raw URL selection must not bypass HTTPS/session validation");
+assert.ok(transition.includes('intent === "automatic"') && transition.includes("probe.isCurrent && previouslyApproved"),
+  "automatic selection must not promote unlisted alternatives from tab consent");
+assert.ok(transition.includes("if (decision.consentRequired) rememberManualNodeConsent(probe.baseUrl);"),
+  "tab consent must be recorded only after session validation");
 assert.ok(readWeb("scripts/check_https_node_api.mjs").includes("cors_frontend_origin_mismatch"),
   "HTTPS/CORS operator preflight must exist");
 

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, setApiBaseUrl, validateApiBaseInput } from "../api/weall";
-import { hasManualNodeConsent, rememberManualNodeConsent, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
-import { applyCompatibilityBaseline, discoverNodeProbes, isPublicApiOrigin, loadExpectedCompatibilityBaseline, probeNode, switchToNode } from "../lib/nodeConnectionManager";
+import { applyCompatibilityBaseline, discoverNodeProbes, isPublicApiOrigin, loadExpectedCompatibilityBaseline, probeNode } from "../lib/nodeConnectionManager";
+import { selectBrowserNode } from "../lib/browserNodeTransition";
 import NodeConnectionPanel from "../components/NodeConnectionPanel";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
@@ -125,26 +125,16 @@ export default function Settings(): JSX.Element {
         if (!probe || probe.phase !== "healthy" || !probe.ok) {
           throw new Error("The requested HTTPS API is not ready or does not match the pinned testnet chain.");
         }
-        const consentRequired = !probe.listedInSeedManifest && !hasManualNodeConsent(probe.baseUrl);
-        if (consentRequired) {
-          const allowed = window.confirm(
+        const connection = await selectBrowserNode(probe, {
+          intent: "manual",
+          allowCurrent: true,
+          confirmUnlisted: () => window.confirm(
             "This compatible HTTPS node is not in WeAll's published seed manifest. Its operator may observe your API requests and session bearer. Approve connecting to this specific address in this browser tab?",
-          );
-          if (!allowed) return;
-        }
-        const existing = getSession();
-        if (existing?.sessionKey) {
-          const state = await verifyBrowserSessionOnNode(
-            probe.baseUrl, existing.account, existing.sessionKey, { attempts: 3 },
-          );
-          if (state !== "verified") {
-            throw new Error("The destination has not recognized this browser session; the previous connection was preserved.");
-          }
-        }
-        if (consentRequired) rememberManualNodeConsent(probe.baseUrl);
-        const runtimeBase = switchToNode(probe.baseUrl);
-        setApiBase(probe.baseUrl);
-        flash(runtimeBase ? "Verified connection target saved." : "Connection target saved.");
+          ),
+        });
+        if (!connection) return; // Declined; preserve the existing connection.
+        setApiBase(connection.baseUrl);
+        flash(connection.runtimeBase ? "Verified connection target saved." : "Connection target saved.");
       } else {
         const runtimeBase = setApiBaseUrl(validation.normalized);
         setApiBase(validation.normalized);

@@ -134,11 +134,19 @@ const manager = loadTypeScriptModule("src/lib/nodeConnectionManager.ts", {
   "./config": { config },
   "../api/weall": api,
 });
+const transition = loadTypeScriptModule("src/lib/browserNodeTransition.ts", {
+  "../auth/session": { getSession: () => localSession },
+  "./browserNodeSession": browserSession,
+  "./config": { config },
+  "./publicApiOrigin": originPolicy,
+  "./nodeConnectionManager": manager,
+});
 const connector = loadTypeScriptModule("src/lib/connectPublicTestnetBrowser.ts", {
   "../auth/session": { getSession: () => localSession },
   "./browserNodeSession": browserSession,
   "./config": { config },
   "./nodeConnectionManager": manager,
+  "./browserNodeTransition": transition,
 });
 function reset() {
   selected = "/";
@@ -302,6 +310,114 @@ test("explicit per-tab approval allows a compatible custom HTTPS node after sess
     assert.deepEqual(result, { state: "connected", baseUrl: "https://unlisted.test", changed: false });
     assert.ok(sessionCalls.some((call) => call.host === "unlisted.test"));
     assert.equal(browserSession.isBrowserSessionApproved(selected, "@alice", "fixture-secret"), true);
+  } finally {
+    delete globalThis.sessionStorage;
+  }
+});
+
+test("shared transition blocks incompatible, invalid, or untrusted automatic targets before bearer disclosure", async () => {
+  reset();
+  localSession = { account: "@alice", sessionKey: "bearer" };
+  const probe = (baseUrl, extra = {}) => ({
+    baseUrl, phase: "healthy", ok: true, isCurrent: false,
+    listedInSeedManifest: false, ...extra,
+  });
+  let asked = 0;
+  const consent = () => { asked += 1; return true; };
+  for (const bad of [
+    probe("https://wrong.test", { phase: "incompatible", ok: false }),
+    probe("http://unlisted.test"),
+    probe("https://unlisted.test"),
+  ]) {
+    assert.equal(transition.inspectBrowserNodeTarget(bad, "automatic").allowed, false);
+    await assert.rejects(() => transition.selectBrowserNode(bad, {
+      intent: "automatic", confirmUnlisted: consent,
+    }));
+  }
+  assert.equal(asked, 0);
+  assert.equal(sessionCalls.length, 0);
+  assert.equal(changes, 0);
+});
+
+test("shared manual transition never discloses bearer or changes node on declined consent", async () => {
+  reset();
+  localSession = { account: "@alice", sessionKey: "bearer" };
+  const node = { baseUrl: "https://unlisted.test", phase: "healthy",
+    ok: true, isCurrent: false, listedInSeedManifest: false };
+  assert.equal(transition.inspectBrowserNodeTarget(node, "manual").consentRequired, true);
+  const result = await transition.selectBrowserNode(node, {
+    intent: "manual", confirmUnlisted: () => false,
+  });
+  assert.equal(result, null);
+  assert.equal(changes, 0);
+  assert.equal(sessionCalls.length, 0);
+  assert.equal(browserSession.hasManualNodeConsent(node.baseUrl), false);
+});
+
+test("shared manual transition requires recognition before storing consent or switching", async () => {
+  reset();
+  const storage = new Map();
+  globalThis.sessionStorage = {
+    getItem: (key) => storage.get(key) ?? null,
+    setItem: (key, value) => storage.set(key, String(value)),
+    removeItem: (key) => storage.delete(key),
+  };
+  try {
+    localSession = { account: "@alice", sessionKey: "bearer" };
+    const node = { baseUrl: "https://unlisted.test", phase: "healthy",
+      ok: true, isCurrent: false, listedInSeedManifest: false };
+    let approvals = 0;
+    const accept = () => { approvals += 1; return true; };
+    await assert.rejects(() => transition.selectBrowserNode(node, {
+      intent: "manual", confirmUnlisted: accept, attempts: 1,
+    }), /not recognized/);
+    assert.equal(approvals, 1);
+    assert.equal(browserSession.hasManualNodeConsent(node.baseUrl), false);
+    assert.equal(changes, 0);
+    assert.ok(sessionCalls.some((call) => call.host === "unlisted.test"));
+    recognized.add("unlisted.test");
+    const success = await transition.selectBrowserNode(node, {
+      intent: "manual", confirmUnlisted: accept, attempts: 1,
+    });
+    assert.deepEqual(success, {
+      baseUrl: "https://unlisted.test", runtimeBase: "https://unlisted.test", changed: true,
+    });
+    assert.equal(approvals, 2);
+    assert.equal(browserSession.hasManualNodeConsent(node.baseUrl), true);
+    assert.equal(changes, 1);
+    assert.equal(browserSession.isBrowserSessionApproved(node.baseUrl, "@alice", "bearer"), true);
+    const unlistedAlternative = { ...node, baseUrl: "https://backup.test" };
+    assert.equal(transition.inspectBrowserNodeTarget(unlistedAlternative, "automatic").allowed, false,
+      "tab consent for one unlisted URL cannot create a published alternative");
+  } finally {
+    delete globalThis.sessionStorage;
+  }
+});
+
+test("only explicitly approved current unlisted node can be retained automatically", async () => {
+  reset();
+  const storage = new Map();
+  globalThis.sessionStorage = {
+    getItem: (key) => storage.get(key) ?? null,
+    setItem: (key, value) => storage.set(key, String(value)),
+    removeItem: (key) => storage.delete(key),
+  };
+  try {
+    const current = { baseUrl: "https://unlisted.test", phase: "healthy",
+      ok: true, isCurrent: true, listedInSeedManifest: false };
+    assert.equal(transition.inspectBrowserNodeTarget(current, "automatic", { allowCurrent: true }).allowed, false);
+    browserSession.rememberManualNodeConsent(current.baseUrl);
+    assert.equal(transition.inspectBrowserNodeTarget(current, "automatic", { allowCurrent: true }).allowed, true);
+    assert.equal(transition.inspectBrowserNodeTarget({ ...current, isCurrent: false }, "automatic").allowed, false);
+    selected = current.baseUrl;
+    localSession = { account: "@alice", sessionKey: "bearer" };
+    recognized.add("unlisted.test");
+    const result = await transition.selectBrowserNode(current, {
+      intent: "automatic", allowCurrent: true, attempts: 1,
+    });
+    assert.equal(result?.changed, false);
+    assert.equal(changes, 0);
+    assert.equal(browserSession.isBrowserSessionApproved(current.baseUrl, "@alice", "bearer"), true);
   } finally {
     delete globalThis.sessionStorage;
   }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getSession } from "../auth/session";
-import { hasManualNodeConsent, rememberManualNodeConsent, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
+import { hasManualNodeConsent, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
+import { inspectBrowserNodeTarget, selectBrowserNode } from "../lib/browserNodeTransition";
 import { config } from "../lib/config";
 
 import {
@@ -10,7 +11,6 @@ import {
   NodeProbe,
   canSwitchToNode,
   switchToNode,
-  isPublicApiOrigin,
 } from "../lib/nodeConnectionManager";
 
 function phaseClass(phase: NodeProbe["phase"]): string {
@@ -52,31 +52,14 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
   async function chooseNode(probe: NodeProbe): Promise<void> {
     setErr("");
     try {
-      const listed = canSwitchToNode(probe);
-      const manualEligible = config.publicTestnet && !probe.isCurrent &&
-        probe.phase === "healthy" && probe.ok && isPublicApiOrigin(probe.baseUrl);
-      if (!listed && !manualEligible) {
-        throw new Error("Only healthy chain-compatible nodes can be selected.");
-      }
-      const requiresManualConsent = manualEligible && !probe.listedInSeedManifest && !hasManualNodeConsent(probe.baseUrl);
-      if (requiresManualConsent) {
-        const accepted = window.confirm(
+      const result = await selectBrowserNode(probe, {
+        intent: "manual",
+        confirmUnlisted: () => window.confirm(
           "This HTTPS node is not in the published WeAll seed manifest. Its operator may observe API requests and your session bearer. Connect to this specific address only if you trust its operator. This choice is limited to this browser tab. Continue?",
-        );
-        if (!accepted) return;
-      }
-      const session = getSession();
-      if (config.publicTestnet && session?.sessionKey) {
-        const recognition = await verifyBrowserSessionOnNode(
-          probe.baseUrl, session.account, session.sessionKey, { attempts: 3 },
-        );
-        if (recognition !== "verified") {
-          throw new Error("This node has not recognized the current browser session. It may still be syncing; retry when the session record is available, or recover/login independently. Your existing connection was preserved.");
-        }
-      }
-      if (requiresManualConsent) rememberManualNodeConsent(probe.baseUrl);
-      switchToNode(probe.baseUrl);
-      setSwitchedTo(probe.baseUrl);
+        ),
+      });
+      if (!result) return; // User declined before any bearer disclosure or switch.
+      setSwitchedTo(result.baseUrl);
       await refresh();
     } catch (e: any) {
       setErr(String(e?.message || e || "Could not switch node."));
@@ -86,8 +69,8 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
   async function recheckCurrentSession(): Promise<void> {
     const currentProbe = probes.find((probe) => probe.isCurrent);
     const currentSession = getSession();
-    if (!currentProbe || currentProbe.phase !== "healthy" ||
-      (!currentProbe.listedInSeedManifest && !hasManualNodeConsent(currentProbe.baseUrl)) ||
+    if (!currentProbe ||
+      !inspectBrowserNodeTarget(currentProbe, "automatic", { allowCurrent: true }).allowed ||
       !currentSession?.sessionKey) {
       setSessionCheck("There is no reachable current node and saved bearer to verify. Open session recovery if needed.");
       return;
@@ -140,7 +123,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
           </div>
         ) : null}
         <div className="calloutInfo">
-          <strong>Switching rule:</strong> only healthy compatible nodes may be selected. Public testnet selections must also be HTTPS endpoints listed by the deployed seed manifest. An active session must be recognized by the destination before the browser switches; pending synchronization is not proof of login. Chain mismatches remain blocked.
+          <strong>Switching rule:</strong> only healthy compatible nodes may be selected. Public testnet auto-selection requires a published HTTPS node; unlisted compatible HTTPS nodes require explicit per-tab operator consent. An active session must be recognized by the destination before switching. Chain mismatches remain blocked.
         </div>
 
         {probes.length === 0 && !busy ? (
@@ -186,8 +169,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
                   <button className="btn btnPrimary" onClick={() => void chooseNode(probe)}>
                     Switch to this node
                   </button>
-                ) : config.publicTestnet && !probe.isCurrent && probe.phase === "healthy" &&
-                    probe.ok && isPublicApiOrigin(probe.baseUrl) ? (
+                ) : config.publicTestnet && inspectBrowserNodeTarget(probe, "manual").allowed ? (
                   <button className="btn" onClick={() => void chooseNode(probe)}>
                     {hasManualNodeConsent(probe.baseUrl) ? "Use approved node" : "Approve unlisted HTTPS node"}
                   </button>
