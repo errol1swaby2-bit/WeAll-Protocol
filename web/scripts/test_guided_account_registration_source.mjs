@@ -49,6 +49,9 @@ assert.ok(restoredLogin.includes("if (restoredSessionIssued) endSession()"), "Po
 assert.ok(session.includes('if (!sessionSynced)'), "Canonical session issuance must fail closed on observer reconciliation timeout");
 assert.ok(session.includes("async function waitForAuthorizedSessionKey("), "Canonical session key must be checked in synchronized account state");
 assert.ok(session.includes("if (!sessionAuthorized)"), "Missing canonical key authorization must prevent active login");
+assert.ok(session.includes("async function waitForConfirmedSessionTransaction("), "Session issuance must establish transaction finality independently of nonce");
+assert.ok(session.includes("if (!confirmed)"), "Missing canonical receipt must block login");
+assert.ok(session.includes('result?.local_state_synced === true'), "Session receipt must be synchronized with the canonical observer");
 assert.ok(session.includes("entry.revoked !== true"), "Revoked session keys cannot authorize a browser login");
 const canonicalCheck = restoredLogin.indexOf("expectedSigner !== suppliedSigner");
 const recoveryAuthorityCheck = restoredLogin.indexOf("bundle.recoveryAuthorityPublicKeyB64 !== expectedRecovery");
