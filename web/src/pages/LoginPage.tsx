@@ -485,9 +485,32 @@ export default function LoginPage() {
         account: restoreAccount,
         secretKeyB64: recoveryKeyInput.trim(),
       })
-      if (bundle && restored.keypair.pubkeyB64 !== bundle.publicKeyB64) {
-        throw new Error("The restored account key does not match the selected recovery file.")
+      if (restored.keypair.pubkeyB64 !== expectedSigner) {
+        throw new Error("The restored signing key is not authorized for this account.")
       }
+      if (bundle) {
+        const chainRecovery = String(state?.recovery?.offline_key?.pubkey || "").trim()
+        const chainEvidence = String(state?.evidence_encryption?.public_key || "").trim()
+        if (bundle.recoveryAuthorityPublicKeyB64 && bundle.recoveryAuthorityPublicKeyB64 !== chainRecovery) {
+          throw new Error("Recovery authority in the file does not match the registered account.")
+        }
+        if (bundle.evidenceKemPublicKeyB64 && bundle.evidenceKemPublicKeyB64 !== chainEvidence) {
+          throw new Error("Evidence decryption key in the file does not match the registered account.")
+        }
+        if (bundle.recoveryAuthorityPublicKeyB64 && bundle.recoveryAuthoritySecretKeyB64) {
+          saveRecoveryAuthorityKeypair(bundle.account, {
+            pubkeyB64: bundle.recoveryAuthorityPublicKeyB64,
+            secretKeyB64: bundle.recoveryAuthoritySecretKeyB64,
+          })
+        }
+        if (bundle.evidenceKemPublicKeyB64 && bundle.evidenceKemSecretKeyB64) {
+          saveEvidenceKemKeypair(bundle.account, {
+            publicKeyB64: bundle.evidenceKemPublicKeyB64,
+            secretKeyB64: bundle.evidenceKemSecretKeyB64,
+          })
+        }
+      }
+      setStagedRecoveryBundle(null)
       setNotice("Signed in on this device.")
       nav(consumeReturnTo("/home"))
     } catch (err) {
