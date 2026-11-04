@@ -424,6 +424,7 @@ export default function LoginPage() {
   async function handleRecoveryFileSelected(file: File | null) {
     setError("")
     setNotice("")
+    setStagedRecoveryBundle(null)
     if (!file) return
     try {
       const parsed = await readRecoveryKeyFile(file)
