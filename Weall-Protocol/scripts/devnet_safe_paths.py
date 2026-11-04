@@ -147,6 +147,29 @@ def check_ipfs(devnet_raw: str, ipfs_raw: str) -> Path:
     return ipfs
 
 
+def ensure_devnet_writable(target_raw: str) -> Path:
+    """Read-only writable-target preflight; never chmod/chown or create state."""
+    target = validate_devnet(target_raw)
+    if target.exists():
+        if not target.is_dir():
+            raise UnsafeDevnetPath(f"devnet_target_not_directory:{target}")
+        writable = target
+    else:
+        writable = target.parent
+    if not writable.is_dir():
+        raise UnsafeDevnetPath(f"devnet_parent_not_directory:{writable}")
+    if not os.access(writable, os.W_OK | os.X_OK):
+        st = writable.stat()
+        raise UnsafeDevnetPath(
+            f"devnet_not_writable:{writable} "
+            f"(owner_uid={st.st_uid},owner_gid={st.st_gid},mode={stat.S_IMODE(st.st_mode):04o},"
+            f"current_uid={os.geteuid()}); "
+            "inspect contents/ownership; do not run sudo on the launcher, "
+            "chmod 777, or recursively chown the repository"
+        )
+    return target
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -154,6 +177,8 @@ def main() -> int:
     p_reset.add_argument("target")
     p_devnet = commands.add_parser("check-devnet")
     p_devnet.add_argument("target")
+    p_writable = commands.add_parser("check-devnet-writable")
+    p_writable.add_argument("target")
     p_ipfs = commands.add_parser("check-ipfs")
     p_ipfs.add_argument("devnet")
     p_ipfs.add_argument("partition")
@@ -164,6 +189,8 @@ def main() -> int:
             result = reset(args.target, root)
         elif args.command == "check-devnet":
             result = validate_devnet(args.target)
+        elif args.command == "check-devnet-writable":
+            result = ensure_devnet_writable(args.target)
         else:
             result = check_ipfs(args.devnet, args.partition)
     except (UnsafeDevnetPath, OSError) as exc:
