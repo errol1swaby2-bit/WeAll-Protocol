@@ -9,6 +9,8 @@ The important rule is simple:
 
 A new user should start with onboarding mode. Do not try to start production service mode until protocol eligibility checks activate baseline Node Operator status.
 
+**First choose your goal:** Path A below is a self-contained, *single-computer controlled-devnet rehearsal* with provisioned development identities; Path B is joining an existing operator-run network using real, matching trust artifacts. Neither creates a production Genesis or grants validator authority. If you are installing on Ubuntu/WSL, read [Local IPFS prerequisite setup (Docker or native Kubo)](FIRST_RUN_WSL_IPFS.md) before starting Path A. The main [README verification commands](../../README.md#verification-path) are a separate technical-review path, not the onboarding workflow.
+
 ---
 
 ## 1. Clone the repository and install dependencies
@@ -47,17 +49,25 @@ Use this path if you **do not yet have a reachable Genesis operator and a
 matching public observer bundle**, or if your goal is to test the local
 frontend, PoH and two-node transaction flow.
 
-Requirements: Node.js/npm, Python dependencies above, a running Docker daemon
-with Docker Compose (or a compatible separately configured Kubo IPFS daemon).
-The local launcher starts IPFS, the Genesis backend, the observer-edge backend,
-two frontends, and the operator reconcile/state-sync workers:
+Requirements: Node.js/npm, Python dependencies above, **and one available IPFS provider**: either Docker with a running Docker Engine plus Compose, or a native Kubo `ipfs` executable available on `PATH`. The launcher uses Docker when the `docker` command exists and otherwise falls back to native Kubo; **do not install Docker solely to satisfy an unconditional `docker info` command**. Native Kubo setup, checksum verification, version selection, download recovery, and Docker Desktop/WSL details are in [Local IPFS prerequisite setup](FIRST_RUN_WSL_IPFS.md).
+
+Check the provider you actually selected before launching:
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol
 source .venv/bin/activate
-docker info --format '{{.ServerVersion}}'
+
+if command -v docker >/dev/null 2>&1; then
+  docker info --format '{{.ServerVersion}}'
+  docker compose version
+else
+  ipfs version
+fi
+
 bash scripts/devnet_local_two_frontend_rehearsal.sh
 ```
+
+**Important:** `docker` being on `PATH` with an unavailable engine is *not* a working native fallback: the current launcher prefers its Docker Compose path when the command exists. Start Docker Desktop/enable Ubuntu WSL integration, or use an environment where `docker` is absent and native `ipfs` is present. Report a contradictory provider detection as an installation finding rather than masking it. The launcher starts/manages the IPFS service, Genesis backend, observer backend, two frontends, and reconcile/state-sync workers. Do not separately `ipfs init` for this disposable run; the launcher uses its own isolated IPFS directory.
 
 Expected final output includes `Local two-frontend rehearsal ready`,
 `observer_ui=http://127.0.0.1:5173/#/verification` and
@@ -292,9 +302,15 @@ You selected the production-oriented low-level wrapper without a validated
 bundle. Follow Path B with operator-provided anchors, or Path A for a disposable
 local network. Do not bypass the preflight.
 
+### Docker or Kubo is unavailable in WSL
+
+`docker: command not found` is expected if you have not installed or enabled Docker Desktop's Ubuntu WSL integration. For the local Path A only, you can instead install native Kubo without Docker. Follow [Local IPFS prerequisite setup](FIRST_RUN_WSL_IPFS.md), which includes SHA-512 verification, a second official download endpoint, and Windows-browser fallback for `curl: (35) Recv failure: Connection reset by peer`. Do not run a Docker-specific diagnostic on the native-only path.
+
+If Docker is present but its daemon is unavailable, the current launcher will still select Docker rather than native Kubo. Correct the provider choice and record the issue; do not disable preflight controls.
+
 ### IPFS WSL Docker ports are unavailable
 
-For Path A, watch for automatic fallback from API/gateway ports 5001/8080
+For Path A using **Docker**, watch for automatic fallback from API/gateway ports 5001/8080
 to 15001/18080. A transient bind failure is not proof of total boot failure;
 the final `Local two-frontend rehearsal ready` line establishes launcher
 readiness. If fallback also fails, report the Docker/WSL forwarding error.
