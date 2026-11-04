@@ -1284,10 +1284,10 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
   if (!sessionSynced) {
     throw observerReconciliationPendingError("ACCOUNT_SESSION_KEY_ISSUE", issueResult.env.nonce);
   }
-  const sessionAuthorized = await waitForAuthorizedSessionKey({
+  const sessionAuthorized = await waitForSessionAuthState({
     account: acct,
     sessionKey: requestedSessionKey,
-    minNonce: issueResult.env.nonce,
+    expectedAuthenticated: true,
     base: args.base,
     timeoutMs: 30_000,
   });
@@ -1357,8 +1357,8 @@ async function submitAndVerifySessionRevocation(args: {
   if (!await waitForConfirmedSessionTransaction({ txId, base: args.base, timeoutMs: 30_000 })) {
     throw new Error("Session revocation was submitted but canonical finality could not be verified.");
   }
-  if (!await waitForRevokedSessionKey({ account: args.account, sessionKey: args.sessionKey, base: args.base, timeoutMs: 30_000 })) {
-    throw new Error("Session revocation receipt is confirmed but the account does not yet show the session as revoked.");
+  if (!await waitForSessionAuthState({ account: args.account, sessionKey: args.sessionKey, expectedAuthenticated: false, base: args.base, timeoutMs: 30_000 })) {
+    throw new Error("Revocation receipt is confirmed but the session endpoint still accepts this bearer.");
   }
   return result;
 }
@@ -1430,10 +1430,10 @@ export async function issueFreshSessionKey(args?: { ttlSeconds?: number; base?: 
   if (!confirmed) {
     throw new Error("Replacement session issuance is not confirmed. The previous local session remains active until its own expiration or revocation.");
   }
-  const authorized = await waitForAuthorizedSessionKey({
+  const authorized = await waitForSessionAuthState({
     account: acct,
     sessionKey,
-    minNonce: 0,
+    expectedAuthenticated: true,
     base: args?.base,
     timeoutMs: 30_000,
   });
