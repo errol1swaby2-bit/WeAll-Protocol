@@ -34,6 +34,18 @@ assert.ok(session.includes('if (hasStoredKeypairMetadata(acct)) throw new Error(
 assert.ok(keys.includes('throw new Error("existing_recovery_authority_requires_recovery")'), "Recovery authority must not silently rotate");
 assert.ok(evidence.includes('throw new Error("existing_evidence_key_requires_recovery")'), "Evidence authority must not silently rotate");
 assert.ok(keyCreation.includes('setMode("restore")'), "Interrupted key custody must offer recovery route");
+const restoredFile = section(login, "async function handleRecoveryFileSelected(", "function handlePasteRecoveryText(");
+const pastedRecovery = section(login, "function handlePasteRecoveryText(", "async function handleRestoreLogin(");
+const restoredLogin = section(login, "async function handleRestoreLogin(", "async function handleUseEasySignIn(");
+for (const staging of [restoredFile, pastedRecovery]) {
+  assert.ok(!staging.includes("saveRecoveryAuthorityKeypair("), "Import must not install recovery authority before authentication");
+  assert.ok(!staging.includes("saveEvidenceKemKeypair("), "Import must not install evidence authority before authentication");
+  assert.ok(staging.includes("setStagedRecoveryBundle(parsed)"), "Import must stage fully validated recovery material");
+}
+assert.ok(restoredLogin.includes("derivePublicKeyFromSecretKey(recoveryKeyInput.trim())"), "Restored signer must be validated before network login");
+assert.ok(restoredLogin.includes("expectedSigner !== suppliedSigner"), "Restored signer must match canonical account identity");
+assert.ok(restoredLogin.includes("restoredSessionIssued = true"), "Post-auth failures must be distinguishable");
+assert.ok(restoredLogin.includes("if (restoredSessionIssued) endSession()"), "Post-auth validation failure must not retain a local login");
 assert.ok(session.includes('if (!sessionSynced)'), "Canonical session issuance must fail closed on observer reconciliation timeout");
 assert.ok(!sessionDevices.includes('>{session?.sessionKey || "Not present"}<'), "The session utility must not display raw bearer credentials");
 assert.ok(verifiedRecovery.includes('if (!recoveryVerified)'), "Recovery ceremony must fail closed");
