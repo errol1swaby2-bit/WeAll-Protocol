@@ -151,6 +151,12 @@ export default function AccountRegistrationPage(): JSX.Element {
               Your registration has been submitted. Please keep this transaction
               for reference; do not submit a second registration while it is pending.
             </div>
+          ) : registration === "key_mismatch" ? (
+            <div className="calloutDanger" data-testid="registration-key-mismatch">
+              This handle already belongs to a different account key. Restore
+              the correct recovery file or choose another handle; do not retry
+              registration using this key.
+            </div>
           ) : registration === "unavailable" ? (
             <div className="calloutInfo">
               We cannot confirm the node's account status yet. Check your connection
