@@ -1,0 +1,87 @@
+name: PR77 canonical CASE handler extraction (no semantic approval)
+
+on:
+  pull_request:
+    paths:
+      - Weall-Protocol/scripts/compile_v2_spec.py
+      - Weall-Protocol/specs/v2/source/tx_appliers.json
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/tests/test_pr77_v2_dispute_open_dispatch_extraction.py
+      - Weall-Protocol/tests/test_pr77_case_receipt_adversarial_diagnostic.py
+      - Weall-Protocol/tests/test_pr77_case_canonical_rollback_admission.py
+      - Weall-Protocol/tests/test_pr77_case_synthetic_executor_replay.py
+      - .github/workflows/pr77-case-handler-extraction-no-approval.yml
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - Weall-Protocol/scripts/compile_v2_spec.py
+      - Weall-Protocol/specs/v2/source/tx_appliers.json
+      - Weall-Protocol/tests/test_pr77_v2_dispute_open_dispatch_extraction.py
+      - Weall-Protocol/tests/test_pr77_case_receipt_adversarial_diagnostic.py
+      - Weall-Protocol/tests/test_pr77_case_canonical_rollback_admission.py
+      - Weall-Protocol/tests/test_pr77_case_synthetic_executor_replay.py
+      - .github/workflows/pr77-case-handler-extraction-no-approval.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-case-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned review dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Validate canonical dispatch extraction and no utility substitution
+        run: |
+          set -Eeuo pipefail
+          ruff check scripts/compile_v2_spec.py tests/test_pr77_v2_dispute_open_dispatch_extraction.py tests/test_pr77_case_receipt_adversarial_diagnostic.py tests/test_pr77_case_canonical_rollback_admission.py
+          ruff format --diff tests/test_pr77_v2_dispute_open_dispatch_extraction.py || true
+          ruff format --diff tests/test_pr77_case_receipt_adversarial_diagnostic.py || true
+          ruff format --diff tests/test_pr77_case_canonical_rollback_admission.py || true
+          ruff format --check scripts/compile_v2_spec.py tests/test_pr77_v2_dispute_open_dispatch_extraction.py tests/test_pr77_case_receipt_adversarial_diagnostic.py tests/test_pr77_case_canonical_rollback_admission.py
+          python -m pytest -q tests/test_pr77_v2_dispute_open_dispatch_extraction.py tests/test_pr77_case_receipt_adversarial_diagnostic.py tests/test_pr77_case_canonical_rollback_admission.py
+          echo 'HOLD: duplicate CASE binding receipts can contradict stored state; direct invalid-receipt calls can mutate before rejection. Both must be adjudicated under canonical replay.'
+      - name: CASE synthetic producer/follower durability diagnostics
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_case_synthetic_executor_replay.py
+          ruff format --diff tests/test_pr77_case_synthetic_executor_replay.py || true
+          ruff format --check tests/test_pr77_case_synthetic_executor_replay.py
+          python -m pytest -q tests/test_pr77_case_synthetic_executor_replay.py
+          echo 'HOLD: synthetic SYSTEM queue injection is not constitutional authority or historical replay.'
+
+      - name: Report exact stale semantic inventory without changing approvals
+        run: |
+          set -Eeuo pipefail
+          python scripts/audit_v2_semantic_review_drift.py > pr77_case_handler_drift_diagnostic.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          obj = json.loads(Path("pr77_case_handler_drift_diagnostic.json").read_text(encoding="utf-8"))
+          changed = {row["tx_type"] for row in obj["details"]}
+          print("unapproved_stale_review_count:", len(changed))
+          print("candidate_case_rows:", sorted(changed & {"CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"}))
+          assert not (changed & {"CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"}), "case utility misattribution persists"
+          assert len(changed) == 18, "review inventory changed, require adjudication"
+          assert obj["missing_state_stable_ids"] == []
+          PY
+          echo 'NO-GO: static compiler extraction corrected, 18 other semantic contracts remain unapproved.'
+      - name: Archive read-only compiler diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-canonical-case-extraction-diagnostic-no-approval
+          path: Weall-Protocol/pr77_case_handler_drift_diagnostic.json
+          if-no-files-found: warn

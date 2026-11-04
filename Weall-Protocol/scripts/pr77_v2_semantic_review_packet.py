@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make a read-only, source-bound packet for the 18 currently stale V2 TX reviews.
+"""Make a read-only, source-bound packet for stale V2 TX reviews.
 
 This report makes no approvals and does not replace historical replay,
 independent semantic review, or the V2 spec compiler's fail-closed gate.
@@ -21,13 +21,13 @@ import v2_spec_validation as validation  # noqa: E402
 KNOWN_STALE = frozenset(
     {
         "DISPUTE_OPEN",
-        "CONTENT_FLAG",
         "DISPUTE_JUROR_ASSIGN",
         "DISPUTE_JUROR_ACCEPT",
         "DISPUTE_VOTE_SUBMIT",
         "DISPUTE_RESOLVE",
         "DISPUTE_APPEAL",
         "DISPUTE_FINAL_RECEIPT",
+        "CONTENT_FLAG",
         "ACCOUNT_BAN",
         "ROLE_JUROR_ENROLL",
         "ROLE_JUROR_ACTIVATE",
@@ -151,9 +151,7 @@ def build_packet() -> dict[str, Any]:
         if tx_type not in reviews or tx_type not in previous:
             raise ValueError(f"v2_review_packet_missing_review_or_baseline:{tx_type}")
         review = reviews[tx_type]
-        # The compiler binds review authority by stable ID. A diagnostic that
-        # joins only by display transaction type must prove both identities
-        # refer to the same canonical contract before comparing digests.
+        # Match the canonical compiler's stable-ID authority, not display type alone.
         if str(review.get("stable_id") or "") != str(row.get("stable_id") or ""):
             raise ValueError(f"v2_review_packet_review_identity_mismatch:{tx_type}")
         if str(previous[tx_type].get("stable_id") or "") != str(row.get("stable_id") or ""):
@@ -169,10 +167,12 @@ def build_packet() -> dict[str, Any]:
         failure_deltas = failure_code_deltas(
             old_material.get("failure_codes"), current_material.get("failure_codes")
         )
-        if tx_type == "CONTENT_FLAG":
-            review_lane = "content_flag_provenance_and_escalation"
-        elif tx_type == "DISPUTE_OPEN":
+        if tx_type == "DISPUTE_OPEN":
             review_lane = "handler_source_attribution_and_derived_contract"
+        elif tx_type in {"CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"}:
+            review_lane = "case_receipt_compiler_attribution"
+        elif tx_type == "CONTENT_FLAG":
+            review_lane = "content_flag_duplicate_identity_guard"
         elif tx_type == "ACCOUNT_BAN":
             review_lane = "account_sanction_authority_and_finality"
         elif tx_type.startswith("DISPUTE_"):

@@ -918,13 +918,35 @@ def _tx_function_analysis(
     target = dispatch
     if branch is not None:
         calls = _direct_local_calls(branch, set(functions))
-        preferred = [
-            name
-            for name in calls
-            if name != dispatch.name and (name.startswith("apply_") or name.startswith("_apply_"))
-        ]
-        if preferred:
-            target = functions[preferred[0]]
+        # A branch-local direct call is a more precise transaction entrypoint
+        # than the multi-transaction dispatcher, regardless of its name.
+        # Do not guess when a branch calls multiple distinct local functions.
+        candidates = [name for name in calls if name != dispatch.name]
+        # A return of a direct local call is a handler dispatch; utility calls
+        # in the same branch (for example _as_str) are not handler targets.
+        returned = []
+        for statement in branch.body:
+            if not isinstance(statement, ast.Return) or not isinstance(statement.value, ast.Call):
+                continue
+            callee = statement.value.func
+            name = callee.id if isinstance(callee, ast.Name) else None
+            if name in candidates and name not in returned:
+                returned.append(name)
+        if len(returned) == 1:
+            target = functions[returned[0]]
+        elif not returned:
+            # A unique helper call is not necessarily a dispatch target:
+            # _apply_case_receipt's CASE branches call _as_str for validation.
+            # Preserve the declared handler unless a sole explicit apply_
+            # callee exists. Otherwise a utility can silently replace the
+            # semantic contract under review.
+            preferred = [
+                name
+                for name in candidates
+                if name.startswith("apply_") or name.startswith("_apply_")
+            ]
+            if len(preferred) == 1:
+                target = functions[preferred[0]]
 
     queue = [target.name]
     visited: set[str] = set()
