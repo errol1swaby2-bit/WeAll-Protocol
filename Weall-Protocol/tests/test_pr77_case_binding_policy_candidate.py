@@ -13,7 +13,7 @@ from tooling.case_binding_policy_candidate import (
 
 
 def check(
-    state: object, case_id: object = "case-a", dispute_id: object = "dispute-a"
+    state: object, case_id: object = "case-a", dispute_id: object = "dispute-a",
 ) -> dict:
     return review_case_binding_candidate(state, case_id=case_id, dispute_id=dispute_id)
 

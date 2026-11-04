@@ -26,7 +26,7 @@ def _ident(value: Any) -> str | None:
 
 
 def review_case_binding_candidate(
-    state: Mapping[str, Any], *, case_id: str, dispute_id: str
+    state: Mapping[str, Any], *, case_id: str, dispute_id: str,
 ) -> dict[str, Any]:
     """Inspect one binding; even matching IDs are not proof of authorization.
 
