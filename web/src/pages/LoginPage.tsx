@@ -3,8 +3,8 @@ import type { FormEvent, ReactNode } from "react"
 
 import { ApiError, fetchStatus, getApiBase, setApiBase } from "../api/weall"
 import { ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
-import { generateKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
-import { generateEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto"
+import { ensureRecoveryAuthorityKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
+import { ensureEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto"
 import { buildRecoveryKeyFile, downloadRecoveryKeyFile, parseRecoveryKeyFileText, readRecoveryKeyFile, recoveryFileText, verifyRecoveryKeyFileForAccount } from "../auth/recoveryFile"
 import { confirmEasySignIn, getEasySignInForAccount, listEasySignInRecords, passkeysAvailable, registerEasySignIn } from "../auth/passkeys"
 import { consumeReturnTo, nav } from "../lib/router"
@@ -255,10 +255,8 @@ export default function LoginPage() {
     setBusy(true)
     try {
       const keypair = ensureKeypair(account)
-      const recoveryAuthority = generateKeypair()
-      const evidenceKem = generateEvidenceKemKeypair()
-      saveRecoveryAuthorityKeypair(account, recoveryAuthority)
-      saveEvidenceKemKeypair(account, evidenceKem)
+      const recoveryAuthority = ensureRecoveryAuthorityKeypair(account)
+      const evidenceKem = ensureEvidenceKemKeypair(account)
       setCreatedKey({
         account,
         pubkeyB64: keypair.pubkeyB64,
@@ -675,7 +673,7 @@ export default function LoginPage() {
                   </div>
                   <div className="row gap-sm wrap">
                     <button type="button" onClick={() => void handleDownloadRecoveryKey()}>
-                      Download recovery file\n                  <span className="text-xs opacity-80">Do not rely on a checkbox like “I saved my recovery key somewhere private”; WeAll verifies your recovery file or recovery key before account setup can continue.</span>
+                      Download recovery file
                     </button>
                     <button type="button" className="secondary" onClick={() => void handleCopyRecoveryKey()}>
                       Copy recovery key
