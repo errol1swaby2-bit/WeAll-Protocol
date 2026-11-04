@@ -11,7 +11,8 @@ A new user account follows this sequence:
 3. Download or copy the recovery file.
 4. Verify the recovery file by uploading it back or pasting the recovery JSON.
 5. Optionally add easy sign-in on this device.
-6. Continue to account verification/onboarding.
+6. Register the account through the dedicated guided network-registration page.
+7. After authoritative registration confirmation and state synchronization, begin human verification.
 
 The user cannot continue from the create-account flow until the saved recovery material is verified against the freshly generated account key. A manual checkbox is not sufficient.
 
@@ -44,3 +45,33 @@ The UI should distinguish:
 - `Account verification` — the PoH/verification process can begin.
 
 This avoids implying that a local key alone is the same as a durable registered WeAll account.
+
+## Guided registration UI — F1a
+
+The /onboarding/register page is the network-registration step of account
+creation, not a Proof-of-Humanity decision or a generic account settings page.
+The freshly generated local key does **not** issue a browser login session.
+The session is created only after the recovery file is cryptographically
+verified. Returning users can still restore their saved key through sign-in.
+
+The network registration action uses the existing signed ACCOUNT_REGISTER
+envelope, registration-work policy, ML-DSA signing, offline recovery authority,
+and ML-KEM evidence-public-key binding. This is deliberately the same protocol
+operation previously exposed on the verification dashboard.
+
+A newly submitted transaction can be shown as complete only if the node reports
+a confirmed transaction with local_state_synced=true **and** its account read
+model shows the same public account key registered. Accepted/mempool/unsynced
+transactions stay pending. Missing node identity/connection state and registered
+handles bound to a different key are blocked, not treated as permission to
+resubmit. The nonsecret pending transaction ID is retained in sessionStorage
+across same-tab refreshes. Raw signing keys remain session-scoped.
+
+A user may resume a registered account whose matching public key is already
+visible without sending a second ACCOUNT_REGISTER. The UI must never suggest
+that locally generated keys alone establish network registration.
+
+Current feature status: F1a draft implementation, not yet acceptance-tested
+against the preserved two-node devnet, and not equivalent to async/live PoH
+onboarding completion. The existing backend integration draft remains separate.
+
