@@ -112,6 +112,10 @@ export default function AccountRegistrationPage(): JSX.Element {
     setError("");
     setMessage("Preparing and signing your account registration. This may take a moment.");
     try {
+      // Fail closed across crashes or ambiguous network responses: submission may succeed
+      // even if the client never receives the transaction ID.
+      rememberPendingTransaction(account, "submission_unknown");
+      setTransactionId("submission_unknown");
       const txId = await submitBasicAccountRegistration(account, base);
       rememberPendingTransaction(account, txId);
       setTransactionId(txId);
