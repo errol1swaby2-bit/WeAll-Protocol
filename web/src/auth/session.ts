@@ -9,7 +9,7 @@
 //   - tx submission (/v1/tx/submit)
 
 import { getChainId, getEnvChainId } from "../lib/chain";
-import { createBrowserSession, weall } from "../api/weall";
+import { apiGet, createBrowserSession, weall } from "../api/weall";
 
 import {
   KeypairB64,
@@ -699,48 +699,33 @@ async function waitForConfirmedSessionTransaction(args: {
  * A synchronized nonce alone does not establish that the issued bearer is
  * authorized. Inspect the canonical account session-key map before login.
  */
-async function waitForAuthorizedSessionKey(args: {
+/**
+ * /v1/accounts/{account} deliberately redacts bearer session state.
+ * Ask the dedicated authenticated session endpoint using the candidate bearer.
+ * Never store or activate a candidate until the server confirms it.
+ */
+async function waitForSessionAuthState(args: {
   account: string;
   sessionKey: string;
-  minNonce: number;
+  expectedAuthenticated: boolean;
   base?: string;
   timeoutMs?: number;
 }): Promise<boolean> {
   const deadline = Date.now() + Math.max(1_000, Math.min(120_000, args.timeoutMs ?? 30_000));
   while (Date.now() <= deadline) {
     try {
-      const view = await weall.account(args.account, args.base);
-      const state = view?.account?.state ?? view?.state;
-      const nonce = Number(state?.nonce ?? 0);
-      const entry = state?.session_keys?.by_id?.[args.sessionKey];
-      if (nonce >= args.minNonce && entry && typeof entry === "object" && entry.revoked !== true) {
-        return true;
+      const response = await apiGet("/v1/session/me", args.base, {
+        "x-weall-account": args.account,
+        "x-weall-session-key": args.sessionKey,
+      });
+      if (response?.ok === true && response?.authenticated === args.expectedAuthenticated) {
+        // The positive case must also bind the expected account.
+        if (!args.expectedAuthenticated || normalizeAccount(String(response?.account || "")) === args.account) {
+          return true;
+        }
       }
     } catch {
-      // Missing or lagging canonical read model is not authorization.
-    }
-    await sleep(500);
-  }
-  return false;
-}
-
-async function waitForRevokedSessionKey(args: {
-  account: string;
-  sessionKey: string;
-  base?: string;
-  timeoutMs?: number;
-}): Promise<boolean> {
-  const deadline = Date.now() + Math.max(1_000, Math.min(120_000, args.timeoutMs ?? 30_000));
-  while (Date.now() <= deadline) {
-    try {
-      const view = await weall.account(args.account, args.base);
-      const state = view?.account?.state ?? view?.state;
-      const records = state?.session_keys?.by_id;
-      // A missing record is ambiguous: only explicit revocation is sufficient.
-      const entry = records?.[args.sessionKey];
-      if (entry && typeof entry === "object" && entry.revoked === true) return true;
-    } catch {
-      // Network errors are not evidence of revocation.
+      // A failed read is not an authentication or revocation result.
     }
     await sleep(500);
   }
