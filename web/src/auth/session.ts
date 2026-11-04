@@ -1398,6 +1398,25 @@ export async function issueFreshSessionKey(args?: { ttlSeconds?: number; base?: 
     base: args?.base,
   });
 
+  const txId = String(result?.tx_id || result?.result?.tx_id || "").trim();
+  const confirmed = await waitForConfirmedSessionTransaction({
+    txId,
+    base: args?.base,
+    timeoutMs: 30_000,
+  });
+  if (!confirmed) {
+    throw new Error("Replacement session issuance is not confirmed. The previous local session remains active until its own expiration or revocation.");
+  }
+  const authorized = await waitForAuthorizedSessionKey({
+    account: acct,
+    sessionKey,
+    minNonce: 0,
+    base: args?.base,
+    timeoutMs: 30_000,
+  });
+  if (!authorized) {
+    throw new Error("Replacement session key was not verified in canonical account state. Local session remains unchanged.");
+  }
   setSession({
     version: 1,
     account: acct,
