@@ -18,6 +18,7 @@ import {
   deleteKeypair,
   derivePublicKeyFromSecretKey,
   generateKeypair,
+  hasStoredKeypairMetadata,
   loadKeypair,
   normalizeAccount,
   saveKeypair,
@@ -381,6 +382,8 @@ export function ensureKeypair(account: string): KeypairB64 {
   if (!acct) throw new Error("invalid_account");
   const existing = loadKeypair(acct);
   if (existing) return existing;
+  // Missing tab-scoped private material cannot authorize a new identity.
+  if (hasStoredKeypairMetadata(acct)) throw new Error("existing_account_key_requires_recovery");
   const kp = generateKeypair();
   saveKeypair(acct, kp);
   return kp;
