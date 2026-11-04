@@ -472,6 +472,15 @@ export default function LoginPage() {
       if (bundle && (bundle.account !== restoreAccount || bundle.secretKeyB64 !== recoveryKeyInput.trim())) {
         throw new Error("The selected recovery file does not match this handle and signing key.")
       }
+      // A recovery file must identify the actual on-chain account, not merely
+      // contain a mathematically valid signing seed. Fail closed if unavailable.
+      const view = await weall.account(restoreAccount)
+      const state = view?.account?.state ?? view?.state
+      const expectedSigner = String(state?.pubkey || "").trim()
+      if (!expectedSigner) throw new Error("Account identity could not be verified on this node.")
+      if (bundle && expectedSigner !== bundle.publicKeyB64) {
+        throw new Error("The recovery file does not match the registered account key.")
+      }
       const restored = await restoreAccountAndLoginOnThisDevice({
         account: restoreAccount,
         secretKeyB64: recoveryKeyInput.trim(),
