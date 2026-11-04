@@ -176,6 +176,7 @@ export default function LoginPage() {
 
   const [restoreAccountInput, setRestoreAccountInput] = useState("")
   const [recoveryKeyInput, setRecoveryKeyInput] = useState("")
+  const [stagedRecoveryBundle, setStagedRecoveryBundle] = useState<ReturnType<typeof parseRecoveryKeyFileText> | null>(null)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
