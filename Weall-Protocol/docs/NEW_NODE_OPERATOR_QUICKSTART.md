@@ -93,6 +93,27 @@ rehearsal, restart the backend processes to load updated code/environment.
 Preserve the ledger and keys; do not use a reset merely to hide a reconciliation
 failure. Record any remaining `upstream_not_confirmed` findings as blockers.
 
+**Already-applied observer transaction correction:** A real fresh-WSL run
+reached identical Genesis/observer height, tip hash and state root, but its
+observer outbound record still reported `local_state_synced=false`.
+The old reconcile route rejected any local height at or above the transaction's
+confirmation height, even if downstream sync had already applied that exact
+transaction. The updated route first verifies the upstream's canonical
+committed transaction and the local successful tx-index receipt, and only
+recognizes the already-applied state when **both peers expose identical current
+chain ID, height, tip hash, state root, schema and protocol/tx-index
+commitments**. An identity mismatch, missing/rejected transaction, changed
+local state during sampling or unavailable upstream remains fail-closed. A
+poll of unchanged upstream confirmation cannot erase an existing verified
+synchronization proof, while a changed confirmed block ID invalidates it.
+
+This is a **single-machine, operator-configured upstream verification**,
+not a multi-validator finality or independently administered two-machine
+proof. Do not claim reconciliation PASS until a live preserved-state retest
+reports `local_state_synced=true` and matching independent chain identity
+responses. The unit tests use simulated identities and cannot substitute
+for those measurements.
+
 **Tracked-file cleanliness during the rehearsal:** The frontend repository
 includes tracked sample `web/public/dev-bootstrap-*.json` files. Older launcher
 versions overwrote those files, making `check_release_hygiene_v1_5.py` fail
