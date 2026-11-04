@@ -664,6 +664,38 @@ async function waitForLocalAccountNonceAtLeast(args: {
 }
 
 /**
+ * A successful submission response is not a finalized transaction receipt.
+ * Require an explicitly confirmed, locally synchronized canonical status.
+ * Missing receipts are treated as uncertain instead of retried.
+ */
+async function waitForConfirmedSessionTransaction(args: {
+  txId: string;
+  base?: string;
+  timeoutMs?: number;
+}): Promise<boolean> {
+  const txId = String(args.txId || "").trim();
+  if (!txId) return false;
+  const deadline = Date.now() + Math.max(1_000, Math.min(120_000, args.timeoutMs ?? 30_000));
+  while (Date.now() <= deadline) {
+    try {
+      const result = await weall.txStatus(txId, args.base);
+      const status = String(result?.status || "").toLowerCase();
+      if (["rejected", "failed", "invalid", "expired"].includes(status)) {
+        throw new Error("Session transaction was rejected: " + status);
+      }
+      if (status === "confirmed" && result?.local_state_synced === true && result?.outbound_propagation?.local_state_synced !== false) {
+        return true;
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("Session transaction was rejected:")) throw error;
+      // Temporary observer read failures are not proof of transaction finality.
+    }
+    await sleep(500);
+  }
+  return false;
+}
+
+/**
  * A synchronized nonce alone does not establish that the issued bearer is
  * authorized. Inspect the canonical account session-key map before login.
  */
