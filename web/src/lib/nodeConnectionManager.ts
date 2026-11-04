@@ -1,4 +1,6 @@
 import { config } from "./config";
+import { isPublicApiOrigin } from "./publicApiOrigin";
+export { isPublicApiOrigin };
 import { getApiBaseUrl, setApiBaseUrl, validateApiBaseInput } from "../api/weall";
 
 export const WEALL_API_BASE_CHANGED_EVENT = "weall-api-base-changed";
@@ -54,19 +56,6 @@ export type NodeProbe = {
   chainIdentity?: any;
   listedInSeedManifest?: boolean;
 };
-
-/** Browser-facing node APIs must be HTTPS origins, never credential-bearing URLs. */
-export function isPublicApiOrigin(value: string): boolean {
-  try {
-    const url = new URL(String(value || "").trim());
-    return url.protocol === "https:" &&
-      !!url.hostname && !url.username && !url.password &&
-      (url.pathname === "/" || url.pathname === "") &&
-      !url.search && !url.hash;
-  } catch {
-    return false;
-  }
-}
 
 function normalizeBase(value: string): string | null {
   const validation = validateApiBaseInput(String(value || "").trim());

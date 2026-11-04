@@ -35,6 +35,11 @@ assert.ok(connector.includes('state: "unavailable"'), "missing compatible nodes 
 const app = readWeb("src/App.tsx");
 const session = readWeb("src/auth/session.ts");
 const recognition = readWeb("src/lib/browserNodeSession.ts");
+const originPolicy = readWeb("src/lib/publicApiOrigin.ts");
+assert.ok(manager.includes('from "./publicApiOrigin"'), "node discovery must use the shared HTTPS origin validator");
+assert.ok(recognition.includes('from "./publicApiOrigin"'), "session consent must use the shared HTTPS origin validator");
+assert.ok(originPolicy.includes("export function isPublicApiOrigin("), "shared HTTPS origin validator missing");
+assert.ok(!recognition.includes("function isSecureApiOrigin("), "duplicated session origin validator must stay removed");
 const panel = readWeb("src/components/NodeConnectionPanel.tsx");
 const settings = readWeb("src/pages/Settings.tsx");
 assert.ok(session.includes("SS_SESSION_BEARER"), "bearer must remain in tab-scoped storage");

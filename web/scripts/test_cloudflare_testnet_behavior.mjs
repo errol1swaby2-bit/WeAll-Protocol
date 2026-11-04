@@ -125,8 +125,12 @@ function loadTypeScriptModule(relative, dependencyMap) {
   run(require, exports, fakeWindow, fakeFetch, performance, AbortController, MockEvent);
   return exports;
 }
-const browserSession = loadTypeScriptModule("src/lib/browserNodeSession.ts", {});
+const originPolicy = loadTypeScriptModule("src/lib/publicApiOrigin.ts", {});
+const browserSession = loadTypeScriptModule("src/lib/browserNodeSession.ts", {
+  "./publicApiOrigin": originPolicy,
+});
 const manager = loadTypeScriptModule("src/lib/nodeConnectionManager.ts", {
+  "./publicApiOrigin": originPolicy,
   "./config": { config },
   "../api/weall": api,
 });
@@ -150,6 +154,7 @@ function reset() {
 
 test("published and manual browser API URLs must be plain HTTPS origins", () => {
   assert.equal(manager.isPublicApiOrigin("https://api.weallprotocol.xyz"), true);
+  assert.equal(originPolicy.isPublicApiOrigin("https://api.weallprotocol.xyz"), true);
   for (const invalid of [
     "http://api.weallprotocol.xyz",
     "https://user:password@api.weallprotocol.xyz",
@@ -159,6 +164,8 @@ test("published and manual browser API URLs must be plain HTTPS origins", () => 
     "/",
   ]) {
     assert.equal(manager.isPublicApiOrigin(invalid), false, "unsafe browser API origin: " + invalid);
+    assert.equal(originPolicy.isPublicApiOrigin(invalid), false, "shared origin policy: " + invalid);
+    assert.equal(browserSession.hasManualNodeConsent(invalid), false, "consent cannot approve unsafe URL: " + invalid);
   }
 });
 
