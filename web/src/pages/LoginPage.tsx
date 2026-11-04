@@ -439,24 +439,14 @@ export default function LoginPage() {
   function handlePasteRecoveryText(value: string) {
     const text = String(value || "")
     setRecoveryKeyInput(text)
+    setStagedRecoveryBundle(null)
     const trimmed = text.trim()
     if (!trimmed.startsWith("{")) return
     try {
       const parsed = parseRecoveryKeyFileText(trimmed)
       setRestoreAccountInput(parsed.account)
       setRecoveryKeyInput(parsed.secretKeyB64)
-      if (parsed.recoveryAuthorityPublicKeyB64 && parsed.recoveryAuthoritySecretKeyB64) {
-        saveRecoveryAuthorityKeypair(parsed.account, {
-          pubkeyB64: parsed.recoveryAuthorityPublicKeyB64,
-          secretKeyB64: parsed.recoveryAuthoritySecretKeyB64,
-        })
-      }
-      if (parsed.evidenceKemPublicKeyB64 && parsed.evidenceKemSecretKeyB64) {
-        saveEvidenceKemKeypair(parsed.account, {
-          publicKeyB64: parsed.evidenceKemPublicKeyB64,
-          secretKeyB64: parsed.evidenceKemSecretKeyB64,
-        })
-      }
+      setStagedRecoveryBundle(parsed)
       setNotice("Recovery JSON detected and loaded.")
     } catch {
       // Leave text as-is so the user can finish editing/pasting.
