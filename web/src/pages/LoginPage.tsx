@@ -478,8 +478,9 @@ export default function LoginPage() {
       const state = view?.account?.state ?? view?.state
       const expectedSigner = String(state?.pubkey || "").trim()
       if (!expectedSigner) throw new Error("Account identity could not be verified on this node.")
-      if (bundle && expectedSigner !== bundle.publicKeyB64) {
-        throw new Error("The recovery file does not match the registered account key.")
+      const suppliedSigner = derivePublicKeyFromSecretKey(recoveryKeyInput.trim())
+      if (expectedSigner !== suppliedSigner || (bundle && suppliedSigner !== bundle.publicKeyB64)) {
+        throw new Error("The recovery key does not match the registered account key.")
       }
       const restored = await restoreAccountAndLoginOnThisDevice({
         account: restoreAccount,
