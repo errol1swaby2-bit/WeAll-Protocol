@@ -113,9 +113,10 @@ _cleanup() {
       fi
     done
   else
-    cat <<EOF2
+    if [[ -n "${NODE1_PID}" || -n "${NODE2_PID}" || -n "${RECONCILE_PID}" || -n "${DOWNSTREAM_SYNC_PID}" || -n "${FRONTEND_OBSERVER_PID}" || -n "${FRONTEND_GENESIS_PID}" ]]; then
+      cat <<EOF2
 
-==> Local rehearsal processes left running:
+==> Local rehearsal process IDs recorded (verify each is still running):
 node1_pid=${NODE1_PID:-}
 node2_pid=${NODE2_PID:-}
 reconcile_pid=${RECONCILE_PID:-}
@@ -124,6 +125,9 @@ observer_frontend_pid=${FRONTEND_OBSERVER_PID:-}
 genesis_frontend_pid=${FRONTEND_GENESIS_PID:-}
 logs=${LOG_DIR}
 EOF2
+    else
+      echo "==> Local rehearsal exited before starting any WeAll node/frontend processes (status ${status})" >&2
+    fi
   fi
   exit "${status}"
 }
@@ -689,6 +693,8 @@ PY
 activate_repo_venv
 # Fail before creating any controlled-devnet content through an unsafe path.
 python3 scripts/devnet_safe_paths.py check-devnet "${DEVNET_DIR}" >/dev/null
+# Detect a root-owned .weall-devnet before creating state; never repair ownership automatically.
+python3 scripts/devnet_safe_paths.py check-devnet-writable "${DEVNET_DIR}" >/dev/null
 mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public" "${RUNTIME_DIR}"
 
 # Browser and backend PoH review must share persistent, independently generated
