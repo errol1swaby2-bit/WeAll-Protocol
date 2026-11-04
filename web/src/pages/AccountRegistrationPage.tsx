@@ -41,6 +41,7 @@ export default function AccountRegistrationPage(): JSX.Element {
   const [registration, setRegistration] = useState<RegistrationStatus>("unavailable");
   const [transactionId, setTransactionId] = useState(() => readPendingTransaction(account));
   const [synced, setSynced] = useState(false);
+  const [rejected, setRejected] = useState(false);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
@@ -55,9 +56,11 @@ export default function AccountRegistrationPage(): JSX.Element {
       if (transactionId) {
         const finality = await readRegistrationFinality(transactionId, base);
         if (finality === "rejected") {
+          setRejected(true);
           setError("The registration transaction was rejected. Review the transaction before trying again.");
           setSynced(false);
         } else if (finality === "confirmed" && next === "registered") {
+          setRejected(false);
           setSynced(true);
           setError("");
           setMessage("Your account is registered and synchronized on this node.");
@@ -68,6 +71,7 @@ export default function AccountRegistrationPage(): JSX.Element {
           else setMessage("Registration is being confirmed and synchronized. You do not need to submit it again.");
         }
       } else if (next === "registered") {
+        setRejected(false);
         setSynced(true);
         setMessage("Your account is already registered on this node.");
       } else {
@@ -81,6 +85,26 @@ export default function AccountRegistrationPage(): JSX.Element {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!transactionId || synced || rejected) return;
+    const timer = window.setInterval(() => { void refresh(); }, 3_500);
+    return () => window.clearInterval(timer);
+  }, [transactionId, synced, rejected, refresh]);
+
+  async function clearRejectedTransaction(): Promise<void> {
+    if (!rejected || !account || busy || checking) return;
+    const latest = await readAccountRegistrationStatus(account, base);
+    if (latest !== "not_registered") {
+      setError("The node no longer reports a safely unregistered account. Refresh the status before retrying.");
+      return;
+    }
+    rememberPendingTransaction(account, "");
+    setTransactionId("");
+    setRejected(false);
+    setError("");
+    setMessage("You may prepare a new registration request. The rejected transaction remains available in your previous logs.");
+  }
 
   async function handleRegister(): Promise<void> {
     if (!account || !signer?.secretKeyB64 || busy || transactionId || synced) return;
@@ -113,7 +137,7 @@ export default function AccountRegistrationPage(): JSX.Element {
     );
   }
 
-  const waiting = !!transactionId && !synced;
+  const waiting = !!transactionId && !synced && !rejected;
 
   return (
     <main className="pageStack" data-testid="guided-account-registration">
@@ -145,6 +169,11 @@ export default function AccountRegistrationPage(): JSX.Element {
           {synced ? (
             <div className="calloutSuccess" data-testid="registration-complete">
               Your basic account is ready. You can begin human verification.
+            </div>
+          ) : rejected ? (
+            <div className="calloutDanger" data-testid="registration-rejected">
+              The network rejected this registration. Review the transaction,
+              then deliberately choose whether to make a new request.
             </div>
           ) : waiting ? (
             <div className="calloutInfo" data-testid="registration-pending">
@@ -179,12 +208,17 @@ export default function AccountRegistrationPage(): JSX.Element {
                 className="btn btnPrimary"
                 type="button"
                 data-testid="submit-basic-registration"
-                disabled={busy || checking || waiting || registration !== "not_registered"}
+                disabled={busy || checking || waiting || rejected || registration !== "not_registered"}
                 onClick={() => void handleRegister()}
               >
                 {busy ? "Registering…" : waiting ? "Registration pending" : "Register my account"}
               </button>
             )}
+            {rejected ? (
+              <button className="btn" type="button" disabled={checking || busy} onClick={() => void clearRejectedTransaction()}>
+                Prepare a new request
+              </button>
+            ) : null}
             <button className="btn" type="button" disabled={checking || busy} onClick={() => void refresh()}>
               {checking ? "Checking…" : "Check registration status"}
             </button>
