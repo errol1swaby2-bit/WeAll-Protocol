@@ -1356,29 +1356,42 @@ export async function ensureBackendSession(args: { account: string; ttlSeconds?:
   return repaired;
 }
 
+async function submitAndVerifySessionRevocation(args: {
+  account: string;
+  sessionKey: string;
+  base?: string;
+}): Promise<any> {
+  const result = await submitSignedTx({
+    account: args.account,
+    tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
+    payload: { session_key: args.sessionKey },
+    parent: null,
+    base: args.base,
+  });
+  const txId = String(result?.tx_id || result?.result?.tx_id || "").trim();
+  if (!await waitForConfirmedSessionTransaction({ txId, base: args.base, timeoutMs: 30_000 })) {
+    throw new Error("Session revocation was submitted but canonical finality could not be verified.");
+  }
+  if (!await waitForRevokedSessionKey({ account: args.account, sessionKey: args.sessionKey, base: args.base, timeoutMs: 30_000 })) {
+    throw new Error("Session revocation receipt is confirmed but the account does not yet show the session as revoked.");
+  }
+  return result;
+}
+
 export async function revokeSessionKeyOnChain(args: { account: string; sessionKey: string; base?: string }): Promise<any> {
   const account = normalizeAccount(args.account);
   const sessionKey = String(args.sessionKey || "").trim();
   if (!account) throw new Error("invalid_account");
   if (!sessionKey) throw new Error("session_key_required");
-
-  return await submitSignedTx({
-    account,
-    tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
-    payload: { session_key: sessionKey },
-    parent: null,
-    base: args.base,
-  });
+  return submitAndVerifySessionRevocation({ account, sessionKey, base: args.base });
 }
 
 export async function revokeCurrentSessionKey(args?: { base?: string }): Promise<any> {
-  const s = getSession();
-  if (!s?.account || !s?.sessionKey) throw new Error("not_logged_in");
-  return await submitSignedTx({
-    account: s.account,
-    tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
-    payload: { session_key: s.sessionKey },
-    parent: null,
+  const session = getSession();
+  if (!session?.account || !session.sessionKey) throw new Error("not_logged_in");
+  return submitAndVerifySessionRevocation({
+    account: session.account,
+    sessionKey: session.sessionKey,
     base: args?.base,
   });
 }
