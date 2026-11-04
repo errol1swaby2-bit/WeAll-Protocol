@@ -1663,13 +1663,25 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
             "outbound_propagation": outbound,
         }
 
-    if bool(outbound.get("local_state_synced")):
+    # Even a durable previously verified sync flag must not substitute for a
+    # locally indexed successful receipt of the SAME upstream-confirmed block.
+    # A missing/rejected/mismatched local receipt must pass the proof path again.
+    if (
+        bool(outbound.get("local_state_synced"))
+        and isinstance(local, dict)
+        and local.get("apply_ok") is True
+        and int(local.get("height") or 0) > 0
+        and int(local.get("height") or 0)
+        == int(outbound.get("confirmed_height") or 0)
+        and str(local.get("block_id") or "")
+        == str(outbound.get("confirmed_block_id") or "")
+    ):
         return {
             "ok": True,
             "tx_id": t,
             "local_state_synced": True,
             "source": "already_synced",
-            "local_confirmation": local or {},
+            "local_confirmation": local,
             "outbound_propagation": outbound,
         }
 
