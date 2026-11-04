@@ -28,8 +28,6 @@ KNOWN_STALE = frozenset(
         "DISPUTE_APPEAL",
         "DISPUTE_FINAL_RECEIPT",
         "CONTENT_FLAG",
-        "CASE_TYPE_REGISTER",
-        "CASE_BIND_TO_DISPUTE",
         "ACCOUNT_BAN",
         "ROLE_JUROR_ENROLL",
         "ROLE_JUROR_ACTIVATE",
@@ -206,7 +204,7 @@ def build_packet() -> dict[str, Any]:
         "previous_generated_shape": prior_shape,
         "registered_transaction_count": len(current_rows),
         "pending_count": len(pending),
-        "newly_stale_not_in_known_17": unexpected,
+        "newly_stale_not_in_known_inventory": unexpected,
         "known_stale_now_resolved": sorted(KNOWN_STALE - {item["tx_type"] for item in pending}),
         "missing_state_stable_ids": missing_stable_ids,
         "independent_human_approval_recorded_by_this_packet": False,
@@ -234,7 +232,7 @@ def main() -> int:
         json.dumps(
             {
                 "pending_count": packet["pending_count"],
-                "newly_stale_not_in_known_17": packet["newly_stale_not_in_known_17"],
+                "newly_stale_not_in_known_inventory": packet["newly_stale_not_in_known_inventory"],
                 "known_stale_now_resolved": packet["known_stale_now_resolved"],
                 "missing_state_stable_ids": packet["missing_state_stable_ids"],
                 "review_material_archive_does_not_match_prior_approval": [
