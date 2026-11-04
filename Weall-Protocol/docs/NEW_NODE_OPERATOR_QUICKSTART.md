@@ -302,6 +302,23 @@ You selected the production-oriented low-level wrapper without a validated
 bundle. Follow Path B with operator-provided anchors, or Path A for a disposable
 local network. Do not bypass the preflight.
 
+### Permission denied creating `.weall-devnet/logs`, `generated`, `accounts`, or `runtime`
+
+The launcher requires write access to its dedicated `Weall-Protocol/.weall-devnet` runtime directory. A failed first-run can report `Permission denied` when that directory is owned by `root:root` with mode `0755`, even though the checkout and virtual environment are owned by the ordinary user. This is a **local filesystem ownership problem**, not a Kubo, consensus, or PoH failure. Do not rerun the launcher with `sudo`, recursively `chown` the repository, `chmod -R 777`, or delete preexisting keys/state as a workaround.
+
+From the backend root, inspect first:
+
+```bash
+DEVNET="$PWD/.weall-devnet"
+stat -c '%A %a %U:%G %n' "$DEVNET"
+namei -l "$DEVNET"
+find "$DEVNET" -mindepth 1 -maxdepth 2 -printf '%u:%g %m %p\n'
+```
+
+If the **directory itself** is the only ownership obstacle, you have confirmed that it is the intended real (non-symlink) `.weall-devnet` directory inside your own checkout, and you understand which existing data must be preserved, repair *that directory only* using `sudo chown -- "$(id -u):$(id -g)" "$DEVNET"` followed by `chmod 700 "$DEVNET"`. Neither command is recursive. Recheck ownership, then retry as your ordinary user. If nested content is also unwritable, inspect it individually rather than applying broad permission changes.
+
+The launcher now performs a read-only `check-devnet-writable` preflight and reports a targeted access failure without changing ownership. The originating creator of a root-owned directory cannot be inferred from the failure alone.
+
 ### Docker or Kubo is unavailable in WSL
 
 `docker: command not found` is expected if you have not installed or enabled Docker Desktop's Ubuntu WSL integration. For the local Path A only, you can instead install native Kubo without Docker. Follow [Local IPFS prerequisite setup](FIRST_RUN_WSL_IPFS.md), which includes SHA-512 verification, a second official download endpoint, and Windows-browser fallback for `curl: (35) Recv failure: Connection reset by peer`. Do not run a Docker-specific diagnostic on the native-only path.
