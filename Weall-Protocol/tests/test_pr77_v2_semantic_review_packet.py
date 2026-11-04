@@ -95,6 +95,15 @@ def test_review_packet_shows_exact_rejection_code_delta_per_lane() -> None:
     packet = build_packet()
     rows = {row["tx_type"]: row for row in packet["transactions"]}
 
+    flag_row = rows["CONTENT_FLAG"]
+    assert flag_row["review_lane"] == "content_flag_duplicate_identity_guard"
+    assert flag_row["failure_code_deltas"] == {
+        "added": [{"code": "conflict", "reason": "duplicate_flag_id"}],
+        "removed": [],
+    }
+    assert flag_row["signed_off_for_current_digest"] is False
+    assert flag_row["historical_replay_proven"] is False
+
     ban_delta = rows["ACCOUNT_BAN"]["failure_code_deltas"]
     assert {
         "code": "forbidden",
