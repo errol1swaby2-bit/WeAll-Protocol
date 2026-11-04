@@ -238,7 +238,7 @@ export default function AccountRegistrationPage(): JSX.Element {
               {checking ? "Checking…" : "Check registration status"}
             </button>
           </div>
-          {transactionId ? (
+          {transactionId && transactionId !== "submission_unknown" ? (
             <details className="advancedDetails">
               <summary>Advanced: registration transaction</summary>
               <pre className="jsonBlock">{transactionId}</pre>
