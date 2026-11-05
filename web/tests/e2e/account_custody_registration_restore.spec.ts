@@ -330,8 +330,10 @@ test.describe("real browser account custody", () => {
       });
       await registerButton.click();
       await expect.poll(() => browserDispatches).toBe(1);
-      expect(savedBeforeDispatch).toMatch(/^tx:[0-9a-f]{64}$/);
+      // Browser pending posture proves the interception handler finished; do
+      // not race the async storage readback with the request observer.
       await expect(page.getByTestId("registration-pending")).toBeVisible({ timeout: 30_000 });
+      expect(savedBeforeDispatch).toMatch(/^tx:[0-9a-f]{64}$/);
       await page.unroute("**/v1/tx/submit");
 
       await page.reload();
