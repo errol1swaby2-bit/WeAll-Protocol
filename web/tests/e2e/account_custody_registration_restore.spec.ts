@@ -349,6 +349,42 @@ test.describe("real browser account custody", () => {
       expect(browserDispatches).toBe(1);
       const state = await getJson(page.request, "/v1/accounts/" + encodeURIComponent(account));
       expect(String(state?.state?.pubkey || "")).toBe("");
+
+      // This is a controlled terminal-status RESPONSE fixture, not a claim
+      // that the real backend rejected the transaction aborted above.
+      // It proves the browser treats a canonical "rejected" report as
+      // terminal and demands an explicit, guarded request reset.
+      const statusPath = "/v1/tx/status/" + encodeURIComponent(savedBeforeDispatch);
+      let terminalStatusReads = 0;
+      await page.route("**/v1/tx/status/**", async (route) => {
+        if (new URL(route.request().url()).pathname !== statusPath) {
+          await route.continue();
+          return;
+        }
+        terminalStatusReads += 1;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, status: "rejected", local_state_synced: false }),
+        });
+      });
+      await page.getByRole("button", { name: "Check registration status" }).click();
+      await expect(page.getByTestId("registration-rejected")).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId("submit-basic-registration")).toBeDisabled();
+      expect(browserDispatches).toBe(1);
+      expect(terminalStatusReads).toBeGreaterThan(0);
+
+      await page.unroute("**/v1/tx/status/**");
+      await page.getByRole("button", { name: "Prepare a new request" }).click();
+      await expect(page.getByTestId("submit-basic-registration")).toBeEnabled({ timeout: 30_000 });
+      const afterDeliberateReset = await page.evaluate(
+        (acct: string) => localStorage.getItem("weall.account_registration_pending::" + acct),
+        account,
+      );
+      expect(afterDeliberateReset).toBeNull();
+      // No second signed request may occur until the human actually clicks
+      // "Register my account" again.
+      expect(browserDispatches).toBe(1);
     } finally {
       await context.close();
       await rm(tempDir, { recursive: true, force: true });
@@ -516,6 +552,51 @@ test.describe("real browser account custody", () => {
       expect(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey).toBe(Buffer.from(recovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"));
       expect(accountBeforeRestart?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
+      // Competing browser profile: the handle is already bound on-chain to
+      // the first signer's public key. A second valid but different signer
+      // must be blocked before signed ACCOUNT_REGISTER dispatch.
+      const competingContext = await browser.newContext({ baseURL: BASE_URL, acceptDownloads: true });
+      try {
+        const competitor = await competingContext.newPage();
+        let competingRegistrations = 0;
+        competitor.on("request", (req) => {
+          if (req.method() !== "POST" || !new URL(req.url()).pathname.endsWith("/v1/tx/submit")) return;
+          try {
+            if ((req.postDataJSON() as Record<string, unknown>)?.tx_type === "ACCOUNT_REGISTER") {
+              competingRegistrations += 1;
+            }
+          } catch {
+            // Do not log the signed transaction's contents.
+          }
+        });
+        await competitor.goto("/#/login");
+        await competitor.getByLabel("Choose a handle").fill(account);
+        await competitor.getByRole("button", { name: "Create account key" }).click();
+        await expect(competitor.getByTestId("recovery-save-step")).toBeVisible({ timeout: 30_000 });
+
+        const collisionRecoveryPath = join(tempDir, "collision-recovery.json");
+        const collisionDownload = competitor.waitForEvent("download");
+        await competitor.getByRole("button", { name: /Download recovery file/ }).click();
+        await (await collisionDownload).saveAs(collisionRecoveryPath);
+        const rival = JSON.parse(await readFile(collisionRecoveryPath, "utf8")) as RecoveryFileV2;
+        expect(rival.account).toBe(account);
+        expect(rival.publicKeyB64).not.toBe(recovery.publicKeyB64);
+        await competitor.getByTestId("verify-created-recovery-file").setInputFiles(collisionRecoveryPath);
+        await expect(competitor.getByTestId("recovery-verification-status")).toContainText("Recovery verified");
+        await competitor.getByRole("button", { name: "Continue to network registration" }).click();
+        await competitor.waitForURL(/#\/onboarding\/register$/);
+        await expect(competitor.getByTestId("registration-key-mismatch")).toBeVisible({ timeout: 30_000 });
+        await expect(competitor.getByTestId("submit-basic-registration")).toBeDisabled();
+        expect(competingRegistrations).toBe(0);
+
+        const afterCollision = await getJson(competitor.request, accountPath);
+        assertSingleCanonicalAccountKey(afterCollision, recovery.publicKeyB64);
+        expect(afterCollision?.state?.recovery?.offline_key?.pubkey)
+          .toBe(Buffer.from(recovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"));
+      } finally {
+        await competingContext.close();
+      }
+
       const refreshStatusButton = firstPage.getByRole("button", { name: "Check registration status" });
       await expect(refreshStatusButton).toBeEnabled({ timeout: 30_000 });
       await refreshStatusButton.click();
@@ -618,6 +699,41 @@ test.describe("real browser account custody", () => {
         expect(accountAfterRestore?.state?.recovery?.offline_key?.pubkey).toBe(Buffer.from(recovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"));
         expect(accountAfterRestore?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
+        // Inject two transient canonical account-view failures on the restored
+        // profile screen. The UI may reconcile with bounded GETs, but must
+        // never manufacture an account or submit a signed mutation.
+        let canonicalAccountReads = 0;
+        let transientObserverFailures = 0;
+        let protectedProfileSubmissions = 0;
+        restoredPage.on("request", (req) => {
+          if (req.method() !== "POST" || !new URL(req.url()).pathname.endsWith("/v1/tx/submit")) return;
+          try {
+            if ((req.postDataJSON() as Record<string, unknown>)?.tx_type === "PROFILE_UPDATE") {
+              protectedProfileSubmissions += 1;
+            }
+          } catch {
+            // Never persist or emit signing material.
+          }
+        });
+        await restoredPage.route("**/v1/accounts/**", async (route) => {
+          if (route.request().method() !== "GET" ||
+              new URL(route.request().url()).pathname !== accountPath) {
+            await route.continue();
+            return;
+          }
+          canonicalAccountReads += 1;
+          if (transientObserverFailures < 2) {
+            transientObserverFailures += 1;
+            await route.fulfill({
+              status: 503,
+              contentType: "application/json",
+              body: JSON.stringify({ ok: false, code: "observer_temporarily_unavailable" }),
+            });
+            return;
+          }
+          await route.continue();
+        });
+
         await restoredPage.goto("/#/profile");
         await expect(restoredPage.getByText(account).first()).toBeVisible({ timeout: 30_000 });
         const editProfile = restoredPage.getByText("Edit public profile", { exact: true });
@@ -625,6 +741,12 @@ test.describe("real browser account custody", () => {
         await restoredPage.getByLabel("Display name").fill(displayName);
 
         const submitProfileButton = restoredPage.getByTestId("submit-public-profile-update");
+        // Only the canonical account read is reconciled; never the signed TX.
+        await expect(submitProfileButton).toBeEnabled({ timeout: 30_000 });
+        expect(transientObserverFailures).toBe(2);
+        expect(canonicalAccountReads).toBeGreaterThanOrEqual(3);
+        expect(protectedProfileSubmissions).toBe(0);
+        await restoredPage.unroute("**/v1/accounts/**");
         try {
           await expect(submitProfileButton).toBeEnabled({ timeout: 30_000 });
         } catch {
