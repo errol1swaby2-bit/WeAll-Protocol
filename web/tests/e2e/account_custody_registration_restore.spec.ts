@@ -90,7 +90,8 @@ async function captureSubmittedTx(page: Page, click: () => Promise<void>): Promi
   const interested = (request: Request): boolean => {
     const pathname = new URL(request.url()).pathname;
     return request.method() === "POST"
-      && (pathname.endsWith("/v1/tx/submit") || pathname.includes("/profile"));
+      && (pathname.endsWith("/v1/tx/submit")
+        || pathname.endsWith("/v1/accounts/tx/profile-update"));
   };
   const onRequest = (request: Request) => {
     if (interested(request)) events.push(`request ${request.method()} ${new URL(request.url()).pathname}`);
@@ -346,7 +347,16 @@ test.describe("real browser account custody", () => {
           (acct) => localStorage.getItem(`weall.account_registration_pending::${acct}`) || "",
           account,
         );
-        await route.abort("failed");
+        // Complete interception with an explicit failed browser receipt
+        // rather than a second route action after an asynchronous API call.
+        // The independent API submission already accepted the signed bytes.
+        if (!route.isInterceptResolutionHandled()) {
+          await route.fulfill({
+            status: 503,
+            contentType: "application/json",
+            body: '{"ok":false,"error":{"code":"temporary_transport_failure"}}',
+          });
+        }
       });
       await registerButton.click();
       await expect.poll(() => registerTxId, { timeout: 60_000 }).toMatch(/^tx:[0-9a-f]{64}$/);
