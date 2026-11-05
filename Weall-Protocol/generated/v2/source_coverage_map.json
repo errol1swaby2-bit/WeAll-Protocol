@@ -13616,7 +13616,7 @@
       ],
       "path": "tests/test_account_gate_and_tx_queue_status.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e8812b3f9583bde6d7c98da6e3be6e9f82347aebc4b45705eb527342023a331f",
+      "sha256": "1878163a865ef9a9022c8f041eecd5d6f587037694482edc47c7b001c4e7a623",
       "source_id": "SRC-5EADD75049BBA93B"
     },
     {
@@ -17513,7 +17513,7 @@
       ],
       "path": "tests/test_frontend_dependency_audit.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8818cbe63eaf75f2c1fc8a17a71dc736b64a894ef7473da97847cc5ef19a5342",
+      "sha256": "188cb0cb2695264c921ddde3579d291c3774057441d83585c7fa4c8509657b7d",
       "source_id": "SRC-8A077776FA8B7BDC"
     },
     {
@@ -20382,13 +20382,14 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "TX-0004",
         "TX-0006"
       ],
       "path": "tests/test_login_recovery_passkey_ux.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "10db634d22aecbb67cd19def70a6263da114164fe0a20851452f2e962e1e950e",
+      "sha256": "12ef183d112023facfc3b3c6592999c123136b19d940718cd02c95ff6e5a5eda",
       "source_id": "SRC-37F65D27EE196EB9"
     },
     {
@@ -24389,7 +24390,7 @@
       ],
       "path": "tests/test_poh_reviewer_action_gating_frontend.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "cfe78a48326a026927777eeb4040f91960364ee90b0f46284689de8056dd7c71",
+      "sha256": "e4094f43dfb806faaca6ebc293a559091b99486d9cce4f378cee8fcf4825f7e5",
       "source_id": "SRC-B23B021EF20EC623"
     },
     {
@@ -29846,7 +29847,7 @@
       ],
       "path": "tests/test_v2_spec_compiler.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7575512ec71b4309c7a433a75a091b2045cbaa72a31f81774d86400f71b795de",
+      "sha256": "dbe2f4a155d9df16dc47f372dfdbbaaae835de762688262ddca05e6083a9c0cf",
       "source_id": "SRC-9B8B949DCD736399"
     },
     {

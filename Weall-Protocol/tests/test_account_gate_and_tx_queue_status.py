@@ -22,7 +22,10 @@ def test_frontend_separates_basic_account_from_posting_eligibility() -> None:
     # Registration now uses the guided account setup route instead of an inline action.
     assert 'onClick={() => nav("/onboarding/register")}' in page
     assert '"Finish account registration"' in page
-    assert "disabled={!acct || !hasLocalKeypair || basicAccountCreated || signerSubmission.busy}" in page
+    assert (
+        "disabled={!acct || !hasLocalKeypair || basicAccountCreated || signerSubmission.busy}"
+        in page
+    )
     assert "Basic account creation is not posting permission." in page
 
 

@@ -72,10 +72,18 @@ def test_feed_finish_setup_keeps_signed_user_on_setup_path() -> None:
     assert 'label: "Begin account verification"' in onboarding
     not_registered_idx = onboarding.index('stage = "not_registered"')
     registration_route_idx = onboarding.index('route: "/onboarding/register"', not_registered_idx)
-    registration_label_idx = onboarding.index('label: "Finish account registration"', registration_route_idx)
+    registration_label_idx = onboarding.index(
+        'label: "Finish account registration"', registration_route_idx
+    )
     next_stage_idx = onboarding.index('stage = "tier0"')
     verification_route_idx = onboarding.index('route: "/verification"', next_stage_idx)
-    assert not_registered_idx < registration_route_idx < registration_label_idx < next_stage_idx < verification_route_idx
+    assert (
+        not_registered_idx
+        < registration_route_idx
+        < registration_label_idx
+        < next_stage_idx
+        < verification_route_idx
+    )
 
 
 def test_restricted_evidence_media_auto_locks_and_disclaims_screen_recording_limits() -> None:
