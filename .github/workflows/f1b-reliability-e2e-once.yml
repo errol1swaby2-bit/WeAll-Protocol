@@ -1,3 +1,4 @@
+# Rehearsal iteration 2: use tab-scoped session bearer, never persistent bearer.
 name: F1b No-Retry Real-Stack Evidence (temporary)
 
 on:
