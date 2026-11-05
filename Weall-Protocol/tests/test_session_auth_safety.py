@@ -19,7 +19,7 @@ SESSION_LOGIN_PUBKEY = mldsa65_public_key_from_seed(
     encoding="hex",
 )
 from weall.runtime.apply.identity import apply_identity
-from weall.runtime.session_keys import session_record_for, session_record_key
+from weall.runtime.session_keys import session_record_for, session_record_key, store_session_record
 from weall.runtime.tx_admission_types import TxEnvelope
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -273,3 +273,60 @@ def test_frontend_logout_revokes_and_clears_local_state() -> None:
     page = (OUTER_ROOT / "web/src/pages/SessionDevicesPage.tsx").read_text(encoding="utf-8")
     assert "logoutCurrentDevice" in page
     assert "Log out of this device" in page
+
+
+def test_session_auth_follows_canonical_block_time_not_wall_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Public session posture and the protected auth gate share ledger-time TTL.
+
+    Advancing wall time without a committed block must not advance
+    constitutional time. The strict > TTL boundary is validated against
+    two synchronized endpoints with explicitly controlled canonical state.
+    """
+    from weall.api.routes_public_parts import common, social
+
+    account = "@clockprobe"
+    bearer = "local-backend-expiry-fixture-do-not-persist"
+    issued_at_ts = 1234
+    state = {
+        "time": issued_at_ts,
+        "accounts": {account: {"session_keys": {}}},
+        "social": {"follows_by_edge": {}},
+    }
+    sessions = state["accounts"][account]["session_keys"]
+    store_session_record(
+        sessions,
+        bearer,
+        {"active": True, "issued_at_ts": issued_at_ts, "ttl_s": 1},
+    )
+
+    monkeypatch.setattr(common, "_snapshot", lambda _request: state)
+    # social.py imports _snapshot directly, so patch its bound reference too.
+    monkeypatch.setattr(social, "_snapshot", lambda _request: state)
+    client = TestClient(create_app(boot_runtime=False), raise_server_exceptions=False)
+    headers = {
+        "x-weall-account": account,
+        "x-weall-session-key": bearer,
+    }
+
+    for chain_time in (issued_at_ts, issued_at_ts + 1):
+        state["time"] = chain_time
+        posture = client.get("/v1/session/me", headers=headers)
+        assert posture.status_code == 200, posture.text
+        assert posture.json()["authenticated"] is True
+        assert posture.json()["session"]["expired"] is False
+        private = client.get("/v1/social/me", headers=headers)
+        assert private.status_code == 200, private.text
+        assert private.json()["account"] == account
+
+    # Exactly one finalized, authoritative ledger-time tick beyond the TTL.
+    # No wall-clock sleeping or local node timestamp is required.
+    state["time"] = issued_at_ts + 2
+    posture = client.get("/v1/session/me", headers=headers)
+    assert posture.status_code == 200, posture.text
+    assert posture.json()["authenticated"] is False
+    assert posture.json()["session"]["expired"] is True
+    private = client.get("/v1/social/me", headers=headers)
+    assert private.status_code == 403, private.text
+    assert private.json()["error"]["code"] == "session_expired"
