@@ -317,8 +317,40 @@ test.describe("real browser account custody", () => {
       const registerButton = firstPage.getByTestId("submit-basic-registration");
       await expect(registerButton).toBeEnabled({ timeout: 30_000 });
 
-      const registerTxId = await captureSubmittedTx(firstPage, () => registerButton.click());
+      // Adversarial receipt-loss drill: the backend accepts ACCOUNT_REGISTER,
+      // but the browser never receives the acknowledgement. The signed,
+      // canonical ID must already be durable. No automatic re-submission.
+      let registerTxId = "";
+      let savedBeforeLostAcknowledgement = "";
+      let registrationDispatches = 0;
+      await firstPage.route("**/v1/tx/submit", async (route) => {
+        const payload = route.request().postDataJSON() as Record<string, unknown>;
+        if (payload?.tx_type !== "ACCOUNT_REGISTER") {
+          await route.continue();
+          return;
+        }
+        registrationDispatches += 1;
+        const actual = await route.fetch();
+        expect(actual.ok(), `ACCOUNT_REGISTER backend returned HTTP ${actual.status()}`).toBeTruthy();
+        registerTxId = extractTxId(await actual.json());
+        expect(registerTxId).toMatch(/^tx:[0-9a-f]{64}$/);
+        savedBeforeLostAcknowledgement = await firstPage.evaluate(
+          (acct) => localStorage.getItem(`weall.account_registration_pending::${acct}`) || "",
+          account,
+        );
+        await route.abort("failed");
+      });
+      await registerButton.click();
+      await expect.poll(() => registerTxId, { timeout: 60_000 }).toMatch(/^tx:[0-9a-f]{64}$/);
+      await firstPage.unroute("**/v1/tx/submit");
+      expect(savedBeforeLostAcknowledgement).toBe(registerTxId);
+      expect(registrationDispatches).toBe(1);
+      // A page reload preserves the write-ahead transaction ID and cannot
+      // legitimately trigger another ACCOUNT_REGISTER submission.
+      await firstPage.reload();
+      await expect(firstPage.getByTestId("guided-account-registration")).toBeVisible();
       const registerStatus = await waitForConfirmedTx(firstPage.request, registerTxId);
+      expect(registrationDispatches).toBe(1);
       expect(TERMINAL_SUCCESS.has(String(registerStatus?.status || registerStatus?.phase || "").toLowerCase())).toBeTruthy();
       const accountPath = `/v1/accounts/${encodeURIComponent(account)}`;
       const accountBeforeRestart = await pollJson(
