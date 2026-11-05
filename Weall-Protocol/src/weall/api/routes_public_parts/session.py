@@ -575,13 +575,21 @@ def v1_session_me(request: Request):
         }
 
     active = bool(srec.get("active", False))
-    issued_at_ts = int(srec.get("issued_at_ts", 0) or 0)
+    raw_issued_at_ts = srec.get("issued_at_ts")
+    issued_at_ts = int(raw_issued_at_ts) if isinstance(raw_issued_at_ts, int) else 0
     ttl_s = int(srec.get("ttl_s", 0) or 0)
 
-    expired = False
-    now = _state_now_ts(st)
-    if ttl_s > 0 and issued_at_ts > 0 and now > (issued_at_ts + ttl_s):
-        expired = True
+    # Match require_account_session: genesis timestamp zero is a valid
+    # consensus timestamp, not "missing issuance". Missing/invalid ledger
+    # time or issuance time must fail closed. Never substitute wall time.
+    now = st.get("time")
+    expired = bool(
+        ttl_s > 0
+        and (
+            not (isinstance(now, int) and isinstance(raw_issued_at_ts, int))
+            or now > (raw_issued_at_ts + ttl_s)
+        )
+    )
 
     return {
         "ok": True,
