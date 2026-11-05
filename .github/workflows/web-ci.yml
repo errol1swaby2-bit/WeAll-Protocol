@@ -11,7 +11,9 @@ concurrency:
 
 jobs:
   web:
-    runs-on: ubuntu-latest
+    # Playwright 1.59 Chromium supports Ubuntu 24.04; ubuntu-latest currently
+    # resolves to Ubuntu 26.04 where browser installation is unsupported.
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
