@@ -1,0 +1,122 @@
+name: F1b one-shot two-process rejected-receipt evidence
+
+on:
+  pull_request:
+    types: [synchronize]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  two-process-receipt:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'frontend/f1-guided-account-onboarding-20261104'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install hash-locked backend and test tools
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format only changed Python files and check focused unit gates
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format \
+            scripts/devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_convergence.py
+          ruff check \
+            scripts/devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_convergence.py
+          pytest -q tests/test_devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_live_runner.py \
+            tests/test_tx_status_apply_rejection_truth.py
+
+      - name: Real two-process producer/follower failed-apply receipt gate
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export WEALL_DEVNET_DIR="${RUNNER_TEMP}/f1b-live/.weall-devnet"
+          export WEALL_DEVNET_LIVE_LOG_DIR="${RUNNER_TEMP}/f1b-live/logs"
+          export WEALL_DEVNET_AUTO_VENV=0
+          export WEALL_DEVNET_LIVE_RESET=1
+          export WEALL_DEVNET_KEEP_NODES=0
+          export WEALL_DEVNET_CHECK_REJECTED_RECEIPT=1
+          export WEALL_TX_WAIT_TIMEOUT=90
+          export WEALL_TX_WAIT_POLL=0.5
+          export WEALL_CROSS_NODE_COMMAND_TIMEOUT=240
+          export WEALL_CROSS_NODE_HTTP_TIMEOUT=10
+          export NODE1_API="http://127.0.0.1:18341"
+          export NODE2_API="http://127.0.0.1:18342"
+          mkdir -p "$(dirname "${WEALL_DEVNET_DIR}")"
+          timeout 1200 bash scripts/devnet_run_cross_node_convergence_live.sh
+          echo "OK: F1b real two-process failed-apply receipt convergence verified"
+
+      - name: Redacted node-log evidence on failure
+        if: failure()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for f in "${RUNNER_TEMP}/f1b-live/logs/"*.log; do
+            if [[ -f "$f" ]]; then
+              printf 'log_file=%s\n' "$(basename "$f")"
+              grep -E 'ERROR|Error|Traceback|bad_block|receipt|rejected|failed|mismatch' "$f" \
+                | sed -E 's/(token|secret|private_key|sig|bearer)([=:][^[:space:]]+)/\1=[REDACTED]/g' \
+                | tail -n 60 || true
+            fi
+          done
+
+      - name: Remove temporary workflow and regenerate source-bound proofs
+        if: success()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          rm .github/workflows/f1b-one-shot-v2-refresh.yml
+          cd Weall-Protocol
+          export PYTHONPATH=src
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          python scripts/compile_v2_spec.py
+          python scripts/compile_v2_spec.py --check
+          cd ..
+          test ! -e .github/workflows/f1b-one-shot-v2-refresh.yml
+          git add -A -- \
+            .github/workflows/f1b-one-shot-v2-refresh.yml \
+            Weall-Protocol/scripts/devnet_cross_node_convergence.py \
+            Weall-Protocol/tests/test_devnet_cross_node_convergence.py \
+            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json \
+            Weall-Protocol/generated/v2 \
+            web/src/generated/protocolStatus.ts
+          git diff --cached --check
+          test -z "$(git diff --name-only)"
+          test -z "$(git ls-files --others --exclude-standard)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(F1b): record passing cross-process rejected-receipt gate and regenerate evidence"
+          git push origin HEAD:refs/heads/frontend/f1-guided-account-onboarding-20261104
