@@ -394,6 +394,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const nextUnlock = snapshot.next.label || "No immediate unlock action";
   const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
   const signerBusy = signerSubmission.busy;
+  const profileSubmitBlockers = [
+    busy !== null ? "action_pending" : "",
+    !profileDirty ? "unchanged_profile" : "",
+    !accountExists ? "account_not_loaded" : "",
+    !localPubkey ? "signer_unavailable" : "",
+    signerBusy ? "signer_submission_busy" : "",
+  ].filter(Boolean);
 
   async function runProfileUpdate() {
     if (!isSelf) return;
@@ -1077,7 +1084,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <div className="buttonRow">
                   <button
                     className="btn btnPrimary"
-                    disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy}
+                    data-testid="submit-public-profile-update"
+                    data-submit-blockers={profileSubmitBlockers.join(",")}
+                    disabled={profileSubmitBlockers.length > 0}
                     onClick={() => void runProfileUpdate()}
                   >
                     {busy === "profile" ? "Submitting profile update…" : "Submit public profile update"}
