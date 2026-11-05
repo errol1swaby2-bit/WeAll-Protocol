@@ -55,13 +55,17 @@ function mutateB64(value: string): string {
 }
 
 function assertSingleCanonicalAccountKey(body: any, publicKeyB64: string): void {
+  // Consensus stores normalized ML-DSA-65 public key bytes as lowercase hex.
+  // The downloaded recovery file stores the same 1952 bytes as base64.
+  const canonicalHex = Buffer.from(publicKeyB64, "base64").toString("hex");
+  expect(canonicalHex).toHaveLength(3904);
   const state = body?.state || {};
-  expect(state?.pubkey).toBe(publicKeyB64);
-  expect(state?.pubkeys).toEqual([publicKeyB64]);
-  expect(state?.active_keys).toEqual([publicKeyB64]);
+  expect(state?.pubkey).toBe(canonicalHex);
+  expect(state?.pubkeys).toEqual([canonicalHex]);
+  expect(state?.active_keys).toEqual([canonicalHex]);
   const byId = state?.keys?.by_id || {};
   expect(Object.keys(byId)).toHaveLength(1);
-  expect(JSON.stringify(byId)).toContain(publicKeyB64);
+  expect(JSON.stringify(byId)).toContain(canonicalHex);
 }
 
 async function requireBackend(request: APIRequestContext): Promise<void> {
@@ -285,7 +289,7 @@ test.describe("real browser account custody", () => {
       );
       expect(accountBeforeRestart?.account).toBe(account);
       assertSingleCanonicalAccountKey(accountBeforeRestart, recovery.publicKeyB64);
-      expect(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey).toBe(recovery.recoveryAuthorityPublicKeyB64);
+      expect(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey).toBe(Buffer.from(recovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"));
       expect(accountBeforeRestart?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
       const refreshStatusButton = firstPage.getByRole("button", { name: "Refresh status" });
@@ -364,7 +368,7 @@ test.describe("real browser account custody", () => {
         const accountAfterRestore = await getJson(restoredPage.request, accountPath);
         expect(accountAfterRestore?.account).toBe(account);
         assertSingleCanonicalAccountKey(accountAfterRestore, recovery.publicKeyB64);
-        expect(accountAfterRestore?.state?.recovery?.offline_key?.pubkey).toBe(recovery.recoveryAuthorityPublicKeyB64);
+        expect(accountAfterRestore?.state?.recovery?.offline_key?.pubkey).toBe(Buffer.from(recovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"));
         expect(accountAfterRestore?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
         await restoredPage.goto("/#/profile");
