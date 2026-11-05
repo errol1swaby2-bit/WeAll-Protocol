@@ -1110,6 +1110,8 @@ export async function submitSignedTxWithNonce(args: {
   parent?: string | null;
   base?: string;
   headers?: HeadersInit;
+  /** Called after signing, immediately before dispatch; throw to abort dispatch. */
+  onBeforeSubmit?: () => void;
 }): Promise<{ env: TxEnvelope; result: any }> {
   return runSignerSerialized(args.account, async () => {
     const signer = normalizeAccount(args.account);
@@ -1135,6 +1137,7 @@ export async function submitSignedTxWithNonce(args: {
       });
       const signed = signEnvelope(unsigned, kp);
       try {
+        args.onBeforeSubmit?.();
         const result = await weall.txSubmit(signed, args.base, args.headers);
         return { env: signed, result };
       } catch (error) {
