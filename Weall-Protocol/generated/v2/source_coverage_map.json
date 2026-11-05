@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "318cf3a7a36fffe430a9850f804eab5ee71a878a3a2678420b0c9dca5d3292b4",
+      "sha256": "a56d647d99176212e2d110b20dea5ec1a56cb44df194ee866d2518ae02513853",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -3842,7 +3842,7 @@
       ],
       "path": "requirements-dev.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "2adafd798d36eea474d59f72cd21199e9076ce14f6b865a3ec4ab91720815b98",
+      "sha256": "634636662650bb6861366b9fe0602b7109e45aecf09a773befd259a727f08871",
       "source_id": "SRC-76E5F5875EE0F8B7"
     },
     {
@@ -30842,7 +30842,7 @@
       ],
       "path": "../web/scripts/test_guided_account_registration_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "9e587b4e9d45416126fc923c2ab38220a94961eeaf8212a2137c3f4a91fa05bd",
+      "sha256": "2a201470365814bb77bcc4422a53282a04d3a564018e87aa684f260206ad3029",
       "source_id": "SRC-3729E98B96A88F81"
     },
     {
@@ -31355,7 +31355,7 @@
       ],
       "path": "../web/src/auth/keys.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "365481044b0647e16ab71712156cfa9dbbd352baaf9249559ce9e6a35272a4eb",
+      "sha256": "84ed411883ffa6db6d4a2653181ff5328ecdb06f3bb60130d6d786fc90f2d366",
       "source_id": "SRC-2C252AC904268BF9"
     },
     {
@@ -31935,7 +31935,7 @@
       ],
       "path": "../web/src/lib/accountSetupRegistration.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "4adf55903f95c624e8ca77a3a1ff721073a7b49a90ac3c3bdc3b9dabed0f0c13",
+      "sha256": "4137d0025dce148ed388ebad1b5986ca8188d68f9d5e758c59f7f02b57171c58",
       "source_id": "SRC-80C403532EE57CF1"
     },
     {
@@ -32818,7 +32818,7 @@
       ],
       "path": "../web/src/pages/LoginPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "0eb0240711114271cc08887e854c94da64124ebf5eaf6f2eeb5537b77e3f6524",
+      "sha256": "4d0a8e35a597f0e86266a5d0f61c4d1529307396cb78a68dafedcbb5a335510b",
       "source_id": "SRC-4C266797B87139C6"
     },
     {
@@ -33070,7 +33070,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "e4b9122c9e264e41beab2f87bff1f2ef0f38dbaf8e512fc749d0530ebb722ac4",
+      "sha256": "8a1b29816b4eaaf6e150d4e3a351348c411f1d0bbceb9873f33b6c130d9d2deb",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
