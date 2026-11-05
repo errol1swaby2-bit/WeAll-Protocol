@@ -985,7 +985,10 @@ test.describe("real browser account custody", () => {
         };
         let shortSessionState = await readShortSession();
         expect(Number(shortSessionState?.session?.ttl_s || 0)).toBe(1);
-        expect(Number(shortSessionState?.session?.issued_at_ts || 0)).toBeGreaterThan(0);
+        // Canonical genesis time can legitimately be zero; absence is not
+        // equivalent to a zero consensus timestamp.
+        expect(Number.isInteger(shortSessionState?.session?.issued_at_ts)).toBe(true);
+        expect(shortSessionState.session.issued_at_ts).toBeGreaterThanOrEqual(0);
         let clockAdvanceBlocks = 0;
         while (shortSessionState?.session?.expired !== true && clockAdvanceBlocks < 4) {
           const witness = await restoredPage.evaluate(async (acct: string) => {
