@@ -34,7 +34,7 @@ export async function readAccountRegistrationStatus(account: string, base: strin
   }
 }
 
-export async function submitBasicAccountRegistration(account: string, base: string): Promise<string> {
+export async function submitBasicAccountRegistration(account: string, base: string, onBeforeSubmit?: () => void): Promise<string> {
   const acct = normalizeAccount(account);
   const keypair = acct ? getKeypair(acct) : null;
   if (!acct || !keypair?.secretKeyB64 || !keypair.pubkeyB64) {
@@ -66,6 +66,7 @@ export async function submitBasicAccountRegistration(account: string, base: stri
     },
     parent: null,
     base,
+    onBeforeSubmit,
   });
   const txId = String(submitted?.result?.tx_id || submitted?.result?.result?.tx_id || "").trim();
   if (!txId) throw new Error("Registration was submitted but no transaction ID was returned. Check your account before retrying.");
