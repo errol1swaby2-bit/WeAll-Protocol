@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2063,
+  "file_count": 2062,
   "files": [
     {
       "affected_registers": [
@@ -58,19 +58,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "9f928229d2232fb2eee7d80e239aa8f0795c3d0da31be25bd7cfe84fa0501dd5",
       "source_id": "SRC-D13941269967924D"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/frontend-v2-coverage-refresh-once.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "2b075750bcff2455547531e97dcc3477ceb4a8fda8f1b73f3341a99446283691",
-      "source_id": "SRC-E358FAAED9405377"
     },
     {
       "affected_registers": [
