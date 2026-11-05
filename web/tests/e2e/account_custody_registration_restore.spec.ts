@@ -331,11 +331,22 @@ test.describe("real browser account custody", () => {
           return;
         }
         registrationDispatches += 1;
-        // Use an independent API request for the identical signed JSON.
-        // Playwright route.fetch() can mark the intercepted route handled,
-        // preventing us from simulating a lost browser acknowledgement.
+        // The browser must have durably recorded the canonical transaction
+        // ID before attempting network dispatch. An intercepted, unacknowledged
+        // request cannot authorize an automatic retry.
         const signedBody = route.request().postData();
         expect(signedBody).toBeTruthy();
+        savedBeforeLostAcknowledgement = await firstPage.evaluate(
+          (acct) => localStorage.getItem(`weall.account_registration_pending::${acct}`) || "",
+          account,
+        );
+        expect(savedBeforeLostAcknowledgement).toMatch(/^tx:[0-9a-f]{64}$/);
+        // Abort the browser request FIRST. Otherwise the browser may destroy
+        // the intercepted route during a slow independent API submission.
+        await route.abort("failed");
+        // Deliver the *same* signed bytes independently to the real backend.
+        // The client has no acknowledgement even though the ledger receives
+        // and commits the exact transaction it pre-recorded.
         const actual = await firstPage.request.post("/v1/tx/submit", {
           data: signedBody || "",
           headers: { "content-type": "application/json" },
@@ -343,20 +354,6 @@ test.describe("real browser account custody", () => {
         expect(actual.ok(), `ACCOUNT_REGISTER backend returned HTTP ${actual.status()}`).toBeTruthy();
         registerTxId = extractTxId(await actual.json());
         expect(registerTxId).toMatch(/^tx:[0-9a-f]{64}$/);
-        savedBeforeLostAcknowledgement = await firstPage.evaluate(
-          (acct) => localStorage.getItem(`weall.account_registration_pending::${acct}`) || "",
-          account,
-        );
-        // Complete interception with an explicit failed browser receipt
-        // rather than a second route action after an asynchronous API call.
-        // The independent API submission already accepted the signed bytes.
-        if (!route.isInterceptResolutionHandled()) {
-          await route.fulfill({
-            status: 503,
-            contentType: "application/json",
-            body: '{"ok":false,"error":{"code":"temporary_transport_failure"}}',
-          });
-        }
       });
       await registerButton.click();
       await expect.poll(() => registerTxId, { timeout: 60_000 }).toMatch(/^tx:[0-9a-f]{64}$/);
