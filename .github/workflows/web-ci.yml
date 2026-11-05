@@ -97,6 +97,10 @@ jobs:
         run: |
           npm run test:guided-account-registration-source
 
+      - name: Canonical registration ID golden vectors
+        run: |
+          npm run test:registration-tx-id
+
       - name: Focused shell navigation and drawer source gate
         run: |
           npm run test:focused-shell-source
