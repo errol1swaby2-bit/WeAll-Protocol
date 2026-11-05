@@ -62,8 +62,8 @@ def test_frontend_package_lock_matches_audited_dependency_versions() -> None:
     assert packages["node_modules/@babel/types"]["version"] == "7.29.7"
     assert packages["node_modules/@babel/helper-string-parser"]["version"] == "7.29.7"
     assert packages["node_modules/@babel/helper-validator-identifier"]["version"] == "7.29.7"
-    assert packages["node_modules/postcss"]["version"] == "8.5.26"
-    assert packages["node_modules/nanoid"]["version"] == "3.3.18"
+    assert packages["node_modules/postcss"]["version"] == "8.5.32"
+    assert packages["node_modules/nanoid"]["version"] == "3.3.20"
 
 
 def test_frontend_lockfile_no_longer_contains_known_vulnerable_router_chain() -> None:
