@@ -93,7 +93,10 @@ assert.ok(protocol.includes('result?.local_state_synced === true'), "Observer-lo
 assert.ok(registration.includes("registration !== \"not_registered\""), "Unknown network state must not allow a duplicate registration");
 assert.ok(registration.includes("rememberPendingTransaction("), "Pending registration should remain traceable");
 assert.ok(registration.includes('localStorage.setItem(pendingRegistrationKey(account), txId)'), "Nonsecret registration tracking must survive browser restarts");
-assert.ok(registration.includes('rememberPendingTransaction(account, "submission_unknown")'), "Ambiguous registration submission must fail closed before the request");
+assert.ok(registration.includes('persistSubmissionIntent(account);'), "Registration must persist unknown submission at the network dispatch boundary");
+assert.ok(registration.includes('localStorage.getItem(key) !== "submission_unknown"'), "Durable storage must be verified before dispatch");
+assert.ok(protocol.includes("onBeforeSubmit,"), "Registration must pass the durable-intent callback to the signer");
+assert.ok(session.includes("args.onBeforeSubmit?.();"), "Signer must invoke durable-intent callback before network submission");
 assert.ok(registration.includes('transactionId === "submission_unknown"'), "Unknown submission must reconcile from network state rather than submit again");
 assert.ok(e2e.includes('getItem("weall_session_v1")'), "Browser custody E2E must check that recovery cannot be bypassed");
 assert.ok(e2e.includes('getByTestId("guided-account-registration")'), "Browser custody E2E must visit the dedicated registration flow");
