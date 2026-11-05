@@ -33071,7 +33071,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "a377d9f0ad65dc9e7d21ef343faa8846ca6aae735b89db72f0d3835b3415808f",
+      "sha256": "d3a864ee0366dfecd2bcc7f9aff32c20d05e8047767cb72f42f89daaffb1af53",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
