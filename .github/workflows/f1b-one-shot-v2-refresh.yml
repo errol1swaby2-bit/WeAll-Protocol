@@ -1,0 +1,60 @@
+name: F1b one-shot source-bound V2 evidence refresh
+
+on:
+  pull_request:
+    types: [synchronize]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'frontend/f1-guided-account-onboarding-20261104'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR source head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup locked Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install hash-locked compiler dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Remove temporary workflow before exact-tree regeneration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test -z "$(git status --porcelain)"
+          rm .github/workflows/f1b-one-shot-v2-refresh.yml
+          cd Weall-Protocol
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          cd ..
+          test ! -e .github/workflows/f1b-one-shot-v2-refresh.yml
+          git add -A -- \
+            .github/workflows/f1b-one-shot-v2-refresh.yml \
+            Weall-Protocol/generated/v2 \
+            web/src/generated/protocolStatus.ts
+          git diff --cached --check
+          test -z "$(git diff --name-only)"
+          test -z "$(git ls-files --others --exclude-standard)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(F1b): regenerate exact-tree V2 for included-rejection nonce semantics"
+          git push origin HEAD:refs/heads/frontend/f1-guided-account-onboarding-20261104
