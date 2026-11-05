@@ -292,11 +292,15 @@ test.describe("real browser account custody", () => {
       expect(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey).toBe(Buffer.from(recovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"));
       expect(accountBeforeRestart?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
-      const refreshStatusButton = firstPage.getByRole("button", { name: "Refresh status" });
+      const refreshStatusButton = firstPage.getByRole("button", { name: "Check registration status" });
       await expect(refreshStatusButton).toBeEnabled({ timeout: 30_000 });
       await refreshStatusButton.click();
+      await expect(firstPage.getByTestId("registration-complete")).toContainText(
+        "Your basic account is ready.",
+        { timeout: 30_000 },
+      );
       await expect(
-        firstPage.locator("span.statusPill.ok").filter({ hasText: /^Basic account ready$/ }),
+        firstPage.locator("span.statusPill.ok").filter({ hasText: "3. Network registration" }),
       ).toBeVisible({ timeout: 30_000 });
 
       await firstContext.close();
