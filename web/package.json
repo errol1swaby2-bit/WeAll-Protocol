@@ -47,6 +47,7 @@
     "test:account-custody-e2e": "playwright test tests/e2e/account_custody_registration_restore.spec.ts",
     "test:account-custody-crypto-source": "node scripts/test_account_custody_crypto_source.mjs",
     "test:guided-account-registration-source": "node scripts/test_guided_account_registration_source.mjs",
+    "test:registration-tx-id": "node scripts/test_registration_canonical_tx_id.mjs",
     "test:account-custody-source": "node scripts/test_account_custody_source.mjs",
     "test:account-custody-real-stack": "playwright test tests/e2e/account_custody_registration_restore.spec.ts",
     "test:m2-async-independent-browsers": "playwright test tests/e2e/poh_async_independent_browsers.spec.ts",
