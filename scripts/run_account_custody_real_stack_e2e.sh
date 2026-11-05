@@ -94,8 +94,16 @@ if [[ ! -d node_modules ]]; then
   npm ci
 fi
 
+# Repeat independent custody journeys against the same live backend to expose
+# intermittent signer/session races, without retrying any individual attempt.
+CUSTODY_REPEAT_EACH="${WEALL_CUSTODY_REPEAT_EACH:-1}"
+if ! [[ "${CUSTODY_REPEAT_EACH}" =~ ^[1-9]$ ]]; then
+  echo "WEALL_CUSTODY_REPEAT_EACH must be an integer from 1 through 9" >&2
+  exit 1
+fi
+echo "Running ${CUSTODY_REPEAT_EACH} independent no-retry custody journeys"
 VITE_WEALL_API_BASE="${API_BASE}" \
 VITE_WEALL_DEV_PROXY_TARGET="${API_BASE}" \
 PLAYWRIGHT_BASE_URL="${WEB_BASE}" \
 WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1 \
-npm run test:account-custody-real-stack
+npm run test:account-custody-real-stack -- --workers=1 --repeat-each="${CUSTODY_REPEAT_EACH}"
