@@ -1,5 +1,5 @@
 import { weall } from "../api/weall";
-import { ensureRecoveryAuthorityKeypair, normalizeAccount } from "../auth/keys";
+import { canonicalMldsa65PublicKeyHex, ensureRecoveryAuthorityKeypair, normalizeAccount } from "../auth/keys";
 import { ensureEvidenceKemKeypair } from "../auth/evidenceCrypto";
 import { getKeypair, submitSignedTxWithNonce, type TxEnvelope } from "../auth/session";
 import {
@@ -70,7 +70,7 @@ export async function readAccountRegistrationStatus(account: string, base: strin
     const state = view?.account?.state ?? view?.state ?? null;
     if (!state || typeof state !== "object") return "unavailable";
     const pubkey = String(state.pubkey || "").trim();
-    if (pubkey && pubkey !== keypair.pubkeyB64) return "key_mismatch";
+    if (pubkey && canonicalMldsa65PublicKeyHex(pubkey) !== canonicalMldsa65PublicKeyHex(keypair.pubkeyB64)) return "key_mismatch";
     const nonce = Number(state.nonce || 0);
     if (pubkey && nonce > 0) return "registered";
     if (nonce === 0 && !pubkey) return "not_registered";
