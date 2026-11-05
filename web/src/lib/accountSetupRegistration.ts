@@ -1,11 +1,58 @@
 import { weall } from "../api/weall";
 import { ensureRecoveryAuthorityKeypair, normalizeAccount } from "../auth/keys";
 import { ensureEvidenceKemKeypair } from "../auth/evidenceCrypto";
-import { getKeypair, submitSignedTxWithNonce } from "../auth/session";
+import { getKeypair, submitSignedTxWithNonce, type TxEnvelope } from "../auth/session";
 import {
   fetchAccountRegistrationWorkPolicy,
   solveAccountRegistrationWork,
 } from "./accountRegistrationWork";
+
+/**
+ * Mirrors runtime/tx_id.py: signature-independent tx identity over a sorted,
+ * UTF-8 canonical JSON envelope with system=false and optional parent.
+ * Only use for the ACCOUNT_REGISTER envelope prepared by this frontend.
+ * The backend-returned ID is checked against this prediction when available.
+ */
+function canonicalRegistrationValue(value: unknown): unknown {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error("invalid_registration_identity_number");
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(canonicalRegistrationValue);
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const normalized: Record<string, unknown> = {};
+    for (const key of Object.keys(obj).sort()) {
+      if (obj[key] === undefined) throw new Error("invalid_registration_identity_undefined");
+      normalized[key] = canonicalRegistrationValue(obj[key]);
+    }
+    return normalized;
+  }
+  throw new Error("invalid_registration_identity_value");
+}
+
+export async function canonicalRegistrationTxId(envelope: TxEnvelope): Promise<string> {
+  const chainId = String(envelope.chain_id || "").trim();
+  const signer = String(envelope.signer || "").trim();
+  const nonce = Number(envelope.nonce);
+  if (!chainId || !signer || envelope.tx_type !== "ACCOUNT_REGISTER" || !Number.isSafeInteger(nonce) || nonce <= 0) {
+    throw new Error("invalid_registration_identity_envelope");
+  }
+  const canonical = canonicalRegistrationValue({
+    chain_id: chainId,
+    tx_type: "ACCOUNT_REGISTER",
+    signer,
+    nonce,
+    payload: envelope.payload,
+    system: false,
+    ...(envelope.parent == null ? {} : { parent: envelope.parent }),
+  });
+  if (!globalThis.crypto?.subtle) throw new Error("secure_crypto_unavailable");
+  const bytes = new TextEncoder().encode(JSON.stringify(canonical));
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  return "tx:" + Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 export type RegistrationStatus = "registered" | "not_registered" | "key_mismatch" | "unavailable";
 
@@ -34,7 +81,7 @@ export async function readAccountRegistrationStatus(account: string, base: strin
   }
 }
 
-export async function submitBasicAccountRegistration(account: string, base: string, onBeforeSubmit?: () => void): Promise<string> {
+export async function submitBasicAccountRegistration(account: string, base: string, onBeforeSubmit?: (txId: string) => void): Promise<string> {
   const acct = normalizeAccount(account);
   const keypair = acct ? getKeypair(acct) : null;
   if (!acct || !keypair?.secretKeyB64 || !keypair.pubkeyB64) {
@@ -43,6 +90,7 @@ export async function submitBasicAccountRegistration(account: string, base: stri
   const recovery = ensureRecoveryAuthorityKeypair(acct);
   const evidence = ensureEvidenceKemKeypair(acct);
   const policyResponse = await fetchAccountRegistrationWorkPolicy(base);
+  let predictedTxId = "";
   const submitted = await submitSignedTxWithNonce({
     account: acct,
     tx_type: "ACCOUNT_REGISTER",
@@ -66,10 +114,14 @@ export async function submitBasicAccountRegistration(account: string, base: stri
     },
     parent: null,
     base,
-    onBeforeSubmit,
+    onBeforeSubmit: async (signed) => {
+      predictedTxId = await canonicalRegistrationTxId(signed);
+      onBeforeSubmit?.(predictedTxId);
+    },
   });
   const txId = String(submitted?.result?.tx_id || submitted?.result?.result?.tx_id || "").trim();
-  if (!txId) throw new Error("Registration was submitted but no transaction ID was returned. Check your account before retrying.");
+  if (!txId) throw new Error("Registration may have been submitted without an acknowledgement. Reconcile the tracked transaction before retrying.");
+  if (txId !== predictedTxId) throw new Error("Node returned a transaction ID inconsistent with the signed registration. Do not retry automatically.");
   return txId;
 }
 
