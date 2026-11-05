@@ -32,6 +32,9 @@ const verifiedRecovery = section(login, "function handleContinueAfterRecovery(",
 
 assert.ok(!keyCreation.includes("issueSessionFromSecretKey("), "A locally created key cannot mint a login session before recovery verification");
 assert.ok(keys.includes("hasStoredKeypairMetadata("), "Existing public identity metadata must be detectable after browser secret loss");
+assert.ok(keys.includes("export function canonicalMldsa65PublicKeyHex("), "Browser must normalize ML-DSA-65 public key bytes before comparing on-chain authorities");
+assert.ok(protocol.includes("canonicalMldsa65PublicKeyHex(pubkey) !== canonicalMldsa65PublicKeyHex(keypair.pubkeyB64)"), "Registration state must compare chain hex and browser base64 by bytes");
+assert.ok(e2e.includes('Buffer.from(publicKeyB64, "base64").toString("hex")'), "Real-stack test must assert the backend canonical key encoding");
 assert.ok(session.includes('if (hasStoredKeypairMetadata(acct)) throw new Error("existing_account_key_requires_recovery")'), "Missing signing seed must not trigger identity replacement");
 assert.ok(keys.includes('throw new Error("existing_recovery_authority_requires_recovery")'), "Recovery authority must not silently rotate");
 assert.ok(evidence.includes('throw new Error("existing_evidence_key_requires_recovery")'), "Evidence authority must not silently rotate");
@@ -45,7 +48,7 @@ for (const staging of [restoredFile, pastedRecovery]) {
   assert.ok(staging.includes("setStagedRecoveryBundle(parsed)"), "Import must stage fully validated recovery material");
 }
 assert.ok(restoredLogin.includes("derivePublicKeyFromSecretKey(recoveryKeyInput.trim())"), "Restored signer must be validated before network login");
-assert.ok(restoredLogin.includes("expectedSigner !== suppliedSigner"), "Restored signer must match canonical account identity");
+assert.ok(restoredLogin.includes("canonicalMldsa65PublicKeyHex(expectedSigner) !== canonicalMldsa65PublicKeyHex(suppliedSigner)"), "Restored signer must match canonical account identity");
 assert.ok(restoredLogin.includes("restoredSessionIssued = true"), "Post-auth failures must be distinguishable");
 assert.ok(restoredLogin.includes("if (restoredSessionIssued) endSession()"), "Post-auth validation failure must not retain a local login");
 assert.ok(session.includes('if (!sessionSynced)'), "Canonical session issuance must fail closed on observer reconciliation timeout");
@@ -63,8 +66,8 @@ assert.ok(session.includes('apiGet("/v1/session/me"'), "Do not rely on publicly 
 assert.ok(publicRedaction.includes('copied.pop("session_keys", None)'), "Public account views must not expose session keys");
 assert.ok(backendSessionRoute.includes('@router.get("/session/me")'), "Backend must provide the dedicated session authentication contract");
 assert.ok(backendSessionRoute.includes('"authenticated": bool(active and not expired)'), "Backend must explicitly authenticate active and unexpired sessions");
-const canonicalCheck = restoredLogin.indexOf("expectedSigner !== suppliedSigner");
-const recoveryAuthorityCheck = restoredLogin.indexOf("bundle.recoveryAuthorityPublicKeyB64 !== expectedRecovery");
+const canonicalCheck = restoredLogin.indexOf("canonicalMldsa65PublicKeyHex(expectedSigner) !== canonicalMldsa65PublicKeyHex(suppliedSigner)");
+const recoveryAuthorityCheck = restoredLogin.indexOf("canonicalMldsa65PublicKeyHex(bundle.recoveryAuthorityPublicKeyB64) !== canonicalMldsa65PublicKeyHex(expectedRecovery)");
 const loginMutation = restoredLogin.indexOf("await restoreAccountAndLoginOnThisDevice(");
 assert.ok(canonicalCheck >= 0 && recoveryAuthorityCheck > canonicalCheck && loginMutation > recoveryAuthorityCheck, "All recovered authorities must be verified before network login and local mutation");
 assert.ok(!sessionDevices.includes('>{session?.sessionKey || "Not present"}<'), "The session utility must not display raw bearer credentials");
