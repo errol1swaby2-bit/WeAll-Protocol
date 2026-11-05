@@ -125,6 +125,10 @@ async function captureSubmittedTx(page: Page, click: () => Promise<void>): Promi
       hash: location.hash,
       errorCategories: Array.from(document.querySelectorAll('[role="alert"]'))
         .map((node) => node.getAttribute("data-feedback-category") || "error"),
+      // Enumerate only known app error codes, never arbitrary backend payloads.
+      knownErrorCodes: Array.from(document.querySelectorAll('[role="alert"]'))
+        .flatMap((node) => ["signer_submission_busy", "register_the_account_first", "missing_account_signer", "profile_update_skeleton_missing_tx_type"]
+          .filter((code) => node.textContent?.includes(code))),
       profileSubmitButtons: Array.from(document.querySelectorAll("button"))
         .filter((node) => node.textContent?.includes("Submit public profile update"))
         .map((node) => ({ disabled: node.disabled })),
@@ -467,9 +471,11 @@ test.describe("real browser account custody", () => {
         await editProfile.click();
         await restoredPage.getByLabel("Display name").fill(displayName);
 
+        const submitProfileButton = restoredPage.getByRole("button", { name: "Submit public profile update" });
+        await expect(submitProfileButton).toBeEnabled({ timeout: 30_000 });
         const profileTxId = await captureSubmittedTx(
           restoredPage,
-          () => restoredPage.getByRole("button", { name: "Submit public profile update" }).click(),
+          () => submitProfileButton.click(),
         );
         await waitForConfirmedTx(restoredPage.request, profileTxId);
         const profilePath = `/v1/accounts/${encodeURIComponent(account)}/profile`;
