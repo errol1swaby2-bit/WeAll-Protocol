@@ -1,4 +1,4 @@
-# Third reproduction: expose exactly which non-secret button guard blocks PROFILE_UPDATE.
+# Fourth reproduction: bounded read-only canonical account reconciliation before PROFILE_UPDATE.
 name: F1b No-Retry Profile Flake Reproduction (temporary)
 
 on:
