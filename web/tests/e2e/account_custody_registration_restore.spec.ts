@@ -1173,7 +1173,7 @@ test.describe("real browser account custody", () => {
         // Revoke an intentionally unknown session key using a genuinely valid
         // account signature. The schema and public-ingress signature checks
         // should accept it, but the canonical apply must fail with a committed
-        // "unknown_session_key" receipt, without consuming the signer's nonce.
+        // "unknown_session_key" receipt, consuming the included nonce once.
         const beforeCommittedRejection = await getJson(restoredPage.request, accountPath);
         const lastValidNonce = Number(beforeCommittedRejection?.state?.nonce);
         expect(Number.isInteger(lastValidNonce)).toBe(true);
@@ -1224,7 +1224,7 @@ test.describe("real browser account custody", () => {
         expect(String(terminalRejection?.block_id || "").length).toBeGreaterThan(0);
 
         const stateAfterCommittedRejection = await getJson(restoredPage.request, accountPath);
-        expect(Number(stateAfterCommittedRejection?.state?.nonce)).toBe(lastValidNonce);
+        expect(Number(stateAfterCommittedRejection?.state?.nonce)).toBe(intentionalReject.nonce);
         assertSingleCanonicalAccountKey(stateAfterCommittedRejection, recovery.publicKeyB64);
 
         // Re-submitting an already FINALIZED rejected envelope is forbidden:
@@ -1255,9 +1255,13 @@ test.describe("real browser account custody", () => {
         );
         expect(rejectedStatusAfterReplay?.status).toBe("rejected");
         expect(rejectedStatusAfterReplay?.apply_ok).toBe(false);
+        const afterBlockedReplay = await getJson(restoredPage.request, accountPath);
+        expect(Number(afterBlockedReplay?.state?.nonce)).toBe(intentionalReject.nonce);
+        assertSingleCanonicalAccountKey(afterBlockedReplay, recovery.publicKeyB64);
 
-        // The failed apply did not consume the nonce: a distinct, validly
-        // signed session ISSUE reuses exactly that nonce and must confirm.
+        // Block inclusion is one-shot even when deterministic domain apply
+        // rejects: the included failed transaction consumes its nonce exactly
+        // once. A NEW signed issue must use the NEXT nonce and confirm.
         const recoveredFromRejectedApply = await restoredPage.evaluate(async (acct: string) => {
           const sessionPath = "/src/auth/session.ts";
           const sessions = await import(/* @vite-ignore */ sessionPath);
@@ -1274,7 +1278,7 @@ test.describe("real browser account custody", () => {
             txId: String(result.result?.tx_id || result.result?.result?.tx_id || ""),
           };
         }, account);
-        expect(recoveredFromRejectedApply.nonce).toBe(intentionalReject.nonce);
+        expect(recoveredFromRejectedApply.nonce).toBe(intentionalReject.nonce + 1);
         expect(recoveredFromRejectedApply.txId).toMatch(/^tx:[0-9a-f]{64}$/);
         expect(recoveredFromRejectedApply.txId).not.toBe(intentionalReject.txId);
         const recoveredReceipt = await waitForConfirmedTx(
@@ -1285,7 +1289,7 @@ test.describe("real browser account custody", () => {
         const afterRejectedNonceRecovery = await pollJson(
           restoredPage.request,
           accountPath,
-          (body) => Number(body?.state?.nonce) === intentionalReject.nonce,
+          (body) => Number(body?.state?.nonce) === intentionalReject.nonce + 1,
         );
         assertSingleCanonicalAccountKey(afterRejectedNonceRecovery, recovery.publicKeyB64);
 
