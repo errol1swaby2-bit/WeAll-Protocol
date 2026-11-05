@@ -31,6 +31,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
+      - name: Format the two modified regression tests before hashing source
+        working-directory: Weall-Protocol
+        run: |
+          ruff format tests/test_account_gate_and_tx_queue_status.py tests/test_poh_reviewer_action_gating_frontend.py
+
       - name: Remove temporary workflow before computing source digest
         run: |
           set -euo pipefail
@@ -71,7 +76,7 @@ jobs:
           mapfile -t changed < <({ git diff --name-only; git ls-files --others --exclude-standard; } | sort -u)
           for file in "${changed[@]}"; do
             case "$file" in
-              .github/workflows/f1b-backend-focused-refresh-once.yml|Weall-Protocol/generated/v2/*|web/src/generated/protocolStatus.ts) ;;
+              .github/workflows/f1b-backend-focused-refresh-once.yml|Weall-Protocol/generated/v2/*|web/src/generated/protocolStatus.ts|Weall-Protocol/tests/test_account_gate_and_tx_queue_status.py|Weall-Protocol/tests/test_poh_reviewer_action_gating_frontend.py) ;;
               *) echo "Unexpected mutation outside V2 derivatives: $file" >&2; exit 1 ;;
             esac
           done
@@ -80,6 +85,7 @@ jobs:
         run: |
           set -euo pipefail
           git add -- Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          git add -- Weall-Protocol/tests/test_account_gate_and_tx_queue_status.py Weall-Protocol/tests/test_poh_reviewer_action_gating_frontend.py
           git add -u -- .github/workflows/f1b-backend-focused-refresh-once.yml
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "test(F1b): verify current onboarding contracts and reconcile V2 source evidence"
           (cd Weall-Protocol && PYTHONPATH=src python scripts/compile_v2_spec.py --check)
