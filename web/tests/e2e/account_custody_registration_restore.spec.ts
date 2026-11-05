@@ -471,8 +471,13 @@ test.describe("real browser account custody", () => {
         await editProfile.click();
         await restoredPage.getByLabel("Display name").fill(displayName);
 
-        const submitProfileButton = restoredPage.getByRole("button", { name: "Submit public profile update" });
-        await expect(submitProfileButton).toBeEnabled({ timeout: 30_000 });
+        const submitProfileButton = restoredPage.getByTestId("submit-public-profile-update");
+        try {
+          await expect(submitProfileButton).toBeEnabled({ timeout: 30_000 });
+        } catch {
+          const blockers = await submitProfileButton.getAttribute("data-submit-blockers");
+          throw new Error(`Profile submission remained disabled; non-secret blockers: ${blockers || "none-reported"}`);
+        }
         const profileTxId = await captureSubmittedTx(
           restoredPage,
           () => submitProfileButton.click(),
