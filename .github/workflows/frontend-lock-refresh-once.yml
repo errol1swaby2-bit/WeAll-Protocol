@@ -1,0 +1,32 @@
+name: Frontend Lock Refresh (temporary evidence run)
+
+on:
+  push:
+    branches:
+      - frontend/f1-guided-account-onboarding-20261104
+    paths:
+      - .github/workflows/frontend-lock-refresh-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regenerate lock without changing other workspace files
+        working-directory: web
+        run: |
+          npm install --package-lock-only --save-dev --save-exact vite@8.3.5 --ignore-scripts --no-audit
+          node -e "const p=require('./package-lock.json');if(p.packages[''].devDependencies.vite!=='8.3.5'||p.packages['node_modules/vite'].version!=='8.3.5')process.exit(1)"
+      - name: Export candidate lockfile to job log for reproducible review
+        run: |
+          echo LOCK_B64_BEGIN
+          base64 -w 160 web/package-lock.json | sed 's/^/LOCK_B64_CHUNK:/'
+          echo LOCK_B64_END
