@@ -465,6 +465,43 @@ test.describe("real browser account custody", () => {
         );
         expect(JSON.stringify(profile)).toContain(displayName);
         await expect(restoredPage.getByTestId("profile-tx-status-callout")).toContainText(profileTxId);
+
+        // Revocation is a separate authoritative boundary: the old bearer must
+        // authenticate before revocation and explicitly fail authentication
+        // afterward. Local logout alone is not proof of remote revocation.
+        const priorSession = JSON.parse(String(restoredStorage.session || "{}")) as { sessionKey?: string };
+        const priorBearer = String(priorSession.sessionKey || "");
+        expect(priorBearer.length).toBeGreaterThan(20);
+        const oldBearerHeaders = {
+          "x-weall-account": account,
+          "x-weall-session-key": priorBearer,
+        };
+        const beforeRevocation = await restoredPage.request.get("/v1/session/me", {
+          headers: oldBearerHeaders,
+        });
+        expect(beforeRevocation.ok()).toBeTruthy();
+        expect((await beforeRevocation.json()).authenticated).toBe(true);
+
+        await restoredPage.goto("/#/session");
+        const revokeButton = restoredPage.getByRole("button", { name: "Log out of this device" });
+        await expect(revokeButton).toBeEnabled({ timeout: 30_000 });
+        // Cancel the "forget signer" option, but still revoke the session.
+        restoredPage.once("dialog", (dialog) => { void dialog.dismiss(); });
+        const revokeTxId = await captureSubmittedTx(restoredPage, () => revokeButton.click());
+        await waitForConfirmedTx(restoredPage.request, revokeTxId);
+        await expect.poll(async () => {
+          const result = await restoredPage.request.get("/v1/session/me", {
+            headers: oldBearerHeaders,
+          });
+          if (!result.ok()) return "unavailable";
+          return (await result.json()).authenticated;
+        }, { timeout: 45_000 }).toBe(false);
+        await expect.poll(() => restoredPage.evaluate(() =>
+          localStorage.getItem("weall_session_v1"),
+        ), { timeout: 45_000 }).toBeNull();
+        expect((await restoredPage.evaluate((acct: string) =>
+          sessionStorage.getItem(`weall_secret::${acct}`),
+        account))).toBe(recovery.secretKeyB64);
       } finally {
         await restoredContext.close();
       }
