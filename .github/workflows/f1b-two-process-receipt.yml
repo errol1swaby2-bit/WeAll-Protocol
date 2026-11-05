@@ -1,0 +1,88 @@
+name: F1b two-process rejected-receipt gate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f1b-two-process-receipt-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rejected-receipt:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'frontend/f1-guided-account-onboarding-20261104'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact PR revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up locked Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install hash-locked backend
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Fail-closed receipt comparator and CLI regression matrix
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format --check \
+            scripts/devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_convergence.py
+          ruff check \
+            scripts/devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_convergence.py
+          pytest -q \
+            tests/test_devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_live_runner.py \
+            tests/test_tx_status_apply_rejection_truth.py
+
+      - name: Live independent-process producer/follower receipt and replay proof
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export WEALL_DEVNET_DIR="${RUNNER_TEMP}/f1b-live/.weall-devnet"
+          export WEALL_DEVNET_LIVE_LOG_DIR="${RUNNER_TEMP}/f1b-live/logs"
+          export WEALL_DEVNET_AUTO_VENV=0
+          export WEALL_DEVNET_LIVE_RESET=1
+          export WEALL_DEVNET_KEEP_NODES=0
+          export WEALL_DEVNET_CHECK_REJECTED_RECEIPT=1
+          export WEALL_TX_WAIT_TIMEOUT=90
+          export WEALL_TX_WAIT_POLL=0.5
+          export WEALL_CROSS_NODE_COMMAND_TIMEOUT=240
+          export WEALL_CROSS_NODE_HTTP_TIMEOUT=10
+          export NODE1_API="http://127.0.0.1:18341"
+          export NODE2_API="http://127.0.0.1:18342"
+          mkdir -p "$(dirname "${WEALL_DEVNET_DIR}")"
+          timeout 1200 bash scripts/devnet_run_cross_node_convergence_live.sh
+          echo "OK: F1b independent-process receipt and next-nonce convergence gate passed"
+
+      - name: Redacted diagnostic output on failure
+        if: failure()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for f in "${RUNNER_TEMP}/f1b-live/logs/"*.log; do
+            if [[ -f "$f" ]]; then
+              printf 'diagnostic_log=%s\n' "$(basename "$f")"
+              grep -E 'ERROR|Error|Traceback|bad_block|receipt|rejected|failed|mismatch' "$f" \
+                | sed -E 's/(token|secret|private_key|sig|bearer)([=:][^[:space:]]+)/\1=[REDACTED]/g' \
+                | tail -n 60 || true
+            fi
+          done
