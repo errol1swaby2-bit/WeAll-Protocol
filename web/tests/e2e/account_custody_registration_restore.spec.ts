@@ -942,6 +942,53 @@ test.describe("real browser account custody", () => {
           await siblingPage.close();
         }
 
+        // Authoritative session expiry must be decided by the live backend's
+        // ledger clock, NOT by the browser's local expiresAtMs value. Issue a
+        // separate one-second session bearer as a signed canonical transaction
+        // but never activate it as this tab's current browser session.
+        const shortSession = await restoredPage.evaluate(async (acct: string) => {
+          const sessionPath = "/src/auth/session.ts";
+          const sessions = await import(/* @vite-ignore */ sessionPath);
+          const raw = crypto.getRandomValues(new Uint8Array(32));
+          const bearer = btoa(Array.from(raw, (b) => String.fromCharCode(b)).join(""));
+          const issued = await sessions.submitSignedTxWithNonce({
+            account: acct,
+            tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
+            payloadFactory: () => ({ session_key: bearer, ttl_s: 1 }),
+            parent: null,
+          });
+          return {
+            // This bearer is test-only and stays in runner memory; it must
+            // never be printed in errors, snapshots, or workflow logs.
+            bearer,
+            txId: String(issued.result?.tx_id || issued.result?.result?.tx_id || ""),
+            nonce: issued.env.nonce,
+          };
+        }, account);
+        expect(shortSession.txId).toMatch(/^tx:[0-9a-f]{64}$/);
+        await waitForConfirmedTx(restoredPage.request, shortSession.txId);
+        const shortHeaders = {
+          "x-weall-account": account,
+          "x-weall-session-key": shortSession.bearer,
+        };
+        await expect.poll(async () => {
+          const response = await restoredPage.request.get("/v1/session/me", { headers: shortHeaders });
+          if (!response.ok()) return "session_endpoint_error";
+          const body = await response.json();
+          if (Number(body?.session?.ttl_s || 0) !== 1) return "unexpected_canonical_ttl";
+          if (body?.session?.expired !== true) return "still_authorized_by_ledger_time";
+          return body?.authenticated === false ? "expired_by_canonical_clock" : "expired_but_authenticated";
+        }, { timeout: 30_000, intervals: [250, 500, 1000] }).toBe("expired_by_canonical_clock");
+        const expiredProtectedRead = await restoredPage.request.get("/v1/social/me", {
+          headers: shortHeaders,
+        });
+        expect(expiredProtectedRead.status()).toBe(403);
+        const expiredError = await expiredProtectedRead.json();
+        expect(JSON.stringify(expiredError)).toContain("session_expired");
+        // The original independently authorized device session remains
+        // intact and is the one used below for profile and revocation proof.
+        expect(await restoredPage.evaluate(() => !!sessionStorage.getItem("weall_session_bearer_v1"))).toBe(true);
+
         const accountAfterRestore = await getJson(restoredPage.request, accountPath);
         expect(accountAfterRestore?.account).toBe(account);
         assertSingleCanonicalAccountKey(accountAfterRestore, recovery.publicKeyB64);
