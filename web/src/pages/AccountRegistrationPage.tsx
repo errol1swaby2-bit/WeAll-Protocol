@@ -211,8 +211,9 @@ export default function AccountRegistrationPage(): JSX.Element {
             </div>
           ) : waiting ? (
             <div className="calloutInfo" data-testid="registration-pending">
-              Your registration has been submitted. Please keep this transaction
-              for reference; do not submit a second registration while it is pending.
+              {transactionId === "submission_unknown"
+                ? "A prior registration attempt may have reached the network, but its receipt was not preserved. Do not submit again until the outcome is verified."
+                : "Registration is pending. Keep the transaction ID for reference; do not submit again while it is unresolved."}
             </div>
           ) : registration === "key_mismatch" ? (
             <div className="calloutDanger" data-testid="registration-key-mismatch">
