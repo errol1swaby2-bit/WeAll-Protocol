@@ -43,14 +43,15 @@ jobs:
           set -Eeuo pipefail
           ruff format --check \
             scripts/devnet_cross_node_convergence.py \
-            tests/test_devnet_cross_node_convergence.py
+            tests/test_devnet_cross_node_convergence.py \
+            tests/test_f1b_four_validator_qc_contract.py
           ruff check \
             scripts/devnet_cross_node_convergence.py \
-            tests/test_devnet_cross_node_convergence.py
+            tests/test_devnet_cross_node_convergence.py \
+            tests/test_f1b_four_validator_qc_contract.py
           pytest -q \
             tests/test_devnet_cross_node_convergence.py \
             tests/test_devnet_cross_node_live_runner.py \
-            tests/test_f1b_four_validator_qc_contract.py \
             tests/test_tx_status_apply_rejection_truth.py \
             tests/test_f1b_four_validator_qc_contract.py
 
