@@ -19,8 +19,12 @@ def test_frontend_separates_basic_account_from_posting_eligibility() -> None:
     assert "contentPostingEligible" in page
     assert "Posting eligible" in page
     assert "Live verification needed" in page
-    assert "Register basic account" in page
-    assert "disabled={!acct || !basicAccountCreated || accountLevel >= 1" in page
+    # Registration now uses the guided account setup route instead of an inline action.
+    assert 'onClick={() => nav("/onboarding/register")}' in page
+    assert '"Finish account registration"' in page
+    assert "disabled={!acct || !hasLocalKeypair || basicAccountCreated || signerSubmission.busy}" in page
+    assert '"Basic account creation is not posting permission."' not in page  # JSX text, not a quoted literal
+    assert "Basic account creation is not posting permission." in page
 
 
 def test_onboarding_basic_account_detection_accepts_pubkeys_array() -> None:
