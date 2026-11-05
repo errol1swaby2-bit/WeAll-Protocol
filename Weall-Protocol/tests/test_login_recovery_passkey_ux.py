@@ -13,7 +13,12 @@ def test_login_page_uses_recovery_key_language() -> None:
     assert "Create account key" in text
     assert "Download recovery file" in text
     assert "Copy recovery key" in text
-    assert "I saved my recovery key somewhere private" in text
+    # Onboarding now requires an actual saved-file round trip, not a checkbox.
+    assert 'data-testid="recovery-save-step"' in text
+    assert 'data-testid="verify-created-recovery-file"' in text
+    assert 'data-testid="recovery-verification-status"' in text
+    assert "Verify that the saved copy works before continuing." in text
+    assert "disabled={!recoveryVerified}" in text
     assert "Sign in with recovery key" in text
     assert "Upload your saved recovery file" in text
     assert "Add easy sign-in" in text
