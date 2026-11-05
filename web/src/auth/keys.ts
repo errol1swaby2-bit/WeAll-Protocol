@@ -68,6 +68,25 @@ function b64ToBytes(value: string): Uint8Array {
   return out;
 }
 
+/**
+ * Match the backend's canonical ML-DSA-65 identity representation.
+ * The browser retains recovery keys as base64; consensus stores the same
+ * 1952 public-key bytes as lowercase hex. Compare canonical bytes, not text.
+ * Malformed or wrong-length keys fail closed rather than matching by alias.
+ */
+export function canonicalMldsa65PublicKeyHex(value: string): string {
+  const text = String(value || "").trim();
+  if (/^[0-9a-fA-F]{3904}$/.test(text)) return text.toLowerCase();
+  let decoded: Uint8Array;
+  try {
+    decoded = b64ToBytes(text);
+  } catch {
+    throw new Error("invalid_mldsa65_public_key");
+  }
+  if (decoded.length !== MLDSA65_PUBLIC_KEY_BYTES) throw new Error("invalid_mldsa65_public_key");
+  return Array.from(decoded, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 function utf8ToBytes(value: string): Uint8Array {
   return new TextEncoder().encode(String(value ?? ""));
 }
