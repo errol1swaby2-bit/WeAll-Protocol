@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from "react"
 
 import { ApiError, fetchStatus, getApiBase, setApiBase, weall } from "../api/weall"
 import { endSession, ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
-import { derivePublicKeyFromSecretKey, ensureRecoveryAuthorityKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
+import { canonicalMldsa65PublicKeyHex, derivePublicKeyFromSecretKey, ensureRecoveryAuthorityKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
 import { ensureEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto"
 import { buildRecoveryKeyFile, downloadRecoveryKeyFile, parseRecoveryKeyFileText, readRecoveryKeyFile, recoveryFileText, verifyRecoveryKeyFileForAccount } from "../auth/recoveryFile"
 import { confirmEasySignIn, getEasySignInForAccount, listEasySignInRecords, passkeysAvailable, registerEasySignIn } from "../auth/passkeys"
@@ -481,7 +481,7 @@ export default function LoginPage() {
       const expectedSigner = String(state?.pubkey || "").trim()
       if (!expectedSigner) throw new Error("Account identity could not be verified on this node.")
       const suppliedSigner = derivePublicKeyFromSecretKey(recoveryKeyInput.trim())
-      if (expectedSigner !== suppliedSigner || (bundle && suppliedSigner !== bundle.publicKeyB64)) {
+      if (canonicalMldsa65PublicKeyHex(expectedSigner) !== canonicalMldsa65PublicKeyHex(suppliedSigner) || (bundle && canonicalMldsa65PublicKeyHex(suppliedSigner) !== canonicalMldsa65PublicKeyHex(bundle.publicKeyB64))) {
         throw new Error("The recovery key does not match the registered account key.")
       }
       // Validate every supplied authority against canonical state before
@@ -489,7 +489,7 @@ export default function LoginPage() {
       if (bundle) {
         const expectedRecovery = String(state?.recovery?.offline_key?.pubkey || "").trim()
         const expectedEvidence = String(state?.evidence_encryption?.public_key || "").trim()
-        if (bundle.recoveryAuthorityPublicKeyB64 && bundle.recoveryAuthorityPublicKeyB64 !== expectedRecovery) {
+        if (bundle.recoveryAuthorityPublicKeyB64 && canonicalMldsa65PublicKeyHex(bundle.recoveryAuthorityPublicKeyB64) !== canonicalMldsa65PublicKeyHex(expectedRecovery)) {
           throw new Error("Recovery authority in the file does not match the registered account.")
         }
         if (bundle.evidenceKemPublicKeyB64 && bundle.evidenceKemPublicKeyB64 !== expectedEvidence) {
@@ -501,7 +501,7 @@ export default function LoginPage() {
         secretKeyB64: recoveryKeyInput.trim(),
       })
       restoredSessionIssued = true
-      if (restored.keypair.pubkeyB64 !== expectedSigner) {
+      if (canonicalMldsa65PublicKeyHex(restored.keypair.pubkeyB64) !== canonicalMldsa65PublicKeyHex(expectedSigner)) {
         throw new Error("The restored signing key is not authorized for this account.")
       }
       if (bundle) {
