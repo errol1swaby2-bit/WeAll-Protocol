@@ -188,6 +188,7 @@ jobs:
           CI: "1"
           WEALL_M2_TRACE: "1"
           WEALL_KEEP_M2_CUSTODY_RUNTIME: "1"
+          WEALL_CUSTODY_REPEAT_EACH: "3"
         run: |
           # Launches an isolated, block-producing backend with a browser app.
           # WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1 forbids skip-on-offline.
