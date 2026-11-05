@@ -957,7 +957,7 @@ test.describe("real browser account custody", () => {
             durablePublic: localStorage.getItem("weall_keypair::" + acct),
             signingSeed: sessionStorage.getItem("weall_secret::" + acct),
             bearer: sessionStorage.getItem("weall_session_bearer_v1"),
-            signerLock: localStorage.getItem("weall_signer_lock::" + acct),
+            signerLock: localStorage.getItem("weall_signer_lock_v1::" + acct),
           }), account);
           expect(beforeDeviceImport).toEqual({
             durablePublic: null,
@@ -965,15 +965,13 @@ test.describe("real browser account custody", () => {
             bearer: null,
             signerLock: null,
           });
-          const deviceSigner = await independentDevice.evaluate(async (input: { account: string; seed: string }) => {
+          const deviceSigner = await independentDevice.evaluate(async (input: { account: string; seed: string; pubkey: string }) => {
             const keysPath = "/src/auth/keys.ts";
             const keys = await import(/* @vite-ignore */ keysPath);
             const imported = keys.saveKeypair(input.account, { secretKeyB64: input.seed });
-            return { matchesCanonicalSigner: imported.pubkeyB64 === input.seed /* overwritten below */ };
-          }, { account, seed: recovery.secretKeyB64 });
-          // This intentionally imported signer is checked by the actual signed
-          // transaction's cryptographic admission in the live backend.
-          expect(typeof deviceSigner.matchesCanonicalSigner).toBe("boolean");
+            return { matchesCanonicalSigner: imported.pubkeyB64 === input.pubkey };
+          }, { account, seed: recovery.secretKeyB64, pubkey: recovery.publicKeyB64 });
+          expect(deviceSigner.matchesCanonicalSigner).toBe(true);
 
           const nonceBeforeRace = await getJson(restoredPage.request, accountPath);
           const canonicalNonceBeforeRace = Number(nonceBeforeRace?.state?.nonce);
