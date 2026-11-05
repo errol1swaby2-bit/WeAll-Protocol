@@ -330,7 +330,15 @@ test.describe("real browser account custody", () => {
           return;
         }
         registrationDispatches += 1;
-        const actual = await route.fetch();
+        // Use an independent API request for the identical signed JSON.
+        // Playwright route.fetch() can mark the intercepted route handled,
+        // preventing us from simulating a lost browser acknowledgement.
+        const signedBody = route.request().postData();
+        expect(signedBody).toBeTruthy();
+        const actual = await firstPage.request.post("/v1/tx/submit", {
+          data: signedBody || "",
+          headers: { "content-type": "application/json" },
+        });
         expect(actual.ok(), `ACCOUNT_REGISTER backend returned HTTP ${actual.status()}`).toBeTruthy();
         registerTxId = extractTxId(await actual.json());
         expect(registerTxId).toMatch(/^tx:[0-9a-f]{64}$/);
