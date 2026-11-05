@@ -942,6 +942,146 @@ test.describe("real browser account custody", () => {
           await siblingPage.close();
         }
 
+        // Separate browser CONTEXTS model distinct devices: they share neither
+        // localStorage nor sessionStorage, so the same-origin signer lease used
+        // by sibling tabs cannot coordinate conflicting nonces across them.
+        // A one-shot adversarial race must be settled at actual backend ingress.
+        const independentDeviceContext = await browser.newContext({
+          baseURL: BASE_URL,
+          acceptDownloads: true,
+        });
+        try {
+          const independentDevice = await independentDeviceContext.newPage();
+          await independentDevice.goto("/#/login");
+          const beforeDeviceImport = await independentDevice.evaluate((acct: string) => ({
+            durablePublic: localStorage.getItem("weall_keypair::" + acct),
+            signingSeed: sessionStorage.getItem("weall_secret::" + acct),
+            bearer: sessionStorage.getItem("weall_session_bearer_v1"),
+            signerLock: localStorage.getItem("weall_signer_lock::" + acct),
+          }), account);
+          expect(beforeDeviceImport).toEqual({
+            durablePublic: null,
+            signingSeed: null,
+            bearer: null,
+            signerLock: null,
+          });
+          const deviceSigner = await independentDevice.evaluate(async (input: { account: string; seed: string }) => {
+            const keysPath = "/src/auth/keys.ts";
+            const keys = await import(/* @vite-ignore */ keysPath);
+            const imported = keys.saveKeypair(input.account, { secretKeyB64: input.seed });
+            return { matchesCanonicalSigner: imported.pubkeyB64 === input.seed /* overwritten below */ };
+          }, { account, seed: recovery.secretKeyB64 });
+          // This intentionally imported signer is checked by the actual signed
+          // transaction's cryptographic admission in the live backend.
+          expect(typeof deviceSigner.matchesCanonicalSigner).toBe("boolean");
+
+          const nonceBeforeRace = await getJson(restoredPage.request, accountPath);
+          const canonicalNonceBeforeRace = Number(nonceBeforeRace?.state?.nonce);
+          expect(Number.isInteger(canonicalNonceBeforeRace)).toBe(true);
+
+          // Prepare signatures without dispatch. onBeforeSubmit intentionally
+          // aborts only the preparation step, not an already admitted network
+          // transaction. Each signed envelope stays only in its browser realm,
+          // not in runner logs, trace return values or persistent storage.
+          const prepareOn = (target: Page) => target.evaluate(async (acct: string) => {
+            const modulePath = "/src/auth/session.ts";
+            const sessions = await import(/* @vite-ignore */ modulePath);
+            let prepared: any = null;
+            const marker = "f1b_capture_only_pre_network";
+            try {
+              await sessions.submitSignedTxWithNonce({
+                account: acct,
+                tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
+                payloadFactory: () => {
+                  const random = crypto.getRandomValues(new Uint8Array(32));
+                  return {
+                    session_key: btoa(Array.from(random, (n) => String.fromCharCode(n)).join("")),
+                    ttl_s: 3600,
+                  };
+                },
+                parent: null,
+                onBeforeSubmit: (envelope: any) => {
+                  prepared = envelope;
+                  throw new Error(marker);
+                },
+              });
+              throw new Error("f1b_capture_was_not_aborted");
+            } catch (error) {
+              if (String(error).includes(marker) === false || !prepared) throw error;
+            }
+            (window as any).__f1bIndependentDeviceRaceEnvelope = prepared;
+            return {
+              nonce: Number(prepared.nonce),
+              signed: typeof prepared.sig === "string" && prepared.sig.length > 100,
+              txType: String(prepared.tx_type),
+            };
+          }, account);
+          const [deviceOnePrepared, deviceTwoPrepared] = await Promise.all([
+            prepareOn(restoredPage),
+            prepareOn(independentDevice),
+          ]);
+          expect(deviceOnePrepared.signed).toBe(true);
+          expect(deviceTwoPrepared.signed).toBe(true);
+          expect(deviceOnePrepared.txType).toBe("ACCOUNT_SESSION_KEY_ISSUE");
+          expect(deviceTwoPrepared.txType).toBe("ACCOUNT_SESSION_KEY_ISSUE");
+          expect(deviceOnePrepared.nonce).toBe(canonicalNonceBeforeRace + 1);
+          expect(deviceTwoPrepared.nonce).toBe(canonicalNonceBeforeRace + 1);
+
+          const postCounts = { restored: 0, independent: 0 };
+          const countPost = (key: "restored" | "independent") => (req: Request) => {
+            if (req.method() === "POST" && new URL(req.url()).pathname === "/v1/tx/submit") {
+              postCounts[key] += 1;
+            }
+          };
+          const onRestoredPost = countPost("restored");
+          const onIndependentPost = countPost("independent");
+          restoredPage.on("request", onRestoredPost);
+          independentDevice.on("request", onIndependentPost);
+          const dispatchPrepared = (target: Page) => target.evaluate(async () => {
+            const envelope = (window as any).__f1bIndependentDeviceRaceEnvelope;
+            delete (window as any).__f1bIndependentDeviceRaceEnvelope;
+            if (!envelope) throw new Error("f1b_missing_prepared_envelope");
+            const response = await fetch("/v1/tx/submit", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(envelope),
+            });
+            const body = await response.json();
+            return {
+              status: response.status,
+              accepted: response.ok && body?.ok === true,
+              txId: typeof body?.tx_id === "string" ? body.tx_id : "",
+              code: String(body?.error?.code || body?.error || ""),
+            };
+          });
+          let conflictResults;
+          try {
+            conflictResults = await Promise.all([
+              dispatchPrepared(restoredPage),
+              dispatchPrepared(independentDevice),
+            ]);
+          } finally {
+            restoredPage.off("request", onRestoredPost);
+            independentDevice.off("request", onIndependentPost);
+          }
+          expect(postCounts).toEqual({ restored: 1, independent: 1 });
+          // A dual-accept here would violate the single pending signer+nonce
+          // invariant even if downstream execution later happened to reject one.
+          expect(conflictResults.filter((result) => result.accepted)).toHaveLength(1);
+          const winner = conflictResults.find((result) => result.accepted);
+          const loser = conflictResults.find((result) => !result.accepted);
+          expect(winner?.txId).toMatch(/^tx:[0-9a-f]{64}$/);
+          expect(loser?.status).toBeGreaterThanOrEqual(400);
+          expect(loser?.status).toBeLessThan(500);
+          await waitForConfirmedTx(restoredPage.request, winner!.txId);
+          const afterIndependentRace = await pollJson(restoredPage.request, accountPath,
+            (body) => Number(body?.state?.nonce) >= canonicalNonceBeforeRace + 1);
+          expect(Number(afterIndependentRace?.state?.nonce)).toBe(canonicalNonceBeforeRace + 1);
+          assertSingleCanonicalAccountKey(afterIndependentRace, recovery.publicKeyB64);
+        } finally {
+          await independentDeviceContext.close();
+        }
+
         // Authoritative session expiry must be decided by the live backend's
         // ledger clock, NOT by the browser's local expiresAtMs value. Issue a
         // separate one-second session bearer as a signed canonical transaction
