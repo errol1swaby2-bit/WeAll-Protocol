@@ -221,6 +221,138 @@ test.describe("real browser account custody", () => {
     expect(result.notice).toContain("ML-DSA-65");
   });
 
+  test("lost tab secrets with retained public metadata require recovery, never silent key rotation", async ({ browser, request }) => {
+    test.setTimeout(120_000);
+    await requireBackend(request);
+
+    const account = "@m2lost_" + Date.now().toString(36);
+    const context = await browser.newContext({ baseURL: BASE_URL });
+    try {
+      const page = await context.newPage();
+      let submitted = 0;
+      page.on("request", (req) => {
+        if (req.method() === "POST" && new URL(req.url()).pathname.endsWith("/v1/tx/submit")) submitted += 1;
+      });
+      await page.goto("/#/login");
+      await page.getByLabel("Choose a handle").fill(account);
+      await page.getByRole("button", { name: "Create account key" }).click();
+      await expect(page.getByTestId("recovery-save-step")).toBeVisible({ timeout: 30_000 });
+
+      // Public metadata persists across tabs; signing seeds intentionally do not.
+      const before = await page.evaluate((acct: string) => ({
+        signerMeta: localStorage.getItem("weall_keypair::" + acct),
+        recoveryMeta: localStorage.getItem("weall_recovery_authority_public::" + acct),
+        evidenceMeta: localStorage.getItem("weall_evidence_kem_public::" + acct),
+        signerSecretExists: !!sessionStorage.getItem("weall_secret::" + acct),
+        recoverySecretExists: !!sessionStorage.getItem("weall_recovery_authority_secret::" + acct),
+        evidenceSecretExists: !!sessionStorage.getItem("weall_evidence_kem_secret::" + acct),
+      }), account);
+      expect(before.signerMeta).toBeTruthy();
+      expect(before.recoveryMeta).toBeTruthy();
+      expect(before.evidenceMeta).toBeTruthy();
+      expect(before.signerSecretExists).toBe(true);
+      expect(before.recoverySecretExists).toBe(true);
+      expect(before.evidenceSecretExists).toBe(true);
+
+      // Simulate the exact same-origin browser state after tab-scoped key loss.
+      await page.evaluate((acct: string) => {
+        sessionStorage.removeItem("weall_secret::" + acct);
+        sessionStorage.removeItem("weall_recovery_authority_secret::" + acct);
+        sessionStorage.removeItem("weall_evidence_kem_secret::" + acct);
+      }, account);
+      await page.reload();
+      await page.getByLabel("Choose a handle").fill(account);
+      await page.getByRole("button", { name: "Create account key" }).click();
+
+      await expect(page.getByTestId("restore-account-form")).toBeVisible();
+      await expect(page.locator(".error-text")).toContainText("No replacement keys have been generated.");
+      const after = await page.evaluate((acct: string) => ({
+        signerMeta: localStorage.getItem("weall_keypair::" + acct),
+        recoveryMeta: localStorage.getItem("weall_recovery_authority_public::" + acct),
+        evidenceMeta: localStorage.getItem("weall_evidence_kem_public::" + acct),
+        signerSecretExists: !!sessionStorage.getItem("weall_secret::" + acct),
+        recoverySecretExists: !!sessionStorage.getItem("weall_recovery_authority_secret::" + acct),
+        evidenceSecretExists: !!sessionStorage.getItem("weall_evidence_kem_secret::" + acct),
+      }), account);
+      expect(after.signerMeta).toBe(before.signerMeta);
+      expect(after.recoveryMeta).toBe(before.recoveryMeta);
+      expect(after.evidenceMeta).toBe(before.evidenceMeta);
+      expect(after.signerSecretExists).toBe(false);
+      expect(after.recoverySecretExists).toBe(false);
+      expect(after.evidenceSecretExists).toBe(false);
+      expect(submitted).toBe(0);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("registration aborted before backend admission remains a durable unknown with no automatic resubmission", async ({ browser, request }) => {
+    test.setTimeout(180_000);
+    await requireBackend(request);
+
+    const account = "@m2unknown_" + Date.now().toString(36);
+    const tempDir = await mkdtemp(join(tmpdir(), "weall-m2-unknown-"));
+    const recoveryPath = join(tempDir, "recovery.json");
+    const context = await browser.newContext({ baseURL: BASE_URL, acceptDownloads: true });
+    try {
+      const page = await context.newPage();
+      await page.goto("/#/login");
+      await page.getByLabel("Choose a handle").fill(account);
+      await page.getByRole("button", { name: "Create account key" }).click();
+      await expect(page.getByTestId("recovery-save-step")).toBeVisible({ timeout: 30_000 });
+
+      const downloadPromise = page.waitForEvent("download");
+      await page.getByRole("button", { name: /Download recovery file/ }).click();
+      const download = await downloadPromise;
+      await download.saveAs(recoveryPath);
+      await page.getByTestId("verify-created-recovery-file").setInputFiles(recoveryPath);
+      await expect(page.getByTestId("recovery-verification-status")).toContainText("Recovery verified");
+      await page.getByRole("button", { name: "Continue to network registration" }).click();
+      await page.waitForURL(/#\/onboarding\/register$/);
+
+      const registerButton = page.getByTestId("submit-basic-registration");
+      await expect(registerButton).toBeEnabled({ timeout: 30_000 });
+      let browserDispatches = 0;
+      let savedBeforeDispatch = "";
+      await page.route("**/v1/tx/submit", async (route) => {
+        if ((route.request().postDataJSON() as Record<string, unknown>)?.tx_type !== "ACCOUNT_REGISTER") {
+          await route.continue();
+          return;
+        }
+        browserDispatches += 1;
+        savedBeforeDispatch = await page.evaluate(
+          (acct: string) => localStorage.getItem("weall.account_registration_pending::" + acct) || "",
+          account,
+        );
+        // Abort before backend admission: this is unknown from the browser's
+        // perspective, not an authoritative rejection or permission to retry.
+        await route.abort("failed");
+      });
+      await registerButton.click();
+      await expect.poll(() => browserDispatches).toBe(1);
+      expect(savedBeforeDispatch).toMatch(/^tx:[0-9a-f]{64}$/);
+      await expect(page.getByTestId("registration-pending")).toBeVisible({ timeout: 30_000 });
+      await page.unroute("**/v1/tx/submit");
+
+      await page.reload();
+      await expect(page.getByTestId("registration-pending")).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId("submit-basic-registration")).toBeDisabled();
+      await page.getByRole("button", { name: "Check registration status" }).click();
+      await expect(page.getByTestId("submit-basic-registration")).toBeDisabled();
+      const recorded = await page.evaluate(
+        (acct: string) => localStorage.getItem("weall.account_registration_pending::" + acct),
+        account,
+      );
+      expect(recorded).toBe(savedBeforeDispatch);
+      expect(browserDispatches).toBe(1);
+      const state = await getJson(page.request, "/v1/accounts/" + encodeURIComponent(account));
+      expect(String(state?.state?.pubkey || "")).toBe("");
+    } finally {
+      await context.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
   test("create, verify, register, restart, restore, and submit a protected signed action", async ({ browser, request }) => {
     test.setTimeout(300_000);
     await requireBackend(request);
@@ -430,7 +562,26 @@ test.describe("real browser account custody", () => {
           "Upload your recovery file or paste your recovery key.",
         );
 
+        // A correct file for a different entered handle must not poison
+        // canonical signer or auxiliary key custody in a fresh browser.
         await restoredPage.getByTestId("restore-recovery-file").setInputFiles(recoveryPath);
+        await restoreForm.getByLabel("Handle").fill("@foreign_" + suffix);
+        await restoreForm.getByRole("button", { name: "Sign in", exact: true }).click();
+        await expect(restoredPage.locator(".error-text")).toContainText("does not match this handle");
+        const afterForeignAttempt = await restoredPage.evaluate((acct: string) => ({
+          publicMetadata: localStorage.getItem("weall_keypair::" + acct),
+          signerSecret: sessionStorage.getItem("weall_secret::" + acct),
+          recoveryPublic: localStorage.getItem("weall_recovery_authority_public::" + acct),
+          evidencePublic: localStorage.getItem("weall_evidence_kem_public::" + acct),
+        }), account);
+        expect(afterForeignAttempt).toEqual({
+          publicMetadata: null,
+          signerSecret: null,
+          recoveryPublic: null,
+          evidencePublic: null,
+        });
+
+        await restoreForm.getByLabel("Handle").fill(account);
         await expect(restoreForm.getByLabel("Handle")).toHaveValue(account);
         await expect(restoreForm.getByLabel("Recovery key")).toHaveValue(recovery.secretKeyB64);
 
