@@ -378,6 +378,7 @@ def rejected_receipt_mismatches(
     for key in (
         "tx_id", "height", "block_id", "included_ts_ms", "tx_type",
         "signer", "code", "reason", "apply_ok", "status", "source",
+        "local_state_synced",
     ):
         if producer.get(key) != follower.get(key):
             failures.append(f"cross_node_{key}_mismatch")
