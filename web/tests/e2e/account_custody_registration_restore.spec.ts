@@ -221,6 +221,122 @@ test.describe("real browser account custody", () => {
     expect(result.notice).toContain("ML-DSA-65");
   });
 
+  test("expired bearer and cancelled or unavailable passkeys never authenticate locally", async ({ page }) => {
+    await page.goto("/#/login");
+    const result = await page.evaluate(async () => {
+      const sessionPath = "/src/auth/session.ts";
+      const passkeyPath = "/src/auth/passkeys.ts";
+      const sessions = await import(/* @vite-ignore */ sessionPath);
+      const passkeys = await import(/* @vite-ignore */ passkeyPath);
+      const acct = "@m2guard_" + Date.now().toString(36);
+
+      // Only a local, deliberately expired fixture; never claim that this
+      // synthetic token was issued or authorized by the network.
+      sessions.setSession({
+        version: 1,
+        account: acct,
+        sessionKey: "expired-bearer-not-authoritative",
+        expiresAtMs: Date.now() - 1000,
+      });
+      const expiredHealth = sessions.getSessionHealth();
+      const expiredWriteReady = sessions.isWriteSessionReady(acct);
+      const expiredSession = sessions.getSession();
+
+      const originalNavigator = Object.getOwnPropertyDescriptor(navigator, "credentials");
+      const originalPublicKeyCredential = Object.getOwnPropertyDescriptor(window, "PublicKeyCredential");
+      let cancelledRegistration = "";
+      let cancelledSignIn = "";
+      let unavailableRegistration = "";
+      let unavailableSignIn = "";
+      let afterCancelledCreate = -1;
+      let afterUnavailability = -1;
+      const fixtureId = "AQIDBA";
+      try {
+        Object.defineProperty(window, "PublicKeyCredential", {
+          configurable: true,
+          value: class MockPublicKeyCredential {},
+        });
+        Object.defineProperty(navigator, "credentials", {
+          configurable: true,
+          value: { create: async () => null, get: async () => null },
+        });
+        try {
+          await passkeys.registerEasySignIn({ account: acct });
+        } catch (e) {
+          cancelledRegistration = e instanceof Error ? e.message : String(e);
+        }
+        afterCancelledCreate = passkeys.listEasySignInRecords().length;
+
+        // Fixture is local metadata only. A cancelled assertion must not
+        // validate it as an authenticated account or mint any bearer.
+        localStorage.setItem("weall_easy_signin::" + fixtureId, JSON.stringify({
+          version: 1,
+          account: acct,
+          credentialId: fixtureId,
+          label: "Synthetic cancellation fixture",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        }));
+        localStorage.setItem("weall_easy_signin_index_v1", JSON.stringify([fixtureId]));
+        try {
+          await passkeys.confirmEasySignIn();
+        } catch (e) {
+          cancelledSignIn = e instanceof Error ? e.message : String(e);
+        }
+
+        Object.defineProperty(window, "PublicKeyCredential", {
+          configurable: true,
+          value: undefined,
+        });
+        try {
+          await passkeys.registerEasySignIn({ account: acct });
+        } catch (e) {
+          unavailableRegistration = e instanceof Error ? e.message : String(e);
+        }
+        try {
+          await passkeys.confirmEasySignIn();
+        } catch (e) {
+          unavailableSignIn = e instanceof Error ? e.message : String(e);
+        }
+        localStorage.removeItem("weall_easy_signin::" + fixtureId);
+        localStorage.removeItem("weall_easy_signin_index_v1");
+        afterUnavailability = passkeys.listEasySignInRecords().length;
+      } finally {
+        localStorage.removeItem("weall_easy_signin::" + fixtureId);
+        localStorage.removeItem("weall_easy_signin_index_v1");
+        if (originalNavigator) Object.defineProperty(navigator, "credentials", originalNavigator);
+        else delete (navigator as Navigator & { credentials?: CredentialsContainer }).credentials;
+        if (originalPublicKeyCredential) Object.defineProperty(window, "PublicKeyCredential", originalPublicKeyCredential);
+        else delete (window as Window & { PublicKeyCredential?: typeof PublicKeyCredential }).PublicKeyCredential;
+      }
+
+      return {
+        expiredState: expiredHealth.state,
+        expiredWriteReady,
+        expiredSession: expiredSession === null,
+        persistentSessionCleared: localStorage.getItem("weall_session_v1") === null,
+        tabBearerCleared: sessionStorage.getItem("weall_session_bearer_v1") === null,
+        cancelledRegistration,
+        cancelledSignIn,
+        unavailableRegistration,
+        unavailableSignIn,
+        afterCancelledCreate,
+        afterUnavailability,
+      };
+    });
+
+    expect(result.expiredState).toBe("expired");
+    expect(result.expiredWriteReady).toBe(false);
+    expect(result.expiredSession).toBe(true);
+    expect(result.persistentSessionCleared).toBe(true);
+    expect(result.tabBearerCleared).toBe(true);
+    expect(result.cancelledRegistration).toBe("passkey_registration_cancelled");
+    expect(result.cancelledSignIn).toBe("passkey_signin_cancelled");
+    expect(result.unavailableRegistration).toBe("passkeys_not_available");
+    expect(result.unavailableSignIn).toBe("passkeys_not_available");
+    expect(result.afterCancelledCreate).toBe(0);
+    expect(result.afterUnavailability).toBe(0);
+  });
+
   test("lost tab secrets with retained public metadata require recovery, never silent key rotation", async ({ browser, request }) => {
     test.setTimeout(120_000);
     await requireBackend(request);
@@ -693,6 +809,33 @@ test.describe("real browser account custody", () => {
         expect(restoredStorage.evidenceSecretInLocal).toBeNull();
         expect(restoredStorage.evidenceSecretInSession).toBe(recovery.evidenceKemSecretKeyB64);
 
+        // Two tabs share durable *public* metadata, not sessionStorage bearer
+        // or signing seeds. Opening a new tab must not silently inherit the
+        // authenticated browser session from the restored tab.
+        const siblingPage = await restoredContext.newPage();
+        try {
+          await siblingPage.goto("/#/login");
+          const sibling = await siblingPage.evaluate(async (acct: string) => {
+            const sessionPath = "/src/auth/session.ts";
+            const sessions = await import(/* @vite-ignore */ sessionPath);
+            const current = sessions.getSession();
+            return {
+              durableAccount: JSON.parse(localStorage.getItem("weall_session_v1") || "null")?.account,
+              bearer: sessionStorage.getItem("weall_session_bearer_v1"),
+              signer: sessionStorage.getItem("weall_secret::" + acct),
+              currentKey: current?.sessionKey ?? null,
+              writeReady: sessions.isWriteSessionReady(acct),
+            };
+          }, account);
+          expect(sibling.durableAccount).toBe(account);
+          expect(sibling.bearer).toBeNull();
+          expect(sibling.signer).toBeNull();
+          expect(sibling.currentKey).toBeNull();
+          expect(sibling.writeReady).toBe(false);
+        } finally {
+          await siblingPage.close();
+        }
+
         const accountAfterRestore = await getJson(restoredPage.request, accountPath);
         expect(accountAfterRestore?.account).toBe(account);
         assertSingleCanonicalAccountKey(accountAfterRestore, recovery.publicKeyB64);
@@ -787,6 +930,50 @@ test.describe("real browser account custody", () => {
         });
         expect(beforeRevocation.ok()).toBeTruthy();
         expect((await beforeRevocation.json()).authenticated).toBe(true);
+
+        // Offline logout is a LOCAL deletion, not cryptographic proof that the
+        // network revoked the bearer. The real session endpoint must still
+        // accept it after a deliberately unreachable revocation transport.
+        const offlineLogout = await restoredPage.evaluate(async (input: {
+          account: string;
+          bearer: string;
+        }) => {
+          const sessionPath = "/src/auth/session.ts";
+          const sessions = await import(/* @vite-ignore */ sessionPath);
+          let error = "";
+          try {
+            await sessions.logoutCurrentDevice({ base: "http://127.0.0.1:1", forgetSigner: false });
+          } catch (e) {
+            error = e instanceof Error ? e.message : String(e);
+          }
+          const result = {
+            error,
+            sessionGone: sessions.getSession() === null,
+            persistentGone: localStorage.getItem("weall_session_v1") === null,
+            bearerGone: sessionStorage.getItem("weall_session_bearer_v1") === null,
+            signerRetained: !!sessionStorage.getItem("weall_secret::" + input.account),
+          };
+          // Reconstitute only the *already network-authorized* same bearer
+          // to exercise the separate positive canonical revocation below.
+          // This does not mint a new bearer, issue a tx, or imply revocation.
+          sessions.setSession({
+            version: 1,
+            account: input.account,
+            sessionKey: input.bearer,
+            expiresAtMs: Date.now() + 10 * 60 * 1000,
+          });
+          return result;
+        }, { account, bearer: priorBearer });
+        expect(offlineLogout.error.length).toBeGreaterThan(0);
+        expect(offlineLogout.sessionGone).toBe(true);
+        expect(offlineLogout.persistentGone).toBe(true);
+        expect(offlineLogout.bearerGone).toBe(true);
+        expect(offlineLogout.signerRetained).toBe(true);
+        const stillAuthorizedAfterOffline = await restoredPage.request.get("/v1/session/me", {
+          headers: oldBearerHeaders,
+        });
+        expect(stillAuthorizedAfterOffline.ok()).toBe(true);
+        expect((await stillAuthorizedAfterOffline.json()).authenticated).toBe(true);
 
         await restoredPage.goto("/#/session");
         const revokeButton = restoredPage.getByRole("button", { name: "Log out of this device" });
