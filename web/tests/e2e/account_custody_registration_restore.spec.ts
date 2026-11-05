@@ -882,6 +882,62 @@ test.describe("real browser account custody", () => {
           expect(sibling.signer).toBeNull();
           expect(sibling.currentKey).toBeNull();
           expect(sibling.writeReady).toBe(false);
+
+          // Explicitly import the test recovery signer's seed into this tab.
+          // This is a deliberate simulated recovery, NEVER a silent copy from
+          // another tab. Two independently executing JS realms now own the
+          // same valid account signing key, as may happen on two user devices.
+          const imported = await siblingPage.evaluate(async (input: { account: string; seed: string }) => {
+            const keysPath = "/src/auth/keys.ts";
+            const keys = await import(/* @vite-ignore */ keysPath);
+            const key = keys.saveKeypair(input.account, { secretKeyB64: input.seed });
+            return { matchingAccount: key.pubkeyB64.length > 0, signerStored: !!sessionStorage.getItem("weall_secret::" + input.account) };
+          }, { account, seed: recovery.secretKeyB64 });
+          expect(imported).toEqual({ matchingAccount: true, signerStored: true });
+
+          const issueFrom = (target: Page) => target.evaluate(async (acct: string) => {
+            const modulePath = "/src/auth/session.ts";
+            const sessions = await import(/* @vite-ignore */ modulePath);
+            const raw = new Uint8Array(32);
+            crypto.getRandomValues(raw);
+            const binary = Array.from(raw, (byte) => String.fromCharCode(byte)).join("");
+            const candidate = btoa(binary);
+            const outcome = await sessions.submitSignedTxWithNonce({
+              account: acct,
+              tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
+              payloadFactory: () => ({ session_key: candidate, ttl_s: 3600 }),
+              parent: null,
+            });
+            // No bearer or signature bytes leave the browser; expose only
+            // canonical tx IDs and numeric nonce values for assertions.
+            return {
+              nonce: outcome.env.nonce,
+              txId: String(outcome.result?.tx_id || outcome.result?.result?.tx_id || ""),
+            };
+          }, account);
+
+          // Both tabs submit at the same time. The shared signer lease and
+          // nonce reservation must avoid two accepted txs with one nonce.
+          const [firstIssue, secondIssue] = await Promise.all([
+            issueFrom(restoredPage),
+            issueFrom(siblingPage),
+          ]);
+          expect(firstIssue.txId).toMatch(/^tx:[0-9a-f]{64}$/);
+          expect(secondIssue.txId).toMatch(/^tx:[0-9a-f]{64}$/);
+          expect(firstIssue.txId).not.toBe(secondIssue.txId);
+          expect(firstIssue.nonce).toBeGreaterThan(0);
+          expect(secondIssue.nonce).toBeGreaterThan(0);
+          expect(firstIssue.nonce).not.toBe(secondIssue.nonce);
+          await Promise.all([
+            waitForConfirmedTx(restoredPage.request, firstIssue.txId),
+            waitForConfirmedTx(siblingPage.request, secondIssue.txId),
+          ]);
+          const afterConcurrentIssues = await pollJson(
+            restoredPage.request,
+            accountPath,
+            (body) => Number(body?.state?.nonce || 0) >= Math.max(firstIssue.nonce, secondIssue.nonce),
+          );
+          assertSingleCanonicalAccountKey(afterConcurrentIssues, recovery.publicKeyB64);
         } finally {
           await siblingPage.close();
         }
