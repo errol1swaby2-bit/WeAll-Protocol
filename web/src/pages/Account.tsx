@@ -237,6 +237,43 @@ export default function Account({ account }: { account: string }): JSX.Element {
   );
   const matrixAggregateScore = num(reputationMatrix?.aggregate_public_score_milli, 0);
   const accountExists = !!acctView?.ok && !!state;
+
+  // A newly restored browser can reach this page while the account observer
+  // is briefly unavailable. A single failed initial read must not leave
+  // legitimate profile actions disabled indefinitely. Retry only the public,
+  // authoritative account GET; never repeat a signed mutation or infer
+  // account ownership from local key metadata.
+  useEffect(() => {
+    if (!isSelf || !acct || accountExists) return;
+    let stopped = false;
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const reconcile = async (): Promise<void> => {
+      if (stopped || attempts >= 8) return;
+      attempts += 1;
+      try {
+        const latest = await weall.account(acct, base);
+        if (stopped) return;
+        if (latest?.ok === true && latest?.state && typeof latest.state === "object") {
+          setAcctView(latest);
+          return;
+        }
+      } catch {
+        // A failed read is not evidence of an unregistered account or
+        // authorization to submit another account transaction.
+      }
+      if (!stopped && attempts < 8) {
+        timer = window.setTimeout(() => void reconcile(), 1200);
+      }
+    };
+    timer = window.setTimeout(() => void reconcile(), 1200);
+    return () => {
+      stopped = true;
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [acct, base, isSelf, accountExists]);
+
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
   const canPost = tier >= 2 && accountExists && !banned && !locked;
