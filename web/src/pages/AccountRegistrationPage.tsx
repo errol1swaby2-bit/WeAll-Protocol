@@ -32,6 +32,20 @@ function rememberPendingTransaction(account: string, txId: string): void {
   }
 }
 
+/**
+ * Durable intent is mandatory before dispatch. An unavailable local store must
+ * abort submission rather than risking a lost receipt and duplicate registration.
+ */
+function persistSubmissionIntent(account: string): void {
+  const key = pendingRegistrationKey(account);
+  try {
+    localStorage.setItem(key, "submission_unknown");
+    if (localStorage.getItem(key) !== "submission_unknown") throw new Error("readback_failed");
+  } catch {
+    throw new Error("Browser storage is unavailable. Registration was not sent; enable storage before retrying.");
+  }
+}
+
 export default function AccountRegistrationPage(): JSX.Element {
   const session = getSession();
   const account = session?.account || "";
@@ -122,18 +136,23 @@ export default function AccountRegistrationPage(): JSX.Element {
     setBusy(true);
     setError("");
     setMessage("Preparing and signing your account registration. This may take a moment.");
+    let submissionStarted = false;
     try {
-      // Fail closed across crashes or ambiguous network responses: submission may succeed
-      // even if the client never receives the transaction ID.
-      rememberPendingTransaction(account, "submission_unknown");
-      setTransactionId("submission_unknown");
-      const txId = await submitBasicAccountRegistration(account, base);
+      const txId = await submitBasicAccountRegistration(account, base, () => {
+        // This callback runs only once preparation/signing has completed and
+        // immediately before the first network dispatch. It may abort dispatch.
+        persistSubmissionIntent(account);
+        submissionStarted = true;
+        setTransactionId("submission_unknown");
+      });
       rememberPendingTransaction(account, txId);
       setTransactionId(txId);
       setMessage("Registration submitted. Waiting for the network to confirm and synchronize it.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Account registration could not be submitted.");
-      setMessage("Check your account's registration status before starting another attempt.");
+      setMessage(submissionStarted
+        ? "Submission may have reached the network. Do not retry until its outcome is reconciled."
+        : "Registration was not dispatched. Review the error before trying again.");
     } finally {
       setBusy(false);
     }
