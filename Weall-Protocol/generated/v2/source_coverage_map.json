@@ -4373,7 +4373,7 @@
       ],
       "path": "scripts/devnet_cross_node_convergence.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2800ea0ae02d8bca8627d7eab273134ecb2f2e57ab6e1275f8a80fcfcfaf5f4a",
+      "sha256": "75986a4de49ac29d1143797cc79d180cdcdfb3b51b311a546a4222922686175e",
       "source_id": "SRC-27BA5709434F8AA8"
     },
     {
@@ -16146,11 +16146,12 @@
         "ROUTE-C6A91D2143954D6D",
         "ROUTE-FEFD8788DF933CB3",
         "TX-0001",
+        "TX-0007",
         "TX-1200"
       ],
       "path": "tests/test_devnet_cross_node_convergence.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e9e50f293e0320d78c6077e87685a673438709b8195ecf29189dc9ccb322cb6a",
+      "sha256": "4c7399a31563a5b09e9a27f6106e598cb5c9bdde8674877212e92ec5ea3b8ecf",
       "source_id": "SRC-06E0DF19754A96FB"
     },
     {

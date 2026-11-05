@@ -233,7 +233,9 @@ def test_cross_node_convergence_wait_tx_status_stops_on_invalid(monkeypatch) -> 
     assert calls["n"] == 1
 
 
-def test_cross_node_rejected_receipt_comparator_requires_two_real_matching_committed_receipts() -> None:
+def test_cross_node_rejected_receipt_comparator_requires_two_real_matching_committed_receipts() -> (
+    None
+):
     helper = _load_helper()
     tx_id = "tx:" + "b" * 64
     valid = {
@@ -251,9 +253,10 @@ def test_cross_node_rejected_receipt_comparator_requires_two_real_matching_commi
         "code": "invalid_tx",
         "reason": "unknown_session_key",
     }
-    assert helper.rejected_receipt_mismatches(
-        dict(valid), dict(valid), tx_id=tx_id, account="@alice"
-    ) == []
+    assert (
+        helper.rejected_receipt_mismatches(dict(valid), dict(valid), tx_id=tx_id, account="@alice")
+        == []
+    )
 
     for mutation, required_failure in (
         ({"status": "confirmed"}, "follower_not_rejected"),
@@ -281,16 +284,24 @@ def test_cross_node_rejected_receipt_comparator_requires_two_real_matching_commi
 def test_rejected_receipt_probe_opt_in_dry_run_is_explicit_and_does_not_claim_bft() -> None:
     proc = subprocess.run(
         [
-            sys.executable, "-S", str(HELPER_PATH), "--dry-run",
-            "--check-rejected-receipt", "--account", "@dry_run_cross_node",
+            sys.executable,
+            "-S",
+            str(HELPER_PATH),
+            "--dry-run",
+            "--check-rejected-receipt",
+            "--account",
+            "@dry_run_cross_node",
         ],
-        cwd=REPO_ROOT, text=True, capture_output=True, timeout=10, check=False,
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
     )
     assert proc.returncode == 0, proc.stderr
     out = json.loads(proc.stdout)
     scenario = next(
-        s for s in out["scenarios"]
-        if s["name"] == "node1-failed-apply-receipt-visible-node2"
+        s for s in out["scenarios"] if s["name"] == "node1-failed-apply-receipt-visible-node2"
     )
     assert scenario["tx_type"] == "ACCOUNT_SESSION_KEY_REVOKE"
     assert scenario["expect"] == "same_committed_failed_apply_receipt_after_verified_delta_sync"
@@ -298,11 +309,14 @@ def test_rejected_receipt_probe_opt_in_dry_run_is_explicit_and_does_not_claim_bf
 
     default_proc = subprocess.run(
         [sys.executable, "-S", str(HELPER_PATH), "--dry-run"],
-        cwd=REPO_ROOT, text=True, capture_output=True, timeout=10, check=False,
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
     )
     assert default_proc.returncode == 0
     defaults = json.loads(default_proc.stdout)
     assert not any(
-        s["name"] == "node1-failed-apply-receipt-visible-node2"
-        for s in defaults["scenarios"]
+        s["name"] == "node1-failed-apply-receipt-visible-node2" for s in defaults["scenarios"]
     )

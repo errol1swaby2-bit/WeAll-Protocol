@@ -341,7 +341,6 @@ def classify_tx_visibility(
     return ok, detail
 
 
-
 def rejected_receipt_mismatches(
     producer: Json, follower: Json, *, tx_id: str, account: str
 ) -> list[str]:
@@ -376,8 +375,17 @@ def rejected_receipt_mismatches(
         if str(status.get("reason") or "") != "unknown_session_key":
             failures.append(f"{label}_wrong_reason")
     for key in (
-        "tx_id", "height", "block_id", "included_ts_ms", "tx_type",
-        "signer", "code", "reason", "apply_ok", "status", "source",
+        "tx_id",
+        "height",
+        "block_id",
+        "included_ts_ms",
+        "tx_type",
+        "signer",
+        "code",
+        "reason",
+        "apply_ok",
+        "status",
+        "source",
         "local_state_synced",
     ):
         if producer.get(key) != follower.get(key):
@@ -409,37 +417,53 @@ def run_rejected_receipt_probe(
     reject_envelope_path = workspace / "f1b-committed-rejected.signed-tx.json"
     signed_reject = _run_json(
         [
-            sys.executable, str(SCRIPTS_DIR / "devnet_tx.py"),
-            "--api", args.node1_api, "submit-tx",
-            "--account", account, "--keyfile", keyfile,
-            "--tx-type", "ACCOUNT_SESSION_KEY_REVOKE",
-            "--payload-json", json.dumps({"session_key": unknown_session_key}),
-            "--nonce", str(original_nonce + 1),
-            "--tx-out", str(reject_envelope_path),
-            "--wait", "--timeout", str(args.tx_timeout),
-            "--poll", str(args.tx_poll),
+            sys.executable,
+            str(SCRIPTS_DIR / "devnet_tx.py"),
+            "--api",
+            args.node1_api,
+            "submit-tx",
+            "--account",
+            account,
+            "--keyfile",
+            keyfile,
+            "--tx-type",
+            "ACCOUNT_SESSION_KEY_REVOKE",
+            "--payload-json",
+            json.dumps({"session_key": unknown_session_key}),
+            "--nonce",
+            str(original_nonce + 1),
+            "--tx-out",
+            str(reject_envelope_path),
+            "--wait",
+            "--timeout",
+            str(args.tx_timeout),
+            "--poll",
+            str(args.tx_poll),
         ],
         timeout=args.command_timeout,
     )
     tx_id = str(signed_reject.get("tx_id") or "")
-    evidence["events"].append({
-        "step": "producer_signed_revoke_unknown_session",
-        "tx_id": tx_id,
-        "http_admitted": signed_reject.get("submit", {}).get("ok") is True,
-        "initial_status": signed_reject.get("tx_status", {}).get("status"),
-    })
+    evidence["events"].append(
+        {
+            "step": "producer_signed_revoke_unknown_session",
+            "tx_id": tx_id,
+            "http_admitted": signed_reject.get("submit", {}).get("ok") is True,
+            "initial_status": signed_reject.get("tx_status", {}).get("status"),
+        }
+    )
     if not tx_id.startswith("tx:") or signed_reject.get("submit", {}).get("ok") is not True:
         evidence["failure"] = "producer_signed_rejection_not_http_admitted"
         return evidence
 
     producer_status = wait_tx_status(
-        args.node1_api, tx_id, timeout_s=args.tx_timeout,
-        poll_s=args.tx_poll, node="node1",
+        args.node1_api,
+        tx_id,
+        timeout_s=args.tx_timeout,
+        poll_s=args.tx_poll,
+        node="node1",
     )
     evidence["producer_status"] = producer_status
-    if rejected_receipt_mismatches(
-        producer_status, producer_status, tx_id=tx_id, account=account
-    ):
+    if rejected_receipt_mismatches(producer_status, producer_status, tx_id=tx_id, account=account):
         evidence["failure"] = "producer_missing_committed_failed_apply_receipt"
         return evidence
     producer_account = _account_state(
@@ -450,21 +474,23 @@ def run_rejected_receipt_probe(
         return evidence
 
     sync = _sync(
-        args.node1_api, args.node2_api,
-        join_anchor_path=args.join_anchor_path, timeout=args.command_timeout,
+        args.node1_api,
+        args.node2_api,
+        join_anchor_path=args.join_anchor_path,
+        timeout=args.command_timeout,
     )
-    evidence["events"].append({
-        "step": "verified_delta_sync_of_failed_receipt",
-        "sync_ok": sync.get("ok") is True,
-        "mode": "existing_verified_delta_sync",
-    })
+    evidence["events"].append(
+        {
+            "step": "verified_delta_sync_of_failed_receipt",
+            "sync_ok": sync.get("ok") is True,
+            "mode": "existing_verified_delta_sync",
+        }
+    )
     if sync.get("ok") is not True:
         evidence["failure"] = "failed_receipt_verified_sync_failed"
         return evidence
 
-    follower_status = _tx_status(
-        args.node2_api, tx_id, timeout=args.http_timeout, node="node2"
-    )
+    follower_status = _tx_status(args.node2_api, tx_id, timeout=args.http_timeout, node="node2")
     evidence["follower_status"] = follower_status
     mismatches = rejected_receipt_mismatches(
         producer_status, follower_status, tx_id=tx_id, account=account
@@ -485,13 +511,17 @@ def run_rejected_receipt_probe(
     # Never construct an alternate envelope or automatically resubmit.
     signed_bytes = json.loads(reject_envelope_path.read_text(encoding="utf-8"))
     replay = _http_post_json(
-        args.node1_api, "/v1/tx/submit", signed_bytes,
-        timeout=args.http_timeout, node="node1",
+        args.node1_api,
+        "/v1/tx/submit",
+        signed_bytes,
+        timeout=args.http_timeout,
+        node="node1",
     )
     error = replay.get("error")
     code = (
         str((error.get("error") or {}).get("code") or error.get("code") or "")
-        if isinstance(error, dict) else ""
+        if isinstance(error, dict)
+        else ""
     )
     evidence["replay"] = {"http_status": replay.get("http_status"), "error_code": code}
     if replay.get("ok") is not False or int(replay.get("http_status") or 0) != 403:
@@ -500,47 +530,67 @@ def run_rejected_receipt_probe(
     if code != "already_finalized_rejected":
         evidence["failure"] = "exact_replay_wrong_rejection_reason"
         return evidence
-    if int(_account_state(
-        args.node1_api, account, timeout=args.http_timeout, node="node1"
-    ).get("nonce") or 0) != original_nonce + 1:
+    if (
+        int(
+            _account_state(args.node1_api, account, timeout=args.http_timeout, node="node1").get(
+                "nonce"
+            )
+            or 0
+        )
+        != original_nonce + 1
+    ):
         evidence["failure"] = "replay_consumed_nonce_again"
         return evidence
 
     new_session = "f1b_distinct_issued_" + secrets.token_hex(24)
     issued = _run_json(
         [
-            sys.executable, str(SCRIPTS_DIR / "devnet_tx.py"),
-            "--api", args.node1_api, "submit-tx",
-            "--account", account, "--keyfile", keyfile,
-            "--tx-type", "ACCOUNT_SESSION_KEY_ISSUE",
-            "--payload-json", json.dumps({"session_key": new_session, "ttl_s": 3600}),
-            "--nonce", str(original_nonce + 2),
-            "--wait", "--timeout", str(args.tx_timeout),
-            "--poll", str(args.tx_poll),
+            sys.executable,
+            str(SCRIPTS_DIR / "devnet_tx.py"),
+            "--api",
+            args.node1_api,
+            "submit-tx",
+            "--account",
+            account,
+            "--keyfile",
+            keyfile,
+            "--tx-type",
+            "ACCOUNT_SESSION_KEY_ISSUE",
+            "--payload-json",
+            json.dumps({"session_key": new_session, "ttl_s": 3600}),
+            "--nonce",
+            str(original_nonce + 2),
+            "--wait",
+            "--timeout",
+            str(args.tx_timeout),
+            "--poll",
+            str(args.tx_poll),
         ],
         timeout=args.command_timeout,
     )
     issued_id = str(issued.get("tx_id") or "")
     issued_status = issued.get("tx_status") if isinstance(issued.get("tx_status"), dict) else {}
-    evidence["events"].append({
-        "step": "producer_next_nonce_recovery",
-        "tx_id": issued_id,
-        "status": issued_status.get("status"),
-    })
+    evidence["events"].append(
+        {
+            "step": "producer_next_nonce_recovery",
+            "tx_id": issued_id,
+            "status": issued_status.get("status"),
+        }
+    )
     if not issued_id.startswith("tx:") or issued_status.get("status") != "confirmed":
         evidence["failure"] = "next_nonce_recovery_not_confirmed"
         return evidence
 
     sync_issue = _sync(
-        args.node1_api, args.node2_api,
-        join_anchor_path=args.join_anchor_path, timeout=args.command_timeout,
+        args.node1_api,
+        args.node2_api,
+        join_anchor_path=args.join_anchor_path,
+        timeout=args.command_timeout,
     )
     if sync_issue.get("ok") is not True:
         evidence["failure"] = "next_nonce_verified_sync_failed"
         return evidence
-    node2_issued = _tx_status(
-        args.node2_api, issued_id, timeout=args.http_timeout, node="node2"
-    )
+    node2_issued = _tx_status(args.node2_api, issued_id, timeout=args.http_timeout, node="node2")
     if node2_issued.get("status") != "confirmed" or node2_issued.get("apply_ok") is not True:
         evidence["failure"] = "follower_next_nonce_confirmation_mismatch"
         return evidence
@@ -551,12 +601,16 @@ def run_rejected_receipt_probe(
             return evidence
 
     left = _http_json(
-        args.node1_api, "/v1/chain/identity",
-        timeout=args.http_timeout, node="node1",
+        args.node1_api,
+        "/v1/chain/identity",
+        timeout=args.http_timeout,
+        node="node1",
     )
     right = _http_json(
-        args.node2_api, "/v1/chain/identity",
-        timeout=args.http_timeout, node="node2",
+        args.node2_api,
+        "/v1/chain/identity",
+        timeout=args.http_timeout,
+        node="node2",
     )
     identity_mismatches = compare_identities(left, right)
     evidence["identity_mismatches"] = identity_mismatches
@@ -853,10 +907,12 @@ def run_probe(args: argparse.Namespace) -> Json:
             args, workspace=workspace, account=account, keyfile=keyfile
         )
         result["rejected_receipt_probe"] = receipt_proof
-        result["events"].append({
-            "step": "two_process_verified_rejected_receipt",
-            "ok": receipt_proof.get("ok") is True,
-        })
+        result["events"].append(
+            {
+                "step": "two_process_verified_rejected_receipt",
+                "ok": receipt_proof.get("ok") is True,
+            }
+        )
         if receipt_proof.get("ok") is not True:
             result["ok"] = False
             result["failure"] = str(
