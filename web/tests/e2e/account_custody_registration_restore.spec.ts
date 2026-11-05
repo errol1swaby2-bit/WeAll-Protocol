@@ -430,26 +430,36 @@ test.describe("real browser account custody", () => {
       await expect(registerButton).toBeEnabled({ timeout: 30_000 });
       let browserDispatches = 0;
       let savedBeforeDispatch = "";
+      let finishInterception!: () => void;
+      const interceptionFinished = new Promise<void>((resolve) => {
+        finishInterception = resolve;
+      });
       await page.route("**/v1/tx/submit", async (route) => {
         if ((route.request().postDataJSON() as Record<string, unknown>)?.tx_type !== "ACCOUNT_REGISTER") {
           await route.continue();
           return;
         }
         browserDispatches += 1;
-        savedBeforeDispatch = await page.evaluate(
-          (acct: string) => localStorage.getItem("weall.account_registration_pending::" + acct) || "",
-          account,
-        );
-        // Abort before backend admission: this is unknown from the browser's
-        // perspective, not an authoritative rejection or permission to retry.
-        await route.abort("failed");
+        try {
+          savedBeforeDispatch = await page.evaluate(
+            (acct: string) => localStorage.getItem("weall.account_registration_pending::" + acct) || "",
+            account,
+          );
+          // Abort before backend admission: this is unknown from the browser's
+          // perspective, not an authoritative rejection or permission to retry.
+          await route.abort("failed");
+        } finally {
+          // Request-observed fires before this asynchronous route handler has
+          // read browser storage and completed the abort. A visible pending UI
+          // is not a completion barrier for Playwright's interception callback.
+          finishInterception();
+        }
       });
       await registerButton.click();
       await expect.poll(() => browserDispatches).toBe(1);
-      // Browser pending posture proves the interception handler finished; do
-      // not race the async storage readback with the request observer.
-      await expect(page.getByTestId("registration-pending")).toBeVisible({ timeout: 30_000 });
+      await interceptionFinished;
       expect(savedBeforeDispatch).toMatch(/^tx:[0-9a-f]{64}$/);
+      await expect(page.getByTestId("registration-pending")).toBeVisible({ timeout: 30_000 });
       await page.unroute("**/v1/tx/submit");
 
       await page.reload();
