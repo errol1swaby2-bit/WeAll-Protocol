@@ -28094,13 +28094,14 @@
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "ROUTE-3FFABBEFCB7FF39D",
+        "ROUTE-74C075AFE12560DE",
         "ROUTE-7FCEC86AF617DFBF",
         "TX-0006",
         "TX-0007"
       ],
       "path": "tests/test_session_auth_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e397ed8b775069bba06c80a1e188fb57c6460e3c67908935ba464a97cb653f54",
+      "sha256": "9c73198f9cd0652cada66699720ae43e11b4e878c00db9883b15d79de7ff1974",
       "source_id": "SRC-513162AD290B7D2B"
     },
     {
@@ -33071,7 +33072,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "b750401793a52f6bb0935d50eab347abc6e796138964afa47a31df3bd0343676",
+      "sha256": "74ee85771f5204e1045a0cb1f7a5db1f83f51bcde4f8bc3713b74cd9c91b6b80",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
