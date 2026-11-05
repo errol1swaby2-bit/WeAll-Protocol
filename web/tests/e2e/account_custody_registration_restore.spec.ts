@@ -1178,7 +1178,8 @@ test.describe("real browser account custody", () => {
         const lastValidNonce = Number(beforeCommittedRejection?.state?.nonce);
         expect(Number.isInteger(lastValidNonce)).toBe(true);
         const intentionalReject = await restoredPage.evaluate(async (acct: string) => {
-          const sessions = await import(/* @vite-ignore */ "/src/auth/session.ts");
+          const sessionPath = "/src/auth/session.ts";
+          const sessions = await import(/* @vite-ignore */ sessionPath);
           const random = crypto.getRandomValues(new Uint8Array(32));
           const unknownSessionKey = "f1b_never_issued_" +
             Array.from(random, (n) => n.toString(16).padStart(2, "0")).join("");
@@ -1258,7 +1259,8 @@ test.describe("real browser account custody", () => {
         // The failed apply did not consume the nonce: a distinct, validly
         // signed session ISSUE reuses exactly that nonce and must confirm.
         const recoveredFromRejectedApply = await restoredPage.evaluate(async (acct: string) => {
-          const sessions = await import(/* @vite-ignore */ "/src/auth/session.ts");
+          const sessionPath = "/src/auth/session.ts";
+          const sessions = await import(/* @vite-ignore */ sessionPath);
           const random = crypto.getRandomValues(new Uint8Array(32));
           const key = btoa(Array.from(random, (n) => String.fromCharCode(n)).join(""));
           const result = await sessions.submitSignedTxWithNonce({
