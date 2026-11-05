@@ -971,14 +971,53 @@ test.describe("real browser account custody", () => {
           "x-weall-account": account,
           "x-weall-session-key": shortSession.bearer,
         };
-        await expect.poll(async () => {
-          const response = await restoredPage.request.get("/v1/session/me", { headers: shortHeaders });
-          if (!response.ok()) return "session_endpoint_error";
-          const body = await response.json();
-          if (Number(body?.session?.ttl_s || 0) !== 1) return "unexpected_canonical_ttl";
-          if (body?.session?.expired !== true) return "still_authorized_by_ledger_time";
-          return body?.authenticated === false ? "expired_by_canonical_clock" : "expired_but_authenticated";
-        }, { timeout: 30_000, intervals: [250, 500, 1000] }).toBe("expired_by_canonical_clock");
+        // Constitutional chain time does not advance merely because 30 wall
+        // seconds pass. Advance finalized state using distinct, deliberately
+        // signed one-shot transactions, each committed in a separate block,
+        // and verify expiry only after the authoritative height/time advances.
+        const readShortSession = async (): Promise<any> => {
+          const response = await restoredPage.request.get("/v1/session/me", {
+            headers: shortHeaders,
+            timeout: 10_000,
+          });
+          expect(response.ok()).toBe(true);
+          return response.json();
+        };
+        let shortSessionState = await readShortSession();
+        expect(Number(shortSessionState?.session?.ttl_s || 0)).toBe(1);
+        expect(Number(shortSessionState?.session?.issued_at_ts || 0)).toBeGreaterThan(0);
+        let clockAdvanceBlocks = 0;
+        while (shortSessionState?.session?.expired !== true && clockAdvanceBlocks < 4) {
+          const witness = await restoredPage.evaluate(async (acct: string) => {
+            const sessionPath = "/src/auth/session.ts";
+            const sessions = await import(/* @vite-ignore */ sessionPath);
+            const random = crypto.getRandomValues(new Uint8Array(32));
+            const key = btoa(Array.from(random, (b) => String.fromCharCode(b)).join(""));
+            const outcome = await sessions.submitSignedTxWithNonce({
+              account: acct,
+              tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
+              payloadFactory: () => ({ session_key: key, ttl_s: 3600 }),
+              parent: null,
+            });
+            // Never export the bearer or signed envelope into the test report.
+            return {
+              txId: String(outcome.result?.tx_id || outcome.result?.result?.tx_id || ""),
+              nonce: outcome.env.nonce,
+            };
+          }, account);
+          expect(witness.txId).toMatch(/^tx:[0-9a-f]{64}$/);
+          await waitForConfirmedTx(restoredPage.request, witness.txId);
+          clockAdvanceBlocks += 1;
+          shortSessionState = await readShortSession();
+        }
+        expect(
+          shortSessionState?.session?.expired,
+          "A confirmed session remained unexpired despite subsequent finalized blocks; " +
+            "canonical TTL=" + String(shortSessionState?.session?.ttl_s) +
+            " and issued_at_ts=" + String(shortSessionState?.session?.issued_at_ts) +
+            " after " + clockAdvanceBlocks + " distinct confirmed advance blocks.",
+        ).toBe(true);
+        expect(shortSessionState?.authenticated).toBe(false);
         const expiredProtectedRead = await restoredPage.request.get("/v1/social/me", {
           headers: shortHeaders,
         });
