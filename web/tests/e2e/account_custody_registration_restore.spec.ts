@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type BrowserContext, type Page, type Response } from "@playwright/test";
+import { expect, test, type APIRequestContext, type BrowserContext, type Page, type Request, type Response } from "@playwright/test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -83,19 +83,58 @@ async function requireBackend(request: APIRequestContext): Promise<void> {
 }
 
 async function captureSubmittedTx(page: Page, click: () => Promise<void>): Promise<string> {
-  const responsePromise = page.waitForResponse(
-    (response: Response) =>
-      response.request().method() === "POST"
-      && new URL(response.url()).pathname.endsWith("/v1/tx/submit"),
-    { timeout: 60_000 },
-  );
-  await click();
-  const response = await responsePromise;
-  expect(response.ok(), `transaction submission failed with HTTP ${response.status()}`).toBeTruthy();
-  const body = await response.json();
-  const txId = extractTxId(body);
-  expect(txId, `transaction response did not contain a tx id: ${JSON.stringify(body)}`).not.toBe("");
-  return txId;
+  // Never retry a signed action merely because its acknowledgement is missing.
+  // Record only HTTP methods, endpoint paths and status codes: no signing
+  // envelopes, recovery material, session headers or raw responses in logs.
+  const events: string[] = [];
+  const interested = (request: Request): boolean => {
+    const pathname = new URL(request.url()).pathname;
+    return request.method() === "POST"
+      && (pathname.endsWith("/v1/tx/submit") || pathname.includes("/profile"));
+  };
+  const onRequest = (request: Request) => {
+    if (interested(request)) events.push(`request ${request.method()} ${new URL(request.url()).pathname}`);
+  };
+  const onResponse = (response: Response) => {
+    if (interested(response.request())) events.push(`response ${response.status()} ${new URL(response.url()).pathname}`);
+  };
+  const onRequestFailed = (request: Request) => {
+    if (interested(request)) events.push(`request-failed ${new URL(request.url()).pathname}`);
+  };
+  page.on("request", onRequest);
+  page.on("response", onResponse);
+  page.on("requestfailed", onRequestFailed);
+  try {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (candidate: Response) =>
+          candidate.request().method() === "POST"
+          && new URL(candidate.url()).pathname.endsWith("/v1/tx/submit"),
+        { timeout: 60_000 },
+      ),
+      click(),
+    ]);
+    expect(response.ok(), `transaction submission failed with HTTP ${response.status()}`).toBeTruthy();
+    const body = await response.json();
+    const txId = extractTxId(body);
+    expect(txId, "transaction response did not contain a transaction ID").not.toBe("");
+    return txId;
+  } catch (error) {
+    const posture = await page.evaluate(() => ({
+      hash: location.hash,
+      errorCategories: Array.from(document.querySelectorAll('[role="alert"]'))
+        .map((node) => node.getAttribute("data-feedback-category") || "error"),
+      profileSubmitButtons: Array.from(document.querySelectorAll("button"))
+        .filter((node) => node.textContent?.includes("Submit public profile update"))
+        .map((node) => ({ disabled: node.disabled })),
+      profileReceiptVisible: Boolean(document.querySelector('[data-testid="profile-tx-status-callout"]')),
+    })).catch(() => ({ browserClosed: true }));
+    throw new Error(`Signed transaction did not yield an acknowledged receipt: ${String(error)}. Network events: ${JSON.stringify(events.slice(-16))}. UI posture: ${JSON.stringify(posture)}`);
+  } finally {
+    page.off("request", onRequest);
+    page.off("response", onResponse);
+    page.off("requestfailed", onRequestFailed);
+  }
 }
 
 async function waitForConfirmedTx(request: APIRequestContext, txId: string, timeoutMs = 120_000): Promise<any> {
