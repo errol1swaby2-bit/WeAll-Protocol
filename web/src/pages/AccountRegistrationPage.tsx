@@ -33,14 +33,16 @@ function rememberPendingTransaction(account: string, txId: string): void {
 }
 
 /**
- * Durable intent is mandatory before dispatch. An unavailable local store must
- * abort submission rather than risking a lost receipt and duplicate registration.
+ * Persist the deterministic ID of the signed transaction BEFORE dispatch.
+ * The backend computes the same identity without depending on signature bytes.
+ * A failed durable write aborts dispatch rather than losing the retry guard.
  */
-function persistSubmissionIntent(account: string): void {
+function persistSubmissionIntent(account: string, txId: string): void {
+  if (!/^tx:[0-9a-f]{64}$/.test(txId)) throw new Error("Invalid predicted registration transaction ID.");
   const key = pendingRegistrationKey(account);
   try {
-    localStorage.setItem(key, "submission_unknown");
-    if (localStorage.getItem(key) !== "submission_unknown") throw new Error("readback_failed");
+    localStorage.setItem(key, txId);
+    if (localStorage.getItem(key) !== txId) throw new Error("readback_failed");
   } catch {
     throw new Error("Browser storage is unavailable. Registration was not sent; enable storage before retrying.");
   }
@@ -138,12 +140,12 @@ export default function AccountRegistrationPage(): JSX.Element {
     setMessage("Preparing and signing your account registration. This may take a moment.");
     let submissionStarted = false;
     try {
-      const txId = await submitBasicAccountRegistration(account, base, () => {
-        // This callback runs only once preparation/signing has completed and
-        // immediately before the first network dispatch. It may abort dispatch.
-        persistSubmissionIntent(account);
+      const txId = await submitBasicAccountRegistration(account, base, (predictedTxId) => {
+        // The signed envelope's canonical ID is durable before network dispatch.
+        // A lost acknowledgement can then be reconciled using this exact ID.
+        persistSubmissionIntent(account, predictedTxId);
         submissionStarted = true;
-        setTransactionId("submission_unknown");
+        setTransactionId(predictedTxId);
       });
       rememberPendingTransaction(account, txId);
       setTransactionId(txId);
@@ -151,7 +153,7 @@ export default function AccountRegistrationPage(): JSX.Element {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Account registration could not be submitted.");
       setMessage(submissionStarted
-        ? "Submission may have reached the network. Do not retry until its outcome is reconciled."
+        ? "The signed registration ID is saved locally, but submission outcome is uncertain. Check its status; do not submit again."
         : "Registration was not dispatched. Review the error before trying again.");
     } finally {
       setBusy(false);
