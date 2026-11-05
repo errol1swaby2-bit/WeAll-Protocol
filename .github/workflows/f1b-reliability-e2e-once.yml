@@ -1,4 +1,4 @@
-# Rehearsal iteration 2: use tab-scoped session bearer, never persistent bearer.
+# Rehearsal iteration 3: independently submit identical signed body, then abort browser acknowledgement.
 name: F1b No-Retry Real-Stack Evidence (temporary)
 
 on:
