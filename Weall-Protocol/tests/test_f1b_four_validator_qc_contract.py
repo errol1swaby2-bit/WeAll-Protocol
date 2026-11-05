@@ -95,7 +95,9 @@ def _signed_vote(
     return vote.to_json()
 
 
-def _accept(aggregator: HotStuffBFT, vote: dict[str, Any], keys: Keypairs) -> QuorumCert | None:
+def _accept(
+    aggregator: HotStuffBFT, vote: dict[str, Any], keys: Keypairs
+) -> QuorumCert | None:
     return aggregator.accept_vote(
         vote_json=vote,
         validators=list(VALIDATORS),
@@ -113,7 +115,9 @@ def _certified_qc(keys: Keypairs) -> QuorumCert:
     return qc
 
 
-def test_three_of_four_distinct_mldsa_votes_form_verified_qc(keypairs: Keypairs) -> None:
+def test_three_of_four_distinct_mldsa_votes_form_verified_qc(
+    keypairs: Keypairs,
+) -> None:
     assert len(VALIDATORS) == BFT_MIN_VALIDATORS == 4
     assert quorum_threshold(len(VALIDATORS)) == 3
     aggregator = HotStuffBFT(chain_id=CHAIN_ID)
@@ -236,8 +240,12 @@ def test_qc_metadata_mutation_invalidates_cryptographic_quorum(
 def test_local_vote_record_rejects_same_view_equivocation() -> None:
     # In-memory anti-equivocation preflight only; durable restart is a later gate.
     validator = HotStuffBFT(chain_id=CHAIN_ID)
-    assert validator.record_local_vote(view=VIEW, block_id=BLOCK_ID, block_hash=BLOCK_HASH)
-    assert validator.record_local_vote(view=VIEW, block_id=BLOCK_ID, block_hash=BLOCK_HASH)
+    assert validator.record_local_vote(
+        view=VIEW, block_id=BLOCK_ID, block_hash=BLOCK_HASH
+    )
+    assert validator.record_local_vote(
+        view=VIEW, block_id=BLOCK_ID, block_hash=BLOCK_HASH
+    )
     assert not validator.record_local_vote(
         view=VIEW, block_id="conflicting-block", block_hash="f" * 64
     )
