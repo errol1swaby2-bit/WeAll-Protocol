@@ -430,6 +430,7 @@ test.describe("real browser account custody", () => {
       await expect(registerButton).toBeEnabled({ timeout: 30_000 });
       let browserDispatches = 0;
       let savedBeforeDispatch = "";
+      let originalSignedRegistration: Record<string, unknown> | null = null;
       let finishInterception!: () => void;
       const interceptionFinished = new Promise<void>((resolve) => {
         finishInterception = resolve;
@@ -441,6 +442,9 @@ test.describe("real browser account custody", () => {
         }
         browserDispatches += 1;
         try {
+          // The signed envelope stays in Node test memory only; no private
+          // recovery keys or raw signatures are emitted to CI logs.
+          originalSignedRegistration = route.request().postDataJSON() as Record<string, unknown>;
           savedBeforeDispatch = await page.evaluate(
             (acct: string) => localStorage.getItem("weall.account_registration_pending::" + acct) || "",
             account,
@@ -475,6 +479,42 @@ test.describe("real browser account custody", () => {
       expect(browserDispatches).toBe(1);
       const state = await getJson(page.request, "/v1/accounts/" + encodeURIComponent(account));
       expect(String(state?.state?.pubkey || "")).toBe("");
+
+      // Send a DIFFERENT signature over the same canonical registration body
+      // directly to the live backend. Public HTTP admission must reject this
+      // cryptographically invalid envelope; unlike the simulated terminal
+      // receipt below, this is a genuine production-equivalent ingress probe.
+      // The original correctly signed envelope must never be sent by this test.
+      expect(originalSignedRegistration).not.toBeNull();
+      const originalEnvelope = originalSignedRegistration as unknown as Record<string, any>;
+      const originalSignature = String(originalEnvelope.sig || "");
+      expect(originalSignature.length).toBeGreaterThan(100);
+      const corruptSignature = mutateB64(originalSignature);
+      expect(corruptSignature).not.toBe(originalSignature);
+      const forged = {
+        ...originalEnvelope,
+        sig: corruptSignature,
+        signature: {
+          ...(originalEnvelope.signature || {}),
+          sig: corruptSignature,
+        },
+      };
+      const actualRejection = await page.request.post("/v1/tx/submit", {
+        data: forged,
+        timeout: 15_000,
+      });
+      expect(actualRejection.ok()).toBe(false);
+      expect(actualRejection.status()).toBeGreaterThanOrEqual(400);
+      expect(actualRejection.status()).toBeLessThan(500);
+      const rejectedBody = await actualRejection.json();
+      expect(JSON.stringify(rejectedBody)).toContain("bad_sig");
+      const afterRealIngressRejection = await getJson(
+        page.request,
+        "/v1/accounts/" + encodeURIComponent(account),
+      );
+      expect(String(afterRealIngressRejection?.state?.pubkey || "")).toBe("");
+      expect(Number(afterRealIngressRejection?.state?.nonce || 0)).toBe(0);
+      expect(browserDispatches).toBe(1);
 
       // This is a controlled terminal-status RESPONSE fixture, not a claim
       // that the real backend rejected the transaction aborted above.
