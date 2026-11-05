@@ -470,7 +470,12 @@ test.describe("real browser account custody", () => {
         // authenticate before revocation and explicitly fail authentication
         // afterward. Local logout alone is not proof of remote revocation.
         const priorSession = JSON.parse(String(restoredStorage.session || "{}")) as { sessionKey?: string };
-        const priorBearer = String(priorSession.sessionKey || "");
+        expect(priorSession.sessionKey).toBeUndefined();
+        const priorBearer = await restoredPage.evaluate(() => {
+          const raw = sessionStorage.getItem("weall_session_bearer_v1");
+          const stored = raw ? JSON.parse(raw) : null;
+          return String(stored?.sessionKey || "");
+        });
         expect(priorBearer.length).toBeGreaterThan(20);
         const oldBearerHeaders = {
           "x-weall-account": account,
