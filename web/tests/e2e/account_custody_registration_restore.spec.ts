@@ -1169,6 +1169,124 @@ test.describe("real browser account custody", () => {
         // intact and is the one used below for profile and revocation proof.
         expect(await restoredPage.evaluate(() => !!sessionStorage.getItem("weall_session_bearer_v1"))).toBe(true);
 
+        // A successful HTTP admission is not a positive ledger receipt.
+        // Revoke an intentionally unknown session key using a genuinely valid
+        // account signature. The schema and public-ingress signature checks
+        // should accept it, but the canonical apply must fail with a committed
+        // "unknown_session_key" receipt, without consuming the signer's nonce.
+        const beforeCommittedRejection = await getJson(restoredPage.request, accountPath);
+        const lastValidNonce = Number(beforeCommittedRejection?.state?.nonce);
+        expect(Number.isInteger(lastValidNonce)).toBe(true);
+        const intentionalReject = await restoredPage.evaluate(async (acct: string) => {
+          const sessions = await import(/* @vite-ignore */ "/src/auth/session.ts");
+          const random = crypto.getRandomValues(new Uint8Array(32));
+          const unknownSessionKey = "f1b_never_issued_" +
+            Array.from(random, (n) => n.toString(16).padStart(2, "0")).join("");
+          const sent = await sessions.submitSignedTxWithNonce({
+            account: acct,
+            tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
+            payloadFactory: () => ({ session_key: unknownSessionKey }),
+            parent: null,
+          });
+          // Keep the exact signed bytes in browser memory only for the
+          // anti-replay probe, never in the runner result or test logs.
+          (window as any).__f1bTerminalRejectedEnvelope = sent.env;
+          return {
+            nonce: Number(sent.env.nonce),
+            txId: String(sent.result?.tx_id || sent.result?.result?.tx_id || ""),
+            admitted: sent.result?.ok === true && sent.result?.status === "accepted",
+          };
+        }, account);
+        expect(intentionalReject.admitted).toBe(true);
+        expect(intentionalReject.txId).toMatch(/^tx:[0-9a-f]{64}$/);
+        expect(intentionalReject.nonce).toBe(lastValidNonce + 1);
+
+        await expect.poll(async () => {
+          const response = await restoredPage.request.get(
+            "/v1/tx/status/" + encodeURIComponent(intentionalReject.txId),
+          );
+          if (!response.ok()) return "status_endpoint_unavailable";
+          return String((await response.json())?.status || "");
+        }, { timeout: 90_000, intervals: [250, 500, 1000] }).toBe("rejected");
+
+        const terminalRejection = await getJson(
+          restoredPage.request,
+          "/v1/tx/status/" + encodeURIComponent(intentionalReject.txId),
+        );
+        expect(terminalRejection?.status).toBe("rejected");
+        expect(terminalRejection?.source).toBe("committed_apply_receipt");
+        expect(terminalRejection?.apply_ok).toBe(false);
+        expect(terminalRejection?.local_state_synced).toBe(true);
+        expect(terminalRejection?.code).toBe("invalid_tx");
+        expect(terminalRejection?.reason).toBe("unknown_session_key");
+        expect(Number(terminalRejection?.height)).toBeGreaterThan(0);
+        expect(String(terminalRejection?.block_id || "").length).toBeGreaterThan(0);
+
+        const stateAfterCommittedRejection = await getJson(restoredPage.request, accountPath);
+        expect(Number(stateAfterCommittedRejection?.state?.nonce)).toBe(lastValidNonce);
+        assertSingleCanonicalAccountKey(stateAfterCommittedRejection, recovery.publicKeyB64);
+
+        // Re-submitting an already FINALIZED rejected envelope is forbidden:
+        // neither an idempotent success response nor new mempool admission
+        // may replace the authoritative failed-apply receipt.
+        const rejectedReplay = await restoredPage.evaluate(async () => {
+          const signedEnvelope = (window as any).__f1bTerminalRejectedEnvelope;
+          delete (window as any).__f1bTerminalRejectedEnvelope;
+          if (!signedEnvelope) throw new Error("missing_exact_rejected_envelope");
+          const response = await fetch("/v1/tx/submit", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(signedEnvelope),
+          });
+          const body = await response.json();
+          return {
+            status: response.status,
+            errorCode: String(body?.error?.code || body?.error || body?.code || ""),
+            accepted: response.ok || body?.ok === true,
+          };
+        });
+        expect(rejectedReplay.accepted).toBe(false);
+        expect(rejectedReplay.status).toBe(403);
+        expect(rejectedReplay.errorCode).toContain("already_finalized_rejected");
+        const rejectedStatusAfterReplay = await getJson(
+          restoredPage.request,
+          "/v1/tx/status/" + encodeURIComponent(intentionalReject.txId),
+        );
+        expect(rejectedStatusAfterReplay?.status).toBe("rejected");
+        expect(rejectedStatusAfterReplay?.apply_ok).toBe(false);
+
+        // The failed apply did not consume the nonce: a distinct, validly
+        // signed session ISSUE reuses exactly that nonce and must confirm.
+        const recoveredFromRejectedApply = await restoredPage.evaluate(async (acct: string) => {
+          const sessions = await import(/* @vite-ignore */ "/src/auth/session.ts");
+          const random = crypto.getRandomValues(new Uint8Array(32));
+          const key = btoa(Array.from(random, (n) => String.fromCharCode(n)).join(""));
+          const result = await sessions.submitSignedTxWithNonce({
+            account: acct,
+            tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
+            payloadFactory: () => ({ session_key: key, ttl_s: 3600 }),
+            parent: null,
+          });
+          return {
+            nonce: Number(result.env.nonce),
+            txId: String(result.result?.tx_id || result.result?.result?.tx_id || ""),
+          };
+        }, account);
+        expect(recoveredFromRejectedApply.nonce).toBe(intentionalReject.nonce);
+        expect(recoveredFromRejectedApply.txId).toMatch(/^tx:[0-9a-f]{64}$/);
+        expect(recoveredFromRejectedApply.txId).not.toBe(intentionalReject.txId);
+        const recoveredReceipt = await waitForConfirmedTx(
+          restoredPage.request,
+          recoveredFromRejectedApply.txId,
+        );
+        expect(String(recoveredReceipt?.status || "").toLowerCase()).toBe("confirmed");
+        const afterRejectedNonceRecovery = await pollJson(
+          restoredPage.request,
+          accountPath,
+          (body) => Number(body?.state?.nonce) === intentionalReject.nonce,
+        );
+        assertSingleCanonicalAccountKey(afterRejectedNonceRecovery, recovery.publicKeyB64);
+
         const accountAfterRestore = await getJson(restoredPage.request, accountPath);
         expect(accountAfterRestore?.account).toBe(account);
         assertSingleCanonicalAccountKey(accountAfterRestore, recovery.publicKeyB64);
