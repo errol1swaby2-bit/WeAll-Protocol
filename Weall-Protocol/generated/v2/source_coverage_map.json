@@ -30609,7 +30609,7 @@
       ],
       "path": "../web/scripts/test_account_profile_readiness_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "3f0c659926553dc5a999f5b3fdec424d3b9ad1e06d03edb60a7fcc37ab000e47",
+      "sha256": "4c662ad7c0d43e42cc97d735205d79fd74b97a8705e6f21de9d3c38b66a246c1",
       "source_id": "SRC-1E8B226740599F0F"
     },
     {
@@ -32525,7 +32525,7 @@
       ],
       "path": "../web/src/pages/Account.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "0ef29ddfce53d58ae9d0a54cd1013af59dfd664712667193b08a08061be64db4",
+      "sha256": "d3b157b79fcda2d5014d53f40012324baad3087fe9e327392cd4b3973f7a6117",
       "source_id": "SRC-E7EE1B24BBC17E05"
     },
     {
@@ -33071,7 +33071,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "d16a5f305a7a29aa16588eec143ab1813da7385b0c3e4cb0da2be9967a771d1c",
+      "sha256": "a377d9f0ad65dc9e7d21ef343faa8846ca6aae735b89db72f0d3835b3415808f",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
