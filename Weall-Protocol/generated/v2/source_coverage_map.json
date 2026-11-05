@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2062,
+  "file_count": 2063,
   "files": [
     {
       "affected_registers": [
@@ -58,6 +58,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "9f928229d2232fb2eee7d80e239aa8f0795c3d0da31be25bd7cfe84fa0501dd5",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/f1b-two-process-receipt.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "f24471c1c3fc12f31156f021edd3e23bd894511b7fda5a611db6dd9ad58deb0b",
+      "source_id": "SRC-67246AFF3D3EF2FA"
     },
     {
       "affected_registers": [
