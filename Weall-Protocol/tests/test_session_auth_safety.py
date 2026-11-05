@@ -275,8 +275,10 @@ def test_frontend_logout_revokes_and_clears_local_state() -> None:
     assert "Log out of this device" in page
 
 
+@pytest.mark.parametrize("issued_at_ts", [0, 1234])
 def test_session_auth_follows_canonical_block_time_not_wall_time(
     monkeypatch: pytest.MonkeyPatch,
+    issued_at_ts: int,
 ) -> None:
     """Public session posture and the protected auth gate share ledger-time TTL.
 
@@ -288,7 +290,6 @@ def test_session_auth_follows_canonical_block_time_not_wall_time(
 
     account = "@clockprobe"
     bearer = "local-backend-expiry-fixture-do-not-persist"
-    issued_at_ts = 1234
     state = {
         "time": issued_at_ts,
         "accounts": {account: {"session_keys": {}}},
@@ -323,6 +324,33 @@ def test_session_auth_follows_canonical_block_time_not_wall_time(
     # Exactly one finalized, authoritative ledger-time tick beyond the TTL.
     # No wall-clock sleeping or local node timestamp is required.
     state["time"] = issued_at_ts + 2
+    posture = client.get("/v1/session/me", headers=headers)
+    assert posture.status_code == 200, posture.text
+    assert posture.json()["authenticated"] is False
+    assert posture.json()["session"]["expired"] is True
+    private = client.get("/v1/social/me", headers=headers)
+    assert private.status_code == 403, private.text
+    assert private.json()["error"]["code"] == "session_expired"
+
+    # Neither route may substitute wall-clock time for absent/invalid
+    # canonical state. The public posture must not advertise an active bearer
+    # when the protected authorization gate would reject the same bearer.
+    for invalid_time in (None, "2"):
+        state["time"] = invalid_time
+        posture = client.get("/v1/session/me", headers=headers)
+        assert posture.status_code == 200, posture.text
+        assert posture.json()["authenticated"] is False
+        assert posture.json()["session"]["expired"] is True
+        private = client.get("/v1/social/me", headers=headers)
+        assert private.status_code == 403, private.text
+        assert private.json()["error"]["code"] == "session_expired"
+
+    # An absent issuance timestamp is invalid even if genesis timestamp zero
+    # would have been valid had the field actually been present.
+    state["time"] = issued_at_ts
+    rec = session_record_for(sessions, bearer)
+    assert isinstance(rec, dict)
+    rec.pop("issued_at_ts")
     posture = client.get("/v1/session/me", headers=headers)
     assert posture.status_code == 200, posture.text
     assert posture.json()["authenticated"] is False
