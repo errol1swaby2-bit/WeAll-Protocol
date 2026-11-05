@@ -1,0 +1,61 @@
+name: F1b Repeat-Gate V2 Reconciliation (temporary)
+
+on:
+  push:
+    branches:
+      - frontend/f1-guided-account-onboarding-20261104
+    paths:
+      - .github/workflows/f1b-stress-v2-reconcile-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact existing PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: frontend/f1-guided-account-onboarding-20261104
+          fetch-depth: 0
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install hash-locked compiler toolchain
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Remove this temporary workflow before source hashing
+        run: |
+          set -euo pipefail
+          rm .github/workflows/f1b-stress-v2-reconcile-once.yml
+          test ! -e .github/workflows/f1b-stress-v2-reconcile-once.yml
+      - name: Compile and verify source-bound V2 evidence
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+      - name: Enforce exact allowed generated file changes
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <({ git diff --name-only; git ls-files --others --exclude-standard; } | sort -u)
+          for file in "${changed[@]}"; do
+            case "$file" in
+              .github/workflows/f1b-stress-v2-reconcile-once.yml|Weall-Protocol/generated/v2/*|web/src/generated/protocolStatus.ts) ;;
+              *) echo "Out-of-scope change: $file" >&2; exit 1 ;;
+            esac
+          done
+          test "${#changed[@]}" -gt 1
+      - name: Commit final V2 evidence with temporary workflow removal
+        run: |
+          set -euo pipefail
+          git add -u -- .github/workflows/f1b-stress-v2-reconcile-once.yml
+          git add -- Weall-Protocol/generated/v2 web/src/generated/protocolStatus.ts
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "spec(v2): reconcile permanent F1b triple first-attempt browser gate"
+          (cd Weall-Protocol && PYTHONPATH=src python scripts/compile_v2_spec.py --check)
+          git push origin HEAD:refs/heads/frontend/f1-guided-account-onboarding-20261104
