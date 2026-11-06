@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "d55b29f5d1ba1acf39ca28d5655bea08b37018788b61fe53ba9d8572e6443351",
+      "sha256": "67f189a48325ba694ce41fd32189fa01d2ac92e113d32e4a624e6acba4b63fb1",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -17283,7 +17283,7 @@
       ],
       "path": "tests/test_f1b_governance_execute_canonical_two_block.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "bf5fbc88074afc389e2a235ec7708e4147afebff3a0836acb043898beaebf8f3",
+      "sha256": "ece74701d0bb8e620dcaafde7a10211e15e1828455360eb2ff2f43684ae49813",
       "source_id": "SRC-103D29F1CAE5F6F2"
     },
     {
