@@ -93,3 +93,40 @@ def test_system_signer_override_never_rewrites_explicit_non_system_signer() -> N
     env = _materialize_system_queue_item(state, item)
 
     assert env.signer == "@fixed"
+
+
+def test_materialization_preserves_golden_queue_id_and_envelope_bytes() -> None:
+    state = {
+        "height": 16,
+        "system_queue": [],
+        "params": {"system_signer": "@override"},
+    }
+    queue_id = enqueue_system_tx(
+        state,
+        tx_type="EXAMPLE_SYSTEM_RECEIPT",
+        payload={"receipt": "example"},
+        due_height=17,
+        signer="SYSTEM",
+        parent="actual-parent",
+        once=True,
+        phase="post",
+    )
+    assert queue_id == "629a91dbd410e0e482cc6cf6620512ff47f02850d6e8bfde84b5a47d7f4a3359"
+    queued = SystemQueueItem.from_ledger_obj(state["system_queue"][0])
+    materialized = _materialize_system_queue_item(state, queued)
+    expected = {
+        "tx_type": "EXAMPLE_SYSTEM_RECEIPT",
+        "signer": "@override",
+        "nonce": 0,
+        "payload": {
+            "receipt": "example",
+            "_due_height": 17,
+            "_system_queue_id": queue_id,
+            "_parent_ref": "actual-parent",
+        },
+        "sig": "",
+        "parent": "actual-parent",
+        "system": True,
+    }
+
+    assert _canonical_bytes(materialized.to_json()) == _canonical_bytes(expected)
