@@ -188,7 +188,13 @@ def resolve_committed_solo_attestation_source(
         if payload != summary.get("payload"):
             continue
         signature = raw.get("signature")
-        sig_value = _s(signature.get("sig")) if isinstance(signature, dict) else _s(raw.get("sig"))
+        structured_sig = _s(signature.get("sig")) if isinstance(signature, dict) else ""
+        top_level_sig = _s(raw.get("sig"))
+        _require(
+            not (structured_sig and top_level_sig and structured_sig != top_level_sig),
+            "ambiguous_signature_alias",
+        )
+        sig_value = structured_sig or top_level_sig
         if not sig_value or not _s(raw.get("sig_profile")):
             continue
         nonce = _i(raw.get("nonce"))
