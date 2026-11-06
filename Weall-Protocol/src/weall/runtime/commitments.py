@@ -31,8 +31,6 @@ def normalize_validator_ids(validators: Iterable[str]) -> list[str]:
     return sorted(normalized)
 
 
-
-
 def first_validator_member_key_authority_issue(
     state: Mapping[str, Any],
     members: Iterable[str],
