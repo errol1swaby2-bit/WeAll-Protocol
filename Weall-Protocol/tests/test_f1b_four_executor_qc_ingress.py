@@ -41,7 +41,13 @@ def test_four_real_executor_processes_form_and_verify_a_signed_qc() -> None:
     assert proof["tampered_certificate_variants_rejected"] == 5
     assert proof["two_plus_two_does_not_form_qc"] is True
     assert proof["three_vote_quorum_restored"] is True
-    assert proof["validator_set_source"] == "direct_test_fixture"
+    assert proof["validator_set_source"] == "test_system_envelopes_domain_applied"
+    assert proof["validator_set_update_scheduled"] is True
+    assert proof["epoch_open_activated_validator_set"] is True
+    assert proof["signing_blocked_before_and_during_pending_activation"] is True
+    assert proof["mismatched_canonical_and_consensus_keys_rejected"] is True
+    assert proof["signed_and_committed_system_transactions_proven"] is False
+    assert proof["on_chain_operator_lifecycle_proven"] is False
     assert proof["on_chain_validator_authorization_proven"] is False
     assert proof["real_proposal_admission_proven"] is False
     assert proof["live_transport_proven"] is False

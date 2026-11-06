@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Issue #87: four SQLite-backed WeAllExecutor processes exercise signed QC ingress.
 
-The active validator set is DIRECTLY seeded in each process as a test fixture,
-NOT authorized by on-chain VALIDATOR_SET_UPDATE. Votes use synthetic block IDs,
-NOT production proposals or committed transaction receipts. No authenticated
-peer transport, real three-chain finality, or durable restart is claimed.
+The active validator set is activated by actual VALIDATOR_SET_UPDATE and
+EPOCH_OPEN domain-apply functions, but the system envelopes are TEST FIXTURES,
+not committed blocks or authenticated node-operator lifecycle transactions.
+Votes use synthetic block IDs, not real proposals or committed receipts.
+Authenticated transport, three-chain finality and restart remain unproven.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from typing import Any
 from weall.runtime.bft_hotstuff import (
     BFT_MIN_VALIDATORS,
     CONSENSUS_PHASE_BFT_ACTIVE,
+    CONSENSUS_PHASE_SOLO_BOOTSTRAP,
     quorum_threshold,
     validator_set_hash,
 )
@@ -30,7 +32,7 @@ from weall.runtime.bft_hotstuff import (
 ROOT = Path(__file__).resolve().parents[1]
 IDS = ("@f1b-v1", "@f1b-v2", "@f1b-v3", "@f1b-v4")
 CHAIN_ID = "f1b-four-executor-crypto-fixture"
-EPOCH = 19
+EPOCH = 1
 SET_HASH = validator_set_hash(list(IDS))
 TIMEOUT = 75.0
 Json = dict[str, Any]
@@ -39,7 +41,10 @@ Json = dict[str, Any]
 def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
     from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
+    from weall.runtime.apply.consensus import ConsensusApplyError
+    from weall.runtime.domain_apply import apply_tx
     from weall.runtime.executor import WeAllExecutor
+    from weall.runtime.tx_admission import TxEnvelope
 
     private = MLDSA65PrivateKey.generate()
     pubkey = private.public_key().public_bytes_raw().hex()
@@ -88,15 +93,106 @@ def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
                     tx_index_path=str(ROOT / "generated" / "tx_index.json"),
                 )
                 st = executor.state
-                st.setdefault("roles", {}).setdefault("validators", {})["active_set"] = list(IDS)
+                # Keys/roles are fixtures; only validator-set activation
+                # below is derived from real consensus domain apply.
+                st.setdefault("params", {})[
+                    "validator_candidate_lifecycle_gate_enabled"
+                ] = True
+                st.setdefault("roles", {}).setdefault("validators", {})[
+                    "active_set"
+                ] = []
                 consensus = st.setdefault("consensus", {})
-                consensus.setdefault("validator_set", {}).update(
-                    {"active_set": list(IDS), "epoch": EPOCH, "set_hash": SET_HASH}
+                consensus["validator_set"] = {
+                    "active_set": [],
+                    "epoch": 0,
+                    "set_hash": "",
+                }
+                consensus.setdefault("phase", {})[
+                    "current"
+                ] = CONSENSUS_PHASE_SOLO_BOOTSTRAP
+                registry = consensus.setdefault("validators", {}).setdefault(
+                    "registry", {}
                 )
-                consensus.setdefault("phase", {})["current"] = CONSENSUS_PHASE_BFT_ACTIVE
-                registry = consensus.setdefault("validators", {}).setdefault("registry", {})
+                canonical_registry = st.setdefault("validators", {}).setdefault(
+                    "registry", {}
+                )
                 for signer, pk in registry_keys.items():
-                    registry[signer] = {"pubkey": pk, "status": "active"}
+                    registry[signer] = {"pubkey": pk, "status": "eligible"}
+                    canonical_registry[signer] = {
+                        "account": signer,
+                        "pubkey": pk,
+                        "status": "eligible",
+                    }
+                executor.state = st
+                if executor._active_validators():
+                    raise AssertionError("role_only_authorized_consensus_signing")
+                if executor.bft_make_vote_for_block(
+                    view=90,
+                    block_id="pre-activation",
+                    block_hash="a" * 64,
+                    parent_id="synthetic-parent",
+                ) is not None:
+                    raise AssertionError("pre_activation_vote_was_signed")
+
+                update = TxEnvelope(
+                    tx_type="VALIDATOR_SET_UPDATE",
+                    signer="SYSTEM",
+                    nonce=1,
+                    payload={
+                        "active_set": list(IDS),
+                        "activate_at_epoch": EPOCH,
+                        "activate_bft_at_epoch": EPOCH,
+                    },
+                    sig="",
+                    parent="test-fixture-validator-approval",
+                    system=True,
+                )
+                # Strict lifecycle set authority must reject mismatched
+                # canonical vs consensus validator verification keys.
+                mismatched = copy.deepcopy(st)
+                mismatched["consensus"]["validators"]["registry"][identity][
+                    "pubkey"
+                ] = "invalid-consensus-key"
+                try:
+                    apply_tx(mismatched, update)
+                except ConsensusApplyError as exc:
+                    if exc.reason != "validator_set_member_pubkey_authority_mismatch":
+                        raise
+                else:
+                    raise AssertionError("mismatched_validator_key_was_authorized")
+
+                pending = apply_tx(st, update)
+                if pending.get("pending") is not True:
+                    raise AssertionError("validator_set_update_not_pending")
+                if executor._active_validators() != []:
+                    raise AssertionError("future_set_activated_before_epoch_open")
+                if executor.bft_make_vote_for_block(
+                    view=90,
+                    block_id="pending-activation",
+                    block_hash="b" * 64,
+                    parent_id="synthetic-parent",
+                ) is not None:
+                    raise AssertionError("pending_activation_vote_was_signed")
+                opened = apply_tx(
+                    st,
+                    TxEnvelope(
+                        tx_type="EPOCH_OPEN",
+                        signer="SYSTEM",
+                        nonce=2,
+                        payload={"epoch": EPOCH},
+                        sig="",
+                        parent="test-fixture-epoch-open",
+                        system=True,
+                    ),
+                )
+                activated = opened.get("validator_set_activated") or {}
+                bridge = activated.get("transition_bridge") or {}
+                if activated.get("active_set") != sorted(IDS):
+                    raise AssertionError("epoch_open_did_not_activate_set")
+                if activated.get("validator_set_hash") != SET_HASH:
+                    raise AssertionError("validator_hash_not_derived_by_apply")
+                if bridge.get("to_validator_epoch") != EPOCH:
+                    raise AssertionError("missing_validator_transition_bridge")
                 executor._ledger_store.write(st)
                 executor.state = executor._ledger_store.read()
                 executor._bft.load_from_state(executor.state)
@@ -279,7 +375,13 @@ def run() -> Json:
                 "tampered_certificate_variants_rejected": 5,
                 "two_plus_two_does_not_form_qc": True,
                 "three_vote_quorum_restored": True,
-                "validator_set_source": "direct_test_fixture",
+                "validator_set_source": "test_system_envelopes_domain_applied",
+                "validator_set_update_scheduled": True,
+                "epoch_open_activated_validator_set": True,
+                "signing_blocked_before_and_during_pending_activation": True,
+                "mismatched_canonical_and_consensus_keys_rejected": True,
+                "signed_and_committed_system_transactions_proven": False,
+                "on_chain_operator_lifecycle_proven": False,
                 "on_chain_validator_authorization_proven": False,
                 "real_proposal_admission_proven": False,
                 "live_transport_proven": False,
