@@ -909,8 +909,6 @@ def _materialize_system_queue_item(state: Json, item: SystemQueueItem) -> TxEnve
     )
 
 
-
-
 def bind_same_block_system_lineage(
     state: Json,
     canon: Any,
@@ -1069,8 +1067,6 @@ def _expected_emitted_system_env_fields(
 ) -> tuple[Json, str, str]:
     # Retain the compatibility entry point for follower binding validation.
     return _system_queue_env_fields(state, item)
-
-
 
 
 def validate_system_tx_queue_binding(
