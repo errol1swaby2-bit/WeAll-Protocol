@@ -1,3 +1,4 @@
+# PR82 signed governance import-order correction and scoped evidence description refresh.
 # PR82 Ruff-normalized signed governance canonical rehearsal evidence refresh.
 # PR82 signed Tier-2 civic proposal and ballot canonical queue/follower validator-set rehearsal.
 # PR82 fixed reloaded-state-sync test identity, ML-DSA negative vector, and aggregate-set conflict characterization.
