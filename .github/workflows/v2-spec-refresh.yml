@@ -1,3 +1,4 @@
+# Issue #87 exact-source refresh: new signed four-validator QC tests and CI gate; no acceptance-digest override.
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
