@@ -41,7 +41,7 @@ Json = dict[str, Any]
 def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
     from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
-    from weall.runtime.apply.consensus import ConsensusApplyError
+    from weall.runtime.errors import ApplyError
     from weall.runtime.domain_apply import apply_tx
     from weall.runtime.executor import WeAllExecutor
     from weall.runtime.tx_admission import TxEnvelope
@@ -148,7 +148,7 @@ def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
                 )
                 try:
                     apply_tx(mismatched, update)
-                except ConsensusApplyError as exc:
+                except ApplyError as exc:
                     if exc.reason != "validator_set_member_pubkey_authority_mismatch":
                         raise
                 else:
