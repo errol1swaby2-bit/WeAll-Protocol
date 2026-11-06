@@ -520,3 +520,51 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
         reloaded_producer.read_state()["consensus"]["phase"]["current"]
         == CONSENSUS_PHASE_SOLO_BOOTSTRAP
     )
+
+    # A further *committed* bootstrap block must not silently promote a
+    # governance-approved pending set. The projection above is deliberately
+    # noncanonical; only a properly witnessed, queue-bound EPOCH_OPEN can
+    # activate these validator keys and turn on four-validator BFT.
+    pending_before = copy.deepcopy(
+        reloaded_producer.read_state()["consensus"]["validator_set"]["pending"]
+    )
+    assert reloaded_producer.read_state()["finalized"] == {"height": 0, "block_id": ""}
+    assert not any(
+        isinstance(item, dict) and item.get("tx_type") in {"BLOCK_FINALIZE", "EPOCH_OPEN"}
+        for item in reloaded_producer.read_state().get("system_queue", [])
+    )
+    extra = reloaded_producer.produce_block(max_txs=0, allow_empty=True)
+    assert extra.ok is True, extra.error
+    extra_block = reloaded_producer.get_latest_block()
+    assert isinstance(extra_block, dict)
+    assert not any(
+        isinstance(item, dict) and item.get("tx_type") in {"BLOCK_FINALIZE", "EPOCH_OPEN"}
+        for item in extra_block.get("txs", [])
+    )
+    replay_extra = reloaded_follower.apply_block(extra_block)
+    assert replay_extra.ok is True, replay_extra.error
+    _assert_same_committed_state(reloaded_producer, reloaded_follower)
+
+    for node in (reloaded_producer, reloaded_follower):
+        durable = node.read_state()
+        assert durable["consensus"]["validator_set"]["pending"] == pending_before
+        assert durable["consensus"]["validator_set"]["active_set"] == []
+        assert durable["consensus"]["epochs"]["current"] == 0
+        assert durable["consensus"]["phase"]["current"] == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+        assert durable["finalized"] == {"height": 0, "block_id": ""}
+
+        # A direct non-SYSTEM EPOCH_OPEN cannot act as a bootstrap shortcut,
+        # even when a governance-approved validator set is already pending.
+        with pytest.raises(ApplyError, match="system_only"):
+            apply_tx(
+                copy.deepcopy(durable),
+                TxEnvelope(
+                    tx_type="EPOCH_OPEN",
+                    signer=voters[0],
+                    nonce=3,
+                    payload={"epoch": 1},
+                    sig="",
+                    parent="unauthorized-bootstrap-shortcut",
+                    system=False,
+                ),
+            )
