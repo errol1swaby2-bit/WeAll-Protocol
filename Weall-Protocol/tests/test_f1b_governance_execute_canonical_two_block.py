@@ -667,3 +667,183 @@ def test_genesis_derived_solo_validator_signed_attestation_replays_without_inven
     restarted_attestation = restarted.read_state()["block_attestations"][b1["block_id"]][signer]
     assert restarted_attestation["attestation"] == "yes"
     assert restarted._current_consensus_phase() == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+
+
+@pytest.mark.parametrize(
+    ("attack", "expected_reason"),
+    [
+        ("unknown_block", "unknown_attested_block"),
+        ("wrong_height", "attested_block_height_mismatch"),
+        ("claimed_other_validator", "validator_mismatch"),
+    ],
+)
+def test_genesis_solo_signed_attestation_rejects_invalid_target_without_nonce_consumption(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    attack: str,
+    expected_reason: str,
+) -> None:
+    """A genuine signature cannot authorize a false block or validator claim."""
+    _configure(monkeypatch)
+    monkeypatch.setenv("WEALL_STRICT_TX_SIG_DOMAIN", "1")
+    secret = MLDSA65PrivateKey.generate()
+    signer = "@f1b-solo-attestation-safety"
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", signer)
+    monkeypatch.setenv(
+        "WEALL_GENESIS_BOOTSTRAP_PUBKEY",
+        secret.public_key().public_bytes_raw().hex(),
+    )
+    producer = _node(tmp_path, "attestation-safety-producer")
+    follower = _node(tmp_path, "attestation-safety-follower")
+    _assert_same_committed_state(producer, follower)
+    assert producer._active_validators() == [signer]
+
+    assert producer.produce_block(max_txs=0, allow_empty=True).ok is True
+    first_block = producer.get_latest_block()
+    assert isinstance(first_block, dict)
+    assert follower.apply_block(first_block).ok is True
+    _assert_same_committed_state(producer, follower)
+
+    payload = {
+        "block_id": first_block["block_id"],
+        "height": 1,
+        "round": 0,
+        "attestation": "yes",
+    }
+    if attack == "unknown_block":
+        payload["block_id"] = "not-a-committed-block"
+    elif attack == "wrong_height":
+        payload["height"] = 2
+    else:
+        assert attack == "claimed_other_validator"
+        payload["validator"] = "@not-the-genesis-signer"
+    signed_invalid = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN_ID,
+            "tx_type": "BLOCK_ATTEST",
+            "signer": signer,
+            "nonce": 1,
+            "payload": payload,
+        },
+        privkey=secret.private_bytes_raw().hex(),
+        encoding="hex",
+    )
+    submitted = producer.submit_tx(signed_invalid, ingress="http")
+    assert submitted.get("ok") is True, submitted
+    rejected_tx_id = str(submitted["tx_id"])
+
+    second = producer.produce_block(max_txs=1, allow_empty=True)
+    assert second.ok is True, second.error
+    second_block = producer.get_latest_block()
+    assert isinstance(second_block, dict)
+    rejected_receipts = [
+        receipt
+        for receipt in second_block["receipts"]
+        if receipt.get("tx_id") == rejected_tx_id
+    ]
+    assert len(rejected_receipts) == 1
+    assert rejected_receipts[0]["ok"] is False
+    assert expected_reason in str(rejected_receipts[0].get("reason", ""))
+    assert follower.apply_block(second_block).ok is True
+    _assert_same_committed_state(producer, follower)
+
+    for node in (producer, follower):
+        state = node.read_state()
+        assert state["accounts"][signer]["nonce"] == 0
+        assert signer not in state.get("block_attestations", {}).get(
+            first_block["block_id"], {}
+        )
+        assert not isinstance(state.get("finalized"), dict) or int(
+            state["finalized"].get("height", 0)
+        ) == 0
+
+    # The failed attestation must not burn the canonical nonce or prevent
+    # the same validator from issuing a valid attestation at nonce 1.
+    valid = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN_ID,
+            "tx_type": "BLOCK_ATTEST",
+            "signer": signer,
+            "nonce": 1,
+            "payload": {
+                "block_id": first_block["block_id"],
+                "height": 1,
+                "round": 0,
+                "attestation": "yes",
+            },
+        },
+        privkey=secret.private_bytes_raw().hex(),
+        encoding="hex",
+    )
+    accepted = producer.submit_tx(valid, ingress="http")
+    assert accepted.get("ok") is True, accepted
+    third = producer.produce_block(max_txs=1, allow_empty=True)
+    assert third.ok is True, third.error
+    third_block = producer.get_latest_block()
+    assert isinstance(third_block, dict)
+    assert follower.apply_block(third_block).ok is True
+    _assert_same_committed_state(producer, follower)
+    assert producer.read_state()["accounts"][signer]["nonce"] == 1
+    assert producer.read_state()["block_attestations"][first_block["block_id"]][
+        signer
+    ]["attestation"] == "yes"
+
+
+def test_genesis_solo_forged_attestation_signature_rejected_before_mempool(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A genesis validator's role and known block do not excuse a bad signature."""
+    _configure(monkeypatch)
+    monkeypatch.setenv("WEALL_STRICT_TX_SIG_DOMAIN", "1")
+    secret = MLDSA65PrivateKey.generate()
+    signer = "@f1b-solo-forgery-target"
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", signer)
+    monkeypatch.setenv(
+        "WEALL_GENESIS_BOOTSTRAP_PUBKEY",
+        secret.public_key().public_bytes_raw().hex(),
+    )
+    producer = _node(tmp_path, "attestation-forgery-producer")
+    follower = _node(tmp_path, "attestation-forgery-follower")
+    assert producer.produce_block(max_txs=0, allow_empty=True).ok is True
+    first_block = producer.get_latest_block()
+    assert isinstance(first_block, dict)
+    assert follower.apply_block(first_block).ok is True
+    _assert_same_committed_state(producer, follower)
+
+    signed = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN_ID,
+            "tx_type": "BLOCK_ATTEST",
+            "signer": signer,
+            "nonce": 1,
+            "payload": {
+                "block_id": first_block["block_id"],
+                "height": 1,
+                "round": 0,
+                "attestation": "yes",
+            },
+        },
+        privkey=secret.private_bytes_raw().hex(),
+        encoding="hex",
+    )
+    signed["sig"] = "00"
+    signed["signature"] = {**signed["signature"], "sig": "00"}
+    rejected = producer.submit_tx(signed, ingress="http")
+    assert rejected.get("ok") is False, rejected
+
+    assert producer.produce_block(max_txs=0, allow_empty=True).ok is True
+    second_block = producer.get_latest_block()
+    assert isinstance(second_block, dict)
+    assert not any(
+        tx.get("tx_type") == "BLOCK_ATTEST"
+        for tx in second_block.get("txs", [])
+        if isinstance(tx, dict)
+    )
+    assert follower.apply_block(second_block).ok is True
+    _assert_same_committed_state(producer, follower)
+    for node in (producer, follower):
+        state = node.read_state()
+        assert state["accounts"][signer]["nonce"] == 0
+        assert not state.get("block_attestations", {}).get(first_block["block_id"])
