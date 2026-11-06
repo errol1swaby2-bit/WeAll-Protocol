@@ -1,3 +1,4 @@
+# PR82 fixed reloaded-state-sync test identity, ML-DSA negative vector, and aggregate-set conflict characterization.
 # PR82 reuse existing validator key authority and exact legacy error contracts: regenerate source-derived evidence.
 # PR82 bounded SYSTEM envelope single-source refactor and pending-set conflict regression refresh.
 # Issue #87 strict source-bound refresh for canonical GOV_EXECUTE to VALIDATOR_SET_UPDATE two-block replay regression.
