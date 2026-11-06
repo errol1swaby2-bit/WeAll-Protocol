@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "89c424a7faded6916517e21355f9c9b843cc9fcad0096027dff4682528923a29",
+      "sha256": "2964a7ba091bf259f3f4d7357cc5cfc38a3fa56f30c644d605c61088620c581b",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -24735,7 +24735,7 @@
       ],
       "path": "tests/test_pq_mldsa_signature_profile.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "673b0e29ca1d31773803adf86c61a4abab9e9c5bbc8e6158c48536aa3d513027",
+      "sha256": "2cb9c32a1862c55b37acdf5e950188304dcfcb6df961f6fcd22b2d77da5e0f98",
       "source_id": "SRC-6B4AEE24ADABC9C3"
     },
     {
@@ -29998,7 +29998,7 @@
       ],
       "path": "tests/test_validator_authority_canonical_precedence.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "337b6f507bf0123f542e4e99d70adba8a0f513d15ee19336ef4d0205978e834d",
+      "sha256": "254569359e4e2567e466559f636015c55d645da4df98701972e9ef01cd574b45",
       "source_id": "SRC-CD7B8294BF0E67FE"
     },
     {
@@ -30239,11 +30239,12 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "TX-0602"
+        "TX-0602",
+        "TX-0605"
       ],
       "path": "tests/test_validator_pending_composition_guard.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2b6e533c0faaaf24860fc04c868d1d4906fe2aa723e5b180d83ff971d3197d7f",
+      "sha256": "aac3c62a55b35099eae924b7fada044806123c28d80bd7b5456827cfa2c5d269",
       "source_id": "SRC-F9D2C6536464407C"
     },
     {
