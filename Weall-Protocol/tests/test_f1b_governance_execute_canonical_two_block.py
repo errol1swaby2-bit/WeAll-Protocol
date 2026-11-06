@@ -851,3 +851,127 @@ def test_genesis_solo_forged_attestation_signature_rejected_before_mempool(
         state = node.read_state()
         assert state["accounts"][signer]["nonce"] == 0
         assert not state.get("block_attestations", {}).get(first_block["block_id"])
+
+
+def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Recover the exact prior committed signed parent without authorizing finality.
+
+    BLOCK_ATTEST's consensus-state summary is not itself a signed parent
+    certificate. The full signed envelope, successful receipt, and inclusion
+    ancestry must be recovered from the canonical block before designing a
+    deterministic genesis-first BLOCK_FINALIZE scheduler.
+    """
+    from weall.runtime.sigverify import verify_tx_signature
+
+    _configure(monkeypatch)
+    monkeypatch.setenv("WEALL_STRICT_TX_SIG_DOMAIN", "1")
+    key = MLDSA65PrivateKey.generate()
+    signer = "@f1b-first-finality-witness"
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", signer)
+    monkeypatch.setenv(
+        "WEALL_GENESIS_BOOTSTRAP_PUBKEY",
+        key.public_key().public_bytes_raw().hex(),
+    )
+    producer = _node(tmp_path, "witness-producer")
+    follower = _node(tmp_path, "witness-follower")
+    _assert_same_committed_state(producer, follower)
+    assert producer._active_validators() == [signer]
+
+    made_b1 = producer.produce_block(max_txs=0, allow_empty=True)
+    assert made_b1.ok is True, made_b1.error
+    b1 = producer.get_latest_block()
+    assert isinstance(b1, dict)
+    assert follower.apply_block(b1).ok is True
+    _assert_same_committed_state(producer, follower)
+
+    signed = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN_ID,
+            "tx_type": "BLOCK_ATTEST",
+            "signer": signer,
+            "nonce": 1,
+            "payload": {
+                "block_id": b1["block_id"],
+                "height": 1,
+                "round": 0,
+                "attestation": "yes",
+            },
+        },
+        privkey=key.private_bytes_raw().hex(),
+        encoding="hex",
+    )
+    result = producer.submit_tx(signed, ingress="http")
+    assert result.get("ok") is True, result
+    att_tx_id = str(result["tx_id"])
+    made_b2 = producer.produce_block(max_txs=1, allow_empty=True)
+    assert made_b2.ok is True, made_b2.error
+    b2 = producer.get_latest_block()
+    assert isinstance(b2, dict)
+    assert follower.apply_block(b2).ok is True
+    _assert_same_committed_state(producer, follower)
+
+    state = producer.read_state()
+    assert state["tip"] == b2["block_id"]
+    assert state["blocks"][b1["block_id"]]["height"] == 1
+    assert state["blocks"][b2["block_id"]]["prev_block_id"] == b1["block_id"]
+    assert b2["prev_block_id"] == b1["block_id"]
+    signed_parents = [
+        raw
+        for raw in b2["txs"]
+        if raw.get("tx_type") == "BLOCK_ATTEST" and raw.get("tx_id") == att_tx_id
+    ]
+    successful_receipts = [
+        item for item in b2["receipts"] if item.get("tx_id") == att_tx_id
+    ]
+    assert len(signed_parents) == 1
+    assert len(successful_receipts) == 1
+    assert successful_receipts[0]["ok"] is True
+    assert verify_tx_signature(state, signed_parents[0]) is True
+
+    summary = state["block_attestations"][b1["block_id"]][signer]
+    assert summary["attestation"] == "yes"
+    assert summary["payload"]["block_id"] == b1["block_id"]
+    assert "sig" not in summary
+    assert "tx_id" not in summary
+    assert "txs" not in state["blocks"][b2["block_id"]]
+    assert "receipts" not in state["blocks"][b2["block_id"]]
+
+    forged_parent = copy.deepcopy(signed_parents[0])
+    forged_parent["sig"] = "00"
+    forged_parent["signature"] = {**forged_parent["signature"], "sig": "00"}
+    assert verify_tx_signature(state, forged_parent) is False
+
+    # Even possession of the exact signed source ID cannot authorize an
+    # externally submitted SYSTEM receipt: the scheduler must independently
+    # derive it and bind a canonical queue entry on both producer and follower.
+    before = compute_state_root(state)
+    external_finalize = producer.submit_tx(
+        {
+            "chain_id": CHAIN_ID,
+            "tx_type": "BLOCK_FINALIZE",
+            "signer": "SYSTEM",
+            "nonce": 0,
+            "system": True,
+            "parent": att_tx_id,
+            "payload": {"block_id": b1["block_id"], "height": 1},
+        },
+        ingress="http",
+    )
+    assert external_finalize.get("ok") is False, external_finalize
+    assert compute_state_root(producer.read_state()) == before
+    assert producer.read_state().get("finalized") == state.get("finalized")
+
+    restarted = _node(tmp_path, "witness-follower")
+    _assert_same_committed_state(producer, restarted)
+    persisted = restarted.get_latest_block()
+    assert isinstance(persisted, dict)
+    assert persisted["block_id"] == b2["block_id"]
+    assert [
+        tx for tx in persisted["txs"] if tx.get("tx_id") == att_tx_id
+    ] == signed_parents
+    assert [
+        item for item in persisted["receipts"] if item.get("tx_id") == att_tx_id
+    ] == successful_receipts
