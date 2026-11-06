@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "231958f669a7362c6fb85b64f3b432b4b19d96cc3a388523bfc6d1cd252a8f4b"
+    "source_tree_digest": "97e7c0ba656cc9aad3e11b5e322565f82e159ab784c783af22cda70ad536b8ea"
   },
   "required_fields": [
     "stable_id",
@@ -3790,6 +3790,7 @@
         "tests/test_devnet_restart_catchup_live.py",
         "tests/test_e2e_three_node_convergence_apply_blocks.py",
         "tests/test_e2e_two_node_convergence.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_local_rehearsal_account_register_state_fallback.py",
         "tests/test_m3_closure_integrity.py",
         "tests/test_operator_helpers_fail_closed.py",

@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "9b76aafd781853399a43ef93bf4e5e29998846ed7aa6bed5ccd8b34fbefc1c83",
+      "sha256": "edc535f44f6a6476cd79ba854e4b8a431ad8287db0ba0d0234b11e196fc9029d",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -17273,17 +17273,19 @@
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "ROUTE-A3D2344F33C6912D",
+        "ROUTE-EE2EFB47FA6F30A2",
         "TX-0400",
         "TX-0403",
         "TX-0404",
         "TX-0408",
         "TX-0605",
+        "TX-0609",
         "TX-1601",
         "TX-1602"
       ],
       "path": "tests/test_f1b_governance_execute_canonical_two_block.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "55087d8e3ae46060de6e257699fb677cd43baaa7d2eb6d1d351a431a27d48f11",
+      "sha256": "d66a6ffc46b91da26d3ac3cc5b2fd2c64e15a77cf9557da37663b7c374b5c806",
       "source_id": "SRC-103D29F1CAE5F6F2"
     },
     {
