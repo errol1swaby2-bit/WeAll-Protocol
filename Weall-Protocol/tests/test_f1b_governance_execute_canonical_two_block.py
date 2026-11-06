@@ -968,6 +968,15 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
     altered_vote["block_attestations"][b1["block_id"]][signer]["attestation"] = "no"
     altered_active = copy.deepcopy(state)
     altered_active["roles"]["validators"]["active_set"] = [signer, "@unrelated-validator"]
+    altered_phase = copy.deepcopy(state)
+    altered_phase["consensus"]["phase"]["current"] = "bft_active"
+    undeclared_phase = copy.deepcopy(state)
+    undeclared_phase["consensus"]["phase"]["current"] = ""
+    declared_empty_authority = copy.deepcopy(state)
+    declared_empty_authority["consensus"]["validator_set"] = {
+        "active_set": [],
+        "epoch": 0,
+    }
     for hostile_state, hostile_block in (
         (state, altered_receipt),
         (state, altered_parent),
@@ -975,6 +984,9 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
         (altered_ancestry, b2),
         (altered_vote, b2),
         (altered_active, b2),
+        (altered_phase, b2),
+        (undeclared_phase, b2),
+        (declared_empty_authority, b2),
     ):
         with pytest.raises(SoloFinalityWitnessError):
             resolve_committed_solo_attestation_source(
