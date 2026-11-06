@@ -923,9 +923,7 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
         for raw in b2["txs"]
         if raw.get("tx_type") == "BLOCK_ATTEST" and raw.get("tx_id") == att_tx_id
     ]
-    successful_receipts = [
-        item for item in b2["receipts"] if item.get("tx_id") == att_tx_id
-    ]
+    successful_receipts = [item for item in b2["receipts"] if item.get("tx_id") == att_tx_id]
     assert len(signed_parents) == 1
     assert len(successful_receipts) == 1
     assert successful_receipts[0]["ok"] is True
@@ -969,9 +967,7 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
     persisted = restarted.get_latest_block()
     assert isinstance(persisted, dict)
     assert persisted["block_id"] == b2["block_id"]
-    assert [
-        tx for tx in persisted["txs"] if tx.get("tx_id") == att_tx_id
-    ] == signed_parents
+    assert [tx for tx in persisted["txs"] if tx.get("tx_id") == att_tx_id] == signed_parents
     assert [
         item for item in persisted["receipts"] if item.get("tx_id") == att_tx_id
     ] == successful_receipts
