@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "7ff3557995573e33aa49655fdeec1ac978a3c9c3993a3a28ee2091d8b9b1819a"
+    "source_tree_digest": "efd542a7a36f2654264955698999696786a46f18918547dc3f96f84551fef83f"
   },
   "required_fields": [
     "stable_id",
@@ -7096,6 +7096,7 @@
         "tests/test_f1b_four_executor_qc_ingress.py",
         "tests/test_f1b_four_process_signed_qc_preflight.py",
         "tests/test_f1b_four_validator_qc_contract.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_f1b_validator_set_canonical_bootstrap_block.py",
         "tests/test_fail_closed_boolean_boundaries.py",
         "tests/test_fail_closed_group_treasury.py",
@@ -8237,6 +8238,7 @@
         "tests/test_external_observer_runbook.py",
         "tests/test_external_observer_two_machine_rehearsal.py",
         "tests/test_external_testnet_p0_p2_safety.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_f1b_validator_set_canonical_bootstrap_block.py",
         "tests/test_fail_closed_group_treasury.py",
         "tests/test_feed_persists_order_after_restart_api.py",
