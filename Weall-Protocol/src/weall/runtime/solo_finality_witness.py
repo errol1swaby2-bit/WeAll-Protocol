@@ -141,8 +141,8 @@ def resolve_committed_solo_attestation_source(
     ok, reason, binding = validate_complete_block_commitments(
         block=source_block, chain_id=_s(chain_id)
     )
-    _require(ok and binding is not None, f"source_commitment_invalid:{reason}")
-    assert binding is not None
+    if not ok or binding is None:
+        raise SoloFinalityWitnessError(f"source_commitment_invalid:{reason}")
     source_id = _s(source_block.get("block_id"))
     _require(source_id == binding.block_id, "source_block_id_missing_or_alias")
     source_record = blocks.get(source_id)
