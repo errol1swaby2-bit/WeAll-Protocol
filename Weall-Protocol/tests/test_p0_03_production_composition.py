@@ -818,3 +818,58 @@ def test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_res
             or replay_after_restart.get("already_known") is True
         )
         assert restarted.state["accounts"][signer]["nonce"] == 1
+
+    # Continue the *same real signed QC chain* until the canonical
+    # BLOCK_FINALIZE receipt is itself part of a finalized descendant.
+    # Reuse the restarted validator as an actual signing participant.
+    nodes[restart_id] = restarted
+    leader4, b4 = _propose(nodes, view=4, pubs=pubs, privs=privs)
+    assert b4["prev_block_id"] == b3["block_id"]
+    assert b4["justify_qc"]["block_id"] == b3["block_id"]
+    finalizes = [tx for tx in b4["txs"] if tx.get("tx_type") == "BLOCK_FINALIZE"]
+    assert len(finalizes) == 1
+    assert finalizes[0]["payload"]["block_id"] == b1["block_id"]
+    assert finalizes[0]["payload"]["height"] == int(b1["height"])
+    assert finalizes[0]["system"] is True
+    assert finalizes[0]["signer"] == "SYSTEM"
+    assert finalizes[0]["parent"] == b3["block_id"]
+    assert any(
+        receipt_item["tx_id"] == finalizes[0]["tx_id"] and receipt_item["ok"] is True
+        for receipt_item in b4["receipts"]
+    )
+
+    votes4 = _follower_votes(nodes, b4, leader=leader4, pubs=pubs, privs=privs)
+    qc4 = _form_qc(nodes[leader4], leader4, votes4, pubs=pubs, privs=privs)
+    _broadcast_qc(nodes, qc4, pubs=pubs, privs=privs)
+    for view in (5, 6):
+        leader, proposal = _propose(nodes, view=view, pubs=pubs, privs=privs)
+        votes = _follower_votes(nodes, proposal, leader=leader, pubs=pubs, privs=privs)
+        qc = _form_qc(nodes[leader], leader, votes, pubs=pubs, privs=privs)
+        _broadcast_qc(nodes, qc, pubs=pubs, privs=privs)
+
+    # QC6 finalizes B4 on all four durable validator states.
+    b4_roots = set()
+    for vid, node in nodes.items():
+        assert node._bft.finalized_block_id == b4["block_id"], vid
+        assert node.state["tip"] == b4["block_id"], vid
+        assert node.state["finalized"] == {
+            "block_id": b1["block_id"], "height": int(b1["height"])
+        }, vid
+        assert node.state["accounts"][signer]["nonce"] == 1
+        latest = node.get_latest_block()
+        assert latest["block_id"] == b4["block_id"]
+        assert [
+            item for item in latest["txs"] if item.get("tx_type") == "BLOCK_FINALIZE"
+        ] == finalizes
+        b4_roots.add(compute_state_root(node.state))
+    assert len(b4_roots) == 1
+
+    with _env(_prod_env(restart_id, pub=pubs[restart_id], priv=privs[restart_id])):
+        nodes[restart_id].mark_clean_shutdown()
+        restarted_finality = _make_executor(tmp_path, restart_id, node_id=restart_id)
+        assert compute_state_root(restarted_finality.state) in b4_roots
+        assert restarted_finality.state["tip"] == b4["block_id"]
+        assert restarted_finality.state["finalized"] == {
+            "block_id": b1["block_id"], "height": int(b1["height"])
+        }
+        assert restarted_finality.get_latest_block()["receipts"] == b4["receipts"]
