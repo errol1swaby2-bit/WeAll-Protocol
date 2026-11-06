@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "97e7c0ba656cc9aad3e11b5e322565f82e159ab784c783af22cda70ad536b8ea"
+    "source_tree_digest": "c2e1362c931156d13130a9867656559c77d9bcb463e0fee9c40897ec58486b94"
   },
   "required_fields": [
     "stable_id",
@@ -1030,6 +1030,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_devnet_cross_node_convergence.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_session_auth_safety.py"
       ],
