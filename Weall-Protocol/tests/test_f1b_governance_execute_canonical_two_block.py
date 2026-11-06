@@ -121,9 +121,7 @@ def test_gov_execute_emits_validator_set_update_into_next_canonical_block(
     assert first.ok is True, first.error
     first_block = producer.get_latest_block()
     assert isinstance(first_block, dict)
-    gov_txs = [
-        tx for tx in first_block.get("txs", []) if tx.get("tx_type") == "GOV_EXECUTE"
-    ]
+    gov_txs = [tx for tx in first_block.get("txs", []) if tx.get("tx_type") == "GOV_EXECUTE"]
     assert len(gov_txs) == 1
     assert gov_txs[0]["system"] is True
     assert gov_txs[0]["payload"]["_system_queue_id"] == gov_queue_id
@@ -152,9 +150,7 @@ def test_gov_execute_emits_validator_set_update_into_next_canonical_block(
     second_block = producer.get_latest_block()
     assert isinstance(second_block, dict)
     updates = [
-        tx
-        for tx in second_block.get("txs", [])
-        if tx.get("tx_type") == "VALIDATOR_SET_UPDATE"
+        tx for tx in second_block.get("txs", []) if tx.get("tx_type") == "VALIDATOR_SET_UPDATE"
     ]
     assert len(updates) == 1
     assert updates[0]["system"] is True
