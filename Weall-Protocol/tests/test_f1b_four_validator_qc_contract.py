@@ -95,9 +95,7 @@ def _signed_vote(
     return vote.to_json()
 
 
-def _accept(
-    aggregator: HotStuffBFT, vote: dict[str, Any], keys: Keypairs
-) -> QuorumCert | None:
+def _accept(aggregator: HotStuffBFT, vote: dict[str, Any], keys: Keypairs) -> QuorumCert | None:
     return aggregator.accept_vote(
         vote_json=vote,
         validators=list(VALIDATORS),
@@ -171,9 +169,7 @@ def test_two_two_partition_has_no_qc_until_three_distinct_votes(
         "outsider",
     ],
 )
-def test_bad_third_vote_cannot_create_verified_quorum(
-    keypairs: Keypairs, fault: str
-) -> None:
+def test_bad_third_vote_cannot_create_verified_quorum(keypairs: Keypairs, fault: str) -> None:
     aggregator = HotStuffBFT(chain_id=CHAIN_ID)
     for signer in VALIDATORS[:2]:
         assert _accept(aggregator, _signed_vote(keypairs, signer), keypairs) is None
@@ -215,9 +211,7 @@ def test_verified_qc_on_third_block_derives_structural_finality(
     bft = HotStuffBFT(chain_id=CHAIN_ID)
     assert bft.observe_qc(blocks=blocks, qc=qc) == "block-1"
     assert bft.finalized_block_id == "block-1"
-    assert finalized_target_from_justify_qc(
-        {"blocks": blocks}, qc.to_json()
-    ) == ("block-1", 1)
+    assert finalized_target_from_justify_qc({"blocks": blocks}, qc.to_json()) == ("block-1", 1)
 
 
 def test_qc_metadata_mutation_invalidates_cryptographic_quorum(
@@ -232,26 +226,16 @@ def test_qc_metadata_mutation_invalidates_cryptographic_quorum(
         {"block_hash": "f" * 64},
         {"view": VIEW + 1},
     ):
-        assert not verify_qc(
-            qc=replace(qc, **mutation), validators=list(VALIDATORS), vpub=vpub
-        )
+        assert not verify_qc(qc=replace(qc, **mutation), validators=list(VALIDATORS), vpub=vpub)
 
 
 def test_local_vote_record_rejects_same_view_equivocation() -> None:
     # In-memory anti-equivocation preflight only; durable restart is a later gate.
     validator = HotStuffBFT(chain_id=CHAIN_ID)
-    assert validator.record_local_vote(
-        view=VIEW, block_id=BLOCK_ID, block_hash=BLOCK_HASH
-    )
-    assert validator.record_local_vote(
-        view=VIEW, block_id=BLOCK_ID, block_hash=BLOCK_HASH
-    )
+    assert validator.record_local_vote(view=VIEW, block_id=BLOCK_ID, block_hash=BLOCK_HASH)
+    assert validator.record_local_vote(view=VIEW, block_id=BLOCK_ID, block_hash=BLOCK_HASH)
     assert not validator.record_local_vote(
         view=VIEW, block_id="conflicting-block", block_hash="f" * 64
     )
-    assert not validator.record_local_vote(
-        view=VIEW, block_id=BLOCK_ID, block_hash="f" * 64
-    )
-    assert not validator.record_local_vote(
-        view=VIEW - 1, block_id=BLOCK_ID, block_hash=BLOCK_HASH
-    )
+    assert not validator.record_local_vote(view=VIEW, block_id=BLOCK_ID, block_hash="f" * 64)
+    assert not validator.record_local_vote(view=VIEW - 1, block_id=BLOCK_ID, block_hash=BLOCK_HASH)
