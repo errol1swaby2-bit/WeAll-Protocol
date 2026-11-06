@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "90cea4de5aa2b333c4f2ae2a29fdb9c7f929402d7b5d7fc6cce219a823bc83b8",
+      "sha256": "f5e4cb24d1721d8e32e2b48160bfb30b92ef09081eb9b4c723c9beff9ada93a1",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1669,7 +1669,7 @@
       ],
       "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "157adf23996f5df6c7895d5fff478e623dc7ba7970ac0b08d6ee692444393d85",
+      "sha256": "513065c0c8dedddc42bc484bc6ab256dab4a78a5fa873655e98c7ad74864a652",
       "source_id": "SRC-378656E471EA8F3F"
     },
     {
@@ -17300,7 +17300,7 @@
       ],
       "path": "tests/test_f1b_governance_execute_canonical_two_block.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "6bbf89f46e05a6c3fc7ccb1c94bdecb80b8e4c2c7d2dbe3df7dbdea3959e7b46",
+      "sha256": "dc1db4866d521826a2681d00005be7ba4e35adadd7d48b4e65312f1a71dd181d",
       "source_id": "SRC-103D29F1CAE5F6F2"
     },
     {
