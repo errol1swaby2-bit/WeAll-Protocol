@@ -1,3 +1,4 @@
+# Issue #87 strict source-bound evidence refresh for canonical queued validator-set bootstrap block replay and restart test.
 # Issue #87 source-bound refresh for domain-applied pending validator set, epoch activation and four-executor signed-QC tests.
 # Issue #87 source-bound refresh for four SQLite-backed executor QC ingress; strict gates unchanged.
 # Issue #87 V2 provenance: explicitly map the bounded four-process cryptographic rehearsal; do not approve semantic reviews.
