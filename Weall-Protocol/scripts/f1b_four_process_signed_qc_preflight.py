@@ -51,9 +51,7 @@ def _worker(signer: str, inbox: Any, outbox: Any) -> None:
     private = MLDSA65PrivateKey.generate()
     public_hex = private.public_key().public_bytes_raw().hex()
     private_hex = private.private_bytes_raw().hex()
-    outbox.put(
-        {"event": "ready", "signer": signer, "pid": os.getpid(), "pubkey": public_hex}
-    )
+    outbox.put({"event": "ready", "signer": signer, "pid": os.getpid(), "pubkey": public_hex})
     try:
         while True:
             msg = inbox.get()
@@ -237,9 +235,7 @@ def run_rehearsal() -> Json:
                 cluster.vote(signer, view=view, block_id=block_id, parent_id=parent_id)
                 for signer in VALIDATORS[:3]
             ]
-            qc = _formed_qc(
-                votes=votes, public_keys=cluster.pubkeys, expect_formed=True
-            )
+            qc = _formed_qc(votes=votes, public_keys=cluster.pubkeys, expect_formed=True)
             if qc is None:
                 raise RuntimeError("quorum_missing")
             finalized = structural_finality.observe_qc(blocks=chain_blocks, qc=qc)
@@ -262,20 +258,12 @@ def run_rehearsal() -> Json:
         partition_id = "preflight-partition-block"
         partition_view = START_VIEW + 3
         partition_votes = [
-            cluster.vote(
-                signer, view=partition_view, block_id=partition_id, parent_id=""
-            )
+            cluster.vote(signer, view=partition_view, block_id=partition_id, parent_id="")
             for signer in VALIDATORS
         ]
-        _formed_qc(
-            votes=partition_votes[:2], public_keys=cluster.pubkeys, expect_formed=False
-        )
-        _formed_qc(
-            votes=partition_votes[2:], public_keys=cluster.pubkeys, expect_formed=False
-        )
-        _formed_qc(
-            votes=partition_votes[:3], public_keys=cluster.pubkeys, expect_formed=True
-        )
+        _formed_qc(votes=partition_votes[:2], public_keys=cluster.pubkeys, expect_formed=False)
+        _formed_qc(votes=partition_votes[2:], public_keys=cluster.pubkeys, expect_formed=False)
+        _formed_qc(votes=partition_votes[:3], public_keys=cluster.pubkeys, expect_formed=True)
 
         # Duplicate delivery and a forged signature must not create a 3-of-4 QC.
         first, second, third = partition_votes[:3]
@@ -301,9 +289,7 @@ def run_rehearsal() -> Json:
             "quorum_threshold": quorum_threshold(len(VALIDATORS)),
             "linked_cryptographically_verified_qc_count": len(block_rows),
             "synthetic_blocks": block_rows,
-            "structural_three_chain_finalized_block": (
-                structural_finality.finalized_block_id
-            ),
+            "structural_three_chain_finalized_block": (structural_finality.finalized_block_id),
             "two_plus_two_without_qc": True,
             "three_of_four_after_partition_rejoin": True,
             "duplicate_vote_and_bad_signature_blocked": True,
