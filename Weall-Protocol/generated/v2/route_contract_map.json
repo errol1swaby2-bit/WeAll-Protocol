@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "efd542a7a36f2654264955698999696786a46f18918547dc3f96f84551fef83f"
+    "source_tree_digest": "8cb00c5aa423e7aa08ff33f879d5a39a1370cec7396967977061201930a1cbb9"
   },
   "required_fields": [
     "stable_id",
@@ -7789,6 +7789,7 @@
         "tests/test_system_tx_completeness.py",
         "tests/test_system_tx_engine_phase.py",
         "tests/test_system_tx_engine_receipt_parent_autofill.py",
+        "tests/test_system_tx_materialization_single_source.py",
         "tests/test_system_tx_post_phase_parity.py",
         "tests/test_system_tx_scheduler_binding.py",
         "tests/test_test_name_professionalization_gate.py",
@@ -7850,6 +7851,7 @@
         "tests/test_validator_live_readiness_runner.py",
         "tests/test_validator_observer_restart_posture.py",
         "tests/test_validator_operator_signature_profiles.py",
+        "tests/test_validator_pending_composition_guard.py",
         "tests/test_validator_register_system_only.py",
         "tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py",
         "tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py",
@@ -8510,6 +8512,7 @@
         "tests/test_validator_generation_network_authority.py",
         "tests/test_validator_lifecycle_status.py",
         "tests/test_validator_live_readiness_runner.py",
+        "tests/test_validator_pending_composition_guard.py",
         "tests/test_validator_register_system_only.py",
         "tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py",
         "tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py",
