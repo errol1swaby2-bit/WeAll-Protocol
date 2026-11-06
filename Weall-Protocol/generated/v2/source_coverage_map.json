@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2073,
+  "file_count": 2074,
   "files": [
     {
       "affected_registers": [
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "f5e4cb24d1721d8e32e2b48160bfb30b92ef09081eb9b4c723c9beff9ada93a1",
+      "sha256": "4395a6b89cc3550eaca10494004757f79a7bfa162328cf94657a32326bbe711f",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1669,7 +1669,7 @@
       ],
       "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "513065c0c8dedddc42bc484bc6ab256dab4a78a5fa873655e98c7ad74864a652",
+      "sha256": "a9fe0f716a63be9560bc76cb2407a1c8c379eb6dbdfdbbe454c5dc6b5dbd37e9",
       "source_id": "SRC-378656E471EA8F3F"
     },
     {
@@ -3145,7 +3145,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "2217a63fb6cbe602e99538ccf50f19dc7c7a8fdf848be0eb7c0cb1741ff85b18",
+      "sha256": "b1a68d060173771d3edcdaa9a94999fcb64b70cf8d71d2664508aee728e95e73",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3159,7 +3159,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a6271913c432867037b159f242381e98366e069eaa5e872e626c938d6f616023",
+      "sha256": "d5e5d8c2a38e63dbbc34ecdd68c302f53d785d1751b46facb0b0ff7ed34f288a",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3243,7 +3243,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "b0c9c67447decb04382c4339abcd642c47fe9e9a509d776444f5ba1efa139f97",
+      "sha256": "b03cd21a70ca7bcd05af979a5c1ec0f9ef75774d85108f7ac34e8eee6a962692",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -7000,7 +7000,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "ff6c5c0e5caa7d54a3c2077fae71e37e4a883f1b0013c9be34ab78fb3f217755",
+      "sha256": "3c82f8743ef0d245d26b6f62b6de81f4200c012089c4ad98bcff778169d4b980",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -12129,6 +12129,19 @@
       "primary_mechanism_id": "M-012",
       "sha256": "00c05f4ce829693765809cbe6cf234fb3ab70e36629fb189f70adb2d9a30309d",
       "source_id": "SRC-3203FC31F1F2C31D"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "reference_or_test_only",
+      "mappings": [
+        "M-018"
+      ],
+      "path": "src/weall/runtime/solo_finality_witness.py",
+      "primary_mechanism_id": "M-018",
+      "sha256": "82a417fb19d8e0fdfc76e40b4e8b691767a859679fdadcc145cb86baece566c0",
+      "source_id": "SRC-7E353AD8647757EF"
     },
     {
       "affected_registers": [
@@ -17300,7 +17313,7 @@
       ],
       "path": "tests/test_f1b_governance_execute_canonical_two_block.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "dc1db4866d521826a2681d00005be7ba4e35adadd7d48b4e65312f1a71dd181d",
+      "sha256": "186e63e456465537aeb45d2dde033695331c0d8fa21fe27360a17d28452ce3eb",
       "source_id": "SRC-103D29F1CAE5F6F2"
     },
     {
