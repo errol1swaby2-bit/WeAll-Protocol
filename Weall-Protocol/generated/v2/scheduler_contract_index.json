@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "8cb00c5aa423e7aa08ff33f879d5a39a1370cec7396967977061201930a1cbb9"
+    "source_tree_digest": "f1e6896b513f5bf99b02b974de83a352f06099d506328e99fc8267ad8b49d691"
   },
   "rows": [
     {
@@ -72,7 +72,7 @@
       "failure_semantics": "typed_scheduler_or_system_transaction_failure",
       "idempotency_contract": "identical_finalized_state_and_height_must_derive_identical_due_work",
       "idempotency_key": "stable_sys_id_plus_due_height_plus_subject_or_parent_identity",
-      "line": 1606,
+      "line": 1591,
       "name": "_apply_block_finalize",
       "ordering_contract": "canonical_scheduler_pipeline_order_then_stable_identifier_order",
       "primary_mechanism_id": "M-018",
@@ -92,7 +92,7 @@
       "failure_semantics": "typed_scheduler_or_system_transaction_failure",
       "idempotency_contract": "identical_finalized_state_and_height_must_derive_identical_due_work",
       "idempotency_key": "stable_sys_id_plus_due_height_plus_subject_or_parent_identity",
-      "line": 1349,
+      "line": 1334,
       "name": "_ensure_finalized",
       "ordering_contract": "canonical_scheduler_pipeline_order_then_stable_identifier_order",
       "primary_mechanism_id": "M-018",
@@ -112,7 +112,7 @@
       "failure_semantics": "typed_scheduler_or_system_transaction_failure",
       "idempotency_contract": "identical_finalized_state_and_height_must_derive_identical_due_work",
       "idempotency_key": "stable_sys_id_plus_due_height_plus_subject_or_parent_identity",
-      "line": 373,
+      "line": 374,
       "name": "_record_phase_transition",
       "ordering_contract": "canonical_scheduler_pipeline_order_then_stable_identifier_order",
       "primary_mechanism_id": "M-018",
@@ -134,7 +134,7 @@
       "failure_semantics": "typed_scheduler_or_system_transaction_failure",
       "idempotency_contract": "identical_finalized_state_and_height_must_derive_identical_due_work",
       "idempotency_key": "stable_sys_id_plus_due_height_plus_subject_or_parent_identity",
-      "line": 1958,
+      "line": 1943,
       "name": "_record_slash_accountability",
       "ordering_contract": "canonical_scheduler_pipeline_order_then_stable_identifier_order",
       "primary_mechanism_id": "M-018",
