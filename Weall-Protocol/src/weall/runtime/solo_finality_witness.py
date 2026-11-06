@@ -202,9 +202,7 @@ def resolve_committed_solo_attestation_source(
             continue
         tx_id = binding.tx_ids[index]
         agreeing = [
-            rec
-            for rec in receipts
-            if isinstance(rec, dict) and _s(rec.get("tx_id")) == tx_id
+            rec for rec in receipts if isinstance(rec, dict) and _s(rec.get("tx_id")) == tx_id
         ]
         if len(agreeing) != 1:
             continue
