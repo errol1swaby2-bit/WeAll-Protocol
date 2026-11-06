@@ -377,6 +377,7 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
     )
     bad_vote = dict(first_vote)
     bad_vote["sig"] = "00"
+    bad_vote["signature"] = {**first_vote["signature"], "sig": "00"}
     rejected = producer.submit_tx(bad_vote, ingress="http")
     assert rejected.get("ok") is False, rejected
 
