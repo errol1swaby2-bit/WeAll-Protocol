@@ -636,11 +636,12 @@ def test_genesis_derived_solo_validator_signed_attestation_replays_without_inven
     assert second.ok is True, second.error
     b2 = producer.get_latest_block()
     assert isinstance(b2, dict)
-    assert any(
-        rec.get("tx_id") == attestation_id and rec.get("ok") is True
-        and rec.get("tx_type") == "BLOCK_ATTEST"
-        for rec in b2["receipts"]
-    )
+    matching_receipts = [
+        rec for rec in b2["receipts"] if rec.get("tx_id") == attestation_id
+    ]
+    assert len(matching_receipts) == 1
+    assert matching_receipts[0]["ok"] is True
+    assert matching_receipts[0]["tx_type"] == "BLOCK_ATTEST"
     assert follower.apply_block(b2).ok is True
     _assert_same_committed_state(producer, follower)
 
@@ -650,11 +651,12 @@ def test_genesis_derived_solo_validator_signed_attestation_replays_without_inven
     assert third.ok is True, third.error
     b3 = producer.get_latest_block()
     assert isinstance(b3, dict)
-    assert not any(
-        tx.get("tx_type") in {"BLOCK_FINALIZE", "EPOCH_OPEN"}
+    b3_types = {
+        tx.get("tx_type")
         for tx in b3.get("txs", [])
         if isinstance(tx, dict)
-    )
+    }
+    assert not b3_types.intersection({"BLOCK_FINALIZE", "EPOCH_OPEN"})
     assert follower.apply_block(b3).ok is True
     _assert_same_committed_state(producer, follower)
 
@@ -668,7 +670,8 @@ def test_genesis_derived_solo_validator_signed_attestation_replays_without_inven
 
     restarted = _node(tmp_path, "solo-genesis-follower")
     _assert_same_committed_state(producer, restarted)
-    assert restarted.read_state()["block_attestations"][b1["block_id"]][signer][
-        "attestation"
-    ] == "yes"
+    restarted_attestation = restarted.read_state()["block_attestations"][b1["block_id"]][
+        signer
+    ]
+    assert restarted_attestation["attestation"] == "yes"
     assert restarted._current_consensus_phase() == CONSENSUS_PHASE_SOLO_BOOTSTRAP
