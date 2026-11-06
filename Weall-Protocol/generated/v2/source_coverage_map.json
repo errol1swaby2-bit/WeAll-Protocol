@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "4e2eb3f4eda06196577f9c653f36d837e5f3b7b278d711aec2c82f881f8d4e74",
+      "sha256": "f36d9662e922b0e9b497c9e1a9e275e62d05632996d19e1fbac00db1ca4f67cd",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -22393,11 +22393,12 @@
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "ROUTE-EE2EFB47FA6F30A2",
-        "TX-0007"
+        "TX-0007",
+        "TX-0608"
       ],
       "path": "tests/test_p0_03_production_composition.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7dadbfed1d9b5cfbaf51e7372d1f0c8d8ac78e35a9f3ae484b63db6cc6b70be3",
+      "sha256": "b6008b60b549eb2672b664db86a8bd3c49580d0368c0bbb148ad113b3f891696",
       "source_id": "SRC-DF1D27D330664F95"
     },
     {
