@@ -677,13 +677,13 @@ def test_genesis_derived_solo_validator_signed_attestation_replays_without_inven
         ("claimed_other_validator", "validator_mismatch"),
     ],
 )
-def test_genesis_solo_signed_attestation_rejects_invalid_target_without_nonce_consumption(
+def test_genesis_solo_signed_attestation_rejects_invalid_target_with_one_shot_nonce(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     attack: str,
     expected_reason: str,
 ) -> None:
-    """A genuine signature cannot authorize a false block or validator claim."""
+    """An included signed rejection consumes a nonce without mutating the attestation."""
     _configure(monkeypatch)
     monkeypatch.setenv("WEALL_STRICT_TX_SIG_DOMAIN", "1")
     secret = MLDSA65PrivateKey.generate()
@@ -748,21 +748,27 @@ def test_genesis_solo_signed_attestation_rejects_invalid_target_without_nonce_co
 
     for node in (producer, follower):
         state = node.read_state()
-        assert state["accounts"][signer]["nonce"] == 0
+        assert state["accounts"][signer]["nonce"] == 1
         assert signer not in state.get("block_attestations", {}).get(first_block["block_id"], {})
         assert (
             not isinstance(state.get("finalized"), dict)
             or int(state["finalized"].get("height", 0)) == 0
         )
 
-    # The failed attestation must not burn the canonical nonce or prevent
-    # the same validator from issuing a valid attestation at nonce 1.
+    # An included rejected receipt is one-shot: the exact signed transaction
+    # cannot be submitted a second time, even when its domain apply failed.
+    before_replay = compute_state_root(producer.read_state())
+    replay = producer.submit_tx(signed_invalid, ingress="http")
+    assert replay.get("ok") is False or replay.get("already_known") is True, replay
+    assert compute_state_root(producer.read_state()) == before_replay
+
+    # A corrected, newly signed attestation must advance to nonce 2.
     valid = sign_tx_envelope_dict(
         tx={
             "chain_id": CHAIN_ID,
             "tx_type": "BLOCK_ATTEST",
             "signer": signer,
-            "nonce": 1,
+            "nonce": 2,
             "payload": {
                 "block_id": first_block["block_id"],
                 "height": 1,
@@ -781,7 +787,7 @@ def test_genesis_solo_signed_attestation_rejects_invalid_target_without_nonce_co
     assert isinstance(third_block, dict)
     assert follower.apply_block(third_block).ok is True
     _assert_same_committed_state(producer, follower)
-    assert producer.read_state()["accounts"][signer]["nonce"] == 1
+    assert producer.read_state()["accounts"][signer]["nonce"] == 2
     assert (
         producer.read_state()["block_attestations"][first_block["block_id"]][signer]["attestation"]
         == "yes"
