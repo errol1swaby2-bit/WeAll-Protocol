@@ -738,9 +738,7 @@ def test_genesis_solo_signed_attestation_rejects_invalid_target_without_nonce_co
     second_block = producer.get_latest_block()
     assert isinstance(second_block, dict)
     rejected_receipts = [
-        receipt
-        for receipt in second_block["receipts"]
-        if receipt.get("tx_id") == rejected_tx_id
+        receipt for receipt in second_block["receipts"] if receipt.get("tx_id") == rejected_tx_id
     ]
     assert len(rejected_receipts) == 1
     assert rejected_receipts[0]["ok"] is False
@@ -751,12 +749,11 @@ def test_genesis_solo_signed_attestation_rejects_invalid_target_without_nonce_co
     for node in (producer, follower):
         state = node.read_state()
         assert state["accounts"][signer]["nonce"] == 0
-        assert signer not in state.get("block_attestations", {}).get(
-            first_block["block_id"], {}
+        assert signer not in state.get("block_attestations", {}).get(first_block["block_id"], {})
+        assert (
+            not isinstance(state.get("finalized"), dict)
+            or int(state["finalized"].get("height", 0)) == 0
         )
-        assert not isinstance(state.get("finalized"), dict) or int(
-            state["finalized"].get("height", 0)
-        ) == 0
 
     # The failed attestation must not burn the canonical nonce or prevent
     # the same validator from issuing a valid attestation at nonce 1.
@@ -785,9 +782,10 @@ def test_genesis_solo_signed_attestation_rejects_invalid_target_without_nonce_co
     assert follower.apply_block(third_block).ok is True
     _assert_same_committed_state(producer, follower)
     assert producer.read_state()["accounts"][signer]["nonce"] == 1
-    assert producer.read_state()["block_attestations"][first_block["block_id"]][
-        signer
-    ]["attestation"] == "yes"
+    assert (
+        producer.read_state()["block_attestations"][first_block["block_id"]][signer]["attestation"]
+        == "yes"
+    )
 
 
 def test_genesis_solo_forged_attestation_signature_rejected_before_mempool(
