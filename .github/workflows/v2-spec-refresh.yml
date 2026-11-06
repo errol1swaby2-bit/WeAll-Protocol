@@ -1,3 +1,4 @@
+# Issue #87 source-bound refresh for domain-applied pending validator set, epoch activation and four-executor signed-QC tests.
 # Issue #87 source-bound refresh for four SQLite-backed executor QC ingress; strict gates unchanged.
 # Issue #87 V2 provenance: explicitly map the bounded four-process cryptographic rehearsal; do not approve semantic reviews.
 # Issue #87 source-bound refresh for genuine four-process ML-DSA quorum preflight, no assertion overrides.
