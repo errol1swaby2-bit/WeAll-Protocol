@@ -870,7 +870,13 @@ def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[Syst
     ]
 
 
-def _materialize_system_queue_item(state: Json, item: SystemQueueItem) -> TxEnvelope:
+def _system_queue_env_fields(state: Json, item: SystemQueueItem) -> tuple[Json, str, str]:
+    """Single canonical source for SYSTEM envelope payload, signer and parent.
+
+    This is pure with respect to ledger state. Emission, lineage preparation,
+    and follower binding verification must derive the same bytes from the
+    same validated queue item without introducing separate reconstruction rules.
+    """
     payload = dict(item.payload or {})
     payload.setdefault("_due_height", int(item.due_height))
     payload.setdefault("_system_queue_id", item.queue_id)
@@ -887,7 +893,11 @@ def _materialize_system_queue_item(state: Json, item: SystemQueueItem) -> TxEnve
     parent_ref = item.parent.strip() if item.parent else payload_parent_ref
     if parent_ref:
         payload.setdefault("_parent_ref", parent_ref)
+    return payload, str(signer or "SYSTEM"), parent_ref if parent_ref else ""
 
+
+def _materialize_system_queue_item(state: Json, item: SystemQueueItem) -> TxEnvelope:
+    payload, signer, parent_ref = _system_queue_env_fields(state, item)
     return TxEnvelope(
         tx_type=item.tx_type,
         signer=signer,
@@ -897,6 +907,8 @@ def _materialize_system_queue_item(state: Json, item: SystemQueueItem) -> TxEnve
         parent=parent_ref if parent_ref else None,
         system=True,
     )
+
+
 
 
 def bind_same_block_system_lineage(
@@ -1027,43 +1039,8 @@ def system_tx_emitter(
         _ = _is_system_only(canon, it.tx_type)
         _ = _canon_context(canon, it.tx_type)
 
-        payload = dict(it.payload or {})
-        payload.setdefault("_due_height", int(it.due_height))
-        payload.setdefault("_system_queue_id", it.queue_id)
-
-        signer = it.signer or "SYSTEM"
-        if str(signer).strip() == "SYSTEM":
-            params = ledger.get("params")
-            if isinstance(params, dict):
-                override = str(params.get("system_signer") or "").strip()
-                if override:
-                    signer = override
-
-        # IMPORTANT: treat missing _parent_ref as "" (not "None")
-        payload_parent_ref = _as_opt_str(payload.get("_parent_ref")).strip()
-
-        # Prefer explicit queue parent, then payload ref
-        parent_ref = it.parent.strip() if it.parent else payload_parent_ref
-
-        # Canon parent metadata names a parent TxType, while ``parent_ref`` is a
-        # concrete transaction/context reference supplied by the scheduler. Never
-        # synthesize an instance reference from the TxType name.
-
-        # Keep payload consistent with envelope (helps downstream apply paths)
-        if parent_ref:
-            payload.setdefault("_parent_ref", parent_ref)
-
-        out.append(
-            TxEnvelope(
-                tx_type=it.tx_type,
-                signer=signer,
-                nonce=0,
-                payload=payload,
-                sig="",
-                parent=parent_ref if parent_ref else None,
-                system=True,
-            )
-        )
+        # The producer and the follower validate identical materialized fields.
+        out.append(_materialize_system_queue_item(ledger, it))
 
         if it.once:
             if (
@@ -1090,23 +1067,10 @@ def _system_payload_hash(payload: Json) -> str:
 def _expected_emitted_system_env_fields(
     state: Json, canon: Any, item: SystemQueueItem
 ) -> tuple[Json, str, str]:
-    payload = dict(item.payload or {})
-    payload.setdefault("_due_height", int(item.due_height))
-    payload.setdefault("_system_queue_id", item.queue_id)
+    # Retain the compatibility entry point for follower binding validation.
+    return _system_queue_env_fields(state, item)
 
-    signer = item.signer or "SYSTEM"
-    if str(signer).strip() == "SYSTEM":
-        params = state.get("params")
-        if isinstance(params, dict):
-            override = str(params.get("system_signer") or "").strip()
-            if override:
-                signer = override
 
-    payload_parent_ref = _as_opt_str(payload.get("_parent_ref")).strip()
-    parent_ref = item.parent.strip() if item.parent else payload_parent_ref
-    if parent_ref:
-        payload.setdefault("_parent_ref", parent_ref)
-    return payload, str(signer or "SYSTEM"), parent_ref if parent_ref else ""
 
 
 def validate_system_tx_queue_binding(
