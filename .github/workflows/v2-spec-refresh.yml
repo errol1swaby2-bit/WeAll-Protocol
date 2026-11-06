@@ -1,3 +1,4 @@
+# PR82 final Ruff-validated read-only solo witness resolver evidence refresh.
 # PR82 source-mapping corrected M-018 read-only solo witness resolver; regen all strict V2 derivatives.
 # PR82 refresh for read-only signed solo finality parent witness resolver and adversarial alias checks.
 # PR82 signed prior-committed BLOCK_ATTEST parent provenance and genesis-witness separation proof refresh.
