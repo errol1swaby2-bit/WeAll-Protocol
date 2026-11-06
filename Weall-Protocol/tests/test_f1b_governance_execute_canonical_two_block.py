@@ -298,9 +298,7 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
         block = producer.get_latest_block()
         assert isinstance(block, dict)
         committed_types.extend(
-            str(tx.get("tx_type"))
-            for tx in block.get("txs", [])
-            if isinstance(tx, dict)
+            str(tx.get("tx_type")) for tx in block.get("txs", []) if isinstance(tx, dict)
         )
         replay = follower.apply_block(block)
         assert replay.ok is True, replay.error
@@ -353,9 +351,7 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
             }
         ],
     }
-    submitted_create = submit_and_commit(
-        signed_env("GOV_PROPOSAL_CREATE", voters[0], 1, proposal)
-    )
+    submitted_create = submit_and_commit(signed_env("GOV_PROPOSAL_CREATE", voters[0], 1, proposal))
     assert submitted_create["tx_id"]
     assert "GOV_PROPOSAL_CREATE" in committed_types
     record = producer.read_state()["gov_proposals_by_id"][proposal["proposal_id"]]
