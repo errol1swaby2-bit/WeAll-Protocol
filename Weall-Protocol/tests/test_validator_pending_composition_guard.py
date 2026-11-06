@@ -98,3 +98,57 @@ def test_different_target_epoch_is_not_silently_queued() -> None:
 
     assert caught.value.reason == "validator_set_pending_update_exists"
     assert state["consensus"]["validator_set"]["pending"] == before_pending
+
+
+def _full_set_update(state: dict, members: list[str], epoch: int = 1) -> dict:
+    result = apply_consensus(
+        state,
+        TxEnvelope(
+            tx_type="VALIDATOR_SET_UPDATE",
+            signer="SYSTEM",
+            nonce=0,
+            payload={"active_set": members, "activate_at_epoch": epoch},
+            sig="",
+            parent="aggregate-set-governance-fixture",
+            system=True,
+        ),
+    )
+    assert isinstance(result, dict)
+    return result
+
+
+def test_existing_full_set_action_schedules_both_candidates_without_new_aggregator() -> None:
+    state = _state()
+    result = _full_set_update(state, list(reversed(CANDIDATES)))
+
+    assert result["pending"] is True
+    pending = state["consensus"]["validator_set"]["pending"]
+    assert pending["active_set"] == sorted(CANDIDATES)
+    assert pending["activate_at_epoch"] == 1
+    assert state["consensus"]["validator_set"]["active_set"] == []
+
+
+def test_individual_approval_does_not_silently_expand_prior_full_set() -> None:
+    state = _state()
+    _full_set_update(state, [CANDIDATES[0]])
+    pending_before = copy.deepcopy(state["consensus"]["validator_set"]["pending"])
+
+    with pytest.raises(ConsensusApplyError) as caught:
+        _approve(state, CANDIDATES[1])
+
+    assert caught.value.reason == "validator_set_pending_update_exists"
+    assert state["consensus"]["validator_set"]["pending"] == pending_before
+    assert state["validators"]["registry"][CANDIDATES[1]]["status"] == "candidate"
+
+
+def test_full_set_update_does_not_override_prior_individual_approval() -> None:
+    state = _state()
+    _approve(state, CANDIDATES[0])
+    pending_before = copy.deepcopy(state["consensus"]["validator_set"]["pending"])
+
+    with pytest.raises(ConsensusApplyError) as caught:
+        _full_set_update(state, list(CANDIDATES))
+
+    assert caught.value.reason == "validator_set_pending_update_exists"
+    assert state["consensus"]["validator_set"]["pending"] == pending_before
+    assert state["consensus"]["validator_set"]["active_set"] == []
