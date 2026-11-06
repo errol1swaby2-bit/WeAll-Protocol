@@ -16,6 +16,12 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
+from weall.crypto.sig import sign_tx_envelope_dict
+from weall.runtime.ballot_policy import (
+    CONTROLLED_TESTNET_BALLOT_PROFILE,
+    ballot_profile_status,
+)
+
 from weall.runtime.bft_hotstuff import CONSENSUS_PHASE_SOLO_BOOTSTRAP, validator_set_hash
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
@@ -210,3 +216,227 @@ def test_gov_execute_refuses_unapproved_validator_set_action(
     assert error == f"system_tx_apply_post_failed:forbidden:{expected_reason}"
     assert producer.get_latest_block() is None
     assert producer.read_state()["consensus"]["validator_set"]["active_set"] == []
+
+
+def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set_update(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Run signed civic governance against committed blocks and follower replay.
+
+    The initial Tier-2 identities and validator lifecycle registries are
+    expressly seeded fixtures. The proposal, both signed votes, strict ballot
+    tally, governance execution and queued validator-set child are not fixtures:
+    they must pass the normal HTTP-like transaction admission and real canonical
+    producer/follower execution path. This is NOT PoH bootstrap or BFT finality
+    proof, and it must not be used as such.
+    """
+    _configure(monkeypatch)
+    monkeypatch.setenv("WEALL_STRICT_TX_SIG_DOMAIN", "1")
+    producer, follower = _node(tmp_path, "signed-producer"), _node(tmp_path, "signed-follower")
+    initial = copy.deepcopy(producer.read_state())
+
+    voter_keys: dict[str, str] = {}
+    voters = ("@civic_voter_a", "@civic_voter_b")
+    accounts = initial.setdefault("accounts", {})
+    for voter in voters:
+        secret = MLDSA65PrivateKey.generate()
+        voter_keys[voter] = secret.private_bytes_raw().hex()
+        accounts[voter] = {
+            "nonce": 0,
+            "poh_tier": 2,
+            "banned": False,
+            "locked": False,
+            "reputation_milli": 9000,
+            "keys": [
+                {
+                    "sig_profile": "pq-mldsa-v1",
+                    "pubkeys": {"mldsa": secret.public_key().public_bytes_raw().hex()},
+                    "active": True,
+                }
+            ],
+        }
+
+    # Keep the checked runtime's constitutional clock and all normal system
+    # queue machinery. Seed only pre-existing eligibility and registry keys.
+    params = initial.setdefault("params", {})
+    params["require_signatures"] = True
+    params["m3_civic_governance_strict"] = True
+    params["mode"] = "controlled-testnet"
+    params["validator_candidate_lifecycle_gate_enabled"] = True
+    initial["ballot_profile"] = {
+        "profile_id": CONTROLLED_TESTNET_BALLOT_PROFILE,
+        "active": True,
+    }
+    roles = initial.setdefault("roles", {}).setdefault("validators", {})
+    roles["active_set"] = []
+    consensus = initial.setdefault("consensus", {})
+    consensus["validator_set"] = {"active_set": [], "epoch": 0, "set_hash": ""}
+    consensus.setdefault("phase", {})["current"] = CONSENSUS_PHASE_SOLO_BOOTSTRAP
+    lifecycle = initial.setdefault("validators", {}).setdefault("registry", {})
+    consensus_keys = consensus.setdefault("validators", {}).setdefault("registry", {})
+    for validator in VALIDATORS:
+        pubkey = MLDSA65PrivateKey.generate().public_key().public_bytes_raw().hex()
+        lifecycle[validator] = {
+            "account": validator,
+            "pubkey": pubkey,
+            "status": "eligible",
+        }
+        consensus_keys[validator] = {"pubkey": pubkey, "status": "eligible"}
+
+    assert ballot_profile_status(initial)["active"] is True
+    assert ballot_profile_status(initial)["strict"] is True
+    for node in (producer, follower):
+        node._ledger_store.write(copy.deepcopy(initial))
+        node.state = node._ledger_store.read()
+    _assert_same_committed_state(producer, follower)
+
+    committed_types: list[str] = []
+
+    def commit_block(*, max_txs: int = 0) -> dict:
+        built = producer.produce_block(max_txs=max_txs, allow_empty=True)
+        assert built.ok is True, built.error
+        block = producer.get_latest_block()
+        assert isinstance(block, dict)
+        committed_types.extend(
+            str(tx.get("tx_type"))
+            for tx in block.get("txs", [])
+            if isinstance(tx, dict)
+        )
+        replay = follower.apply_block(block)
+        assert replay.ok is True, replay.error
+        _assert_same_committed_state(producer, follower)
+        return block
+
+    def signed_env(tx_type: str, signer: str, nonce: int, payload: dict) -> dict:
+        return sign_tx_envelope_dict(
+            tx={
+                "chain_id": CHAIN_ID,
+                "tx_type": tx_type,
+                "signer": signer,
+                "nonce": nonce,
+                "payload": payload,
+            },
+            privkey=voter_keys[signer],
+            encoding="hex",
+        )
+
+    def submit_and_commit(tx: dict) -> dict:
+        result = producer.submit_tx(tx, ingress="http")
+        assert result.get("ok") is True, result
+        commit_block(max_txs=4)
+        status = producer.get_tx_status(str(result["tx_id"]))
+        assert status.get("status") == "confirmed", status
+        return result
+
+    proposal = {
+        "proposal_id": "f1b-signed-tier2-validator-set",
+        "title": "Authorize four validator identities",
+        "body": "Controlled testnet proposal, subject to independent governance review",
+        "rules": {
+            "start_stage": "draft",
+            "electorate_scope": "protocol_tier2",
+            "auto_progress_enabled": True,
+            "draft_period_blocks": 0,
+            "poll_period_blocks": 1,
+            "revision_period_blocks": 0,
+            "validation_period_blocks": 0,
+            "voting_period_blocks": 3,
+            "execute_delay_blocks": 0,
+            "finalize_delay_blocks": 0,
+            "max_voting_rounds": 1,
+            "quorum_bps": 10000,
+        },
+        "actions": [
+            {
+                "tx_type": "VALIDATOR_SET_UPDATE",
+                "payload": {"active_set": list(VALIDATORS), "activate_at_epoch": 1},
+            }
+        ],
+    }
+    submitted_create = submit_and_commit(
+        signed_env("GOV_PROPOSAL_CREATE", voters[0], 1, proposal)
+    )
+    assert submitted_create["tx_id"]
+    assert "GOV_PROPOSAL_CREATE" in committed_types
+    record = producer.read_state()["gov_proposals_by_id"][proposal["proposal_id"]]
+    assert record["stage"] == "draft"
+    assert record["actions"] == proposal["actions"]
+    assert record["electorate_scope"] == "protocol_tier2"
+    assert record["eligible_voter_ids"] == list(voters)
+
+    for _ in range(12):
+        current = producer.read_state()["gov_proposals_by_id"][proposal["proposal_id"]]
+        if current["stage"] == "voting":
+            break
+        assert current["stage"] in {"draft", "poll", "revision", "validation"}
+        commit_block()
+    else:
+        pytest.fail("scheduled constitutional governance did not reach voting")
+
+    voting = producer.read_state()["gov_proposals_by_id"][proposal["proposal_id"]]
+    assert voting["eligible_voter_ids"] == list(voters)
+    assert voting["electorate_round"] == 1
+
+    first_vote = signed_env(
+        "GOV_VOTE_CAST", voters[0], 2, {"proposal_id": proposal["proposal_id"], "vote": "yes"}
+    )
+    bad_vote = dict(first_vote)
+    bad_vote["sig"] = "00"
+    rejected = producer.submit_tx(bad_vote, ingress="http")
+    assert rejected.get("ok") is False, rejected
+
+    submit_and_commit(first_vote)
+    after_first = producer.read_state()["gov_proposals_by_id"][proposal["proposal_id"]]
+    assert after_first["vote_counts"]["yes"] == 1
+    assert after_first["votes"] == {}
+    assert after_first["stage"] == "voting"
+
+    submit_and_commit(
+        signed_env(
+            "GOV_VOTE_CAST",
+            voters[1],
+            1,
+            {"proposal_id": proposal["proposal_id"], "vote": "yes"},
+        )
+    )
+
+    for _ in range(12):
+        state = producer.read_state()
+        validator_set = state["consensus"]["validator_set"]
+        if isinstance(validator_set.get("pending"), dict):
+            break
+        commit_block()
+    else:
+        pytest.fail("signed approved governance did not stage validator set")
+
+    final_state = producer.read_state()
+    final_prop = final_state["gov_proposals_by_id"][proposal["proposal_id"]]
+    assert final_prop["tallies"][-1]["payload"]["passed"] is True
+    assert final_prop["tallies"][-1]["payload"]["yes"] == 2
+    assert final_prop["tallies"][-1]["payload"]["quorum_met"] is True
+    assert final_prop["votes"] == {}
+    assert final_prop["executions"]
+    assert final_state["consensus"]["validator_set"]["active_set"] == []
+    pending = final_state["consensus"]["validator_set"]["pending"]
+    assert pending["active_set"] == list(VALIDATORS)
+    assert pending["activate_at_epoch"] == 1
+    assert pending["set_hash"] == validator_set_hash(list(VALIDATORS))
+    for tx_type in (
+        "GOV_PROPOSAL_CREATE",
+        "GOV_VOTE_CAST",
+        "GOV_STAGE_SET",
+        "GOV_VOTING_CLOSE",
+        "GOV_TALLY_PUBLISH",
+        "GOV_EXECUTE",
+        "VALIDATOR_SET_UPDATE",
+    ):
+        assert tx_type in committed_types, (tx_type, committed_types)
+    assert committed_types.count("GOV_VOTE_CAST") == 2
+
+    reloaded_producer = _node(tmp_path, "signed-producer")
+    reloaded_follower = _node(tmp_path, "signed-follower")
+    _assert_same_committed_state(reloaded_producer, reloaded_follower)
+    assert (
+        reloaded_producer.read_state()["consensus"]["validator_set"]["pending"]
+        == reloaded_follower.read_state()["consensus"]["validator_set"]["pending"]
+    )
