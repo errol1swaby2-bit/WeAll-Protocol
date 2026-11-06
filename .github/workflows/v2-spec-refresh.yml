@@ -1,3 +1,4 @@
+# Issue #87 source-bound refresh for genuine four-process ML-DSA quorum preflight, no assertion overrides.
 # Issue #87 exact-source refresh: new signed four-validator QC tests and CI gate; no acceptance-digest override.
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
