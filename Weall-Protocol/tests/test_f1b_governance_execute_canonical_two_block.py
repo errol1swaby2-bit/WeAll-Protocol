@@ -1047,3 +1047,40 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
     assert [
         item for item in persisted["receipts"] if item.get("tx_id") == att_tx_id
     ] == successful_receipts
+
+    # First finality must also recover its signed parent from an earlier
+    # canonical ancestor, not merely from the current tip or a cached envelope.
+    made_b3 = producer.produce_block(max_txs=0, allow_empty=True)
+    assert made_b3.ok is True, made_b3.error
+    b3 = producer.get_latest_block()
+    assert isinstance(b3, dict)
+    assert b3["prev_block_id"] == b2["block_id"]
+    assert follower.apply_block(b3).ok is True
+    _assert_same_committed_state(producer, follower)
+    for node in (producer, follower):
+        historical = node.get_block_by_id(b2["block_id"])
+        assert isinstance(historical, dict)
+        assert historical["block_id"] == b2["block_id"]
+        assert (
+            resolve_committed_solo_attestation_source(
+                state=node.read_state(),
+                source_block=historical,
+                target_block_id=b1["block_id"],
+                chain_id=CHAIN_ID,
+            )
+            == witness
+        )
+    historical_restart = _node(tmp_path, "witness-follower")
+    _assert_same_committed_state(producer, historical_restart)
+    historical = historical_restart.get_block_by_id(b2["block_id"])
+    assert isinstance(historical, dict)
+    assert (
+        resolve_committed_solo_attestation_source(
+            state=historical_restart.read_state(),
+            source_block=historical,
+            target_block_id=b1["block_id"],
+            chain_id=CHAIN_ID,
+        )
+        == witness
+    )
+    assert historical_restart.read_state().get("finalized") == state.get("finalized")
