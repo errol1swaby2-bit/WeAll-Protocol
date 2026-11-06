@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2072,
+  "file_count": 2073,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/f1b-two-process-receipt.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "36a2772ed6b03551bdc0cbbdd07b3975e1c96027e4440a047ec80f2bf51f6df8",
+      "sha256": "a77a1ed24ebcf0ca43333a6db1c247d994e56c8de4b60916c50a418349b1829e",
       "source_id": "SRC-67246AFF3D3EF2FA"
     },
     {
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "0df30a8f86acecc5a0b8fe676118356a4115f8e6908c46de936a39de91fbc301",
+      "sha256": "db3996dfed65f306b4c18bd73f5a2756ac1bfb217a940358aac72faf91e1be3e",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1658,6 +1658,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "eb9892cc39d8ad95c4af3546b8cee6ef2c4002770a98baec9e1b181747bdde01",
       "source_id": "SRC-8B2FB1087D3BF2FB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "157adf23996f5df6c7895d5fff478e623dc7ba7970ac0b08d6ee692444393d85",
+      "source_id": "SRC-378656E471EA8F3F"
     },
     {
       "affected_registers": [
@@ -17279,6 +17292,7 @@
         "TX-0404",
         "TX-0408",
         "TX-0605",
+        "TX-0607",
         "TX-0608",
         "TX-0609",
         "TX-1601",
@@ -17286,7 +17300,7 @@
       ],
       "path": "tests/test_f1b_governance_execute_canonical_two_block.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "22fc908fe2f2cc6a5ed301e99e6fe492269d454e0aee04252989781c2be1ae1d",
+      "sha256": "dd715f066dbf889f37e9f38097f4e747d193d424cdd609f58e087053d2e973ad",
       "source_id": "SRC-103D29F1CAE5F6F2"
     },
     {
