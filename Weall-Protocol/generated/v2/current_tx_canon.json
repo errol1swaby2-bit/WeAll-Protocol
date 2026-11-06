@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "003b105c92c40d88817e1a1c357e55b0b2e09e310bb1c89910240e5c9ac0a2fa"
+    "source_tree_digest": "64854e7faa4abc6c4c0265a7f296e56777d0f1e621644e20e54447b04a66cd3e"
   },
   "rows": [
     {
@@ -10160,6 +10160,7 @@
         "tests/test_devnet_permission_probe.py",
         "tests/test_economics_activation_requires_hardened_governance_electorate.py",
         "tests/test_execution_lane.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_four_gate_safety.py",
         "tests/test_gov_rejects_econ_actions_during_lock.py",
         "tests/test_governance_due_height_trust_boundary.py",
@@ -10458,6 +10459,7 @@
         "tests/p0/test_p0_apply_determinism.py",
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_constitutional_procedure_clock.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_due_height_trust_boundary.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_lineage_witness_contract.py",
@@ -10560,6 +10562,7 @@
         "tests/p0/test_p0_mempool_and_admission_invariants.py",
         "tests/test_combined_journey_gates.py",
         "tests/test_economics_activation_requires_hardened_governance_electorate.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_due_height_trust_boundary.py",
         "tests/test_governance_multi_option_voting.py",
         "tests/test_governance_stale_state_safety.py",
@@ -21743,6 +21746,7 @@
       "tests": [
         "tests/p0/conftest.py",
         "tests/test_combined_journey_gates.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
@@ -21839,6 +21843,7 @@
         "tests/p0/conftest.py",
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_combined_journey_gates.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
