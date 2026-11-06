@@ -50,7 +50,8 @@ jobs:
             scripts/f1b_four_executor_qc_ingress.py \
             tests/test_f1b_four_executor_qc_ingress.py \
             tests/test_f1b_validator_set_canonical_bootstrap_block.py \
-            tests/test_f1b_governance_execute_canonical_two_block.py
+            tests/test_f1b_governance_execute_canonical_two_block.py \
+            tests/test_p0_03_production_composition.py
           ruff check \
             scripts/devnet_cross_node_convergence.py \
             tests/test_devnet_cross_node_convergence.py \
@@ -60,7 +61,8 @@ jobs:
             scripts/f1b_four_executor_qc_ingress.py \
             tests/test_f1b_four_executor_qc_ingress.py \
             tests/test_f1b_validator_set_canonical_bootstrap_block.py \
-            tests/test_f1b_governance_execute_canonical_two_block.py
+            tests/test_f1b_governance_execute_canonical_two_block.py \
+            tests/test_p0_03_production_composition.py
           pytest -q \
             tests/test_devnet_cross_node_convergence.py \
             tests/test_devnet_cross_node_live_runner.py \
@@ -70,6 +72,7 @@ jobs:
             tests/test_f1b_four_executor_qc_ingress.py \
             tests/test_f1b_validator_set_canonical_bootstrap_block.py \
             tests/test_f1b_governance_execute_canonical_two_block.py
+            tests/test_p0_03_production_composition.py::test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_restart
 
       - name: Live independent-process producer/follower receipt and replay proof
         working-directory: Weall-Protocol
