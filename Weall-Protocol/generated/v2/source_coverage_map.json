@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2066,
+  "file_count": 2068,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/f1b-two-process-receipt.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "a55fd90c8ecc3cf32dd1d741b6a5984a69fbf66b4deb46684d2ac022fe5d6696",
+      "sha256": "af38315daa70a9bc18d753bfeb8c3abffd9d70e077e7e617e27dbebe7a561349",
       "source_id": "SRC-67246AFF3D3EF2FA"
     },
     {
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "e25fe6e9caaba7159f1a83be9b6440d2e8eba98be0e441e04d50af3cbcc4bcdf",
+      "sha256": "77b8022eb5da9c14913fb247a062b75e250fcb76ce1f8e09b0427356e9b450b7",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -4468,6 +4468,20 @@
       "mappings": [
         "M-076"
       ],
+      "path": "scripts/f1b_four_executor_qc_ingress.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "fec9350c9a2774ef0c516e567d3fc8d8c162cdaff626ad4e00bc33e2d305c810",
+      "source_id": "SRC-9A002AA12E546D0D"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
       "path": "scripts/f1b_four_process_signed_qc_preflight.py",
       "primary_mechanism_id": "M-076",
       "sha256": "d501b827990de3b5cd2d3c3dd75da90204fe2c76b74ba332073909c768c82fc9",
@@ -6973,7 +6987,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "567df2791340f6da01db03d685ab49f37be0da580184b295e40f54b730467f14",
+      "sha256": "ff6c5c0e5caa7d54a3c2077fae71e37e4a883f1b0013c9be34ab78fb3f217755",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -17205,6 +17219,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "347573e2017a4839fa5eb79bc5d42b15713e4ee57eb3497392019e327d08facf",
       "source_id": "SRC-0583FD1E81402243"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_f1b_four_executor_qc_ingress.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "d4aa471f388c145a9b49c48593a39cfcbd77e67d61cfe88f9c57af1470ecf689",
+      "source_id": "SRC-B61AEFD672AFA957"
     },
     {
       "affected_registers": [
