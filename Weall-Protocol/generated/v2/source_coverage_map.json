@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2068,
+  "file_count": 2069,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/f1b-two-process-receipt.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "af38315daa70a9bc18d753bfeb8c3abffd9d70e077e7e617e27dbebe7a561349",
+      "sha256": "3c300c9e9543b479e87178a061a2dc1331de68dbd2b98e1bbfe6f739f46f3a34",
       "source_id": "SRC-67246AFF3D3EF2FA"
     },
     {
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "d6ef9fbc6b999a759e5a67f94d8d190ba2ac5d66f559fb3b6008e3b7904b0493",
+      "sha256": "d7637a5869863e202bfcfcbc871573ee7e7fafec87129d94e0beb039fe511ef9",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -17262,6 +17262,22 @@
       "primary_mechanism_id": "M-076",
       "sha256": "e2c020c2b6c11f42dd4ab81c82f9ab0e6a588fe9ff34822f021d055abfd96fbc",
       "source_id": "SRC-023A376EAB0D47CA"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0605"
+      ],
+      "path": "tests/test_f1b_validator_set_canonical_bootstrap_block.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "1d518b803d97f61978a0be01c6709b16cac22aa76f91e3b9e5df706676e02d8e",
+      "source_id": "SRC-8DD90B668EEBEFD6"
     },
     {
       "affected_registers": [
