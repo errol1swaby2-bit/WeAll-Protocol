@@ -726,9 +726,10 @@ def test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_res
         privs=privs,
         signed_rejection_signer=signer,
     )
-    assert _prepare_transition_qc(
-        nodes, boundary_id=boundary_id, pubs=pubs, privs=privs
-    )["block_id"] == boundary_id
+    assert (
+        _prepare_transition_qc(nodes, boundary_id=boundary_id, pubs=pubs, privs=privs)["block_id"]
+        == boundary_id
+    )
 
     leader1 = leader_for_view(VALIDATORS, 1)
     tx = sign_tx_envelope_dict(
@@ -746,20 +747,13 @@ def test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_res
     assert accepted.get("ok") is True, accepted
     tx_id = str(accepted["tx_id"])
 
-    leader1_actual, b1 = _propose(
-        nodes, view=1, pubs=pubs, privs=privs, max_txs=1
-    )
+    leader1_actual, b1 = _propose(nodes, view=1, pubs=pubs, privs=privs, max_txs=1)
     assert leader1_actual == leader1
     assert b1["prev_block_id"] == boundary_id
-    included = [
-        item for item in b1["txs"]
-        if item.get("tx_type") == "ACCOUNT_SESSION_KEY_REVOKE"
-    ]
+    included = [item for item in b1["txs"] if item.get("tx_type") == "ACCOUNT_SESSION_KEY_REVOKE"]
     assert len(included) == 1
     assert included[0]["tx_id"] == tx_id
-    rejected_receipts = [
-        item for item in b1["receipts"] if item.get("tx_id") == tx_id
-    ]
+    rejected_receipts = [item for item in b1["receipts"] if item.get("tx_id") == tx_id]
     assert len(rejected_receipts) == 1
     receipt = rejected_receipts[0]
     assert receipt["ok"] is False
@@ -795,8 +789,7 @@ def test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_res
         assert node.state["height"] == 2, vid
         assert node.state["accounts"][signer]["nonce"] == 1, vid
         durable_receipts = [
-            item for item in node.get_latest_block()["receipts"]
-            if item.get("tx_id") == tx_id
+            item for item in node.get_latest_block()["receipts"] if item.get("tx_id") == tx_id
         ]
         assert durable_receipts == [receipt], vid
         root = compute_state_root(node.state)
@@ -816,8 +809,7 @@ def test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_res
         assert restarted.state["tip"] == b1["block_id"]
         assert restarted.state["accounts"][signer]["nonce"] == 1
         assert [
-            item for item in restarted.get_latest_block()["receipts"]
-            if item.get("tx_id") == tx_id
+            item for item in restarted.get_latest_block()["receipts"] if item.get("tx_id") == tx_id
         ] == [receipt]
         assert compute_state_root(restarted.state) in roots
         replay_after_restart = restarted.submit_tx(tx, ingress="http")
