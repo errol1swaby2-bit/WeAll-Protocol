@@ -21,10 +21,16 @@ from weall.runtime.ballot_policy import (
     CONTROLLED_TESTNET_BALLOT_PROFILE,
     ballot_profile_status,
 )
-from weall.runtime.bft_hotstuff import CONSENSUS_PHASE_SOLO_BOOTSTRAP, validator_set_hash
+from weall.runtime.bft_hotstuff import (
+    CONSENSUS_PHASE_BFT_ACTIVE,
+    CONSENSUS_PHASE_SOLO_BOOTSTRAP,
+    validator_set_hash,
+)
+from weall.runtime.domain_apply import ApplyError, apply_tx
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.system_tx_engine import enqueue_system_tx
+from weall.runtime.tx_admission_types import TxEnvelope
 
 ROOT = Path(__file__).resolve().parents[1]
 CHAIN_ID = "f1b-governance-execute-two-block-fixture"
@@ -346,7 +352,11 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
         "actions": [
             {
                 "tx_type": "VALIDATOR_SET_UPDATE",
-                "payload": {"active_set": list(VALIDATORS), "activate_at_epoch": 1},
+                "payload": {
+                    "active_set": list(VALIDATORS),
+                    "activate_at_epoch": 1,
+                    "activate_bft_at_epoch": 1,
+                },
             }
         ],
     }
@@ -417,6 +427,8 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
     assert pending["active_set"] == list(VALIDATORS)
     assert pending["activate_at_epoch"] == 1
     assert pending["set_hash"] == validator_set_hash(list(VALIDATORS))
+    assert pending["phase"] == CONSENSUS_PHASE_BFT_ACTIVE
+    assert final_state["consensus"].get("epochs", {}).get("current", 0) == 0
     for tx_type in (
         "GOV_PROPOSAL_CREATE",
         "GOV_VOTE_CAST",
@@ -435,4 +447,76 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
     assert (
         reloaded_producer.read_state()["consensus"]["validator_set"]["pending"]
         == reloaded_follower.read_state()["consensus"]["validator_set"]["pending"]
+    )
+
+    # Exercise the existing EPOCH_OPEN domain applier against the *actual*
+    # signed-vote-produced and committed pending set. This is intentionally an
+    # in-memory activation projection: epoch-open finality/QC and canonical
+    # block inclusion remain separate obligations, not simulated proof.
+    # In particular, a mere pending four-validator set is never BFT-active.
+    projected = [
+        copy.deepcopy(reloaded_producer.read_state()),
+        copy.deepcopy(reloaded_follower.read_state()),
+    ]
+    for state in projected:
+        assert state["consensus"]["phase"]["current"] == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+        assert state["consensus"]["validator_set"]["active_set"] == []
+
+        with pytest.raises(ApplyError) as invalid_epoch:
+            apply_tx(
+                copy.deepcopy(state),
+                TxEnvelope(
+                    tx_type="EPOCH_OPEN",
+                    signer="SYSTEM",
+                    nonce=1,
+                    payload={"epoch": 2},
+                    sig="",
+                    parent="projection:invalid-epoch",
+                    system=True,
+                ),
+            )
+        assert "epoch_open_must_advance_sequentially" in str(invalid_epoch.value)
+
+        opened = apply_tx(
+            state,
+            TxEnvelope(
+                tx_type="EPOCH_OPEN",
+                signer="SYSTEM",
+                nonce=2,
+                payload={"epoch": 1},
+                sig="",
+                parent="projection:canonical-epoch-boundary-not-committed",
+                system=True,
+            ),
+        )
+        assert opened is not None
+        activated = opened.get("validator_set_activated")
+        assert isinstance(activated, dict)
+        assert activated["active_set"] == list(VALIDATORS)
+        assert activated["activate_at_epoch"] == 1
+        assert activated["validator_set_hash"] == validator_set_hash(list(VALIDATORS))
+        assert activated["validator_epoch"] == 1
+        assert activated["consensus_phase"] == CONSENSUS_PHASE_BFT_ACTIVE
+        assert state["consensus"]["epochs"]["current"] == 1
+        assert state["roles"]["validators"]["active_set"] == list(VALIDATORS)
+        assert state["consensus"]["validator_set"]["active_set"] == list(VALIDATORS)
+        assert state["consensus"]["validator_set"]["set_hash"] == validator_set_hash(
+            list(VALIDATORS)
+        )
+        assert "pending" not in state["consensus"]["validator_set"]
+        bridge = state["consensus"]["validator_set"]["transition_bridge"]
+        assert bridge["schema"] == "weall.validator-set-transition.v1"
+        assert bridge["rule"] == "new_set_qc_over_canonical_boundary"
+        assert bridge["from_validator_epoch"] == 0
+        assert bridge["to_validator_epoch"] == 1
+        assert bridge["to_validator_set_hash"] == validator_set_hash(list(VALIDATORS))
+
+    assert compute_state_root(projected[0]) == compute_state_root(projected[1])
+    # The projection must never be passed off as a durable canonical epoch
+    # event: the reloaded nodes still carry the staged set and solo phase.
+    _assert_same_committed_state(reloaded_producer, reloaded_follower)
+    assert "pending" in reloaded_producer.read_state()["consensus"]["validator_set"]
+    assert (
+        reloaded_producer.read_state()["consensus"]["phase"]["current"]
+        == CONSENSUS_PHASE_SOLO_BOOTSTRAP
     )
