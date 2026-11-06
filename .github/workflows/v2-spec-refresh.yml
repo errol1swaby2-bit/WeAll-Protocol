@@ -1,3 +1,4 @@
+# PR82 verified-QC3 to canonical BLOCK_FINALIZE receipt in finalized descendant plus restart proof refresh.
 # PR82 P0-03 signed failed-apply four-validator linked-QC finality receipt and restart regression gate refresh.
 # PR82 signed civic validator-set BFT epoch activation domain-projection rehearsal: reviewer artifact refresh.
 # PR82 strict SYSTEM governance close/tally schema aligned to already emitted canonical queue payloads; signed Tier2 lifecycle proof.
