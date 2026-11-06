@@ -95,27 +95,17 @@ def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
                 st = executor.state
                 # Keys/roles are fixtures; only validator-set activation
                 # below is derived from real consensus domain apply.
-                st.setdefault("params", {})[
-                    "validator_candidate_lifecycle_gate_enabled"
-                ] = True
-                st.setdefault("roles", {}).setdefault("validators", {})[
-                    "active_set"
-                ] = []
+                st.setdefault("params", {})["validator_candidate_lifecycle_gate_enabled"] = True
+                st.setdefault("roles", {}).setdefault("validators", {})["active_set"] = []
                 consensus = st.setdefault("consensus", {})
                 consensus["validator_set"] = {
                     "active_set": [],
                     "epoch": 0,
                     "set_hash": "",
                 }
-                consensus.setdefault("phase", {})[
-                    "current"
-                ] = CONSENSUS_PHASE_SOLO_BOOTSTRAP
-                registry = consensus.setdefault("validators", {}).setdefault(
-                    "registry", {}
-                )
-                canonical_registry = st.setdefault("validators", {}).setdefault(
-                    "registry", {}
-                )
+                consensus.setdefault("phase", {})["current"] = CONSENSUS_PHASE_SOLO_BOOTSTRAP
+                registry = consensus.setdefault("validators", {}).setdefault("registry", {})
+                canonical_registry = st.setdefault("validators", {}).setdefault("registry", {})
                 for signer, pk in registry_keys.items():
                     registry[signer] = {"pubkey": pk, "status": "eligible"}
                     canonical_registry[signer] = {
@@ -126,12 +116,15 @@ def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
                 executor.state = st
                 if executor._active_validators():
                     raise AssertionError("role_only_authorized_consensus_signing")
-                if executor.bft_make_vote_for_block(
-                    view=90,
-                    block_id="pre-activation",
-                    block_hash="a" * 64,
-                    parent_id="synthetic-parent",
-                ) is not None:
+                if (
+                    executor.bft_make_vote_for_block(
+                        view=90,
+                        block_id="pre-activation",
+                        block_hash="a" * 64,
+                        parent_id="synthetic-parent",
+                    )
+                    is not None
+                ):
                     raise AssertionError("pre_activation_vote_was_signed")
 
                 update = TxEnvelope(
@@ -150,9 +143,9 @@ def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
                 # Strict lifecycle set authority must reject mismatched
                 # canonical vs consensus validator verification keys.
                 mismatched = copy.deepcopy(st)
-                mismatched["consensus"]["validators"]["registry"][identity][
-                    "pubkey"
-                ] = "invalid-consensus-key"
+                mismatched["consensus"]["validators"]["registry"][identity]["pubkey"] = (
+                    "invalid-consensus-key"
+                )
                 try:
                     apply_tx(mismatched, update)
                 except ConsensusApplyError as exc:
@@ -166,12 +159,15 @@ def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
                     raise AssertionError("validator_set_update_not_pending")
                 if executor._active_validators() != []:
                     raise AssertionError("future_set_activated_before_epoch_open")
-                if executor.bft_make_vote_for_block(
-                    view=90,
-                    block_id="pending-activation",
-                    block_hash="b" * 64,
-                    parent_id="synthetic-parent",
-                ) is not None:
+                if (
+                    executor.bft_make_vote_for_block(
+                        view=90,
+                        block_id="pending-activation",
+                        block_hash="b" * 64,
+                        parent_id="synthetic-parent",
+                    )
+                    is not None
+                ):
                     raise AssertionError("pending_activation_vote_was_signed")
                 opened = apply_tx(
                     st,
