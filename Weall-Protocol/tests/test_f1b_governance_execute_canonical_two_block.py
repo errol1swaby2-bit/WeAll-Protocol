@@ -1,10 +1,10 @@
-"""Issue #87: GOV_EXECUTE -> VALIDATOR_SET_UPDATE in two real bootstrap blocks.
+"""Issue #87: Canonical governance-to-validator-set replay rehearsals.
 
-The tallied governance proposal, validator registry, queue parent, and initial
-eligibility remain fixtures. The production block builder/commit and independent
-follower replay exercise real system-tx emission, binding and domain execution.
-This does not establish a signed governance vote, on-chain operator lifecycle,
-four-validator BFT quorum finality, or authenticated transport.
+The original two-block test uses a tallied proposal and registry fixtures. The
+signed-governance test additionally submits a real ML-DSA-signed proposal and
+ballots through public-style admission and committed producer/follower blocks.
+Both still seed initial Tier-2 eligibility and validator registry authority.
+Neither proves on-chain PoH, four-validator BFT finality or peer transport.
 """
 
 from __future__ import annotations
@@ -15,13 +15,11 @@ from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.ballot_policy import (
     CONTROLLED_TESTNET_BALLOT_PROFILE,
     ballot_profile_status,
 )
-
 from weall.runtime.bft_hotstuff import CONSENSUS_PHASE_SOLO_BOOTSTRAP, validator_set_hash
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
