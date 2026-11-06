@@ -41,6 +41,7 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
+          ruff format --diff tests/test_f1b_governance_execute_canonical_two_block.py
           ruff format --check \
             scripts/devnet_cross_node_convergence.py \
             tests/test_devnet_cross_node_convergence.py \
