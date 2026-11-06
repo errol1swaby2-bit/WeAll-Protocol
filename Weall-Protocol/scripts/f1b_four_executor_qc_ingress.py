@@ -44,9 +44,7 @@ def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
     private = MLDSA65PrivateKey.generate()
     pubkey = private.public_key().public_bytes_raw().hex()
     private_hex = private.private_bytes_raw().hex()
-    outgoing.put(
-        {"event": "ready", "id": identity, "pid": os.getpid(), "pubkey": pubkey}
-    )
+    outgoing.put({"event": "ready", "id": identity, "pid": os.getpid(), "pubkey": pubkey})
     executor: WeAllExecutor | None = None
     try:
         while True:
@@ -90,19 +88,13 @@ def _worker(identity: str, incoming: Any, outgoing: Any, root: str) -> None:
                     tx_index_path=str(ROOT / "generated" / "tx_index.json"),
                 )
                 st = executor.state
-                st.setdefault("roles", {}).setdefault("validators", {})[
-                    "active_set"
-                ] = list(IDS)
+                st.setdefault("roles", {}).setdefault("validators", {})["active_set"] = list(IDS)
                 consensus = st.setdefault("consensus", {})
                 consensus.setdefault("validator_set", {}).update(
                     {"active_set": list(IDS), "epoch": EPOCH, "set_hash": SET_HASH}
                 )
-                consensus.setdefault("phase", {})[
-                    "current"
-                ] = CONSENSUS_PHASE_BFT_ACTIVE
-                registry = consensus.setdefault("validators", {}).setdefault(
-                    "registry", {}
-                )
+                consensus.setdefault("phase", {})["current"] = CONSENSUS_PHASE_BFT_ACTIVE
+                registry = consensus.setdefault("validators", {}).setdefault("registry", {})
                 for signer, pk in registry_keys.items():
                     registry[signer] = {"pubkey": pk, "status": "active"}
                 executor._ledger_store.write(st)
@@ -161,9 +153,7 @@ class Cluster:
         try:
             for identity in IDS:
                 iq, oq = self.ctx.Queue(), self.ctx.Queue()
-                process = self.ctx.Process(
-                    target=_worker, args=(identity, iq, oq, str(self.root))
-                )
+                process = self.ctx.Process(target=_worker, args=(identity, iq, oq, str(self.root)))
                 self.inboxes[identity], self.outboxes[identity] = iq, oq
                 self.workers[identity] = process
                 process.start()
@@ -234,8 +224,7 @@ def run() -> Json:
         with Cluster(Path(td)) as cluster:
             block = _block(91)
             votes = [
-                cluster.call(identity, "vote", "vote", block=block)["value"]
-                for identity in IDS[:3]
+                cluster.call(identity, "vote", "vote", block=block)["value"] for identity in IDS[:3]
             ]
             for vote in votes[:2]:
                 if cluster.call(IDS[0], "receive", "receipt", vote=vote)["qc"] is not None:
@@ -263,8 +252,7 @@ def run() -> Json:
 
             partition = _block(92)
             partition_votes = [
-                cluster.call(identity, "vote", "vote", block=partition)["value"]
-                for identity in IDS
+                cluster.call(identity, "vote", "vote", block=partition)["value"] for identity in IDS
             ]
             for vote in partition_votes[:2]:
                 if cluster.call(IDS[1], "receive", "receipt", vote=vote)["qc"] is not None:
@@ -272,9 +260,7 @@ def run() -> Json:
             for vote in partition_votes[2:]:
                 if cluster.call(IDS[2], "receive", "receipt", vote=vote)["qc"] is not None:
                     raise AssertionError("right_partition_formed_quorum")
-            joined = cluster.call(
-                IDS[1], "receive", "receipt", vote=partition_votes[2]
-            )["qc"]
+            joined = cluster.call(IDS[1], "receive", "receipt", vote=partition_votes[2])["qc"]
             if not isinstance(joined, dict):
                 raise AssertionError("rejoined_quorum_missing")
             return {
