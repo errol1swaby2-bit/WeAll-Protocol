@@ -273,14 +273,10 @@ def _validate_snapshot_validator_authority(snapshot: Json) -> None:
     if stored_set_hash and stored_set_hash != validator_set_hash(active):
         raise StateSyncVerifyError("snapshot_validator_authority_invalid:set_hash_mismatch")
 
-    issue = first_validator_member_key_authority_issue(
-        snapshot, active, normalize_pubkey=_as_str
-    )
+    issue = first_validator_member_key_authority_issue(snapshot, active, normalize_pubkey=_as_str)
     if issue is not None:
         reason, account = issue
-        raise StateSyncVerifyError(
-            f"snapshot_validator_authority_invalid:{reason}:{account}"
-        )
+        raise StateSyncVerifyError(f"snapshot_validator_authority_invalid:{reason}:{account}")
 
 
 def _validate_snapshot_semantics(snapshot: Json) -> None:
