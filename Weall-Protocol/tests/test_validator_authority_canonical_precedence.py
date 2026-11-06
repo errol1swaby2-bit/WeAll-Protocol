@@ -4,7 +4,7 @@ import copy
 
 import pytest
 
-from weall.net.state_sync import StateSyncVerifyError, _validate_snapshot_validator_authority
+from weall.net import state_sync
 from weall.runtime.apply.dispute import _active_validator_ids as dispute_active_validator_ids
 from weall.runtime.apply.governance import (
     _configured_active_validator_ids as governance_active_validator_ids,
@@ -223,10 +223,10 @@ def test_snapshot_and_canonical_update_share_key_authority_failure_contract(
 
     before = copy.deepcopy(state)
     with pytest.raises(
-        StateSyncVerifyError,
+        state_sync.StateSyncVerifyError,
         match=f"snapshot_validator_authority_invalid:{snapshot_reason}:alice",
     ):
-        _validate_snapshot_validator_authority(state)
+        state_sync._validate_snapshot_validator_authority(state)
     assert state == before
 
     with pytest.raises(ApplyError) as caught:
@@ -251,7 +251,7 @@ def test_snapshot_and_canonical_update_accept_matching_registered_validator_keys
     }
     before = copy.deepcopy(state)
 
-    _validate_snapshot_validator_authority(state)
+    state_sync._validate_snapshot_validator_authority(state)
     assert state == before
     result = apply_tx(state, _set_update(["alice"]))
     assert result["pending"] is True
