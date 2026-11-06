@@ -62,9 +62,7 @@ def _approve(state: dict, account: str, epoch: int = 1) -> dict:
 
 
 @pytest.mark.parametrize("first,second", [CANDIDATES, CANDIDATES[::-1]])
-def test_two_distinct_approvals_for_one_epoch_fail_closed(
-    first: str, second: str
-) -> None:
+def test_two_distinct_approvals_for_one_epoch_fail_closed(first: str, second: str) -> None:
     state = _state()
     _approve(state, first)
     before_pending = copy.deepcopy(state["consensus"]["validator_set"]["pending"])
