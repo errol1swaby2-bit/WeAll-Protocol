@@ -568,3 +568,107 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
                     system=False,
                 ),
             )
+
+
+def test_genesis_derived_solo_validator_signed_attestation_replays_without_invented_finality(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Prove genesis-derived solo authority can attest, not that finality exists.
+
+    The real genesis bootstrap constructor creates the singleton validator
+    identity/key at height zero. Its signed BLOCK_ATTEST must be canonically
+    admitted, committed, independently replayed and durable. The existing
+    runtime does NOT schedule a BLOCK_FINALIZE from that attestation; this
+    regression records the precise missing handoff without manufacturing a
+    queued SYSTEM receipt or mutating the consensus validator set.
+    """
+    _configure(monkeypatch)
+    monkeypatch.setenv("WEALL_STRICT_TX_SIG_DOMAIN", "1")
+    secret = MLDSA65PrivateKey.generate()
+    pubkey = secret.public_key().public_bytes_raw().hex()
+    signer = "@f1b-genesis-solo"
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", signer)
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_PUBKEY", pubkey)
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_REPUTATION", "10.0")
+
+    producer = _node(tmp_path, "solo-genesis-producer")
+    follower = _node(tmp_path, "solo-genesis-follower")
+    for node in (producer, follower):
+        genesis = node.read_state()
+        assert genesis["height"] == 0
+        assert genesis["accounts"][signer]["poh_tier"] == 2
+        assert genesis["roles"]["validators"]["active_set"] == [signer]
+        assert genesis["consensus"]["validators"]["registry"][signer]["pubkey"] == pubkey
+        assert node._active_validators() == [signer]
+        assert node._current_consensus_phase() == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+        assert node.bft_leader_propose(max_txs=0) is None
+    _assert_same_committed_state(producer, follower)
+
+    first = producer.produce_block(max_txs=0, allow_empty=True)
+    assert first.ok is True, first.error
+    b1 = producer.get_latest_block()
+    assert isinstance(b1, dict) and int(b1["height"]) == 1
+    applied_first = follower.apply_block(b1)
+    assert applied_first.ok is True, applied_first.error
+    _assert_same_committed_state(producer, follower)
+
+    attestation = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN_ID,
+            "tx_type": "BLOCK_ATTEST",
+            "signer": signer,
+            "nonce": 1,
+            "payload": {
+                "block_id": b1["block_id"],
+                "height": 1,
+                "round": 0,
+                "attestation": "yes",
+            },
+        },
+        privkey=secret.private_bytes_raw().hex(),
+        encoding="hex",
+    )
+    submitted = producer.submit_tx(attestation, ingress="http")
+    assert submitted.get("ok") is True, submitted
+    attestation_id = str(submitted["tx_id"])
+    second = producer.produce_block(max_txs=1, allow_empty=True)
+    assert second.ok is True, second.error
+    b2 = producer.get_latest_block()
+    assert isinstance(b2, dict)
+    assert any(
+        rec.get("tx_id") == attestation_id and rec.get("ok") is True
+        and rec.get("tx_type") == "BLOCK_ATTEST"
+        for rec in b2["receipts"]
+    )
+    assert follower.apply_block(b2).ok is True
+    _assert_same_committed_state(producer, follower)
+
+    # Even after an *additional* committed and replayed successor, the
+    # current scheduler has no authorized first-finality witness to emit.
+    third = producer.produce_block(max_txs=0, allow_empty=True)
+    assert third.ok is True, third.error
+    b3 = producer.get_latest_block()
+    assert isinstance(b3, dict)
+    assert not any(
+        tx.get("tx_type") in {"BLOCK_FINALIZE", "EPOCH_OPEN"}
+        for tx in b3.get("txs", [])
+        if isinstance(tx, dict)
+    )
+    assert follower.apply_block(b3).ok is True
+    _assert_same_committed_state(producer, follower)
+
+    for node in (producer, follower):
+        state = node.read_state()
+        assert state["block_attestations"][b1["block_id"]][signer]["attestation"] == "yes"
+        assert state["consensus"].get("epochs", {}).get("current", 0) == 0
+        assert node._current_consensus_phase() == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+        finalized = state.get("finalized")
+        assert not isinstance(finalized, dict) or int(finalized.get("height", 0)) == 0
+
+    restarted = _node(tmp_path, "solo-genesis-follower")
+    _assert_same_committed_state(producer, restarted)
+    assert restarted.read_state()["block_attestations"][b1["block_id"]][signer][
+        "attestation"
+    ] == "yes"
+    assert restarted._current_consensus_phase() == CONSENSUS_PHASE_SOLO_BOOTSTRAP
