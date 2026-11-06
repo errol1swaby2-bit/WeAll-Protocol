@@ -48,7 +48,8 @@ jobs:
             scripts/f1b_four_process_signed_qc_preflight.py \
             tests/test_f1b_four_process_signed_qc_preflight.py \
             scripts/f1b_four_executor_qc_ingress.py \
-            tests/test_f1b_four_executor_qc_ingress.py
+            tests/test_f1b_four_executor_qc_ingress.py \
+            tests/test_f1b_validator_set_canonical_bootstrap_block.py
           ruff check \
             scripts/devnet_cross_node_convergence.py \
             tests/test_devnet_cross_node_convergence.py \
@@ -56,14 +57,16 @@ jobs:
             scripts/f1b_four_process_signed_qc_preflight.py \
             tests/test_f1b_four_process_signed_qc_preflight.py \
             scripts/f1b_four_executor_qc_ingress.py \
-            tests/test_f1b_four_executor_qc_ingress.py
+            tests/test_f1b_four_executor_qc_ingress.py \
+            tests/test_f1b_validator_set_canonical_bootstrap_block.py
           pytest -q \
             tests/test_devnet_cross_node_convergence.py \
             tests/test_devnet_cross_node_live_runner.py \
             tests/test_tx_status_apply_rejection_truth.py \
             tests/test_f1b_four_validator_qc_contract.py \
             tests/test_f1b_four_process_signed_qc_preflight.py \
-            tests/test_f1b_four_executor_qc_ingress.py
+            tests/test_f1b_four_executor_qc_ingress.py \
+            tests/test_f1b_validator_set_canonical_bootstrap_block.py
 
       - name: Live independent-process producer/follower receipt and replay proof
         working-directory: Weall-Protocol
