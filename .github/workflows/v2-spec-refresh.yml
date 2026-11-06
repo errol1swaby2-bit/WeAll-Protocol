@@ -1,3 +1,4 @@
+# PR82 refresh for read-only signed solo finality parent witness resolver and adversarial alias checks.
 # PR82 signed prior-committed BLOCK_ATTEST parent provenance and genesis-witness separation proof refresh.
 # PR82 source-bound refresh for adversarial signed solo attestation and one-shot rejected-receipt nonce regressions.
 # PR82 signed genesis-solo BLOCK_ATTEST rehearsal and first-finality non-normative design review: regenerate exact source-bound derivatives.
