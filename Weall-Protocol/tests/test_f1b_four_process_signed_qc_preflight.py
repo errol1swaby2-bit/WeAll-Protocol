@@ -7,7 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "f1b_four_process_signed_qc_preflight.py"
 

@@ -105,7 +105,7 @@ class FourProcessSigners(AbstractContextManager["FourProcessSigners"]):
         self.pubkeys: dict[str, str] = {}
         self.pids: dict[str, int] = {}
 
-    def __enter__(self) -> "FourProcessSigners":
+    def __enter__(self) -> FourProcessSigners:
         try:
             for signer in VALIDATORS:
                 inbox = self.context.Queue()
