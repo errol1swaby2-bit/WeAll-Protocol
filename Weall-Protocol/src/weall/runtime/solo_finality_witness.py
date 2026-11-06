@@ -67,6 +67,10 @@ def _active_solo_authority(state: Json) -> str:
     consensus = state.get("consensus")
     phase_root = consensus.get("phase") if isinstance(consensus, dict) else None
     phase = phase_root.get("current") if isinstance(phase_root, dict) else ""
+    _require(
+        _s(phase).lower() == CONSENSUS_PHASE_SOLO_BOOTSTRAP,
+        "solo_bootstrap_phase_not_explicit",
+    )
     normalized = normalize_consensus_phase(phase, validator_count=len(active))
     _require(normalized == CONSENSUS_PHASE_SOLO_BOOTSTRAP, "not_solo_bootstrap_phase")
     return active[0]
