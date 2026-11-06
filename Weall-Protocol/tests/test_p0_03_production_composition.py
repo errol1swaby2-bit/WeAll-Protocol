@@ -853,7 +853,8 @@ def test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_res
         assert node._bft.finalized_block_id == b4["block_id"], vid
         assert node.state["tip"] == b4["block_id"], vid
         assert node.state["finalized"] == {
-            "block_id": b1["block_id"], "height": int(b1["height"])
+            "block_id": b1["block_id"],
+            "height": int(b1["height"]),
         }, vid
         assert node.state["accounts"][signer]["nonce"] == 1
         latest = node.get_latest_block()
@@ -870,6 +871,7 @@ def test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_res
         assert compute_state_root(restarted_finality.state) in b4_roots
         assert restarted_finality.state["tip"] == b4["block_id"]
         assert restarted_finality.state["finalized"] == {
-            "block_id": b1["block_id"], "height": int(b1["height"])
+            "block_id": b1["block_id"],
+            "height": int(b1["height"]),
         }
         assert restarted_finality.get_latest_block()["receipts"] == b4["receipts"]
