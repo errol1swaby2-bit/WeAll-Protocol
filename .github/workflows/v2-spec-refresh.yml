@@ -1,3 +1,4 @@
+# PR82 signed genesis-solo BLOCK_ATTEST rehearsal and first-finality non-normative design review: regenerate exact source-bound derivatives.
 # PR82 source-bound refresh for pending-set bootstrap no-silent-epoch regression; no production consensus change.
 # PR82 verified-QC3 to canonical BLOCK_FINALIZE receipt in finalized descendant plus restart proof refresh.
 # PR82 P0-03 signed failed-apply four-validator linked-QC finality receipt and restart regression gate refresh.
