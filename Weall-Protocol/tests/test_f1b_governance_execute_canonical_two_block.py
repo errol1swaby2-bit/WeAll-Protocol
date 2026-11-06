@@ -28,6 +28,10 @@ from weall.runtime.bft_hotstuff import (
 )
 from weall.runtime.domain_apply import ApplyError, apply_tx
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.solo_finality_witness import (
+    SoloFinalityWitnessError,
+    resolve_committed_solo_attestation_source,
+)
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission_types import TxEnvelope
@@ -929,6 +933,57 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
     assert successful_receipts[0]["ok"] is True
     assert verify_tx_signature(state, signed_parents[0]) is True
 
+    witness = resolve_committed_solo_attestation_source(
+        state=state,
+        source_block=b2,
+        target_block_id=b1["block_id"],
+        chain_id=CHAIN_ID,
+    )
+    assert witness.source_block_id == b2["block_id"]
+    assert witness.source_height == 2
+    assert witness.target_block_id == b1["block_id"]
+    assert witness.target_height == 1
+    assert witness.validator == signer
+    assert witness.parent_tx_id == att_tx_id
+    assert witness.parent_nonce == 1
+    assert (
+        resolve_committed_solo_attestation_source(
+            state=follower.read_state(),
+            source_block=follower.get_latest_block(),
+            target_block_id=b1["block_id"],
+            chain_id=CHAIN_ID,
+        )
+        == witness
+    )
+
+    altered_receipt = copy.deepcopy(b2)
+    altered_receipt["receipts"][0]["ok"] = False
+    altered_parent = copy.deepcopy(b2)
+    altered_parent["txs"][0]["sig"] = "00"
+    altered_id = copy.deepcopy(b2)
+    altered_id["block_id"] = "fake-source-id"
+    altered_ancestry = copy.deepcopy(state)
+    altered_ancestry["blocks"][b2["block_id"]]["prev_block_id"] = "fake-parent"
+    altered_vote = copy.deepcopy(state)
+    altered_vote["block_attestations"][b1["block_id"]][signer]["attestation"] = "no"
+    altered_active = copy.deepcopy(state)
+    altered_active["roles"]["validators"]["active_set"] = [signer, "@unrelated-validator"]
+    for hostile_state, hostile_block in (
+        (state, altered_receipt),
+        (state, altered_parent),
+        (state, altered_id),
+        (altered_ancestry, b2),
+        (altered_vote, b2),
+        (altered_active, b2),
+    ):
+        with pytest.raises(SoloFinalityWitnessError):
+            resolve_committed_solo_attestation_source(
+                state=hostile_state,
+                source_block=hostile_block,
+                target_block_id=b1["block_id"],
+                chain_id=CHAIN_ID,
+            )
+
     summary = state["block_attestations"][b1["block_id"]][signer]
     assert summary["attestation"] == "yes"
     assert summary["payload"]["block_id"] == b1["block_id"]
@@ -966,6 +1021,15 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
     _assert_same_committed_state(producer, restarted)
     persisted = restarted.get_latest_block()
     assert isinstance(persisted, dict)
+    assert (
+        resolve_committed_solo_attestation_source(
+            state=restarted.read_state(),
+            source_block=persisted,
+            target_block_id=b1["block_id"],
+            chain_id=CHAIN_ID,
+        )
+        == witness
+    )
     assert persisted["block_id"] == b2["block_id"]
     assert [tx for tx in persisted["txs"] if tx.get("tx_id") == att_tx_id] == signed_parents
     assert [
