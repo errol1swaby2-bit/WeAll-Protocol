@@ -23,9 +23,7 @@ from weall.crypto.signature_profiles import PQ_MLDSA_V1, profile_allowed_for_con
 Json = dict[str, Any]
 SCHEMA = "weall.genesis-acceptance.preflight.v1"
 SIGNATURE_DOMAIN = b"weall.genesis-acceptance.external-witness.preflight.v1\x00"
-INDEPENDENCE_DOMAINS = frozenset(
-    {"household", "funding", "key_custody", "infrastructure"}
-)
+INDEPENDENCE_DOMAINS = frozenset({"household", "funding", "key_custody", "infrastructure"})
 MIN_EXTERNAL_WITNESSES = 3
 _HEX_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
