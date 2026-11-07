@@ -651,9 +651,7 @@ def test_witness_roster_rejects_validly_signed_substitution(
         genesis_validator_pubkey=founder_key,
     )
     # The impostor signatures *themselves* verify against the same frozen genesis.
-    impostor_binding = _bind(
-        (impostor_certificate, frozen_builder_genesis[1], genesis, digest)
-    )
+    impostor_binding = _bind((impostor_certificate, frozen_builder_genesis[1], genesis, digest))
     assert impostor_binding.witness_signatures.cryptographically_verified_signatures == 3
     with pytest.raises(
         GenesisAcceptancePreflightError, match="witness_roster_certificate_key_mismatch"
