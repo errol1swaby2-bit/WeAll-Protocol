@@ -353,6 +353,27 @@ def preflight_genesis_manifest_witness_binding(
         lifecycle_rec.get("pubkey") == pubkey,
         "genesis_validator_registry_key_mismatch",
     )
+    operator_records = operators.get("by_id")
+    operator_record = (
+        operator_records.get(founding_account)
+        if isinstance(operator_records, dict)
+        else None
+    )
+    responsibilities = (
+        operator_record.get("responsibilities")
+        if isinstance(operator_record, dict)
+        else None
+    )
+    responsibility = (
+        responsibilities.get("validator")
+        if isinstance(responsibilities, dict)
+        else None
+    )
+    _require(
+        isinstance(responsibility, dict)
+        and responsibility.get("bft_pubkey") == pubkey,
+        "genesis_node_operator_signing_key_mismatch",
+    )
     allowlist = params.get("bootstrap_allowlist")
     founder_allow = allowlist.get(founding_account) if isinstance(allowlist, dict) else None
     _require(
@@ -372,6 +393,19 @@ def preflight_genesis_manifest_witness_binding(
             for rec in by_id.values()
         ),
         "genesis_founder_account_signing_key_mismatch",
+    )
+
+    devices = founding_rec.get("devices")
+    by_device_id = devices.get("by_id") if isinstance(devices, dict) else None
+    node_device = (
+        by_device_id.get("node:founding") if isinstance(by_device_id, dict) else None
+    )
+    _require(
+        isinstance(node_device, dict)
+        and node_device.get("pubkey") == pubkey
+        and node_device.get("active") is True
+        and node_device.get("revoked") is False,
+        "genesis_node_device_signing_key_mismatch",
     )
 
     try:
