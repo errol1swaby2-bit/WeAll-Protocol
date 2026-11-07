@@ -293,6 +293,25 @@ def resolve_committed_solo_attestation_from_history(
             "committed_source_identity_mismatch",
         )
 
+        # A body can be self-committed while the caller's ancestry index has
+        # been corrupted or spliced. Rebind *every* historical body, including
+        # blocks without a matching attestation, to its canonical state record.
+        # A future finality scheduler must never trust two different histories
+        # simply because each block is individually hash-consistent.
+        record = blocks.get(source_id)
+        _require(isinstance(record, dict), "committed_source_ancestry_record_missing")
+        header = block.get("header")
+        _require(isinstance(header, dict), "committed_source_header_missing")
+        _require(
+            _i(record.get("height")) > 1
+            and _i(record.get("height")) == _i(header.get("height")),
+            "committed_source_state_height_mismatch",
+        )
+        _require(
+            _s(record.get("prev_block_id")) == _s(block.get("prev_block_id")),
+            "committed_source_state_parent_mismatch",
+        )
+
         txs = block.get("txs")
         if not isinstance(txs, list) or not any(
             isinstance(raw, dict)
