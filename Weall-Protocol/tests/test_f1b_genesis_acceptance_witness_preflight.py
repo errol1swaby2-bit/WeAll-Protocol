@@ -29,6 +29,11 @@ from weall.runtime.genesis_acceptance_witness import (
     preflight_genesis_acceptance_signatures,
     preflight_genesis_manifest_witness_binding,
 )
+from weall.runtime.genesis_independence_review import (
+    REVIEWER_ROSTER_SCHEMA,
+    SIGNED_REVIEW_SCHEMA,
+    genesis_review_signing_message,
+)
 from weall.runtime.state_hash import compute_state_root
 
 CHAIN_ID = "genesis-acceptance-witness-testnet"
@@ -808,3 +813,190 @@ def test_offline_genesis_roster_cli_refuses_untrusted_identity_sources(
     assert output["ok"] is False
     assert output["authorizes_first_finality"] is False
     assert output["reason"] == expected_reason
+
+
+def _write_signed_review_cli_case(
+    frozen: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+    tmp_path: Path,
+) -> tuple[list[str], dict[str, Path]]:
+    """Test-only trust anchors; never actual independent approval."""
+    certificate, manifest, genesis, trusted_manifest = frozen
+    witness_roster = _externally_pinned_candidate_roster(certificate)
+    trusted_witness = canonical_json_sha256(witness_roster)
+    reviewers = []
+    statements = []
+    for index in range(2):
+        private = MLDSA65PrivateKey.generate()
+        reviewer_id = f"@reviewer-{index}"
+        pubkey = private.public_key().public_bytes_raw().hex()
+        reviewers.append({"reviewer_id": reviewer_id, "pubkey": pubkey})
+        statements.append((reviewer_id, pubkey, private.private_bytes_raw().hex()))
+    reviewer_roster = {
+        "schema": REVIEWER_ROSTER_SCHEMA,
+        "chain_id": certificate["chain_id"],
+        "genesis_manifest_sha256": trusted_manifest,
+        "ceremony_id": certificate["ceremony_id"],
+        "witness_roster_sha256": trusted_witness,
+        "reviewers": reviewers,
+    }
+    trusted_reviewers = canonical_json_sha256(reviewer_roster)
+    reviews = []
+    for index, (reviewer_id, pubkey, private_hex) in enumerate(statements):
+        assessments = [
+            {
+                "witness_id": witness["witness_id"],
+                "domains": {
+                    domain: {
+                        "finding": "no_conflict_found",
+                        "evidence_sha256": hashlib.sha256(
+                            f"test:{index}:{witness['witness_id']}:{domain}".encode()
+                        ).hexdigest(),
+                    }
+                    for domain in DOMAINS
+                },
+            }
+            for witness in witness_roster["witnesses"]
+        ]
+        statement = {
+            "schema": SIGNED_REVIEW_SCHEMA,
+            "chain_id": certificate["chain_id"],
+            "genesis_manifest_sha256": trusted_manifest,
+            "ceremony_id": certificate["ceremony_id"],
+            "witness_roster_sha256": trusted_witness,
+            "reviewer_roster_sha256": trusted_reviewers,
+            "reviewer_id": reviewer_id,
+            "pubkey": pubkey,
+            "sig_profile": PQ_MLDSA_V1,
+            "conflict_of_interest": "none_declared",
+            "assessments": assessments,
+        }
+        statement["signature"] = sign_signature_for_profile(
+            sig_profile=PQ_MLDSA_V1,
+            message=genesis_review_signing_message(statement),
+            privkey=private_hex,
+        )
+        reviews.append(statement)
+
+    documents = {
+        "manifest": manifest,
+        "genesis": genesis,
+        "certificate": certificate,
+        "witness_roster": witness_roster,
+        "reviewer_roster": reviewer_roster,
+        "reviews": {"signed_reviews": reviews},
+    }
+    paths: dict[str, Path] = {}
+    for name, document in documents.items():
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        paths[name] = path
+    root = Path(__file__).resolve().parents[1]
+    command = [
+        sys.executable,
+        str(root / "scripts" / "preflight_genesis_witness_bundle.py"),
+        "--manifest",
+        str(paths["manifest"]),
+        "--genesis",
+        str(paths["genesis"]),
+        "--certificate",
+        str(paths["certificate"]),
+        "--witness-roster",
+        str(paths["witness_roster"]),
+        "--trusted-witness-roster-sha256",
+        trusted_witness,
+        "--trusted-manifest-sha256",
+        trusted_manifest,
+        "--expected-chain-id",
+        certificate["chain_id"],
+        "--reviewer-roster",
+        str(paths["reviewer_roster"]),
+        "--trusted-reviewer-roster-sha256",
+        trusted_reviewers,
+        "--signed-reviews",
+        str(paths["reviews"]),
+    ]
+    return command, paths
+
+
+def test_offline_signed_independence_review_cli_is_repeatable_without_authority(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+    tmp_path: Path,
+) -> None:
+    command, _paths = _write_signed_review_cli_case(frozen_builder_genesis, tmp_path)
+    root = Path(__file__).resolve().parents[1]
+    results = [
+        subprocess.run(
+            command, cwd=str(root), capture_output=True, text=True, check=False, timeout=60
+        )
+        for _ in range(2)
+    ]
+    assert all(result.returncode == 0 for result in results), results
+    assert results[0].stdout == results[1].stdout
+    output = json.loads(results[0].stdout)
+    assert output["ok"] is True
+    assert output["status"] == "cryptographic_preflight_only"
+    assert output["authority_decision"] == "not_performed"
+    assert output["authorizes_first_finality"] is False
+    assert output["real_world_independence_verified"] is False
+    assert output["constitutional_approval_recorded"] is False
+    review = output["independence_review_evidence"]
+    assert review["verified_domain_statements"] == 24
+    assert review["unresolved_domain_statements"] == 0
+    assert review["evidence_status"] == "signed_review_provenance_only"
+    assert review["authorizes_first_finality"] is False
+    assert review["real_world_independence_verified"] is False
+    assert review["constitutional_approval_recorded"] is False
+    assert "private_bytes_raw" not in results[0].stdout
+
+
+@pytest.mark.parametrize(
+    ("attack", "reason"),
+    [
+        ("reviewer_roster_anchor_replaced", "reviewer_roster_anchor_mismatch"),
+        ("review_signature_tampered", "review_signature_verification_failed"),
+        ("review_signer_missing", "review_signer_count_mismatch"),
+        ("duplicate_signed_reviews_key", "invalid_genesis_bundle_json"),
+        ("review_fields_unexpected", "signed_reviews_file_invalid"),
+        ("review_inputs_incomplete", "review_preflight_arguments_incomplete"),
+    ],
+)
+def test_offline_signed_review_cli_fails_closed(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+    tmp_path: Path,
+    attack: str,
+    reason: str,
+) -> None:
+    command, paths = _write_signed_review_cli_case(frozen_builder_genesis, tmp_path)
+    if attack == "reviewer_roster_anchor_replaced":
+        anchor_pos = command.index("--trusted-reviewer-roster-sha256") + 1
+        command[anchor_pos] = "0" * 64
+    elif attack == "review_signature_tampered":
+        reviews = json.loads(paths["reviews"].read_text(encoding="utf-8"))
+        signature = reviews["signed_reviews"][0]["signature"]
+        reviews["signed_reviews"][0]["signature"] = (
+            f"{int(signature[:2], 16) ^ 1:02x}{signature[2:]}"
+        )
+        paths["reviews"].write_text(json.dumps(reviews), encoding="utf-8")
+    elif attack == "review_signer_missing":
+        reviews = json.loads(paths["reviews"].read_text(encoding="utf-8"))
+        reviews["signed_reviews"].pop()
+        paths["reviews"].write_text(json.dumps(reviews), encoding="utf-8")
+    elif attack == "duplicate_signed_reviews_key":
+        paths["reviews"].write_text(
+            '{"signed_reviews":[],"signed_reviews":[]}', encoding="utf-8"
+        )
+    elif attack == "review_fields_unexpected":
+        paths["reviews"].write_text('{"unexpected":[]}', encoding="utf-8")
+    elif attack == "review_inputs_incomplete":
+        command = command[:-2]
+    else:
+        pytest.fail(f"unexpected attack: {attack}")
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        command, cwd=str(root), capture_output=True, text=True, check=False, timeout=60
+    )
+    assert result.returncode == 2
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["reason"] == reason
+    assert payload["authorizes_first_finality"] is False
