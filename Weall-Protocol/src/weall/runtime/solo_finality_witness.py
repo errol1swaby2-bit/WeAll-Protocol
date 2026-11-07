@@ -298,8 +298,7 @@ def resolve_committed_solo_attestation_from_history(
             and _s(raw.get("tx_type")).upper() == "BLOCK_ATTEST"
             and _s(raw.get("signer")) == validator
             and isinstance(raw.get("payload"), dict)
-            and _s(raw["payload"].get("block_id") or raw["payload"].get("id"))
-            == target_id
+            and _s(raw["payload"].get("block_id") or raw["payload"].get("id")) == target_id
             for raw in txs
         ):
             continue
