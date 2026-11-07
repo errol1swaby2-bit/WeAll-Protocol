@@ -1,3 +1,4 @@
+# PR82 isolated observer-test genesis and strict production-only key gate; refresh source-mapped derivatives.
 # PR82 independently reproducible signed-genesis offline preflight and production GO key validation; strict derivative refresh.
 # PR82 ML-DSA full founder key + immutable genesis manifest witness binding, strict derivative regeneration.
 # PR82 stable message-ID registered for genesis acceptance witness signing preflight; strict derivative refresh.
