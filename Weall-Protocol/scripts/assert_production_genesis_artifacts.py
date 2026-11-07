@@ -80,6 +80,21 @@ def _is_hex64(value: Any) -> bool:
     return bool(HEX64.match(str(value or "").strip().lower()))
 
 
+def _is_mldsa65_public_key(value: Any) -> bool:
+    """Founder signing keys must be complete, canonical ML-DSA-65 keys.
+
+    Snapshot authority keys, hashes and digests still use their independent
+    64-hex contracts; this predicate is only for validator signing authority.
+    """
+    from weall.crypto.pq_mldsa import canonical_mldsa65_public_key
+
+    key = str(value or "").strip().lower()
+    try:
+        return bool(key) and canonical_mldsa65_public_key(key, encoding="hex") == key
+    except (TypeError, ValueError):
+        return False
+
+
 def _file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -172,7 +187,7 @@ def _validate_manifest(
                     "manifest_trusted_authority_pubkey_unpinned",
                     {"index": idx, "value": key_text},
                 )
-            elif not _is_hex64(key_text):
+            elif not _is_mldsa65_public_key(key_text):
                 _issue(
                     issues,
                     "manifest_trusted_authority_pubkey_invalid",
@@ -287,7 +302,7 @@ def _validate_genesis(
         allow_pubkey = str(allow_rec.get("pubkey") or "").strip().lower()
         if _is_placeholder(allow_pubkey):
             _issue(issues, "genesis_bootstrap_allowlist_pubkey_unpinned")
-        elif not _is_hex64(allow_pubkey):
+        elif not _is_mldsa65_public_key(allow_pubkey):
             _issue(issues, "genesis_bootstrap_allowlist_pubkey_invalid", allow_pubkey)
 
     founder = (
