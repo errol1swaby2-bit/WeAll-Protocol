@@ -32,6 +32,9 @@ from weall.runtime.genesis_acceptance_witness import (  # noqa: E402
     preflight_externally_pinned_genesis_witness_roster,
     preflight_genesis_manifest_witness_binding,
 )
+from weall.runtime.genesis_independence_review import (  # noqa: E402
+    preflight_signed_genesis_independence_reviews,
+)
 
 
 def _pairs_unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -81,9 +84,30 @@ def main(argv: list[str] | None = None) -> int:
         help="Must come from an independent trusted source, not the untrusted bundle.",
     )
     parser.add_argument("--expected-chain-id", required=True)
+    parser.add_argument(
+        "--reviewer-roster",
+        type=Path,
+        help="Optional candidate reviewer key roster; requires both reviewer trust anchor and reviews.",
+    )
+    parser.add_argument(
+        "--trusted-reviewer-roster-sha256",
+        help="Must be pinned out of band, separately from the candidate reviewer roster.",
+    )
+    parser.add_argument(
+        "--signed-reviews",
+        type=Path,
+        help='JSON object containing exactly one "signed_reviews" list.',
+    )
     args = parser.parse_args(argv)
 
     try:
+        review_inputs = (
+            args.reviewer_roster is not None,
+            args.trusted_reviewer_roster_sha256 is not None,
+            args.signed_reviews is not None,
+        )
+        if any(review_inputs) and not all(review_inputs):
+            raise GenesisAcceptancePreflightError("review_preflight_arguments_incomplete")
         genesis = _read_object(args.genesis)
         certificate = _read_object(args.certificate)
         evidence = preflight_genesis_manifest_witness_binding(
@@ -96,13 +120,30 @@ def main(argv: list[str] | None = None) -> int:
         founder_key = genesis["consensus"]["validators"]["registry"][
             evidence.genesis_validator_account
         ]["pubkey"]
+        witness_roster = _read_object(args.witness_roster)
         roster_evidence = preflight_externally_pinned_genesis_witness_roster(
-            roster=_read_object(args.witness_roster),
+            roster=witness_roster,
             expected_roster_sha256=args.trusted_witness_roster_sha256,
             certificate=certificate,
             genesis_binding=evidence,
             genesis_validator_pubkey=founder_key,
         )
+        review_evidence = None
+        if all(review_inputs):
+            reviews_document = _read_object(args.signed_reviews)
+            if set(reviews_document) != {"signed_reviews"} or not isinstance(
+                reviews_document["signed_reviews"], list
+            ):
+                raise GenesisAcceptancePreflightError("signed_reviews_file_invalid")
+            review_evidence = preflight_signed_genesis_independence_reviews(
+                reviewer_roster=_read_object(args.reviewer_roster),
+                expected_reviewer_roster_sha256=args.trusted_reviewer_roster_sha256,
+                signed_reviews=reviews_document["signed_reviews"],
+                genesis_binding=evidence,
+                witness_roster_binding=roster_evidence,
+                witness_roster=witness_roster,
+                genesis_validator_pubkey=founder_key,
+            )
     except GenesisAcceptancePreflightError as exc:
         print(
             json.dumps(
@@ -118,23 +159,22 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    print(
-        json.dumps(
-            {
-                "ok": True,
-                "status": "cryptographic_preflight_only",
-                "scope": "reference_only",
-                "authority_decision": "not_performed",
-                "evidence": asdict(evidence),
-                "witness_roster_binding": asdict(roster_evidence),
-                "roster_validation_status": "signer_identity_and_key_binding_only",
-                "authorizes_first_finality": False,
-                "external_independence_review_required": True,
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-    )
+    output = {
+        "ok": True,
+        "status": "cryptographic_preflight_only",
+        "scope": "reference_only",
+        "authority_decision": "not_performed",
+        "evidence": asdict(evidence),
+        "witness_roster_binding": asdict(roster_evidence),
+        "roster_validation_status": "signer_identity_and_key_binding_only",
+        "authorizes_first_finality": False,
+        "external_independence_review_required": True,
+    }
+    if review_evidence is not None:
+        output["independence_review_evidence"] = asdict(review_evidence)
+        output["real_world_independence_verified"] = False
+        output["constitutional_approval_recorded"] = False
+    print(json.dumps(output, sort_keys=True, separators=(",", ":")))
     return 0
 
 
