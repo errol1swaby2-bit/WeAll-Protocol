@@ -2435,6 +2435,16 @@
     },
     {
       "affected_registers": [
+        "evidence",
+        "tooling"
+      ],
+      "classification": "verification_tooling",
+      "path": "scripts/preflight_genesis_witness_bundle.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
         "mechanisms",
         "evidence"
       ],
