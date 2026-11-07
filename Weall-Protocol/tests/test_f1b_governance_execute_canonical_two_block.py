@@ -1186,3 +1186,121 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
             chain_id=CHAIN_ID,
             load_committed_block=producer.get_block_by_id,
         )
+
+
+def test_finality_first_epoch_two_activation_is_future_only_domain_projection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Bound an epoch-2 BFT handoff *projection* after hypothetical first finality.
+
+    The signed-governance fixture elsewhere intentionally exercises a
+    pre-first-finality epoch-1 pending set; that is NOT the chosen production
+    ordering. This test only checks existing domain activation contracts
+    after a separately authorized first finality. It does not forge a
+    canonical BLOCK_FINALIZE, open a canonical epoch, or bypass governance.
+    """
+    _configure(monkeypatch)
+    state = copy.deepcopy(_node(tmp_path, "finality-first-projection").read_state())
+    _tallied_governance_fixture(state)
+
+    # Use already fixture-registered validator identities/keys. The founding
+    # validator remains the sole authority until the future epoch boundary.
+    founding = VALIDATORS[0]
+    state["roles"]["validators"]["active_set"] = [founding]
+    state["consensus"]["validator_set"] = {
+        "active_set": [founding],
+        "epoch": 0,
+        "set_hash": validator_set_hash([founding]),
+    }
+    state["consensus"]["phase"]["current"] = CONSENSUS_PHASE_SOLO_BOOTSTRAP
+
+    # An explicit noncanonical *projection marker* distinguishes this from
+    # the unfinalized signed-governance regression. No actual first finality
+    # was constructed or accepted by any producer/follower here.
+    state["finalized"] = {"height": 1, "block_id": "projection-only-not-a-real-block"}
+
+    def system_env(tx_type: str, epoch: int, nonce: int) -> TxEnvelope:
+        return TxEnvelope(
+            tx_type=tx_type,
+            signer="SYSTEM",
+            nonce=nonce,
+            payload={"epoch": epoch},
+            sig="",
+            parent="projection-only-not-a-canonical-queue-parent",
+            system=True,
+        )
+
+    opened_one = apply_tx(state, system_env("EPOCH_OPEN", 1, 1))
+    assert opened_one["applied"] == "EPOCH_OPEN"
+    assert "validator_set_activated" not in opened_one
+    assert state["consensus"]["epochs"]["current"] == 1
+    assert state["consensus"]["validator_set"]["active_set"] == [founding]
+    assert state["roles"]["validators"]["active_set"] == [founding]
+    assert state["consensus"]["phase"]["current"] == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+
+    def pending_update(epoch: int, nonce: int) -> TxEnvelope:
+        return TxEnvelope(
+            tx_type="VALIDATOR_SET_UPDATE",
+            signer="SYSTEM",
+            nonce=nonce,
+            payload={
+                "active_set": list(VALIDATORS),
+                "activate_at_epoch": epoch,
+                "activate_bft_at_epoch": epoch,
+            },
+            sig="",
+            parent="projection-only-not-a-canonical-governance-execution",
+            system=True,
+        )
+
+    # An epoch that has already opened cannot be targeted retrospectively.
+    with pytest.raises(ApplyError, match="validator_set_activate_at_epoch_must_be_future"):
+        apply_tx(copy.deepcopy(state), pending_update(1, 2))
+
+    staged = apply_tx(state, pending_update(2, 3))
+    assert staged["pending"] is True
+    assert staged["activate_at_epoch"] == 2
+    assert staged["consensus_phase"] == CONSENSUS_PHASE_BFT_ACTIVE
+    expected_hash = validator_set_hash(list(VALIDATORS))
+    assert staged["validator_set_hash"] == expected_hash
+    assert state["consensus"]["validator_set"]["pending"]["set_hash"] == expected_hash
+    assert state["consensus"]["validator_set"]["active_set"] == [founding]
+    assert state["consensus"]["phase"]["current"] == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+
+    # Direct opening of epoch 2 while epoch 1 remains unclosed is forbidden;
+    # the pending four-validator set is not its own activation authority.
+    with pytest.raises(ApplyError, match="epoch_open_requires_previous_epoch_close"):
+        apply_tx(copy.deepcopy(state), system_env("EPOCH_OPEN", 2, 4))
+    assert state["consensus"]["epochs"]["current"] == 1
+
+    # Both deterministic projections agree through the same close/open
+    # sequence. This is NOT a producer/follower block or QC convergence proof.
+    projected = (copy.deepcopy(state), copy.deepcopy(state))
+    results = []
+    for current in projected:
+        closed = apply_tx(current, system_env("EPOCH_CLOSE", 1, 5))
+        assert closed["applied"] == "EPOCH_CLOSE"
+        assert current["consensus"]["validator_set"]["active_set"] == [founding]
+        assert current["consensus"]["phase"]["current"] == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+
+        opened_two = apply_tx(current, system_env("EPOCH_OPEN", 2, 6))
+        activated = opened_two["validator_set_activated"]
+        assert activated["active_set"] == list(VALIDATORS)
+        assert activated["activate_at_epoch"] == 2
+        assert activated["validator_set_hash"] == expected_hash
+        assert activated["consensus_phase"] == CONSENSUS_PHASE_BFT_ACTIVE
+        assert current["consensus"]["epochs"]["current"] == 2
+        assert current["roles"]["validators"]["active_set"] == list(VALIDATORS)
+        assert current["consensus"]["validator_set"]["active_set"] == list(VALIDATORS)
+        assert "pending" not in current["consensus"]["validator_set"]
+
+        bridge = current["consensus"]["validator_set"]["transition_bridge"]
+        assert bridge["schema"] == "weall.validator-set-transition.v1"
+        assert bridge["rule"] == "new_set_qc_over_canonical_boundary"
+        assert bridge["from_validator_epoch"] == 0
+        assert bridge["to_validator_epoch"] == 1
+        assert bridge["to_validator_set_hash"] == expected_hash
+        results.append(opened_two)
+
+    assert results[0] == results[1]
+    assert compute_state_root(projected[0]) == compute_state_root(projected[1])
