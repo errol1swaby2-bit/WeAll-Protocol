@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "72d7edcdd3fdc0e88937d958c0e371b89d1a78ae0261ce45bd538fdb906d2f0b",
+      "sha256": "df4c6a36895b0b3dda1f2cbcf8ced511980b80bf49f03f54e022b39b19bbdb12",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1669,7 +1669,7 @@
       ],
       "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "7712438ca25c2267b98db335587f169a85fcb559d00a5e697b1f1feaa12c816f",
+      "sha256": "1aa20bb16b92da808f80d6e91483b8f99dbfa373462ec6ecf7909536b39e98a4",
       "source_id": "SRC-378656E471EA8F3F"
     },
     {
@@ -17308,12 +17308,13 @@
         "TX-0607",
         "TX-0608",
         "TX-0609",
+        "TX-0610",
         "TX-1601",
         "TX-1602"
       ],
       "path": "tests/test_f1b_governance_execute_canonical_two_block.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "5d3105d52803b9915bc4529c4418db12b86c08b53e032cb218a1712094ac706b",
+      "sha256": "7ccf2be5709282e5525696d569e2b47451426997b1c8c9911e7c49f4e71b2e48",
       "source_id": "SRC-103D29F1CAE5F6F2"
     },
     {
