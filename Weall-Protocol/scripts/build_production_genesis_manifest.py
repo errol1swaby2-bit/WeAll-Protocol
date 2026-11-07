@@ -390,7 +390,9 @@ def main() -> int:
     parser.add_argument("--chain-id", default="weall-prod")
     parser.add_argument("--founding-account", required=True)
     parser.add_argument(
-        "--founding-pubkey", required=True, help="full ML-DSA-65 public key (1952 bytes, hex) for founding account/node"
+        "--founding-pubkey",
+        required=True,
+        help="full ML-DSA-65 public key (1952 bytes, hex) for founding account/node",
     )
     parser.add_argument(
         "--authority-pubkey", required=True, help="64 hex public key for signed authority snapshots"
