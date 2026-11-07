@@ -25,9 +25,9 @@ from weall.runtime.genesis_acceptance_witness import (
     SCHEMA,
     GenesisAcceptancePreflightError,
     canonical_genesis_witness_message,
+    preflight_externally_pinned_genesis_witness_roster,
     preflight_genesis_acceptance_signatures,
     preflight_genesis_manifest_witness_binding,
-    preflight_externally_pinned_genesis_witness_roster,
 )
 from weall.runtime.state_hash import compute_state_root
 
