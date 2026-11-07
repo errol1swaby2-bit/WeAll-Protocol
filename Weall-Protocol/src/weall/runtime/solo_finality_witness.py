@@ -8,7 +8,7 @@ constitutional authority and release rule for the first finalized block.
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 from weall.runtime.bft_hotstuff import (
     CONSENSUS_PHASE_SOLO_BOOTSTRAP,
@@ -235,8 +235,99 @@ def resolve_committed_solo_attestation_source(
     return matches[0]
 
 
+def resolve_committed_solo_attestation_from_history(
+    *,
+    state: Json,
+    target_block_id: str,
+    chain_id: str,
+    load_committed_block: Callable[[str], Json | None],
+) -> SoloAttestationSource:
+    """Locate an unambiguous signed solo attestation in complete canonical history.
+
+    The caller supplies a trusted, durable canonical block-body lookup, such as
+    `WeAllExecutor.get_block_by_id`. No network proposal/cache body is eligible.
+    Every block from the target's successor through the committed tip must be
+    available and fully self-bound. Missing bodies are a hard failure, not an
+    excuse to select an arbitrary later witness.
+
+    Only read-only historical evidence is returned. This is not a constitutional
+    authority check or an alternative way to enqueue BLOCK_FINALIZE. The scan is
+    deliberately not on the block-production or consensus-replay hot path.
+    """
+    _require(isinstance(state, dict), "state_not_object")
+    _require(bool(_s(chain_id)), "chain_id_missing")
+    _require(callable(load_committed_block), "committed_block_loader_missing")
+    validator = _active_solo_authority(state)
+    blocks = state.get("blocks")
+    _require(isinstance(blocks, dict), "canonical_ancestry_unavailable")
+    target_id = _s(target_block_id)
+    target = blocks.get(target_id)
+    _require(isinstance(target, dict), "target_not_canonically_committed")
+    _require(_i(target.get("height")) == 1, "first_finality_target_not_height_one")
+    tip = _s(state.get("tip"))
+    _require(bool(tip and tip != target_id), "source_not_yet_committed")
+    _require_ancestry(state, descendant=tip, ancestor=target_id)
+
+    # The ancestry guard above proves this is a single, acyclic, height-contiguous
+    # path. Iterate it oldest first so the result is independent of DB row order.
+    source_ids: list[str] = []
+    current = tip
+    while current != target_id:
+        source_ids.append(current)
+        record = blocks[current]
+        current = _s(record.get("prev_block_id"))
+    source_ids.reverse()
+
+    matches: list[SoloAttestationSource] = []
+    for source_id in source_ids:
+        block = load_committed_block(source_id)
+        _require(isinstance(block, dict), "committed_source_body_missing")
+        ok, reason, binding = validate_complete_block_commitments(
+            block=block, chain_id=_s(chain_id)
+        )
+        if not ok or binding is None:
+            raise SoloFinalityWitnessError(f"committed_source_invalid:{reason}")
+        _require(
+            _s(block.get("block_id")) == source_id == binding.block_id,
+            "committed_source_identity_mismatch",
+        )
+
+        txs = block.get("txs")
+        if not isinstance(txs, list) or not any(
+            isinstance(raw, dict)
+            and _s(raw.get("tx_type")).upper() == "BLOCK_ATTEST"
+            and _s(raw.get("signer")) == validator
+            and isinstance(raw.get("payload"), dict)
+            and _s(raw["payload"].get("block_id") or raw["payload"].get("id"))
+            == target_id
+            for raw in txs
+        ):
+            continue
+
+        try:
+            source = resolve_committed_solo_attestation_source(
+                state=state,
+                source_block=block,
+                target_block_id=target_id,
+                chain_id=chain_id,
+            )
+        except SoloFinalityWitnessError as exc:
+            # A committed rejected transaction is not positive finality
+            # evidence. All structural, authority, and ancestry errors remain
+            # fatal rather than being masked by a later successful source.
+            if str(exc) != "no_committed_successful_signed_attestation":
+                raise
+            continue
+        matches.append(source)
+
+    _require(bool(matches), "no_committed_successful_signed_attestation")
+    _require(len(matches) == 1, "ambiguous_committed_attestation_sources")
+    return matches[0]
+
+
 __all__ = [
     "SoloAttestationSource",
     "SoloFinalityWitnessError",
     "resolve_committed_solo_attestation_source",
+    "resolve_committed_solo_attestation_from_history",
 ]
