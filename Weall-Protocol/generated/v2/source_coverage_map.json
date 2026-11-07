@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "9a71fed31115191876386bc6eb9b0e0d5bfd189ea06f027c56a6a95e4922a150",
+      "sha256": "1d7072ab58d0a128487bec623e887ab2eec5be98ef6cd7cb76064e7027cd7000",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1669,7 +1669,7 @@
       ],
       "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "799046c885882b2a7eff829b56dc8767bf38ddc918c04b602022207ee95fb1fe",
+      "sha256": "7712438ca25c2267b98db335587f169a85fcb559d00a5e697b1f1feaa12c816f",
       "source_id": "SRC-378656E471EA8F3F"
     },
     {
@@ -3145,7 +3145,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "40d9a28e72124c41f8d3850eb64adaa8572a954fc54e31624f51b054e1c80334",
+      "sha256": "66af1962ee44cf79165bf3f9c7887d3fdf281bbeddfd7416a96b8b3f5af2aebf",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3159,7 +3159,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "44b0fabac8be696069ebf121b59f4fc4870221b3e77670ae39a783963d9a6a8a",
+      "sha256": "69d66335db2c37688f99c49f311eeb5b85c475fef4a2b9dfacca3ba64bb993a8",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3243,7 +3243,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "6b8edac5bff1d6b91717e0bfd89f0ffb1a55d975829502d1ede2af10bd921cf3",
+      "sha256": "a1d7d0745d8e5319e9697662505446ea0baf05c481ba4021c8526b8fa02f944c",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -12140,7 +12140,7 @@
       ],
       "path": "src/weall/runtime/solo_finality_witness.py",
       "primary_mechanism_id": "M-018",
-      "sha256": "01d29f778003b54e0b86767431d728d1cef0bae1bf8a92a7b20ed4a84d8b98ca",
+      "sha256": "db41e190e17470424ae7a74f7797febba6fc705f0d7c9b1df075c83fd32b83f3",
       "source_id": "SRC-7E353AD8647757EF"
     },
     {
@@ -17313,7 +17313,7 @@
       ],
       "path": "tests/test_f1b_governance_execute_canonical_two_block.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d9d40129ca28f7b1e1b675a7da53bed6f25c3f367fc5d1e9d2e7157a5d710cb2",
+      "sha256": "146442e23da3a8c400d375411b42b7977c43e65d435f0e5635ea41a7d7286712",
       "source_id": "SRC-103D29F1CAE5F6F2"
     },
     {
