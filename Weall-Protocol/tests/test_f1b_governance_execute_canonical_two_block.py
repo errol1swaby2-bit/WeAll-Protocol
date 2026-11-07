@@ -1159,9 +1159,7 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
     assert isinstance(b4, dict)
     assert follower.apply_block(b4).ok is True
     _assert_same_committed_state(producer, follower)
-    with pytest.raises(
-        SoloFinalityWitnessError, match="ambiguous_committed_attestation_sources"
-    ):
+    with pytest.raises(SoloFinalityWitnessError, match="ambiguous_committed_attestation_sources"):
         resolve_committed_solo_attestation_from_history(
             state=producer.read_state(),
             target_block_id=b1["block_id"],
