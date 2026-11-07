@@ -309,6 +309,8 @@ def test_signatures_are_bound_to_actual_builder_genesis_state_and_manifest(
         ("founder_alias", "genesis_founder_account_mismatch"),
         ("short_validator_key", "genesis_validator_mldsa65_pubkey_invalid"),
         ("lifecycle_key_diverges", "genesis_validator_registry_key_mismatch"),
+        ("node_operator_key_diverges", "genesis_node_operator_signing_key_mismatch"),
+        ("node_device_key_diverges", "genesis_node_device_signing_key_mismatch"),
         ("allowlist_key_diverges", "genesis_founder_allowlist_key_mismatch"),
         ("account_key_diverges", "genesis_founder_account_signing_key_mismatch"),
         ("stale_tx_index", "genesis_tx_index_hash_mismatch"),
@@ -342,6 +344,14 @@ def test_builder_genesis_binding_rejects_ancestry_and_authority_substitution(
         ledger["consensus"]["validators"]["registry"][founder]["pubkey"] = "a" * 64
     elif attack == "lifecycle_key_diverges":
         ledger["validators"]["registry"][founder]["pubkey"] = "f" * 3904
+    elif attack == "node_operator_key_diverges":
+        ledger["roles"]["node_operators"]["by_id"][founder]["responsibilities"][
+            "validator"
+        ]["bft_pubkey"] = "f" * 3904
+    elif attack == "node_device_key_diverges":
+        ledger["accounts"][founder]["devices"]["by_id"]["node:founding"]["pubkey"] = (
+            "f" * 3904
+        )
     elif attack == "allowlist_key_diverges":
         ledger["params"]["bootstrap_allowlist"][founder]["pubkey"] = "f" * 3904
     elif attack == "account_key_diverges":
