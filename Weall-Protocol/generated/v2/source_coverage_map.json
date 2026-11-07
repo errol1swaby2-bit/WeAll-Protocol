@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2077,
+  "file_count": 2079,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/f1b-two-process-receipt.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "2cd52fa98be625e4ad52341fededc9785efcf88afcf7c571c068d0f3da7de87b",
+      "sha256": "fed25dbdddaffb90d96eb7a9580f1cdca778b7fcb95a8be26c42a1d69663e8b9",
       "source_id": "SRC-67246AFF3D3EF2FA"
     },
     {
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "b0ccf3c4a0ae826e0bf10bc368c6f9b12d37db2e15a5c6fd33d04388327b8379",
+      "sha256": "bf3aebd2ee916fa3f07bc7e285e2451b38b3db84e79ac405f6192f501f8a9f40",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1669,7 +1669,7 @@
       ],
       "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "5654d5addfa21a5d399a0951748e257cce8355b73d7a64cb3d61329facebe621",
+      "sha256": "417860c75a9f65c98047d1e5e18194ac8d3c781b7dd950c9996e9a808b564034",
       "source_id": "SRC-378656E471EA8F3F"
     },
     {
@@ -3145,7 +3145,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "7d61270f63e25b3d2090169d68193d43c47d550d4a205ccfe4a900d3e8e648b8",
+      "sha256": "0a4ececa7cf77618301faac5a7675143a35792dd0b198cda7abafbf42685520f",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3159,7 +3159,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "e3c5faeaf296832072823d8efb77b5cb2607bb794a9fd69c55659998340744d0",
+      "sha256": "d3eacb3e5eb1e45519bbcdd5604d62b669540a6a2fa7543333557b71f6bd90c3",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3243,7 +3243,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "4b59bf797d1132e9a01ba06365866a980d9031888263590308c02824a2aa0070",
+      "sha256": "b7466eddb92bf48181b1ac0e58becf1a87581f2e306bf1e2ff5651ac53857a67",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -7014,7 +7014,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3655aac45c1b523f98a3697cd2a25f8ab90986c1b936b9e6a3e83ee77fea655a",
+      "sha256": "39554c914b727cf3c20f7f75b2f4207cbc878afd344e06c035a56140dfcbff50",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -7027,7 +7027,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0ccb810ac65009e039befe3644d6c6f0cbdf8f4d52920656e9b6675de564a9c5",
+      "sha256": "d37b3cb59753951e425dbd40331c2cc618dc66b47083770e393a6ec115e569c3",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -10977,6 +10977,20 @@
       "primary_mechanism_id": "M-012",
       "sha256": "39a910ec9ee110755d8281473dc64aa174270d3099bdb0916a695d0fe3f81e85",
       "source_id": "SRC-49BD98D643460254"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "reference_or_test_only",
+      "mappings": [
+        "M-018",
+        "MSG-7C8C54E6F877CB86"
+      ],
+      "path": "src/weall/runtime/genesis_independence_review.py",
+      "primary_mechanism_id": "M-018",
+      "sha256": "33f94196424eabb8fca19a7ff577975a47073c7344c86e7f7fdce31c2ce46ba9",
+      "source_id": "SRC-E3A057DC286F70AB"
     },
     {
       "affected_registers": [
@@ -17332,6 +17346,21 @@
       "primary_mechanism_id": "M-076",
       "sha256": "2bf498a07a5168d2cd911eca58cf345098e34c904493af5b4b58ca8c6ba87cd8",
       "source_id": "SRC-FAE7C8E3FF03904E"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_f1b_genesis_independence_review_preflight.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "9f8d35b2b5b4f918e323ba3cdadfbe752f34b47380109c4a125aad7796a49675",
+      "source_id": "SRC-19451CF392AF333E"
     },
     {
       "affected_registers": [
