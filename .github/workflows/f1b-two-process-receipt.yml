@@ -42,6 +42,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           ruff format --check \
+            scripts/build_production_genesis_manifest.py \
             src/weall/runtime/genesis_acceptance_witness.py \
             scripts/devnet_cross_node_convergence.py \
             tests/test_devnet_cross_node_convergence.py \
@@ -53,8 +54,10 @@ jobs:
             tests/test_f1b_validator_set_canonical_bootstrap_block.py \
             tests/test_f1b_governance_execute_canonical_two_block.py \
             tests/test_f1b_genesis_acceptance_witness_preflight.py \
+            tests/test_production_genesis_manifest_builder.py \
             tests/test_p0_03_production_composition.py
           ruff check \
+            scripts/build_production_genesis_manifest.py \
             src/weall/runtime/genesis_acceptance_witness.py \
             scripts/devnet_cross_node_convergence.py \
             tests/test_devnet_cross_node_convergence.py \
@@ -66,6 +69,7 @@ jobs:
             tests/test_f1b_validator_set_canonical_bootstrap_block.py \
             tests/test_f1b_governance_execute_canonical_two_block.py \
             tests/test_f1b_genesis_acceptance_witness_preflight.py \
+            tests/test_production_genesis_manifest_builder.py \
             tests/test_p0_03_production_composition.py
           pytest -q \
             tests/test_devnet_cross_node_convergence.py \
@@ -77,13 +81,14 @@ jobs:
             tests/test_f1b_validator_set_canonical_bootstrap_block.py \
             tests/test_f1b_governance_execute_canonical_two_block.py \
             tests/test_f1b_genesis_acceptance_witness_preflight.py \
+            tests/test_production_genesis_manifest_builder.py \
             tests/test_p0_03_production_composition.py::test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_restart
 
       - name: Report exact Ruff formatting differences on failure
         if: failure()
         working-directory: Weall-Protocol
         run: |
-          ruff format --diff src/weall/runtime/genesis_acceptance_witness.py tests/test_f1b_genesis_acceptance_witness_preflight.py tests/test_f1b_governance_execute_canonical_two_block.py
+          ruff format --diff scripts/build_production_genesis_manifest.py src/weall/runtime/genesis_acceptance_witness.py tests/test_f1b_genesis_acceptance_witness_preflight.py tests/test_production_genesis_manifest_builder.py tests/test_f1b_governance_execute_canonical_two_block.py
 
       - name: Live independent-process producer/follower receipt and replay proof
         working-directory: Weall-Protocol
