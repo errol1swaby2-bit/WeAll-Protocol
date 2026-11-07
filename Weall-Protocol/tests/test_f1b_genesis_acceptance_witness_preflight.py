@@ -24,9 +24,9 @@ from weall.runtime.state_hash import compute_state_root
 from weall.runtime.genesis_acceptance_witness import (
     SCHEMA,
     GenesisAcceptancePreflightError,
-    preflight_genesis_manifest_witness_binding,
     canonical_genesis_witness_message,
     preflight_genesis_acceptance_signatures,
+    preflight_genesis_manifest_witness_binding,
 )
 
 CHAIN_ID = "genesis-acceptance-witness-testnet"
