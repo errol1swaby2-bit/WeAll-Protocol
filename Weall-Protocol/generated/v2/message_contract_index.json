@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "3d39365cbc5efec3ef338543aaf608be56ae6f1577706442e6037ba982a44db0"
+    "source_tree_digest": "a416aea215f67eca738104c6eee3b06f214c188fcd6567a130ed45c1daaa56f2"
   },
   "rows": [
     {
@@ -2390,7 +2390,7 @@
       "fields": [],
       "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
       "kind": "message_builder_or_handler",
-      "line": 91,
+      "line": 105,
       "name": "canonical_genesis_witness_message",
       "primary_mechanism_id": "M-018",
       "replay_rules": "domain_context_sender_and_logical_position_binding_required",
