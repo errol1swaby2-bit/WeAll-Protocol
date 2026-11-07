@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "bf3aebd2ee916fa3f07bc7e285e2451b38b3db84e79ac405f6192f501f8a9f40",
+      "sha256": "336095565ada1cccc9b1cb21a8eaf7f2f8859b77dbfacbe7ec67da7cce2ef72d",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1669,7 +1669,7 @@
       ],
       "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "417860c75a9f65c98047d1e5e18194ac8d3c781b7dd950c9996e9a808b564034",
+      "sha256": "85d7ee4b7dc8df2aa3691f713b7b49e4905fb616318962638296c0ac6f47ff6c",
       "source_id": "SRC-378656E471EA8F3F"
     },
     {
@@ -5463,7 +5463,7 @@
       ],
       "path": "scripts/preflight_genesis_witness_bundle.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ba7cd10bc5f11b09ec5fa6ba85a52ec2c7de082f5026a25c23fba89479be8140",
+      "sha256": "9e88b873837aee41f7fdc08c4bfb77a6bd9116234636dbe5dbf2fe8a57514248",
       "source_id": "SRC-96ABB925794E794F"
     },
     {
@@ -17344,7 +17344,7 @@
       ],
       "path": "tests/test_f1b_genesis_acceptance_witness_preflight.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2bf498a07a5168d2cd911eca58cf345098e34c904493af5b4b58ca8c6ba87cd8",
+      "sha256": "2d4a0151aa3ad9aa124685f4ff47f676b5c4208b02eae46289d9b41046e2a784",
       "source_id": "SRC-FAE7C8E3FF03904E"
     },
     {
