@@ -1,3 +1,4 @@
+# PR82 external witness identity/key roster pinned out-of-band for genesis preflight; refresh strict source derivatives.
 # PR82 full-backend legacy genesis-positive test assertions moved to isolated fixtures; strict reviewer derivatives refresh.
 # PR82 isolated observer-test genesis and strict production-only key gate; refresh source-mapped derivatives.
 # PR82 independently reproducible signed-genesis offline preflight and production GO key validation; strict derivative refresh.
