@@ -303,8 +303,7 @@ def resolve_committed_solo_attestation_from_history(
         header = block.get("header")
         _require(isinstance(header, dict), "committed_source_header_missing")
         _require(
-            _i(record.get("height")) > 1
-            and _i(record.get("height")) == _i(header.get("height")),
+            _i(record.get("height")) > 1 and _i(record.get("height")) == _i(header.get("height")),
             "committed_source_state_height_mismatch",
         )
         _require(
