@@ -422,9 +422,9 @@ def test_external_genesis_witness_bundle_two_process_rebuild_and_cli_replay(
     root = Path(__file__).resolve().parents[1]
     verifier = root / "scripts" / "preflight_genesis_witness_bundle.py"
     builder = root / "scripts" / "build_production_genesis_manifest.py"
-    founder_pubkey = ledger["consensus"]["validators"]["registry"][
-        "@genesis-manifest-founder"
-    ]["pubkey"]
+    founder_pubkey = ledger["consensus"]["validators"]["registry"]["@genesis-manifest-founder"][
+        "pubkey"
+    ]
     expected_genesis = (json.dumps(ledger, indent=2, sort_keys=True) + "\n").encode()
     expected_manifest = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()
 
@@ -501,7 +501,10 @@ def test_external_genesis_witness_bundle_two_process_rebuild_and_cli_replay(
         assert assertion["external_independence_review_required"] is True
         assert assertion["authorizes_first_finality"] is False
         assert assertion["evidence"]["genesis_manifest_sha256"] == expected_digest
-        assert assertion["evidence"]["witness_signatures"]["cryptographically_verified_signatures"] == 3
+        assert (
+            assertion["evidence"]["witness_signatures"]["cryptographically_verified_signatures"]
+            == 3
+        )
         attestations.append(assertion)
 
     assert attestations[0] == attestations[1]
