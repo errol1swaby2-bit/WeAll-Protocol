@@ -1179,9 +1179,7 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
     records[b3["block_id"]]["prev_block_id"] = b4["block_id"]
     spliced["tip"] = b3["block_id"]
     assert spliced["blocks"][b3["block_id"]]["height"] == spliced["height"]
-    with pytest.raises(
-        SoloFinalityWitnessError, match="committed_source_state_height_mismatch"
-    ):
+    with pytest.raises(SoloFinalityWitnessError, match="committed_source_state_height_mismatch"):
         resolve_committed_solo_attestation_from_history(
             state=spliced,
             target_block_id=b1["block_id"],
