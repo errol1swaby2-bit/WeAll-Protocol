@@ -181,9 +181,7 @@ def test_trusted_manifest_and_validator_key_are_never_taken_from_untrusted_recei
 ) -> None:
     certificate, genesis_key = ceremony
     wrong_manifest = hashlib.sha256(b"different-independent-build").hexdigest()
-    with pytest.raises(
-        GenesisAcceptancePreflightError, match="certificate_manifest_mismatch"
-    ):
+    with pytest.raises(GenesisAcceptancePreflightError, match="certificate_manifest_mismatch"):
         preflight_genesis_acceptance_signatures(
             certificate=certificate,
             expected_chain_id=CHAIN_ID,
