@@ -21,11 +21,13 @@ from weall.crypto.sig import sign_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.runtime.commitments import canonical_json_sha256
 from weall.runtime.genesis_acceptance_witness import (
+    ROSTER_SCHEMA,
     SCHEMA,
     GenesisAcceptancePreflightError,
     canonical_genesis_witness_message,
     preflight_genesis_acceptance_signatures,
     preflight_genesis_manifest_witness_binding,
+    preflight_externally_pinned_genesis_witness_roster,
 )
 from weall.runtime.state_hash import compute_state_root
 
@@ -87,6 +89,25 @@ def _signed_candidate(
         },
         genesis_key,
     )
+
+
+def _externally_pinned_candidate_roster(
+    certificate: dict[str, Any],
+) -> dict[str, Any]:
+    """Test-only roster: the digest is NOT a real independent trust anchor."""
+    return {
+        "schema": ROSTER_SCHEMA,
+        "chain_id": certificate["chain_id"],
+        "genesis_manifest_sha256": certificate["genesis_manifest_sha256"],
+        "ceremony_id": certificate["ceremony_id"],
+        "witnesses": sorted(
+            [
+                {"witness_id": w["witness_id"], "pubkey": w["pubkey"]}
+                for w in certificate["witnesses"]
+            ],
+            key=lambda item: item["witness_id"],
+        ),
+    }
 
 
 @pytest.fixture
@@ -428,6 +449,9 @@ def test_external_genesis_witness_bundle_two_process_rebuild_and_cli_replay(
     expected_genesis = (json.dumps(ledger, indent=2, sort_keys=True) + "\n").encode()
     expected_manifest = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()
 
+    roster = _externally_pinned_candidate_roster(certificate)
+    pinned_roster_digest = canonical_json_sha256(roster)
+
     # Repeat the *frozen-time* production builder from two independent Python
     # processes. Reuse public inputs only; never export or fabricate production
     # private keys to create an "accepted" certificate.
@@ -472,6 +496,8 @@ def test_external_genesis_witness_bundle_two_process_rebuild_and_cli_replay(
 
         certificate_path = node_dir / "witness-certificate.json"
         certificate_path.write_text(json.dumps(certificate, sort_keys=True, indent=2))
+        roster_path = node_dir / "external-witness-roster.json"
+        roster_path.write_text(json.dumps(roster, sort_keys=True, indent=2))
         verified = subprocess.run(
             [
                 sys.executable,
@@ -482,6 +508,10 @@ def test_external_genesis_witness_bundle_two_process_rebuild_and_cli_replay(
                 str(genesis),
                 "--certificate",
                 str(certificate_path),
+                "--witness-roster",
+                str(roster_path),
+                "--trusted-witness-roster-sha256",
+                pinned_roster_digest,
                 "--trusted-manifest-sha256",
                 expected_digest,
                 "--expected-chain-id",
@@ -499,6 +529,11 @@ def test_external_genesis_witness_bundle_two_process_rebuild_and_cli_replay(
         assert assertion["scope"] == "reference_only"
         assert assertion["authority_decision"] == "not_performed"
         assert assertion["external_independence_review_required"] is True
+        assert assertion["roster_validation_status"] == "signer_identity_and_key_binding_only"
+        assert assertion["witness_roster_binding"]["externally_pinned_roster_sha256"] == (
+            pinned_roster_digest
+        )
+        assert assertion["witness_roster_binding"]["authorizes_first_finality"] is False
         assert assertion["authorizes_first_finality"] is False
         assert assertion["evidence"]["genesis_manifest_sha256"] == expected_digest
         assert (
@@ -535,6 +570,10 @@ def test_offline_witness_cli_fail_closed_on_bundle_substitution(
     manifest_path.write_text(json.dumps(manifest))
     genesis_path.write_text(json.dumps(ledger))
     certificate_path.write_text(json.dumps(certificate))
+    roster = _externally_pinned_candidate_roster(certificate)
+    roster_path = tmp_path / "roster.json"
+    roster_path.write_text(json.dumps(roster))
+    pinned_roster_digest = canonical_json_sha256(roster)
     chain = "genesis-manifest-binding-testnet"
     if attack == "wrong_trusted_digest":
         digest = "0" * 64
@@ -562,6 +601,10 @@ def test_offline_witness_cli_fail_closed_on_bundle_substitution(
             str(genesis_path),
             "--certificate",
             str(certificate_path),
+            "--witness-roster",
+            str(roster_path),
+            "--trusted-witness-roster-sha256",
+            pinned_roster_digest,
             "--trusted-manifest-sha256",
             digest,
             "--expected-chain-id",
