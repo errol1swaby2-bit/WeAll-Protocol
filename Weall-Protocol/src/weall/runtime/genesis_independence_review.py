@@ -113,8 +113,7 @@ def preflight_signed_genesis_independence_reviews(
         raise GenesisAcceptancePreflightError("reviewer_roster_noncanonical_json") from exc
     _require(roster_digest == expected_reviewer_roster_sha256, "reviewer_roster_anchor_mismatch")
     _require(
-        reviewer_roster["chain_id"] == genesis_binding.chain_id
-        == witness_roster_binding.chain_id,
+        reviewer_roster["chain_id"] == genesis_binding.chain_id == witness_roster_binding.chain_id,
         "reviewer_roster_chain_mismatch",
     )
     _require(
@@ -150,8 +149,7 @@ def preflight_signed_genesis_independence_reviews(
             "reviewer_witness_entry_invalid",
         )
         _require(
-            _ident(item["witness_id"])
-            and _hex_bytes(item["pubkey"], MLDSA65_PUBLIC_KEY_BYTES),
+            _ident(item["witness_id"]) and _hex_bytes(item["pubkey"], MLDSA65_PUBLIC_KEY_BYTES),
             "reviewer_witness_identity_invalid",
         )
         _require(
@@ -182,7 +180,9 @@ def preflight_signed_genesis_independence_reviews(
         _require(_hex_bytes(key, MLDSA65_PUBLIC_KEY_BYTES), "reviewer_public_key_invalid")
         _require(identity not in reviewer_keys, "duplicate_reviewer_identity")
         _require(key not in seen_keys, "duplicate_reviewer_public_key")
-        _require(key != genesis_validator_pubkey and key not in witness_keys, "reviewer_key_role_reuse")
+        _require(
+            key != genesis_validator_pubkey and key not in witness_keys, "reviewer_key_role_reuse"
+        )
         reviewer_keys[identity] = key
         seen_keys.add(key)
 
@@ -200,10 +200,18 @@ def preflight_signed_genesis_independence_reviews(
         _require(
             set(statement)
             == {
-                "schema", "chain_id", "genesis_manifest_sha256",
-                "ceremony_id", "witness_roster_sha256", "reviewer_roster_sha256",
-                "reviewer_id", "pubkey", "sig_profile", "conflict_of_interest",
-                "assessments", "signature",
+                "schema",
+                "chain_id",
+                "genesis_manifest_sha256",
+                "ceremony_id",
+                "witness_roster_sha256",
+                "reviewer_roster_sha256",
+                "reviewer_id",
+                "pubkey",
+                "sig_profile",
+                "conflict_of_interest",
+                "assessments",
+                "signature",
             },
             "signed_review_fields_invalid",
         )
@@ -260,13 +268,11 @@ def preflight_signed_genesis_independence_reviews(
             for domain in sorted(INDEPENDENCE_DOMAINS):
                 record = domains[domain]
                 _require(
-                    isinstance(record, dict)
-                    and set(record) == {"finding", "evidence_sha256"},
+                    isinstance(record, dict) and set(record) == {"finding", "evidence_sha256"},
                     "review_domain_record_invalid",
                 )
                 _require(
-                    isinstance(record["finding"], str)
-                    and record["finding"] in REVIEW_FINDINGS,
+                    isinstance(record["finding"], str) and record["finding"] in REVIEW_FINDINGS,
                     "review_domain_finding_invalid",
                 )
                 _require(_sha256(record["evidence_sha256"]), "review_domain_evidence_invalid")
