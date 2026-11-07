@@ -139,7 +139,7 @@
     "source_state_root": "abd625e729ba84f151a9d1c174345132fcd50d782e5e48477aac104cb6e818f4"
   },
   "freshness": {
-    "input_digest_sha256": "92ea313cf5862a155e4cde3253747b14b77d79fd5a5161ef505d434617a411c9",
+    "input_digest_sha256": "8d286da832eb23801005d0c742dc3fa8df1b3a9fc99c12c1600779e9f900ccd6",
     "mode": "deterministic_input_digest_v1"
   },
   "locked_boundaries": {
