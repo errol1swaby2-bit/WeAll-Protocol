@@ -11,6 +11,7 @@ block builder, replay, or consensus voter. The preflight must never authorize
 a BLOCK_FINALIZE or change a canonical state root.
 """
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -405,7 +406,7 @@ def preflight_genesis_manifest_witness_binding(
         genesis_hash=genesis_hash,
         genesis_state_root=state_root,
         genesis_validator_account=founding_account,
-        genesis_validator_pubkey_sha256=canonical_json_sha256(pubkey),
+        genesis_validator_pubkey_sha256=hashlib.sha256(bytes.fromhex(pubkey)).hexdigest(),
         witness_signatures=witness_evidence,
     )
 
