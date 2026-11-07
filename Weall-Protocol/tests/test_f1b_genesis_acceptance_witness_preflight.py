@@ -982,9 +982,7 @@ def test_offline_signed_review_cli_fails_closed(
         reviews["signed_reviews"].pop()
         paths["reviews"].write_text(json.dumps(reviews), encoding="utf-8")
     elif attack == "duplicate_signed_reviews_key":
-        paths["reviews"].write_text(
-            '{"signed_reviews":[],"signed_reviews":[]}', encoding="utf-8"
-        )
+        paths["reviews"].write_text('{"signed_reviews":[],"signed_reviews":[]}', encoding="utf-8")
     elif attack == "review_fields_unexpected":
         paths["reviews"].write_text('{"unexpected":[]}', encoding="utf-8")
     elif attack == "review_inputs_incomplete":
