@@ -36,11 +36,11 @@ def _new_key() -> tuple[MLDSA65PrivateKey, str]:
     return private, private.public_key().public_bytes_raw().hex()
 
 
-def _sign(statement: dict[str, Any], private: MLDSA65PrivateKey) -> None:
+def _sign(statement: dict[str, Any], private_hex: str) -> None:
     statement["signature"] = sign_signature_for_profile(
         sig_profile=PQ_MLDSA_V1,
         message=genesis_review_signing_message(statement),
-        privkey=private.private_bytes_raw().hex(),
+        privkey=private_hex,
     )
 
 
@@ -88,7 +88,7 @@ def signed_dossier(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     private_keys = []
     for i in range(2):
         private, key = _new_key()
-        private_keys.append(private)
+        private_keys.append(private.private_bytes_raw().hex())
         reviewers.append({"reviewer_id": f"@reviewer-{i}", "pubkey": key})
     reviewer_roster = {
         "schema": REVIEWER_ROSTER_SCHEMA,
