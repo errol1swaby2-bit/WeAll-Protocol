@@ -99,9 +99,7 @@ def test_authority_lock_gate_refuses_observer_authority_leaks(
     value: str,
     expected: str,
 ) -> None:
-    result = _run_authority_gate(
-        {key: value}, genesis_env=valid_observer_genesis_artifacts
-    )
+    result = _run_authority_gate({key: value}, genesis_env=valid_observer_genesis_artifacts)
     assert result.returncode != 0
     assert expected in result.stdout
 
