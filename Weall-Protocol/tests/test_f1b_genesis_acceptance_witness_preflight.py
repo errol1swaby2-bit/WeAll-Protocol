@@ -20,6 +20,7 @@ from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from weall.crypto.sig import sign_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.runtime.commitments import canonical_json_sha256
+from weall.runtime.state_hash import compute_state_root
 from weall.runtime.genesis_acceptance_witness import (
     SCHEMA,
     GenesisAcceptancePreflightError,
@@ -352,9 +353,7 @@ def test_builder_genesis_binding_rejects_ancestry_and_authority_substitution(
         manifest["genesis_hash"] = canonical_json_sha256(ledger)
         # The trust anchor must be updated separately; this creates a new,
         # signed-looking manifest only for testing the inner consistency guard.
-        manifest["genesis_state_root"] = __import__(
-            "weall.runtime.state_hash", fromlist=["compute_state_root"]
-        ).compute_state_root(ledger)
+        manifest["genesis_state_root"] = compute_state_root(ledger)
         digest = canonical_json_sha256(manifest)
         cert, _ = _signed_candidate(
             chain_id=cert["chain_id"],
@@ -366,9 +365,7 @@ def test_builder_genesis_binding_rejects_ancestry_and_authority_substitution(
     elif attack == "stale_protocol_profile":
         ledger["meta"]["production_consensus_profile_hash"] = "0" * 64
         manifest["genesis_hash"] = canonical_json_sha256(ledger)
-        manifest["genesis_state_root"] = __import__(
-            "weall.runtime.state_hash", fromlist=["compute_state_root"]
-        ).compute_state_root(ledger)
+        manifest["genesis_state_root"] = compute_state_root(ledger)
         digest = canonical_json_sha256(manifest)
         cert, _ = _signed_candidate(
             chain_id=cert["chain_id"],
