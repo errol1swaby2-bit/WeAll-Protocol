@@ -43,6 +43,7 @@ jobs:
           set -Eeuo pipefail
           ruff format --check \
             scripts/build_production_genesis_manifest.py \
+            scripts/assert_production_genesis_artifacts.py \
             scripts/preflight_genesis_witness_bundle.py \
             src/weall/runtime/genesis_acceptance_witness.py \
             scripts/devnet_cross_node_convergence.py \
@@ -60,6 +61,7 @@ jobs:
             tests/test_p0_03_production_composition.py
           ruff check \
             scripts/build_production_genesis_manifest.py \
+            scripts/assert_production_genesis_artifacts.py \
             scripts/preflight_genesis_witness_bundle.py \
             src/weall/runtime/genesis_acceptance_witness.py \
             scripts/devnet_cross_node_convergence.py \
@@ -93,7 +95,7 @@ jobs:
         if: failure()
         working-directory: Weall-Protocol
         run: |
-          ruff format --diff scripts/build_production_genesis_manifest.py scripts/preflight_genesis_witness_bundle.py src/weall/runtime/genesis_acceptance_witness.py tests/test_f1b_genesis_acceptance_witness_preflight.py tests/test_production_genesis_manifest_builder.py tests/test_production_go_gates.py tests/test_f1b_governance_execute_canonical_two_block.py
+          ruff format --diff scripts/build_production_genesis_manifest.py scripts/assert_production_genesis_artifacts.py scripts/preflight_genesis_witness_bundle.py src/weall/runtime/genesis_acceptance_witness.py tests/test_f1b_genesis_acceptance_witness_preflight.py tests/test_production_genesis_manifest_builder.py tests/test_production_go_gates.py tests/test_f1b_governance_execute_canonical_two_block.py
 
       - name: Live independent-process producer/follower receipt and replay proof
         working-directory: Weall-Protocol
