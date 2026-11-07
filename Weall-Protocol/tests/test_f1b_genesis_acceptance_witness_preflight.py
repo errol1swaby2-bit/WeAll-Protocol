@@ -8,6 +8,10 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -15,9 +19,11 @@ from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
 from weall.crypto.sig import sign_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
+from weall.runtime.commitments import canonical_json_sha256
 from weall.runtime.genesis_acceptance_witness import (
     SCHEMA,
     GenesisAcceptancePreflightError,
+    preflight_genesis_manifest_witness_binding,
     canonical_genesis_witness_message,
     preflight_genesis_acceptance_signatures,
 )
@@ -28,8 +34,17 @@ CEREMONY_ID = "genesis-ceremony-independent-witnesses-01"
 DOMAINS = ("household", "funding", "key_custody", "infrastructure")
 
 
-def _signed_candidate() -> tuple[dict[str, Any], str]:
-    genesis_key = MLDSA65PrivateKey.generate().public_key().public_bytes_raw().hex()
+def _signed_candidate(
+    *,
+    chain_id: str = CHAIN_ID,
+    manifest_sha256: str = GENESIS_SHA,
+    genesis_validator_pubkey: str | None = None,
+) -> tuple[dict[str, Any], str]:
+    genesis_key = (
+        genesis_validator_pubkey
+        if genesis_validator_pubkey is not None
+        else MLDSA65PrivateKey.generate().public_key().public_bytes_raw().hex()
+    )
     witnesses = []
     for number in range(3):
         key = MLDSA65PrivateKey.generate()
@@ -40,8 +55,8 @@ def _signed_candidate() -> tuple[dict[str, Any], str]:
             for name in DOMAINS
         }
         message = canonical_genesis_witness_message(
-            chain_id=CHAIN_ID,
-            genesis_manifest_sha256=GENESIS_SHA,
+            chain_id=chain_id,
+            genesis_manifest_sha256=manifest_sha256,
             ceremony_id=CEREMONY_ID,
             witness_id=witness_id,
             pubkey=pubkey,
@@ -64,8 +79,8 @@ def _signed_candidate() -> tuple[dict[str, Any], str]:
     return (
         {
             "schema": SCHEMA,
-            "chain_id": CHAIN_ID,
-            "genesis_manifest_sha256": GENESIS_SHA,
+            "chain_id": chain_id,
+            "genesis_manifest_sha256": manifest_sha256,
             "ceremony_id": CEREMONY_ID,
             "witnesses": witnesses,
         },
@@ -192,3 +207,197 @@ def test_trusted_manifest_and_validator_key_are_never_taken_from_untrusted_recei
         GenesisAcceptancePreflightError, match="trusted_genesis_validator_key_invalid"
     ):
         _preflight(certificate, "not-a-trusted-ml-dsa-validator-key")
+
+@pytest.fixture
+def frozen_builder_genesis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], str]:
+    """Use the actual production ceremony builder with a real ML-DSA signing key."""
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.delenv("WEALL_CRYPTO_MODE", raising=False)
+    founder = MLDSA65PrivateKey.generate().public_key().public_bytes_raw().hex()
+    root = Path(__file__).resolve().parents[1]
+    tx_index = tmp_path / "tx_index.json"
+    tx_index.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}))
+    genesis_path = tmp_path / "genesis.json"
+    manifest_path = tmp_path / "manifest.json"
+    chain_id = "genesis-manifest-binding-testnet"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "build_production_genesis_manifest.py"),
+            "--chain-id",
+            chain_id,
+            "--founding-account",
+            "@genesis-manifest-founder",
+            "--founding-pubkey",
+            founder,
+            "--authority-pubkey",
+            "b" * 64,
+            "--tx-index",
+            str(tx_index),
+            "--genesis-out",
+            str(genesis_path),
+            "--manifest-out",
+            str(manifest_path),
+            "--genesis-time",
+            "1900000000",
+        ],
+        cwd=str(root),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    ledger = json.loads(genesis_path.read_text())
+    manifest = json.loads(manifest_path.read_text())
+    trusted_sha = canonical_json_sha256(manifest)
+    cert, _founder = _signed_candidate(
+        chain_id=chain_id, manifest_sha256=trusted_sha, genesis_validator_pubkey=founder
+    )
+    return cert, manifest, ledger, trusted_sha
+
+
+def _bind(
+    data: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+):
+    certificate, manifest, ledger, digest = data
+    return preflight_genesis_manifest_witness_binding(
+        certificate=certificate,
+        manifest=manifest,
+        genesis_ledger=ledger,
+        expected_manifest_sha256=digest,
+        expected_chain_id="genesis-manifest-binding-testnet",
+    )
+
+
+def test_signatures_are_bound_to_actual_builder_genesis_state_and_manifest(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+) -> None:
+    data = frozen_builder_genesis
+    untouched = copy.deepcopy(data)
+    proof = _bind(data)
+    assert proof.chain_id == "genesis-manifest-binding-testnet"
+    assert proof.genesis_manifest_sha256 == data[3]
+    assert proof.genesis_hash == data[1]["genesis_hash"]
+    assert proof.genesis_state_root == data[1]["genesis_state_root"]
+    assert proof.genesis_validator_account == "@genesis-manifest-founder"
+    assert len(proof.genesis_validator_pubkey_sha256) == 64
+    assert proof.witness_signatures.cryptographically_verified_signatures == 3
+    assert proof.witness_signatures.authorizes_first_finality is False
+    assert proof.authorizes_first_finality is False
+    assert proof.external_independence_review_required is True
+    assert data == untouched
+
+    # Independent read-only copies must produce precisely the same evidence.
+    second = copy.deepcopy(data)
+    second[0]["witnesses"].reverse()
+    assert _bind(second) == proof
+
+
+@pytest.mark.parametrize(
+    ("attack", "expected_reason"),
+    [
+        ("manifest_replaced", "genesis_manifest_trust_anchor_mismatch"),
+        ("ledger_replaced", "genesis_hash_mismatch"),
+        ("height_advanced", "genesis_state_not_height_zero"),
+        ("already_finalized", "genesis_already_finalized"),
+        ("post_genesis_tip", "genesis_tip_already_advanced"),
+        ("bft_phase", "genesis_phase_not_solo"),
+        ("two_validators", "genesis_single_validator_required"),
+        ("founder_alias", "genesis_founder_account_mismatch"),
+        ("short_validator_key", "genesis_validator_mldsa65_pubkey_invalid"),
+        ("lifecycle_key_diverges", "genesis_validator_registry_key_mismatch"),
+        ("allowlist_key_diverges", "genesis_founder_allowlist_key_mismatch"),
+        ("account_key_diverges", "genesis_founder_account_signing_key_mismatch"),
+        ("stale_tx_index", "genesis_tx_index_hash_mismatch"),
+        ("stale_protocol_profile", "genesis_consensus_profile_hash_mismatch"),
+    ],
+)
+def test_builder_genesis_binding_rejects_ancestry_and_authority_substitution(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+    attack: str,
+    expected_reason: str,
+) -> None:
+    cert, manifest, ledger, digest = copy.deepcopy(frozen_builder_genesis)
+    founder = "@genesis-manifest-founder"
+    if attack == "manifest_replaced":
+        manifest["notes"] = "substituted manifest"
+    elif attack == "ledger_replaced":
+        ledger["accounts"][founder]["nonce"] = 7
+    elif attack == "height_advanced":
+        ledger["height"] = 1
+    elif attack == "already_finalized":
+        ledger["finalized"] = {"height": 1, "block_id": "fake"}
+    elif attack == "post_genesis_tip":
+        ledger["tip"] = "an-unfinalized-tip"
+    elif attack == "bft_phase":
+        ledger["consensus"]["phase"] = {"current": "bft_active"}
+    elif attack == "two_validators":
+        ledger["roles"]["validators"]["active_set"].append("@unsigned-second-validator")
+    elif attack == "founder_alias":
+        ledger["params"]["bootstrap_founder_account"] = "@not-founder"
+    elif attack == "short_validator_key":
+        ledger["consensus"]["validators"]["registry"][founder]["pubkey"] = "a" * 64
+    elif attack == "lifecycle_key_diverges":
+        ledger["validators"]["registry"][founder]["pubkey"] = "f" * 3904
+    elif attack == "allowlist_key_diverges":
+        ledger["params"]["bootstrap_allowlist"][founder]["pubkey"] = "f" * 3904
+    elif attack == "account_key_diverges":
+        by_id = ledger["accounts"][founder]["keys"]["by_id"]
+        first_id = next(iter(by_id))
+        by_id[first_id]["pubkey"] = "f" * 3904
+    elif attack == "stale_tx_index":
+        ledger["meta"]["tx_index_hash"] = "0" * 64
+        manifest["genesis_hash"] = canonical_json_sha256(ledger)
+        # The trust anchor must be updated separately; this creates a new,
+        # signed-looking manifest only for testing the inner consistency guard.
+        manifest["genesis_state_root"] = __import__(
+            "weall.runtime.state_hash", fromlist=["compute_state_root"]
+        ).compute_state_root(ledger)
+        digest = canonical_json_sha256(manifest)
+        cert, _ = _signed_candidate(
+            chain_id=cert["chain_id"],
+            manifest_sha256=digest,
+            genesis_validator_pubkey=ledger["consensus"]["validators"]["registry"][founder][
+                "pubkey"
+            ],
+        )
+    elif attack == "stale_protocol_profile":
+        ledger["meta"]["production_consensus_profile_hash"] = "0" * 64
+        manifest["genesis_hash"] = canonical_json_sha256(ledger)
+        manifest["genesis_state_root"] = __import__(
+            "weall.runtime.state_hash", fromlist=["compute_state_root"]
+        ).compute_state_root(ledger)
+        digest = canonical_json_sha256(manifest)
+        cert, _ = _signed_candidate(
+            chain_id=cert["chain_id"],
+            manifest_sha256=digest,
+            genesis_validator_pubkey=ledger["consensus"]["validators"]["registry"][founder][
+                "pubkey"
+            ],
+        )
+    else:
+        pytest.fail(f"unknown attack: {attack}")
+
+    with pytest.raises(GenesisAcceptancePreflightError, match=expected_reason):
+        _bind((cert, manifest, ledger, digest))
+
+
+def test_signed_replacement_manifest_cannot_override_genesis_state_root(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+) -> None:
+    original_cert, manifest, ledger, _ = frozen_builder_genesis
+    rewritten_manifest = copy.deepcopy(manifest)
+    rewritten_manifest["genesis_state_root"] = "0" * 64
+    new_digest = canonical_json_sha256(rewritten_manifest)
+    cert, _ = _signed_candidate(
+        chain_id=original_cert["chain_id"],
+        manifest_sha256=new_digest,
+        genesis_validator_pubkey=ledger["consensus"]["validators"]["registry"][
+            "@genesis-manifest-founder"
+        ]["pubkey"],
+    )
+    with pytest.raises(GenesisAcceptancePreflightError, match="genesis_state_root_mismatch"):
+        _bind((cert, rewritten_manifest, ledger, new_digest))
+
