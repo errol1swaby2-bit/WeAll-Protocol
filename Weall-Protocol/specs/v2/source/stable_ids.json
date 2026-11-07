@@ -10509,6 +10509,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "src/weall/runtime/genesis_independence_review.py:genesis_review_signing_message:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-7C8C54E6F877CB86",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "src/weall/runtime/tx_conflicts.py:_proposal_id:message_builder_or_handler",
       "kind": "message",
       "stable_id": "MSG-7CB4BBE925B9316C",
