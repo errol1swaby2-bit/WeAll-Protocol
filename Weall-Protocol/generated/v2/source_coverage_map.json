@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2076,
+  "file_count": 2077,
   "files": [
     {
       "affected_registers": [
@@ -69,7 +69,7 @@
       ],
       "path": "../.github/workflows/f1b-two-process-receipt.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "543f89031c33295f496a7a927817b736c26eb7d2f4aa2e67bcc08670fa6d6f66",
+      "sha256": "7f7f09dc1b7f5df100173a038dfb00fbbe441c64a71adb3343951022587fff4c",
       "source_id": "SRC-67246AFF3D3EF2FA"
     },
     {
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "a34a02943a8aacc45c853a8dc5356c5994d98d40c20936453bc980e89486b2eb",
+      "sha256": "477651daedeb9664dba33257014e086c72f511efd5f67fded14f2f68fb3cdca5",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -1669,7 +1669,7 @@
       ],
       "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "c2f63c2c6e24852a9bf5c61e99989628ee27523988b76593d28ed7f5e2e0ace7",
+      "sha256": "b1b5640dd2645ab2b696d973ea2bff675a49437e4d886c3477c24ea794df7be3",
       "source_id": "SRC-378656E471EA8F3F"
     },
     {
@@ -3936,7 +3936,7 @@
       ],
       "path": "scripts/assert_production_genesis_artifacts.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "111a94f97374c68962a6490100dfbd4c5f124d6bcee5d3dfc6b1528c16ac10c3",
+      "sha256": "620f270d9d8c6985411e3899ee880e741174d0b8d017a6ce9d9533fd06e6ee40",
       "source_id": "SRC-D922E019ADFFCAAF"
     },
     {
@@ -5451,6 +5451,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "eb42b0438573918e4069890130fc9b17f39353c27612475097fe8a169b7538bb",
       "source_id": "SRC-CBC66E838B60DAED"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "tooling"
+      ],
+      "classification": "verification_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/preflight_genesis_witness_bundle.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "8fc47dc158d52af0add350002de258812f2aca0e48a6922c03d5359087d68c46",
+      "source_id": "SRC-96ABB925794E794F"
     },
     {
       "affected_registers": [
@@ -7000,7 +7014,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a974315001be34d16d6c7aedc6448cab0977da5f19c72fe0f1a3f0b7282ac56e",
+      "sha256": "3655aac45c1b523f98a3697cd2a25f8ab90986c1b936b9e6a3e83ee77fea655a",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -17310,11 +17324,13 @@
       "classification": "test",
       "mappings": [
         "M-076",
-        "ROUTE-150316944D629C32"
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0608"
       ],
       "path": "tests/test_f1b_genesis_acceptance_witness_preflight.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d6d38d31d75a5ec6ddba32a89ffb71e76a1930a5b6de75229d6b702468c70f87",
+      "sha256": "efdddaa2715dec0f6913cc06f3cd70d0eef19d6dd11a232fa0a68f9d12a2d944",
       "source_id": "SRC-FAE7C8E3FF03904E"
     },
     {
@@ -26797,7 +26813,7 @@
       ],
       "path": "tests/test_production_go_gates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "21e9084b02ac0a7544365576a52eea4ac5fe37d6030efc3fe06dbb84f0098f27",
+      "sha256": "e42b56cc72cc3c2c12be428b541379c15e6140de9b8a6a73d5992038deb5fb74",
       "source_id": "SRC-876DEAB5BD3319FA"
     },
     {
