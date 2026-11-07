@@ -1,3 +1,4 @@
+# PR82 final source-lint corrected read-only historical witness locator evidence refresh.
 # PR82 final Ruff-corrected historical source locator; strict artifact regeneration.
 # PR82 M-018 reference-only complete-canonical-history locator; refresh reviewer derivatives with strict evidence mapping.
 # PR82 strict artifact refresh after fail-closed solo witness assert removal, explicit phase and B3 persisted-source regression.
