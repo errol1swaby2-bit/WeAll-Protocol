@@ -621,3 +621,192 @@ def test_offline_witness_cli_fail_closed_on_bundle_substitution(
     assert response["reason"] == reason
     assert response["ok"] is False
     assert response["authorizes_first_finality"] is False
+
+
+def test_witness_roster_rejects_validly_signed_substitution(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+) -> None:
+    """An attacker cannot replace three signed keys with three other valid keys."""
+    original, _manifest, genesis, digest = frozen_builder_genesis
+    founder_key = genesis["consensus"]["validators"]["registry"]["@genesis-manifest-founder"][
+        "pubkey"
+    ]
+    roster = _externally_pinned_candidate_roster(original)
+    trusted_roster_sha = canonical_json_sha256(roster)
+    existing_binding = _bind(frozen_builder_genesis)
+    first = preflight_externally_pinned_genesis_witness_roster(
+        roster=roster,
+        expected_roster_sha256=trusted_roster_sha,
+        certificate=original,
+        genesis_binding=existing_binding,
+        genesis_validator_pubkey=founder_key,
+    )
+    assert first.witness_ids == existing_binding.witness_signatures.witness_ids
+    assert first.review_status == "independence_review_required"
+    assert first.authorizes_first_finality is False
+
+    impostor_certificate, _ = _signed_candidate(
+        chain_id=original["chain_id"],
+        manifest_sha256=digest,
+        genesis_validator_pubkey=founder_key,
+    )
+    # The impostor signatures *themselves* verify against the same frozen genesis.
+    impostor_binding = _bind(
+        (impostor_certificate, frozen_builder_genesis[1], genesis, digest)
+    )
+    assert impostor_binding.witness_signatures.cryptographically_verified_signatures == 3
+    with pytest.raises(
+        GenesisAcceptancePreflightError, match="witness_roster_certificate_key_mismatch"
+    ):
+        preflight_externally_pinned_genesis_witness_roster(
+            roster=roster,
+            expected_roster_sha256=trusted_roster_sha,
+            certificate=impostor_certificate,
+            genesis_binding=impostor_binding,
+            genesis_validator_pubkey=founder_key,
+        )
+
+
+@pytest.mark.parametrize(
+    ("attack", "expected_reason"),
+    [
+        ("untrusted_roster_rewrite", "trusted_witness_roster_mismatch"),
+        ("identity_key_swapped", "witness_roster_certificate_key_mismatch"),
+        ("duplicate_identity", "witness_roster_duplicate_identity"),
+        ("duplicate_public_key", "witness_roster_duplicate_signing_key"),
+        ("founder_public_key", "witness_roster_founder_key_reuse"),
+        ("incomplete_roster", "witness_roster_threshold_not_met"),
+        ("extra_signer", "witness_roster_signer_set_mismatch"),
+        ("wrong_chain", "witness_roster_chain_mismatch"),
+        ("wrong_manifest", "witness_roster_manifest_mismatch"),
+        ("wrong_ceremony", "witness_roster_ceremony_mismatch"),
+        ("short_public_key", "witness_roster_pubkey_invalid"),
+        ("self_approved", "witness_roster_fields_invalid"),
+    ],
+)
+def test_witness_roster_refuses_unsigned_authority_and_identity_substitution(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+    attack: str,
+    expected_reason: str,
+) -> None:
+    certificate, _manifest, genesis, _digest = frozen_builder_genesis
+    binding = _bind(frozen_builder_genesis)
+    original = _externally_pinned_candidate_roster(certificate)
+    roster = copy.deepcopy(original)
+    founder_key = genesis["consensus"]["validators"]["registry"]["@genesis-manifest-founder"][
+        "pubkey"
+    ]
+    original_roster_sha = canonical_json_sha256(original)
+    if attack == "untrusted_roster_rewrite":
+        roster["witnesses"][0]["pubkey"] = "0" * 3904
+    elif attack == "identity_key_swapped":
+        a, b = roster["witnesses"][:2]
+        a["pubkey"], b["pubkey"] = b["pubkey"], a["pubkey"]
+    elif attack == "duplicate_identity":
+        roster["witnesses"][1]["witness_id"] = roster["witnesses"][0]["witness_id"]
+    elif attack == "duplicate_public_key":
+        roster["witnesses"][1]["pubkey"] = roster["witnesses"][0]["pubkey"]
+    elif attack == "founder_public_key":
+        roster["witnesses"][0]["pubkey"] = founder_key
+    elif attack == "incomplete_roster":
+        roster["witnesses"].pop()
+    elif attack == "extra_signer":
+        roster["witnesses"].append(
+            {
+                "witness_id": "@extra-unendorsed-witness",
+                "pubkey": MLDSA65PrivateKey.generate().public_key().public_bytes_raw().hex(),
+            }
+        )
+    elif attack == "wrong_chain":
+        roster["chain_id"] = "attacker-test-chain"
+    elif attack == "wrong_manifest":
+        roster["genesis_manifest_sha256"] = "0" * 64
+    elif attack == "wrong_ceremony":
+        roster["ceremony_id"] = "another-ceremony"
+    elif attack == "short_public_key":
+        roster["witnesses"][0]["pubkey"] = "0" * 64
+    elif attack == "self_approved":
+        roster["constitutional_approval"] = True
+    else:
+        pytest.fail(f"unrecognized attack vector: {attack}")
+    # Except for the case specifically attacking the out-of-band hash, allow
+    # the attacker to rewrite the digest, to isolate subsequent trust boundaries.
+    expected_sha = (
+        original_roster_sha
+        if attack == "untrusted_roster_rewrite"
+        else canonical_json_sha256(roster)
+    )
+    with pytest.raises(GenesisAcceptancePreflightError, match=expected_reason):
+        preflight_externally_pinned_genesis_witness_roster(
+            roster=roster,
+            expected_roster_sha256=expected_sha,
+            certificate=certificate,
+            genesis_binding=binding,
+            genesis_validator_pubkey=founder_key,
+        )
+
+
+@pytest.mark.parametrize(
+    ("attack", "expected_reason"),
+    [
+        ("roster_duplicate_json_key", "invalid_genesis_bundle_json"),
+        ("roster_bad_anchor", "trusted_witness_roster_mismatch"),
+        ("roster_missing_signature", "witness_roster_signer_set_mismatch"),
+    ],
+)
+def test_offline_genesis_roster_cli_refuses_untrusted_identity_sources(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+    tmp_path: Path,
+    attack: str,
+    expected_reason: str,
+) -> None:
+    cert, manifest, genesis, digest = frozen_builder_genesis
+    root = Path(__file__).resolve().parents[1]
+    roster = _externally_pinned_candidate_roster(cert)
+    roster_sha = canonical_json_sha256(roster)
+    manifest_path = tmp_path / "manifest.json"
+    genesis_path = tmp_path / "genesis.json"
+    cert_path = tmp_path / "certificate.json"
+    roster_path = tmp_path / "roster.json"
+    manifest_path.write_text(json.dumps(manifest))
+    genesis_path.write_text(json.dumps(genesis))
+    cert_path.write_text(json.dumps(cert))
+    roster_path.write_text(json.dumps(roster))
+    if attack == "roster_duplicate_json_key":
+        roster_path.write_text('{"schema":"fake","schema":"fake"}')
+    elif attack == "roster_bad_anchor":
+        roster_sha = "0" * 64
+    elif attack == "roster_missing_signature":
+        roster["witnesses"][0]["witness_id"] = "@unrecognized-witness"
+        roster_path.write_text(json.dumps(roster))
+        roster_sha = canonical_json_sha256(roster)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "preflight_genesis_witness_bundle.py"),
+            "--manifest",
+            str(manifest_path),
+            "--genesis",
+            str(genesis_path),
+            "--certificate",
+            str(cert_path),
+            "--witness-roster",
+            str(roster_path),
+            "--trusted-witness-roster-sha256",
+            roster_sha,
+            "--trusted-manifest-sha256",
+            digest,
+            "--expected-chain-id",
+            "genesis-manifest-binding-testnet",
+        ],
+        cwd=str(root),
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=60,
+    )
+    assert result.returncode == 2
+    output = json.loads(result.stdout)
+    assert output["ok"] is False
+    assert output["authorizes_first_finality"] is False
+    assert output["reason"] == expected_reason
