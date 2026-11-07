@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "558b00da3c6fe925337da4a78ea590f6e76bdc1f9901ba0ada6ea1467953eaa9",
+      "sha256": "8a65cdcd3acb7c1f58f4b66d1945fedea903cbbf3d53f1b3ce7f60dd51a3bdc3",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -3145,7 +3145,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "ece57b3fe427878164920aab9824a9d706a462d788023fc0e118cbc9628954d2",
+      "sha256": "f553c9c94248d4b87e8d4041f319bf741cafd52a508a086a98205ba04cfca443",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3159,7 +3159,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "193dcd46b66ec833768eeba2075cba9b326552d0b519d850dfc951a885c710f1",
+      "sha256": "36170aa0714d6cc1a3363698dffda21f6a9b44bbde649817b6a87bd0d212901b",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3243,7 +3243,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "180ad48b0ed8e5b0e7c9ff7ac6532373a179bf1becd59b7d6a8ce7f49398b5d2",
+      "sha256": "b281499c142a31368cf5a8eb245ecb1e9e76a008309d454508cbc151aad40d51",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -12140,7 +12140,7 @@
       ],
       "path": "src/weall/runtime/solo_finality_witness.py",
       "primary_mechanism_id": "M-018",
-      "sha256": "d9c3fa85b6da933e80c9ff72c9773c3bfdd894ba699d5a1f9f27078671159cbf",
+      "sha256": "3d533aa3cd65691d3cc38d98743f3ef526481cc8a969daf2ffc6faef3783c8f5",
       "source_id": "SRC-7E353AD8647757EF"
     },
     {
