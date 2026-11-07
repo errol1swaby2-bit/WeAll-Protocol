@@ -271,8 +271,12 @@ def test_adversarial_signed_review_evidence_fails_closed(
     else:
         pytest.fail(f"unexpected attack: {attack}")
     if attack in {
-        "alter_roster_chain", "reviewer_duplicate_id", "reviewer_duplicate_key",
-        "reviewer_is_witness", "reviewer_is_founder", "reviewer_missing",
+        "alter_roster_chain",
+        "reviewer_duplicate_id",
+        "reviewer_duplicate_key",
+        "reviewer_is_witness",
+        "reviewer_is_founder",
+        "reviewer_missing",
     }:
         data["expected_reviewer_roster_sha256"] = canonical_json_sha256(data["reviewer_roster"])
     with pytest.raises(GenesisAcceptancePreflightError, match=reason):
