@@ -8,6 +8,8 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
+from weall.crypto.pq_mldsa import MLDSA65_PUBLIC_KEY_BYTES
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_GENESIS = ROOT / "scripts" / "build_production_genesis_manifest.py"
@@ -76,7 +78,8 @@ class _ObserverExecutor:
 def test_build_and_assert_production_genesis_artifacts(tmp_path: Path) -> None:
     genesis = tmp_path / "genesis.ledger.prod.json"
     manifest = tmp_path / "weall-genesis.json"
-    founding_pubkey = "a" * 64
+    founding_pubkey, _seed = deterministic_mldsa_keypair(label="test-production-go-gates")
+    assert len(founding_pubkey) == MLDSA65_PUBLIC_KEY_BYTES * 2
     authority_pubkey = "b" * 64
 
     built = subprocess.run(
