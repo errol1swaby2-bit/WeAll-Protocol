@@ -1,3 +1,4 @@
+# PR82 stable message-ID registered for genesis acceptance witness signing preflight; strict derivative refresh.
 # PR82 reference-only ML-DSA genesis witness certificate preflight + negative matrix; refresh strict source-bound derivatives.
 # PR82 finality-first Option A selected design + test-only epoch-two activation projection; strict derivative refresh.
 # PR82 final Ruff-corrected solo witness ancestry source: exact-tree strict V2 derivatives refresh.
