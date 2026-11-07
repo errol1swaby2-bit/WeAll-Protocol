@@ -81,17 +81,18 @@ def _is_hex64(value: Any) -> bool:
 
 
 def _is_mldsa65_public_key(value: Any) -> bool:
-    """Founder signing keys must be complete, canonical ML-DSA-65 keys.
+    """Check the complete ML-DSA-65 public-key encoding without crypto imports.
 
-    Snapshot authority keys, hashes and digests still use their independent
-    64-hex contracts; this predicate is only for validator signing authority.
+    The lightweight observer preflight uses system Python with a restricted
+    PATH. This is a FIPS-204 serialized-key *shape* check, not signature
+    verification or constitutional validator authority.
     """
-    from weall.crypto.pq_mldsa import canonical_mldsa65_public_key
-
     key = str(value or "").strip().lower()
+    if len(key) != 2 * 1952:
+        return False
     try:
-        return bool(key) and canonical_mldsa65_public_key(key, encoding="hex") == key
-    except (TypeError, ValueError):
+        return bytes.fromhex(key).hex() == key
+    except ValueError:
         return False
 
 
