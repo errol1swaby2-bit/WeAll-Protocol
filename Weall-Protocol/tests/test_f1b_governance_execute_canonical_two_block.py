@@ -1166,3 +1166,25 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
             chain_id=CHAIN_ID,
             load_committed_block=producer.get_block_by_id,
         )
+
+    # The history index can be internally height-contiguous yet disagree
+    # with the immutable, individually self-committed block bodies. A scan
+    # must reject this spliced ancestry before choosing a first-finality
+    # parent, including when the disagreeing body is not the witness source.
+    spliced = copy.deepcopy(producer.read_state())
+    records = spliced["blocks"]
+    records[b4["block_id"]]["height"] = 3
+    records[b4["block_id"]]["prev_block_id"] = b2["block_id"]
+    records[b3["block_id"]]["height"] = 4
+    records[b3["block_id"]]["prev_block_id"] = b4["block_id"]
+    spliced["tip"] = b3["block_id"]
+    assert spliced["blocks"][b3["block_id"]]["height"] == spliced["height"]
+    with pytest.raises(
+        SoloFinalityWitnessError, match="committed_source_state_height_mismatch"
+    ):
+        resolve_committed_solo_attestation_from_history(
+            state=spliced,
+            target_block_id=b1["block_id"],
+            chain_id=CHAIN_ID,
+            load_committed_block=producer.get_block_by_id,
+        )
