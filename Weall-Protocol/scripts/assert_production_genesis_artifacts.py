@@ -187,7 +187,7 @@ def _validate_manifest(
                     "manifest_trusted_authority_pubkey_unpinned",
                     {"index": idx, "value": key_text},
                 )
-            elif not _is_mldsa65_public_key(key_text):
+            elif not _is_hex64(key_text):
                 _issue(
                     issues,
                     "manifest_trusted_authority_pubkey_invalid",
@@ -327,7 +327,7 @@ def _validate_genesis(
         key_text = str(key or "").strip().lower()
         if _is_placeholder(key_text):
             _issue(issues, "genesis_founder_key_unpinned", key_text)
-        elif not _is_hex64(key_text):
+        elif not _is_mldsa65_public_key(key_text):
             _issue(issues, "genesis_founder_key_invalid", key_text)
 
     poh = genesis.get("poh") if isinstance(genesis.get("poh"), dict) else {}
