@@ -106,7 +106,7 @@ def test_local_observer_readiness_gate_passes_without_second_machine(
     result = _run(
         ["bash", "scripts/local_observer_readiness_gate.sh"],
         cwd=ROOT,
-        extra_env=valid_observer_genesis_artifacts,
+        extra_env={"WEALL_MODE": "prod", **valid_observer_genesis_artifacts},
     )
 
     assert result.returncode == 0, result.stdout
