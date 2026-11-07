@@ -7,6 +7,10 @@ or schedule first finality. The manifest digest must have been obtained from
 an independent trusted channel; calculating it from the supplied manifest and
 passing that result back as an anchor is not independent verification.
 
+Requiring an independently pinned witness identity/key roster avoids accepting
+valid signatures from substituted, self-declared signers. A roster digest by
+itself does NOT establish human uniqueness or constitutional independence.
+
 Requiring separate manifest and genesis input files avoids silently accepting
 a witness receipt's self-declared hash as its own trust root.
 """
@@ -25,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from weall.runtime.genesis_acceptance_witness import (  # noqa: E402
     GenesisAcceptancePreflightError,
+    preflight_externally_pinned_genesis_witness_roster,
     preflight_genesis_manifest_witness_binding,
 )
 
@@ -64,6 +69,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--genesis", type=Path, required=True)
     parser.add_argument("--certificate", type=Path, required=True)
+    parser.add_argument("--witness-roster", type=Path, required=True)
+    parser.add_argument(
+        "--trusted-witness-roster-sha256",
+        required=True,
+        help="Must be obtained independently, not calculated from this candidate roster.",
+    )
     parser.add_argument(
         "--trusted-manifest-sha256",
         required=True,
@@ -73,12 +84,24 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        genesis = _read_object(args.genesis)
+        certificate = _read_object(args.certificate)
         evidence = preflight_genesis_manifest_witness_binding(
             manifest=_read_object(args.manifest),
-            genesis_ledger=_read_object(args.genesis),
-            certificate=_read_object(args.certificate),
+            genesis_ledger=genesis,
+            certificate=certificate,
             expected_manifest_sha256=args.trusted_manifest_sha256,
             expected_chain_id=args.expected_chain_id,
+        )
+        founder_key = genesis["consensus"]["validators"]["registry"][
+            evidence.genesis_validator_account
+        ]["pubkey"]
+        roster_evidence = preflight_externally_pinned_genesis_witness_roster(
+            roster=_read_object(args.witness_roster),
+            expected_roster_sha256=args.trusted_witness_roster_sha256,
+            certificate=certificate,
+            genesis_binding=evidence,
+            genesis_validator_pubkey=founder_key,
         )
     except GenesisAcceptancePreflightError as exc:
         print(
@@ -103,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
                 "scope": "reference_only",
                 "authority_decision": "not_performed",
                 "evidence": asdict(evidence),
+                "witness_roster_binding": asdict(roster_evidence),
+                "roster_validation_status": "signer_identity_and_key_binding_only",
                 "authorizes_first_finality": False,
                 "external_independence_review_required": True,
             },
