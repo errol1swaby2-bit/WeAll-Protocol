@@ -1,0 +1,142 @@
+name: F1b two-process rejected-receipt gate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f1b-two-process-receipt-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rejected-receipt:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'frontend/f1-guided-account-onboarding-20261104'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact PR revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up locked Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install hash-locked backend
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Fail-closed receipt comparator and CLI regression matrix
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff format --check \
+            scripts/build_production_genesis_manifest.py \
+            scripts/assert_production_genesis_artifacts.py \
+            scripts/preflight_genesis_witness_bundle.py \
+            src/weall/runtime/genesis_acceptance_witness.py \
+            scripts/devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_convergence.py \
+            tests/test_f1b_four_validator_qc_contract.py \
+            scripts/f1b_four_process_signed_qc_preflight.py \
+            tests/test_f1b_four_process_signed_qc_preflight.py \
+            scripts/f1b_four_executor_qc_ingress.py \
+            tests/test_f1b_four_executor_qc_ingress.py \
+            tests/test_f1b_validator_set_canonical_bootstrap_block.py \
+            tests/test_f1b_governance_execute_canonical_two_block.py \
+            tests/test_f1b_genesis_acceptance_witness_preflight.py \
+            tests/test_production_genesis_manifest_builder.py \
+            tests/test_production_go_gates.py \
+            tests/prod/test_native_poh_no_external_identity_required.py \
+            tests/test_production_p0_p1_safety.py \
+            tests/test_secret_safe_release_and_local_observer_gate.py \
+            tests/test_p0_03_production_composition.py
+          ruff check \
+            scripts/build_production_genesis_manifest.py \
+            scripts/assert_production_genesis_artifacts.py \
+            scripts/preflight_genesis_witness_bundle.py \
+            src/weall/runtime/genesis_acceptance_witness.py \
+            scripts/devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_convergence.py \
+            tests/test_f1b_four_validator_qc_contract.py \
+            scripts/f1b_four_process_signed_qc_preflight.py \
+            tests/test_f1b_four_process_signed_qc_preflight.py \
+            scripts/f1b_four_executor_qc_ingress.py \
+            tests/test_f1b_four_executor_qc_ingress.py \
+            tests/test_f1b_validator_set_canonical_bootstrap_block.py \
+            tests/test_f1b_governance_execute_canonical_two_block.py \
+            tests/test_f1b_genesis_acceptance_witness_preflight.py \
+            tests/test_production_genesis_manifest_builder.py \
+            tests/test_production_go_gates.py \
+            tests/prod/test_native_poh_no_external_identity_required.py \
+            tests/test_production_p0_p1_safety.py \
+            tests/test_secret_safe_release_and_local_observer_gate.py \
+            tests/test_p0_03_production_composition.py
+          pytest -q \
+            tests/test_devnet_cross_node_convergence.py \
+            tests/test_devnet_cross_node_live_runner.py \
+            tests/test_tx_status_apply_rejection_truth.py \
+            tests/test_f1b_four_validator_qc_contract.py \
+            tests/test_f1b_four_process_signed_qc_preflight.py \
+            tests/test_f1b_four_executor_qc_ingress.py \
+            tests/test_f1b_validator_set_canonical_bootstrap_block.py \
+            tests/test_f1b_governance_execute_canonical_two_block.py \
+            tests/test_f1b_genesis_acceptance_witness_preflight.py \
+            tests/test_production_genesis_manifest_builder.py \
+            tests/test_production_go_gates.py::test_build_and_assert_production_genesis_artifacts \
+            tests/prod/test_native_poh_no_external_identity_required.py::test_production_preflight_does_not_require_external_identity_env \
+            tests/test_production_p0_p1_safety.py::test_production_genesis_founder_tier2_has_bootstrap_audit_receipt \
+            tests/test_secret_safe_release_and_local_observer_gate.py::test_local_observer_readiness_gate_passes_without_second_machine \
+            tests/test_p0_03_production_composition.py::test_prod_four_validator_signed_rejected_receipt_survives_linked_qcs_and_restart
+
+      - name: Report exact Ruff formatting differences on failure
+        if: failure()
+        working-directory: Weall-Protocol
+        run: |
+          ruff format --diff scripts/build_production_genesis_manifest.py scripts/assert_production_genesis_artifacts.py scripts/preflight_genesis_witness_bundle.py src/weall/runtime/genesis_acceptance_witness.py tests/test_f1b_genesis_acceptance_witness_preflight.py tests/test_production_genesis_manifest_builder.py tests/test_production_go_gates.py tests/prod/test_native_poh_no_external_identity_required.py tests/test_production_p0_p1_safety.py tests/test_secret_safe_release_and_local_observer_gate.py tests/test_f1b_governance_execute_canonical_two_block.py
+
+      - name: Live independent-process producer/follower receipt and replay proof
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export WEALL_DEVNET_DIR="${RUNNER_TEMP}/f1b-live/.weall-devnet"
+          export WEALL_DEVNET_LIVE_LOG_DIR="${RUNNER_TEMP}/f1b-live/logs"
+          export WEALL_DEVNET_AUTO_VENV=0
+          export WEALL_DEVNET_LIVE_RESET=1
+          export WEALL_DEVNET_KEEP_NODES=0
+          export WEALL_DEVNET_CHECK_REJECTED_RECEIPT=1
+          export WEALL_TX_WAIT_TIMEOUT=90
+          export WEALL_TX_WAIT_POLL=0.5
+          export WEALL_CROSS_NODE_COMMAND_TIMEOUT=240
+          export WEALL_CROSS_NODE_HTTP_TIMEOUT=10
+          export NODE1_API="http://127.0.0.1:18341"
+          export NODE2_API="http://127.0.0.1:18342"
+          mkdir -p "$(dirname "${WEALL_DEVNET_DIR}")"
+          timeout 1200 bash scripts/devnet_run_cross_node_convergence_live.sh
+          echo "OK: F1b independent-process receipt and next-nonce convergence gate passed"
+
+      - name: Redacted diagnostic output on failure
+        if: failure()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for f in "${RUNNER_TEMP}/f1b-live/logs/"*.log; do
+            if [[ -f "$f" ]]; then
+              printf 'diagnostic_log=%s\n' "$(basename "$f")"
+              grep -E 'ERROR|Error|Traceback|bad_block|receipt|rejected|failed|mismatch' "$f" \
+                | sed -E 's/(token|secret|private_key|sig|bearer)([=:][^[:space:]]+)/\1=[REDACTED]/g' \
+                | tail -n 60 || true
+            fi
+          done

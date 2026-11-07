@@ -124,9 +124,9 @@ export function resolveOnboardingSnapshot(args: {
   } else if (!accountCreated) {
     stage = "not_registered";
     next = {
-      route: "/verification",
-      label: "Finish account setup",
-      note: "The local signer exists, but the on-chain account record is not visible yet. Continue on the verification page to register the basic account instead of returning to sign in.",
+      route: "/onboarding/register",
+      label: "Finish account registration",
+      note: "Your saved account key is ready but has not yet appeared on the network. Complete registration before starting human verification.",
     };
   } else if (tier <= 0) {
     stage = "tier0";

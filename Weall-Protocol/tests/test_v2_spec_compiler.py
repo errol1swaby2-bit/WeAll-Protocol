@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -91,6 +92,19 @@ def _run_compiler(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _copy_or_link(src: str, dst: str) -> str:
+    # Hard-linking accelerates large fixture copies on one filesystem. Hosted
+    # runners place pytest's /tmp and the checkout on separate filesystems;
+    # fall back to a real copy only for that documented platform boundary.
+    try:
+        os.link(src, dst)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        shutil.copy2(src, dst)
+    return dst
+
+
 def _copy_workspace(tmp_path: Path) -> Path:
     target = tmp_path / "WeAll-Protocol"
     shutil.copytree(
@@ -103,7 +117,7 @@ def _copy_workspace(tmp_path: Path) -> Path:
             "__pycache__",
             ".pytest_cache",
         ),
-        copy_function=os.link,
+        copy_function=_copy_or_link,
     )
     return target / "Weall-Protocol"
 

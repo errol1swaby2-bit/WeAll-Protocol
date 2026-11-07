@@ -15,7 +15,8 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
-  retries: process.env.CI ? 2 : 0,
+  // F1b custody acceptance cannot pass through a retry of a failed first attempt.
+  retries: process.env.WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E === "1" ? 0 : process.env.CI ? 2 : 0,
   reporter: process.env.CI
     ? [["github"], ["html", { open: "never", outputFolder: htmlOutputFolder }]]
     : [["list"], ["html", { open: "never", outputFolder: htmlOutputFolder }]],

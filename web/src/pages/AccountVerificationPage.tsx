@@ -10,9 +10,8 @@ import {
   setSession,
   submitSignedTx,
   submitSignedTxInSequence,
-  submitSignedTxWithNonce,
 } from "../auth/session";
-import { ensureRecoveryAuthorityKeypair, normalizeAccount } from "../auth/keys";
+import { normalizeAccount } from "../auth/keys";
 import {
   ensureEvidenceKemKeypair,
   loadEvidenceKemKeypair,
@@ -24,10 +23,6 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
-import {
-  fetchAccountRegistrationWorkPolicy,
-  solveAccountRegistrationWork,
-} from "../lib/accountRegistrationWork";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import {
@@ -455,7 +450,6 @@ export default function AccountVerificationPage(): JSX.Element {
   const [result, setResult] = useState<any | null>(null);
 
   const [sessionBusy, setSessionBusy] = useState(false);
-  const [registerBusy, setRegisterBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [liveCommitments, setLiveCommitments] = useState<any | null>(null);
   const [reviewerBusy, setReviewerBusy] = useState<"optIn" | "optOut" | null>(null);
@@ -599,68 +593,6 @@ export default function AccountVerificationPage(): JSX.Element {
     if (accountLevel < 2) return "Complete live verification to unlock high-trust social and community actions.";
     return "You can now apply for trusted responsibilities where you meet the requirements.";
   }, [acct, accountLevel, basicAccountCreated, hasLocalKeypair, sessionKeyPresent]);
-
-  async function registerAccount(): Promise<void> {
-    if (!acct) {
-      setErr({ msg: "Sign in before registering this account.", details: null });
-      return;
-    }
-    if (!kp?.pubkeyB64) {
-      setErr({ msg: "This device is missing the saved account key for this account.", details: null });
-      return;
-    }
-    setRegisterBusy(true);
-    setErr(null);
-    setResult(null);
-    try {
-      const r = await tx.runTx({
-        title: "Register account",
-        pendingMessage: "Saving account registration…",
-        successMessage: "Account registration submitted.",
-        errorMessage: (e) => prettyErr(e).msg,
-        getTxId: (res: any) => res?.tx_id || res?.result?.tx_id,
-        finality: { timeoutMs: 16_000, reconcile: async () => reconcileRegisteredState(acct, base) },
-        task: async () => {
-          const recoveryPubkey = ensureRecoveryAuthorityKeypair(acct).pubkeyB64;
-          const evidenceKemPubkey = ensureEvidenceKemKeypair(acct).publicKeyB64;
-          const policyResponse = await fetchAccountRegistrationWorkPolicy(base);
-          const submitted = await submitSignedTxWithNonce({
-            account: acct,
-            tx_type: "ACCOUNT_REGISTER",
-            payloadFactory: async (nonce) => {
-              const payload = {
-                pubkey: kp.pubkeyB64,
-                recovery_pubkey: recoveryPubkey,
-                recovery_sig_profile: "pq-mldsa-v1",
-                evidence_kem_pubkey: evidenceKemPubkey,
-                evidence_kem_algorithm: "ml-kem-768",
-              };
-              const work = await solveAccountRegistrationWork({
-                policyResponse,
-                signer: acct,
-                txNonce: nonce,
-                sigProfile: "pq-mldsa-v1",
-                parent: null,
-                payload,
-              });
-              return { ...payload, ...work };
-            },
-            parent: null,
-            base,
-          });
-          return submitted.result;
-        },
-      });
-      setResult(r);
-      await refresh();
-      await refreshAccountContext();
-    } catch (e: any) {
-      setErr(prettyErr(e));
-      setResult(e?.body || e?.data || null);
-    } finally {
-      setRegisterBusy(false);
-    }
-  }
 
   async function issueSessionKey(): Promise<void> {
     if (!acct) {
@@ -1436,10 +1368,10 @@ export default function AccountVerificationPage(): JSX.Element {
             <div className="buttonRowWide">
               <button
                 className="btn btnPrimary"
-                onClick={() => void registerAccount()}
-                disabled={!acct || !hasLocalKeypair || basicAccountCreated || registerBusy || signerSubmission.busy}
+                onClick={() => nav("/onboarding/register")}
+                disabled={!acct || !hasLocalKeypair || basicAccountCreated || signerSubmission.busy}
               >
-                {registerBusy ? "Registering…" : signerSubmission.busy ? "Waiting…" : basicAccountCreated ? "Basic account ready" : "Register basic account"}
+                {signerSubmission.busy ? "Waiting…" : basicAccountCreated ? "Basic account ready" : "Finish account registration"}
               </button>
               <button className="btn" onClick={() => void issueSessionKey()} disabled={!acct || !hasLocalKeypair || sessionBusy || signerSubmission.busy}>
                 {sessionBusy ? "Saving…" : signerSubmission.busy ? "Waiting…" : "Save session key"}

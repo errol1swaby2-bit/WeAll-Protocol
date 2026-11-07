@@ -33,14 +33,49 @@ mkdir -p \
   "${RUNTIME_DIR}/reviewer_artifacts" \
   "${RUNTIME_DIR}/failpoints"
 
+# This is an isolated DEV-only rehearsal identity and deterministic slot clock.
+# The default loose-dev builder increments a block timestamp by just 1 ms,
+# which cannot expire a one-second canonical TTL within this browser gate.
+# Use the existing manifest-pinned consensus clock mechanism instead of
+# changing production timestamps, forcing wall time, or fast-forwarding height.
+if [[ "${WEALL_MODE:-dev}" != "dev" ]]; then
+  echo "F1b custody rehearsal requires WEALL_MODE=dev" >&2
+  exit 1
+fi
+TEST_CHAIN_MANIFEST="${RUNTIME_DIR}/f1b-chain-manifest.json"
+cat >"${TEST_CHAIN_MANIFEST}" <<'JSON'
+{
+  "version": 1,
+  "chain_id": "weall-dev",
+  "mode": "dev",
+  "profile": "isolated_f1b_custody_rehearsal",
+  "schema_version": "1",
+  "genesis_time_ms": 0,
+  "constitutional_clock": {
+    "enabled": true,
+    "target_block_interval_ms": 1000,
+    "empty_blocks_enabled": true,
+    "procedure_time_source": "finalized_block_height",
+    "block_time_derivation": "genesis_time_plus_height_times_interval",
+    "no_fast_forward": true,
+    "no_height_skip": true,
+    "allowed_clock_skew_ms": 2000,
+    "genesis_time_ms": 0
+  }
+}
+JSON
+
 cd "${BACKEND_DIR}"
 PYTHONPATH="${BACKEND_DIR}/src" \
 WEALL_MODE="${WEALL_MODE:-dev}" \
+WEALL_CHAIN_ID="weall-dev" \
+WEALL_CHAIN_MANIFEST_PATH="${TEST_CHAIN_MANIFEST}" \
+WEALL_SIGVERIFY=1 \
 WEALL_API_BOOT_RUNTIME=1 \
 WEALL_BLOCK_LOOP_AUTOSTART=1 \
 WEALL_BLOCK_LOOP_ENABLED=1 \
 WEALL_PRODUCE_EMPTY_BLOCKS=1 \
-WEALL_BLOCK_INTERVAL_MS="${WEALL_BLOCK_INTERVAL_MS:-500}" \
+WEALL_BLOCK_INTERVAL_MS=1000 \
 WEALL_BLOCK_LOOP_LOCK_PATH="${RUNTIME_DIR}/block_loop.lock" \
 WEALL_API_HOST="${API_HOST}" \
 WEALL_API_PORT="${API_PORT}" \
@@ -94,8 +129,16 @@ if [[ ! -d node_modules ]]; then
   npm ci
 fi
 
+# Repeat independent custody journeys against the same live backend to expose
+# intermittent signer/session races, without retrying any individual attempt.
+CUSTODY_REPEAT_EACH="${WEALL_CUSTODY_REPEAT_EACH:-1}"
+if ! [[ "${CUSTODY_REPEAT_EACH}" =~ ^[1-9]$ ]]; then
+  echo "WEALL_CUSTODY_REPEAT_EACH must be an integer from 1 through 9" >&2
+  exit 1
+fi
+echo "Running ${CUSTODY_REPEAT_EACH} independent no-retry custody journeys"
 VITE_WEALL_API_BASE="${API_BASE}" \
 VITE_WEALL_DEV_PROXY_TARGET="${API_BASE}" \
 PLAYWRIGHT_BASE_URL="${WEB_BASE}" \
 WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1 \
-npm run test:account-custody-real-stack
+npm run test:account-custody-real-stack -- --workers=1 --repeat-each="${CUSTODY_REPEAT_EACH}"

@@ -247,6 +247,12 @@
       "path": "scripts/demo_native_async_tier1_e2e.sh"
     },
     {
+      "category": "scripts",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 2,
+      "path": "scripts/f1b_four_process_signed_qc_preflight.py"
+    },
+    {
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
@@ -510,7 +516,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 75,
+  "inventory_hit_count": 76,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

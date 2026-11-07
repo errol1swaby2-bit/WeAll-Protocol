@@ -1,3 +1,41 @@
+# PR82 external witness identity/key roster pinned out-of-band for genesis preflight; refresh strict source derivatives.
+# PR82 full-backend legacy genesis-positive test assertions moved to isolated fixtures; strict reviewer derivatives refresh.
+# PR82 isolated observer-test genesis and strict production-only key gate; refresh source-mapped derivatives.
+# PR82 independently reproducible signed-genesis offline preflight and production GO key validation; strict derivative refresh.
+# PR82 ML-DSA full founder key + immutable genesis manifest witness binding, strict derivative regeneration.
+# PR82 stable message-ID registered for genesis acceptance witness signing preflight; strict derivative refresh.
+# PR82 reference-only ML-DSA genesis witness certificate preflight + negative matrix; refresh strict source-bound derivatives.
+# PR82 finality-first Option A selected design + test-only epoch-two activation projection; strict derivative refresh.
+# PR82 final Ruff-corrected solo witness ancestry source: exact-tree strict V2 derivatives refresh.
+# PR82 canonical witness ancestry body/state rebind: strict reviewer artifact regeneration after new fail-closed regression.
+# PR82 final source-lint corrected read-only historical witness locator evidence refresh.
+# PR82 final Ruff-corrected historical source locator; strict artifact regeneration.
+# PR82 M-018 reference-only complete-canonical-history locator; refresh reviewer derivatives with strict evidence mapping.
+# PR82 strict artifact refresh after fail-closed solo witness assert removal, explicit phase and B3 persisted-source regression.
+# PR82 final Ruff-validated read-only solo witness resolver evidence refresh.
+# PR82 source-mapping corrected M-018 read-only solo witness resolver; regen all strict V2 derivatives.
+# PR82 refresh for read-only signed solo finality parent witness resolver and adversarial alias checks.
+# PR82 signed prior-committed BLOCK_ATTEST parent provenance and genesis-witness separation proof refresh.
+# PR82 source-bound refresh for adversarial signed solo attestation and one-shot rejected-receipt nonce regressions.
+# PR82 signed genesis-solo BLOCK_ATTEST rehearsal and first-finality non-normative design review: regenerate exact source-bound derivatives.
+# PR82 source-bound refresh for pending-set bootstrap no-silent-epoch regression; no production consensus change.
+# PR82 verified-QC3 to canonical BLOCK_FINALIZE receipt in finalized descendant plus restart proof refresh.
+# PR82 P0-03 signed failed-apply four-validator linked-QC finality receipt and restart regression gate refresh.
+# PR82 signed civic validator-set BFT epoch activation domain-projection rehearsal: reviewer artifact refresh.
+# PR82 strict SYSTEM governance close/tally schema aligned to already emitted canonical queue payloads; signed Tier2 lifecycle proof.
+# PR82 signed governance import-order correction and scoped evidence description refresh.
+# PR82 Ruff-normalized signed governance canonical rehearsal evidence refresh.
+# PR82 signed Tier-2 civic proposal and ballot canonical queue/follower validator-set rehearsal.
+# PR82 fixed reloaded-state-sync test identity, ML-DSA negative vector, and aggregate-set conflict characterization.
+# PR82 reuse existing validator key authority and exact legacy error contracts: regenerate source-derived evidence.
+# PR82 bounded SYSTEM envelope single-source refactor and pending-set conflict regression refresh.
+# Issue #87 strict source-bound refresh for canonical GOV_EXECUTE to VALIDATOR_SET_UPDATE two-block replay regression.
+# Issue #87 strict source-bound evidence refresh for canonical queued validator-set bootstrap block replay and restart test.
+# Issue #87 source-bound refresh for domain-applied pending validator set, epoch activation and four-executor signed-QC tests.
+# Issue #87 source-bound refresh for four SQLite-backed executor QC ingress; strict gates unchanged.
+# Issue #87 V2 provenance: explicitly map the bounded four-process cryptographic rehearsal; do not approve semantic reviews.
+# Issue #87 source-bound refresh for genuine four-process ML-DSA quorum preflight, no assertion overrides.
+# Issue #87 exact-source refresh: new signed four-validator QC tests and CI gate; no acceptance-digest override.
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
@@ -45,8 +83,11 @@ jobs:
           python scripts/gen_api_contract_map.py
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
-          python scripts/gen_public_beta_blocker_report_v1_5.py
+          # Source-scanning audit feeds release-manifest digests, which feed the
+          # blocker report. Preserve this dependency order before strict checks.
+          python scripts/gen_public_only_protocol_audit_v1_5.py
           python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
           # These are source-bound P1 completion proofs; preserve their strict
           # clean-check gates by regenerating them after source changes.
           python scripts/gen_b528_b532_completion_proof_v1_5.py

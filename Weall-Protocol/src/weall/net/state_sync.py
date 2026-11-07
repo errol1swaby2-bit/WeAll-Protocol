@@ -19,7 +19,11 @@ from weall.runtime.block_hash import (
     BlockHashBindingError,
     ensure_canonical_block_hash,
 )
-from weall.runtime.commitments import normalize_validator_ids, validator_set_hash
+from weall.runtime.commitments import (
+    first_validator_member_key_authority_issue,
+    normalize_validator_ids,
+    validator_set_hash,
+)
 from weall.runtime.json_tools import canonical_json_str
 from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
 from weall.runtime.system_tx_engine import (
@@ -269,44 +273,10 @@ def _validate_snapshot_validator_authority(snapshot: Json) -> None:
     if stored_set_hash and stored_set_hash != validator_set_hash(active):
         raise StateSyncVerifyError("snapshot_validator_authority_invalid:set_hash_mismatch")
 
-    validators_root = (
-        snapshot.get("validators") if isinstance(snapshot.get("validators"), dict) else {}
-    )
-    lifecycle_registry = (
-        validators_root.get("registry") if isinstance(validators_root.get("registry"), dict) else {}
-    )
-    consensus_validators = (
-        consensus.get("validators") if isinstance(consensus.get("validators"), dict) else {}
-    )
-    consensus_registry = (
-        consensus_validators.get("registry")
-        if isinstance(consensus_validators.get("registry"), dict)
-        else {}
-    )
-
-    for account in active:
-        lifecycle_rec = lifecycle_registry.get(account)
-        if not isinstance(lifecycle_rec, dict):
-            raise StateSyncVerifyError(
-                f"snapshot_validator_authority_invalid:member_not_registered:{account}"
-            )
-        canonical_pubkey = _as_str(lifecycle_rec.get("pubkey") or "")
-        if not canonical_pubkey:
-            raise StateSyncVerifyError(
-                f"snapshot_validator_authority_invalid:missing_canonical_pubkey:{account}"
-            )
-        consensus_rec = consensus_registry.get(account)
-        consensus_pubkey = (
-            _as_str(consensus_rec.get("pubkey") or "") if isinstance(consensus_rec, dict) else ""
-        )
-        if not consensus_pubkey:
-            raise StateSyncVerifyError(
-                f"snapshot_validator_authority_invalid:missing_consensus_pubkey:{account}"
-            )
-        if consensus_pubkey != canonical_pubkey:
-            raise StateSyncVerifyError(
-                f"snapshot_validator_authority_invalid:pubkey_mismatch:{account}"
-            )
+    issue = first_validator_member_key_authority_issue(snapshot, active, normalize_pubkey=_as_str)
+    if issue is not None:
+        reason, account = issue
+        raise StateSyncVerifyError(f"snapshot_validator_authority_invalid:{reason}:{account}")
 
 
 def _validate_snapshot_semantics(snapshot: Json) -> None:
