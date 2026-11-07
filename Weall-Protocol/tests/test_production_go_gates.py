@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import subprocess
 import sys
@@ -9,6 +10,8 @@ from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
 from weall.crypto.pq_mldsa import MLDSA65_PUBLIC_KEY_BYTES
+from weall.runtime.commitments import canonical_json_sha256
+from weall.runtime.state_hash import compute_state_root
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -129,6 +132,47 @@ def test_build_and_assert_production_genesis_artifacts(tmp_path: Path) -> None:
     assert report["ok"] is True
     assert report["manifest_chain_id"] == "weall-prod-batch323"
     assert report["genesis_chain_id"] == "weall-prod-batch323"
+
+    # Rehashing a locally tampered ledger must not make a shortened signer
+    # identity acceptable as a full post-quantum validator key.
+    original_genesis = json.loads(genesis.read_text(encoding="utf-8"))
+    original_manifest = json.loads(manifest.read_text(encoding="utf-8"))
+    founder_id = "@founder-batch323"
+    for mode, expected_code in (
+        ("allowlist", "genesis_bootstrap_allowlist_pubkey_invalid"),
+        ("account_key", "genesis_founder_key_invalid"),
+    ):
+        mutated_genesis = copy.deepcopy(original_genesis)
+        if mode == "allowlist":
+            mutated_genesis["params"]["bootstrap_allowlist"][founder_id]["pubkey"] = "a" * 64
+        else:
+            by_id = mutated_genesis["accounts"][founder_id]["keys"]["by_id"]
+            first_key = next(iter(by_id))
+            by_id[first_key]["pubkey"] = "a" * 64
+        mutated_manifest = copy.deepcopy(original_manifest)
+        mutated_manifest["genesis_hash"] = canonical_json_sha256(mutated_genesis)
+        mutated_manifest["genesis_state_root"] = compute_state_root(mutated_genesis)
+        genesis.write_text(json.dumps(mutated_genesis), encoding="utf-8")
+        manifest.write_text(json.dumps(mutated_manifest), encoding="utf-8")
+        rejected = subprocess.run(
+            [
+                sys.executable,
+                str(ASSERT_GENESIS),
+                "--manifest",
+                str(manifest),
+                "--genesis",
+                str(genesis),
+                "--tx-index",
+                str(ROOT / "generated" / "tx_index.json"),
+            ],
+            cwd=str(ROOT),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert rejected.returncode == 2, rejected.stderr + rejected.stdout
+        codes = {row["code"] for row in json.loads(rejected.stdout)["issues"]}
+        assert expected_code in codes
 
 
 def test_assert_production_genesis_rejects_template_placeholders(tmp_path: Path) -> None:
