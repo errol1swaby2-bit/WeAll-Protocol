@@ -25,6 +25,7 @@ from weall.runtime.state_hash import compute_state_root
 
 Json = dict[str, Any]
 SCHEMA = "weall.genesis-acceptance.preflight.v1"
+ROSTER_SCHEMA = "weall.genesis-witness-roster.preflight.v1"
 SIGNATURE_DOMAIN = b"weall.genesis-acceptance.external-witness.preflight.v1\x00"
 INDEPENDENCE_DOMAINS = frozenset({"household", "funding", "key_custody", "infrastructure"})
 MIN_EXTERNAL_WITNESSES = 3
@@ -59,6 +60,19 @@ class GenesisManifestBindingEvidence:
     genesis_validator_pubkey_sha256: str
     witness_signatures: GenesisAcceptanceSignatureEvidence
     external_independence_review_required: bool = True
+    authorizes_first_finality: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class GenesisWitnessRosterEvidence:
+    """A separately pinned signing-key roster, not an independence decision."""
+
+    chain_id: str
+    genesis_manifest_sha256: str
+    ceremony_id: str
+    externally_pinned_roster_sha256: str
+    witness_ids: tuple[str, ...]
+    review_status: str = "independence_review_required"
     authorizes_first_finality: bool = False
 
 
@@ -429,11 +443,120 @@ def preflight_genesis_manifest_witness_binding(
     )
 
 
+def preflight_externally_pinned_genesis_witness_roster(
+    *,
+    roster: Json,
+    expected_roster_sha256: str,
+    certificate: Json,
+    genesis_binding: GenesisManifestBindingEvidence,
+    genesis_validator_pubkey: str,
+) -> GenesisWitnessRosterEvidence:
+    """Require an out-of-band witness identity/key roster for an already checked bundle.
+
+    This is *not* a constitutional witness eligibility or independence vote.
+    Neither the candidate certificate nor the candidate roster may supply its
+    own trusted digest. An independently sourced, reviewed roster hash must
+    be supplied separately. Different signing keys cannot prove different
+    controllers, households, funding, custody, or infrastructure.
+
+    The entire roster must sign. Any missing, substituted, additional, duplicate
+    or founder-key witness fails closed rather than choosing an arbitrary
+    three-signature subset. Future constitutional threshold/admission policy
+    must be ratified separately before authorizing first finality.
+    """
+    _require(isinstance(roster, dict), "witness_roster_not_object")
+    _require(
+        set(roster)
+        == {
+            "schema",
+            "chain_id",
+            "genesis_manifest_sha256",
+            "ceremony_id",
+            "witnesses",
+        },
+        "witness_roster_fields_invalid",
+    )
+    _require(roster["schema"] == ROSTER_SCHEMA, "witness_roster_schema_invalid")
+    _require(_sha256(expected_roster_sha256), "trusted_witness_roster_digest_invalid")
+    try:
+        actual_sha256 = canonical_json_sha256(roster)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise GenesisAcceptancePreflightError("witness_roster_not_canonical_json") from exc
+    _require(actual_sha256 == expected_roster_sha256, "trusted_witness_roster_mismatch")
+    _require(
+        roster["chain_id"] == genesis_binding.chain_id,
+        "witness_roster_chain_mismatch",
+    )
+    _require(
+        roster["genesis_manifest_sha256"] == genesis_binding.genesis_manifest_sha256,
+        "witness_roster_manifest_mismatch",
+    )
+    _require(
+        roster["ceremony_id"] == genesis_binding.witness_signatures.ceremony_id,
+        "witness_roster_ceremony_mismatch",
+    )
+    _require(
+        _hex_bytes(genesis_validator_pubkey, MLDSA65_PUBLIC_KEY_BYTES)
+        and hashlib.sha256(bytes.fromhex(genesis_validator_pubkey)).hexdigest()
+        == genesis_binding.genesis_validator_pubkey_sha256,
+        "witness_roster_genesis_validator_key_mismatch",
+    )
+    entries = roster["witnesses"]
+    _require(isinstance(entries, list), "witness_roster_entries_not_list")
+    _require(len(entries) >= MIN_EXTERNAL_WITNESSES, "witness_roster_threshold_not_met")
+    known: dict[str, str] = {}
+    used_keys: set[str] = set()
+    for entry in entries:
+        _require(
+            isinstance(entry, dict) and set(entry) == {"witness_id", "pubkey"},
+            "witness_roster_entry_fields_invalid",
+        )
+        witness_id = entry["witness_id"]
+        pubkey = entry["pubkey"]
+        _require(_ident(witness_id), "witness_roster_identity_invalid")
+        _require(_hex_bytes(pubkey, MLDSA65_PUBLIC_KEY_BYTES), "witness_roster_pubkey_invalid")
+        _require(witness_id not in known, "witness_roster_duplicate_identity")
+        _require(pubkey not in used_keys, "witness_roster_duplicate_signing_key")
+        _require(pubkey != genesis_validator_pubkey, "witness_roster_founder_key_reuse")
+        known[witness_id] = pubkey
+        used_keys.add(pubkey)
+
+    _require(
+        tuple(sorted(known)) == genesis_binding.witness_signatures.witness_ids,
+        "witness_roster_signer_set_mismatch",
+    )
+    # Require the signed certificate's exact identity/key association to match
+    # the independently pinned roster. The preceding genesis binding already
+    # verified each signature, so no unverified envelope can masquerade here.
+    witnessed = certificate.get("witnesses")
+    _require(isinstance(witnessed, list), "witness_roster_certificate_invalid")
+    _require(
+        len(witnessed) == len(known)
+        and all(
+            isinstance(row, dict)
+            and row.get("witness_id") in known
+            and known[row["witness_id"]] == row.get("pubkey")
+            for row in witnessed
+        ),
+        "witness_roster_certificate_key_mismatch",
+    )
+    return GenesisWitnessRosterEvidence(
+        chain_id=genesis_binding.chain_id,
+        genesis_manifest_sha256=genesis_binding.genesis_manifest_sha256,
+        ceremony_id=genesis_binding.witness_signatures.ceremony_id,
+        externally_pinned_roster_sha256=actual_sha256,
+        witness_ids=tuple(sorted(known)),
+    )
+
+
 __all__ = [
     "GenesisAcceptancePreflightError",
     "GenesisAcceptanceSignatureEvidence",
     "GenesisManifestBindingEvidence",
+    "GenesisWitnessRosterEvidence",
+    "ROSTER_SCHEMA",
     "canonical_genesis_witness_message",
     "preflight_genesis_acceptance_signatures",
     "preflight_genesis_manifest_witness_binding",
+    "preflight_externally_pinned_genesis_witness_roster",
 ]
