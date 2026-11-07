@@ -298,9 +298,7 @@ def preflight_genesis_manifest_witness_binding(
     validators_role = roles.get("validators") if isinstance(roles, dict) else None
     members = validators_role.get("active_set") if isinstance(validators_role, dict) else None
     _require(
-        isinstance(members, list)
-        and len(members) == 1
-        and _ident(members[0]),
+        isinstance(members, list) and len(members) == 1 and _ident(members[0]),
         "genesis_single_validator_required",
     )
     founding_account = members[0]
@@ -320,16 +318,13 @@ def preflight_genesis_manifest_witness_binding(
     )
     operators = roles.get("node_operators")
     _require(
-        isinstance(operators, dict)
-        and operators.get("active_set") == [founding_account],
+        isinstance(operators, dict) and operators.get("active_set") == [founding_account],
         "genesis_node_operator_authority_mismatch",
     )
     registry_root = consensus.get("validators")
     registry = registry_root.get("registry") if isinstance(registry_root, dict) else None
     lifecycle_root = genesis_ledger.get("validators")
-    lifecycle = (
-        lifecycle_root.get("registry") if isinstance(lifecycle_root, dict) else None
-    )
+    lifecycle = lifecycle_root.get("registry") if isinstance(lifecycle_root, dict) else None
     _require(
         isinstance(registry, dict) and isinstance(lifecycle, dict),
         "genesis_validator_registries_missing",
@@ -355,23 +350,16 @@ def preflight_genesis_manifest_witness_binding(
     )
     operator_records = operators.get("by_id")
     operator_record = (
-        operator_records.get(founding_account)
-        if isinstance(operator_records, dict)
-        else None
+        operator_records.get(founding_account) if isinstance(operator_records, dict) else None
     )
     responsibilities = (
-        operator_record.get("responsibilities")
-        if isinstance(operator_record, dict)
-        else None
+        operator_record.get("responsibilities") if isinstance(operator_record, dict) else None
     )
     responsibility = (
-        responsibilities.get("validator")
-        if isinstance(responsibilities, dict)
-        else None
+        responsibilities.get("validator") if isinstance(responsibilities, dict) else None
     )
     _require(
-        isinstance(responsibility, dict)
-        and responsibility.get("bft_pubkey") == pubkey,
+        isinstance(responsibility, dict) and responsibility.get("bft_pubkey") == pubkey,
         "genesis_node_operator_signing_key_mismatch",
     )
     allowlist = params.get("bootstrap_allowlist")
@@ -387,9 +375,7 @@ def preflight_genesis_manifest_witness_binding(
     _require(
         isinstance(by_id, dict)
         and any(
-            isinstance(rec, dict)
-            and rec.get("pubkey") == pubkey
-            and rec.get("revoked") is False
+            isinstance(rec, dict) and rec.get("pubkey") == pubkey and rec.get("revoked") is False
             for rec in by_id.values()
         ),
         "genesis_founder_account_signing_key_mismatch",
@@ -397,9 +383,7 @@ def preflight_genesis_manifest_witness_binding(
 
     devices = founding_rec.get("devices")
     by_device_id = devices.get("by_id") if isinstance(devices, dict) else None
-    node_device = (
-        by_device_id.get("node:founding") if isinstance(by_device_id, dict) else None
-    )
+    node_device = by_device_id.get("node:founding") if isinstance(by_device_id, dict) else None
     _require(
         isinstance(node_device, dict)
         and node_device.get("pubkey") == pubkey
