@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "9bfb192880d1104e54b8c5c3240cb83887286d69215263f79a8f3890a7ddf516"
+    "source_tree_digest": "4c21cb98406e8258f09e781812e9dd54124b4b44a707317f2d1532fd149beb0b"
   },
   "rows": [
     {
@@ -27,7 +27,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "195cfccf6383590141957ef5932fd386acb5e5fc0c1bca97a2b8d208d1da2e01",
+      "sha256": "a9f91879c9991c72bd37d8ab4c347e73d7d6290e52d69848708fc6c9c43ff3dc",
       "stable_id": "EVD-014AE7A3258C314F",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -279,7 +279,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "e762cf22ab6f3f110bfaca108b655673a4e07005b146c9ee44e4f687e3fdf095",
+      "sha256": "f265e783938c3f408dbd8a8d8e02aa4c8baaa5ce3a482f6376512fbca63de7ec",
       "stable_id": "EVD-3D6DB963CB2B1ECB",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -867,7 +867,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "3900c817efbc9a70e56680c483625c2d7d3a5213b5df25ed3622873fed99c782",
+      "sha256": "e380bdd534720c008c3767daa1c8c8786f60e516a1d90b37788599e095564fcd",
       "stable_id": "EVD-D01357C7600DACB4",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
