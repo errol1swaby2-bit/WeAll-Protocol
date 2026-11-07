@@ -209,6 +209,7 @@ def test_trusted_manifest_and_validator_key_are_never_taken_from_untrusted_recei
     ):
         _preflight(certificate, "not-a-trusted-ml-dsa-validator-key")
 
+
 @pytest.fixture
 def frozen_builder_genesis(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -345,13 +346,11 @@ def test_builder_genesis_binding_rejects_ancestry_and_authority_substitution(
     elif attack == "lifecycle_key_diverges":
         ledger["validators"]["registry"][founder]["pubkey"] = "f" * 3904
     elif attack == "node_operator_key_diverges":
-        ledger["roles"]["node_operators"]["by_id"][founder]["responsibilities"][
-            "validator"
-        ]["bft_pubkey"] = "f" * 3904
+        ledger["roles"]["node_operators"]["by_id"][founder]["responsibilities"]["validator"][
+            "bft_pubkey"
+        ] = "f" * 3904
     elif attack == "node_device_key_diverges":
-        ledger["accounts"][founder]["devices"]["by_id"]["node:founding"]["pubkey"] = (
-            "f" * 3904
-        )
+        ledger["accounts"][founder]["devices"]["by_id"]["node:founding"]["pubkey"] = "f" * 3904
     elif attack == "allowlist_key_diverges":
         ledger["params"]["bootstrap_allowlist"][founder]["pubkey"] = "f" * 3904
     elif attack == "account_key_diverges":
@@ -407,4 +406,3 @@ def test_signed_replacement_manifest_cannot_override_genesis_state_root(
     )
     with pytest.raises(GenesisAcceptancePreflightError, match="genesis_state_root_mismatch"):
         _bind((cert, rewritten_manifest, ledger, new_digest))
-
