@@ -112,6 +112,8 @@ Manual verification syntax (illustrative; placeholders are not trusted evidence)
       --manifest /reviewed/weall-genesis.json \
       --genesis /reviewed/genesis.ledger.prod.json \
       --certificate /reviewed/external-witness-candidate.json \
+      --witness-roster /separately-reviewed/external-witness-roster.json \
+      --trusted-witness-roster-sha256 REPLACE_WITH_INDEPENDENTLY_VERIFIED_ROSTER_DIGEST \
       --trusted-manifest-sha256 REPLACE_WITH_INDEPENDENTLY_VERIFIED_CANONICAL_DIGEST \
       --expected-chain-id REPLACE_WITH_REVIEWED_CHAIN_ID
 
@@ -144,3 +146,16 @@ Bounded regression repairs (no production key substitution or weakening of genes
 The F1b mandatory focused matrix now includes these three historical positive-test assumptions. Their successful execution validates test contract truthfulness and observer posture only; no production validator signer, constitutional genesis certificate, first BLOCK_FINALIZE scheduler, external witness independence, or BFT transition is inferred.
 
 The production-pinned legacy genesis remains a **launch blocker**. An independently sourced 1,952-byte ML-DSA-65 founder key, separately trusted canonical manifest digest, ratified and independently assessed real witness evidence under GEN-012/BSTR-032, a reviewed crypto deployment profile, and canonical first-finality producer/follower scheduling remain prerequisites.
+
+
+## Externally pinned witness identity and signing-key boundary (2026-11-07)
+
+The first signature-only ceremony preflight verified the *cryptographic* signatures of whichever public keys were presented **inside** the candidate genesis certificate. That means an adversary controlling three other keys could produce a fully valid three-signature substitute and receive the same signature-only result. Cryptographic correctness alone cannot bind signatures to the *intended* external witnesses.
+
+The reference-only preflight now additionally requires a **separately supplied, out-of-band trusted witness-roster digest**. A candidate roster has schema `weall.genesis-witness-roster.preflight.v1` and exactly `schema`, `chain_id`, `genesis_manifest_sha256`, `ceremony_id`, and `witnesses` fields. Each `witnesses` entry contains exactly `witness_id` and a **complete ML-DSA-65 public key**. The file may be transported alongside the bundle for convenience, but its expected canonical SHA-256 **must originate independently of the candidate roster and certificate**. Computing a roster SHA from an untrusted file and feeding that same SHA back into the verifier is circular and does not establish an approved roster.
+
+The offline `scripts/preflight_genesis_witness_bundle.py` CLI requires both `--witness-roster` and `--trusted-witness-roster-sha256` in addition to the separately trusted manifest SHA-256 and chain ID. It verifies the underlying immutable genesis manifest, all genuine witness signatures, and *then* binds each signed identity to the externally pinned key for the exact chain, manifest, and ceremony. The whole roster must be represented by successful signed entries; missing, extra, duplicated, founder-reused, substituted or short-key entries fail closed. The new regression includes **three independently valid forged ML-DSA signatures** from replacement witness keys; these pass the old signature check but are refused by the pinned-roster boundary. The two independent Python-process preflights compare identical output with both separate trust anchors.
+
+The resulting status remains `cryptographic_preflight_only`; the roster evidence carries `review_status=independence_review_required` and `authorizes_first_finality=false`. This is a **candidate key-binding format**, not an independently *certified* witness roster, ratified authorization, constitutional acceptance decision, identity-vetting process, or proof of independent households, funding, custody or infrastructure. Different ML-DSA keys can still be controlled by the same human or organization. No witness is granted a PoH tier, validator position or governance vote by appearing in the roster. The roster has no privileged override and is not read by consensus, replay, the block builder or the SYSTEM scheduler.
+
+**Still unresolved before real genesis acceptance:** the constitutional reviewer/registrar identity and qualifications, trusted distribution and approval of the roster digest, verified independence evidence handling, witness replacement/revocation and key-rotation rules, accepted genesis commitment anchoring, crypto profile mainnet approval, and replay/state-sync verification. These need a separate normative choice and independently supplied real signatures, rather than automatically treating a passing preflight as consent or first-finality authority. PR #82 remains draft/NO-GO.
