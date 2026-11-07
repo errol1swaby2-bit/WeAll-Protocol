@@ -99,3 +99,24 @@ A new **read-only** `preflight_genesis_manifest_witness_binding` checks a caller
 
 The trusted manifest digest must be obtained from an *independent, reproducible acceptance decision*. It cannot be calculated from an untrusted downloaded manifest and treated as independently trusted merely because it matches its own contents. The production genesis builder does not currently add an explicit `solo_bootstrap` phase or a constitutionally ratified external acceptance certificate to its genesis state; this read-only preflight does not imply either exists. Whether and how an accepted certificate hash is anchored to canonical genesis remains an **unresolved versioned design decision**. No live first-finality queue/scheduler, constitutional governance clock change, validator promotion, or externally accepted genesis was added.
 
+
+## Independent offline genesis-bundle preflight and same-code reproducibility (2026-11-06)
+
+The next full backend run identified an additional verification mismatch. The old production GO test supplied a 32-byte founder key, while scripts/assert_production_genesis_artifacts.py treated founder signing keys as 64-hex-character hashes, rather than 1,952-byte ML-DSA-65 public keys. The builder now requires the full key, the production assertion script applies the same full-key validation to founding-account records and the bootstrap allowlist, and its distinct 64-hex snapshot-authority and SHA-256 digest fields remain unchanged. A regression uses a real deterministic *test-only* key and proves that a truncated signer key is still rejected even if the genesis hash and state root are recomputed. The pinned legacy production genesis is **not** silently replaced.
+
+The new standalone script scripts/preflight_genesis_witness_bundle.py is **read-only reference verification tooling**, registered as verification tooling under M-076. It accepts frozen genesis ledger JSON, manifest JSON, an external-witness candidate JSON receipt, a separately supplied **out-of-band trusted canonical manifest SHA-256**, and an expected chain ID. It verifies the immutable source and witness signature commitments with the already-reviewed read-only binding helper and emits deterministic JSON indicating *cryptographic_preflight_only*, *reference_only*, *authority_decision=not_performed*, *authorizes_first_finality=false*, and *external_independence_review_required=true*. Duplicate JSON keys, invalid or non-finite JSON, a substituted manifest/ledger, a mismatched trusted digest, and malformed or invalid witness signatures fail closed.
+
+Manual verification syntax (illustrative; placeholders are not trusted evidence):
+
+    python scripts/preflight_genesis_witness_bundle.py \
+      --manifest /reviewed/weall-genesis.json \
+      --genesis /reviewed/genesis.ledger.prod.json \
+      --certificate /reviewed/external-witness-candidate.json \
+      --trusted-manifest-sha256 REPLACE_WITH_INDEPENDENTLY_VERIFIED_CANONICAL_DIGEST \
+      --expected-chain-id REPLACE_WITH_REVIEWED_CHAIN_ID
+
+Never compute the digest from the untrusted candidate manifest itself and relabel it as independently verified authority. The current ML-DSA-65 signing profile is testnet-capable but explicitly **not approved for mainnet** until external cryptographic review; this reference tool does not override that policy.
+
+The mandatory F1b test rebuilds one frozen-time genesis using identical public inputs in two fresh OS processes and verifies **byte-identical** ledger/manifest outputs, then separately preflights the same signed witness bundle in two fresh interpreters and compares their JSON evidence. This is *same-code reproducibility*, **not** independent clean-room reimplementation, a real externally witnessed constitutional ceremony, nor a live two-validator consensus proof. In particular, separate process execution cannot establish independent witness household, funding, key-custody or infrastructure control.
+
+No genesis acceptance authority, canonical ceremony certificate, first BLOCK_FINALIZE scheduler, constitutional clock change, or BFT transition was added. Production remains gated on accepted GEN-012/BSTR-032 semantics, real signing keys, independent witness evaluation and verifiable first-finality producer/replay scheduling.
