@@ -86,12 +86,10 @@ def _load_profile_hash() -> str:
 
 
 def _compute_state_root(state: Json) -> str:
-    try:
-        from weall.runtime.state_hash import compute_state_root
+    """The ceremony must use the *actual* protocol root, never an ad hoc fallback."""
+    from weall.runtime.state_hash import compute_state_root
 
-        return compute_state_root(state)
-    except Exception:
-        return _sha256(_canon(state))
+    return compute_state_root(state)
 
 
 def _key_id(pubkey: str) -> str:
