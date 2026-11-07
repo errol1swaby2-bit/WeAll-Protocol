@@ -406,3 +406,172 @@ def test_signed_replacement_manifest_cannot_override_genesis_state_root(
     )
     with pytest.raises(GenesisAcceptancePreflightError, match="genesis_state_root_mismatch"):
         _bind((cert, rewritten_manifest, ledger, new_digest))
+
+
+def test_external_genesis_witness_bundle_two_process_rebuild_and_cli_replay(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+    tmp_path: Path,
+) -> None:
+    """Independent OS processes can reproduce identical *candidate* evidence.
+
+    Both producer and follower run the same implementation, so this is not
+    independent clean-room implementation, constitutional witness independence,
+    or authority to issue a first BLOCK_FINALIZE.
+    """
+    certificate, manifest, ledger, expected_digest = frozen_builder_genesis
+    root = Path(__file__).resolve().parents[1]
+    verifier = root / "scripts" / "preflight_genesis_witness_bundle.py"
+    builder = root / "scripts" / "build_production_genesis_manifest.py"
+    founder_pubkey = ledger["consensus"]["validators"]["registry"][
+        "@genesis-manifest-founder"
+    ]["pubkey"]
+    expected_genesis = (json.dumps(ledger, indent=2, sort_keys=True) + "\n").encode()
+    expected_manifest = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()
+
+    # Repeat the *frozen-time* production builder from two independent Python
+    # processes. Reuse public inputs only; never export or fabricate production
+    # private keys to create an "accepted" certificate.
+    attestations: list[dict[str, Any]] = []
+    for number in (1, 2):
+        node_dir = tmp_path / f"node-{number}"
+        node_dir.mkdir()
+        tx_index = node_dir / "tx_index.json"
+        tx_index.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}))
+        genesis = node_dir / "genesis.json"
+        manifest_path = node_dir / "manifest.json"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(builder),
+                "--chain-id",
+                "genesis-manifest-binding-testnet",
+                "--founding-account",
+                "@genesis-manifest-founder",
+                "--founding-pubkey",
+                founder_pubkey,
+                "--authority-pubkey",
+                "b" * 64,
+                "--tx-index",
+                str(tx_index),
+                "--genesis-out",
+                str(genesis),
+                "--manifest-out",
+                str(manifest_path),
+                "--genesis-time",
+                "1900000000",
+            ],
+            cwd=str(root),
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stderr + result.stdout
+        assert genesis.read_bytes() == expected_genesis
+        assert manifest_path.read_bytes() == expected_manifest
+
+        certificate_path = node_dir / "witness-certificate.json"
+        certificate_path.write_text(json.dumps(certificate, sort_keys=True, indent=2))
+        verified = subprocess.run(
+            [
+                sys.executable,
+                str(verifier),
+                "--manifest",
+                str(manifest_path),
+                "--genesis",
+                str(genesis),
+                "--certificate",
+                str(certificate_path),
+                "--trusted-manifest-sha256",
+                expected_digest,
+                "--expected-chain-id",
+                "genesis-manifest-binding-testnet",
+            ],
+            cwd=str(root),
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+        assert verified.returncode == 0, verified.stderr + verified.stdout
+        assertion = json.loads(verified.stdout)
+        assert assertion["status"] == "cryptographic_preflight_only"
+        assert assertion["scope"] == "reference_only"
+        assert assertion["authority_decision"] == "not_performed"
+        assert assertion["external_independence_review_required"] is True
+        assert assertion["authorizes_first_finality"] is False
+        assert assertion["evidence"]["genesis_manifest_sha256"] == expected_digest
+        assert assertion["evidence"]["witness_signatures"]["cryptographically_verified_signatures"] == 3
+        attestations.append(assertion)
+
+    assert attestations[0] == attestations[1]
+
+
+@pytest.mark.parametrize(
+    ("attack", "reason"),
+    [
+        ("wrong_trusted_digest", "genesis_manifest_trust_anchor_mismatch"),
+        ("wrong_trusted_chain", "genesis_manifest_chain_mismatch"),
+        ("tampered_genesis", "genesis_hash_mismatch"),
+        ("duplicate_manifest_key", "invalid_genesis_bundle_json"),
+        ("nonfinite_genesis_number", "invalid_genesis_bundle_json"),
+        ("invalid_certificate_root", "genesis_bundle_root_not_object"),
+    ],
+)
+def test_offline_witness_cli_fail_closed_on_bundle_substitution(
+    frozen_builder_genesis: tuple[dict[str, Any], dict[str, Any], dict[str, Any], str],
+    tmp_path: Path,
+    attack: str,
+    reason: str,
+) -> None:
+    certificate, manifest, ledger, digest = copy.deepcopy(frozen_builder_genesis)
+    root = Path(__file__).resolve().parents[1]
+    manifest_path = tmp_path / "manifest.json"
+    genesis_path = tmp_path / "genesis.json"
+    certificate_path = tmp_path / "certificate.json"
+    manifest_path.write_text(json.dumps(manifest))
+    genesis_path.write_text(json.dumps(ledger))
+    certificate_path.write_text(json.dumps(certificate))
+    chain = "genesis-manifest-binding-testnet"
+    if attack == "wrong_trusted_digest":
+        digest = "0" * 64
+    elif attack == "wrong_trusted_chain":
+        chain = "other-testnet"
+    elif attack == "tampered_genesis":
+        ledger["accounts"]["@genesis-manifest-founder"]["nonce"] = 9
+        genesis_path.write_text(json.dumps(ledger))
+    elif attack == "duplicate_manifest_key":
+        manifest_path.write_text('{"chain_id":"x","chain_id":"x"}')
+    elif attack == "nonfinite_genesis_number":
+        genesis_path.write_text('{"height":NaN}')
+    elif attack == "invalid_certificate_root":
+        certificate_path.write_text("[]")
+    else:
+        pytest.fail(f"unknown attack: {attack}")
+
+    checked = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "preflight_genesis_witness_bundle.py"),
+            "--manifest",
+            str(manifest_path),
+            "--genesis",
+            str(genesis_path),
+            "--certificate",
+            str(certificate_path),
+            "--trusted-manifest-sha256",
+            digest,
+            "--expected-chain-id",
+            chain,
+        ],
+        cwd=str(root),
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=60,
+    )
+    assert checked.returncode == 2
+    response = json.loads(checked.stdout)
+    assert response["reason"] == reason
+    assert response["ok"] is False
+    assert response["authorizes_first_finality"] is False
