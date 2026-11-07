@@ -7,8 +7,9 @@ canonical inclusion proof is necessary but not sufficient for choosing the
 constitutional authority and release rule for the first finalized block.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from weall.runtime.bft_hotstuff import (
     CONSENSUS_PHASE_SOLO_BOOTSTRAP,
