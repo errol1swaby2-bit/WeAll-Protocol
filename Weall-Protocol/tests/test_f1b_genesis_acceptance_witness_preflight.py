@@ -20,7 +20,6 @@ from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from weall.crypto.sig import sign_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.runtime.commitments import canonical_json_sha256
-from weall.runtime.state_hash import compute_state_root
 from weall.runtime.genesis_acceptance_witness import (
     SCHEMA,
     GenesisAcceptancePreflightError,
@@ -28,6 +27,7 @@ from weall.runtime.genesis_acceptance_witness import (
     preflight_genesis_acceptance_signatures,
     preflight_genesis_manifest_witness_binding,
 )
+from weall.runtime.state_hash import compute_state_root
 
 CHAIN_ID = "genesis-acceptance-witness-testnet"
 GENESIS_SHA = hashlib.sha256(b"frozen-independent-genesis-manifest").hexdigest()
