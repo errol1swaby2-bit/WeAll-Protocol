@@ -21,10 +21,10 @@ from weall.crypto.sig import verify_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1, profile_allowed_for_context
 from weall.runtime.commitments import canonical_json_sha256
 from weall.runtime.genesis_acceptance_witness import (
+    INDEPENDENCE_DOMAINS,
     GenesisAcceptancePreflightError,
     GenesisManifestBindingEvidence,
     GenesisWitnessRosterEvidence,
-    INDEPENDENCE_DOMAINS,
     _hex_bytes,
     _ident,
     _sha256,
