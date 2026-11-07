@@ -30,6 +30,7 @@ from weall.runtime.domain_apply import ApplyError, apply_tx
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.solo_finality_witness import (
     SoloFinalityWitnessError,
+    resolve_committed_solo_attestation_from_history,
     resolve_committed_solo_attestation_source,
 )
 from weall.runtime.state_hash import compute_state_root
@@ -1084,3 +1085,86 @@ def test_solo_first_finality_parent_proof_is_committed_signed_receipt_not_state_
         == witness
     )
     assert historical_restart.read_state().get("finalized") == state.get("finalized")
+
+    # The production-style locator walks canonical committed history instead of
+    # assuming the signed parent sits in the latest block or an in-memory cache.
+    for node in (producer, follower, historical_restart):
+        assert (
+            resolve_committed_solo_attestation_from_history(
+                state=node.read_state(),
+                target_block_id=b1["block_id"],
+                chain_id=CHAIN_ID,
+                load_committed_block=node.get_block_by_id,
+            )
+            == witness
+        )
+
+    # An unavailable historical body cannot silently be skipped in favour of
+    # another candidate, and neither can a mismatched or tampered stored body.
+    source_id = b2["block_id"]
+    with pytest.raises(SoloFinalityWitnessError, match="committed_source_body_missing"):
+        resolve_committed_solo_attestation_from_history(
+            state=historical_restart.read_state(),
+            target_block_id=b1["block_id"],
+            chain_id=CHAIN_ID,
+            load_committed_block=lambda bid: (
+                None if bid == source_id else historical_restart.get_block_by_id(bid)
+            ),
+        )
+    with pytest.raises(SoloFinalityWitnessError, match="committed_source_identity_mismatch"):
+        resolve_committed_solo_attestation_from_history(
+            state=historical_restart.read_state(),
+            target_block_id=b1["block_id"],
+            chain_id=CHAIN_ID,
+            load_committed_block=lambda bid: (
+                b3 if bid == source_id else historical_restart.get_block_by_id(bid)
+            ),
+        )
+    tampered_stored = copy.deepcopy(b2)
+    tampered_stored["receipts"][0]["ok"] = False
+    with pytest.raises(SoloFinalityWitnessError, match="committed_source_invalid"):
+        resolve_committed_solo_attestation_from_history(
+            state=historical_restart.read_state(),
+            target_block_id=b1["block_id"],
+            chain_id=CHAIN_ID,
+            load_committed_block=lambda bid: (
+                tampered_stored if bid == source_id else historical_restart.get_block_by_id(bid)
+            ),
+        )
+
+    # A second genuinely signed and successfully committed yes-attestation is
+    # not silently preferred over the first source. Such ambiguous provenance
+    # must be adjudicated before a first-finality scheduler is enabled.
+    duplicate_signed = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN_ID,
+            "tx_type": "BLOCK_ATTEST",
+            "signer": signer,
+            "nonce": 2,
+            "payload": {
+                "block_id": b1["block_id"],
+                "height": 1,
+                "round": 0,
+                "attestation": "yes",
+            },
+        },
+        privkey=key.private_bytes_raw().hex(),
+        encoding="hex",
+    )
+    duplicate_submit = producer.submit_tx(duplicate_signed, ingress="http")
+    assert duplicate_submit.get("ok") is True, duplicate_submit
+    made_b4 = producer.produce_block(max_txs=1, allow_empty=True)
+    assert made_b4.ok is True, made_b4.error
+    b4 = producer.get_latest_block()
+    assert isinstance(b4, dict)
+    assert follower.apply_block(b4).ok is True
+    _assert_same_committed_state(producer, follower)
+    with pytest.raises(
+        SoloFinalityWitnessError, match="ambiguous_committed_attestation_sources"
+    ):
+        resolve_committed_solo_attestation_from_history(
+            state=producer.read_state(),
+            target_block_id=b1["block_id"],
+            chain_id=CHAIN_ID,
+            load_committed_block=producer.get_block_by_id,
+        )
