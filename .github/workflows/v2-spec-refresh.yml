@@ -1,3 +1,5 @@
+# PR78 isolated HTTPS public-domain environment variable, avoiding WEALL_API_HOST backend bind collision: refresh strict generated fingerprints.
+# PR78 browser session and public HTTPS discovery source inventory M-069, public TLS operator packaging and first-party PoH policy: strict source-derived refresh.
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
 # Integration refresh trigger: update WSL loopback regression to match hardened local-only bootstrap.
@@ -45,8 +47,11 @@ jobs:
           python scripts/gen_api_contract_map.py
           python scripts/gen_failure_code_registry_v1_5.py
           python scripts/gen_api_response_vectors_v1_5.py
-          python scripts/gen_public_beta_blocker_report_v1_5.py
+          # Source-scanning audit feeds the release manifest, which feeds
+          # the blocker report. Regenerate in dependency order.
+          python scripts/gen_public_only_protocol_audit_v1_5.py
           python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
           # These are source-bound P1 completion proofs; preserve their strict
           # clean-check gates by regenerating them after source changes.
           python scripts/gen_b528_b532_completion_proof_v1_5.py

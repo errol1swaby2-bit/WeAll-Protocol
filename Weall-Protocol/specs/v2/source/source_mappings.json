@@ -545,6 +545,17 @@
         "presentation"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/browserNodeSession.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "../web/src/lib/capabilities.ts",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
@@ -579,6 +590,17 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "../web/src/lib/config.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/connectPublicTestnetBrowser.ts",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
     },

@@ -1,0 +1,49 @@
+# Example only: operator-reviewed HTTPS boundary for ONE WeAll node API.
+#
+# Prerequisites:
+#   export WEALL_PUBLIC_API_DOMAIN=api.your-controlled-domain.tld
+#   export WEALL_NODE_API_UPSTREAM=127.0.0.1:8000
+#   caddy adapt --config web/deploy/Caddyfile.public-api.example --validate
+#
+# Public DNS must resolve to this host and TCP 80/443 must reach Caddy.
+# Run the WeAll API as a separate, explicitly configured non-demo process
+# listening ONLY on the local/private interface. Never expose the API port
+# directly on the public interface.
+#
+# This serves HTTPS API transport only; it does not host the website,
+# authenticate seed metadata, initialize genesis, serve P2P gossip, or
+# authorize public testnet participation. Do NOT enable publicly before
+# the network's seed-registry, runtime-mode and launch gates are approved.
+#
+# Backend CORS must allow exact HTTPS frontend origins, never a wildcard:
+# WEALL_CORS_ORIGINS=https://<actual-pages-host>
+# Use the backend CORS implementation, not a duplicate wildcard here.
+
+{$WEALL_PUBLIC_API_DOMAIN} {
+    # Defense in depth: local/demo bootstrap credentials and operator
+    # maintenance endpoints must never be routed to an internet caller.
+    # The backend must independently fail closed in production mode.
+    @forbidden path /v1/dev/* /v1/observer/edge/* /v1/admin/* /v1/debug/*
+    respond @forbidden "Not found" 404
+
+    @api path /v1/*
+    handle @api {
+        reverse_proxy {$WEALL_NODE_API_UPSTREAM} {
+            transport http {
+                dial_timeout 5s
+                response_header_timeout 30s
+            }
+        }
+    }
+
+    handle {
+        respond "Not found" 404
+    }
+
+    header {
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+        X-Frame-Options "DENY"
+        Cache-Control "no-store"
+    }
+}

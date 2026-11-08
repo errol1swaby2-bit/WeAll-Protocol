@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2058,
+  "file_count": 2066,
   "files": [
     {
       "affected_registers": [
@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "064f7290f35ce26b4a544b9883dbba3b18188709babb9f2aac5b1a944b48796f",
+      "sha256": "18cdde08c2552410584edbf1b841f91e67a2dbb9271ef5b5ae78a730104964f3",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -134,7 +134,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "41b33bf528f17b142643a30c615eb46940f70865dd6799f9de90e73748ec544f",
+      "sha256": "5b8a2dabbf215c5a6aa5be7d987cc4b7c038a7ea4bec9deea4a186640a41efa6",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -6946,7 +6946,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "18de11fd01ff8ff95da63a8e7512eac40cf66b1c0cfc174ca37d4efe894e4808",
+      "sha256": "7866dec7fef3f99fc7cc36193d6a6ea9e2518da83e117352a9e340711cfc8fba",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -30502,6 +30502,32 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/buildCloudflareTestnet.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "c1ca42e5ad737e1197ceabcfbf36b256e84f05fb440117c4ec44179ce5f74107",
+      "source_id": "SRC-012A93D4B30C6546"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/check_https_node_api.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "06eec4b710207defb024de84276c2eea52c70cb52bd597482b0712e6e0b7c55e",
+      "source_id": "SRC-63BEEDA09B874638"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/contract_check.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "087f522013ed65e8ba525ef50f41ec6fba3ac3f168c6f2bc34eebbff3e2c3cb1",
@@ -30623,6 +30649,32 @@
       "primary_mechanism_id": "M-076",
       "sha256": "e0bb0805ebcd99bf56f7ceaf84d5e849c8bf407d17b5b8e2b297689b7004e110",
       "source_id": "SRC-B467025251B14F3C"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_cloudflare_testnet_access_source.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "3a5ffa27d918d92c6a57feebd8ec69daf1ab19e77747f7c6cf7bf5678ffd2d74",
+      "source_id": "SRC-6F3BC601D5BC07DC"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_cloudflare_testnet_behavior.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "6257b13eb4bd61736d938ff9e303b123c627d8d61ed3a5eb2e088ce7bb4886f1",
+      "source_id": "SRC-057AF5A0B24F42C0"
     },
     {
       "affected_registers": [
@@ -30831,6 +30883,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "ea61211ebf0e908267e1a1f74712b22ca60544ff639503c02928126e2c01241b",
       "source_id": "SRC-EED514D26FED6722"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_https_node_api_preflight.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "53dbdb62f47bf04bb506d4cc847cd1d715a9cb7afba3f2e8738819e1c6d89235",
+      "source_id": "SRC-0EA7019E8C99A156"
     },
     {
       "affected_registers": [
@@ -31221,7 +31286,7 @@
       ],
       "path": "../web/src/App.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "1eec25a63a125490c1388e996bc5191c65e2315d7af259f35f15c7423cf226cf",
+      "sha256": "1eb77221749488b56b459db95bb63395130845e9d3ba7940078d9d9f20609c21",
       "source_id": "SRC-0D8C1A8815689CC1"
     },
     {
@@ -31393,7 +31458,7 @@
       ],
       "path": "../web/src/auth/session.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "f3a55ae2b2a9e4d97d3d11f54c622863d7a61618089f1a7388f253312d76f2e0",
+      "sha256": "f3d021daca14c7c13234a414fd3b33d4d78fd858e32d365622a2af056bf10ee6",
       "source_id": "SRC-B8F7039335FD9E04"
     },
     {
@@ -31599,7 +31664,7 @@
       ],
       "path": "../web/src/components/NodeConnectionPanel.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "97add1dde9edcdc0a19c5351a744639a30154be21c24250efb569ab909518e07",
+      "sha256": "a57a4268b4454bbad00d57bbb76f0b1c200b12caac0e717be1b2be407e435df3",
       "source_id": "SRC-ACE43C2B9A054FA5"
     },
     {
@@ -31707,7 +31772,7 @@
       ],
       "path": "../web/src/components/SessionRecoveryBanner.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "c755a12893994effde0d10746ba3d8457b5fcb298dd36deb577739b502665de3",
+      "sha256": "aec39a4eb0d525a8f8e9cda0a41a99500e25d0af3e5d313d5d8ec2950d8a9293",
       "source_id": "SRC-6DAC687C1748DF1B"
     },
     {
@@ -31813,7 +31878,7 @@
       ],
       "path": "../web/src/context/AccountContext.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "41a8a8b9bf979f888aa6061fa60e45ef519f3997841eeb61fe49ce8c13f30d65",
+      "sha256": "19058eeca44a84309faee585170b4da472e2d49214fe4f8187787e901f3c5b9d",
       "source_id": "SRC-31A405656275477E"
     },
     {
@@ -31843,7 +31908,7 @@
       ],
       "path": "../web/src/hooks/useSessionHealth.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "fff29be32a47aa9ee73a33efc9e81d75c0d56d956f8651daec6893301744360a",
+      "sha256": "b8fbfa7c216442cedb028408ece1f35930f58521578e354b40ae7eae946603d9",
       "source_id": "SRC-CB10C6C323E442FF"
     },
     {
@@ -31915,6 +31980,22 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "mappings": [
+        "M-069",
+        "ROUTE-74C075AFE12560DE"
+      ],
+      "path": "../web/src/lib/browserNodeSession.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "09891a02eb0a4b4d9ee05970d39ea89cd3eaeeb4cf32e81595c9caa3bc75f4a9",
+      "source_id": "SRC-52AF2241AAE8C3E5"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
         "M-069"
       ],
       "path": "../web/src/lib/capabilities.ts",
@@ -31967,6 +32048,21 @@
       "primary_mechanism_id": "M-069",
       "sha256": "0da2e4cbcac029d797ace458f2e8d382e85a4d13e0187594ecb32c5d865db89b",
       "source_id": "SRC-FF5AD2E56409207B"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/lib/connectPublicTestnetBrowser.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "ff66d3965c562e1d5613ac76381d6f255416a286337026e3700d767903de555d",
+      "source_id": "SRC-040E19F0ED64CDA7"
     },
     {
       "affected_registers": [
@@ -32171,13 +32267,14 @@
         "M-069",
         "ROUTE-137CB9FB31356917",
         "ROUTE-4CBFA6847142B599",
+        "ROUTE-6A893502420D6173",
         "ROUTE-C18BCB4969F85942",
         "ROUTE-EE2EFB47FA6F30A2",
         "ROUTE-F693A62493C1AC49"
       ],
       "path": "../web/src/lib/nodeConnectionManager.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "da9939b8cebb893ad6df70df6c9afe18406a1163f5ab39b77ee56913ff0ad588",
+      "sha256": "2fef5fdd5588f9d4ee5fcd9fdf4073b1baed268c4ce83eba0df0d1e2412f6302",
       "source_id": "SRC-954EACC706B7519E"
     },
     {
@@ -32447,7 +32544,7 @@
       ],
       "path": "../web/src/main.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "c9897d81d7ea738084d456040f4d924d314e2281157885214fe2b22ada440772",
+      "sha256": "88daa23d0901203ea879fea3bf3c32cf7d6d906e9a5f2dbd39eb096568810a51",
       "source_id": "SRC-A9AD9DE320BF8415"
     },
     {
@@ -32914,7 +33011,7 @@
       ],
       "path": "../web/src/pages/Settings.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "6a014f9c60d9ecfaacb749e12368621b7a33a3f0369f2609dae048105dc9b549",
+      "sha256": "7fc1d8740539a1e140e6f333b56f006d44a966134e812aab42e689f78a718c83",
       "source_id": "SRC-CA4A3401D12BA55E"
     },
     {
@@ -33112,9 +33209,22 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/tests/e2e/production_browser_storage_isolation.spec.ts",
+      "primary_mechanism_id": "M-076",
+      "sha256": "bbd786302a102c75b99eb63eb344cfa38d97f56f614f03a81005a88104398182",
+      "source_id": "SRC-A61D450ACA97DAEC"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/tests/e2e/production_deployment_csp.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "b4f0a435f6561186e2a084d14642cef65da0332019b1c7b07cb34f3a21660161",
+      "sha256": "e11240d2c1da150d118f9f09e11e8c8f2a4561884975466f71fbefddf58f83ec",
       "source_id": "SRC-942ED1D5D3E3ACE8"
     },
     {
