@@ -4,5 +4,5 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Frame-Options: DENY
-  Permissions-Policy: geolocation=(), payment=()
+  Permissions-Policy: geolocation=(), payment=(), camera=(self), microphone=(self)
   Content-Security-Policy: default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob: https:; connect-src 'self' https: wss:; frame-src 'self' https:; worker-src 'self' blob:;
