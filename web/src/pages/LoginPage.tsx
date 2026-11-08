@@ -226,6 +226,19 @@ export default function LoginPage() {
     }
   }, [config, restoreAccountInput, apiBaseInput])
 
+  async function handleRetryNodeConnection() {
+    setBackendReachable(null)
+    setError("")
+    try {
+      await fetchStatus()
+      setBackendReachable(true)
+      setNotice("The selected node is reachable. You can continue the account setup.")
+    } catch {
+      setBackendReachable(false)
+      setNotice("")
+    }
+  }
+
   async function handleSaveApiBase() {
     setApiBase(apiBaseInput)
     setError("")
@@ -639,6 +652,16 @@ export default function LoginPage() {
           </div>
         </div>
       </section>
+
+      {backendReachable === false ? (
+        <section className="calloutWarn" role="status" data-testid="account-node-unavailable">
+          <strong>No WeAll node is reachable from this browser.</strong>
+          <p>Account registration, sign-in against a registered account, and human verification cannot finish while the selected node is unavailable. A local key by itself is not network membership. Do not repeat a previously submitted registration to work around a connection failure.</p>
+          <button type="button" className="secondary" onClick={() => void handleRetryNodeConnection()}>
+            Retry node connection
+          </button>
+        </section>
+      ) : null}
 
       <section className="authGrid">
         <article className="panel authFlowPanel">
