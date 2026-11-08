@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "336095565ada1cccc9b1cb21a8eaf7f2f8859b77dbfacbe7ec67da7cce2ef72d",
+      "sha256": "8c675bc191cf361a462bf80d2b08525bf1c095ca9134f3944e91f2c0aa8c4359",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -30858,7 +30858,7 @@
       ],
       "path": "../web/scripts/test_account_custody_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "563d3ad59754d902991566143deb6bab19721064944c8851dffdddacdc9dacad",
+      "sha256": "039975ae8055a3961fe071d83d41b846968037b6922b16925d3f5e77f483ce1c",
       "source_id": "SRC-B6A50545A0B971F6"
     },
     {
@@ -33081,7 +33081,7 @@
       ],
       "path": "../web/src/pages/LoginPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "4d0a8e35a597f0e86266a5d0f61c4d1529307396cb78a68dafedcbb5a335510b",
+      "sha256": "13dc5d425cec8b1a67acc5bf3b60ddf727fa2993a54ab0cae86390c5ce858df7",
       "source_id": "SRC-4C266797B87139C6"
     },
     {
