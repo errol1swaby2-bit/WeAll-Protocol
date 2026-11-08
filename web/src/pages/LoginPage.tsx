@@ -754,19 +754,18 @@ export default function LoginPage() {
                   )}
                   {recoveryVerified ? (
                     <div className="calloutInfo">
-                    Optional: add easy sign-in so this device can use fingerprint, face unlock, or device PIN when supported. It never replaces the verified recovery file.
-                  </div>
+                      Optional: add easy sign-in so this device can use fingerprint, face unlock, or device PIN when supported. It never replaces the verified recovery file.
                     </div>
                   ) : null}
                   {recoveryVerified ? (
-                  <div className="row gap-sm wrap" data-testid="recovery-verified-next-step">
-                    <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady}>
-                      {easySignInBusy ? "Adding…" : easySignInAdded ? "Easy sign-in added" : "Add easy sign-in"}
-                    </button>
-                    <button type="button" onClick={handleContinueAfterRecovery} disabled={!recoveryVerified}>
-                      Continue to network registration
-                    </button>
-                  </div>
+                    <div className="row gap-sm wrap" data-testid="recovery-verified-next-step">
+                      <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady}>
+                        {easySignInBusy ? "Adding…" : easySignInAdded ? "Easy sign-in added" : "Add easy sign-in"}
+                      </button>
+                      <button type="button" onClick={handleContinueAfterRecovery}>
+                        Continue to network registration
+                      </button>
+                    </div>
                   ) : null}
                   {recoveryVerified && !passkeyReady ? <p className="muted">Easy sign-in is not available in this browser. Your recovery key still works.</p> : null}
                 </div>
