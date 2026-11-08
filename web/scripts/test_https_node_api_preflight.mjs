@@ -95,7 +95,7 @@ test("rejects unready nodes and missing operator pins", async () => {
 
 test("public API TLS template keeps local secrets blocked and node authority separate", () => {
   const caddy = readFileSync(new URL("../deploy/Caddyfile.public-api.example", import.meta.url), "utf8");
-  assert.ok(caddy.includes("{$WEALL_API_HOST}"), "operator must select actual HTTPS hostname");
+  assert.ok(caddy.includes("{$WEALL_PUBLIC_API_DOMAIN}"), "operator must select actual HTTPS hostname");
   assert.ok(caddy.includes("{$WEALL_NODE_API_UPSTREAM}"), "upstream must be explicitly configured");
   assert.ok(caddy.includes("@api path /v1/*"), "API proxy must not forward arbitrary request paths");
   for (const blocked of ["/v1/dev/*", "/v1/observer/edge/*", "/v1/admin/*", "/v1/debug/*"]) {
