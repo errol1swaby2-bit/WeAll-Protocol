@@ -1,7 +1,7 @@
 # Example only: operator-reviewed HTTPS boundary for ONE WeAll node API.
 #
 # Prerequisites:
-#   export WEALL_API_HOST=api.your-controlled-domain.tld
+#   export WEALL_PUBLIC_API_DOMAIN=api.your-controlled-domain.tld
 #   export WEALL_NODE_API_UPSTREAM=127.0.0.1:8000
 #   caddy adapt --config web/deploy/Caddyfile.public-api.example --validate
 #
@@ -19,7 +19,7 @@
 # WEALL_CORS_ORIGINS=https://<actual-pages-host>
 # Use the backend CORS implementation, not a duplicate wildcard here.
 
-{$WEALL_API_HOST} {
+{$WEALL_PUBLIC_API_DOMAIN} {
     # Defense in depth: local/demo bootstrap credentials and operator
     # maintenance endpoints must never be routed to an internet caller.
     # The backend must independently fail closed in production mode.
