@@ -108,7 +108,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "d9ee2289cb19068fd4985088fc6cb65f57010356a92954f539be8151e1129b34",
+      "sha256": "18cdde08c2552410584edbf1b841f91e67a2dbb9271ef5b5ae78a730104964f3",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -30894,7 +30894,7 @@
       ],
       "path": "../web/scripts/test_https_node_api_preflight.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "0677f0e39ad2564b872205217bb8b3b2ed5242941d1e21ac2433c8786b403998",
+      "sha256": "53dbdb62f47bf04bb506d4cc847cd1d715a9cb7afba3f2e8738819e1c6d89235",
       "source_id": "SRC-0EA7019E8C99A156"
     },
     {
