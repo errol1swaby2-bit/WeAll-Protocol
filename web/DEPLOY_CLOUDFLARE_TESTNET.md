@@ -36,6 +36,68 @@ locally hosted frontend or any other compatible frontend distributor.
 The checked-in `web/public/seeds.json` is **only** a local-development fixture.
 Never upload it unchanged as the public testnet registry.
 
+## Operator HTTPS API packaging (pre-publication only)
+
+A static HTTPS website **does not** make a local node accessible from the
+Internet. Each advertised public API endpoint needs its own public hostname,
+certificate, reachable transport, explicitly constrained backend CORS, and
+independently approved network/registry metadata.
+
+The repository also ships `web/deploy/Caddyfile.public-api.example` as an
+**unactivated example** for a single node operator. Caddy manages a publicly
+trusted TLS certificate when DNS and ports 80/443 are correctly configured;
+the upstream WeAll API stays bound to a private interface. This is an optional
+TLS terminator, **not** a consensus relay or central gateway.
+
+After an operator has independently authorized an external-facing test node:
+
+1. Run the WeAll API under an approved **non-demo** profile; validate the
+   explicit `WEALL_CORS_ORIGINS` value for the exact Pages origin. Disable
+   local/demo secret and mutation helpers and verify those routes reject
+   Internet-origin requests. Keep the raw API port inaccessible from outside
+   the host/network.
+2. Set `WEALL_API_HOST` to the actual DNS hostname and
+   `WEALL_NODE_API_UPSTREAM` to the private `host:port` of that API.
+   Review the example's forbidden-route list; it is defense in depth,
+   **not** a substitute for production backend route authorization.
+3. Validate the template with `caddy adapt --config
+   web/deploy/Caddyfile.public-api.example --validate` and launch Caddy
+   under the operator's normal service manager. Public certificate issuance
+   depends on DNS and reachability; do not treat a locally validated config
+   as a working TLS deployment.
+4. Use the read-only `check_https_node_api.mjs` command below, against the
+   **actual** node API hostname and **actual** Pages origin, before adding
+   the node to the signed registry. Verify that forbidden routes return no
+   private keys or demo credentials. Check the same-origin and cross-origin
+   browser flows from an independent network.
+5. Only after the legitimate registry signer re-signs current chain
+   commitments and independent launch approvals exist should the signed
+   public-testnet registry be distributed and the Pages public build enabled.
+
+### If the public deployment gate is still blocked
+
+That is the current repo state: the checked-in registry has an empty
+`seed_registry_signature`, with rotation and re-signing flags still true.
+**Do not** clear flags by hand, use a test signing key, replace the registry
+with an unsigned `seeds.json`, fall back to plaintext HTTP, or direct
+ordinary users to the seeded demo account.
+
+Instead run the browser and node in a clearly labeled **controlled-devnet
+rehearsal** behind local-only access or a deliberately restricted private
+test environment. A tester may create/restore their own local key and rehearse
+account registration against that network, but those records are not
+production membership and are not guaranteed to survive a fresh genesis.
+Record failed connection attempts as unavailable without duplicate signed
+registration dispatch. Operator-led HTTPS TLS/CORS smoke testing may proceed
+on a separately authorized isolated test endpoint, without publishing it
+as the real public WeAll network.
+
+Remote browser access is distinct from running a full node. HTTPS makes
+account/transaction *access* possible over the Internet once the receiving
+node is live and authorized; it does not provision a local node, make
+validators independent, prove PoH video, or remove network/firewall constraints
+for people who choose to operate their own node.
+
 ## Cloudflare Pages configuration
 
 Create a Cloudflare Pages project linked to this repository. Configure:
