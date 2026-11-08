@@ -690,8 +690,8 @@ export default function LoginPage() {
               ) : (
                 <div className="stack-md authFormCard" data-testid="recovery-save-step">
                   <div>
-                    <p className="eyebrow">Recovery key</p>
-                    <h3>Save this before continuing</h3>
+                    <p className="eyebrow">Account setup · Step 2a of 3</p>
+                    <h3>Save your private recovery file</h3>
                     <p className="muted">
                       This private recovery file is the backup for your account. Keep it somewhere safe. WeAll cannot reset it for you. Verify that the saved copy works before continuing.
                     </p>
@@ -714,7 +714,13 @@ export default function LoginPage() {
                       Copy recovery key
                     </button>
                   </div>
-                  <div className="stack-sm" data-testid="recovery-verify-step">
+                  {recoveryDownloaded ? (
+                    <div className="stack-sm" data-testid="recovery-verify-step">
+                      <div>
+                        <p className="eyebrow">Account setup · Step 2b of 3</p>
+                        <h3>Verify the copy you saved</h3>
+                        <p className="muted">Use the file you downloaded or the recovery JSON you copied. Verification happens on this device; the secret is not submitted to the node.</p>
+                      </div>
                     <label className="field">
                       <span>Verify saved recovery file</span>
                       <input
@@ -740,19 +746,29 @@ export default function LoginPage() {
                         ? "Recovery verified. You can restore this account if this browser is lost or reset."
                         : "Download or copy the recovery file, then upload or paste it here to prove you saved a working backup."}
                     </div>
-                  </div>
-                  <div className="calloutInfo">
+                    </div>
+                  ) : (
+                    <div className="calloutInfo" data-testid="recovery-save-required">
+                      First download or copy your recovery file. After that, a separate verification step will appear. Your account has not been registered on the network yet.
+                    </div>
+                  )}
+                  {recoveryVerified ? (
+                    <div className="calloutInfo">
                     Optional: add easy sign-in so this device can use fingerprint, face unlock, or device PIN when supported. It never replaces the verified recovery file.
                   </div>
-                  <div className="row gap-sm wrap">
-                    <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady || !recoveryVerified}>
+                    </div>
+                  ) : null}
+                  {recoveryVerified ? (
+                  <div className="row gap-sm wrap" data-testid="recovery-verified-next-step">
+                    <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady}>
                       {easySignInBusy ? "Adding…" : easySignInAdded ? "Easy sign-in added" : "Add easy sign-in"}
                     </button>
                     <button type="button" onClick={handleContinueAfterRecovery} disabled={!recoveryVerified}>
                       Continue to network registration
                     </button>
                   </div>
-                  {!passkeyReady ? <p className="muted">Easy sign-in is not available in this browser. Your recovery key still works.</p> : null}
+                  ) : null}
+                  {recoveryVerified && !passkeyReady ? <p className="muted">Easy sign-in is not available in this browser. Your recovery key still works.</p> : null}
                 </div>
               )}
             </div>
