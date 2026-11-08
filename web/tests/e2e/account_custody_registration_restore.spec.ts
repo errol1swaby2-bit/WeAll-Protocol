@@ -578,12 +578,14 @@ test.describe("real browser account custody", () => {
       await expect(createAccountButton).toBeEnabled({ timeout: 30_000 });
       await createAccountButton.click();
       await expect(firstPage.getByTestId("recovery-save-step")).toBeVisible({ timeout: 30_000 });
+      await expect(firstPage.getByTestId("recovery-save-required")).toBeVisible();
+      await expect(firstPage.getByTestId("recovery-verify-step")).toHaveCount(0);
       // Locally generated keys are not an authenticated account. Signing in
       // before checking the saved recovery material would bypass custody.
       expect(await firstPage.evaluate(() => localStorage.getItem("weall_session_v1"))).toBeNull();
 
       const continueButton = firstPage.getByRole("button", { name: "Continue to network registration" });
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       const downloadPromise = firstPage.waitForEvent("download");
       await firstPage.getByRole("button", { name: /Download recovery file/ }).click();
@@ -608,22 +610,24 @@ test.describe("real browser account custody", () => {
       expect(Buffer.from(recovery.evidenceKemSecretKeyB64, "base64").length).toBeGreaterThan(0);
       expect(recovery.recoveryAuthorityPublicKeyB64).not.toBe(recovery.publicKeyB64);
 
+      await expect(firstPage.getByTestId("recovery-verify-step")).toBeVisible();
+      await expect(continueButton).toHaveCount(0);
       const recoveryText = firstPage.getByTestId("verify-created-recovery-json");
       await recoveryText.fill('{"type":');
       await expect(firstPage.locator(".error-text")).toBeVisible();
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       await recoveryText.fill(JSON.stringify({ ...recovery, account: `@wrong_${suffix}` }));
       await expect(firstPage.locator(".error-text")).toContainText("recovery_account_mismatch");
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       await recoveryText.fill(JSON.stringify({ ...recovery, publicKeyB64: mutateB64(recovery.publicKeyB64) }));
       await expect(firstPage.locator(".error-text")).toContainText(/invalid_recovery_key|public.key/i);
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       await recoveryText.fill(JSON.stringify({ ...recovery, secretKeyB64: mutateB64(recovery.secretKeyB64) }));
       await expect(firstPage.locator(".error-text")).toContainText(/invalid_recovery_key|secret.key/i);
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       await firstPage.getByTestId("verify-created-recovery-file").setInputFiles(recoveryPath);
       await expect(firstPage.getByTestId("recovery-verification-status")).toContainText("Recovery verified", { timeout: 30_000 });
