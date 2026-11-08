@@ -56,7 +56,7 @@ After an operator has independently authorized an external-facing test node:
    local/demo secret and mutation helpers and verify those routes reject
    Internet-origin requests. Keep the raw API port inaccessible from outside
    the host/network.
-2. Set `WEALL_API_HOST` to the actual DNS hostname and
+2. Set `WEALL_PUBLIC_API_DOMAIN` to the actual DNS hostname and
    `WEALL_NODE_API_UPSTREAM` to the private `host:port` of that API.
    Review the example's forbidden-route list; it is defense in depth,
    **not** a substitute for production backend route authorization.
