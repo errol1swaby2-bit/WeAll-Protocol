@@ -785,7 +785,7 @@ export default function LoginPage() {
                       <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady}>
                         {easySignInBusy ? "Adding…" : easySignInAdded ? "Easy sign-in added" : "Add easy sign-in"}
                       </button>
-                      <button type="button" onClick={handleContinueAfterRecovery}>
+                      <button type="button" onClick={handleContinueAfterRecovery} disabled={!recoveryVerified}>
                         Continue to network registration
                       </button>
                     </div>
