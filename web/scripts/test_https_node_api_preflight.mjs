@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import { checkHttpsNodeApi } from "./check_https_node_api.mjs";
 
 const pins = {
@@ -90,4 +91,17 @@ test("rejects unready nodes and missing operator pins", async () => {
     checkHttpsNodeApi({ apiBase: api, frontendOrigin: origin, commitments: { ...pins, tx_index_hash: "" } }, mockFetch().fakeFetch),
     /missing_pinned_tx_index_hash/,
   );
+});
+
+test("public API TLS template keeps local secrets blocked and node authority separate", () => {
+  const caddy = readFileSync(new URL("../deploy/Caddyfile.public-api.example", import.meta.url), "utf8");
+  assert.ok(caddy.includes("{$WEALL_API_HOST}"), "operator must select actual HTTPS hostname");
+  assert.ok(caddy.includes("{$WEALL_NODE_API_UPSTREAM}"), "upstream must be explicitly configured");
+  assert.ok(caddy.includes("@api path /v1/*"), "API proxy must not forward arbitrary request paths");
+  for (const blocked of ["/v1/dev/*", "/v1/observer/edge/*", "/v1/admin/*", "/v1/debug/*"]) {
+    assert.ok(caddy.includes(blocked), "sensitive API path must be denied: " + blocked);
+  }
+  assert.ok(caddy.includes('respond @forbidden "Not found" 404'));
+  assert.ok(!caddy.includes("tls_insecure_skip_verify"), "TLS bypass is forbidden");
+  assert.ok(!caddy.includes("Access-Control-Allow-Origin *"), "CORS must remain backend-controlled");
 });
