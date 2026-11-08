@@ -1,3 +1,4 @@
+# PR78 isolated HTTPS public-domain environment variable, avoiding WEALL_API_HOST backend bind collision: refresh strict generated fingerprints.
 # PR78 browser session and public HTTPS discovery source inventory M-069, public TLS operator packaging and first-party PoH policy: strict source-derived refresh.
 # Exact-tree integration refresh requested after local bootstrap exposure remediation.
 # Keep the canonical refresh and clean-check behavior unchanged.
