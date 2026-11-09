@@ -868,6 +868,11 @@ test.describe("real browser account custody", () => {
         // a fresh valid camera recording and explicit reviewer consent exist.
         await restoredPage.goto("/#/verification");
         await expect(restoredPage.getByTestId("async-guided-journey")).toBeVisible({ timeout: 30_000 });
+        await expect(restoredPage.getByTestId("poh-verification-history-panel")).toBeVisible();
+        await expect(restoredPage.getByTestId("poh-technical-records")).toBeVisible();
+        await expect(restoredPage.getByTestId("poh-technical-records")).not.toHaveAttribute("open", "");
+        await expect(restoredPage.getByTestId("poh-confirmed-empty-history")).toBeVisible({ timeout: 30_000 });
+        await expect(restoredPage.getByTestId("poh-history-unavailable")).toHaveCount(0);
         await expect(restoredPage.getByTestId("async-step-explain")).toBeVisible();
         await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
         const prepareVerification = restoredPage.getByRole("button", { name: "Prepare verification" });
