@@ -58,6 +58,8 @@ const livePage = readFileSync(new URL("../src/pages/AccountVerificationPage.tsx"
 assert.match(livePage, /reconcileLiveCaseVisible\(acct, submittedLiveCaseId, base, headers\)/);
 assert.match(livePage, /let submittedLiveCaseId = "";/);
 assert.match(livePage, /waitForLiveCaseIdVisible\(acct, expectedCaseId, base, headers/);
+assert.match(livePage, /if \(!clean\) return false;/);
+assert.match(livePage, /if \(!txId\) throw new Error\("The signed live request returned no transaction ID/);
 
 // App-shell route transitions MUST NOT remount the native recorder when
 // only a guided step changed. All unrelated routes retain their distinct keys.

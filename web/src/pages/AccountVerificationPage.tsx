@@ -307,7 +307,8 @@ async function waitForSubmittedTxVisible(
   options?: { maxWaitMs?: number; intervalMs?: number; requireLocalStateSynced?: boolean; acceptAccepted?: boolean },
 ): Promise<boolean> {
   const clean = String(txId || "").trim();
-  if (!clean) return true;
+  // A missing transaction identifier is unknown, never visibility evidence.
+  if (!clean) return false;
   const started = Date.now();
   const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 20000));
   const intervalMs = Math.max(250, Number(options?.intervalMs ?? 500));
@@ -1333,6 +1334,7 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
           const txId = String(submit?.result?.tx_id || (submit as any)?.tx_id || "");
+          if (!txId) throw new Error("The signed live request returned no transaction ID. Reconcile the pending request against canonical history; do not sign another.");
           const signedNonce = Number(submit?.env?.nonce || 0);
           const expectedCaseId = expectedLiveCaseIdFromNonce(acct, signedNonce);
           if (!expectedCaseId) throw new Error("The signed live request has no valid nonce-derived case ID. Reconcile the original transaction; do not submit another request.");
