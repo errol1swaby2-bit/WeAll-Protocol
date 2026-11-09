@@ -10159,6 +10159,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "src/weall/runtime/genesis_acceptance_witness.py:canonical_genesis_witness_message:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-2B215989979096B7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "src/weall/net/net_loop.py:_relay_access_request:message_builder_or_handler",
       "kind": "message",
       "stable_id": "MSG-2C0051484BFEBB4C",
@@ -10498,6 +10505,13 @@
       "canonical_key": "src/weall/runtime/apply/governance.py:_apply_gov_proposal_edit:message_builder_or_handler",
       "kind": "message",
       "stable_id": "MSG-7B7BBE1DCA07B14F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/genesis_independence_review.py:genesis_review_signing_message:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-7C8C54E6F877CB86",
       "status": "active"
     },
     {

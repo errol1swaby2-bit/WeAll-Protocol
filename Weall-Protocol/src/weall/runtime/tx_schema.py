@@ -1400,10 +1400,28 @@ class GovVoteRevokePayload(_StrictModel):
 
 class GovVotingClosePayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
+    # Deterministic threshold-triggered scheduler receipts carry this reason.
+    close_reason: str | None = None
 
 
 class GovTallyPublishPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
+    # Preserve existing scheduler-generated aggregate-only tally metadata at
+    # block admission. This receipt remains SYSTEM-origin and queue-bound.
+    vote_window: str | None = None
+    vote_model: str | None = None
+    eligible_validator_count: int | None = Field(default=None, ge=0)
+    required_votes: int | None = Field(default=None, ge=0)
+    yes: int | None = Field(default=None, ge=0)
+    no: int | None = Field(default=None, ge=0)
+    abstain: int | None = Field(default=None, ge=0)
+    option_tallies: Json | None = None
+    invalid_option_votes: int | None = Field(default=None, ge=0)
+    selected_option_id: str | None = None
+    tie: bool | None = None
+    tie_option_ids: list[str] | None = None
+    outcome: str | None = None
+    deterministic_tie_break: str | None = None
     tally: Json | None = None
     total_votes: int | None = Field(default=None, ge=0)
     quorum_required: int | None = Field(default=None, ge=0)

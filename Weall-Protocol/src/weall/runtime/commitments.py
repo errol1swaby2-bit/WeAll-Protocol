@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
 from weall.runtime.json_tools import canonical_json_str
@@ -29,6 +29,49 @@ def normalize_validator_ids(validators: Iterable[str]) -> list[str]:
         if item:
             normalized.add(item)
     return sorted(normalized)
+
+
+def first_validator_member_key_authority_issue(
+    state: Mapping[str, Any],
+    members: Iterable[str],
+    *,
+    normalize_pubkey: Callable[[Any], str],
+) -> tuple[str, str] | None:
+    """Inspect both canonical key registries without changing ledger state.
+
+    Callers retain their own activation/recovery gate and historic error
+    contracts. The supplied key normalizer preserves each boundary's existing
+    treatment of malformed legacy pubkeys; successful, valid key matches use
+    one common predicate regardless of which boundary checks them.
+    """
+    validators_root = state.get("validators")
+    lifecycle_registry = (
+        validators_root.get("registry") if isinstance(validators_root, dict) else None
+    )
+    lifecycle_registry = lifecycle_registry if isinstance(lifecycle_registry, dict) else {}
+    consensus = state.get("consensus")
+    validators = consensus.get("validators") if isinstance(consensus, dict) else None
+    consensus_registry = validators.get("registry") if isinstance(validators, dict) else None
+    consensus_registry = consensus_registry if isinstance(consensus_registry, dict) else {}
+
+    for account in members:
+        lifecycle_rec = lifecycle_registry.get(account)
+        if not isinstance(lifecycle_rec, dict):
+            return "member_not_registered", account
+        canonical_pubkey = normalize_pubkey(lifecycle_rec.get("pubkey") or "")
+        if not canonical_pubkey:
+            return "missing_canonical_pubkey", account
+        consensus_rec = consensus_registry.get(account)
+        consensus_pubkey = (
+            normalize_pubkey(consensus_rec.get("pubkey") or "")
+            if isinstance(consensus_rec, dict)
+            else ""
+        )
+        if not consensus_pubkey:
+            return "missing_consensus_pubkey", account
+        if consensus_pubkey != canonical_pubkey:
+            return "pubkey_mismatch", account
+    return None
 
 
 def consensus_active_validator_ids(state: Mapping[str, Any]) -> list[str] | None:

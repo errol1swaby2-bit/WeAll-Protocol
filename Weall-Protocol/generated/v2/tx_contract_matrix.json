@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "6c6d63df436da218ee6de897dc413f7af2ae5d9b13dc34e5988eba67ce13ba64"
+    "source_tree_digest": "b04ca2c163a805ddec88e1aeceb439d33349fe6bf0dd02a03d7227f91184ccf4"
   },
   "required_fields": [
     "stable_id",
@@ -107,8 +107,8 @@
         }
       ],
       "frontend_surfaces": [
-        "../web/src/lib/devBootstrap.ts",
-        "../web/src/pages/AccountVerificationPage.tsx"
+        "../web/src/lib/accountSetupRegistration.ts",
+        "../web/src/lib/devBootstrap.ts"
       ],
       "implementation_source": {
         "function": "_apply_account_register",
@@ -1029,6 +1029,8 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_devnet_cross_node_convergence.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_session_auth_safety.py"
       ],
@@ -10185,6 +10187,7 @@
         "tests/test_devnet_permission_probe.py",
         "tests/test_economics_activation_requires_hardened_governance_electorate.py",
         "tests/test_execution_lane.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_four_gate_safety.py",
         "tests/test_gov_rejects_econ_actions_during_lock.py",
         "tests/test_governance_due_height_trust_boundary.py",
@@ -10483,6 +10486,7 @@
         "tests/p0/test_p0_apply_determinism.py",
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_constitutional_procedure_clock.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_due_height_trust_boundary.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_lineage_witness_contract.py",
@@ -10585,6 +10589,7 @@
         "tests/p0/test_p0_mempool_and_admission_invariants.py",
         "tests/test_combined_journey_gates.py",
         "tests/test_economics_activation_requires_hardened_governance_electorate.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_due_height_trust_boundary.py",
         "tests/test_governance_multi_option_voting.py",
         "tests/test_governance_stale_state_safety.py",
@@ -11014,6 +11019,7 @@
         "tests/test_combined_journey_gates.py",
         "tests/test_constitution_upgrade_height_scheduled_lifecycle.py",
         "tests/test_coverage_behavior.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_four_gate_safety.py",
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_governance_followups.py",
@@ -13164,7 +13170,7 @@
       "implementation_source": {
         "function": "_apply_validator_register",
         "handler": "consensus",
-        "line": 490,
+        "line": 491,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13305,7 +13311,7 @@
       "implementation_source": {
         "function": "_apply_validator_candidate_register",
         "handler": "consensus",
-        "line": 618,
+        "line": 619,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13466,7 +13472,7 @@
       "implementation_source": {
         "function": "_apply_validator_candidate_approve",
         "handler": "consensus",
-        "line": 688,
+        "line": 689,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13552,7 +13558,8 @@
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_epoch_convergence.py",
         "tests/test_validator_governance_activation.py",
-        "tests/test_validator_lifecycle_multinode.py"
+        "tests/test_validator_lifecycle_multinode.py",
+        "tests/test_validator_pending_composition_guard.py"
       ],
       "tx_type": "VALIDATOR_CANDIDATE_APPROVE",
       "vector_ids": [
@@ -13606,7 +13613,7 @@
       "implementation_source": {
         "function": "_apply_validator_deregister",
         "handler": "consensus",
-        "line": 872,
+        "line": 873,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13742,7 +13749,7 @@
       "implementation_source": {
         "function": "_apply_validator_heartbeat",
         "handler": "consensus",
-        "line": 1262,
+        "line": 1247,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13858,7 +13865,7 @@
       "implementation_source": {
         "function": "_apply_validator_set_update",
         "handler": "consensus",
-        "line": 1167,
+        "line": 1152,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13930,6 +13937,8 @@
         "tests/test_consensus_phase_bootstrap.py",
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
+        "tests/test_f1b_validator_set_canonical_bootstrap_block.py",
         "tests/test_four_gate_safety.py",
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_governance_followups.py",
@@ -13945,6 +13954,7 @@
         "tests/test_validator_generation_network_authority.py",
         "tests/test_validator_governance_activation.py",
         "tests/test_validator_lifecycle_multinode.py",
+        "tests/test_validator_pending_composition_guard.py",
         "tests/test_validator_set_activation_boundary.py",
         "tests/test_validator_set_canonicalization.py",
         "tests/test_validator_set_pending_conflict.py"
@@ -14005,7 +14015,7 @@
       "implementation_source": {
         "function": "_apply_block_propose",
         "handler": "consensus",
-        "line": 1379,
+        "line": 1364,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14141,7 +14151,7 @@
       "implementation_source": {
         "function": "_apply_block_attest",
         "handler": "consensus",
-        "line": 1454,
+        "line": 1439,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14227,6 +14237,7 @@
         "tests/test_block_attest_canonical_path.py",
         "tests/test_consensus_attestation_safety.py",
         "tests/test_consensus_equivocation_slash_execute.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_state_sync_aux_branch_reset.py",
@@ -14321,7 +14332,7 @@
       "implementation_source": {
         "function": "_apply_block_finalize",
         "handler": "consensus",
-        "line": 1606,
+        "line": 1591,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14411,7 +14422,10 @@
         "tests/p0/test_p0_system_receipts_and_invariants.py",
         "tests/test_bft_canonical_finality_bridge.py",
         "tests/test_epoch_blocks_per_epoch.py",
+        "tests/test_f1b_genesis_acceptance_witness_preflight.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_lineage_witness_contract.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
@@ -14482,7 +14496,7 @@
       "implementation_source": {
         "function": "_apply_epoch_open",
         "handler": "consensus",
-        "line": 1780,
+        "line": 1765,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14546,6 +14560,7 @@
         "tests/test_epoch_blocks_per_epoch.py",
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_post31_closure_pack.py",
@@ -14618,7 +14633,7 @@
       "implementation_source": {
         "function": "_apply_epoch_close",
         "handler": "consensus",
-        "line": 1850,
+        "line": 1835,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14683,6 +14698,7 @@
         "tests/test_epoch_blocks_per_epoch.py",
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_epoch_convergence.py",
@@ -14730,7 +14746,7 @@
       "implementation_source": {
         "function": "_apply_slash_propose",
         "handler": "consensus",
-        "line": 1895,
+        "line": 1880,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14835,7 +14851,7 @@
       "implementation_source": {
         "function": "_apply_slash_vote",
         "handler": "consensus",
-        "line": 1917,
+        "line": 1902,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14948,7 +14964,7 @@
       "implementation_source": {
         "function": "_apply_slash_execute",
         "handler": "consensus",
-        "line": 2064,
+        "line": 2049,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21763,6 +21779,7 @@
       "tests": [
         "tests/p0/conftest.py",
         "tests/test_combined_journey_gates.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
@@ -21859,6 +21876,7 @@
         "tests/p0/conftest.py",
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_combined_journey_gates.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
@@ -24158,7 +24176,7 @@
       "implementation_source": {
         "function": "_apply_validator_performance_report",
         "handler": "consensus",
-        "line": 1313,
+        "line": 1298,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28099,7 +28117,7 @@
       "implementation_source": {
         "function": "_apply_validator_suspend",
         "handler": "consensus",
-        "line": 752,
+        "line": 753,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28227,7 +28245,7 @@
       "implementation_source": {
         "function": "_apply_validator_remove",
         "handler": "consensus",
-        "line": 812,
+        "line": 813,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

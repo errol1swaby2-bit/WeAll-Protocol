@@ -18,12 +18,14 @@ def test_native_poh_onboarding_canon_has_no_email_or_external_identity_txs() -> 
     assert "POH_LIVE_REQUEST_OPEN" in tx_index
 
 
-def test_production_preflight_does_not_require_external_identity_env() -> None:
+def test_production_preflight_does_not_require_external_identity_env(
+    valid_observer_genesis_artifacts: dict[str, str],
+) -> None:
     env = {
         "PATH": os.environ.get("PATH", ""),
         "HOME": os.environ.get("HOME", ""),
         "WEALL_MODE": "prod",
-        "WEALL_CHAIN_MANIFEST_PATH": str(ROOT / "configs" / "chains" / "weall-genesis.json"),
+        **valid_observer_genesis_artifacts,
         "WEALL_OBSERVER_MODE": "1",
         "WEALL_VALIDATOR_SIGNING_ENABLED": "0",
         "WEALL_BFT_ENABLED": "0",
@@ -43,7 +45,9 @@ def test_production_preflight_does_not_require_external_identity_env() -> None:
     assert "external identity-provider secrets are absent" in result.stdout
 
 
-def test_production_preflight_rejects_external_identity_provider_secrets() -> None:
+def test_production_preflight_rejects_external_identity_provider_secrets(
+    valid_observer_genesis_artifacts: dict[str, str],
+) -> None:
     cases = {
         "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN": "named hosting-provider token",
         "WEALL_DNS_API_TOKEN": "DNS provider token",
@@ -57,7 +61,7 @@ def test_production_preflight_rejects_external_identity_provider_secrets() -> No
             "PATH": os.environ.get("PATH", ""),
             "HOME": os.environ.get("HOME", ""),
             "WEALL_MODE": "prod",
-            "WEALL_CHAIN_MANIFEST_PATH": str(ROOT / "configs" / "chains" / "weall-genesis.json"),
+            **valid_observer_genesis_artifacts,
             "WEALL_OBSERVER_MODE": "1",
             "WEALL_VALIDATOR_SIGNING_ENABLED": "0",
             "WEALL_BFT_ENABLED": "0",

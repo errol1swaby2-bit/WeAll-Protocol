@@ -11,7 +11,9 @@ concurrency:
 
 jobs:
   web:
-    runs-on: ubuntu-latest
+    # Playwright 1.59 Chromium supports Ubuntu 24.04; ubuntu-latest currently
+    # resolves to Ubuntu 26.04 where browser installation is unsupported.
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
@@ -85,10 +87,6 @@ jobs:
         run: |
           npm ci
 
-      - name: Dependency audit
-        run: |
-          npm run dependency-audit
-
       - name: Typecheck
         run: |
           npm run typecheck
@@ -96,6 +94,14 @@ jobs:
       - name: Account custody cryptographic source gate
         run: |
           npm run test:account-custody-crypto-source
+
+      - name: Guided account registration source gate
+        run: |
+          npm run test:guided-account-registration-source
+
+      - name: Canonical registration ID golden vectors
+        run: |
+          npm run test:registration-tx-id
 
       - name: Focused shell navigation and drawer source gate
         run: |
@@ -117,6 +123,18 @@ jobs:
         run: |
           npm run test:async-evidence-preview
 
+      - name: PoH interruption journal security and recovery behavior
+        run: |
+          npm run test:poh-submission-journal
+
+      - name: Extracted verification history and role authority source contract
+        run: |
+          npm run test:verification-history-panel
+
+      - name: URL-backed guided PoH stage guards and reload fail-closed behavior
+        run: |
+          npm run test:poh-guided-routes
+
       - name: Flag reporter review and target lookup regression
         run: |
           npm run test:content-flag-report-truth
@@ -128,6 +146,10 @@ jobs:
       - name: Build
         run: |
           npm run build
+
+      - name: Dependency audit (must pass before deployment tests)
+        run: |
+          npm run dependency-audit
 
       - name: Install production deployment test dependencies
         run: |
@@ -171,6 +193,28 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
         run: |
           npm run test:production-deployment-csp
+
+      - name: F1b real-stack account custody lifecycle (must pass)
+        timeout-minutes: 12
+        env:
+          CI: "1"
+          WEALL_M2_TRACE: "1"
+          WEALL_KEEP_M2_CUSTODY_RUNTIME: "1"
+          WEALL_CUSTODY_REPEAT_EACH: "3"
+        run: |
+          # Launches an isolated, block-producing backend with a browser app.
+          # WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1 forbids skip-on-offline.
+          bash ../scripts/run_account_custody_real_stack_e2e.sh
+
+      - name: Upload F1b browser failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f1b-real-stack-browser-traces
+          path: |
+            web/test-results/
+            web/playwright-report/
+          if-no-files-found: ignore
 
       - name: Stop production Nginx deployment
         if: always()

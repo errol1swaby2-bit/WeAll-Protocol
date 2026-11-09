@@ -4,11 +4,13 @@ import copy
 
 import pytest
 
+from weall.net import state_sync
 from weall.runtime.apply.dispute import _active_validator_ids as dispute_active_validator_ids
 from weall.runtime.apply.governance import (
     _configured_active_validator_ids as governance_active_validator_ids,
 )
 from weall.runtime.apply.poh import _active_validator_count_for_bootstrap_sunset
+from weall.runtime.commitments import validator_set_hash
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.gate_expr import eval_gate
@@ -164,3 +166,93 @@ def test_validator_lifecycle_system_actions_cannot_fabricate_missing_records(tx_
     assert excinfo.value.code == "forbidden"
     assert excinfo.value.reason == "validator_not_registered"
     assert state == before
+
+
+@pytest.mark.parametrize(
+    ("fault", "snapshot_reason", "domain_code", "domain_reason"),
+    [
+        (
+            "unregistered",
+            "member_not_registered",
+            "forbidden",
+            "validator_set_member_not_registered",
+        ),
+        (
+            "missing_canonical",
+            "missing_canonical_pubkey",
+            "invalid_state",
+            "validator_set_member_missing_canonical_pubkey",
+        ),
+        (
+            "missing_consensus",
+            "missing_consensus_pubkey",
+            "invalid_state",
+            "validator_set_member_missing_consensus_pubkey",
+        ),
+        (
+            "mismatched",
+            "pubkey_mismatch",
+            "invalid_state",
+            "validator_set_member_pubkey_authority_mismatch",
+        ),
+    ],
+)
+def test_snapshot_and_canonical_update_share_key_authority_failure_contract(
+    fault: str, snapshot_reason: str, domain_code: str, domain_reason: str
+) -> None:
+    state = _system_set_update_state()
+    state["consensus"]["validator_set"] = {
+        "active_set": ["alice"],
+        "epoch": 0,
+        "set_hash": validator_set_hash(["alice"]),
+    }
+    state["validators"]["registry"]["alice"] = {
+        "account": "alice",
+        "pubkey": "canonical-key",
+        "status": "candidate",
+    }
+    state["consensus"]["validators"]["registry"]["alice"] = {"pubkey": "canonical-key"}
+    if fault == "unregistered":
+        state["validators"]["registry"].pop("alice")
+    elif fault == "missing_canonical":
+        state["validators"]["registry"]["alice"]["pubkey"] = ""
+    elif fault == "missing_consensus":
+        state["consensus"]["validators"]["registry"].pop("alice")
+    else:
+        state["consensus"]["validators"]["registry"]["alice"]["pubkey"] = "wrong-key"
+
+    before = copy.deepcopy(state)
+    with pytest.raises(
+        state_sync.StateSyncVerifyError,
+        match=f"snapshot_validator_authority_invalid:{snapshot_reason}:alice",
+    ):
+        state_sync._validate_snapshot_validator_authority(state)
+    assert state == before
+
+    with pytest.raises(ApplyError) as caught:
+        apply_tx(state, _set_update(["alice"]))
+    assert caught.value.code == domain_code
+    assert caught.value.reason == domain_reason
+    assert state == before
+
+
+def test_snapshot_and_canonical_update_accept_matching_registered_validator_keys() -> None:
+    state = _system_set_update_state()
+    state["validators"]["registry"]["alice"] = {
+        "account": "alice",
+        "pubkey": "canonical-key",
+        "status": "candidate",
+    }
+    state["consensus"]["validators"]["registry"]["alice"] = {"pubkey": "canonical-key"}
+    state["consensus"]["validator_set"] = {
+        "active_set": ["alice"],
+        "epoch": 0,
+        "set_hash": validator_set_hash(["alice"]),
+    }
+    before = copy.deepcopy(state)
+
+    state_sync._validate_snapshot_validator_authority(state)
+    assert state == before
+    result = apply_tx(state, _set_update(["alice"]))
+    assert result["pending"] is True
+    assert state["consensus"]["validator_set"]["pending"]["active_set"] == ["alice"]

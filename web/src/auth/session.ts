@@ -9,7 +9,7 @@
 //   - tx submission (/v1/tx/submit)
 
 import { getChainId, getEnvChainId } from "../lib/chain";
-import { createBrowserSession, weall } from "../api/weall";
+import { apiGet, createBrowserSession, weall } from "../api/weall";
 
 import {
   KeypairB64,
@@ -18,6 +18,7 @@ import {
   deleteKeypair,
   derivePublicKeyFromSecretKey,
   generateKeypair,
+  hasStoredKeypairMetadata,
   loadKeypair,
   normalizeAccount,
   saveKeypair,
@@ -381,6 +382,8 @@ export function ensureKeypair(account: string): KeypairB64 {
   if (!acct) throw new Error("invalid_account");
   const existing = loadKeypair(acct);
   if (existing) return existing;
+  // Missing tab-scoped private material cannot authorize a new identity.
+  if (hasStoredKeypairMetadata(acct)) throw new Error("existing_account_key_requires_recovery");
   const kp = generateKeypair();
   saveKeypair(acct, kp);
   return kp;
@@ -654,6 +657,75 @@ async function waitForLocalAccountNonceAtLeast(args: {
       if (accountNonceFromView(view) >= minNonce) return true;
     } catch {
       // The account may still be syncing from the upstream confirmer.
+    }
+    await sleep(500);
+  }
+  return false;
+}
+
+/**
+ * A successful submission response is not a finalized transaction receipt.
+ * Require an explicitly confirmed, locally synchronized canonical status.
+ * Missing receipts are treated as uncertain instead of retried.
+ */
+async function waitForConfirmedSessionTransaction(args: {
+  txId: string;
+  base?: string;
+  timeoutMs?: number;
+}): Promise<boolean> {
+  const txId = String(args.txId || "").trim();
+  if (!txId) return false;
+  const deadline = Date.now() + Math.max(1_000, Math.min(120_000, args.timeoutMs ?? 30_000));
+  while (Date.now() <= deadline) {
+    try {
+      const result = await weall.txStatus(txId, args.base);
+      const status = String(result?.status || "").toLowerCase();
+      if (["rejected", "failed", "invalid", "expired"].includes(status)) {
+        throw new Error("Session transaction was rejected: " + status);
+      }
+      if (status === "confirmed" && result?.local_state_synced === true && result?.outbound_propagation?.local_state_synced !== false) {
+        return true;
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("Session transaction was rejected:")) throw error;
+      // Temporary observer read failures are not proof of transaction finality.
+    }
+    await sleep(500);
+  }
+  return false;
+}
+
+/**
+ * A synchronized nonce alone does not establish that the issued bearer is
+ * authorized. Inspect the canonical account session-key map before login.
+ */
+/**
+ * /v1/accounts/{account} deliberately redacts bearer session state.
+ * Ask the dedicated authenticated session endpoint using the candidate bearer.
+ * Never store or activate a candidate until the server confirms it.
+ */
+async function waitForSessionAuthState(args: {
+  account: string;
+  sessionKey: string;
+  expectedAuthenticated: boolean;
+  base?: string;
+  timeoutMs?: number;
+}): Promise<boolean> {
+  const deadline = Date.now() + Math.max(1_000, Math.min(120_000, args.timeoutMs ?? 30_000));
+  while (Date.now() <= deadline) {
+    try {
+      const response = await apiGet("/v1/session/me", args.base, {
+        "x-weall-account": args.account,
+        "x-weall-session-key": args.sessionKey,
+      });
+      if (response?.ok === true && response?.authenticated === args.expectedAuthenticated) {
+        // The positive case must also bind the expected account.
+        if (!args.expectedAuthenticated || normalizeAccount(String(response?.account || "")) === args.account) {
+          return true;
+        }
+      }
+    } catch {
+      // A failed read is not an authentication or revocation result.
     }
     await sleep(500);
   }
@@ -1038,6 +1110,8 @@ export async function submitSignedTxWithNonce(args: {
   parent?: string | null;
   base?: string;
   headers?: HeadersInit;
+  /** Called with the fully signed envelope before dispatch; may abort if durable tracking fails. */
+  onBeforeSubmit?: (envelope: TxEnvelope) => Promise<void> | void;
 }): Promise<{ env: TxEnvelope; result: any }> {
   return runSignerSerialized(args.account, async () => {
     const signer = normalizeAccount(args.account);
@@ -1063,6 +1137,7 @@ export async function submitSignedTxWithNonce(args: {
       });
       const signed = signEnvelope(unsigned, kp);
       try {
+        await args.onBeforeSubmit?.(signed);
         const result = await weall.txSubmit(signed, args.base, args.headers);
         return { env: signed, result };
       } catch (error) {
@@ -1194,12 +1269,34 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
     parent: null,
     base: args.base,
   });
-  await waitForLocalAccountNonceAtLeast({
+  const receiptId = String(issueResult?.result?.tx_id || issueResult?.result?.result?.tx_id || "").trim();
+  const confirmed = await waitForConfirmedSessionTransaction({
+    txId: receiptId,
+    base: args.base,
+    timeoutMs: 30_000,
+  });
+  if (!confirmed) {
+    throw new Error("Session issuance has no confirmed canonical receipt yet. Login remains incomplete; check the transaction before trying again.");
+  }
+  const sessionSynced = await waitForLocalAccountNonceAtLeast({
     account: acct,
     minNonce: issueResult.env.nonce,
     base: args.base,
     timeoutMs: 30_000,
   });
+  if (!sessionSynced) {
+    throw observerReconciliationPendingError("ACCOUNT_SESSION_KEY_ISSUE", issueResult.env.nonce);
+  }
+  const sessionAuthorized = await waitForSessionAuthState({
+    account: acct,
+    sessionKey: requestedSessionKey,
+    expectedAuthenticated: true,
+    base: args.base,
+    timeoutMs: 30_000,
+  });
+  if (!sessionAuthorized) {
+    throw new Error("Canonical session-key authorization is not yet visible on this node. Login remains incomplete; do not reuse the pending session key.");
+  }
 
   setSession({
     version: 1,
@@ -1247,29 +1344,42 @@ export async function ensureBackendSession(args: { account: string; ttlSeconds?:
   return repaired;
 }
 
+async function submitAndVerifySessionRevocation(args: {
+  account: string;
+  sessionKey: string;
+  base?: string;
+}): Promise<any> {
+  const result = await submitSignedTx({
+    account: args.account,
+    tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
+    payload: { session_key: args.sessionKey },
+    parent: null,
+    base: args.base,
+  });
+  const txId = String(result?.tx_id || result?.result?.tx_id || "").trim();
+  if (!await waitForConfirmedSessionTransaction({ txId, base: args.base, timeoutMs: 30_000 })) {
+    throw new Error("Session revocation was submitted but canonical finality could not be verified.");
+  }
+  if (!await waitForSessionAuthState({ account: args.account, sessionKey: args.sessionKey, expectedAuthenticated: false, base: args.base, timeoutMs: 30_000 })) {
+    throw new Error("Revocation receipt is confirmed but the session endpoint still accepts this bearer.");
+  }
+  return result;
+}
+
 export async function revokeSessionKeyOnChain(args: { account: string; sessionKey: string; base?: string }): Promise<any> {
   const account = normalizeAccount(args.account);
   const sessionKey = String(args.sessionKey || "").trim();
   if (!account) throw new Error("invalid_account");
   if (!sessionKey) throw new Error("session_key_required");
-
-  return await submitSignedTx({
-    account,
-    tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
-    payload: { session_key: sessionKey },
-    parent: null,
-    base: args.base,
-  });
+  return submitAndVerifySessionRevocation({ account, sessionKey, base: args.base });
 }
 
 export async function revokeCurrentSessionKey(args?: { base?: string }): Promise<any> {
-  const s = getSession();
-  if (!s?.account || !s?.sessionKey) throw new Error("not_logged_in");
-  return await submitSignedTx({
-    account: s.account,
-    tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
-    payload: { session_key: s.sessionKey },
-    parent: null,
+  const session = getSession();
+  if (!session?.account || !session.sessionKey) throw new Error("not_logged_in");
+  return submitAndVerifySessionRevocation({
+    account: session.account,
+    sessionKey: session.sessionKey,
     base: args?.base,
   });
 }
@@ -1282,18 +1392,20 @@ export async function logoutCurrentDevice(args?: { base?: string; forgetSigner?:
   }
 
   let result: any = { ok: true, local_only: true };
-  if (s.sessionKey) {
-    result = await revokeCurrentSessionKey({ base: args?.base });
+  try {
+    if (s.sessionKey) {
+      result = await revokeCurrentSessionKey({ base: args?.base });
+    }
+    return result;
+  } finally {
+    // Local logout must happen even if the network cannot confirm revocation.
+    // In that case the error propagates: remote revocation is NOT claimed.
+    const account = s.account;
+    endSession();
+    clearNonceReservation(account);
+    clearSignerLock(account);
+    if (args?.forgetSigner) clearKeypair(account);
   }
-
-  const account = s.account;
-  endSession();
-  clearNonceReservation(account);
-  clearSignerLock(account);
-  if (args?.forgetSigner) {
-    clearKeypair(account);
-  }
-  return result;
 }
 
 export async function issueFreshSessionKey(args?: { ttlSeconds?: number; base?: string }): Promise<any> {
@@ -1312,6 +1424,25 @@ export async function issueFreshSessionKey(args?: { ttlSeconds?: number; base?: 
     base: args?.base,
   });
 
+  const txId = String(result?.tx_id || result?.result?.tx_id || "").trim();
+  const confirmed = await waitForConfirmedSessionTransaction({
+    txId,
+    base: args?.base,
+    timeoutMs: 30_000,
+  });
+  if (!confirmed) {
+    throw new Error("Replacement session issuance is not confirmed. The previous local session remains active until its own expiration or revocation.");
+  }
+  const authorized = await waitForSessionAuthState({
+    account: acct,
+    sessionKey,
+    expectedAuthenticated: true,
+    base: args?.base,
+    timeoutMs: 30_000,
+  });
+  if (!authorized) {
+    throw new Error("Replacement session key was not verified in canonical account state. Local session remains unchanged.");
+  }
   setSession({
     version: 1,
     account: acct,

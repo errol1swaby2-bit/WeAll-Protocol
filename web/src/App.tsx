@@ -34,6 +34,7 @@ const Thread = lazy(() => import("./pages/Thread"));
 const Post = lazy(() => import("./pages/Post"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const AccountRegistrationPage = lazy(() => import("./pages/AccountRegistrationPage"));
 const SessionDevicesPage = lazy(() => import("./pages/SessionDevicesPage"));
 const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
 const Economics = lazy(() => import("./pages/Economics"));
@@ -43,6 +44,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
   switch (route.path) {
     case "/login":
       return <LoginPage />;
+    case "/onboarding/register":
+      return readyForApp ? <AccountRegistrationPage /> : <LoginPage />;
     case "/home":
       return readyForApp ? <HomeDashboard /> : <LoginPage />;
     case "/feed":
@@ -54,6 +57,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/create":
       return readyForApp ? <Post /> : <LoginPage />;
     case "/verification":
+    case "/verification/async/:stage":
+    case "/verification/live/journey/:stage":
       return readyForApp ? <PohPage /> : <LoginPage />;
     case "/verification/live/:caseId":
       return readyForApp ? <LiveVerificationRoom caseId={route.caseId} /> : <LoginPage />;

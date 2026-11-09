@@ -12,4 +12,9 @@ pip-tools>=7.6.1,<8
 ruff>=0.6.9
 pip-audit>=2.7.3
 pip>=26.2,<27
-setuptools>=83.0.0
+# Minimum fixed versions for previously reported dev-lock vulnerabilities.
+# Keep requirements.lock (production runtime) unchanged.
+msgpack>=1.2.3
+certifi>=2026.10.18
+filelock>=4.2.1
+setuptools>=84.1.0

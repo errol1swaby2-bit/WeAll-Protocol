@@ -2,6 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import PohSubmissionStatusNotice from "../components/PohSubmissionStatusNotice";
+import VerificationHistoryPanel from "../components/VerificationHistoryPanel";
+import TrustedResponsibilitiesPanel from "../components/TrustedResponsibilitiesPanel";
+import PohStepProgress from "../components/PohStepProgress";
 import {
   beginNonceSequence,
   getAuthHeaders,
@@ -10,9 +14,8 @@ import {
   setSession,
   submitSignedTx,
   submitSignedTxInSequence,
-  submitSignedTxWithNonce,
 } from "../auth/session";
-import { ensureRecoveryAuthorityKeypair, normalizeAccount } from "../auth/keys";
+import { normalizeAccount } from "../auth/keys";
 import {
   ensureEvidenceKemKeypair,
   loadEvidenceKemKeypair,
@@ -24,11 +27,19 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
+import { currentHashPath, nav } from "../lib/router";
 import {
-  fetchAccountRegistrationWorkPolicy,
-  solveAccountRegistrationWork,
-} from "../lib/accountRegistrationWork";
-import { nav } from "../lib/router";
+  allowedAsyncPohStep,
+  allowedLivePohStep,
+  findExpectedAsyncPohCase,
+  findExpectedLivePohCaseId,
+  asyncPohRoute,
+  livePohRoute,
+  parseAsyncPohRoute,
+  parseLivePohJourneyRoute,
+  type AsyncPohGuideStep,
+  type LivePohGuideStep,
+} from "../lib/pohGuidedRoutes";
 import { refreshMutationSlices } from "../lib/revalidation";
 import {
   ASYNC_VIDEO_MAX_SECONDS,
@@ -40,9 +51,17 @@ import {
   validateAsyncVideoDuration,
 } from "../lib/verificationEvidence";
 import { createLiveVerificationCommitments, hasRequiredLiveVerificationCommitments } from "../lib/liveVerification";
+import {
+  clearReconciledPohJournal,
+  normalizePohJournalBase,
+  readPohSubmissionJournal,
+  savePohSubmissionJournal,
+  type PohJournalKind,
+  type PohJournalPhase,
+  type PohJournalRead,
+} from "../lib/pohSubmissionJournal";
 import { liveRoomDescriptorText, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 import {
-  TRUSTED_RESPONSIBILITIES,
   VERIFICATION_LABELS,
   blockedByVerificationMessage,
   friendlyActionError,
@@ -232,31 +251,38 @@ async function reconcileVerificationLevel(account: string, minimumLevel: number,
   return null;
 }
 
-async function reconcileAsyncCompatibilityCase(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+async function reconcileAsyncCaseVisible(account: string, expectedCaseId: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  if (!expectedCaseId) return null;
   try {
-    const cases = await weall.pohAsyncMyCases(account, base, headers);
-    const items = Array.isArray(cases?.cases) ? cases.cases : [];
-    if (items.length > 0) return { phase: "confirmed", detail: "Your async verification case is visible." };
+    const response = await weall.pohAsyncMyCases(account, base, headers);
+    const matched = response?.ok === true ? findExpectedAsyncPohCase(response.cases, account, expectedCaseId) : null;
+    if (!matched) return null;
+    // This case being visible does not make its encrypted evidence reviewable.
+    if (!asyncCaseReviewability(matched).reviewable) {
+      return { phase: "submitted", detail: "This async case exists, but its reviewer evidence binding is not yet reviewable." };
+    }
+    return { phase: "confirmed", detail: "This exact async case is visible with reviewable evidence on the selected node." };
   } catch {
-    // ignore
-  }
-  return reconcileVerificationLevel(account, 1, base);
-}
-
-async function reconcileLiveCaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
-  try {
-    const mine = await weall.pohLiveMyCases(account, base, headers);
-    const cases = Array.isArray(mine?.cases) ? mine.cases : [];
-    if (cases.length > 0) return { phase: "confirmed", detail: "Your live verification case is visible." };
-  } catch {
-    // ignore
+    // Missing history or a disconnected node is indeterminate, not success.
   }
   return null;
 }
 
-async function waitForLiveCaseIdVisible(account: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<string> {
+async function reconcileLiveCaseVisible(account: string, expectedCaseId: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  if (!expectedCaseId) return null;
+  try {
+    const mine = await weall.pohLiveMyCases(account, base, headers);
+    const matched = mine?.ok === true ? findExpectedLivePohCaseId(mine.cases, account, expectedCaseId) : "";
+    if (matched) return { phase: "confirmed", detail: "The case opened by this signed request is visible on the selected node." };
+  } catch {
+    // Unavailable case history does not establish a new signed request succeeded.
+  }
+  return null;
+}
+
+async function waitForLiveCaseIdVisible(account: string, expectedCaseId: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<string> {
   const acct = normalizeAccount(account);
-  if (!acct) return "";
+  if (!acct || !expectedCaseId) return "";
   const started = Date.now();
   const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 45000));
   const intervalMs = Math.max(250, Number(options?.intervalMs ?? 750));
@@ -264,14 +290,10 @@ async function waitForLiveCaseIdVisible(account: string, base: string, headers?:
   while (Date.now() - started < maxWaitMs) {
     try {
       const mine = await weall.pohLiveMyCases(acct, base, headers);
-      const cases = Array.isArray(mine?.cases) ? mine.cases : [];
-      const visible = cases
-        .map((item: any) => String(item?.case_id || item?.id || "").trim())
-        .filter(Boolean);
-      if (visible.length > 0) return visible[visible.length - 1];
+      const matched = mine?.ok === true ? findExpectedLivePohCaseId(mine.cases, acct, expectedCaseId) : "";
+      if (matched) return matched;
     } catch {
-      // The request may be confirmed upstream before the read-model exposes the
-      // live case locally. Keep polling within a bounded local rehearsal window.
+      // A read-model lag or outage cannot authorize routing to an old case.
     }
     await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
   }
@@ -292,7 +314,8 @@ async function waitForSubmittedTxVisible(
   options?: { maxWaitMs?: number; intervalMs?: number; requireLocalStateSynced?: boolean; acceptAccepted?: boolean },
 ): Promise<boolean> {
   const clean = String(txId || "").trim();
-  if (!clean) return true;
+  // A missing transaction identifier is unknown, never visibility evidence.
+  if (!clean) return false;
   const started = Date.now();
   const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 20000));
   const intervalMs = Math.max(250, Number(options?.intervalMs ?? 500));
@@ -432,6 +455,7 @@ async function waitForAsyncAssignedCase(account: string, caseId: string, base: s
 
 export default function AccountVerificationPage(): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
+  const [guidedRoutePath, setGuidedRoutePath] = useState(() => currentHashPath());
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
   const kp = acct ? getKeypair(acct) : null;
@@ -441,6 +465,10 @@ export default function AccountVerificationPage(): JSX.Element {
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingPreviewRef = useRef<HTMLVideoElement | null>(null);
+  const asyncStepHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const liveStepHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const asyncFocusInitializedRef = useRef(false);
+  const liveFocusInitializedRef = useRef(false);
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
@@ -455,9 +483,9 @@ export default function AccountVerificationPage(): JSX.Element {
   const [result, setResult] = useState<any | null>(null);
 
   const [sessionBusy, setSessionBusy] = useState(false);
-  const [registerBusy, setRegisterBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [liveCommitments, setLiveCommitments] = useState<any | null>(null);
+  const [liveGuideStep, setLiveGuideStep] = useState<LivePohGuideStep>("explain");
   const [reviewerBusy, setReviewerBusy] = useState<"optIn" | "optOut" | null>(null);
   const [casesBusy, setCasesBusy] = useState(false);
   const [asyncEvidenceBusy, setAsyncEvidenceBusy] = useState(false);
@@ -471,10 +499,55 @@ export default function AccountVerificationPage(): JSX.Element {
   const [asyncWhyJoining, setAsyncWhyJoining] = useState("");
   const [asyncConsent, setAsyncConsent] = useState(false);
   const [asyncUpload, setAsyncUpload] = useState<UploadState | null>(null);
+  // F2: UI progression is local guidance only, never a PoH tier or chain outcome.
+  // Keep recorded evidence in component memory; do not persist video or secrets.
+  const [asyncGuideStep, setAsyncGuideStep] = useState<AsyncPohGuideStep>("explain");
 
   const [asyncCases, setAsyncCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
+  // Preserve last-seen cases, but never treat a failed history lookup as an empty history.
+  const [verificationHistoryReady, setVerificationHistoryReady] = useState({ async: false, live: false });
+  const [asyncJournal, setAsyncJournal] = useState<PohJournalRead>(() => acct ? readPohSubmissionJournal(acct, "async") : { status: "unavailable" });
+  const [liveJournal, setLiveJournal] = useState<PohJournalRead>(() => acct ? readPohSubmissionJournal(acct, "live") : { status: "unavailable" });
+  const asyncJournalBlocked = asyncJournal.status !== "none";
+  const isAsyncJourneyRoute = parseAsyncPohRoute(guidedRoutePath) !== null;
+  const isLiveJourneyRoute = parseLivePohJourneyRoute(guidedRoutePath) !== null;
+
+  function goAsyncStep(stage: AsyncPohGuideStep): void {
+    setAsyncGuideStep(stage);
+    nav(asyncPohRoute(stage));
+  }
+
+  function goLiveStep(stage: LivePohGuideStep): void {
+    setLiveGuideStep(stage);
+    nav(livePohRoute(stage));
+  }
+  const liveJournalBlocked = liveJournal.status !== "none";
+
+  function rereadPohJournals(): void {
+    if (!acct) {
+      setAsyncJournal({ status: "unavailable" });
+      setLiveJournal({ status: "unavailable" });
+      return;
+    }
+    setAsyncJournal(readPohSubmissionJournal(acct, "async"));
+    setLiveJournal(readPohSubmissionJournal(acct, "live"));
+  }
+
+  function recordPohStage(kind: PohJournalKind, phase: PohJournalPhase, caseId: string, txId = ""): void {
+    if (!acct) throw new Error("poh_journal_missing_account");
+    savePohSubmissionJournal({ account: acct, nodeBase: base, kind, phase, caseId, txId });
+    rereadPohJournals();
+  }
+
+  function requireNoUnresolvedPoh(kind: PohJournalKind): void {
+    if (!acct || readPohSubmissionJournal(acct, kind).status !== "none") {
+      throw new Error(
+        "An earlier verification request may still be pending on this account. Reconcile its original case on the original node before creating another; do not retry automatically.",
+      );
+    }
+  }
 
   const hasLocalKeypair = !!kp?.secretKeyB64;
   const sessionKeyPresent = !!session?.sessionKey;
@@ -512,20 +585,51 @@ export default function AccountVerificationPage(): JSX.Element {
       setAsyncCases([]);
       setLiveCases([]);
       setLiveSessions([]);
+      setVerificationHistoryReady({ async: false, live: false });
       return;
     }
     setCasesBusy(true);
+    setVerificationHistoryReady({ async: false, live: false });
     try {
       const headers = getAuthHeaders(acct);
-      const [asyncResponse, live, sessions] = await Promise.all([
-        weall.pohAsyncMyCases(acct, base, headers).catch(() => ({ cases: [] })),
-        weall.pohLiveMyCases(acct, base, headers).catch(() => ({ cases: [] })),
-        weall.pohLiveSessions(base, headers).catch(() => ({ sessions: [] })),
+      const [asyncResponse, live, sessions] = await Promise.allSettled([
+        weall.pohAsyncMyCases(acct, base, headers),
+        weall.pohLiveMyCases(acct, base, headers),
+        weall.pohLiveSessions(base, headers),
       ]);
-      setAsyncCases(Array.isArray(asyncResponse?.cases) ? asyncResponse.cases : []);
-      setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
-      setLiveSessions(Array.isArray(sessions?.sessions) ? sessions.sessions : []);
+      const asyncReady = asyncResponse.status === "fulfilled" && asyncResponse.value?.ok === true && Array.isArray(asyncResponse.value?.cases);
+      const liveReady = live.status === "fulfilled" && live.value?.ok === true && Array.isArray(live.value?.cases);
+      // Stale data may remain visible for inspection, but never re-enable new
+      // signed actions until the selected node confirms the actual history.
+      if (asyncReady && asyncResponse.status === "fulfilled") {
+        setAsyncCases(asyncResponse.value.cases);
+        const pending = readPohSubmissionJournal(acct, "async");
+        const match = pending.status === "pending"
+          ? asyncResponse.value.cases.find((item: any) => String(item?.case_id || "") === pending.record.caseId)
+          : null;
+        if (match && pending.status === "pending") {
+          // Only canonical case visibility on the original node resolves the
+          // uncertainty that a request was never admitted. This is not tier approval.
+          clearReconciledPohJournal(acct, "async", base, String(match.case_id));
+        }
+      }
+      if (liveReady && live.status === "fulfilled") {
+        setLiveCases(live.value.cases);
+        const pending = readPohSubmissionJournal(acct, "live");
+        const match = pending.status === "pending" && pending.record.caseId
+          ? live.value.cases.find((item: any) => String(item?.case_id || "") === pending.record.caseId)
+          : null;
+        if (match && pending.status === "pending") {
+          clearReconciledPohJournal(acct, "live", base, String(match.case_id));
+        }
+      }
+      rereadPohJournals();
+      if (sessions.status === "fulfilled" && Array.isArray(sessions.value?.sessions)) {
+        setLiveSessions(sessions.value.sessions);
+      }
+      setVerificationHistoryReady({ async: asyncReady, live: liveReady });
     } catch (e: any) {
+      setVerificationHistoryReady({ async: false, live: false });
       setErr(prettyErr(e));
     } finally {
       setCasesBusy(false);
@@ -537,9 +641,37 @@ export default function AccountVerificationPage(): JSX.Element {
   }
 
   useEffect(() => {
+    const onGuidedRouteChange = () => {
+      const path = currentHashPath();
+      // Keep native stop/preview controls visible during an active recording.
+      // A browser-back change within the verification guide may not silently
+      // hide a still-running camera stream.
+      if (asyncRecordingState === "recording" && parseAsyncPohRoute(path) !== "record") {
+        nav(asyncPohRoute("record"));
+        return;
+      }
+      setGuidedRoutePath(path);
+    };
+    window.addEventListener("hashchange", onGuidedRouteChange);
+    return () => window.removeEventListener("hashchange", onGuidedRouteChange);
+  }, [asyncRecordingState]);
+
+  useEffect(() => {
+    rereadPohJournals();
+    const asyncPending = acct ? readPohSubmissionJournal(acct, "async") : { status: "none" as const };
+    const livePending = acct ? readPohSubmissionJournal(acct, "live") : { status: "none" as const };
+    if (asyncPending.status !== "none") goAsyncStep("track");
+    if (livePending.status !== "none") goLiveStep("track");
     void refresh();
     void loadVerificationData();
-  }, [acct]);
+    // Storage updates from another tab can block a duplicate request before
+    // the signer is used. This is defense in depth, not a cross-tab mutex.
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key.startsWith("weall.poh_submission_pending_v1::")) rereadPohJournals();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [acct, base]);
 
   useEffect(() => {
     return () => {
@@ -574,6 +706,25 @@ export default function AccountVerificationPage(): JSX.Element {
   const accountLevel = snapshot.tier;
   const currentLabel = verificationLabel(accountLevel);
   const currentSummary = verificationSummary(accountLevel);
+  // Moving between guided stages unmounts the previous button. Restore
+  // keyboard/screen-reader context on the new heading, without moving focus
+  // away from the initial page heading during the first render.
+  useEffect(() => {
+    if (!asyncFocusInitializedRef.current) {
+      asyncFocusInitializedRef.current = true;
+      return;
+    }
+    asyncStepHeadingRef.current?.focus();
+  }, [asyncGuideStep]);
+
+  useEffect(() => {
+    if (!liveFocusInitializedRef.current) {
+      liveFocusInitializedRef.current = true;
+      return;
+    }
+    liveStepHeadingRef.current?.focus();
+  }, [liveGuideStep]);
+
   const basicAccountCreated = snapshot.accountCreated;
   const registered = basicAccountCreated; // Basic account visibility, not content-posting eligibility.
   const contentPostingEligible = snapshot.postingEligible;
@@ -599,68 +750,6 @@ export default function AccountVerificationPage(): JSX.Element {
     if (accountLevel < 2) return "Complete live verification to unlock high-trust social and community actions.";
     return "You can now apply for trusted responsibilities where you meet the requirements.";
   }, [acct, accountLevel, basicAccountCreated, hasLocalKeypair, sessionKeyPresent]);
-
-  async function registerAccount(): Promise<void> {
-    if (!acct) {
-      setErr({ msg: "Sign in before registering this account.", details: null });
-      return;
-    }
-    if (!kp?.pubkeyB64) {
-      setErr({ msg: "This device is missing the saved account key for this account.", details: null });
-      return;
-    }
-    setRegisterBusy(true);
-    setErr(null);
-    setResult(null);
-    try {
-      const r = await tx.runTx({
-        title: "Register account",
-        pendingMessage: "Saving account registration…",
-        successMessage: "Account registration submitted.",
-        errorMessage: (e) => prettyErr(e).msg,
-        getTxId: (res: any) => res?.tx_id || res?.result?.tx_id,
-        finality: { timeoutMs: 16_000, reconcile: async () => reconcileRegisteredState(acct, base) },
-        task: async () => {
-          const recoveryPubkey = ensureRecoveryAuthorityKeypair(acct).pubkeyB64;
-          const evidenceKemPubkey = ensureEvidenceKemKeypair(acct).publicKeyB64;
-          const policyResponse = await fetchAccountRegistrationWorkPolicy(base);
-          const submitted = await submitSignedTxWithNonce({
-            account: acct,
-            tx_type: "ACCOUNT_REGISTER",
-            payloadFactory: async (nonce) => {
-              const payload = {
-                pubkey: kp.pubkeyB64,
-                recovery_pubkey: recoveryPubkey,
-                recovery_sig_profile: "pq-mldsa-v1",
-                evidence_kem_pubkey: evidenceKemPubkey,
-                evidence_kem_algorithm: "ml-kem-768",
-              };
-              const work = await solveAccountRegistrationWork({
-                policyResponse,
-                signer: acct,
-                txNonce: nonce,
-                sigProfile: "pq-mldsa-v1",
-                parent: null,
-                payload,
-              });
-              return { ...payload, ...work };
-            },
-            parent: null,
-            base,
-          });
-          return submitted.result;
-        },
-      });
-      setResult(r);
-      await refresh();
-      await refreshAccountContext();
-    } catch (e: any) {
-      setErr(prettyErr(e));
-      setResult(e?.body || e?.data || null);
-    } finally {
-      setRegisterBusy(false);
-    }
-  }
 
   async function issueSessionKey(): Promise<void> {
     if (!acct) {
@@ -757,6 +846,7 @@ export default function AccountVerificationPage(): JSX.Element {
     setAsyncRecordedUrl("");
     setAsyncVideoSeconds(0);
     setAsyncUpload(null);
+    setAsyncConsent(false);
     setAsyncRecordingState("idle");
   }
 
@@ -851,6 +941,10 @@ export default function AccountVerificationPage(): JSX.Element {
       setErr({ msg: "Register your account before submitting account verification.", details: null });
       return;
     }
+    if (!verificationHistoryReady.async) {
+      setErr({ msg: "Cannot verify earlier PoH cases on the selected node. Refresh case history before signing a new evidence case.", details: null });
+      return;
+    }
     if (!challenge || !asyncRecordedBlob || !check.ok) {
       setErr({ msg: check.ok ? "Record verification evidence before submitting." : check.reason, details: null });
       return;
@@ -862,6 +956,7 @@ export default function AccountVerificationPage(): JSX.Element {
     // This marker survives errors after a successful encrypted upload.
     let acceptedUpload: UploadState | null = null;
     let caseTransactionsSubmitted = false;
+    let submittedAsyncCaseId = "";
     try {
       const headers = getAuthHeaders(acct);
       const r = await tx.runTx({
@@ -871,11 +966,13 @@ export default function AccountVerificationPage(): JSX.Element {
           res?.pending_reviewability
             ? "Async verification txs were submitted. Waiting for reviewer visibility while observer/genesis sync catches up."
             : "Async verification evidence submitted and reviewer-visible.",
-        finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCompatibilityCase(acct, base, headers) },
+        finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCaseVisible(acct, submittedAsyncCaseId, base, headers) },
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.access_bind?.result?.tx_id || res?.bind?.result?.tx_id || res?.declare?.result?.tx_id || res?.open?.result?.tx_id,
         task: async () => {
+          requireNoUnresolvedPoh("async");
           const caseId = `pohasync:${String(acct).replace(/^@/, "")}:${challenge.challengeId}`;
+          submittedAsyncCaseId = caseId;
           const evidenceContext = `weall:poh-evidence:v1:${caseId}:${acct}`;
           const subjectKem = ensureEvidenceKemKeypair(acct);
           const accountView = await weall.account(acct, base);
@@ -892,12 +989,20 @@ export default function AccountVerificationPage(): JSX.Element {
           uploadHeaders.set("X-WeAll-Evidence-Encryption", "aes-256-gcm");
           uploadHeaders.set("X-WeAll-Evidence-Context-Commitment", encryptedEvidence.encryptionContextCommitment);
           uploadHeaders.set("X-WeAll-Evidence-Ciphertext-Commitment", encryptedEvidence.ciphertextCommitment);
+          // Write before the first external side effect. A crash, lost HTTP
+          // reply or tab reload must never license a second evidence upload.
+          recordPohStage("async", "upload_started", caseId);
+          goAsyncStep("track");
           const upload: UploadState = await weall.pohAsyncVideoUpload(encryptedEvidence.file, base, uploadHeaders);
           if (!String(upload?.cid || "").trim()) {
             throw new Error("The media endpoint returned no ciphertext CID; the signed case was not submitted.");
           }
           acceptedUpload = upload;
+          recordPohStage("async", "encrypted_uploaded", caseId);
           setAsyncUpload(upload);
+          // Storage acceptance is a separate phase from canonical case review.
+          // The tracking screen never implies that signed transactions finalized.
+          goAsyncStep("track");
 
           const challengeCommitment = await sha256HexText(`weall:poh_async_challenge_v1:${acct}:${challenge.challengeId}:${challenge.phrase}`);
           const responseCommitment = await sha256HexText(`weall:poh_async_response_v1:${acct}:${challenge.challengeId}:${encryptedEvidence.ciphertextCommitment}:${asyncAbout.trim()}:${asyncWhyJoining.trim()}`);
@@ -912,6 +1017,7 @@ export default function AccountVerificationPage(): JSX.Element {
           // N is already pending for the same signer. Legacy evidence_cid and
           // video_commitment plaintext fields are intentionally not submitted.
           const sequence = await beginNonceSequence(acct, base);
+          recordPohStage("async", "signed_started", caseId);
           const openedAtMs = Date.now();
           const open = await submitSignedTxInSequence({
             sequence,
@@ -928,6 +1034,7 @@ export default function AccountVerificationPage(): JSX.Element {
             parent: null,
             base,
           });
+          recordPohStage("async", "signed_returned", caseId, String(open?.result?.tx_id || ""));
           const declare = await submitSignedTxInSequence({
             sequence,
             tx_type: "POH_ASYNC_EVIDENCE_DECLARE",
@@ -1067,7 +1174,14 @@ export default function AccountVerificationPage(): JSX.Element {
       await refreshAccountContext();
     } catch (e: any) {
       const original = prettyErr(e);
+      if (acct && readPohSubmissionJournal(acct, "async").status !== "none") {
+        // Even when the request failed before a visible acknowledgement,
+        // an earlier side effect may have been admitted. Track, do not retry.
+        goAsyncStep("track");
+        rereadPohJournals();
+      }
       if (acceptedUpload) {
+        goAsyncStep("track");
         setErr({
           msg: caseTransactionsSubmitted
             ? "Verification transactions were submitted, but refreshing their status failed. Check verification history before retrying."
@@ -1172,10 +1286,17 @@ export default function AccountVerificationPage(): JSX.Element {
       setErr({ msg: "Sign in before opening live verification.", details: null });
       return;
     }
+    if (!verificationHistoryReady.live) {
+      setErr({ msg: "Live case history is unavailable on this node. Refresh before signing a new live verification request.", details: null });
+      return;
+    }
     setLiveRequestBusy(true);
     setErr(null);
     try {
       const headers = getAuthHeaders(acct);
+      // Bind finality monitoring to this invocation, not a mutable ref that a
+      // later request could overwrite while an earlier receipt is still pending.
+      let submittedLiveCaseId = "";
       const r = await tx.runTx({
         title: "Open live verification",
         pendingMessage: "Opening live verification…",
@@ -1185,8 +1306,9 @@ export default function AccountVerificationPage(): JSX.Element {
             : "Live verification request submitted. Opening live room…",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
-        finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, base, headers) },
+        finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, submittedLiveCaseId, base, headers) },
         task: async () => {
+          requireNoUnresolvedPoh("live");
           const kp = getKeypair(acct);
           const commitments = await createLiveVerificationCommitments({
             account: acct,
@@ -1204,10 +1326,14 @@ export default function AccountVerificationPage(): JSX.Element {
             throw new Error("The backend live verification skeleton is missing required session commitments.");
           }
 
-          // Batch 417: use the sequenced signer path so the UI can derive the
-          // deterministic live case id from the signed nonce and open the room
-          // even when observer-local reads lag behind genesis confirmation.
+          // Reserve the signing nonce so the new room can be identified by
+          // this transaction, even when the observer read model is behind.
           const sequence = await beginNonceSequence(acct, base);
+          // The case ID is not known until the signed nonce returns. A
+          // pre-dispatch marker with an empty ID deliberately requires
+          // manual reconciliation if the response is lost.
+          recordPohStage("live", "signed_started", "");
+          goLiveStep("track");
           const submit = await submitSignedTxInSequence({
             sequence,
             tx_type: String(skeletonTx.tx_type || ""),
@@ -1216,29 +1342,29 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
           const txId = String(submit?.result?.tx_id || (submit as any)?.tx_id || "");
+          if (!txId) throw new Error("The signed live request returned no transaction ID. Reconcile the pending request against canonical history; do not sign another.");
           const signedNonce = Number(submit?.env?.nonce || 0);
           const expectedCaseId = expectedLiveCaseIdFromNonce(acct, signedNonce);
+          if (!expectedCaseId) throw new Error("The signed live request has no valid nonce-derived case ID. Reconcile the original transaction; do not submit another request.");
+          submittedLiveCaseId = expectedCaseId;
+          recordPohStage("live", "signed_returned", expectedCaseId, txId);
           const txVisible = await waitForSubmittedTxVisible(base, txId, {
             maxWaitMs: 30_000,
             intervalMs: 1_000,
-            // Batch 419: preserve the Batch 394/396 static contract marker below
-            // for the older strict observer-sync path while Batch 417 keeps live
-            // room launch non-blocking on observer-local catch-up.
-            // requireLocalStateSynced: true
+            // Accepted is sufficient for pending-room presentation, never
+            // for asserting committed case visibility, synchronized state, or Tier 2.
             requireLocalStateSynced: false,
             acceptAccepted: true,
           });
-          const visibleCaseId = await waitForLiveCaseIdVisible(acct, base, headers, {
+          const visibleCaseId = await waitForLiveCaseIdVisible(acct, expectedCaseId, base, headers, {
             maxWaitMs: txVisible ? 30_000 : 5_000,
             intervalMs: 1_000,
           });
-          if (!txVisible && !visibleCaseId && !expectedCaseId) {
-            throw new Error("Live verification request was not confirmed on genesis and synced back to the observer yet. Wait for sync and try again.");
-          }
-          // Batch 420: preserve the older Batch 394/394b static contract
-          // while Batch 417 still routes with the deterministic expected case id
-          // when observer-local live-case reads lag behind genesis.
-          // return { skeleton: skel, commitments, submit, case_id: visibleCaseId };
+          // An acknowledged submission may still be absent from local history.
+          // The derived room remains pending until this exact case is observed;
+          // visibility of older cases cannot substitute for this request.
+          // Keep the signed request's expected room ID distinct from the
+          // canonical case found on this node.
           return {
             skeleton: skel,
             commitments,
@@ -1256,18 +1382,21 @@ export default function AccountVerificationPage(): JSX.Element {
       await loadVerificationData();
       await refreshAccountContext();
 
-      // Batch 421: preserve the older Batch 394/394b static marker while
-      // Batch 417 still prefers deterministic expected_case_id fallback.
-      // String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible
+      // The route may represent a pending room, but must never point to an
+      // unrelated old case or imply canonical finalization.
       const resultCaseId = String((r as any)?.case_id || (r as any)?.expected_case_id || "").trim();
-      const visibleCaseId = resultCaseId || await waitForLiveCaseIdVisible(acct, base, headers, {
-        maxWaitMs: 30_000,
-        intervalMs: 1_000,
-      });
-      if (visibleCaseId) {
-        nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`);
+      const expectedCaseId = String((r as any)?.expected_case_id || "").trim();
+      if (resultCaseId && resultCaseId === expectedCaseId) {
+        // This is a pending room route, not an assertion of case finality.
+        nav(`/verification/live/${encodeURIComponent(resultCaseId)}`);
+      } else {
+        goLiveStep("track");
       }
     } catch (e: any) {
+      if (acct && readPohSubmissionJournal(acct, "live").status !== "none") {
+        goLiveStep("track");
+        rereadPohJournals();
+      }
       setErr(prettyErr(e));
     } finally {
       setLiveRequestBusy(false);
@@ -1330,6 +1459,52 @@ export default function AccountVerificationPage(): JSX.Element {
   });
   const asyncDurationError = validateAsyncVideoDuration(asyncVideoSeconds);
   const asyncRecordingClock = `${Math.floor(asyncVideoSeconds / 60)}:${String(asyncVideoSeconds % 60).padStart(2, "0")}`;
+  const asyncPreparationReady = asyncAbout.trim().length >= 10 && asyncWhyJoining.trim().length >= 10;
+  const asyncStepNames = ["Understand", "Prepare", "Record", "Review", "Submit", "Track"] as const;
+  const asyncStepIds = ["explain", "prepare", "record", "review", "submit", "track"] as const;
+
+  // URL stage changes are UI-only. Reload cannot recover in-memory video.
+  useEffect(() => {
+    const requestedAsync = parseAsyncPohRoute(guidedRoutePath);
+    if (requestedAsync) {
+      const safe = allowedAsyncPohStep(requestedAsync, {
+        basicAccountCreated,
+        prepared: asyncPreparationReady,
+        recordedValid: !!asyncRecordedBlob && !asyncDurationError && asyncRecordingState === "ready",
+        consentAndEvidenceValid: asyncSubmitCheck.ok,
+        pendingJournal: asyncJournalBlocked,
+        recordingActive: asyncRecordingState === "recording",
+      });
+      if (safe !== requestedAsync) {
+        nav(asyncPohRoute(safe));
+        return;
+      }
+      if (safe !== asyncGuideStep) setAsyncGuideStep(safe);
+      return;
+    }
+    if (asyncRecordingState === "recording") {
+      // Even a direct jump from async capture to live preparation must not
+      // leave the camera running behind an unrelated guided view.
+      nav(asyncPohRoute("record"));
+      return;
+    }
+    const requestedLive = parseLivePohJourneyRoute(guidedRoutePath);
+    if (requestedLive) {
+      const safe = allowedLivePohStep(requestedLive, accountLevel, liveJournalBlocked, liveRequestBusy);
+      if (safe !== requestedLive) {
+        nav(livePohRoute(safe));
+        return;
+      }
+      if (safe !== liveGuideStep) setLiveGuideStep(safe);
+      return;
+    }
+
+  }, [
+    guidedRoutePath, basicAccountCreated, asyncPreparationReady,
+    asyncRecordedBlob, asyncDurationError, asyncRecordingState,
+    asyncSubmitCheck.ok, asyncJournalBlocked, accountLevel,
+    liveJournalBlocked, liveRequestBusy,
+  ]);
 
   return (
     <div className="pageStack accountVerificationPage">
@@ -1436,10 +1611,10 @@ export default function AccountVerificationPage(): JSX.Element {
             <div className="buttonRowWide">
               <button
                 className="btn btnPrimary"
-                onClick={() => void registerAccount()}
-                disabled={!acct || !hasLocalKeypair || basicAccountCreated || registerBusy || signerSubmission.busy}
+                onClick={() => nav("/onboarding/register")}
+                disabled={!acct || !hasLocalKeypair || basicAccountCreated || signerSubmission.busy}
               >
-                {registerBusy ? "Registering…" : signerSubmission.busy ? "Waiting…" : basicAccountCreated ? "Basic account ready" : "Register basic account"}
+                {signerSubmission.busy ? "Waiting…" : basicAccountCreated ? "Basic account ready" : "Finish account registration"}
               </button>
               <button className="btn" onClick={() => void issueSessionKey()} disabled={!acct || !hasLocalKeypair || sessionBusy || signerSubmission.busy}>
                 {sessionBusy ? "Saving…" : signerSubmission.busy ? "Waiting…" : "Save session key"}
@@ -1456,279 +1631,476 @@ export default function AccountVerificationPage(): JSX.Element {
           status={basicStatus}
           description="You can browse, set up your profile, and start account verification. Creating a basic account does not unlock posting."
         />
-        <StatusCard
-          eyebrow="Basic human review"
-          title={VERIFICATION_LABELS.verified}
-          status={verifiedStatus}
-          description="Record a fresh 1–2 minute video in the app, state your handle, read the challenge phrase, say something about yourself, and explain why you are joining."
-        >
-          <div className="formStack">
-            <div className="calloutInfo">
-              <strong>Fresh video required:</strong> ordinary file upload is not allowed for basic human review evidence. Record inside WeAll with camera and microphone permissions.
-            </div>
-            <div className="infoCard compact">
-              <div className="infoCardHeader">
-                <strong>Challenge phrase</strong>
-                <span className="statusPill">Read aloud</span>
-              </div>
-              <div className="infoCardText mono">{asyncChallenge?.phrase || "Start recording to generate a fresh challenge phrase."}</div>
-            </div>
-            <label className="fieldBlock">
-              <span className="fieldLabel">Something about yourself</span>
-              <textarea
-                value={asyncAbout}
-                onChange={(e) => setAsyncAbout(e.target.value)}
-                placeholder="Share a few natural details that help reviewers see you are a real person."
-                disabled={accountLevel >= 1 || asyncEvidenceBusy}
+        {accountLevel < 1 ? (
+          <StatusCard
+            eyebrow="Basic human review"
+            title={VERIFICATION_LABELS.verified}
+            status={verifiedStatus}
+            description="Complete your first human review through six separate stages. Every upload, signed case, reviewer decision and account tier is verified separately."
+          >
+            {isAsyncJourneyRoute ? (
+            <div className="formStack" data-testid="async-guided-journey">
+              <PohStepProgress
+                label="Async verification steps"
+                steps={asyncStepIds.map((id, index) => ({ id, label: asyncStepNames[index] }))}
+                current={asyncGuideStep}
+                detail={asyncGuideStep === "track"
+                  ? "Review progress only. Uploaded evidence and submitted transactions are not proof of completed human verification."
+                  : undefined}
               />
-            </label>
-            <label className="fieldBlock">
-              <span className="fieldLabel">Why are you joining WeAll?</span>
-              <textarea
-                value={asyncWhyJoining}
-                onChange={(e) => setAsyncWhyJoining(e.target.value)}
-                placeholder="Explain why you are joining in your own words."
-                disabled={accountLevel >= 1 || asyncEvidenceBusy}
+
+                            <PohSubmissionStatusNotice
+                kind="async"
+                journal={asyncJournal}
+                currentNodeBase={base}
+                onTrack={() => goAsyncStep("track")}
               />
-            </label>
-            <div className="buttonRowWide">
-              <button
-                className="btn btnPrimary"
-                onClick={() => void startAsyncRecording()}
-                disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
-              >
-                {asyncRecordingState === "recording" ? "Recording…" : "Record fresh verification video"}
-              </button>
-              <button className="btn" onClick={() => stopAsyncRecording()} disabled={asyncRecordingState !== "recording"}>
-                Stop recording
-              </button>
-              <button className="btn btnGhost" onClick={() => resetAsyncRecording()} disabled={asyncRecordingState === "recording" || asyncEvidenceBusy}>
-                Reset video
-              </button>
-            </div>
-            {asyncRecordingState === "recording" ? (
-              <div className="infoCard compact" data-testid="async-evidence-live-preview">
-                <div className="infoCardHeader">
-                  <strong>Live camera preview — recording locally</strong>
-                  <span className="statusPill">Camera and microphone active</span>
+
+              {asyncGuideStep === "explain" ? (
+                <div className="formStack" data-testid="async-step-explain">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Before you record</h3>
+                  <div className="calloutInfo">
+                    <strong>Fresh video required:</strong> Record inside WeAll with camera and microphone permission for 1–2 minutes; ordinary file upload is not allowed for basic human review evidence. Say your handle, read the generated challenge phrase, and describe yourself and why you want to join.
+                  </div>
+                  <p className="miniMuted">
+                    The recording stays on this device until you explicitly submit encrypted evidence. An independent reviewer and canonical account-state update, not the recording itself, determine your verification tier.
+                  </p>
+                  {asyncCases.length > 0 ? (
+                    <div className="calloutInfo" data-testid="async-existing-cases">
+                      You have {asyncCases.length} visible verification case(s). Inspect verification history and outstanding reviewer access before starting another request.
+                      <button type="button" className="btn" onClick={() => goAsyncStep("track")}>
+                        Inspect existing verification cases
+                      </button>
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn btnPrimary"
+                    onClick={() => goAsyncStep("prepare")}
+                    disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
+                  >
+                    Prepare verification
+                  </button>
+                  {!basicAccountCreated ? <p className="miniMuted">Register your basic account on the network before starting verification.</p> : null}
+                  {!verificationHistoryReady.async ? <p className="calloutDanger" data-testid="async-history-unavailable" role="status">{casesBusy ? "Checking earlier cases…" : "Case history unavailable. A failed lookup is not evidence that no case exists. Refresh the account view before starting a new case."}</p> : null}
                 </div>
-                <video ref={recordingPreviewRef} autoPlay muted playsInline style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
-                <p className="miniMuted">Live camera preview is local. Nothing is uploaded until you submit encrypted evidence.</p>
-              </div>
-            ) : null}
-            <div className="infoCard compact">
-              <div className="infoCardHeader">
-                <strong>Recorded duration</strong>
-                <span className={`statusPill ${asyncRecordedBlob && !asyncDurationError ? "ok" : ""}`}>{asyncRecordingClock}</span>
-              </div>
-              <div className="infoCardText">Required length: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</div>
-              {asyncRecordedBlob && asyncDurationError ? <div className="calloutDanger">{asyncDurationError}</div> : null}
-              {asyncRecordedUrl ? (
-                <div data-testid="async-evidence-playback-review">
-                  <strong>Review your recorded video before submitting</strong>
-                  <p className="miniMuted">Video playback is preloaded locally. Reviewer decryption remains gated by on-chain acceptance.</p>
-                  <video controls playsInline preload="auto" src={asyncRecordedUrl} style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
+              ) : null}
+
+              {asyncGuideStep === "prepare" ? (
+                <div className="formStack" data-testid="async-step-prepare">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Prepare your answers</h3>
+                  <p className="cardDesc">Prepare what you will say. Both descriptions must have at least ten characters. Continue to recording when you are ready.</p>
+                  <label className="fieldBlock">
+                    <span className="fieldLabel">Something about yourself</span>
+                    <textarea
+                      value={asyncAbout}
+                      onChange={(e) => setAsyncAbout(e.target.value)}
+                      placeholder="Share a few natural details that help reviewers see you are a real person."
+                      disabled={accountLevel >= 1 || asyncEvidenceBusy}
+                    />
+                  </label>
+                  <label className="fieldBlock">
+                    <span className="fieldLabel">Why are you joining WeAll?</span>
+                    <textarea
+                      value={asyncWhyJoining}
+                      onChange={(e) => setAsyncWhyJoining(e.target.value)}
+                      placeholder="Explain why you are joining in your own words."
+                      disabled={accountLevel >= 1 || asyncEvidenceBusy}
+                    />
+                  </label>
+                  <div className="buttonRowWide">
+                    <button type="button" className="btn" onClick={() => goAsyncStep("explain")}>Back to explanation</button>
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      disabled={!asyncPreparationReady || !registered || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
+                      onClick={() => {
+                        ensureAsyncChallenge();
+                        goAsyncStep("record");
+                      }}
+                    >
+                      Continue to recording
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {asyncGuideStep === "record" ? (
+                <div className="formStack" data-testid="async-step-record">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Record your verification video</h3>
+                  <div className="infoCard compact">
+                    <div className="infoCardHeader">
+                      <strong>Challenge phrase</strong>
+                      <span className="statusPill">Read aloud</span>
+                    </div>
+                    <div className="infoCardText mono">{asyncChallenge?.phrase || "Start recording to generate a fresh challenge phrase."}</div>
+                  </div>
+                  <div className="buttonRowWide">
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      onClick={() => void startAsyncRecording()}
+                      disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
+                    >
+                      {asyncRecordingState === "recording" ? "Recording…" : "Record fresh verification video"}
+                    </button>
+                    <button type="button" className="btn" onClick={() => stopAsyncRecording()} disabled={asyncRecordingState !== "recording"}>
+                      Stop recording
+                    </button>
+                    <button type="button" className="btn btnGhost" onClick={() => resetAsyncRecording()} disabled={asyncRecordingState === "recording" || asyncEvidenceBusy}>
+                      Reset video
+                    </button>
+                  </div>
+                  {asyncRecordingState === "recording" ? (
+                    <div className="infoCard compact" data-testid="async-evidence-live-preview">
+                      <div className="infoCardHeader">
+                        <strong>Live camera preview — recording locally</strong>
+                        <span className="statusPill">Camera and microphone active</span>
+                      </div>
+                      <video ref={recordingPreviewRef} autoPlay muted playsInline style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
+                      <p className="miniMuted">Live camera preview is local. Nothing is uploaded until you submit encrypted evidence.</p>
+                    </div>
+                  ) : null}
+                  <div className="infoCard compact">
+                    <div className="infoCardHeader">
+                      <strong>Recorded duration</strong>
+                      <span className={`statusPill ${asyncRecordedBlob && !asyncDurationError ? "ok" : ""}`}>{asyncRecordingClock}</span>
+                    </div>
+                    <div className="infoCardText">Required length: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</div>
+                    {asyncRecordedBlob && asyncDurationError ? <div className="calloutDanger">{asyncDurationError}</div> : null}
+                  </div>
+                  <div className="buttonRowWide">
+                    <button type="button" className="btn" onClick={() => goAsyncStep("prepare")} disabled={asyncRecordingState === "recording"}>Back to preparation</button>
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      disabled={!asyncRecordedBlob || !!asyncDurationError || asyncRecordingState !== "ready"}
+                      onClick={() => goAsyncStep("review")}
+                    >
+                      Review recorded video
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {asyncGuideStep === "review" ? (
+                <div className="formStack" data-testid="async-step-review">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Review your recording and consent</h3>
+                  
+                  {asyncRecordedUrl ? (
+                    <div data-testid="async-evidence-playback-review">
+                      <p className="miniMuted">Video playback is preloaded locally. Reviewer decryption remains gated by on-chain acceptance.</p>
+                      <video controls playsInline preload="auto" src={asyncRecordedUrl} style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
+                    </div>
+                  ) : <p className="calloutDanger">Recording unavailable. Return to the recording stage.</p>}
+                  <p className="miniMuted">Recorded duration: {asyncRecordingClock}. Required: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</p>
+                  <label className="checkRow">
+                    <input
+                      type="checkbox"
+                      checked={asyncConsent}
+                      onChange={(e) => setAsyncConsent(e.target.checked)}
+                      disabled={accountLevel >= 1 || asyncEvidenceBusy}
+                    />
+                    <span>Assigned reviewers may view this evidence only for account verification. Public chain state should store commitments and receipts, not raw video.</span>
+                  </label>
+                  <div className="buttonRowWide">
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        resetAsyncRecording();
+                        goAsyncStep("record");
+                      }}
+                    >
+                      Retake video
+                    </button>
+                    <button type="button" className="btn" onClick={() => goAsyncStep("prepare")}>Edit descriptions</button>
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      disabled={!asyncSubmitCheck.ok || asyncEvidenceBusy || signerSubmission.busy}
+                      onClick={() => goAsyncStep("submit")}
+                    >
+                      Continue to encrypted submission
+                    </button>
+                  </div>
+                  {!asyncSubmitCheck.ok ? <p className="miniMuted">{asyncSubmitCheck.reason}</p> : null}
+                </div>
+              ) : null}
+
+              {asyncGuideStep === "submit" ? (
+                <div className="formStack" data-testid="async-step-submit">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Submit encrypted evidence</h3>
+                  
+                  <p className="cardDesc">
+                    This action first uploads encrypted evidence, then submits signed case and access transactions. A successful upload does not mean reviewers were assigned, transactions finalized, or your tier increased.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btnPrimary"
+                    onClick={() => void submitAsyncEvidence()}
+                    disabled={!acct || !basicAccountCreated || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok || !!asyncUpload}
+                  >
+                    {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : "Submit async verification evidence"}
+                  </button>
+                  {!asyncSubmitCheck.ok && accountLevel < 1 ? <div className="miniMuted">{asyncSubmitCheck.reason}</div> : null}
+                  <button type="button" className="btn" disabled={asyncEvidenceBusy || !!asyncUpload} onClick={() => goAsyncStep("review")}>Back to review</button>
+                  <button className="btn btnGhost" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
+                    Show verification next steps
+                  </button>
+                </div>
+              ) : null}
+
+              {asyncGuideStep === "track" ? (
+                <div className="formStack" data-testid="async-step-track">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Track verification status</h3>
+                  
+                  {asyncUpload ? (
+                    <div className="calloutInfo" data-testid="async-upload-accepted">
+                      Encrypted evidence storage accepted the upload. The signed case, reviewer access, and finality remain separate checks.
+                      If a later step fails, check verification history before re-uploading. Do not repeat an uncertain signed submission.
+                    </div>
+                  ) : (
+                    <p className="calloutInfo">Existing cases may be visible below. Refresh the network view before deciding whether any new request is appropriate.</p>
+                  )}
+                  {asyncUpload ? <JsonDetails title="Latest async evidence upload payload" value={asyncUpload} /> : null}
+                  {!verificationHistoryReady.async && !casesBusy ? <p className="calloutDanger" role="status">The selected node could not verify your current case history. Previously displayed cases may be stale.</p> : null}
+                  <button
+                    type="button"
+                    className="btn btnPrimary"
+                    onClick={() => void refreshVerificationSurface()}
+                    disabled={loading || casesBusy || asyncEvidenceBusy}
+                  >
+                    {loading || casesBusy || asyncEvidenceBusy ? "Checking…" : "Refresh canonical verification status"}
+                  </button>
+                  <p className="miniMuted">Only a canonical account tier update confirms verification. The case history below lists visible request and reviewer progress.</p>
                 </div>
               ) : null}
             </div>
-            <label className="checkRow">
-              <input
-                type="checkbox"
-                checked={asyncConsent}
-                onChange={(e) => setAsyncConsent(e.target.checked)}
-                disabled={accountLevel >= 1 || asyncEvidenceBusy}
-              />
-              <span>Assigned reviewers may view this evidence only for account verification. Public chain state should store commitments and receipts, not raw video.</span>
-            </label>
-            {asyncUpload ? (
-              <div className="calloutInfo" data-testid="async-upload-accepted">
-                Encrypted evidence storage accepted the upload. The signed case, reviewer access, and finality remain separate checks.
-                If a later step fails, check verification history before re-uploading.
+            ) : (
+              <div className="buttonRowWide" data-testid="async-verification-landing">
+                <button
+                  type="button"
+                  className="btn btnPrimary"
+                  onClick={() => goAsyncStep(asyncJournalBlocked ? "track" : "explain")}
+                  disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent}
+                >
+                  {asyncJournalBlocked ? "Check interrupted async verification" : "Begin async human review"}
+                </button>
+                <p className="miniMuted">Your local video and consent will not be restored from browser history or a copied link.</p>
               </div>
-            ) : null}
-            {asyncUpload ? <JsonDetails title="Latest async evidence upload payload" value={asyncUpload} /> : null}
-            <button
-              className="btn btnPrimary"
-              onClick={() => void submitAsyncEvidence()}
-              disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok}
-            >
-              {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : accountLevel >= 1 ? "Async verification complete" : "Submit async verification evidence"}
-            </button>
-            {!asyncSubmitCheck.ok && accountLevel < 1 ? <div className="miniMuted">{asyncSubmitCheck.reason}</div> : null}
-            <button className="btn btnGhost" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
-              Show verification next steps
-            </button>
-          </div>
-        </StatusCard>
-        <StatusCard
-          eyebrow="Live human review"
-          title={VERIFICATION_LABELS.trusted}
-          status={trustedStatus}
-          description="Complete live verification to create posts, vote in community decisions, report harmful content, and apply for trusted responsibilities."
-        >
-          <div className="calloutInfo">
-            Live verification requests now prepare session, room, and prompt commitments before the signed request is submitted. The chain stores commitments and review receipts, not raw identity session recordings.
-          </div>
-          <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}>
-            {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : accountLevel < 1 ? blockedByVerificationMessage(1) : "Open live verification"}
-          </button>
-          {liveCommitments ? (
-            <div className="infoCard compact">
-              <div className="infoCardHeader">
-                <strong>Decentralized P2P live room</strong>
-                <span className="statusPill">Transport only</span>
+            )}
+          </StatusCard>
+        ) : (
+          <StatusCard
+            eyebrow="Basic human review"
+            title={VERIFICATION_LABELS.verified}
+            status="done"
+            description="The current canonical account view indicates basic verification. Continue to live verification if you need trusted participation."
+          />
+        )}
+        {accountLevel >= 1 ? (
+          <StatusCard
+            eyebrow="Live human review"
+            title={VERIFICATION_LABELS.trusted}
+            status={trustedStatus}
+            description="Live verification is a separate, higher-trust review. Opening a room or submitting a signed request is not the final reviewer decision."
+          >
+            {accountLevel >= 2 ? (
+              <div className="calloutInfo" data-testid="live-verification-complete">
+                The canonical account view reports Tier 2. Any separate reviewer or validator authority still requires its own eligibility and authorization.
               </div>
-              <div className="infoCardText">{liveRoomTransportNotice()}</div>
-              {liveRoomUrlFromCommitment(liveCommitments.room_commitment) ? (
-                <div className="buttonRow" style={{ marginTop: 10 }}>
-                  <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">
-                    Open self-hosted room
-                  </a>
-                </div>
+            ) : (
+              isLiveJourneyRoute ? (
+              <div className="formStack" data-testid="live-guided-journey">
+                <PohStepProgress
+                  label="Live verification steps"
+                  steps={[
+                    { id: "explain", label: "Understand" },
+                    { id: "request", label: "Request" },
+                    { id: "track", label: "Track" },
+                  ]}
+                  current={liveGuideStep}
+                  detail={liveGuideStep === "track"
+                    ? "Case visibility is not a completed reviewer decision or a canonical tier increase."
+                    : undefined}
+                />
+                                <PohSubmissionStatusNotice
+                  kind="live"
+                  journal={liveJournal}
+                  currentNodeBase={base}
+                  onTrack={() => goLiveStep("track")}
+                />
+
+                {liveGuideStep === "explain" ? (
+                  <div className="formStack" data-testid="live-step-explain">
+                  <h3 ref={liveStepHeadingRef} tabIndex={-1}>Before live verification</h3>
+                    <p className="cardDesc">
+                      The live session prepares session, room, and prompt commitments before it submits a signed request. Independent attendance, reviewer decisions, canonical receipts and synchronized account state remain separate steps.
+                    </p>
+                    <div className="calloutInfo">
+                      Camera, microphone and peer-to-peer transport must be available for participation. No third-party identity service is required, but a prepared room does not prove that other participants can connect.
+                    </div>
+                    {liveCases.length > 0 ? (
+                      <div className="calloutInfo" data-testid="live-existing-cases">
+                        {liveCases.length} live case(s) are visible. Inspect and reopen an existing case before requesting a replacement.
+                        <button type="button" className="btn" onClick={() => goLiveStep("track")}>Inspect existing live cases</button>
+                      </div>
+                    ) : null}
+                    <button type="button" className="btn btnPrimary" disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || liveJournalBlocked || casesBusy || liveRequestBusy || signerSubmission.busy} onClick={() => goLiveStep("request")}>
+                      Prepare live verification request
+                    </button>
+                    {!verificationHistoryReady.live ? <p className="calloutDanger" data-testid="live-history-unavailable" role="status">{casesBusy ? "Checking earlier cases…" : "Live case history unavailable. Reconcile previous requests before opening a new signed request."}</p> : null}
+                  </div>
+                ) : null}
+                {liveGuideStep === "request" ? (
+                  <div className="formStack" data-testid="live-step-request">
+                  <h3 ref={liveStepHeadingRef} tabIndex={-1}>Request a live session</h3>
+                    <p className="cardDesc">Opening a live verification request signs and sends a new protocol action. Do not repeat a request with uncertain status; use the case history and transaction receipt to reconcile first.</p>
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      onClick={() => void submitLiveRequest()}
+                      disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || liveJournalBlocked || casesBusy || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}
+                    >
+                      {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : "Open live verification"}
+                    </button>
+                    <div className="buttonRowWide">
+                      <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => goLiveStep("explain")}>Back to explanation</button>
+                      <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => goLiveStep("track")}>Check existing request status</button>
+                    </div>
+                    {liveCommitments ? (
+                      <div className="infoCard compact">
+                        <div className="infoCardHeader">
+                          <strong>Prepared decentralized P2P room</strong>
+                          <span className="statusPill">Transport only</span>
+                        </div>
+                        <div className="infoCardText">{liveRoomTransportNotice()}</div>
+                        {liveRoomUrlFromCommitment(liveCommitments.room_commitment) ? (
+                          <div className="buttonRow">
+                            <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">Open self-hosted room</a>
+                          </div>
+                        ) : (
+                          <p className="miniMuted">No centralized room URL is required. The room descriptor is prepared locally; other participants and transport availability have not yet been verified.</p>
+                        )}
+                        {liveRoomDescriptorText(liveCommitments.room_commitment) ? (
+                          <details className="advancedDetails">
+                            <summary>Advanced: P2P room descriptor</summary>
+                            <pre className="jsonBlock">{liveRoomDescriptorText(liveCommitments.room_commitment)}</pre>
+                          </details>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
+                  </div>
+                ) : null}
+                {liveGuideStep === "track" ? (
+                  <div className="formStack" data-testid="live-step-track">
+                  <h3 ref={liveStepHeadingRef} tabIndex={-1}>Track your live case</h3>
+                    <p className="cardDesc">
+                      A case becomes actionable only when it appears in canonical verification history. A deterministic expected case ID or pending request is not proof of finalized verification.
+                    </p>
+                    <button type="button" className="btn btnPrimary" disabled={loading || casesBusy || liveRequestBusy} onClick={() => void refreshVerificationSurface()}>
+                      {loading || casesBusy || liveRequestBusy ? "Checking…" : "Refresh live case status"}
+                    </button>
+                    {liveCases.map((item: any, idx: number) => (
+                      <div className="infoCard compact" key={String(item?.case_id || idx)}>
+                        <CaseCard item={item} />
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={!item?.case_id}
+                          onClick={() => nav(`/verification/live/${encodeURIComponent(String(item?.case_id || ""))}`)}
+                        >
+                          Open recorded live case
+                        </button>
+                      </div>
+                    ))}
+                    {liveCases.length === 0 && verificationHistoryReady.live ? <p className="miniMuted">No canonical live case is visible yet. The node may be catching up; do not blindly resubmit a signed request.</p> : null}
+                    {!verificationHistoryReady.live ? <p className="calloutDanger" role="status">The node could not confirm live case history. Any earlier case view may be stale. Reconcile before trying again.</p> : null}
+                    <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => goLiveStep("explain")}>Back to explanation</button>
+                  </div>
+                ) : null}
+              </div>
               ) : (
-                <div className="miniMuted">A decentralized P2P room descriptor will be created from the room commitment. No centralized room URL is required.</div>
-              )}
-              {liveRoomDescriptorText(liveCommitments.room_commitment) ? (
+                <div className="buttonRowWide" data-testid="live-verification-landing">
+                  <button
+                    type="button"
+                    className="btn btnPrimary"
+                    onClick={() => goLiveStep(liveJournalBlocked ? "track" : "explain")}
+                    disabled={!acct || !hasLocalKeypair || !sessionKeyPresent}
+                  >
+                    {liveJournalBlocked ? "Check interrupted live verification" : "Begin live human review"}
+                  </button>
+                </div>
+              )
+            )}
+        </StatusCard>
+        ) : null}
+      </section>
+
+      <TrustedResponsibilitiesPanel
+        account={acct}
+        accountLevel={accountLevel}
+        contentReviewActive={contentReviewActive}
+        contentReviewOptedIn={contentReviewOptedIn}
+        contentReviewStatusLabel={contentReviewStatusLabel}
+        reviewerBusy={reviewerBusy}
+        signerBusy={signerSubmission.busy}
+        hasLocalKeypair={hasLocalKeypair}
+        onUpdateContentReviewLane={(active) => void updateContentReviewLane(active)}
+      />
+
+      <VerificationHistoryPanel
+        asyncCases={asyncCases}
+        liveCases={liveCases}
+        liveSessions={liveSessions}
+        asyncHistoryReady={verificationHistoryReady.async}
+        liveHistoryReady={verificationHistoryReady.live}
+        loading={loading}
+        casesBusy={casesBusy}
+        onRefresh={() => void refreshVerificationSurface()}
+        accountState={acctState}
+        registrationView={registration}
+        lastResult={result}
+        renderAsyncCase={(item) => (
+          <CaseCard
+            item={item}
+            onFinishReviewerAccess={(caseId) => void finishAsyncReviewerAccess(caseId)}
+            working={asyncEvidenceBusy || signerSubmission.busy}
+          />
+        )}
+        renderLiveCase={(item) => {
+          const roomUrl = liveRoomUrlFromCommitment(item?.room_commitment);
+          const descriptor = liveRoomDescriptorText(item?.room_commitment);
+          return (
+            <div className="infoCard compact">
+              <CaseCard item={item} />
+              <div className="buttonRow" style={{ marginTop: 10 }}>
+                <button
+                  className="btn btnPrimary"
+                  disabled={!item?.case_id}
+                  onClick={() => nav(`/verification/live/${encodeURIComponent(String(item?.case_id || ""))}`)}
+                >
+                  Open live verification room
+                </button>
+                {roomUrl ? (
+                  <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
+                    Open self-hosted transport
+                  </a>
+                ) : null}
+              </div>
+              <div className="miniMuted">{liveRoomTransportNotice()}</div>
+              {descriptor ? (
                 <details className="advancedDetails">
-                  <summary>Advanced: P2P room descriptor</summary>
-                  <pre className="jsonBlock">{liveRoomDescriptorText(liveCommitments.room_commitment)}</pre>
+                  <summary>P2P room descriptor</summary>
+                  <pre className="jsonBlock">{descriptor}</pre>
                 </details>
               ) : null}
             </div>
-          ) : null}
-          {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
-        </StatusCard>
-      </section>
-
-      <section className="card">
-        <div className="cardBody formStack">
-          <div className="sectionHead">
-            <div>
-              <div className="eyebrow">Trusted Responsibilities</div>
-              <h2 className="cardTitle">Responsibilities you can earn over time</h2>
-            </div>
-            <span className={`statusPill ${accountLevel >= 2 ? "ok" : ""}`}>{accountLevel >= 2 ? "Eligible to apply" : "Live verification required"}</span>
-          </div>
-          <p className="cardDesc">
-            Verification proves account status. Responsibilities prove specific service permission, such as reviewing reports or helping operate network services.
-          </p>
-          <div className="infoCard compact">
-            <div className="infoCardHeader">
-              <strong>Content review selection</strong>
-              <span className={`statusPill ${contentReviewActive ? "ok" : contentReviewOptedIn ? "warning" : ""}`}>{contentReviewStatusLabel}</span>
-            </div>
-            <div className="infoCardText">
-              Tier 2 makes you eligible, but the protocol only selects reviewers that explicitly opt into the content_review lane and are not the author of the flagged content.
-            </div>
-            <div className="buttonRowWide">
-              {!contentReviewActive ? (
-                <button
-                  className="btn btnPrimary"
-                  onClick={() => void updateContentReviewLane(true)}
-                  disabled={!acct || accountLevel < 2 || reviewerBusy !== null || signerSubmission.busy || !hasLocalKeypair}
-                >
-                  {reviewerBusy === "optIn" ? "Opting in…" : accountLevel < 2 ? blockedByVerificationMessage(2) : "Opt into content review"}
-                </button>
-              ) : (
-                <button
-                  className="btn"
-                  onClick={() => void updateContentReviewLane(false)}
-                  disabled={!acct || reviewerBusy !== null || signerSubmission.busy || !hasLocalKeypair}
-                >
-                  {reviewerBusy === "optOut" ? "Opting out…" : "Opt out of content review"}
-                </button>
-              )}
-              <button className="btn btnGhost" onClick={() => nav(acct ? `/account/${encodeURIComponent(acct)}` : "/login")} disabled={!acct}>
-                Open all responsibility controls
-              </button>
-            </div>
-          </div>
-          <div className="infoGrid">
-            {TRUSTED_RESPONSIBILITIES.map((responsibility) => (
-              <div key={responsibility.key} className="infoCard compact">
-                <div className="infoCardHeader">
-                  <strong>{responsibility.label}</strong>
-                  <span className={`statusPill ${accountLevel >= 2 ? "ok" : ""}`}>{accountLevel >= 2 ? "Can apply" : "Locked"}</span>
-                </div>
-                <div className="infoCardText">{responsibility.description}</div>
-                <div className="miniTag">Requires: {responsibility.requires}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid2">
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Verification History</div>
-                <h2 className="cardTitle">Requests, reviews, and live sessions</h2>
-              </div>
-              <span className="statusPill">{liveCases.length + asyncCases.length} item(s)</span>
-            </div>
-            <p className="cardDesc">
-              This area shows account-verification work that is visible to this device. It is written as a history of requests and reviews, not as protocol machinery.
-            </p>
-            {liveCases.length ? (
-              <div className="infoGrid">
-                {liveCases.map((it: any, idx: number) => {
-                  const roomUrl = liveRoomUrlFromCommitment(it?.room_commitment);
-                  const p2pDescriptor = liveRoomDescriptorText(it?.room_commitment);
-                  return (
-                    <div key={String(it?.case_id || idx)} className="infoCard compact">
-                      <CaseCard item={it} />
-                      <div className="buttonRow" style={{ marginTop: 10 }}>
-                        <button className="btn btnPrimary" onClick={() => nav(`/verification/live/${encodeURIComponent(String(it?.case_id || ""))}`)} disabled={!it?.case_id}>
-                          Open live verification room
-                        </button>
-                        {roomUrl ? (
-                          <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
-                            Open self-hosted transport
-                          </a>
-                        ) : null}
-                      </div>
-                      <div className="miniMuted">{liveRoomTransportNotice()}</div>
-                      {p2pDescriptor ? (
-                        <details className="advancedDetails">
-                          <summary>P2P room descriptor</summary>
-                          <pre className="jsonBlock">{p2pDescriptor}</pre>
-                        </details>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-            {asyncCases.length ? <div className="infoGrid">{asyncCases.map((it: any, idx: number) => (
-              <CaseCard
-                key={String(it?.case_id || idx)}
-                item={it}
-                onFinishReviewerAccess={(caseId) => void finishAsyncReviewerAccess(caseId)}
-                working={asyncEvidenceBusy || signerSubmission.busy}
-              />
-            ))}</div> : null}
-            {!liveCases.length && !asyncCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No verification history is visible yet.</div></div> : null}
-            {liveSessions.length ? <JsonDetails title="Advanced: live session payloads" value={liveSessions} /> : null}
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Advanced Details</div>
-                <h2 className="cardTitle">Technical records</h2>
-              </div>
-            </div>
-            <p className="cardDesc">These records are hidden by default because they are for review, debugging, and auditability.</p>
-            <JsonDetails title="Advanced: current account state" value={acctState} />
-            <JsonDetails title="Advanced: registration payload" value={registration} />
-            {result ? <JsonDetails title="Advanced: last API result" value={result} /> : <div className="emptyState compactEmpty"><div className="emptyTitle">No recent action payload.</div></div>}
-          </div>
-        </article>
-      </section>
+          );
+        }}
+      />
 
     </div>
   );

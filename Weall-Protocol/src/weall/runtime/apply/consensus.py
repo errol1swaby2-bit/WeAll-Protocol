@@ -36,6 +36,7 @@ from weall.runtime.bft_hotstuff import (
 from weall.runtime.commitments import (  # noqa: E402 -- legacy module docstring follows __future__ import
     consensus_active_validator_ids,
     consensus_validator_generation,
+    first_validator_member_key_authority_issue,
 )
 from weall.runtime.node_operator_responsibilities import (
     active_node_pubkeys_for_account,
@@ -946,49 +947,33 @@ def _validator_set_hash(accounts: list[str]) -> str:
 def _validate_validator_set_member_authority(state: Json, accounts: list[str]) -> None:
     """Fail closed on production validator-set/key authority disagreement.
 
-    Production genesis enables the validator lifecycle gate. In that posture a
-    validator-set transition may reference only lifecycle-registered validators
-    whose canonical lifecycle key and BFT verification key both exist and match.
-    Legacy/local states retain their historical lightweight behavior.
+    Keep the existing production lifecycle gate, error codes and account-set
+    ordering. Snapshot import and domain apply share the read-only key
+    comparison, without changing validator membership or key authority.
     """
-
     if not _bool_param(state, "validator_candidate_lifecycle_gate_enabled", False):
         return
 
-    vroot = state.get("validators")
-    reg = vroot.get("registry") if isinstance(vroot, dict) else None
-    reg = reg if isinstance(reg, dict) else {}
-    consensus = state.get("consensus")
-    consensus_validators = consensus.get("validators") if isinstance(consensus, dict) else None
-    creg = consensus_validators.get("registry") if isinstance(consensus_validators, dict) else None
-    creg = creg if isinstance(creg, dict) else {}
-    for account in canonicalize_account_set(accounts):
-        rec = reg.get(account)
-        if not isinstance(rec, dict):
-            raise ConsensusApplyError(
-                "forbidden", "validator_set_member_not_registered", {"account": account}
-            )
-        canonical_pubkey = _as_str(rec.get("pubkey") or "")
-        if not canonical_pubkey:
-            raise ConsensusApplyError(
-                "invalid_state",
-                "validator_set_member_missing_canonical_pubkey",
-                {"account": account},
-            )
-        crec = creg.get(account)
-        consensus_pubkey = _as_str(crec.get("pubkey") or "") if isinstance(crec, dict) else ""
-        if not consensus_pubkey:
-            raise ConsensusApplyError(
-                "invalid_state",
-                "validator_set_member_missing_consensus_pubkey",
-                {"account": account},
-            )
-        if consensus_pubkey != canonical_pubkey:
-            raise ConsensusApplyError(
-                "invalid_state",
-                "validator_set_member_pubkey_authority_mismatch",
-                {"account": account},
-            )
+    issue = first_validator_member_key_authority_issue(
+        state, canonicalize_account_set(accounts), normalize_pubkey=_as_str
+    )
+    if issue is None:
+        return
+    reason, account = issue
+    codes = {
+        "member_not_registered": ("forbidden", "validator_set_member_not_registered"),
+        "missing_canonical_pubkey": (
+            "invalid_state",
+            "validator_set_member_missing_canonical_pubkey",
+        ),
+        "missing_consensus_pubkey": (
+            "invalid_state",
+            "validator_set_member_missing_consensus_pubkey",
+        ),
+        "pubkey_mismatch": ("invalid_state", "validator_set_member_pubkey_authority_mismatch"),
+    }
+    code, domain_reason = codes[reason]
+    raise ConsensusApplyError(code, domain_reason, {"account": account})
 
 
 def _bump_validator_epoch(state: Json, active_set: list[str]) -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -25,10 +26,13 @@ def _make_minimal_release_tree(tmp_path: Path, *, include_secret_guard: bool = T
     return tree
 
 
-def _run(cmd: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
+def _run(
+    cmd: list[str], *, cwd: Path, extra_env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         cwd=str(cwd),
+        env={**os.environ, **extra_env} if extra_env is not None else None,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -96,8 +100,14 @@ def test_clean_release_artifacts_refuses_to_silently_delete_secret_material() ->
     assert 'rm -rf -- "secrets"' not in text
 
 
-def test_local_observer_readiness_gate_passes_without_second_machine() -> None:
-    result = _run(["bash", "scripts/local_observer_readiness_gate.sh"], cwd=ROOT)
+def test_local_observer_readiness_gate_passes_without_second_machine(
+    valid_observer_genesis_artifacts: dict[str, str],
+) -> None:
+    result = _run(
+        ["bash", "scripts/local_observer_readiness_gate.sh"],
+        cwd=ROOT,
+        extra_env={"WEALL_MODE": "prod", **valid_observer_genesis_artifacts},
+    )
 
     assert result.returncode == 0, result.stdout
     assert "local observer readiness gate passed" in result.stdout

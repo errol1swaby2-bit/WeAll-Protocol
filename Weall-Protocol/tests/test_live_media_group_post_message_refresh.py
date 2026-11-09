@@ -21,8 +21,17 @@ def test_live_room_check_in_starts_p2p_media_and_surfaces_remote_diagnostics() -
     assert "Remote feeds:" in page
     assert "p2pSignalsSent" in page
     assert "p2pSignalsReceived" in page
-    assert "chainParticipants.forEach" in page
-    assert "presence.forEach" in page
+    # Sidecar presence and participant feeds are diagnostics, never the
+    # authorization source for transmitting camera or microphone tracks.
+    participant_source = page.split("const p2pParticipantAccounts = useMemo", 1)[1].split(
+        "const p2pRemoteAccounts = useMemo", 1
+    )[0]
+    assert "jurors.forEach" in participant_source
+    assert "liveCase?.account_id" in participant_source
+    assert "chainParticipants.forEach" not in participant_source
+    assert "presence.forEach" not in participant_source
+    assert "if (!p2pRemoteAccounts.includes(from)) return;" in page
+    assert "if (!canJoinReview) throw new Error" in page
 
 
 def test_create_post_has_group_destination_selector_and_group_payload() -> None:

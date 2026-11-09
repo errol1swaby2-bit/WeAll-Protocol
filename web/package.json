@@ -23,6 +23,9 @@
     "test:reporter-vs-juror-lanes": "node scripts/test_reporter_vs_juror_lanes.mjs",
     "test:content-flag-report-truth": "node scripts/test_content_flag_report_truth.mjs",
     "test:async-evidence-preview": "node scripts/test_async_evidence_preview.mjs",
+    "test:poh-submission-journal": "node --experimental-strip-types scripts/test_poh_submission_journal.mjs",
+    "test:verification-history-panel": "node scripts/test_verification_history_panel.mjs",
+    "test:poh-guided-routes": "node --experimental-strip-types scripts/test_poh_guided_routes.mjs",
     "test:responsibility-control-surface": "node scripts/test_responsibility_control_surface_source.mjs",
     "test:operator-journey-source": "node scripts/test_operator_journey_and_accent_source.mjs",
     "test:rendered-operator-journey": "playwright test tests/e2e/operator_journey_rendered.spec.ts",
@@ -46,6 +49,8 @@
     "test:reviewer-critical-source": "node scripts/test_reviewer_critical_flows_source.mjs",
     "test:account-custody-e2e": "playwright test tests/e2e/account_custody_registration_restore.spec.ts",
     "test:account-custody-crypto-source": "node scripts/test_account_custody_crypto_source.mjs",
+    "test:guided-account-registration-source": "node scripts/test_guided_account_registration_source.mjs",
+    "test:registration-tx-id": "node scripts/test_registration_canonical_tx_id.mjs",
     "test:account-custody-source": "node scripts/test_account_custody_source.mjs",
     "test:account-custody-real-stack": "playwright test tests/e2e/account_custody_registration_restore.spec.ts",
     "test:m2-async-independent-browsers": "playwright test tests/e2e/poh_async_independent_browsers.spec.ts",
@@ -65,7 +70,7 @@
     "@types/react-dom": "18.3.0",
     "@vitejs/plugin-react": "5.2.0",
     "typescript": "5.6.3",
-    "vite": "8.0.16"
+    "vite": "8.3.5"
   },
   "engines": {
     "node": ">=20.19.0",

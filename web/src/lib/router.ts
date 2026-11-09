@@ -65,11 +65,14 @@ export type RouteMeta = {
 
 export type RouteMatch =
   | { path: "/login" }
+  | { path: "/onboarding/register" }
   | { path: "/home" }
   | { path: "/feed" }
   | { path: "/create" }
   | { path: "/post/:id"; id: string }
   | { path: "/verification" }
+  | { path: "/verification/async/:stage"; stage: "explain" | "prepare" | "record" | "review" | "submit" | "track" }
+  | { path: "/verification/live/journey/:stage"; stage: "explain" | "request" | "track" }
   | { path: "/verification/live/:caseId"; caseId: string }
   | { path: "/reviews" }
   | { path: "/reviews/:id"; id: string }
@@ -130,6 +133,25 @@ function contract(overrides: Partial<RouteDataContract>): RouteDataContract {
 }
 
 const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
+  "/onboarding/register": {
+    section: "Start",
+    label: "Register account",
+    title: "Finish account registration",
+    description: "Register your saved account key on the network and check confirmed synchronization.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "login",
+    normalNav: false,
+    breadcrumbs: [{ label: "Sign in", href: "/login" }],
+    dataContract: contract({
+      primaryObject: "Account registration",
+      contextPanelData: "Account creation progress and confirmed network status",
+      blockingDependencies: ["Verified recovery", "Local signer", "Registration transaction", "Synchronized account state"],
+    }),
+  },
   "/login": {
     section: "Start",
     label: "Sign in",
@@ -238,6 +260,44 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Account verification",
       contextPanelData: "Verification status, next steps, and trusted responsibilities",
       blockingDependencies: ["Account session", "Authoritative account state"],
+    }),
+  },
+  "/verification/async/:stage": {
+    section: "Trust & Verification",
+    label: "Async human review",
+    title: "Async human review",
+    description: "Prepare, record, review and submit fresh encrypted evidence through a guided local journey.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "verification",
+    normalNav: false,
+    breadcrumbs: [{ label: "Account Verification", href: "/verification" }],
+    dataContract: contract({
+      primaryObject: "Async verification stage",
+      contextPanelData: "Local recording state and canonical case history",
+      blockingDependencies: ["Account session", "Local signing key", "Network case history", "Camera and microphone permission"],
+    }),
+  },
+  "/verification/live/journey/:stage": {
+    section: "Trust & Verification",
+    label: "Live human review",
+    title: "Live human review",
+    description: "Understand, request and track live human verification without interpreting a room as a verdict.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "verification",
+    normalNav: false,
+    breadcrumbs: [{ label: "Account Verification", href: "/verification" }],
+    dataContract: contract({
+      primaryObject: "Live verification stage",
+      contextPanelData: "P2P room commitments and canonical live-case history",
+      blockingDependencies: ["Account session", "Canonical Tier-1 account", "Network live-case history", "Independent live reviewer authorization"],
     }),
   },
   "/verification/live/:caseId": {
@@ -688,10 +748,25 @@ export function matchRoute(path: string): RouteMatch {
   const r = path.split("?")[0];
 
   if (r === "/" || r === "/login") return { path: "/login" };
+  if (r === "/onboarding/register") return { path: "/onboarding/register" };
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };
   if (r === "/create") return { path: "/create" };
   if (r === "/verification") return { path: "/verification" };
+  if (r.startsWith("/verification/async/")) {
+    const stage = r.slice("/verification/async/".length);
+    if (["explain", "prepare", "record", "review", "submit", "track"].includes(stage)) {
+      return { path: "/verification/async/:stage", stage: stage as "explain" | "prepare" | "record" | "review" | "submit" | "track" };
+    }
+    return { path: "/verification" };
+  }
+  if (r.startsWith("/verification/live/journey/")) {
+    const stage = r.slice("/verification/live/journey/".length);
+    if (["explain", "request", "track"].includes(stage)) {
+      return { path: "/verification/live/journey/:stage", stage: stage as "explain" | "request" | "track" };
+    }
+    return { path: "/verification" };
+  }
   if (r.startsWith("/verification/live/")) {
     const caseId = decodeRoutePart(r.slice("/verification/live/".length));
     if (caseId) return { path: "/verification/live/:caseId", caseId };
@@ -793,7 +868,7 @@ export function isActiveNavPath(currentPath: string, href: string): boolean {
   if (target === "/decisions") return current === "/decisions" || current === "/decisions/:id" || current === "/decisions/create";
   if (target === "/reports") return current === "/reports" || current === "/reports/:id";
   if (target === "/reviews") return current === "/reviews" || current === "/reviews/:id";
-  if (target === "/verification") return current === "/verification" || current === "/verification/live/:caseId";
+  if (target === "/verification") return current === "/verification" || current === "/verification/async/:stage" || current === "/verification/live/journey/:stage" || current === "/verification/live/:caseId";
   return current === target || currentPath === href || currentPath.startsWith(`${href}/`);
 }
 

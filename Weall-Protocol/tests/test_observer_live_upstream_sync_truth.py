@@ -21,12 +21,15 @@ def test_observer_tx_status_does_not_mark_local_tx_queue_tx_synced() -> None:
     )
 
 
-def test_live_request_frontend_requires_local_state_synced_before_room_route() -> None:
+def test_live_request_pending_room_does_not_impersonate_synced_case() -> None:
     page = (WEB / "pages" / "AccountVerificationPage.tsx").read_text(encoding="utf-8")
+    room = (WEB / "pages" / "LiveVerificationRoom.tsx").read_text(encoding="utf-8")
 
-    assert (
-        "Live verification request was not confirmed on genesis and synced back to the observer yet"
-        in page
-    )
-    assert "requireLocalStateSynced: true" in page
-    assert "waitForLiveCaseIdVisible" in page
+    assert "requireLocalStateSynced: false" in page
+    assert "acceptAccepted: true" in page
+    assert "pending_case_visibility: !visibleCaseId" in page
+    assert "waitForLiveCaseIdVisible(acct, expectedCaseId, base, headers" in page
+    assert "resultCaseId && resultCaseId === expectedCaseId" in page
+    assert "casePendingSync" in room
+    assert "!!account && (isSubject || !!myJuror)" in room
+    assert "Live request accepted. Waiting for the live case and session to sync" in room

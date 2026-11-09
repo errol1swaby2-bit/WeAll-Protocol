@@ -62,7 +62,13 @@ def test_account_verification_submits_native_async_tx_sequence() -> None:
     assert "ciphertext_cid" in page
     assert "ciphertext_commitment" in page
     assert "encryption_context_commitment" in page
-    assert "reconcileVerificationLevel(account, 1, base)" in page
+    # Current async evidence status is bound to the case created by this
+    # submission, not an already-earned Tier 1 or a different prior case.
+    assert "reconcileAsyncCaseVisible(acct, submittedAsyncCaseId, base, headers)" in page
+    assert "submittedAsyncCaseId = caseId" in page
+    assert "if (!asyncCaseReviewability(matched).reviewable)" in page
+    assert 'return { phase: "submitted"' in page
+    assert "reconcileAsyncCompatibilityCase" not in page
 
 
 def test_reviewer_feed_surfaces_native_async_reviewable_evidence() -> None:

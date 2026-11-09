@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2058,
+  "file_count": 2088,
   "files": [
     {
       "affected_registers": [
@@ -58,6 +58,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "9f928229d2232fb2eee7d80e239aa8f0795c3d0da31be25bd7cfe84fa0501dd5",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/f1b-two-process-receipt.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "fed25dbdddaffb90d96eb7a9580f1cdca778b7fcb95a8be26c42a1d69663e8b9",
+      "source_id": "SRC-67246AFF3D3EF2FA"
     },
     {
       "affected_registers": [
@@ -108,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "064f7290f35ce26b4a544b9883dbba3b18188709babb9f2aac5b1a944b48796f",
+      "sha256": "6ccf0bad6a55fb533bab7cd7dea58b62ce07e1d41032556ba4ba48af8b1574b4",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -134,7 +147,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "41b33bf528f17b142643a30c615eb46940f70865dd6799f9de90e73748ec544f",
+      "sha256": "414c8740c632868ae0dfe19007cceb5cd92811eda37d2364079fc2e2a0ea5b21",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -355,7 +368,7 @@
       ],
       "path": "docs/ACCOUNT_CUSTODY_AND_RECOVERY.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "6d0390f3a10668fa3aec9402849084dd45c8cc51e552d5c905735c911e1eabcc",
+      "sha256": "5f63d68d85604f6664951151fc0b81500c1908acc88b93193cd246d9e5cb1dd0",
       "source_id": "SRC-653AA4A3DD3151C1"
     },
     {
@@ -1645,6 +1658,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "eb9892cc39d8ad95c4af3546b8cee6ef2c4002770a98baec9e1b181747bdde01",
       "source_id": "SRC-8B2FB1087D3BF2FB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/consensus/first_canonical_solo_finality_design_review.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "85d7ee4b7dc8df2aa3691f713b7b49e4905fb616318962638296c0ac6f47ff6c",
+      "source_id": "SRC-378656E471EA8F3F"
     },
     {
       "affected_registers": [
@@ -3119,7 +3145,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "21c749320b5ac4629da30ea3eb33e3e5c0d2eb1a5418d9b1051014b549386dd7",
+      "sha256": "0a4ececa7cf77618301faac5a7675143a35792dd0b198cda7abafbf42685520f",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3133,7 +3159,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "98675b3fd71d16e42c15ef1c6f34dc6d401805590afd10ebecc76c26f7a45321",
+      "sha256": "d3eacb3e5eb1e45519bbcdd5604d62b669540a6a2fa7543333557b71f6bd90c3",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3217,7 +3243,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "20f8a750bfb6c371de25ac4aa4dde47914b25772ca0191f5f6c918f1e62e85b8",
+      "sha256": "b7466eddb92bf48181b1ac0e58becf1a87581f2e306bf1e2ff5651ac53857a67",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3314,7 +3340,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0bd0d4e92744920f8796f89392a972cde230822b65b3245e7d664810f0722784",
+      "sha256": "235766e35469f63cfa5c34c85d3999b7aede631a5c7f7e1354bc768396b26bfb",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3342,7 +3368,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "499fcd07fdae95f856a2784bbd5e6527fe9d1b6bff7136789100a73390a86b92",
+      "sha256": "3dce2955c19a61d94d33ba0d122b37d1b0876dd097236f71b501e68e3f8855b5",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3440,7 +3466,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "df4173b8e32c3ef142ceb137b15a2a31599003d304bda2c21d4f5ed04048d2b6",
+      "sha256": "c920815126f32ab239dd96982f24f56f764fe652a13e0a9a7c1ea2e3c66ec8c2",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3538,7 +3564,7 @@
       ],
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "94cea4212d907c0ada32b38e68ac1aa84a3a8e0ea94d7ac84101157f3d687f2a",
+      "sha256": "78c623ac294c5b4f3e4ce088b6ed4abd5f3efee3d8730bb8dd4e3c7429b6dba5",
       "source_id": "SRC-693A4A1C6F167853"
     },
     {
@@ -3622,7 +3648,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "caed25ead0260671cd65c684aca3cbcf5f9baef297825256ef50f5e2d03e5fb4",
+      "sha256": "039e865757fb31ef3a7f4eb7fa4cee3eb159933bc1339a16003ca678799d9e6a",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -3842,7 +3868,7 @@
       ],
       "path": "requirements-dev.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "2adafd798d36eea474d59f72cd21199e9076ce14f6b865a3ec4ab91720815b98",
+      "sha256": "634636662650bb6861366b9fe0602b7109e45aecf09a773befd259a727f08871",
       "source_id": "SRC-76E5F5875EE0F8B7"
     },
     {
@@ -3910,7 +3936,7 @@
       ],
       "path": "scripts/assert_production_genesis_artifacts.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "111a94f97374c68962a6490100dfbd4c5f124d6bcee5d3dfc6b1528c16ac10c3",
+      "sha256": "29fb3abf5a9b7ef06a1517b06967791d1232730e190fbdee5b78913fbc5ced73",
       "source_id": "SRC-D922E019ADFFCAAF"
     },
     {
@@ -4078,7 +4104,7 @@
       ],
       "path": "scripts/build_production_genesis_manifest.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "a9efcef4a5c47922b7ceeb35a435f2ef2c9d312c84c5a02343a6d295b60fc25d",
+      "sha256": "486da5ca904102907ed5e8d046a95247dd5786e4ed9af58849862a27581d6760",
       "source_id": "SRC-5486B2CCEF1DCD11"
     },
     {
@@ -4373,7 +4399,7 @@
       ],
       "path": "scripts/devnet_cross_node_convergence.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2800ea0ae02d8bca8627d7eab273134ecb2f2e57ab6e1275f8a80fcfcfaf5f4a",
+      "sha256": "75986a4de49ac29d1143797cc79d180cdcdfb3b51b311a546a4222922686175e",
       "source_id": "SRC-27BA5709434F8AA8"
     },
     {
@@ -4445,6 +4471,34 @@
       "primary_mechanism_id": "M-076",
       "sha256": "02cdf4f0eb6e23b951c71bc3e4169d7ee979a0db166faec37cca83167e4cf15d",
       "source_id": "SRC-EB36AAA2F2DE320C"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/f1b_four_executor_qc_ingress.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "a4e4479eb55fe5160246bc5b7cfb0ad06ae57c59e85d2a6e54a8784f3c3bfd80",
+      "source_id": "SRC-9A002AA12E546D0D"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/f1b_four_process_signed_qc_preflight.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "d501b827990de3b5cd2d3c3dd75da90204fe2c76b74ba332073909c768c82fc9",
+      "source_id": "SRC-CF9D5B5AA3DD2926"
     },
     {
       "affected_registers": [
@@ -5397,6 +5451,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "eb42b0438573918e4069890130fc9b17f39353c27612475097fe8a169b7538bb",
       "source_id": "SRC-CBC66E838B60DAED"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "tooling"
+      ],
+      "classification": "verification_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/preflight_genesis_witness_bundle.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "9e88b873837aee41f7fdc08c4bfb77a6bd9116234636dbe5dbf2fe8a57514248",
+      "source_id": "SRC-96ABB925794E794F"
     },
     {
       "affected_registers": [
@@ -6946,7 +7014,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "18de11fd01ff8ff95da63a8e7512eac40cf66b1c0cfc174ca37d4efe894e4808",
+      "sha256": "bed6200ffcf5f33b44c6c2dffb0cbb2fb1ebe247cf0c61a8c16b5cc2319ce3ed",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -6959,7 +7027,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "322890d3d9be8728868719fd0871589dfe6f6ce9b509e1962798583009ce2449",
+      "sha256": "d37b3cb59753951e425dbd40331c2cc618dc66b47083770e393a6ec115e569c3",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -7697,7 +7765,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/session.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "3bb591cdf412cd7308ec01ad75b613f3a64535a3eebb046ef28e84b688623627",
+      "sha256": "cb610d58695c8f7e36f641386b98738f0acc12f30f5384934d6268cec529c63c",
       "source_id": "SRC-2177C1AF1BB06708"
     },
     {
@@ -8286,7 +8354,7 @@
       ],
       "path": "src/weall/net/state_sync.py",
       "primary_mechanism_id": "M-024",
-      "sha256": "66a72bf2d959096efd2231314acdedd7926e4026e54a0b224c3a7f1f1f2feb04",
+      "sha256": "7c5d459d8fa4f6edf3d640144a0c25dbdf2a95806a71595362b65d43cae50ef1",
       "source_id": "SRC-77FE18E6755E67B8"
     },
     {
@@ -8543,7 +8611,7 @@
       ],
       "path": "src/weall/runtime/apply/consensus.py",
       "primary_mechanism_id": "M-018",
-      "sha256": "80c1be0e22d5bdf41f52d8f1d522b3e154c9deeb5c613bf4826aa5e0be8703ab",
+      "sha256": "319c60c07be66760ece77372f60ad1c44e96f241eb8d79facc3becd42ac96358",
       "source_id": "SRC-F2C43CBE7BBE7C44"
     },
     {
@@ -10591,7 +10659,7 @@
       ],
       "path": "src/weall/runtime/commitments.py",
       "primary_mechanism_id": "M-018",
-      "sha256": "28f9c9079e44cd414116055d5dbc3e0d60aa75915afc26905a90b8b0165eccb1",
+      "sha256": "f7796d655975b53ef010e4e5c5e600afd9c7290d307289ba7eb9ad786039378e",
       "source_id": "SRC-2508E30842FC9242"
     },
     {
@@ -10874,6 +10942,20 @@
       "affected_registers": [
         "mechanisms"
       ],
+      "classification": "reference_or_test_only",
+      "mappings": [
+        "M-018",
+        "MSG-2B215989979096B7"
+      ],
+      "path": "src/weall/runtime/genesis_acceptance_witness.py",
+      "primary_mechanism_id": "M-018",
+      "sha256": "d21609692ca3feeb967f436cc403cf5384cf62bc54d485848cebb5652aeb780e",
+      "source_id": "SRC-71552730F4C766E8"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
       "classification": "authoritative_or_launch_critical",
       "mappings": [
         "M-012"
@@ -10895,6 +10977,20 @@
       "primary_mechanism_id": "M-012",
       "sha256": "39a910ec9ee110755d8281473dc64aa174270d3099bdb0916a695d0fe3f81e85",
       "source_id": "SRC-49BD98D643460254"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "reference_or_test_only",
+      "mappings": [
+        "M-018",
+        "MSG-7C8C54E6F877CB86"
+      ],
+      "path": "src/weall/runtime/genesis_independence_review.py",
+      "primary_mechanism_id": "M-018",
+      "sha256": "33f94196424eabb8fca19a7ff577975a47073c7344c86e7f7fdce31c2ce46ba9",
+      "source_id": "SRC-E3A057DC286F70AB"
     },
     {
       "affected_registers": [
@@ -12080,6 +12176,19 @@
       "affected_registers": [
         "mechanisms"
       ],
+      "classification": "reference_or_test_only",
+      "mappings": [
+        "M-018"
+      ],
+      "path": "src/weall/runtime/solo_finality_witness.py",
+      "primary_mechanism_id": "M-018",
+      "sha256": "645b893c1e61eeb31e458a8697563b111efce20490efaddb694abea185725542",
+      "source_id": "SRC-7E353AD8647757EF"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
       "classification": "authoritative_or_launch_critical",
       "mappings": [
         "M-012"
@@ -12181,7 +12290,7 @@
       ],
       "path": "src/weall/runtime/system_tx_engine.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "15b60547f92d3c57973db3fe5c401644b75cb61f1d9dc336e201a1cb07deb2f0",
+      "sha256": "0db804e7050489723e10602aa9c34af20d76db2772fa1f751bf3270b5762855e",
       "source_id": "SRC-40FB925FB257C36B"
     },
     {
@@ -12317,7 +12426,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "cc7ac5e9013798c7cd8a322d1b24eb27106c38af8c9d288e55bebc44fac00817",
+      "sha256": "57ae69c7be4c480c933efd6d97b46532480312b3d851d9478e8988516a3af250",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -12638,7 +12747,7 @@
       ],
       "path": "tests/conftest.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "80d184f01d626cd750191734c98cc9d405c8cc540b2760e30a935eb068e01213",
+      "sha256": "76789d4cca35590d5c6e76016b1f763814a5c6a79c87718ab83e3aa578c05b7b",
       "source_id": "SRC-E52E4DDD58B7EF88"
     },
     {
@@ -13073,7 +13182,7 @@
       ],
       "path": "tests/prod/test_native_poh_no_external_identity_required.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "5ac6d609006fc70e8b0642219597e5639df6d2717b9fc7ea2831abf31414dd8d",
+      "sha256": "1e2d47cac01b15ff9ab5806207fe369bc8bd8e2366a40447a3e706fd1b59f02c",
       "source_id": "SRC-D752A2E9DB9525CC"
     },
     {
@@ -13616,7 +13725,7 @@
       ],
       "path": "tests/test_account_gate_and_tx_queue_status.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e8812b3f9583bde6d7c98da6e3be6e9f82347aebc4b45705eb527342023a331f",
+      "sha256": "1878163a865ef9a9022c8f041eecd5d6f587037694482edc47c7b001c4e7a623",
       "source_id": "SRC-5EADD75049BBA93B"
     },
     {
@@ -14159,7 +14268,7 @@
       ],
       "path": "tests/test_async_bind_scheduler_and_live_route.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7488ce4f42f4f2b4ed1b39d00033ce2e017a265723f2f6b19a36bd410ee14183",
+      "sha256": "adb2c9b91604fc875698eee385f700ad8f9f60e37eb5723563a232b22dc039a8",
       "source_id": "SRC-D8186D2DF5F798C9"
     },
     {
@@ -14203,6 +14312,7 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "ROUTE-72B078F0A5B7B780",
         "ROUTE-9CF6C814B6638E9B",
@@ -14212,7 +14322,7 @@
       ],
       "path": "tests/test_async_verification_submission_reviewer_feed.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "18cc3748c371d21ef2d9b0273dba1c5f6124e4eb7c690bf92fd1e70ff8ed3b6b",
+      "sha256": "44b58b327bbdb857f177f588393e12333871296e08bdbaf01c9eacdc87295c95",
       "source_id": "SRC-933D5ACA76E197B7"
     },
     {
@@ -15697,7 +15807,7 @@
       ],
       "path": "tests/test_content_reviewer_selection_and_surface.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e4458038beca771dea9d79294c12da9d9dbab2be1af8597e0789ad147c23a899",
+      "sha256": "49687dbf5a92df0710240e37bd58c595ede817e8ccf58fb5fd3daf71a5911373",
       "source_id": "SRC-4E4A7A1A512FEDE3"
     },
     {
@@ -16146,11 +16256,12 @@
         "ROUTE-C6A91D2143954D6D",
         "ROUTE-FEFD8788DF933CB3",
         "TX-0001",
+        "TX-0007",
         "TX-1200"
       ],
       "path": "tests/test_devnet_cross_node_convergence.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e9e50f293e0320d78c6077e87685a673438709b8195ecf29189dc9ccb322cb6a",
+      "sha256": "4c7399a31563a5b09e9a27f6106e598cb5c9bdde8674877212e92ec5ea3b8ecf",
       "source_id": "SRC-06E0DF19754A96FB"
     },
     {
@@ -16447,7 +16558,7 @@
       ],
       "path": "tests/test_dispute_live_rehearsal_unlocks.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "97a29ea768437560a5a4ff01104278237ea1f20e2efffafacef7965992d2d268",
+      "sha256": "bb6d86e60901c42903da0da940b5987519ee969d8ccd534ad5707e1b7dfbc350",
       "source_id": "SRC-A00DBFAF7C2F2F99"
     },
     {
@@ -17175,8 +17286,126 @@
       ],
       "path": "tests/test_external_testnet_p0_p2_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "347573e2017a4839fa5eb79bc5d42b15713e4ee57eb3497392019e327d08facf",
+      "sha256": "99df0f59e4c8f7bfcef6ea46c8c569229fd2af682d19ffccc37cfb5a75b1d1db",
       "source_id": "SRC-0583FD1E81402243"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_f1b_four_executor_qc_ingress.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "fe54a151be4bfc0afd328980b44f501b7e61b1e92adbcd5f5db34c8a48a428bd",
+      "source_id": "SRC-B61AEFD672AFA957"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_f1b_four_process_signed_qc_preflight.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "d59726aab5e139f40ae4204e14014664477d3570733a4f5038ba0e76885c4710",
+      "source_id": "SRC-E4069256FB128BAD"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32",
+        "ROUTE-8B7DD4B52B9456EC"
+      ],
+      "path": "tests/test_f1b_four_validator_qc_contract.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "e2c020c2b6c11f42dd4ab81c82f9ab0e6a588fe9ff34822f021d055abfd96fbc",
+      "source_id": "SRC-023A376EAB0D47CA"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0608"
+      ],
+      "path": "tests/test_f1b_genesis_acceptance_witness_preflight.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "2d4a0151aa3ad9aa124685f4ff47f676b5c4208b02eae46289d9b41046e2a784",
+      "source_id": "SRC-FAE7C8E3FF03904E"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_f1b_genesis_independence_review_preflight.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "9f8d35b2b5b4f918e323ba3cdadfbe752f34b47380109c4a125aad7796a49675",
+      "source_id": "SRC-19451CF392AF333E"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-A3D2344F33C6912D",
+        "ROUTE-EE2EFB47FA6F30A2",
+        "TX-0400",
+        "TX-0403",
+        "TX-0404",
+        "TX-0408",
+        "TX-0605",
+        "TX-0607",
+        "TX-0608",
+        "TX-0609",
+        "TX-0610",
+        "TX-1601",
+        "TX-1602"
+      ],
+      "path": "tests/test_f1b_governance_execute_canonical_two_block.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "7ccf2be5709282e5525696d569e2b47451426997b1c8c9911e7c49f4e71b2e48",
+      "source_id": "SRC-103D29F1CAE5F6F2"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0605"
+      ],
+      "path": "tests/test_f1b_validator_set_canonical_bootstrap_block.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "1d518b803d97f61978a0be01c6709b16cac22aa76f91e3b9e5df706676e02d8e",
+      "source_id": "SRC-8DD90B668EEBEFD6"
     },
     {
       "affected_registers": [
@@ -17513,7 +17742,7 @@
       ],
       "path": "tests/test_frontend_dependency_audit.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8818cbe63eaf75f2c1fc8a17a71dc736b64a894ef7473da97847cc5ef19a5342",
+      "sha256": "188cb0cb2695264c921ddde3579d291c3774057441d83585c7fa4c8509657b7d",
       "source_id": "SRC-8A077776FA8B7BDC"
     },
     {
@@ -17775,7 +18004,7 @@
       ],
       "path": "tests/test_genesis_api_external_observer_readiness.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "900fa23094a29ea77b4f8fe0e35a71141b03f1051659e07bcdc7f17c6279ba18",
+      "sha256": "16dd807d54b88c2b8754470f557e5c4669a5b722188f7b9f586c0d2cebc039bc",
       "source_id": "SRC-CE0CD5C76798FE77"
     },
     {
@@ -19950,7 +20179,7 @@
       ],
       "path": "tests/test_live_media_group_post_message_refresh.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e7cceebef199c01b6fb662175f7ff4e4e7bcc61c52650ac4149f551913975df2",
+      "sha256": "235672375fdf4c2f6214df520ae286e4484f0979f7cce043bfa1e77ec3ff7ce4",
       "source_id": "SRC-4EB61DA52B08ADB9"
     },
     {
@@ -20017,7 +20246,7 @@
       ],
       "path": "tests/test_live_request_sync_and_dispute_bootstrap.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "5ce909bda031874b5fe9049c7750216819d9b2ea421784520dad82572e14facc",
+      "sha256": "a9c71d2c440b879c2650952dbec145213af0eb435df924aec1ab3cc77900ad0a",
       "source_id": "SRC-B58B0DCF7CEA33C1"
     },
     {
@@ -20031,7 +20260,7 @@
       ],
       "path": "tests/test_live_request_sync_and_dispute_bootstrap_repair.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "da3514c27c834b1f5cf6a62278d797c9b7cc1cc367fca3cdaf16638667d9ff8b",
+      "sha256": "067d6ed6d737b411294a43fd2372cb2b841f9d9ff8ce751343820dc2e3af9330",
       "source_id": "SRC-96C76B2EC954AE30"
     },
     {
@@ -20102,7 +20331,7 @@
       ],
       "path": "tests/test_live_room_launch_and_pending_sync.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b652503f041dcc9d09031aad2179058ac23e272a0ec66c1f921259370dbbe993",
+      "sha256": "1db9e97a1d6e2a8ef7de60841e9651a15fc851be2711081bb920df1e493a0b38",
       "source_id": "SRC-53CB9C08A78D5768"
     },
     {
@@ -20382,13 +20611,14 @@
       "classification": "test",
       "mappings": [
         "M-076",
+        "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "TX-0004",
         "TX-0006"
       ],
       "path": "tests/test_login_recovery_passkey_ux.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "10db634d22aecbb67cd19def70a6263da114164fe0a20851452f2e962e1e950e",
+      "sha256": "12ef183d112023facfc3b3c6592999c123136b19d940718cd02c95ff6e5a5eda",
       "source_id": "SRC-37F65D27EE196EB9"
     },
     {
@@ -20491,7 +20721,7 @@
       ],
       "path": "tests/test_m2_live_browser_media_wait.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "81dacc5b63b07410df4bdab1fb32ac4abe1d497e4e78fdd6ad81681c603331f9",
+      "sha256": "2ac8f8d361ec11a6682ca5939058cde88b985152dd5bf22e11f311e311d9d463",
       "source_id": "SRC-09E5F742A265F535"
     },
     {
@@ -21904,7 +22134,7 @@
       ],
       "path": "tests/test_observer_live_upstream_sync_truth.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d13261a3bbcfb73cb42e2bd7bbf2942cdc8957d4355707b9ddbf3511ccf70ff5",
+      "sha256": "4de4d25916a8f7d48a6f97a885afbab7248d5161d9d46d373694d86f42bdbd39",
       "source_id": "SRC-6E2AEDE6A219AA5C"
     },
     {
@@ -22265,11 +22495,13 @@
         "M-076",
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
-        "ROUTE-EE2EFB47FA6F30A2"
+        "ROUTE-EE2EFB47FA6F30A2",
+        "TX-0007",
+        "TX-0608"
       ],
       "path": "tests/test_p0_03_production_composition.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7131bb0f4ca9f53d858d3567baf0ef4c00467e3f29d9eb22153b9072ee35429e",
+      "sha256": "b6008b60b549eb2672b664db86a8bd3c49580d0368c0bbb148ad113b3f891696",
       "source_id": "SRC-DF1D27D330664F95"
     },
     {
@@ -24043,7 +24275,7 @@
       ],
       "path": "tests/test_poh_async_api_frontend.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b1af8199e9950c26fb0d6e02e6f1e6ae8c66b555b5a47d1eebd8b0ad1f1a68dd",
+      "sha256": "67166d71c833a370e3700bf56b340aebb05389f1a744ca9a075e7e5d0373bb5d",
       "source_id": "SRC-CFAC9C3B6818185D"
     },
     {
@@ -24389,7 +24621,7 @@
       ],
       "path": "tests/test_poh_reviewer_action_gating_frontend.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "cfe78a48326a026927777eeb4040f91960364ee90b0f46284689de8056dd7c71",
+      "sha256": "e4094f43dfb806faaca6ebc293a559091b99486d9cce4f378cee8fcf4825f7e5",
       "source_id": "SRC-B23B021EF20EC623"
     },
     {
@@ -24616,7 +24848,7 @@
       ],
       "path": "tests/test_pq_mldsa_signature_profile.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "673b0e29ca1d31773803adf86c61a4abab9e9c5bbc8e6158c48536aa3d513027",
+      "sha256": "2cb9c32a1862c55b37acdf5e950188304dcfcb6df961f6fcd22b2d77da5e0f98",
       "source_id": "SRC-6B4AEE24ADABC9C3"
     },
     {
@@ -26594,7 +26826,7 @@
       ],
       "path": "tests/test_production_genesis_manifest_builder.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d6a7be2e0299f8369620dbd01d6e3ff0b82350115b8287a58d84616a1f350590",
+      "sha256": "7d04aa6e2723d698dddc3f23d9bc70a066b560e79e03513ff8e1c592debfe66f",
       "source_id": "SRC-8638D75BC6AEAF6C"
     },
     {
@@ -26611,7 +26843,7 @@
       ],
       "path": "tests/test_production_go_gates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "21e9084b02ac0a7544365576a52eea4ac5fe37d6030efc3fe06dbb84f0098f27",
+      "sha256": "e42b56cc72cc3c2c12be428b541379c15e6140de9b8a6a73d5992038deb5fb74",
       "source_id": "SRC-876DEAB5BD3319FA"
     },
     {
@@ -26661,7 +26893,7 @@
       ],
       "path": "tests/test_production_p0_p1_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "538d264edd18bb6ae74a318e138948decbe6b21304e67dee685a9dead1bf48e9",
+      "sha256": "5a08edb53d0af8231ff0f65f7ad0f66ac3123ae823c15e523a9afe929b22b39a",
       "source_id": "SRC-E93CA22AC8E3378A"
     },
     {
@@ -28038,7 +28270,7 @@
       ],
       "path": "tests/test_secret_safe_release_and_local_observer_gate.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "767e7af5ae77b4aeead185adec787e8f507ff0cdbc6a63189949b1a0a8785c11",
+      "sha256": "c4a6581572740e34ff56f8a66999ee9a439d75d92dfdba68f84faac459f326f2",
       "source_id": "SRC-86275C11C20389C3"
     },
     {
@@ -28093,13 +28325,14 @@
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "ROUTE-3FFABBEFCB7FF39D",
+        "ROUTE-74C075AFE12560DE",
         "ROUTE-7FCEC86AF617DFBF",
         "TX-0006",
         "TX-0007"
       ],
       "path": "tests/test_session_auth_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e397ed8b775069bba06c80a1e188fb57c6460e3c67908935ba464a97cb653f54",
+      "sha256": "9d56f5d94e1608c56f59428e93668f57c03abcdcc63e19799fb8250a00148cd0",
       "source_id": "SRC-513162AD290B7D2B"
     },
     {
@@ -28776,6 +29009,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "338b42b69be8a16a9a8ad02a5834529eb574e012cfd8c3594ba36030636146fa",
       "source_id": "SRC-44F3625C741454B6"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_system_tx_materialization_single_source.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "cc9de9399b6ea0c21cc39dfdc621024c9325c9244d50284840f65efac5f914c4",
+      "source_id": "SRC-6F9A2510ADAF26AD"
     },
     {
       "affected_registers": [
@@ -29846,7 +30093,7 @@
       ],
       "path": "tests/test_v2_spec_compiler.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7575512ec71b4309c7a433a75a091b2045cbaa72a31f81774d86400f71b795de",
+      "sha256": "dbe2f4a155d9df16dc47f372dfdbbaaae835de762688262ddca05e6083a9c0cf",
       "source_id": "SRC-9B8B949DCD736399"
     },
     {
@@ -29864,7 +30111,7 @@
       ],
       "path": "tests/test_validator_authority_canonical_precedence.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "510c986b685bae84f82db9f7c7cb50b9c4dedfbf5831ecb9ba8bf8d595d81502",
+      "sha256": "254569359e4e2567e466559f636015c55d645da4df98701972e9ef01cd574b45",
       "source_id": "SRC-CD7B8294BF0E67FE"
     },
     {
@@ -30095,6 +30342,23 @@
       "primary_mechanism_id": "M-076",
       "sha256": "b3fd9e43aafccfc398fa88a96691b4327d06d8526404994cb8b58e1e8956932e",
       "source_id": "SRC-F3F91DD51C55541D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0602",
+        "TX-0605"
+      ],
+      "path": "tests/test_validator_pending_composition_guard.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "aac3c62a55b35099eae924b7fada044806123c28d80bd7b5456827cfa2c5d269",
+      "source_id": "SRC-F9D2C6536464407C"
     },
     {
       "affected_registers": [
@@ -30582,7 +30846,7 @@
       ],
       "path": "../web/scripts/test_account_custody_crypto_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "e09ac8049f8b9fe9a8e9e8f5d0a95f4e256635bb8227907af90466355a2816e1",
+      "sha256": "939f746d319975551fed6ef745ca35ac426607088cb9fdbd120064f55020702a",
       "source_id": "SRC-3D0454C3610952E4"
     },
     {
@@ -30595,7 +30859,7 @@
       ],
       "path": "../web/scripts/test_account_custody_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "563d3ad59754d902991566143deb6bab19721064944c8851dffdddacdc9dacad",
+      "sha256": "039975ae8055a3961fe071d83d41b846968037b6922b16925d3f5e77f483ce1c",
       "source_id": "SRC-B6A50545A0B971F6"
     },
     {
@@ -30608,7 +30872,7 @@
       ],
       "path": "../web/scripts/test_account_profile_readiness_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "3f0c659926553dc5a999f5b3fdec424d3b9ad1e06d03edb60a7fcc37ab000e47",
+      "sha256": "4c662ad7c0d43e42cc97d735205d79fd74b97a8705e6f21de9d3c38b66a246c1",
       "source_id": "SRC-1E8B226740599F0F"
     },
     {
@@ -30621,7 +30885,7 @@
       ],
       "path": "../web/scripts/test_async_evidence_preview.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "e0bb0805ebcd99bf56f7ceaf84d5e849c8bf407d17b5b8e2b297689b7004e110",
+      "sha256": "7bcbca9c9affd89572d82ed3a26465e3175d105c02a6a914973a55f728720071",
       "source_id": "SRC-B467025251B14F3C"
     },
     {
@@ -30738,7 +31002,7 @@
       ],
       "path": "../web/scripts/test_focused_shell_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "b9ecc009215d6f52327f5f5ec633cd499446b75503ac611b15a30b25cce8944f",
+      "sha256": "8736ed1007adcf1517307f0573408aadf6bc0a28a4c93c5b57866c47c9648824",
       "source_id": "SRC-4126BEAC370FDF73"
     },
     {
@@ -30840,6 +31104,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_guided_account_registration_source.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "2a201470365814bb77bcc4422a53282a04d3a564018e87aa684f260206ad3029",
+      "source_id": "SRC-3729E98B96A88F81"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_launch_prep_governance_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "9c20d6e6447e4eb76c6373bb20cff393bf3dd827d1e7503ed6a569d8738d29f2",
@@ -30855,7 +31132,7 @@
       ],
       "path": "../web/scripts/test_live_room_join_truth.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "31874b75a8918e7591195cd3f7d9aba8df2c8fdbf4bc9d861e6dbdc1fb9d8d9b",
+      "sha256": "95d9c946a3c30770d09698ad6c424aaa60c4a93fa895c6d436285e0978ba7de7",
       "source_id": "SRC-A04F1C14121F40D1"
     },
     {
@@ -30948,6 +31225,32 @@
       "primary_mechanism_id": "M-076",
       "sha256": "2ea1ceceecfc7b923df6ef7a849460d1b295e11de92e37bde249f1b704d58f5c",
       "source_id": "SRC-FA17C74C3E8FAF7A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_poh_guided_routes.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "df20bcecc544e5e60e50290f672637af79769d2e1dcd51872a096081288ba6f9",
+      "source_id": "SRC-88621249CBD3D7E3"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_poh_submission_journal.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "bb67bddb6291b8e510911b39b73f5939b9c42a310542aab658d1eb4e2662fd2c",
+      "source_id": "SRC-D9621B22A4154305"
     },
     {
       "affected_registers": [
@@ -31052,6 +31355,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "04b77aab9f69ee5a630189e6e742381be38647522b0e2010619faeb74b8a6df9",
       "source_id": "SRC-7EA6228D3B32AC85"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_registration_canonical_tx_id.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "fdcd9bb4dfad848e3b5792551b79d5fab7755ee0f867549189092e26ace39655",
+      "source_id": "SRC-73DD93C046DD54EF"
     },
     {
       "affected_registers": [
@@ -31204,6 +31520,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_verification_history_panel.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "dc1a3870796ace6d0a0b17261c4a0b3deb45492d24defc665737488db05bf43b",
+      "source_id": "SRC-7B41F5E925B6C31D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_wallet_tipping_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "a284e51feb343165025b9a679287f1b84fd14d1a0bee14cc0fceda7aee4c4611",
@@ -31221,7 +31550,7 @@
       ],
       "path": "../web/src/App.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "1eec25a63a125490c1388e996bc5191c65e2315d7af259f35f15c7423cf226cf",
+      "sha256": "40145dd5828ded5a350e2bc2f94f0c4321e44736d0a3ef8c68730dcfdc73664d",
       "source_id": "SRC-0D8C1A8815689CC1"
     },
     {
@@ -31314,7 +31643,7 @@
       ],
       "path": "../web/src/auth/evidenceCrypto.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "421193d3a39346ab7dd8d36db1bc0136e1af5d497fb7620011027c8a389d3215",
+      "sha256": "99ed499dd23fccd8828fe4220fec183a6dc01aee8d23f9e9218cf61f626bd581",
       "source_id": "SRC-22909D131B38F9DB"
     },
     {
@@ -31329,7 +31658,7 @@
       ],
       "path": "../web/src/auth/keys.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "48fa2fb3e795da6ae6875ece0752dd869d9c445ac0215c371cd4561b1e9058b3",
+      "sha256": "84ed411883ffa6db6d4a2653181ff5328ecdb06f3bb60130d6d786fc90f2d366",
       "source_id": "SRC-2C252AC904268BF9"
     },
     {
@@ -31386,6 +31715,8 @@
       "classification": "authoritative_or_launch_critical",
       "mappings": [
         "M-069",
+        "ROUTE-74C075AFE12560DE",
+        "ROUTE-802D3563F9866F9E",
         "ROUTE-C6A91D2143954D6D",
         "TX-0004",
         "TX-0006",
@@ -31393,7 +31724,7 @@
       ],
       "path": "../web/src/auth/session.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "f3a55ae2b2a9e4d97d3d11f54c622863d7a61618089f1a7388f253312d76f2e0",
+      "sha256": "71ab2dbf79b7fdfa1e3fbea5780c7b12ac143d9df6677f7b97d34307c892c5bd",
       "source_id": "SRC-B8F7039335FD9E04"
     },
     {
@@ -31453,7 +31784,7 @@
       ],
       "path": "../web/src/components/AppShell.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "4f5af02aa65f50fe36e5169bf817b9e0ee75ad95c3b423998cb36e7bc44b33e2",
+      "sha256": "580486d34c04a6773210c98898c2b3f4020ddfec3107aadc4170cad693378d98",
       "source_id": "SRC-D78A14AE7C5FA9F1"
     },
     {
@@ -31645,6 +31976,36 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/components/PohStepProgress.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "8feaed316abc4a34a4baa9a9ade85acb93fdfded2db7ae89721e619a53a006f8",
+      "source_id": "SRC-399F9B897EB7C74D"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/components/PohSubmissionStatusNotice.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "6728472f9bb24368aa092e1977aa93219e93bcc5fc3b4cc7812604f6e5b2e0d3",
+      "source_id": "SRC-4F1DEA5EF6ACB1E2"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/components/ProcedureTimeline.tsx",
       "primary_mechanism_id": "M-069",
       "sha256": "df88e38d5252391a06823f0ab7e87e9f8812df8241c4fe9c6d4c9aa27161b782",
@@ -31735,6 +32096,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/components/TrustedResponsibilitiesPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "151518a24469ee99be53f2740d0590b59043b382ebb757235ce39074c316671a",
+      "source_id": "SRC-DCACBF1FD738E6E4"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/components/TxPropagationTimeline.tsx",
       "primary_mechanism_id": "M-069",
       "sha256": "1909d84bf7dafd9f6ca1d325b5c954fde002c0bb999068291a9e9d1ee23428e3",
@@ -31784,6 +32160,21 @@
       "primary_mechanism_id": "M-069",
       "sha256": "7f92451678c53c865e5d99891b8b75bb8f3eac2bb17412bcd45ea355fee1c07e",
       "source_id": "SRC-84ACB31990550FC9"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/components/VerificationHistoryPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "82d3a4f0c5e26bccad986ff93f520001cade1d15944cb532869989f4a76e66a9",
+      "source_id": "SRC-5F29BDAF9D57916A"
     },
     {
       "affected_registers": [
@@ -31891,6 +32282,24 @@
       "primary_mechanism_id": "M-069",
       "sha256": "07f29ed95b9bdbd074a4638a5636a772692ed269a862f8698e7033ea0c3cae8d",
       "source_id": "SRC-2CD4092DBBFCB860"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069",
+        "ROUTE-5EB9A15D6B3A5602",
+        "ROUTE-802D3563F9866F9E",
+        "TX-0001"
+      ],
+      "path": "../web/src/lib/accountSetupRegistration.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "4137d0025dce148ed388ebad1b5986ca8188d68f9d5e758c59f7f02b57171c58",
+      "source_id": "SRC-80C403532EE57CF1"
     },
     {
       "affected_registers": [
@@ -32192,7 +32601,7 @@
       ],
       "path": "../web/src/lib/onboarding.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "7661d83c040dc5b5428984411467c3a7b027f0ce5d7f6b821b6523edaae46fc3",
+      "sha256": "99300e9d0e5d737ca98c584fe415c099607c2498ffa954ae77bf5297e49a248a",
       "source_id": "SRC-D45C497EE3E78176"
     },
     {
@@ -32209,6 +32618,36 @@
       "primary_mechanism_id": "M-069",
       "sha256": "063234cf873e543a5bbb58f2271e47c49901970c0e27dcce6bbacf79f643e601",
       "source_id": "SRC-51B01366E8D81242"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/lib/pohGuidedRoutes.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "a1901f2bd8d3736745515d3dfc06b8d432f05fce842324817498908a7fd739f3",
+      "source_id": "SRC-76FE95FBDA324991"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/lib/pohSubmissionJournal.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "3edaecaf949f9c8a67a2552d69c92d14c695916dc97384a5d99012695656da3a",
+      "source_id": "SRC-B786762E8EF35ACC"
     },
     {
       "affected_registers": [
@@ -32282,7 +32721,7 @@
       ],
       "path": "../web/src/lib/routePrefetch.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "bcb39d69c0f52aeb3043ec847958fc3237d4c45ed918d3d762622f3c8769293c",
+      "sha256": "e555debb9240c044f7049d9f8054293f074c1aa5348b6c4dd135d5c026064cf9",
       "source_id": "SRC-C80C885B9863F0E5"
     },
     {
@@ -32297,7 +32736,7 @@
       ],
       "path": "../web/src/lib/router.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "e2da3dddbcf52c8756e1e09367208d8156a5a966a56b1732bff7c76f15fa0933",
+      "sha256": "f91f3ed1d811155664dccbbddf900963632702d9e99e706536670fcab907a0d3",
       "source_id": "SRC-257A13CB33C5914A"
     },
     {
@@ -32478,7 +32917,7 @@
       ],
       "path": "../web/src/pages/Account.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "0ef29ddfce53d58ae9d0a54cd1013af59dfd664712667193b08a08061be64db4",
+      "sha256": "d3b157b79fcda2d5014d53f40012324baad3087fe9e327392cd4b3973f7a6117",
       "source_id": "SRC-E7EE1B24BBC17E05"
     },
     {
@@ -32489,8 +32928,22 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/pages/AccountRegistrationPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "3e61144dbea10b474846ac3a07338a2394dc338cfc8d9ad5f13138e6f4753cba",
+      "source_id": "SRC-CF4E8C8C05D41213"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
         "M-069",
-        "TX-0001",
         "TX-0006",
         "TX-2608",
         "TX-2609",
@@ -32500,7 +32953,7 @@
       ],
       "path": "../web/src/pages/AccountVerificationPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "2cee05ab5f6ba3a54f903d80f4d496df96f29a8b3edab1cb17e86f1098727a17",
+      "sha256": "0eda7b815f319530833d61aafcf98cc73bc29a1a0ddb54b29a52c6785c9ec382",
       "source_id": "SRC-6E72AE85995D2D5D"
     },
     {
@@ -32742,7 +33195,7 @@
       ],
       "path": "../web/src/pages/LiveVerificationRoom.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "59023dc65e13852c9842bf09bf88a1f10d592d9a52f2ea28368ac5a944715625",
+      "sha256": "4c28570bb21b5dd4ed9638a8e976e880e76349b3436acd506eaa2cf70d2af3b1",
       "source_id": "SRC-8A9FA9F3177A64C9"
     },
     {
@@ -32758,7 +33211,7 @@
       ],
       "path": "../web/src/pages/LoginPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "4e6c3aa7273596d0205c40a634fec81936a427ae84acbeb2822b67f69f81ea08",
+      "sha256": "13dc5d425cec8b1a67acc5bf3b60ddf727fa2993a54ab0cae86390c5ce858df7",
       "source_id": "SRC-4C266797B87139C6"
     },
     {
@@ -32899,7 +33352,7 @@
       ],
       "path": "../web/src/pages/SessionDevicesPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "306eb397a105da8673168936ff6cee9cd331bc1e7182177429966411e828ace9",
+      "sha256": "2ebc123b5fefd385d06068d8205ca79927546d9294c176790b15bb4cda8ab1de",
       "source_id": "SRC-47790640F52BAD80"
     },
     {
@@ -33010,7 +33463,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "69e4b14fca5411ff9cebf24df9b98ba7c72f102f8446dab574ac2dc7bf7cf975",
+      "sha256": "e9f9cb0057df8f67b1f2eb4d815489c5025ddd2a4b2f823eb0f1cbe263cafec5",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
@@ -33049,7 +33502,7 @@
       ],
       "path": "../web/tests/e2e/m2_actor_helpers.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "d870c4893b26b6594d3b41a4431dfa6d657a7a2f9161e1bf7eb9a12c8fc31784",
+      "sha256": "778e452d0c8d3684dbeedffa4733697e8488c915aced4c3887c77b1f67f02ad4",
       "source_id": "SRC-A4401C6182FD2E78"
     },
     {
@@ -33101,7 +33554,7 @@
       ],
       "path": "../web/tests/e2e/poh_live_independent_browsers.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "ec9ca7a43764dac7f794b547e106cf311585e93ecf53226b095119666104c687",
+      "sha256": "3d3e31bff99f0697266e6f122ed3d9b2781c2fb12862c1642094e130e8850d82",
       "source_id": "SRC-3ABB044E07B9C013"
     },
     {
