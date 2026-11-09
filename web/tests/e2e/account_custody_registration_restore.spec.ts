@@ -863,6 +863,29 @@ test.describe("real browser account custody", () => {
         expect(restoredStorage.evidenceSecretInLocal).toBeNull();
         expect(restoredStorage.evidenceSecretInSession).toBe(recovery.evidenceKemSecretKeyB64);
 
+        // F2 native-browser exercise, using this actually registered account.
+        // Progression is UI-only: it cannot send a signed PoH request until
+        // a fresh valid camera recording and explicit reviewer consent exist.
+        await restoredPage.goto("/#/verification");
+        await expect(restoredPage.getByTestId("async-guided-journey")).toBeVisible({ timeout: 30_000 });
+        await expect(restoredPage.getByTestId("async-step-explain")).toBeVisible();
+        await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
+        const prepareVerification = restoredPage.getByRole("button", { name: "Prepare verification" });
+        await expect(prepareVerification).toBeEnabled({ timeout: 30_000 });
+        await prepareVerification.click();
+        await expect(restoredPage.getByTestId("async-step-prepare")).toBeVisible();
+        const proceedToRecording = restoredPage.getByRole("button", { name: "Continue to recording" });
+        await expect(proceedToRecording).toBeDisabled();
+        await restoredPage.getByLabel("Something about yourself").fill("I am a real test participant.");
+        await restoredPage.getByLabel("Why are you joining WeAll?").fill("I want to check the community network.");
+        await expect(proceedToRecording).toBeEnabled();
+        await proceedToRecording.click();
+        await expect(restoredPage.getByTestId("async-step-record")).toBeVisible();
+        await expect(restoredPage.getByTestId("async-evidence-live-preview")).toHaveCount(0);
+        await expect(restoredPage.getByRole("button", { name: "Review recorded video" })).toBeDisabled();
+        await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
+        await restoredPage.goto("/#/home");
+
         // Two tabs share durable *public* metadata, not sessionStorage bearer
         // or signing seeds. Opening a new tab must not silently inherit the
         // authenticated browser session from the restored tab.
