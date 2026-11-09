@@ -424,6 +424,17 @@
         "presentation"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/TrustedResponsibilitiesPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "../web/src/components/TxPropagationTimeline.tsx",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
@@ -458,6 +469,17 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "../web/src/components/ValidatorReadinessWizard.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/VerificationHistoryPanel.tsx",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
     },
