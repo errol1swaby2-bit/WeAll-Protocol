@@ -867,7 +867,11 @@ test.describe("real browser account custody", () => {
         // Progression is UI-only: it cannot send a signed PoH request until
         // a fresh valid camera recording and explicit reviewer consent exist.
         await restoredPage.goto("/#/verification");
-        await expect(restoredPage.getByTestId("async-guided-journey")).toBeVisible({ timeout: 30_000 });
+        await expect(restoredPage.getByTestId("async-verification-landing")).toBeVisible({ timeout: 30_000 });
+        await expect(restoredPage.getByTestId("async-guided-journey")).toHaveCount(0);
+        await restoredPage.getByRole("button", { name: "Begin async human review" }).click();
+        await expect(restoredPage).toHaveURL(/#\/verification\/async\/explain$/);
+        await expect(restoredPage.getByTestId("async-guided-journey")).toBeVisible();
         await expect(restoredPage.getByTestId("poh-verification-history-panel")).toBeVisible();
         await expect(restoredPage.getByTestId("poh-technical-records")).toBeVisible();
         await expect(restoredPage.getByTestId("poh-technical-records")).not.toHaveAttribute("open", "");
@@ -878,6 +882,7 @@ test.describe("real browser account custody", () => {
         const prepareVerification = restoredPage.getByRole("button", { name: "Prepare verification" });
         await expect(prepareVerification).toBeEnabled({ timeout: 30_000 });
         await prepareVerification.click();
+        await expect(restoredPage).toHaveURL(/#\/verification\/async\/prepare$/);
         await expect(restoredPage.getByTestId("async-step-prepare")).toBeVisible();
         const proceedToRecording = restoredPage.getByRole("button", { name: "Continue to recording" });
         await expect(proceedToRecording).toBeDisabled();
@@ -885,9 +890,14 @@ test.describe("real browser account custody", () => {
         await restoredPage.getByLabel("Why are you joining WeAll?").fill("I want to check the community network.");
         await expect(proceedToRecording).toBeEnabled();
         await proceedToRecording.click();
+        await expect(restoredPage).toHaveURL(/#\/verification\/async\/record$/);
         await expect(restoredPage.getByTestId("async-step-record")).toBeVisible();
         await expect(restoredPage.getByTestId("async-evidence-live-preview")).toHaveCount(0);
         await expect(restoredPage.getByRole("button", { name: "Review recorded video" })).toBeDisabled();
+        await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
+        // A direct link/reload cannot restore a missing video or consent.
+        await restoredPage.goto("/#/verification/async/submit");
+        await expect(restoredPage).toHaveURL(/#\/verification\/async\/explain$/);
         await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
 
         // Simulate ONLY a browser-local interruption marker, not a fake PoH
@@ -910,6 +920,7 @@ test.describe("real browser account custody", () => {
         }, account);
         await restoredPage.reload();
         await expect(restoredPage.getByTestId("poh-async-interrupted-warning")).toBeVisible({ timeout: 30_000 });
+        await expect(restoredPage).toHaveURL(/#\/verification\/async\/track$/);
         await expect(restoredPage.getByTestId("async-step-track")).toBeVisible();
         await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
         await restoredPage.getByRole("button", { name: "Refresh canonical verification status" }).click();
