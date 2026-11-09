@@ -113,5 +113,7 @@ export function findExpectedAsyncPohCase(cases: unknown, account: string, expect
     const record = item as Record<string, unknown>;
     return record.case_id === expected && record.account_id === owner;
   });
-  return match as Record<string, unknown> | null;
+  // Array.find returns undefined on a miss; the null result is an explicit
+  // fail-closed contract consumed by navigation and finality reconciliation.
+  return (match ?? null) as Record<string, unknown> | null;
 }
