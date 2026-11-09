@@ -479,6 +479,8 @@ export default function AccountVerificationPage(): JSX.Element {
   const [asyncCases, setAsyncCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
+  // Preserve last-seen cases, but never treat a failed history lookup as an empty history.
+  const [verificationHistoryReady, setVerificationHistoryReady] = useState({ async: false, live: false });
 
   const hasLocalKeypair = !!kp?.secretKeyB64;
   const sessionKeyPresent = !!session?.sessionKey;
@@ -516,20 +518,30 @@ export default function AccountVerificationPage(): JSX.Element {
       setAsyncCases([]);
       setLiveCases([]);
       setLiveSessions([]);
+      setVerificationHistoryReady({ async: false, live: false });
       return;
     }
     setCasesBusy(true);
+    setVerificationHistoryReady({ async: false, live: false });
     try {
       const headers = getAuthHeaders(acct);
-      const [asyncResponse, live, sessions] = await Promise.all([
-        weall.pohAsyncMyCases(acct, base, headers).catch(() => ({ cases: [] })),
-        weall.pohLiveMyCases(acct, base, headers).catch(() => ({ cases: [] })),
-        weall.pohLiveSessions(base, headers).catch(() => ({ sessions: [] })),
+      const [asyncResponse, live, sessions] = await Promise.allSettled([
+        weall.pohAsyncMyCases(acct, base, headers),
+        weall.pohLiveMyCases(acct, base, headers),
+        weall.pohLiveSessions(base, headers),
       ]);
-      setAsyncCases(Array.isArray(asyncResponse?.cases) ? asyncResponse.cases : []);
-      setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
-      setLiveSessions(Array.isArray(sessions?.sessions) ? sessions.sessions : []);
+      const asyncReady = asyncResponse.status === "fulfilled" && asyncResponse.value?.ok === true && Array.isArray(asyncResponse.value?.cases);
+      const liveReady = live.status === "fulfilled" && live.value?.ok === true && Array.isArray(live.value?.cases);
+      // Stale data may remain visible for inspection, but never re-enable new
+      // signed actions until the selected node confirms the actual history.
+      if (asyncReady && asyncResponse.status === "fulfilled") setAsyncCases(asyncResponse.value.cases);
+      if (liveReady && live.status === "fulfilled") setLiveCases(live.value.cases);
+      if (sessions.status === "fulfilled" && Array.isArray(sessions.value?.sessions)) {
+        setLiveSessions(sessions.value.sessions);
+      }
+      setVerificationHistoryReady({ async: asyncReady, live: liveReady });
     } catch (e: any) {
+      setVerificationHistoryReady({ async: false, live: false });
       setErr(prettyErr(e));
     } finally {
       setCasesBusy(false);
@@ -811,6 +823,10 @@ export default function AccountVerificationPage(): JSX.Element {
     }
     if (!registered) {
       setErr({ msg: "Register your account before submitting account verification.", details: null });
+      return;
+    }
+    if (!verificationHistoryReady.async) {
+      setErr({ msg: "Cannot verify earlier PoH cases on the selected node. Refresh case history before signing a new evidence case.", details: null });
       return;
     }
     if (!challenge || !asyncRecordedBlob || !check.ok) {
@@ -1136,6 +1152,10 @@ export default function AccountVerificationPage(): JSX.Element {
   async function submitLiveRequest(): Promise<void> {
     if (!acct) {
       setErr({ msg: "Sign in before opening live verification.", details: null });
+      return;
+    }
+    if (!verificationHistoryReady.live) {
+      setErr({ msg: "Live case history is unavailable on this node. Refresh before signing a new live verification request.", details: null });
       return;
     }
     setLiveRequestBusy(true);
