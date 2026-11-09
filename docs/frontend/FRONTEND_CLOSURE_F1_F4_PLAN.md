@@ -91,6 +91,15 @@ case-history entries for the same account do not establish that the new case is
 visible, confirmed or reviewable. The pending room is still not a finality
 claim; exact-head CI and independent live media/reviewer acceptance remain open.
 
+The same exact-request identity rule also applies to asynchronous verification:
+a previously submitted case, an unrelated user's case, or an already-earned
+tier cannot be mistaken for success of the current upload. Reconciliation
+matches the current challenge-derived case ID and account; an observed case
+without reviewable evidence remains submitted, not confirmed. The six legacy
+backend source-contract checks have been revised to assert the pending-room
+boundary and exact case identity rather than obsolete synchronization markers.
+These changes do not claim multi-device live acceptance or production readiness.
+
 The flow must not persist raw video in unsecured storage, bypass account
 tier/reputation gates, mark accepted as confirmed, or claim that a media upload
 alone means reviewable/finalized. Interrupted workflows should recover status
