@@ -1577,7 +1577,7 @@ export default function AccountVerificationPage(): JSX.Element {
                 <div className="formStack" data-testid="async-step-explain">
                   <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Before you record</h3>
                   <div className="calloutInfo">
-                    <strong>Fresh video required:</strong> record a new 1–2 minute video inside WeAll with camera and microphone permission. Ordinary file upload is not accepted. Say your handle, read the generated challenge phrase, and describe yourself and why you want to join.
+                    <strong>Fresh video required:</strong> Record inside WeAll with camera and microphone permission for 1–2 minutes; ordinary file upload is not allowed for basic human review evidence. Say your handle, read the generated challenge phrase, and describe yourself and why you want to join.
                   </div>
                   <p className="miniMuted">
                     The recording stays on this device until you explicitly submit encrypted evidence. An independent reviewer and canonical account-state update, not the recording itself, determine your verification tier.
@@ -1834,7 +1834,7 @@ export default function AccountVerificationPage(): JSX.Element {
                   <div className="formStack" data-testid="live-step-explain">
                   <h3 ref={liveStepHeadingRef} tabIndex={-1}>Before live verification</h3>
                     <p className="cardDesc">
-                      The live session prepares commitments for the subject, room and prompt, then submits a signed request. Independent attendance, reviewer decisions, canonical receipts and synchronized account state remain separate steps.
+                      The live session prepares session, room, and prompt commitments before it submits a signed request. Independent attendance, reviewer decisions, canonical receipts and synchronized account state remain separate steps.
                     </p>
                     <div className="calloutInfo">
                       Camera, microphone and peer-to-peer transport must be available for participation. No third-party identity service is required, but a prepared room does not prove that other participants can connect.
@@ -1879,7 +1879,7 @@ export default function AccountVerificationPage(): JSX.Element {
                             <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">Open self-hosted room</a>
                           </div>
                         ) : (
-                          <p className="miniMuted">The room descriptor is prepared locally. Other participants and transport availability have not yet been verified.</p>
+                          <p className="miniMuted">No centralized room URL is required. The room descriptor is prepared locally; other participants and transport availability have not yet been verified.</p>
                         )}
                         {liveRoomDescriptorText(liveCommitments.room_commitment) ? (
                           <details className="advancedDetails">
