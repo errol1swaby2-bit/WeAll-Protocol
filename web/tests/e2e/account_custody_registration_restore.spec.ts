@@ -895,8 +895,13 @@ test.describe("real browser account custody", () => {
         await expect(restoredPage.getByTestId("async-evidence-live-preview")).toHaveCount(0);
         await expect(restoredPage.getByRole("button", { name: "Review recorded video" })).toBeDisabled();
         await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
-        // A direct link/reload cannot restore a missing video or consent.
+        // A hash-only transition keeps prepared answers in memory, so it
+        // redirects to Record, never to the unsafe Submit step. A true page
+        // reload loses all ephemeral recording/consent and returns to Explain.
         await restoredPage.goto("/#/verification/async/submit");
+        await expect(restoredPage).toHaveURL(/#\/verification\/async\/record$/);
+        await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
+        await restoredPage.reload();
         await expect(restoredPage).toHaveURL(/#\/verification\/async\/explain$/);
         await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
 
