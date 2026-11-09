@@ -8,6 +8,8 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
   "/create": () => import("../pages/Post"),
   "/post/:id": () => import("../pages/Content"),
   "/verification": () => import("../pages/PohPage"),
+  "/verification/async/:stage": () => import("../pages/PohPage"),
+  "/verification/live/journey/:stage": () => import("../pages/PohPage"),
   "/reviews": () => import("../pages/JurorDashboard"),
   "/reviews/:id": () => import("../pages/DisputeReview"),
   "/groups": () => import("../pages/Groups"),
