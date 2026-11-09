@@ -36,6 +36,7 @@ assert.equal(allowedAsyncPohStep("record", { ...ready, prepared: false }), "prep
 assert.equal(allowedAsyncPohStep("prepare", { ...ready, basicAccountCreated: false }), "explain");
 assert.equal(allowedAsyncPohStep("submit", { ...ready, pendingJournal: true }), "track");
 assert.equal(allowedAsyncPohStep("explain", { ...ready, recordingActive: true }), "record");
+assert.equal(allowedAsyncPohStep("track", { ...ready, recordingActive: true, pendingJournal: true }), "record");
 assert.equal(allowedLivePohStep("request", 0, false, false), "explain");
 assert.equal(allowedLivePohStep("request", 2, false, false), "explain");
 assert.equal(allowedLivePohStep("request", 1, true, false), "track");
