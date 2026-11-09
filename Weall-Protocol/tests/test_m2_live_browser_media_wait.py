@@ -54,7 +54,7 @@ def test_reciprocal_live_media_requires_specific_connected_peer_and_decoded_fram
     spec = LIVE_SPEC.read_text(encoding="utf-8")
     room = (OUTER / "web/src/pages/LiveVerificationRoom.tsx").read_text(encoding="utf-8")
 
-    assert 'data-remote-account={peer}' in room
+    assert "data-remote-account={peer}" in room
     assert (
         'data-peer-connection-state={peerConnectionsRef.current.get(peer)?.connectionState || "unknown"}'
         in room
@@ -80,9 +80,9 @@ def test_reciprocal_live_media_requires_specific_connected_peer_and_decoded_fram
     assert "element.videoHeight > 0" in helpers
     assert 'waitForLiveRemoteMedia(applicant.page, "applicant", reviewer.account)' in spec
     assert "waitForLiveRemoteMedia(actor.page" in spec
-    assert spec.index("All independent browsers receive peer video before reviewers vote") < spec.index(
-        "Reviewer submits verdict after two-way live media"
-    )
+    assert spec.index(
+        "All independent browsers receive peer video before reviewers vote"
+    ) < spec.index("Reviewer submits verdict after two-way live media")
 
 
 def test_live_launcher_exports_media_timeout_to_playwright() -> None:
