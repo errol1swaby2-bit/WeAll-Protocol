@@ -19,4 +19,19 @@ assert.match(source, /post_submission_refresh/);
 assert.match(source, /do not re-upload the recording/);
 assert.match(source, /POH_ASYNC_EVIDENCE_DECLARE/);
 assert.match(source, /POH_ASYNC_EVIDENCE_BIND/);
+// F2: every local step is independently visible and explicitly advanced.
+for (const stage of ["explain", "prepare", "record", "review", "submit", "track"]) {
+  assert.ok(source.includes(`data-testid="async-step-${stage}"`), `missing guided ${stage} stage`);
+  assert.ok(source.includes(`asyncGuideStep === "${stage}"`), `stage ${stage} must be gated`);
+}
+assert.match(source, /aria-current=\{asyncStepIds\[index\] === asyncGuideStep/);
+assert.match(source, /disabled=\{!asyncPreparationReady \|\| !registered/);
+assert.match(source, /disabled=\{!asyncRecordedBlob \|\| !!asyncDurationError/);
+assert.match(source, /disabled=\{!asyncSubmitCheck\.ok \|\| asyncEvidenceBusy/);
+assert.match(source, /disabled=\{[^\n]+!!asyncUpload\}/);
+assert.match(source, /setAsyncGuideStep\("track"\)/);
+assert.match(source, /setAsyncConsent\(false\)/);
+assert.match(source, /Only a canonical account tier update confirms verification/);
+assert.match(source, /Inspect existing verification cases/);
+assert.match(source, /Do not repeat an uncertain signed submission/);
 console.log("PASS: async camera preview and local playback, upload-versus-signed-case status truth");
