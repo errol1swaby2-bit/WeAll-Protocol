@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2086,
+  "file_count": 2088,
   "files": [
     {
       "affected_registers": [
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "1e357e3f053c64e6ccbcc107f1064d945d989be563ab201269e692dfd410e9e6",
+      "sha256": "0d1d1406b0231a23192a1a90b9043d4724a61a285b747e8c4eb69d4d1339e087",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -147,7 +147,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "2b8451f5608b2536ac6a92741c431ab8e7cf8580e3ff645cd31225b1409b4a11",
+      "sha256": "414c8740c632868ae0dfe19007cceb5cd92811eda37d2364079fc2e2a0ea5b21",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -7014,7 +7014,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3c2d49b819fc34cef3ed480bbdbc44b7d3e6d6d6f9b1530b308cf7f705a3b778",
+      "sha256": "bed6200ffcf5f33b44c6c2dffb0cbb2fb1ebe247cf0c61a8c16b5cc2319ce3ed",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -15806,7 +15806,7 @@
       ],
       "path": "tests/test_content_reviewer_selection_and_surface.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e4458038beca771dea9d79294c12da9d9dbab2be1af8597e0789ad147c23a899",
+      "sha256": "49687dbf5a92df0710240e37bd58c595ede817e8ccf58fb5fd3daf71a5911373",
       "source_id": "SRC-4E4A7A1A512FEDE3"
     },
     {
@@ -30884,7 +30884,7 @@
       ],
       "path": "../web/scripts/test_async_evidence_preview.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "b213bfca4edb96671da39577251a4de101f9569f82ad1e754292d8f4e12d480e",
+      "sha256": "7bcbca9c9affd89572d82ed3a26465e3175d105c02a6a914973a55f728720071",
       "source_id": "SRC-B467025251B14F3C"
     },
     {
@@ -31001,7 +31001,7 @@
       ],
       "path": "../web/scripts/test_focused_shell_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "b9ecc009215d6f52327f5f5ec633cd499446b75503ac611b15a30b25cce8944f",
+      "sha256": "8736ed1007adcf1517307f0573408aadf6bc0a28a4c93c5b57866c47c9648824",
       "source_id": "SRC-4126BEAC370FDF73"
     },
     {
@@ -31224,6 +31224,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "2ea1ceceecfc7b923df6ef7a849460d1b295e11de92e37bde249f1b704d58f5c",
       "source_id": "SRC-FA17C74C3E8FAF7A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_poh_guided_routes.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "aa3269dc9710de134e7361269a865cd6831d4e6336a0ed18a5d94880be96c78a",
+      "source_id": "SRC-88621249CBD3D7E3"
     },
     {
       "affected_registers": [
@@ -31536,7 +31549,7 @@
       ],
       "path": "../web/src/App.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "915ca46236860ea27169743357503979720f48accb183cdd6140e35d14b69293",
+      "sha256": "40145dd5828ded5a350e2bc2f94f0c4321e44736d0a3ef8c68730dcfdc73664d",
       "source_id": "SRC-0D8C1A8815689CC1"
     },
     {
@@ -31770,7 +31783,7 @@
       ],
       "path": "../web/src/components/AppShell.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "4f5af02aa65f50fe36e5169bf817b9e0ee75ad95c3b423998cb36e7bc44b33e2",
+      "sha256": "580486d34c04a6773210c98898c2b3f4020ddfec3107aadc4170cad693378d98",
       "source_id": "SRC-D78A14AE7C5FA9F1"
     },
     {
@@ -32615,6 +32628,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/lib/pohGuidedRoutes.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "016fcb94d0065cc27befe05e1f45acb934188fa3209d4e201eb0b7bbd6c86922",
+      "source_id": "SRC-76FE95FBDA324991"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/lib/pohSubmissionJournal.ts",
       "primary_mechanism_id": "M-069",
       "sha256": "3edaecaf949f9c8a67a2552d69c92d14c695916dc97384a5d99012695656da3a",
@@ -32692,7 +32720,7 @@
       ],
       "path": "../web/src/lib/routePrefetch.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "f1a88a762ed0a763ab46c4804db47b61b2810a3a73da4cef310ea1da9fd63578",
+      "sha256": "e555debb9240c044f7049d9f8054293f074c1aa5348b6c4dd135d5c026064cf9",
       "source_id": "SRC-C80C885B9863F0E5"
     },
     {
@@ -32707,7 +32735,7 @@
       ],
       "path": "../web/src/lib/router.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "3d261257325a4b569279b8eb32b42f8fc8eb294c836e54fcda036adb5408f344",
+      "sha256": "f91f3ed1d811155664dccbbddf900963632702d9e99e706536670fcab907a0d3",
       "source_id": "SRC-257A13CB33C5914A"
     },
     {
@@ -32924,7 +32952,7 @@
       ],
       "path": "../web/src/pages/AccountVerificationPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "f0589012c281de8d71a95f05404c8fb390ead5738f6a39c0b660d70689811ca6",
+      "sha256": "3cebbc89848e5e601dc193d56d93c41dbb916b36b85cf52209fd47fe845f14ff",
       "source_id": "SRC-6E72AE85995D2D5D"
     },
     {
@@ -33434,7 +33462,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "9f1eb97df9ac907a5b996d6cdb91f0163ff655858f9e53d6978fe297970ca5e6",
+      "sha256": "9bb47a77cc6870649847d852bc13b36efe7cc79e4038bca0deb4bdd8d8d2f2fd",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
