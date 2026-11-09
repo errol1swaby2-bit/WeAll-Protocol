@@ -240,16 +240,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       const jid = normalizeAccount(j.juror_id);
       if (jid) out.add(jid);
     });
-    chainParticipants.forEach((p: any) => {
-      const participant = normalizeAccount(p?.account_id || p?.account || p?.juror_id);
-      if (participant) out.add(participant);
-    });
-    presence.forEach((p) => {
-      const participant = normalizeAccount(p.account_id);
-      if (participant) out.add(participant);
-    });
+    // Canonical case assignment, not mutable transport presence/sidecars,
+    // determines who may receive the subject's live video/audio.
     return Array.from(out).sort();
-  }, [liveCase?.account_id, jurors, chainParticipants, presence]);
+  }, [liveCase?.account_id, jurors]);
   const p2pRemoteAccounts = useMemo(() => {
     return p2pParticipantAccounts.filter((item) => normalizeAccount(item) && normalizeAccount(item) !== account);
   }, [p2pParticipantAccounts, account]);
@@ -598,6 +592,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   async function handleWebRTCSignal(signal: WeAllWebRTCSignal): Promise<void> {
     const from = normalizeAccount(signal.from_account);
     if (!from || from === account) return;
+    // Signaling is transport-only. Never construct a peer connection (which
+    // automatically attaches local audio/video tracks) for a non-assigned
+    // account merely because it appears in signaling or room presence.
+    if (!p2pRemoteAccounts.includes(from)) return;
     const key = signalDedupeKey(signal);
     if (processedSignalsRef.current.has(key)) return;
     processedSignalsRef.current.add(key);
@@ -936,7 +934,12 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                     <span>{account || "Local participant"}</span>
                   </div>
                   {remoteStreamEntries.map(([peer, stream]) => (
-                    <div className="p2pVideoTile" key={peer}>
+                    <div
+                      className="p2pVideoTile"
+                      key={peer}
+                      data-remote-account={peer}
+                      data-peer-connection-state={peerConnectionsRef.current.get(peer)?.connectionState || "unknown"}
+                    >
                       <video
                         autoPlay
                         playsInline

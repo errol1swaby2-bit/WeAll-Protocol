@@ -64,14 +64,20 @@ export async function waitForLiveRemoteMedia(page: Page, actorLabel: string, rem
   try {
     await expect.poll(
       async () => page.evaluate((account) => {
-        const tiles = Array.from(document.querySelectorAll(".p2pVideoGrid .p2pVideoTile"));
-        const tile = tiles.find((item) => item.querySelector("span")?.textContent?.trim() === account);
-        const element = tile?.querySelector("video");
+        const tiles = Array.from(document.querySelectorAll(".p2pVideoGrid .p2pVideoTile[data-remote-account]"));
+        const tile = tiles.find((item) => item.getAttribute("data-remote-account") === account);
+        if (tile?.getAttribute("data-peer-connection-state") !== "connected") return false;
+        const element = tile.querySelector("video");
         const stream = element?.srcObject;
-        if (!(stream instanceof MediaStream)) return false;
-        const videoAlive = stream.getVideoTracks().some((track) => track.readyState === "live");
-        const connectionStatus = document.querySelector('[data-testid="live-room-join-status"]')?.textContent || "";
-        return videoAlive && /WebRTC connection established/i.test(connectionStatus);
+        if (!(stream instanceof MediaStream) || !element) return false;
+        const videoAlive = stream.getVideoTracks().some((track) => track.readyState === "live" && !track.muted);
+        // A live track can be present before the browser decodes any video.
+        // Require a current rendered frame as well as this exact peer's
+        // connected RTCPeerConnection state.
+        return videoAlive &&
+          element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+          element.videoWidth > 0 &&
+          element.videoHeight > 0;
       }, target).catch(() => false),
       { timeout: timeoutMs, message: `${actorLabel} must receive a live WebRTC video track from ${target}` },
     ).toBe(true);

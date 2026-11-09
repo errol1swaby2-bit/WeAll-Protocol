@@ -110,7 +110,13 @@ peer is transport evidence only: Tier 2 still requires signed attendance,
 verdicts and a canonical finalized account/case outcome. The strengthened
 journey remains **unproven** until run against an actual multi-account,
 two-process stack with available cameras or test media and appropriate relay
-configuration. A skipped test is not an acceptance pass.
+configuration. A skipped test is not an acceptance pass. The 2026-11-09 media safety
+hardening narrows permissible WebRTC peers to the subject and canonically
+assigned case jurors: room presence and transport sidecars cannot expand
+media recipients. The external test now checks an individual named peer's
+connected RTCPeerConnection, an unmuted live video track, and decoded video
+frame dimensions before approving two-way media acceptance. No test run has
+yet supplied independent live media acceptance evidence.
 
 The flow must not persist raw video in unsecured storage, bypass account
 tier/reputation gates, mark accepted as confirmed, or claim that a media upload
