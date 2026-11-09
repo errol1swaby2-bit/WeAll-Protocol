@@ -4,6 +4,7 @@ import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import PohSubmissionStatusNotice from "../components/PohSubmissionStatusNotice";
 import VerificationHistoryPanel from "../components/VerificationHistoryPanel";
+import TrustedResponsibilitiesPanel from "../components/TrustedResponsibilitiesPanel";
 import {
   beginNonceSequence,
   getAuthHeaders,
@@ -48,7 +49,6 @@ import {
 } from "../lib/pohSubmissionJournal";
 import { liveRoomDescriptorText, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 import {
-  TRUSTED_RESPONSIBILITIES,
   VERIFICATION_LABELS,
   blockedByVerificationMessage,
   friendlyActionError,
@@ -1926,73 +1926,17 @@ export default function AccountVerificationPage(): JSX.Element {
         ) : null}
       </section>
 
-      {accountLevel >= 2 ? (
-      <section className="card">
-        <div className="cardBody formStack">
-          <div className="sectionHead">
-            <div>
-              <div className="eyebrow">Trusted Responsibilities</div>
-              <h2 className="cardTitle">Responsibilities you can earn over time</h2>
-            </div>
-            <span className={`statusPill ${accountLevel >= 2 ? "ok" : ""}`}>{accountLevel >= 2 ? "Eligible to apply" : "Live verification required"}</span>
-          </div>
-          <p className="cardDesc">
-            Verification proves account status. Responsibilities prove specific service permission, such as reviewing reports or helping operate network services.
-          </p>
-          <div className="infoCard compact">
-            <div className="infoCardHeader">
-              <strong>Content review selection</strong>
-              <span className={`statusPill ${contentReviewActive ? "ok" : contentReviewOptedIn ? "warning" : ""}`}>{contentReviewStatusLabel}</span>
-            </div>
-            <div className="infoCardText">
-              Tier 2 makes you eligible, but the protocol only selects reviewers that explicitly opt into the content_review lane and are not the author of the flagged content.
-            </div>
-            <div className="buttonRowWide">
-              {!contentReviewActive ? (
-                <button
-                  className="btn btnPrimary"
-                  onClick={() => void updateContentReviewLane(true)}
-                  disabled={!acct || accountLevel < 2 || reviewerBusy !== null || signerSubmission.busy || !hasLocalKeypair}
-                >
-                  {reviewerBusy === "optIn" ? "Opting in…" : accountLevel < 2 ? blockedByVerificationMessage(2) : "Opt into content review"}
-                </button>
-              ) : (
-                <button
-                  className="btn"
-                  onClick={() => void updateContentReviewLane(false)}
-                  disabled={!acct || reviewerBusy !== null || signerSubmission.busy || !hasLocalKeypair}
-                >
-                  {reviewerBusy === "optOut" ? "Opting out…" : "Opt out of content review"}
-                </button>
-              )}
-              <button className="btn btnGhost" onClick={() => nav(acct ? `/account/${encodeURIComponent(acct)}` : "/login")} disabled={!acct}>
-                Open all responsibility controls
-              </button>
-            </div>
-          </div>
-          <div className="infoGrid">
-            {TRUSTED_RESPONSIBILITIES.map((responsibility) => (
-              <div key={responsibility.key} className="infoCard compact">
-                <div className="infoCardHeader">
-                  <strong>{responsibility.label}</strong>
-                  <span className={`statusPill ${accountLevel >= 2 ? "ok" : ""}`}>{accountLevel >= 2 ? "Can apply" : "Locked"}</span>
-                </div>
-                <div className="infoCardText">{responsibility.description}</div>
-                <div className="miniTag">Requires: {responsibility.requires}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      ) : (
-        <details className="advancedDisclosure" data-testid="trusted-responsibilities-locked">
-          <summary>Later: trusted responsibilities (live verification required)</summary>
-          <p className="miniMuted">
-            Reviewer, juror, validator and operator responsibilities require additional authorization.
-            They remain unavailable until the canonical account tier and applicable role-specific rules permit them.
-          </p>
-        </details>
-      )}
+      <TrustedResponsibilitiesPanel
+        account={acct}
+        accountLevel={accountLevel}
+        contentReviewActive={contentReviewActive}
+        contentReviewOptedIn={contentReviewOptedIn}
+        contentReviewStatusLabel={contentReviewStatusLabel}
+        reviewerBusy={reviewerBusy}
+        signerBusy={signerSubmission.busy}
+        hasLocalKeypair={hasLocalKeypair}
+        onUpdateContentReviewLane={(active) => void updateContentReviewLane(active)}
+      />
 
       <VerificationHistoryPanel
         asyncCases={asyncCases}
