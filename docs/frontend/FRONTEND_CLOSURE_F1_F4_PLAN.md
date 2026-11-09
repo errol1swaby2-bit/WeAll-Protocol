@@ -126,6 +126,16 @@ verification status stops local capture and closes all peer connections.
 These are transport safety boundaries, not claims that peer credentials
 or WebRTC transport prove the on-chain verdict.
 
+The follow-up addresses an additional terminal-state retry bypass: the room
+previously retained a presence-eligibility flag after finalization, allowing
+its **Retry live media** control to re-enable capture after terminal teardown.
+Media startup, offer creation, inbound signaling, recovery polling and retry
+now require the active canonical subject/assigned-reviewer gate with a
+non-final case. A legacy backend source-contract test was also corrected:
+transport presence and chain-participant sidecars may inform diagnostics but
+must not expand the media-recipient set. Exact-head CI and external M2 live
+rehearsal remain independent acceptance requirements.
+
 The flow must not persist raw video in unsecured storage, bypass account
 tier/reputation gates, mark accepted as confirmed, or claim that a media upload
 alone means reviewable/finalized. Interrupted workflows should recover status
