@@ -62,7 +62,17 @@ reviewer-access binding, live request generation, trusted roles, and case
 history. Extract the transactional operations into reusable actions/hooks;
 do not copy-paste them into independent pages.
 
-Proposed separate routes:
+**Current bounded implementation:** `/verification` is the status-first
+landing page; `/verification/async/{explain,prepare,record,review,submit,track}`
+and `/verification/live/journey/{explain,request,track}` are protected
+URL-backed action stages. All stages share a single mounted PoH controller,
+which remains responsible for in-memory camera/video, encrypted uploads and
+signed submissions. Browser reload cannot restore recording or consent; the
+non-secret interruption journal forces a read-only track view. The existing
+`/verification/live/:caseId` room route remains separate. Route and
+browser-journey CI must pass before this work is accepted.
+
+Remaining proposed deeper components and routes:
 - /verification — status and next action only.
 - /verification/async/start — why, privacy, eligibility and overview.
 - /verification/async/prepare — camera/mic test, consent, challenge.
