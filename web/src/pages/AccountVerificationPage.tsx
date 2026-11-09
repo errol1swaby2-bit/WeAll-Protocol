@@ -465,6 +465,11 @@ export default function AccountVerificationPage(): JSX.Element {
   const [asyncWhyJoining, setAsyncWhyJoining] = useState("");
   const [asyncConsent, setAsyncConsent] = useState(false);
   const [asyncUpload, setAsyncUpload] = useState<UploadState | null>(null);
+  // F2: UI progression is local guidance only, never a PoH tier or chain outcome.
+  // Keep recorded evidence in component memory; do not persist video or secrets.
+  const [asyncGuideStep, setAsyncGuideStep] = useState<
+    "explain" | "prepare" | "record" | "review" | "submit" | "track"
+  >("explain");
 
   const [asyncCases, setAsyncCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
@@ -689,6 +694,7 @@ export default function AccountVerificationPage(): JSX.Element {
     setAsyncRecordedUrl("");
     setAsyncVideoSeconds(0);
     setAsyncUpload(null);
+    setAsyncConsent(false);
     setAsyncRecordingState("idle");
   }
 
@@ -830,6 +836,9 @@ export default function AccountVerificationPage(): JSX.Element {
           }
           acceptedUpload = upload;
           setAsyncUpload(upload);
+          // Storage acceptance is a separate phase from canonical case review.
+          // The tracking screen never implies that signed transactions finalized.
+          setAsyncGuideStep("track");
 
           const challengeCommitment = await sha256HexText(`weall:poh_async_challenge_v1:${acct}:${challenge.challengeId}:${challenge.phrase}`);
           const responseCommitment = await sha256HexText(`weall:poh_async_response_v1:${acct}:${challenge.challengeId}:${encryptedEvidence.ciphertextCommitment}:${asyncAbout.trim()}:${asyncWhyJoining.trim()}`);
@@ -1000,6 +1009,7 @@ export default function AccountVerificationPage(): JSX.Element {
     } catch (e: any) {
       const original = prettyErr(e);
       if (acceptedUpload) {
+        setAsyncGuideStep("track");
         setErr({
           msg: caseTransactionsSubmitted
             ? "Verification transactions were submitted, but refreshing their status failed. Check verification history before retrying."
@@ -1262,6 +1272,9 @@ export default function AccountVerificationPage(): JSX.Element {
   });
   const asyncDurationError = validateAsyncVideoDuration(asyncVideoSeconds);
   const asyncRecordingClock = `${Math.floor(asyncVideoSeconds / 60)}:${String(asyncVideoSeconds % 60).padStart(2, "0")}`;
+  const asyncPreparationReady = asyncAbout.trim().length >= 10 && asyncWhyJoining.trim().length >= 10;
+  const asyncStepNames = ["Understand", "Prepare", "Record", "Review", "Submit", "Track"] as const;
+  const asyncStepIds = ["explain", "prepare", "record", "review", "submit", "track"] as const;
 
   return (
     <div className="pageStack accountVerificationPage">
@@ -1388,110 +1401,254 @@ export default function AccountVerificationPage(): JSX.Element {
           status={basicStatus}
           description="You can browse, set up your profile, and start account verification. Creating a basic account does not unlock posting."
         />
-        <StatusCard
-          eyebrow="Basic human review"
-          title={VERIFICATION_LABELS.verified}
-          status={verifiedStatus}
-          description="Record a fresh 1–2 minute video in the app, state your handle, read the challenge phrase, say something about yourself, and explain why you are joining."
-        >
-          <div className="formStack">
-            <div className="calloutInfo">
-              <strong>Fresh video required:</strong> ordinary file upload is not allowed for basic human review evidence. Record inside WeAll with camera and microphone permissions.
-            </div>
-            <div className="infoCard compact">
-              <div className="infoCardHeader">
-                <strong>Challenge phrase</strong>
-                <span className="statusPill">Read aloud</span>
-              </div>
-              <div className="infoCardText mono">{asyncChallenge?.phrase || "Start recording to generate a fresh challenge phrase."}</div>
-            </div>
-            <label className="fieldBlock">
-              <span className="fieldLabel">Something about yourself</span>
-              <textarea
-                value={asyncAbout}
-                onChange={(e) => setAsyncAbout(e.target.value)}
-                placeholder="Share a few natural details that help reviewers see you are a real person."
-                disabled={accountLevel >= 1 || asyncEvidenceBusy}
-              />
-            </label>
-            <label className="fieldBlock">
-              <span className="fieldLabel">Why are you joining WeAll?</span>
-              <textarea
-                value={asyncWhyJoining}
-                onChange={(e) => setAsyncWhyJoining(e.target.value)}
-                placeholder="Explain why you are joining in your own words."
-                disabled={accountLevel >= 1 || asyncEvidenceBusy}
-              />
-            </label>
-            <div className="buttonRowWide">
-              <button
-                className="btn btnPrimary"
-                onClick={() => void startAsyncRecording()}
-                disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
-              >
-                {asyncRecordingState === "recording" ? "Recording…" : "Record fresh verification video"}
-              </button>
-              <button className="btn" onClick={() => stopAsyncRecording()} disabled={asyncRecordingState !== "recording"}>
-                Stop recording
-              </button>
-              <button className="btn btnGhost" onClick={() => resetAsyncRecording()} disabled={asyncRecordingState === "recording" || asyncEvidenceBusy}>
-                Reset video
-              </button>
-            </div>
-            {asyncRecordingState === "recording" ? (
-              <div className="infoCard compact" data-testid="async-evidence-live-preview">
-                <div className="infoCardHeader">
-                  <strong>Live camera preview — recording locally</strong>
-                  <span className="statusPill">Camera and microphone active</span>
+        {accountLevel < 1 ? (
+          <StatusCard
+            eyebrow="Basic human review"
+            title={VERIFICATION_LABELS.verified}
+            status={verifiedStatus}
+            description="Complete your first human review through six separate stages. Every upload, signed case, reviewer decision and account tier is verified separately."
+          >
+            <div className="formStack" data-testid="async-guided-journey">
+              <ol className="statusRowWrap" aria-label="Async verification steps">
+                {asyncStepNames.map((label, index) => (
+                  <li
+                    key={label}
+                    className={`statusPill ${asyncStepIds[index] === asyncGuideStep ? "ok" : ""}`}
+                    aria-current={asyncStepIds[index] === asyncGuideStep ? "step" : undefined}
+                  >
+                    {index + 1}. {label}
+                  </li>
+                ))}
+              </ol>
+              <p className="miniMuted" role="status" aria-live="polite">
+                {asyncGuideStep === "track"
+                  ? "Review progress only. Uploaded evidence and submitted transactions are not proof of completed human verification."
+                  : `Step ${asyncStepIds.indexOf(asyncGuideStep) + 1} of 6: ${asyncStepNames[asyncStepIds.indexOf(asyncGuideStep)]}`}
+              </p>
+
+              {asyncGuideStep === "explain" ? (
+                <div className="formStack" data-testid="async-step-explain">
+                  <div className="calloutInfo">
+                    <strong>Fresh video required:</strong> record a new 1–2 minute video inside WeAll with camera and microphone permission. Ordinary file upload is not accepted. Say your handle, read the generated challenge phrase, and describe yourself and why you want to join.
+                  </div>
+                  <p className="miniMuted">
+                    The recording stays on this device until you explicitly submit encrypted evidence. An independent reviewer and canonical account-state update, not the recording itself, determine your verification tier.
+                  </p>
+                  {asyncCases.length > 0 ? (
+                    <div className="calloutInfo" data-testid="async-existing-cases">
+                      You have {asyncCases.length} visible verification case(s). Inspect verification history and outstanding reviewer access before starting another request.
+                      <button type="button" className="btn" onClick={() => setAsyncGuideStep("track")}>
+                        Inspect existing verification cases
+                      </button>
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn btnPrimary"
+                    onClick={() => setAsyncGuideStep("prepare")}
+                    disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent || asyncEvidenceBusy || signerSubmission.busy}
+                  >
+                    Prepare verification
+                  </button>
+                  {!basicAccountCreated ? <p className="miniMuted">Register your basic account on the network before starting verification.</p> : null}
                 </div>
-                <video ref={recordingPreviewRef} autoPlay muted playsInline style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
-                <p className="miniMuted">Live camera preview is local. Nothing is uploaded until you submit encrypted evidence.</p>
-              </div>
-            ) : null}
-            <div className="infoCard compact">
-              <div className="infoCardHeader">
-                <strong>Recorded duration</strong>
-                <span className={`statusPill ${asyncRecordedBlob && !asyncDurationError ? "ok" : ""}`}>{asyncRecordingClock}</span>
-              </div>
-              <div className="infoCardText">Required length: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</div>
-              {asyncRecordedBlob && asyncDurationError ? <div className="calloutDanger">{asyncDurationError}</div> : null}
-              {asyncRecordedUrl ? (
-                <div data-testid="async-evidence-playback-review">
-                  <strong>Review your recorded video before submitting</strong>
-                  <p className="miniMuted">Video playback is preloaded locally. Reviewer decryption remains gated by on-chain acceptance.</p>
-                  <video controls playsInline preload="auto" src={asyncRecordedUrl} style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
+              ) : null}
+
+              {asyncGuideStep === "prepare" ? (
+                <div className="formStack" data-testid="async-step-prepare">
+                  <p className="cardDesc">Prepare what you will say. Both descriptions must have at least ten characters. Continue to recording when you are ready.</p>
+                  <label className="fieldBlock">
+                    <span className="fieldLabel">Something about yourself</span>
+                    <textarea
+                      value={asyncAbout}
+                      onChange={(e) => setAsyncAbout(e.target.value)}
+                      placeholder="Share a few natural details that help reviewers see you are a real person."
+                      disabled={accountLevel >= 1 || asyncEvidenceBusy}
+                    />
+                  </label>
+                  <label className="fieldBlock">
+                    <span className="fieldLabel">Why are you joining WeAll?</span>
+                    <textarea
+                      value={asyncWhyJoining}
+                      onChange={(e) => setAsyncWhyJoining(e.target.value)}
+                      placeholder="Explain why you are joining in your own words."
+                      disabled={accountLevel >= 1 || asyncEvidenceBusy}
+                    />
+                  </label>
+                  <div className="buttonRowWide">
+                    <button type="button" className="btn" onClick={() => setAsyncGuideStep("explain")}>Back to explanation</button>
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      disabled={!asyncPreparationReady || !registered || asyncEvidenceBusy || signerSubmission.busy}
+                      onClick={() => {
+                        ensureAsyncChallenge();
+                        setAsyncGuideStep("record");
+                      }}
+                    >
+                      Continue to recording
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {asyncGuideStep === "record" ? (
+                <div className="formStack" data-testid="async-step-record">
+                  <div className="infoCard compact">
+                    <div className="infoCardHeader">
+                      <strong>Challenge phrase</strong>
+                      <span className="statusPill">Read aloud</span>
+                    </div>
+                    <div className="infoCardText mono">{asyncChallenge?.phrase || "Start recording to generate a fresh challenge phrase."}</div>
+                  </div>
+                  <div className="buttonRowWide">
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      onClick={() => void startAsyncRecording()}
+                      disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
+                    >
+                      {asyncRecordingState === "recording" ? "Recording…" : "Record fresh verification video"}
+                    </button>
+                    <button type="button" className="btn" onClick={() => stopAsyncRecording()} disabled={asyncRecordingState !== "recording"}>
+                      Stop recording
+                    </button>
+                    <button type="button" className="btn btnGhost" onClick={() => resetAsyncRecording()} disabled={asyncRecordingState === "recording" || asyncEvidenceBusy}>
+                      Reset video
+                    </button>
+                  </div>
+                  {asyncRecordingState === "recording" ? (
+                    <div className="infoCard compact" data-testid="async-evidence-live-preview">
+                      <div className="infoCardHeader">
+                        <strong>Live camera preview — recording locally</strong>
+                        <span className="statusPill">Camera and microphone active</span>
+                      </div>
+                      <video ref={recordingPreviewRef} autoPlay muted playsInline style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
+                      <p className="miniMuted">Live camera preview is local. Nothing is uploaded until you submit encrypted evidence.</p>
+                    </div>
+                  ) : null}
+                  <div className="infoCard compact">
+                    <div className="infoCardHeader">
+                      <strong>Recorded duration</strong>
+                      <span className={`statusPill ${asyncRecordedBlob && !asyncDurationError ? "ok" : ""}`}>{asyncRecordingClock}</span>
+                    </div>
+                    <div className="infoCardText">Required length: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</div>
+                    {asyncRecordedBlob && asyncDurationError ? <div className="calloutDanger">{asyncDurationError}</div> : null}
+                  </div>
+                  <div className="buttonRowWide">
+                    <button type="button" className="btn" onClick={() => setAsyncGuideStep("prepare")} disabled={asyncRecordingState === "recording"}>Back to preparation</button>
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      disabled={!asyncRecordedBlob || !!asyncDurationError || asyncRecordingState !== "ready"}
+                      onClick={() => setAsyncGuideStep("review")}
+                    >
+                      Review recorded video
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {asyncGuideStep === "review" ? (
+                <div className="formStack" data-testid="async-step-review">
+                  <h3>Review your recording and consent</h3>
+                  {asyncRecordedUrl ? (
+                    <div data-testid="async-evidence-playback-review">
+                      <p className="miniMuted">Video playback is preloaded locally. Reviewer decryption remains gated by on-chain acceptance.</p>
+                      <video controls playsInline preload="auto" src={asyncRecordedUrl} style={{ width: "100%", marginTop: 10, borderRadius: 12 }} />
+                    </div>
+                  ) : <p className="calloutDanger">Recording unavailable. Return to the recording stage.</p>}
+                  <p className="miniMuted">Recorded duration: {asyncRecordingClock}. Required: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</p>
+                  <label className="checkRow">
+                    <input
+                      type="checkbox"
+                      checked={asyncConsent}
+                      onChange={(e) => setAsyncConsent(e.target.checked)}
+                      disabled={accountLevel >= 1 || asyncEvidenceBusy}
+                    />
+                    <span>Assigned reviewers may view this evidence only for account verification. Public chain state should store commitments and receipts, not raw video.</span>
+                  </label>
+                  <div className="buttonRowWide">
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        resetAsyncRecording();
+                        setAsyncGuideStep("record");
+                      }}
+                    >
+                      Retake video
+                    </button>
+                    <button type="button" className="btn" onClick={() => setAsyncGuideStep("prepare")}>Edit descriptions</button>
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      disabled={!asyncSubmitCheck.ok || asyncEvidenceBusy || signerSubmission.busy}
+                      onClick={() => setAsyncGuideStep("submit")}
+                    >
+                      Continue to encrypted submission
+                    </button>
+                  </div>
+                  {!asyncSubmitCheck.ok ? <p className="miniMuted">{asyncSubmitCheck.reason}</p> : null}
+                </div>
+              ) : null}
+
+              {asyncGuideStep === "submit" ? (
+                <div className="formStack" data-testid="async-step-submit">
+                  <h3>Submit encrypted evidence</h3>
+                  <p className="cardDesc">
+                    This action first uploads encrypted evidence, then submits signed case and access transactions. A successful upload does not mean reviewers were assigned, transactions finalized, or your tier increased.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btnPrimary"
+                    onClick={() => void submitAsyncEvidence()}
+                    disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok || !!asyncUpload}
+                  >
+                    {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : "Submit async verification evidence"}
+                  </button>
+                  {!asyncSubmitCheck.ok && accountLevel < 1 ? <div className="miniMuted">{asyncSubmitCheck.reason}</div> : null}
+                  <button type="button" className="btn" disabled={asyncEvidenceBusy || !!asyncUpload} onClick={() => setAsyncGuideStep("review")}>Back to review</button>
+                  <button className="btn btnGhost" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
+                    Show verification next steps
+                  </button>
+                </div>
+              ) : null}
+
+              {asyncGuideStep === "track" ? (
+                <div className="formStack" data-testid="async-step-track">
+                  <h3>Track verification status</h3>
+                  {asyncUpload ? (
+                    <div className="calloutInfo" data-testid="async-upload-accepted">
+                      Encrypted evidence storage accepted the upload. The signed case, reviewer access, and finality remain separate checks.
+                      If a later step fails, check verification history before re-uploading. Do not repeat an uncertain signed submission.
+                    </div>
+                  ) : (
+                    <p className="calloutInfo">Existing cases may be visible below. Refresh the network view before deciding whether any new request is appropriate.</p>
+                  )}
+                  {asyncUpload ? <JsonDetails title="Latest async evidence upload payload" value={asyncUpload} /> : null}
+                  <button
+                    type="button"
+                    className="btn btnPrimary"
+                    onClick={() => void refreshVerificationSurface()}
+                    disabled={loading || casesBusy || asyncEvidenceBusy}
+                  >
+                    {loading || casesBusy || asyncEvidenceBusy ? "Checking…" : "Refresh canonical verification status"}
+                  </button>
+                  <p className="miniMuted">Only a canonical account tier update confirms verification. The case history below lists visible request and reviewer progress.</p>
                 </div>
               ) : null}
             </div>
-            <label className="checkRow">
-              <input
-                type="checkbox"
-                checked={asyncConsent}
-                onChange={(e) => setAsyncConsent(e.target.checked)}
-                disabled={accountLevel >= 1 || asyncEvidenceBusy}
-              />
-              <span>Assigned reviewers may view this evidence only for account verification. Public chain state should store commitments and receipts, not raw video.</span>
-            </label>
-            {asyncUpload ? (
-              <div className="calloutInfo" data-testid="async-upload-accepted">
-                Encrypted evidence storage accepted the upload. The signed case, reviewer access, and finality remain separate checks.
-                If a later step fails, check verification history before re-uploading.
-              </div>
-            ) : null}
-            {asyncUpload ? <JsonDetails title="Latest async evidence upload payload" value={asyncUpload} /> : null}
-            <button
-              className="btn btnPrimary"
-              onClick={() => void submitAsyncEvidence()}
-              disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok}
-            >
-              {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : accountLevel >= 1 ? "Async verification complete" : "Submit async verification evidence"}
-            </button>
-            {!asyncSubmitCheck.ok && accountLevel < 1 ? <div className="miniMuted">{asyncSubmitCheck.reason}</div> : null}
-            <button className="btn btnGhost" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
-              Show verification next steps
-            </button>
-          </div>
-        </StatusCard>
+          </StatusCard>
+        ) : (
+          <StatusCard
+            eyebrow="Basic human review"
+            title={VERIFICATION_LABELS.verified}
+            status="done"
+            description="The current canonical account view indicates basic verification. Continue to live verification if you need trusted participation."
+          />
+        )}
+        {accountLevel >= 1 ? (
         <StatusCard
           eyebrow="Live human review"
           title={VERIFICATION_LABELS.trusted}
@@ -1530,6 +1687,7 @@ export default function AccountVerificationPage(): JSX.Element {
           ) : null}
           {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
         </StatusCard>
+        ) : null}
       </section>
 
       <section className="card">
