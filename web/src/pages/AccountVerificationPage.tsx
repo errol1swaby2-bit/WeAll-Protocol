@@ -27,7 +27,17 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
-import { nav } from "../lib/router";
+import { currentHashPath, nav } from "../lib/router";
+import {
+  allowedAsyncPohStep,
+  allowedLivePohStep,
+  asyncPohRoute,
+  livePohRoute,
+  parseAsyncPohRoute,
+  parseLivePohJourneyRoute,
+  type AsyncPohGuideStep,
+  type LivePohGuideStep,
+} from "../lib/pohGuidedRoutes";
 import { refreshMutationSlices } from "../lib/revalidation";
 import {
   ASYNC_VIDEO_MAX_SECONDS,
@@ -439,6 +449,7 @@ async function waitForAsyncAssignedCase(account: string, caseId: string, base: s
 
 export default function AccountVerificationPage(): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
+  const [guidedRoutePath, setGuidedRoutePath] = useState(() => currentHashPath());
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
   const kp = acct ? getKeypair(acct) : null;
@@ -468,7 +479,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const [sessionBusy, setSessionBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [liveCommitments, setLiveCommitments] = useState<any | null>(null);
-  const [liveGuideStep, setLiveGuideStep] = useState<"explain" | "request" | "track">("explain");
+  const [liveGuideStep, setLiveGuideStep] = useState<LivePohGuideStep>("explain");
   const [reviewerBusy, setReviewerBusy] = useState<"optIn" | "optOut" | null>(null);
   const [casesBusy, setCasesBusy] = useState(false);
   const [asyncEvidenceBusy, setAsyncEvidenceBusy] = useState(false);
@@ -484,9 +495,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const [asyncUpload, setAsyncUpload] = useState<UploadState | null>(null);
   // F2: UI progression is local guidance only, never a PoH tier or chain outcome.
   // Keep recorded evidence in component memory; do not persist video or secrets.
-  const [asyncGuideStep, setAsyncGuideStep] = useState<
-    "explain" | "prepare" | "record" | "review" | "submit" | "track"
-  >("explain");
+  const [asyncGuideStep, setAsyncGuideStep] = useState<AsyncPohGuideStep>("explain");
 
   const [asyncCases, setAsyncCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
@@ -496,6 +505,19 @@ export default function AccountVerificationPage(): JSX.Element {
   const [asyncJournal, setAsyncJournal] = useState<PohJournalRead>(() => acct ? readPohSubmissionJournal(acct, "async") : { status: "unavailable" });
   const [liveJournal, setLiveJournal] = useState<PohJournalRead>(() => acct ? readPohSubmissionJournal(acct, "live") : { status: "unavailable" });
   const asyncJournalBlocked = asyncJournal.status !== "none";
+  const isAsyncJourneyRoute = parseAsyncPohRoute(guidedRoutePath) !== null;
+  const isLiveJourneyRoute = parseLivePohJourneyRoute(guidedRoutePath) !== null;
+  const isVerificationLanding = !isAsyncJourneyRoute && !isLiveJourneyRoute;
+
+  function goAsyncStep(stage: AsyncPohGuideStep): void {
+    setAsyncGuideStep(stage);
+    nav(asyncPohRoute(stage));
+  }
+
+  function goLiveStep(stage: LivePohGuideStep): void {
+    setLiveGuideStep(stage);
+    nav(livePohRoute(stage));
+  }
   const liveJournalBlocked = liveJournal.status !== "none";
 
   function rereadPohJournals(): void {
@@ -614,11 +636,17 @@ export default function AccountVerificationPage(): JSX.Element {
   }
 
   useEffect(() => {
+    const onGuidedRouteChange = () => setGuidedRoutePath(currentHashPath());
+    window.addEventListener("hashchange", onGuidedRouteChange);
+    return () => window.removeEventListener("hashchange", onGuidedRouteChange);
+  }, []);
+
+  useEffect(() => {
     rereadPohJournals();
     const asyncPending = acct ? readPohSubmissionJournal(acct, "async") : { status: "none" as const };
     const livePending = acct ? readPohSubmissionJournal(acct, "live") : { status: "none" as const };
-    if (asyncPending.status !== "none") setAsyncGuideStep("track");
-    if (livePending.status !== "none") setLiveGuideStep("track");
+    if (asyncPending.status !== "none") goAsyncStep("track");
+    if (livePending.status !== "none") goLiveStep("track");
     void refresh();
     void loadVerificationData();
     // Storage updates from another tab can block a duplicate request before
@@ -947,7 +975,7 @@ export default function AccountVerificationPage(): JSX.Element {
           // Write before the first external side effect. A crash, lost HTTP
           // reply or tab reload must never license a second evidence upload.
           recordPohStage("async", "upload_started", caseId);
-          setAsyncGuideStep("track");
+          goAsyncStep("track");
           const upload: UploadState = await weall.pohAsyncVideoUpload(encryptedEvidence.file, base, uploadHeaders);
           if (!String(upload?.cid || "").trim()) {
             throw new Error("The media endpoint returned no ciphertext CID; the signed case was not submitted.");
@@ -957,7 +985,7 @@ export default function AccountVerificationPage(): JSX.Element {
           setAsyncUpload(upload);
           // Storage acceptance is a separate phase from canonical case review.
           // The tracking screen never implies that signed transactions finalized.
-          setAsyncGuideStep("track");
+          goAsyncStep("track");
 
           const challengeCommitment = await sha256HexText(`weall:poh_async_challenge_v1:${acct}:${challenge.challengeId}:${challenge.phrase}`);
           const responseCommitment = await sha256HexText(`weall:poh_async_response_v1:${acct}:${challenge.challengeId}:${encryptedEvidence.ciphertextCommitment}:${asyncAbout.trim()}:${asyncWhyJoining.trim()}`);
@@ -1132,11 +1160,11 @@ export default function AccountVerificationPage(): JSX.Element {
       if (acct && readPohSubmissionJournal(acct, "async").status !== "none") {
         // Even when the request failed before a visible acknowledgement,
         // an earlier side effect may have been admitted. Track, do not retry.
-        setAsyncGuideStep("track");
+        goAsyncStep("track");
         rereadPohJournals();
       }
       if (acceptedUpload) {
-        setAsyncGuideStep("track");
+        goAsyncStep("track");
         setErr({
           msg: caseTransactionsSubmitted
             ? "Verification transactions were submitted, but refreshing their status failed. Check verification history before retrying."
@@ -1286,7 +1314,7 @@ export default function AccountVerificationPage(): JSX.Element {
           // pre-dispatch marker with an empty ID deliberately requires
           // manual reconciliation if the response is lost.
           recordPohStage("live", "signed_started", "");
-          setLiveGuideStep("track");
+          goLiveStep("track");
           const submit = await submitSignedTxInSequence({
             sequence,
             tx_type: String(skeletonTx.tx_type || ""),
@@ -1349,7 +1377,7 @@ export default function AccountVerificationPage(): JSX.Element {
       }
     } catch (e: any) {
       if (acct && readPohSubmissionJournal(acct, "live").status !== "none") {
-        setLiveGuideStep("track");
+        goLiveStep("track");
         rereadPohJournals();
       }
       setErr(prettyErr(e));
@@ -1564,7 +1592,7 @@ export default function AccountVerificationPage(): JSX.Element {
                 kind="async"
                 journal={asyncJournal}
                 currentNodeBase={base}
-                onTrack={() => setAsyncGuideStep("track")}
+                onTrack={() => goAsyncStep("track")}
               />
 
               {asyncGuideStep === "explain" ? (
@@ -1579,7 +1607,7 @@ export default function AccountVerificationPage(): JSX.Element {
                   {asyncCases.length > 0 ? (
                     <div className="calloutInfo" data-testid="async-existing-cases">
                       You have {asyncCases.length} visible verification case(s). Inspect verification history and outstanding reviewer access before starting another request.
-                      <button type="button" className="btn" onClick={() => setAsyncGuideStep("track")}>
+                      <button type="button" className="btn" onClick={() => goAsyncStep("track")}>
                         Inspect existing verification cases
                       </button>
                     </div>
@@ -1587,7 +1615,7 @@ export default function AccountVerificationPage(): JSX.Element {
                   <button
                     type="button"
                     className="btn btnPrimary"
-                    onClick={() => setAsyncGuideStep("prepare")}
+                    onClick={() => goAsyncStep("prepare")}
                     disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
                   >
                     Prepare verification
@@ -1620,14 +1648,14 @@ export default function AccountVerificationPage(): JSX.Element {
                     />
                   </label>
                   <div className="buttonRowWide">
-                    <button type="button" className="btn" onClick={() => setAsyncGuideStep("explain")}>Back to explanation</button>
+                    <button type="button" className="btn" onClick={() => goAsyncStep("explain")}>Back to explanation</button>
                     <button
                       type="button"
                       className="btn btnPrimary"
                       disabled={!asyncPreparationReady || !registered || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
                       onClick={() => {
                         ensureAsyncChallenge();
-                        setAsyncGuideStep("record");
+                        goAsyncStep("record");
                       }}
                     >
                       Continue to recording
@@ -1681,12 +1709,12 @@ export default function AccountVerificationPage(): JSX.Element {
                     {asyncRecordedBlob && asyncDurationError ? <div className="calloutDanger">{asyncDurationError}</div> : null}
                   </div>
                   <div className="buttonRowWide">
-                    <button type="button" className="btn" onClick={() => setAsyncGuideStep("prepare")} disabled={asyncRecordingState === "recording"}>Back to preparation</button>
+                    <button type="button" className="btn" onClick={() => goAsyncStep("prepare")} disabled={asyncRecordingState === "recording"}>Back to preparation</button>
                     <button
                       type="button"
                       className="btn btnPrimary"
                       disabled={!asyncRecordedBlob || !!asyncDurationError || asyncRecordingState !== "ready"}
-                      onClick={() => setAsyncGuideStep("review")}
+                      onClick={() => goAsyncStep("review")}
                     >
                       Review recorded video
                     </button>
@@ -1720,17 +1748,17 @@ export default function AccountVerificationPage(): JSX.Element {
                       className="btn"
                       onClick={() => {
                         resetAsyncRecording();
-                        setAsyncGuideStep("record");
+                        goAsyncStep("record");
                       }}
                     >
                       Retake video
                     </button>
-                    <button type="button" className="btn" onClick={() => setAsyncGuideStep("prepare")}>Edit descriptions</button>
+                    <button type="button" className="btn" onClick={() => goAsyncStep("prepare")}>Edit descriptions</button>
                     <button
                       type="button"
                       className="btn btnPrimary"
                       disabled={!asyncSubmitCheck.ok || asyncEvidenceBusy || signerSubmission.busy}
-                      onClick={() => setAsyncGuideStep("submit")}
+                      onClick={() => goAsyncStep("submit")}
                     >
                       Continue to encrypted submission
                     </button>
@@ -1755,7 +1783,7 @@ export default function AccountVerificationPage(): JSX.Element {
                     {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : "Submit async verification evidence"}
                   </button>
                   {!asyncSubmitCheck.ok && accountLevel < 1 ? <div className="miniMuted">{asyncSubmitCheck.reason}</div> : null}
-                  <button type="button" className="btn" disabled={asyncEvidenceBusy || !!asyncUpload} onClick={() => setAsyncGuideStep("review")}>Back to review</button>
+                  <button type="button" className="btn" disabled={asyncEvidenceBusy || !!asyncUpload} onClick={() => goAsyncStep("review")}>Back to review</button>
                   <button className="btn btnGhost" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
                     Show verification next steps
                   </button>
@@ -1826,7 +1854,7 @@ export default function AccountVerificationPage(): JSX.Element {
                   kind="live"
                   journal={liveJournal}
                   currentNodeBase={base}
-                  onTrack={() => setLiveGuideStep("track")}
+                  onTrack={() => goLiveStep("track")}
                 />
 
                 {liveGuideStep === "explain" ? (
@@ -1841,10 +1869,10 @@ export default function AccountVerificationPage(): JSX.Element {
                     {liveCases.length > 0 ? (
                       <div className="calloutInfo" data-testid="live-existing-cases">
                         {liveCases.length} live case(s) are visible. Inspect and reopen an existing case before requesting a replacement.
-                        <button type="button" className="btn" onClick={() => setLiveGuideStep("track")}>Inspect existing live cases</button>
+                        <button type="button" className="btn" onClick={() => goLiveStep("track")}>Inspect existing live cases</button>
                       </div>
                     ) : null}
-                    <button type="button" className="btn btnPrimary" disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || liveJournalBlocked || casesBusy || liveRequestBusy || signerSubmission.busy} onClick={() => setLiveGuideStep("request")}>
+                    <button type="button" className="btn btnPrimary" disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || liveJournalBlocked || casesBusy || liveRequestBusy || signerSubmission.busy} onClick={() => goLiveStep("request")}>
                       Prepare live verification request
                     </button>
                     {!verificationHistoryReady.live ? <p className="calloutDanger" data-testid="live-history-unavailable" role="status">{casesBusy ? "Checking earlier cases…" : "Live case history unavailable. Reconcile previous requests before opening a new signed request."}</p> : null}
@@ -1863,8 +1891,8 @@ export default function AccountVerificationPage(): JSX.Element {
                       {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : "Open live verification"}
                     </button>
                     <div className="buttonRowWide">
-                      <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => setLiveGuideStep("explain")}>Back to explanation</button>
-                      <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => setLiveGuideStep("track")}>Check existing request status</button>
+                      <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => goLiveStep("explain")}>Back to explanation</button>
+                      <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => goLiveStep("track")}>Check existing request status</button>
                     </div>
                     {liveCommitments ? (
                       <div className="infoCard compact">
@@ -1915,7 +1943,7 @@ export default function AccountVerificationPage(): JSX.Element {
                     ))}
                     {liveCases.length === 0 && verificationHistoryReady.live ? <p className="miniMuted">No canonical live case is visible yet. The node may be catching up; do not blindly resubmit a signed request.</p> : null}
                     {!verificationHistoryReady.live ? <p className="calloutDanger" role="status">The node could not confirm live case history. Any earlier case view may be stale. Reconcile before trying again.</p> : null}
-                    <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => setLiveGuideStep("explain")}>Back to explanation</button>
+                    <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => goLiveStep("explain")}>Back to explanation</button>
                   </div>
                 ) : null}
               </div>
