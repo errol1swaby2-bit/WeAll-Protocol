@@ -11,7 +11,7 @@ for (const token of [
   "onNavigate={() => setMenuOpen(false)}",
   'aria-label="Breadcrumbs"',
   'id="app-shell-content"',
-  "key={routeKey}",
+  "key={contentRouteKey}",
   'className="appShellInfoToggle"',
   'id="app-shell-context-drawer"',
   'role="dialog"',
@@ -25,6 +25,19 @@ for (const token of [
   'aria-label="Helpful page summary"',
 ]) {
   if (!shell.includes(token)) throw new Error(`Focused shell contract missing: ${token}`);
+}
+// Main content remains keyed for unrelated pages, while the native PoH
+// recorder stays mounted across in-flow route transitions. Do not weaken
+// the drawer reset or let an unrelated page inherit recording state.
+for (const token of [
+  "const routeKey = JSON.stringify(route)",
+  'route.path === "/verification"',
+  'route.path === "/verification/async/:stage"',
+  'route.path === "/verification/live/journey/:stage"',
+  '"verification-guided-controller" : routeKey',
+  "}, [routeKey]);",
+]) {
+  if (!shell.includes(token)) throw new Error(`Focused shell / recorder lifetime contract missing: ${token}`);
 }
 for (const token of [
   "onNavigate?.()",
