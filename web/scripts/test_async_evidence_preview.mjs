@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(resolve(dir, "../src/pages/AccountVerificationPage.tsx"), "utf8");
+const responsibilities = readFileSync(resolve(dir, "../src/components/TrustedResponsibilitiesPanel.tsx"), "utf8");
 assert.match(source, /recordingPreviewRef/);
 assert.match(source, /preview\.srcObject = stream/);
 assert.match(source, /async-evidence-live-preview/);
@@ -49,7 +50,12 @@ assert.match(source, /No canonical live case is visible yet/);
 assert.match(source, /A deterministic expected case ID or pending request is not proof/);
 assert.match(source, /data-testid="live-verification-complete"/);
 assert.match(source, /accountLevel >= 2 \? \(/);
-assert.match(source, /data-testid="trusted-responsibilities-locked"/);
+assert.match(source, /<TrustedResponsibilitiesPanel/);
+assert.match(responsibilities, /if \(accountLevel < 2\)/);
+assert.match(responsibilities, /data-testid="trusted-responsibilities-locked"/);
+assert.match(responsibilities, /data-testid="trusted-responsibilities-eligible"/);
+assert.match(responsibilities, /onUpdateContentReviewLane\(true\)/);
+assert.match(source, /tx_type: active \? "REVIEWER_LANE_OPT_IN" : "REVIEWER_LANE_OPT_OUT"/);
 assert.match(source, /aria-label="Async verification steps"/);
 assert.match(source, /aria-label="Live verification steps"/);
 
