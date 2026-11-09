@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 const dir = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(resolve(dir, "../src/pages/AccountVerificationPage.tsx"), "utf8");
 const responsibilities = readFileSync(resolve(dir, "../src/components/TrustedResponsibilitiesPanel.tsx"), "utf8");
+const progress = readFileSync(resolve(dir, "../src/components/PohStepProgress.tsx"), "utf8");
 assert.match(source, /recordingPreviewRef/);
 assert.match(source, /preview\.srcObject = stream/);
 assert.match(source, /async-evidence-live-preview/);
@@ -25,7 +26,9 @@ for (const stage of ["explain", "prepare", "record", "review", "submit", "track"
   assert.ok(source.includes(`data-testid="async-step-${stage}"`), `missing guided ${stage} stage`);
   assert.ok(source.includes(`asyncGuideStep === "${stage}"`), `stage ${stage} must be gated`);
 }
-assert.match(source, /aria-current=\{asyncStepIds\[index\] === asyncGuideStep/);
+assert.match(source, /<PohStepProgress/);
+assert.match(progress, /aria-current=\{step.id === current \? "step"/);
+assert.match(progress, /role="status" aria-live="polite"/);
 assert.match(source, /disabled=\{!asyncPreparationReady \|\| !registered/);
 assert.match(source, /disabled=\{!asyncRecordedBlob \|\| !!asyncDurationError/);
 assert.match(source, /disabled=\{!asyncSubmitCheck\.ok \|\| asyncEvidenceBusy/);
@@ -56,8 +59,8 @@ assert.match(responsibilities, /data-testid="trusted-responsibilities-locked"/);
 assert.match(responsibilities, /data-testid="trusted-responsibilities-eligible"/);
 assert.match(responsibilities, /onUpdateContentReviewLane\(true\)/);
 assert.match(source, /tx_type: active \? "REVIEWER_LANE_OPT_IN" : "REVIEWER_LANE_OPT_OUT"/);
-assert.match(source, /aria-label="Async verification steps"/);
-assert.match(source, /aria-label="Live verification steps"/);
+assert.match(source, /label="Async verification steps"/);
+assert.match(source, /label="Live verification steps"/);
 
 // A read error is unknown, never a confirmed empty history.
 assert.match(source, /Promise\.allSettled\(\[/);
