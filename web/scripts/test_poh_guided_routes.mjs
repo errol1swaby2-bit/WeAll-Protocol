@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   allowedAsyncPohStep,
   allowedLivePohStep,
@@ -39,4 +40,16 @@ assert.equal(allowedLivePohStep("request", 0, false, false), "explain");
 assert.equal(allowedLivePohStep("request", 2, false, false), "explain");
 assert.equal(allowedLivePohStep("request", 1, true, false), "track");
 assert.equal(allowedLivePohStep("explain", 1, false, true), "track");
+// App-shell route transitions MUST NOT remount the native recorder when
+// only a guided step changed. All unrelated routes retain their distinct keys.
+const shell = readFileSync(new URL("../src/components/AppShell.tsx", import.meta.url), "utf8");
+const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+const router = readFileSync(new URL("../src/lib/router.ts", import.meta.url), "utf8");
+assert.match(shell, /route.path === "\/verification\/async\/:stage"/);
+assert.match(shell, /route.path === "\/verification\/live\/journey\/:stage"/);
+assert.match(shell, /<main key=\{contentRouteKey\}/);
+assert.match(shell, /setMenuOpen\(false\)/);
+assert.match(app, /case "\/verification\/async\/:stage":/);
+assert.match(app, /case "\/verification\/live\/journey\/:stage":/);
+assert.ok(router.includes('"/verification/live/:caseId"'), "do not shadow existing case-room route");
 console.log("PASS: URL-backed PoH routes cannot revive video, skip consent, or repeat uncertain signing");
