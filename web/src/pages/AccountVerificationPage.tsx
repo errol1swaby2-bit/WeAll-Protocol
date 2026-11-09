@@ -452,6 +452,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const [sessionBusy, setSessionBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [liveCommitments, setLiveCommitments] = useState<any | null>(null);
+  const [liveGuideStep, setLiveGuideStep] = useState<"explain" | "request" | "track">("explain");
   const [reviewerBusy, setReviewerBusy] = useState<"optIn" | "optOut" | null>(null);
   const [casesBusy, setCasesBusy] = useState(false);
   const [asyncEvidenceBusy, setAsyncEvidenceBusy] = useState(false);
@@ -1409,7 +1410,7 @@ export default function AccountVerificationPage(): JSX.Element {
             description="Complete your first human review through six separate stages. Every upload, signed case, reviewer decision and account tier is verified separately."
           >
             <div className="formStack" data-testid="async-guided-journey">
-              <ol className="statusRowWrap" aria-label="Async verification steps">
+              <ol className="statusRowWrap" aria-label="Async verification steps" style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {asyncStepNames.map((label, index) => (
                   <li
                     key={label}
@@ -1649,43 +1650,111 @@ export default function AccountVerificationPage(): JSX.Element {
           />
         )}
         {accountLevel >= 1 ? (
-        <StatusCard
-          eyebrow="Live human review"
-          title={VERIFICATION_LABELS.trusted}
-          status={trustedStatus}
-          description="Complete live verification to create posts, vote in community decisions, report harmful content, and apply for trusted responsibilities."
-        >
-          <div className="calloutInfo">
-            Live verification requests now prepare session, room, and prompt commitments before the signed request is submitted. The chain stores commitments and review receipts, not raw identity session recordings.
-          </div>
-          <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}>
-            {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : accountLevel < 1 ? blockedByVerificationMessage(1) : "Open live verification"}
-          </button>
-          {liveCommitments ? (
-            <div className="infoCard compact">
-              <div className="infoCardHeader">
-                <strong>Decentralized P2P live room</strong>
-                <span className="statusPill">Transport only</span>
+          <StatusCard
+            eyebrow="Live human review"
+            title={VERIFICATION_LABELS.trusted}
+            status={trustedStatus}
+            description="Live verification is a separate, higher-trust review. Opening a room or submitting a signed request is not the final reviewer decision."
+          >
+            {accountLevel >= 2 ? (
+              <div className="calloutInfo" data-testid="live-verification-complete">
+                The canonical account view reports Tier 2. Any separate reviewer or validator authority still requires its own eligibility and authorization.
               </div>
-              <div className="infoCardText">{liveRoomTransportNotice()}</div>
-              {liveRoomUrlFromCommitment(liveCommitments.room_commitment) ? (
-                <div className="buttonRow" style={{ marginTop: 10 }}>
-                  <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">
-                    Open self-hosted room
-                  </a>
-                </div>
-              ) : (
-                <div className="miniMuted">A decentralized P2P room descriptor will be created from the room commitment. No centralized room URL is required.</div>
-              )}
-              {liveRoomDescriptorText(liveCommitments.room_commitment) ? (
-                <details className="advancedDetails">
-                  <summary>Advanced: P2P room descriptor</summary>
-                  <pre className="jsonBlock">{liveRoomDescriptorText(liveCommitments.room_commitment)}</pre>
-                </details>
-              ) : null}
-            </div>
-          ) : null}
-          {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
+            ) : (
+              <div className="formStack" data-testid="live-guided-journey">
+                <ol className="statusRowWrap" aria-label="Live verification steps" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                  {(["explain", "request", "track"] as const).map((phase, index) => (
+                    <li key={phase} className={`statusPill ${phase === liveGuideStep ? "ok" : ""}`} aria-current={phase === liveGuideStep ? "step" : undefined}>
+                      {index + 1}. {phase === "explain" ? "Understand" : phase === "request" ? "Request" : "Track"}
+                    </li>
+                  ))}
+                </ol>
+                {liveGuideStep === "explain" ? (
+                  <div className="formStack" data-testid="live-step-explain">
+                    <p className="cardDesc">
+                      The live session prepares commitments for the subject, room and prompt, then submits a signed request. Independent attendance, reviewer decisions, canonical receipts and synchronized account state remain separate steps.
+                    </p>
+                    <div className="calloutInfo">
+                      Camera, microphone and peer-to-peer transport must be available for participation. No third-party identity service is required, but a prepared room does not prove that other participants can connect.
+                    </div>
+                    {liveCases.length > 0 ? (
+                      <div className="calloutInfo" data-testid="live-existing-cases">
+                        {liveCases.length} live case(s) are visible. Inspect and reopen an existing case before requesting a replacement.
+                        <button type="button" className="btn" onClick={() => setLiveGuideStep("track")}>Inspect existing live cases</button>
+                      </div>
+                    ) : null}
+                    <button type="button" className="btn btnPrimary" disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || liveRequestBusy || signerSubmission.busy} onClick={() => setLiveGuideStep("request")}>
+                      Prepare live verification request
+                    </button>
+                  </div>
+                ) : null}
+                {liveGuideStep === "request" ? (
+                  <div className="formStack" data-testid="live-step-request">
+                    <p className="cardDesc">Opening a live verification request signs and sends a new protocol action. Do not repeat a request with uncertain status; use the case history and transaction receipt to reconcile first.</p>
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      onClick={() => void submitLiveRequest()}
+                      disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}
+                    >
+                      {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : "Open live verification"}
+                    </button>
+                    <div className="buttonRowWide">
+                      <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => setLiveGuideStep("explain")}>Back to explanation</button>
+                      <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => setLiveGuideStep("track")}>Check existing request status</button>
+                    </div>
+                    {liveCommitments ? (
+                      <div className="infoCard compact">
+                        <div className="infoCardHeader">
+                          <strong>Prepared decentralized P2P room</strong>
+                          <span className="statusPill">Transport only</span>
+                        </div>
+                        <div className="infoCardText">{liveRoomTransportNotice()}</div>
+                        {liveRoomUrlFromCommitment(liveCommitments.room_commitment) ? (
+                          <div className="buttonRow">
+                            <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">Open self-hosted room</a>
+                          </div>
+                        ) : (
+                          <p className="miniMuted">The room descriptor is prepared locally. Other participants and transport availability have not yet been verified.</p>
+                        )}
+                        {liveRoomDescriptorText(liveCommitments.room_commitment) ? (
+                          <details className="advancedDetails">
+                            <summary>Advanced: P2P room descriptor</summary>
+                            <pre className="jsonBlock">{liveRoomDescriptorText(liveCommitments.room_commitment)}</pre>
+                          </details>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
+                  </div>
+                ) : null}
+                {liveGuideStep === "track" ? (
+                  <div className="formStack" data-testid="live-step-track">
+                    <p className="cardDesc">
+                      A case becomes actionable only when it appears in canonical verification history. A deterministic expected case ID or pending request is not proof of finalized verification.
+                    </p>
+                    <button type="button" className="btn btnPrimary" disabled={loading || casesBusy || liveRequestBusy} onClick={() => void refreshVerificationSurface()}>
+                      {loading || casesBusy || liveRequestBusy ? "Checking…" : "Refresh live case status"}
+                    </button>
+                    {liveCases.map((item: any, idx: number) => (
+                      <div className="infoCard compact" key={String(item?.case_id || idx)}>
+                        <CaseCard item={item} />
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={!item?.case_id}
+                          onClick={() => nav(`/verification/live/${encodeURIComponent(String(item?.case_id || ""))}`)}
+                        >
+                          Open recorded live case
+                        </button>
+                      </div>
+                    ))}
+                    {liveCases.length === 0 ? <p className="miniMuted">No canonical live case is visible yet. The node may be catching up; do not blindly resubmit a signed request.</p> : null}
+                    <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => setLiveGuideStep("explain")}>Back to explanation</button>
+                  </div>
+                ) : null}
+              </div>
+            )}
         </StatusCard>
         ) : null}
       </section>
