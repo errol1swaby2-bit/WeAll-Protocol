@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import PohSubmissionStatusNotice from "../components/PohSubmissionStatusNotice";
+import VerificationHistoryPanel from "../components/VerificationHistoryPanel";
 import {
   beginNonceSequence,
   getAuthHeaders,
@@ -1993,77 +1994,56 @@ export default function AccountVerificationPage(): JSX.Element {
         </details>
       )}
 
-      <section className="grid2">
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Verification History</div>
-                <h2 className="cardTitle">Requests, reviews, and live sessions</h2>
+      <VerificationHistoryPanel
+        asyncCases={asyncCases}
+        liveCases={liveCases}
+        liveSessions={liveSessions}
+        asyncHistoryReady={verificationHistoryReady.async}
+        liveHistoryReady={verificationHistoryReady.live}
+        loading={loading}
+        casesBusy={casesBusy}
+        onRefresh={() => void refreshVerificationSurface()}
+        accountState={acctState}
+        registrationView={registration}
+        lastResult={result}
+        renderAsyncCase={(item) => (
+          <CaseCard
+            item={item}
+            onFinishReviewerAccess={(caseId) => void finishAsyncReviewerAccess(caseId)}
+            working={asyncEvidenceBusy || signerSubmission.busy}
+          />
+        )}
+        renderLiveCase={(item) => {
+          const roomUrl = liveRoomUrlFromCommitment(item?.room_commitment);
+          const descriptor = liveRoomDescriptorText(item?.room_commitment);
+          return (
+            <div className="infoCard compact">
+              <CaseCard item={item} />
+              <div className="buttonRow" style={{ marginTop: 10 }}>
+                <button
+                  className="btn btnPrimary"
+                  disabled={!item?.case_id}
+                  onClick={() => nav(`/verification/live/${encodeURIComponent(String(item?.case_id || ""))}`)}
+                >
+                  Open live verification room
+                </button>
+                {roomUrl ? (
+                  <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
+                    Open self-hosted transport
+                  </a>
+                ) : null}
               </div>
-              <span className="statusPill">{liveCases.length + asyncCases.length} item(s)</span>
+              <div className="miniMuted">{liveRoomTransportNotice()}</div>
+              {descriptor ? (
+                <details className="advancedDetails">
+                  <summary>P2P room descriptor</summary>
+                  <pre className="jsonBlock">{descriptor}</pre>
+                </details>
+              ) : null}
             </div>
-            <p className="cardDesc">
-              This area shows account-verification work that is visible to this device. It is written as a history of requests and reviews, not as protocol machinery.
-            </p>
-            {liveCases.length ? (
-              <div className="infoGrid">
-                {liveCases.map((it: any, idx: number) => {
-                  const roomUrl = liveRoomUrlFromCommitment(it?.room_commitment);
-                  const p2pDescriptor = liveRoomDescriptorText(it?.room_commitment);
-                  return (
-                    <div key={String(it?.case_id || idx)} className="infoCard compact">
-                      <CaseCard item={it} />
-                      <div className="buttonRow" style={{ marginTop: 10 }}>
-                        <button className="btn btnPrimary" onClick={() => nav(`/verification/live/${encodeURIComponent(String(it?.case_id || ""))}`)} disabled={!it?.case_id}>
-                          Open live verification room
-                        </button>
-                        {roomUrl ? (
-                          <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
-                            Open self-hosted transport
-                          </a>
-                        ) : null}
-                      </div>
-                      <div className="miniMuted">{liveRoomTransportNotice()}</div>
-                      {p2pDescriptor ? (
-                        <details className="advancedDetails">
-                          <summary>P2P room descriptor</summary>
-                          <pre className="jsonBlock">{p2pDescriptor}</pre>
-                        </details>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-            {asyncCases.length ? <div className="infoGrid">{asyncCases.map((it: any, idx: number) => (
-              <CaseCard
-                key={String(it?.case_id || idx)}
-                item={it}
-                onFinishReviewerAccess={(caseId) => void finishAsyncReviewerAccess(caseId)}
-                working={asyncEvidenceBusy || signerSubmission.busy}
-              />
-            ))}</div> : null}
-            {!liveCases.length && !asyncCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No verification history is visible yet.</div></div> : null}
-            {liveSessions.length ? <JsonDetails title="Advanced: live session payloads" value={liveSessions} /> : null}
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Advanced Details</div>
-                <h2 className="cardTitle">Technical records</h2>
-              </div>
-            </div>
-            <p className="cardDesc">These records are hidden by default because they are for review, debugging, and auditability.</p>
-            <JsonDetails title="Advanced: current account state" value={acctState} />
-            <JsonDetails title="Advanced: registration payload" value={registration} />
-            {result ? <JsonDetails title="Advanced: last API result" value={result} /> : <div className="emptyState compactEmpty"><div className="emptyTitle">No recent action payload.</div></div>}
-          </div>
-        </article>
-      </section>
+          );
+        }}
+      />
 
     </div>
   );
