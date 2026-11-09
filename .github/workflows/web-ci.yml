@@ -131,6 +131,10 @@ jobs:
         run: |
           npm run test:verification-history-panel
 
+      - name: URL-backed guided PoH stage guards and reload fail-closed behavior
+        run: |
+          npm run test:poh-guided-routes
+
       - name: Flag reporter review and target lookup regression
         run: |
           npm run test:content-flag-report-truth
