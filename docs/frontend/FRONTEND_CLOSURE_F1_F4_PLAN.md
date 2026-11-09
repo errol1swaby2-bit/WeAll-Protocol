@@ -48,6 +48,14 @@ the exact branch head. Unit/static checks alone are insufficient.
 
 ## F2 — Guided Proof-of-Humanity journeys
 
+**2026-11-09 bounded progress (draft #82):** First-use custody and
+six-stage async / three-stage live PoH presentation are implemented and
+tested at previous exact heads. A non-secret crash/reload interlock stops
+ambiguous repeat signed requests, and canonical case history and trusted
+eligibility presentation are now independently componentized. These are
+incremental closures, not proof of multi-device live PoH or full route
+decompression. Backend signing paths remain centralized in the parent.
+
 The existing AccountVerificationPage contains multiple responsibilities,
 including account setup, async video acquisition, encrypted evidence upload,
 reviewer-access binding, live request generation, trusted roles, and case
