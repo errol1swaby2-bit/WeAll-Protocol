@@ -1317,9 +1317,8 @@ export default function AccountVerificationPage(): JSX.Element {
             throw new Error("The backend live verification skeleton is missing required session commitments.");
           }
 
-          // Batch 417: use the sequenced signer path so the UI can derive the
-          // deterministic live case id from the signed nonce and open the room
-          // even when observer-local reads lag behind genesis confirmation.
+          // Reserve the signing nonce so the new room can be identified by
+          // this transaction, even when the observer read model is behind.
           const sequence = await beginNonceSequence(acct, base);
           // The case ID is not known until the signed nonce returns. A
           // pre-dispatch marker with an empty ID deliberately requires
@@ -1343,10 +1342,8 @@ export default function AccountVerificationPage(): JSX.Element {
           const txVisible = await waitForSubmittedTxVisible(base, txId, {
             maxWaitMs: 30_000,
             intervalMs: 1_000,
-            // Batch 419: preserve the Batch 394/396 static contract marker below
-            // for the older strict observer-sync path while Batch 417 keeps live
-            // room launch non-blocking on observer-local catch-up.
-            // requireLocalStateSynced: true
+            // Accepted is sufficient for pending-room presentation, never
+            // for asserting committed case visibility, synchronized state, or Tier 2.
             requireLocalStateSynced: false,
             acceptAccepted: true,
           });
@@ -1357,10 +1354,8 @@ export default function AccountVerificationPage(): JSX.Element {
           // An acknowledged submission may still be absent from local history.
           // The derived room remains pending until this exact case is observed;
           // visibility of older cases cannot substitute for this request.
-          // Batch 420: preserve the older Batch 394/394b static contract
-          // while Batch 417 still routes with the deterministic expected case id
-          // when observer-local live-case reads lag behind genesis.
-          // return { skeleton: skel, commitments, submit, case_id: visibleCaseId };
+          // Keep the signed request's expected room ID distinct from the
+          // canonical case found on this node.
           return {
             skeleton: skel,
             commitments,
@@ -1378,9 +1373,8 @@ export default function AccountVerificationPage(): JSX.Element {
       await loadVerificationData();
       await refreshAccountContext();
 
-      // Batch 421: preserve the older Batch 394/394b static marker while
-      // Batch 417 still prefers deterministic expected_case_id fallback.
-      // String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible
+      // The route may represent a pending room, but must never point to an
+      // unrelated old case or imply canonical finalization.
       const resultCaseId = String((r as any)?.case_id || (r as any)?.expected_case_id || "").trim();
       const expectedCaseId = String((r as any)?.expected_case_id || "").trim();
       if (resultCaseId && resultCaseId === expectedCaseId) {

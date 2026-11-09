@@ -17,14 +17,16 @@ def test_live_request_uses_sequenced_nonce_and_opens_expected_room() -> None:
         "const asyncSubmitCheck", 1
     )[0]
 
-    assert "Batch 417: use the sequenced signer path" in body
+    assert "Reserve the signing nonce so the new room can be identified" in body
     assert "submitSignedTxInSequence" in body
     assert "expectedLiveCaseIdFromNonce" in page
     assert "poh_live:${acct}:${n}" in page
     assert "pending_case_visibility" in body
     assert "requireLocalStateSynced: false" in body
     assert "acceptAccepted: true" in body
-    assert "nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`)" in body
+    assert "resultCaseId && resultCaseId === expectedCaseId" in body
+    assert "nav(`/verification/live/${encodeURIComponent(resultCaseId)}`)" in body
+    assert "reconcileLiveCaseVisible(acct, submittedLiveCaseId, base, headers)" in body
 
 
 def test_live_room_polls_when_navigated_before_case_sync() -> None:
