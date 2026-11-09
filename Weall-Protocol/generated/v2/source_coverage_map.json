@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "7789313ef5c6ca3feb288ac4bdc4cd50174ee7d7e7c081d6106fd905b90527a9",
+      "sha256": "fb74621641f2f519ce0829f02ec2400ba856ce09f2f5d692f988af4d487c7da5",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -30884,7 +30884,7 @@
       ],
       "path": "../web/scripts/test_async_evidence_preview.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "e0bb0805ebcd99bf56f7ceaf84d5e849c8bf407d17b5b8e2b297689b7004e110",
+      "sha256": "5e755d899ffdaf9c044a9572e607c9454640770a4ec4fec63093d15891260e2e",
       "source_id": "SRC-B467025251B14F3C"
     },
     {
@@ -32823,7 +32823,7 @@
       ],
       "path": "../web/src/pages/AccountVerificationPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "94f205b3d2129dfb5cd958f4113b5e965ea95b8c7c60f0be2b00174f0152a298",
+      "sha256": "1b619f5636b862a9aba25da3b4fe8971304b596d51c4a64be6c09dad0659deb3",
       "source_id": "SRC-6E72AE85995D2D5D"
     },
     {
