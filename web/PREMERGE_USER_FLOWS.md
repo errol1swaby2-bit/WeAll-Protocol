@@ -112,6 +112,16 @@ a **local-only negative marker** and reloads to prove a recorded
 interruption cannot silently turn an empty case history into permission
 for another signed request. It does not create a fictitious PoH case.
 
+The verification screen's read-only history and advanced technical
+records are extracted into `VerificationHistoryPanel`, and role eligibility
+display into `TrustedResponsibilitiesPanel`. The existing parent continues
+to own canonical signed transactions and status refresh. A failed async or
+live history read now shows **unavailable** in the history panel rather than
+an incorrect empty-state message; an actual empty history appears only after
+both categories return successful reads. Advanced API payloads remain
+collapsed by default. Focused tests verify no signer, session or local
+authority mutation was introduced in the read-only component.
+
 These are **presentation and regression-test increments**, not completed
 public PoH. The current `AccountVerificationPage.tsx` still contains too
 much business logic and requires component/route extraction after source
