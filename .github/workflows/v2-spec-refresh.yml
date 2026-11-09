@@ -1,3 +1,4 @@
+# PR82 F2 correct async exact-case absence semantics (undefined -> fail-closed null); strict source-bound reviewer artifact refresh after live/async case recovery tests.
 # PR82 F2 revised live-room backend contract assertions plus async signed-case reviewability reconciliation: strict generated-only refresh for exact candidate head; frontend still DRAFT/NO-GO.
 # PR82 F2 exact signed live-case matching and unknown transaction receipt fail-closed: strict generated-only reviewer refresh at latest source head; no release approval.
 # PR82 F2 final precise browser outcome: same-document missing video returns to Record, full reload loses prep and returns Explain; 15/15 real-browser journeys green. Strictly refresh source-bound reviewer derivatives before exact-head full CI.
