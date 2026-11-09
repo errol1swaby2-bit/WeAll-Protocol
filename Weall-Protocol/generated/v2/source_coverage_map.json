@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "dd284403ac77350eb7ccbe58f2d86a0f0c05d6e271ac620ac57bcb7ef6fd941e",
+      "sha256": "6ccf0bad6a55fb533bab7cd7dea58b62ce07e1d41032556ba4ba48af8b1574b4",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -20179,7 +20179,7 @@
       ],
       "path": "tests/test_live_media_group_post_message_refresh.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e7cceebef199c01b6fb662175f7ff4e4e7bcc61c52650ac4149f551913975df2",
+      "sha256": "235672375fdf4c2f6214df520ae286e4484f0979f7cce043bfa1e77ec3ff7ce4",
       "source_id": "SRC-4EB61DA52B08ADB9"
     },
     {
@@ -20721,7 +20721,7 @@
       ],
       "path": "tests/test_m2_live_browser_media_wait.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "4f6973ecd1d42d4b2155991f44a733cd10ad5b0a6a88167e12404f6999d28a7a",
+      "sha256": "2ac8f8d361ec11a6682ca5939058cde88b985152dd5bf22e11f311e311d9d463",
       "source_id": "SRC-09E5F742A265F535"
     },
     {
@@ -31132,7 +31132,7 @@
       ],
       "path": "../web/scripts/test_live_room_join_truth.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "ef7f702e7f330528e261c8b632e7a4d9f369350d990f32c1cd899941c5805812",
+      "sha256": "95d9c946a3c30770d09698ad6c424aaa60c4a93fa895c6d436285e0978ba7de7",
       "source_id": "SRC-A04F1C14121F40D1"
     },
     {
@@ -33195,7 +33195,7 @@
       ],
       "path": "../web/src/pages/LiveVerificationRoom.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "c2fc7e786c7375b1e888a19adf62fc0070fa1dbc3c366d7395f17864300e3227",
+      "sha256": "4c28570bb21b5dd4ed9638a8e976e880e76349b3436acd506eaa2cf70d2af3b1",
       "source_id": "SRC-8A9FA9F3177A64C9"
     },
     {
