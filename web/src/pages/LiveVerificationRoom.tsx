@@ -409,6 +409,26 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }, [caseId, p2pRemoteAccounts.join("|")]);
 
   useEffect(() => {
+    if (!isFinal) return;
+    // Constitutional finality does not depend on media transport. On terminal
+    // case status, stop capture and transmission instead of leaving the live
+    // camera and microphone active in a now read-only room.
+    stopWeAllMediaStream(localStreamRef.current);
+    localStreamRef.current = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    peerConnectionsRef.current.forEach((pc) => pc.close());
+    peerConnectionsRef.current.clear();
+    pendingIceCandidatesRef.current.clear();
+    processedSignalsRef.current.clear();
+    lastOfferAtRef.current.clear();
+    setLocalStream(null);
+    setRemoteStreams({});
+    setPeerStates({});
+    setP2pRunning(false);
+    setP2pStatus("Verification concluded; live media stopped");
+  }, [isFinal, caseId]);
+
+  useEffect(() => {
     if (!sessionId) return;
     void loadRoomSidecars(sessionId);
   }, [sessionId, apiBase]);
