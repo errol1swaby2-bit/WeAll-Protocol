@@ -73,6 +73,12 @@ only an authoritative tier update is shown as completed verification.
 Keyboard transitions restore focus to newly displayed stage headings, and
 Tier-2 service-role controls are folded away until eligible.
 
+The history fetch now distinguishes a canonical empty case list from an
+unavailable/malformed response. If either async or live case history cannot
+be verified, the relevant new signed request is disabled and the UI presents
+the history as **unknown**, never zero. Previously loaded cases can remain
+visible but are explicitly stale until a successful refresh.
+
 These are **presentation and regression-test increments**, not completed
 public PoH. The current `AccountVerificationPage.tsx` still contains too
 much business logic and requires component/route extraction after source
