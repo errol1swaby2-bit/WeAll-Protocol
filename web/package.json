@@ -23,6 +23,7 @@
     "test:reporter-vs-juror-lanes": "node scripts/test_reporter_vs_juror_lanes.mjs",
     "test:content-flag-report-truth": "node scripts/test_content_flag_report_truth.mjs",
     "test:async-evidence-preview": "node scripts/test_async_evidence_preview.mjs",
+    "test:poh-submission-journal": "node --experimental-strip-types scripts/test_poh_submission_journal.mjs",
     "test:responsibility-control-surface": "node scripts/test_responsibility_control_surface_source.mjs",
     "test:operator-journey-source": "node scripts/test_operator_journey_and_accent_source.mjs",
     "test:rendered-operator-journey": "playwright test tests/e2e/operator_journey_rendered.spec.ts",
