@@ -459,7 +459,6 @@ export default function AccountVerificationPage(): JSX.Element {
   const recordingPreviewRef = useRef<HTMLVideoElement | null>(null);
   const asyncStepHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const liveStepHeadingRef = useRef<HTMLHeadingElement | null>(null);
-  const liveExpectedCaseIdRef = useRef<string>("");
   const asyncFocusInitializedRef = useRef(false);
   const liveFocusInitializedRef = useRef(false);
   const recordingChunksRef = useRef<Blob[]>([]);
@@ -1285,6 +1284,9 @@ export default function AccountVerificationPage(): JSX.Element {
     setErr(null);
     try {
       const headers = getAuthHeaders(acct);
+      // Bind finality monitoring to this invocation, not a mutable ref that a
+      // later request could overwrite while an earlier receipt is still pending.
+      let submittedLiveCaseId = "";
       const r = await tx.runTx({
         title: "Open live verification",
         pendingMessage: "Opening live verification…",
@@ -1294,7 +1296,7 @@ export default function AccountVerificationPage(): JSX.Element {
             : "Live verification request submitted. Opening live room…",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
-        finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, liveExpectedCaseIdRef.current, base, headers) },
+        finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, submittedLiveCaseId, base, headers) },
         task: async () => {
           requireNoUnresolvedPoh("live");
           const kp = getKeypair(acct);
@@ -1321,7 +1323,6 @@ export default function AccountVerificationPage(): JSX.Element {
           // The case ID is not known until the signed nonce returns. A
           // pre-dispatch marker with an empty ID deliberately requires
           // manual reconciliation if the response is lost.
-          liveExpectedCaseIdRef.current = "";
           recordPohStage("live", "signed_started", "");
           goLiveStep("track");
           const submit = await submitSignedTxInSequence({
@@ -1335,7 +1336,7 @@ export default function AccountVerificationPage(): JSX.Element {
           const signedNonce = Number(submit?.env?.nonce || 0);
           const expectedCaseId = expectedLiveCaseIdFromNonce(acct, signedNonce);
           if (!expectedCaseId) throw new Error("The signed live request has no valid nonce-derived case ID. Reconcile the original transaction; do not submit another request.");
-          liveExpectedCaseIdRef.current = expectedCaseId;
+          submittedLiveCaseId = expectedCaseId;
           recordPohStage("live", "signed_returned", expectedCaseId, txId);
           const txVisible = await waitForSubmittedTxVisible(base, txId, {
             maxWaitMs: 30_000,

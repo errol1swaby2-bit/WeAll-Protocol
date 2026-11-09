@@ -55,7 +55,8 @@ assert.equal(findExpectedLivePohCaseId([{ case_id: "poh_live:@alice:8", account_
 assert.equal(findExpectedLivePohCaseId(null, "@alice", "poh_live:@alice:8"), "");
 // Live request reconciliation must bind to the nonce-derived case, never any() case.
 const livePage = readFileSync(new URL("../src/pages/AccountVerificationPage.tsx", import.meta.url), "utf8");
-assert.match(livePage, /reconcileLiveCaseVisible\(acct, liveExpectedCaseIdRef\.current, base, headers\)/);
+assert.match(livePage, /reconcileLiveCaseVisible\(acct, submittedLiveCaseId, base, headers\)/);
+assert.match(livePage, /let submittedLiveCaseId = "";/);
 assert.match(livePage, /waitForLiveCaseIdVisible\(acct, expectedCaseId, base, headers/);
 
 // App-shell route transitions MUST NOT remount the native recorder when
