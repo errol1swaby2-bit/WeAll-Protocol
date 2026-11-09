@@ -5,6 +5,7 @@ import ErrorBanner from "../components/ErrorBanner";
 import PohSubmissionStatusNotice from "../components/PohSubmissionStatusNotice";
 import VerificationHistoryPanel from "../components/VerificationHistoryPanel";
 import TrustedResponsibilitiesPanel from "../components/TrustedResponsibilitiesPanel";
+import PohStepProgress from "../components/PohStepProgress";
 import {
   beginNonceSequence,
   getAuthHeaders,
@@ -1550,24 +1551,16 @@ export default function AccountVerificationPage(): JSX.Element {
             description="Complete your first human review through six separate stages. Every upload, signed case, reviewer decision and account tier is verified separately."
           >
             <div className="formStack" data-testid="async-guided-journey">
-              <ol className="statusRowWrap" aria-label="Async verification steps" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {asyncStepNames.map((label, index) => (
-                  <li
-                    key={label}
-                    className={`statusPill ${asyncStepIds[index] === asyncGuideStep ? "ok" : ""}`}
-                    aria-current={asyncStepIds[index] === asyncGuideStep ? "step" : undefined}
-                  >
-                    {index + 1}. {label}
-                  </li>
-                ))}
-              </ol>
-              <p className="miniMuted" role="status" aria-live="polite">
-                {asyncGuideStep === "track"
+              <PohStepProgress
+                label="Async verification steps"
+                steps={asyncStepIds.map((id, index) => ({ id, label: asyncStepNames[index] }))}
+                current={asyncGuideStep}
+                detail={asyncGuideStep === "track"
                   ? "Review progress only. Uploaded evidence and submitted transactions are not proof of completed human verification."
-                  : `Step ${asyncStepIds.indexOf(asyncGuideStep) + 1} of 6: ${asyncStepNames[asyncStepIds.indexOf(asyncGuideStep)]}`}
-              </p>
+                  : undefined}
+              />
 
-              <PohSubmissionStatusNotice
+                            <PohSubmissionStatusNotice
                 kind="async"
                 journal={asyncJournal}
                 currentNodeBase={base}
@@ -1817,14 +1810,19 @@ export default function AccountVerificationPage(): JSX.Element {
               </div>
             ) : (
               <div className="formStack" data-testid="live-guided-journey">
-                <ol className="statusRowWrap" aria-label="Live verification steps" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                  {(["explain", "request", "track"] as const).map((phase, index) => (
-                    <li key={phase} className={`statusPill ${phase === liveGuideStep ? "ok" : ""}`} aria-current={phase === liveGuideStep ? "step" : undefined}>
-                      {index + 1}. {phase === "explain" ? "Understand" : phase === "request" ? "Request" : "Track"}
-                    </li>
-                  ))}
-                </ol>
-                <PohSubmissionStatusNotice
+                <PohStepProgress
+                  label="Live verification steps"
+                  steps={[
+                    { id: "explain", label: "Understand" },
+                    { id: "request", label: "Request" },
+                    { id: "track", label: "Track" },
+                  ]}
+                  current={liveGuideStep}
+                  detail={liveGuideStep === "track"
+                    ? "Case visibility is not a completed reviewer decision or a canonical tier increase."
+                    : undefined}
+                />
+                                <PohSubmissionStatusNotice
                   kind="live"
                   journal={liveJournal}
                   currentNodeBase={base}
