@@ -50,4 +50,14 @@ assert.match(page, /data-testid="live-room-join-status"/);
 assert.match(page, /peerConnectionsRef\.current\.get\(peer\)\?\.connectionState === "connected"/);
 assert.doesNotMatch(page, /"Live room ready"/);
 assert.match(page, /await pollWebRTCSignals\(\);\s+setP2pRunning\(true\)/);
+
+// Independent-browser F2 acceptance must prove remote video in BOTH contexts
+// before reviewer verdicts. A local preview or signaling status cannot pass.
+const browserJourney = readFileSync(resolve(here, "../tests/e2e/poh_live_independent_browsers.spec.ts"), "utf8");
+const actors = readFileSync(resolve(here, "../tests/e2e/m2_actor_helpers.ts"), "utf8");
+assert.match(browserJourney, /waitForLiveRemoteMedia\(applicant\.page/);
+assert.match(browserJourney, /waitForLiveRemoteMedia\(actor\.page/);
+assert.match(browserJourney, /All independent browsers receive peer video before reviewers vote/);
+assert.match(actors, /stream\.getVideoTracks\(\)\.some\(\(track\) => track\.readyState === "live"\)/);
+assert.match(actors, /WebRTC connection established/);
 console.log("PASS: reviewer attendance, local capture and connected peers reported independently");

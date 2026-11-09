@@ -36,7 +36,10 @@ export async function waitForLiveLocalMedia(page: Page, actorLabel: string): Pro
   const timeoutMs = m2LocalMediaTimeoutMs();
   try {
     await expect.poll(
-      async () => page.getByTestId("live-local-video").evaluate((node: HTMLVideoElement) => Boolean(node.srcObject)).catch(() => false),
+      async () => page.getByTestId("live-local-video").evaluate((node: HTMLVideoElement) => {
+        const stream = node.srcObject;
+        return stream instanceof MediaStream && stream.getVideoTracks().some((track) => track.readyState === "live");
+      }).catch(() => false),
       { timeout: timeoutMs, message: `${actorLabel} local media should become available after live-room check-in` },
     ).toBe(true);
   } catch (error) {
@@ -44,6 +47,43 @@ export async function waitForLiveLocalMedia(page: Page, actorLabel: string): Pro
     const roomError = await page.locator(".errorText").last().textContent().catch(() => "");
     throw new Error(
       `${actorLabel} local media did not become ready within ${timeoutMs}ms; status=${String(status || "").trim() || "unknown"}; error=${String(roomError || "").trim() || "none"}; cause=${String(error)}`,
+    );
+  }
+}
+
+/**
+ * F2 acceptance: video from the *named other account* must actually arrive
+ * over WebRTC. Local getUserMedia success, sent offers, peer presence or a
+ * successful chain attendance receipt alone cannot satisfy this assertion.
+ * Two independent browser contexts must each observe the other's live video.
+ */
+export async function waitForLiveRemoteMedia(page: Page, actorLabel: string, remoteAccount: string): Promise<void> {
+  const target = remoteAccount.trim();
+  if (!target) throw new Error("A remote account is required for live media acceptance.");
+  const timeoutMs = m2LocalMediaTimeoutMs();
+  try {
+    await expect.poll(
+      async () => page.evaluate((account) => {
+        const tiles = Array.from(document.querySelectorAll(".p2pVideoGrid .p2pVideoTile"));
+        const tile = tiles.find((item) => item.querySelector("span")?.textContent?.trim() === account);
+        const element = tile?.querySelector("video");
+        const stream = element?.srcObject;
+        if (!(stream instanceof MediaStream)) return false;
+        const videoAlive = stream.getVideoTracks().some((track) => track.readyState === "live");
+        const connectionStatus = document.querySelector('[data-testid="live-room-join-status"]')?.textContent || "";
+        return videoAlive && /WebRTC connection established/i.test(connectionStatus);
+      }, target).catch(() => false),
+      { timeout: timeoutMs, message: `${actorLabel} must receive a live WebRTC video track from ${target}` },
+    ).toBe(true);
+  } catch (error) {
+    // UI status only. Never capture raw media, signaling payloads, custody
+    // material, private evidence or authentication headers in failure output.
+    const status = await page.getByTestId("live-room-join-status").textContent().catch(() => "");
+    const p2pStatus = await page.getByTestId("live-p2p-status").textContent().catch(() => "");
+    throw new Error(
+      `${actorLabel} did not receive confirmed live video from ${target} within ${timeoutMs}ms; ` +
+      `join=${String(status || "").trim() || "unknown"}; p2p=${String(p2pStatus || "").trim() || "unknown"}; ` +
+      `cause=${String(error)}`,
     );
   }
 }
