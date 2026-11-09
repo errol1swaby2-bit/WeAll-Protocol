@@ -35,6 +35,15 @@ import {
   validateAsyncVideoDuration,
 } from "../lib/verificationEvidence";
 import { createLiveVerificationCommitments, hasRequiredLiveVerificationCommitments } from "../lib/liveVerification";
+import {
+  clearReconciledPohJournal,
+  normalizePohJournalBase,
+  readPohSubmissionJournal,
+  savePohSubmissionJournal,
+  type PohJournalKind,
+  type PohJournalPhase,
+  type PohJournalRead,
+} from "../lib/pohSubmissionJournal";
 import { liveRoomDescriptorText, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 import {
   TRUSTED_RESPONSIBILITIES,
@@ -481,6 +490,34 @@ export default function AccountVerificationPage(): JSX.Element {
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   // Preserve last-seen cases, but never treat a failed history lookup as an empty history.
   const [verificationHistoryReady, setVerificationHistoryReady] = useState({ async: false, live: false });
+  const [asyncJournal, setAsyncJournal] = useState<PohJournalRead>({ status: "unavailable" });
+  const [liveJournal, setLiveJournal] = useState<PohJournalRead>({ status: "unavailable" });
+  const asyncJournalBlocked = asyncJournal.status !== "none";
+  const liveJournalBlocked = liveJournal.status !== "none";
+
+  function rereadPohJournals(): void {
+    if (!acct) {
+      setAsyncJournal({ status: "unavailable" });
+      setLiveJournal({ status: "unavailable" });
+      return;
+    }
+    setAsyncJournal(readPohSubmissionJournal(acct, "async"));
+    setLiveJournal(readPohSubmissionJournal(acct, "live"));
+  }
+
+  function recordPohStage(kind: PohJournalKind, phase: PohJournalPhase, caseId: string, txId = ""): void {
+    if (!acct) throw new Error("poh_journal_missing_account");
+    savePohSubmissionJournal({ account: acct, nodeBase: base, kind, phase, caseId, txId });
+    rereadPohJournals();
+  }
+
+  function requireNoUnresolvedPoh(kind: PohJournalKind): void {
+    if (!acct || readPohSubmissionJournal(acct, kind).status !== "none") {
+      throw new Error(
+        "An earlier verification request may still be pending on this account. Reconcile its original case on the original node before creating another; do not retry automatically.",
+      );
+    }
+  }
 
   const hasLocalKeypair = !!kp?.secretKeyB64;
   const sessionKeyPresent = !!session?.sessionKey;
@@ -534,8 +571,29 @@ export default function AccountVerificationPage(): JSX.Element {
       const liveReady = live.status === "fulfilled" && live.value?.ok === true && Array.isArray(live.value?.cases);
       // Stale data may remain visible for inspection, but never re-enable new
       // signed actions until the selected node confirms the actual history.
-      if (asyncReady && asyncResponse.status === "fulfilled") setAsyncCases(asyncResponse.value.cases);
-      if (liveReady && live.status === "fulfilled") setLiveCases(live.value.cases);
+      if (asyncReady && asyncResponse.status === "fulfilled") {
+        setAsyncCases(asyncResponse.value.cases);
+        const pending = readPohSubmissionJournal(acct, "async");
+        const match = pending.status === "pending"
+          ? asyncResponse.value.cases.find((item: any) => String(item?.case_id || "") === pending.record.caseId)
+          : null;
+        if (match && pending.status === "pending") {
+          // Only canonical case visibility on the original node resolves the
+          // uncertainty that a request was never admitted. This is not tier approval.
+          clearReconciledPohJournal(acct, "async", base, String(match.case_id));
+        }
+      }
+      if (liveReady && live.status === "fulfilled") {
+        setLiveCases(live.value.cases);
+        const pending = readPohSubmissionJournal(acct, "live");
+        const match = pending.status === "pending" && pending.record.caseId
+          ? live.value.cases.find((item: any) => String(item?.case_id || "") === pending.record.caseId)
+          : null;
+        if (match && pending.status === "pending") {
+          clearReconciledPohJournal(acct, "live", base, String(match.case_id));
+        }
+      }
+      rereadPohJournals();
       if (sessions.status === "fulfilled" && Array.isArray(sessions.value?.sessions)) {
         setLiveSessions(sessions.value.sessions);
       }
@@ -553,9 +611,21 @@ export default function AccountVerificationPage(): JSX.Element {
   }
 
   useEffect(() => {
+    rereadPohJournals();
+    const asyncPending = acct ? readPohSubmissionJournal(acct, "async") : { status: "none" as const };
+    const livePending = acct ? readPohSubmissionJournal(acct, "live") : { status: "none" as const };
+    if (asyncPending.status !== "none") setAsyncGuideStep("track");
+    if (livePending.status !== "none") setLiveGuideStep("track");
     void refresh();
     void loadVerificationData();
-  }, [acct]);
+    // Storage updates from another tab can block a duplicate request before
+    // the signer is used. This is defense in depth, not a cross-tab mutex.
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key.startsWith("weall.poh_submission_pending_v1::")) rereadPohJournals();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [acct, base]);
 
   useEffect(() => {
     return () => {
