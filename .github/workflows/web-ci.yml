@@ -127,6 +127,10 @@ jobs:
         run: |
           npm run test:poh-submission-journal
 
+      - name: Extracted verification history and role authority source contract
+        run: |
+          npm run test:verification-history-panel
+
       - name: Flag reporter review and target lookup regression
         run: |
           npm run test:content-flag-report-truth
