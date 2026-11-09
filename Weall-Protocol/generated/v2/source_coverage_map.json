@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "64c6fa9306e8a88c3cb6d05ae612d12c6034ac4961fe933d6f7b5b4a79c8e8a4",
+      "sha256": "82143c493184923b5eba77f9910bf4d285fa9d3eec1d2c455e560927565c8e48",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -32630,7 +32630,7 @@
       ],
       "path": "../web/src/lib/pohGuidedRoutes.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "a281cb98a0dc399171b23a2e1059a67d61810fdc44b24283b73c20f28b421242",
+      "sha256": "a1901f2bd8d3736745515d3dfc06b8d432f05fce842324817498908a7fd739f3",
       "source_id": "SRC-76FE95FBDA324991"
     },
     {
