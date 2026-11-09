@@ -635,10 +635,20 @@ export default function AccountVerificationPage(): JSX.Element {
   }
 
   useEffect(() => {
-    const onGuidedRouteChange = () => setGuidedRoutePath(currentHashPath());
+    const onGuidedRouteChange = () => {
+      const path = currentHashPath();
+      // Keep native stop/preview controls visible during an active recording.
+      // A browser-back change within the verification guide may not silently
+      // hide a still-running camera stream.
+      if (asyncRecordingState === "recording" && parseAsyncPohRoute(path) !== "record") {
+        nav(asyncPohRoute("record"));
+        return;
+      }
+      setGuidedRoutePath(path);
+    };
     window.addEventListener("hashchange", onGuidedRouteChange);
     return () => window.removeEventListener("hashchange", onGuidedRouteChange);
-  }, []);
+  }, [asyncRecordingState]);
 
   useEffect(() => {
     rereadPohJournals();
