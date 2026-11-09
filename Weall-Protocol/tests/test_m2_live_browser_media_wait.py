@@ -64,6 +64,12 @@ def test_reciprocal_live_media_requires_specific_connected_peer_and_decoded_fram
     assert "nextCase?.case_id === caseId" in room
     assert "if (!allowedPeers.has(peer)) resetPeerConnection(peer);" in room
     assert "if (!isFinal) return;" in room
+    assert (
+        'if (!canJoinReview) throw new Error("Only the subject or assigned reviewers in a non-final case can start live media.");'
+        in room
+    )
+    assert "if (!sessionId || !account || !canJoinReview) return;" in room
+    assert "disabled={!canJoinReview || !!busy} onClick={startP2PRoom}" in room
     assert 'setP2pStatus("Verification concluded; live media stopped")' in room
     assert "window.setInterval(() => void refreshCanonicalCase(), 4000)" in room
     peer_source = room.split("const p2pParticipantAccounts = useMemo", 1)[1].split(

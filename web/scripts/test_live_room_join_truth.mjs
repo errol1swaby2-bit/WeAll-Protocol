@@ -69,6 +69,10 @@ assert.match(page, /const refreshCanonicalCase = async/);
 assert.match(page, /nextCase\?\.case_id === caseId/);
 assert.match(page, /if \(!allowedPeers\.has\(peer\)\) resetPeerConnection\(peer\)/);
 assert.match(page, /if \(!isFinal\) return;/);
+assert.match(page, /if \(!canJoinReview\) throw new Error\("Only the subject or assigned reviewers in a non-final case can start live media\."\)/);
+assert.match(page, /disabled=\{!canJoinReview \|\| !!busy\} onClick=\{startP2PRoom\}/);
+assert.match(page, /if \(!sessionId \|\| !account \|\| !canJoinReview\) return;/);
+assert.match(page, /if \(!remote \|\| remote === account \|\| !p2pRemoteAccounts\.includes\(remote\)\) return;/);
 assert.match(page, /Verification concluded; live media stopped/);
 assert.match(page, /window\.setInterval\(\(\) => void refreshCanonicalCase\(\), 4000\)/);
 assert.doesNotMatch(
