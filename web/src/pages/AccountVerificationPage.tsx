@@ -436,6 +436,10 @@ export default function AccountVerificationPage(): JSX.Element {
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingPreviewRef = useRef<HTMLVideoElement | null>(null);
+  const asyncStepHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const liveStepHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const asyncFocusInitializedRef = useRef(false);
+  const liveFocusInitializedRef = useRef(false);
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
@@ -574,6 +578,25 @@ export default function AccountVerificationPage(): JSX.Element {
   const accountLevel = snapshot.tier;
   const currentLabel = verificationLabel(accountLevel);
   const currentSummary = verificationSummary(accountLevel);
+  // Moving between guided stages unmounts the previous button. Restore
+  // keyboard/screen-reader context on the new heading, without moving focus
+  // away from the initial page heading during the first render.
+  useEffect(() => {
+    if (!asyncFocusInitializedRef.current) {
+      asyncFocusInitializedRef.current = true;
+      return;
+    }
+    asyncStepHeadingRef.current?.focus();
+  }, [asyncGuideStep]);
+
+  useEffect(() => {
+    if (!liveFocusInitializedRef.current) {
+      liveFocusInitializedRef.current = true;
+      return;
+    }
+    liveStepHeadingRef.current?.focus();
+  }, [liveGuideStep]);
+
   const basicAccountCreated = snapshot.accountCreated;
   const registered = basicAccountCreated; // Basic account visibility, not content-posting eligibility.
   const contentPostingEligible = snapshot.postingEligible;
@@ -1429,6 +1452,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
               {asyncGuideStep === "explain" ? (
                 <div className="formStack" data-testid="async-step-explain">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Before you record</h3>
                   <div className="calloutInfo">
                     <strong>Fresh video required:</strong> record a new 1–2 minute video inside WeAll with camera and microphone permission. Ordinary file upload is not accepted. Say your handle, read the generated challenge phrase, and describe yourself and why you want to join.
                   </div>
@@ -1457,6 +1481,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
               {asyncGuideStep === "prepare" ? (
                 <div className="formStack" data-testid="async-step-prepare">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Prepare your answers</h3>
                   <p className="cardDesc">Prepare what you will say. Both descriptions must have at least ten characters. Continue to recording when you are ready.</p>
                   <label className="fieldBlock">
                     <span className="fieldLabel">Something about yourself</span>
@@ -1495,6 +1520,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
               {asyncGuideStep === "record" ? (
                 <div className="formStack" data-testid="async-step-record">
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Record your verification video</h3>
                   <div className="infoCard compact">
                     <div className="infoCardHeader">
                       <strong>Challenge phrase</strong>
@@ -1552,7 +1578,8 @@ export default function AccountVerificationPage(): JSX.Element {
 
               {asyncGuideStep === "review" ? (
                 <div className="formStack" data-testid="async-step-review">
-                  <h3>Review your recording and consent</h3>
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Review your recording and consent</h3>
+                  
                   {asyncRecordedUrl ? (
                     <div data-testid="async-evidence-playback-review">
                       <p className="miniMuted">Video playback is preloaded locally. Reviewer decryption remains gated by on-chain acceptance.</p>
@@ -1596,7 +1623,8 @@ export default function AccountVerificationPage(): JSX.Element {
 
               {asyncGuideStep === "submit" ? (
                 <div className="formStack" data-testid="async-step-submit">
-                  <h3>Submit encrypted evidence</h3>
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Submit encrypted evidence</h3>
+                  
                   <p className="cardDesc">
                     This action first uploads encrypted evidence, then submits signed case and access transactions. A successful upload does not mean reviewers were assigned, transactions finalized, or your tier increased.
                   </p>
@@ -1618,7 +1646,8 @@ export default function AccountVerificationPage(): JSX.Element {
 
               {asyncGuideStep === "track" ? (
                 <div className="formStack" data-testid="async-step-track">
-                  <h3>Track verification status</h3>
+                  <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Track verification status</h3>
+                  
                   {asyncUpload ? (
                     <div className="calloutInfo" data-testid="async-upload-accepted">
                       Encrypted evidence storage accepted the upload. The signed case, reviewer access, and finality remain separate checks.
@@ -1671,6 +1700,7 @@ export default function AccountVerificationPage(): JSX.Element {
                 </ol>
                 {liveGuideStep === "explain" ? (
                   <div className="formStack" data-testid="live-step-explain">
+                  <h3 ref={liveStepHeadingRef} tabIndex={-1}>Before live verification</h3>
                     <p className="cardDesc">
                       The live session prepares commitments for the subject, room and prompt, then submits a signed request. Independent attendance, reviewer decisions, canonical receipts and synchronized account state remain separate steps.
                     </p>
@@ -1690,6 +1720,7 @@ export default function AccountVerificationPage(): JSX.Element {
                 ) : null}
                 {liveGuideStep === "request" ? (
                   <div className="formStack" data-testid="live-step-request">
+                  <h3 ref={liveStepHeadingRef} tabIndex={-1}>Request a live session</h3>
                     <p className="cardDesc">Opening a live verification request signs and sends a new protocol action. Do not repeat a request with uncertain status; use the case history and transaction receipt to reconcile first.</p>
                     <button
                       type="button"
@@ -1730,6 +1761,7 @@ export default function AccountVerificationPage(): JSX.Element {
                 ) : null}
                 {liveGuideStep === "track" ? (
                   <div className="formStack" data-testid="live-step-track">
+                  <h3 ref={liveStepHeadingRef} tabIndex={-1}>Track your live case</h3>
                     <p className="cardDesc">
                       A case becomes actionable only when it appears in canonical verification history. A deterministic expected case ID or pending request is not proof of finalized verification.
                     </p>
