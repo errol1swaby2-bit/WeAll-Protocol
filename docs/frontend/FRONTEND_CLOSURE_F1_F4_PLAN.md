@@ -100,6 +100,18 @@ backend source-contract checks have been revised to assert the pending-room
 boundary and exact case identity rather than obsolete synchronization markers.
 These changes do not claim multi-device live acceptance or production readiness.
 
+The 2026-11-09 F2 follow-up also strengthens the *mandatory external M2
+independent-browser live Tier-2 journey*. Instead of accepting a generic
+signaling or local-media status, that acceptance test now requires the
+applicant to receive a live remote WebRTC video track from every participating
+reviewer, and every reviewer to receive a live video track from the applicant.
+Reviewer verdicts occur **after** this mutual media evidence. A connected
+peer is transport evidence only: Tier 2 still requires signed attendance,
+verdicts and a canonical finalized account/case outcome. The strengthened
+journey remains **unproven** until run against an actual multi-account,
+two-process stack with available cameras or test media and appropriate relay
+configuration. A skipped test is not an acceptance pass.
+
 The flow must not persist raw video in unsecured storage, bypass account
 tier/reputation gates, mark accepted as confirmed, or claim that a media upload
 alone means reviewable/finalized. Interrupted workflows should recover status
@@ -152,7 +164,8 @@ reconcile the resulting state on both endpoints where applicable.
 ## Branch discipline
 
 Backend integration work and unfinished review of PR #81 are separate.
-PR #82 branches from main and concerns F1a only. Future PoH and full feature
-work should be separate draft reviews or explicitly stacked without changing
-the consensus/security truth of PR #81. Do not merge or advertise general
+PR #82 branches from main and now contains bounded F1/F2 frontend
+remediation and regression changes. It remains draft. F3/F4 and the
+unreviewed integration of PR #81 remain explicit future work; frontend
+changes do not alter or supersede consensus/security truth of PR #81. Do not merge or advertise general
 testnet readiness solely because the two local devnet ledger roots match.
