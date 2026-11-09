@@ -53,4 +53,16 @@ assert.match(source, /data-testid="trusted-responsibilities-locked"/);
 assert.match(source, /aria-label="Async verification steps"/);
 assert.match(source, /aria-label="Live verification steps"/);
 
+// A read error is unknown, never a confirmed empty history.
+assert.match(source, /Promise\.allSettled\(\[/);
+assert.ok(!source.includes('pohAsyncMyCases(acct, base, headers).catch(() => ({ cases: [] }))'));
+assert.ok(!source.includes('pohLiveMyCases(acct, base, headers).catch(() => ({ cases: [] }))'));
+assert.match(source, /setVerificationHistoryReady\(\{ async: false, live: false \}\)/);
+assert.match(source, /asyncResponse\.value\?\.ok === true/);
+assert.match(source, /live\.value\?\.ok === true/);
+assert.match(source, /data-testid="async-history-unavailable"/);
+assert.match(source, /data-testid="live-history-unavailable"/);
+assert.match(source, /if \(!verificationHistoryReady\.async\)/);
+assert.match(source, /if \(!verificationHistoryReady\.live\)/);
+
 console.log("PASS: async camera preview and local playback, upload-versus-signed-case status truth");
