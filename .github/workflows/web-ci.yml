@@ -123,6 +123,10 @@ jobs:
         run: |
           npm run test:async-evidence-preview
 
+      - name: PoH interruption journal security and recovery behavior
+        run: |
+          npm run test:poh-submission-journal
+
       - name: Flag reporter review and target lookup regression
         run: |
           npm run test:content-flag-report-truth
