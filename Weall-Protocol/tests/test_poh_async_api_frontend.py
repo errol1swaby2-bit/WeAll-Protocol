@@ -28,7 +28,14 @@ def test_account_verification_tracks_native_async_cases() -> None:
     page = _read(WEB / "src/pages/AccountVerificationPage.tsx")
 
     assert "weall.pohAsyncMyCases" in page
-    assert "Your async verification case is visible." in page
+    # An existing case in account history cannot confirm an unrelated new
+    # request: match the challenge-derived ID and owner, then reviewability.
+    routes = _read(WEB / "src/lib/pohGuidedRoutes.ts")
+    assert "findExpectedAsyncPohCase(response.cases, account, expectedCaseId)" in page
+    assert "record.case_id === expected && record.account_id === owner" in routes
+    assert "This async case exists, but its reviewer evidence binding is not yet reviewable." in page
+    assert "This exact async case is visible with reviewable evidence on the selected node." in page
+    assert "return reconcileVerificationLevel(account, 1, base)" not in page
     assert "basic human review evidence" in page
     assert "Tier 1 evidence" not in page
 
