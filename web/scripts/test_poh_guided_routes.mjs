@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   allowedAsyncPohStep,
   allowedLivePohStep,
+  findExpectedAsyncPohCase,
   findExpectedLivePohCaseId,
   asyncPohRoute,
   livePohRoute,
@@ -42,6 +43,18 @@ assert.equal(allowedLivePohStep("request", 0, false, false), "explain");
 assert.equal(allowedLivePohStep("request", 2, false, false), "explain");
 assert.equal(allowedLivePohStep("request", 1, true, false), "track");
 assert.equal(allowedLivePohStep("explain", 1, false, true), "track");
+// Old async cases or a similarly named case for another owner cannot confirm an
+// unrelated new upload, and case visibility alone is not reviewer readiness.
+const olderAsyncCases = [
+  { case_id: "pohasync:alice:past", account_id: "@alice" },
+  { case_id: "pohasync:alice:incoming", account_id: "@mallory" },
+];
+assert.equal(findExpectedAsyncPohCase(olderAsyncCases, "@alice", "pohasync:alice:incoming"), null);
+assert.equal(findExpectedAsyncPohCase(olderAsyncCases, "@alice", "pohasync:alice:past")?.account_id, "@alice");
+assert.equal(findExpectedAsyncPohCase([{ case_id: "pohasync:alice:incoming", account_id: "@alice" }], "@alice", "pohasync:alice:incoming")?.case_id, "pohasync:alice:incoming");
+assert.equal(findExpectedAsyncPohCase(olderAsyncCases, "@alice", "pohasync:alice:"), null);
+assert.equal(findExpectedAsyncPohCase([], "@alice", "pohasync:alice:incoming"), null);
+assert.equal(findExpectedAsyncPohCase(null, "@alice", "pohasync:alice:incoming"), null);
 // Old cases, even for this same account, must never confirm a different signed request.
 const oldLiveCases = [
   { case_id: "poh_live:@alice:4", account_id: "@alice" },
@@ -56,6 +69,9 @@ assert.equal(findExpectedLivePohCaseId(null, "@alice", "poh_live:@alice:8"), "")
 // Live request reconciliation must bind to the nonce-derived case, never any() case.
 const livePage = readFileSync(new URL("../src/pages/AccountVerificationPage.tsx", import.meta.url), "utf8");
 assert.match(livePage, /reconcileLiveCaseVisible\(acct, submittedLiveCaseId, base, headers\)/);
+assert.match(livePage, /reconcileAsyncCaseVisible\(acct, submittedAsyncCaseId, base, headers\)/);
+assert.match(livePage, /if \(!asyncCaseReviewability\(matched\)\.reviewable\)/);
+assert.doesNotMatch(livePage, /reconcileAsyncCompatibilityCase/);
 assert.match(livePage, /let submittedLiveCaseId = "";/);
 assert.match(livePage, /waitForLiveCaseIdVisible\(acct, expectedCaseId, base, headers/);
 assert.match(livePage, /if \(!clean\) return false;/);

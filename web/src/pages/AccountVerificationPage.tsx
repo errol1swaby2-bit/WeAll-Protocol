@@ -31,6 +31,7 @@ import { currentHashPath, nav } from "../lib/router";
 import {
   allowedAsyncPohStep,
   allowedLivePohStep,
+  findExpectedAsyncPohCase,
   findExpectedLivePohCaseId,
   asyncPohRoute,
   livePohRoute,
@@ -250,15 +251,21 @@ async function reconcileVerificationLevel(account: string, minimumLevel: number,
   return null;
 }
 
-async function reconcileAsyncCompatibilityCase(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+async function reconcileAsyncCaseVisible(account: string, expectedCaseId: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  if (!expectedCaseId) return null;
   try {
-    const cases = await weall.pohAsyncMyCases(account, base, headers);
-    const items = Array.isArray(cases?.cases) ? cases.cases : [];
-    if (items.length > 0) return { phase: "confirmed", detail: "Your async verification case is visible." };
+    const response = await weall.pohAsyncMyCases(account, base, headers);
+    const matched = response?.ok === true ? findExpectedAsyncPohCase(response.cases, account, expectedCaseId) : null;
+    if (!matched) return null;
+    // This case being visible does not make its encrypted evidence reviewable.
+    if (!asyncCaseReviewability(matched).reviewable) {
+      return { phase: "submitted", detail: "This async case exists, but its reviewer evidence binding is not yet reviewable." };
+    }
+    return { phase: "confirmed", detail: "This exact async case is visible with reviewable evidence on the selected node." };
   } catch {
-    // ignore
+    // Missing history or a disconnected node is indeterminate, not success.
   }
-  return reconcileVerificationLevel(account, 1, base);
+  return null;
 }
 
 async function reconcileLiveCaseVisible(account: string, expectedCaseId: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
@@ -949,6 +956,7 @@ export default function AccountVerificationPage(): JSX.Element {
     // This marker survives errors after a successful encrypted upload.
     let acceptedUpload: UploadState | null = null;
     let caseTransactionsSubmitted = false;
+    let submittedAsyncCaseId = "";
     try {
       const headers = getAuthHeaders(acct);
       const r = await tx.runTx({
@@ -958,12 +966,13 @@ export default function AccountVerificationPage(): JSX.Element {
           res?.pending_reviewability
             ? "Async verification txs were submitted. Waiting for reviewer visibility while observer/genesis sync catches up."
             : "Async verification evidence submitted and reviewer-visible.",
-        finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCompatibilityCase(acct, base, headers) },
+        finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCaseVisible(acct, submittedAsyncCaseId, base, headers) },
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.access_bind?.result?.tx_id || res?.bind?.result?.tx_id || res?.declare?.result?.tx_id || res?.open?.result?.tx_id,
         task: async () => {
           requireNoUnresolvedPoh("async");
           const caseId = `pohasync:${String(acct).replace(/^@/, "")}:${challenge.challengeId}`;
+          submittedAsyncCaseId = caseId;
           const evidenceContext = `weall:poh-evidence:v1:${caseId}:${acct}`;
           const subjectKem = ensureEvidenceKemKeypair(acct);
           const accountView = await weall.account(acct, base);

@@ -96,3 +96,22 @@ export function findExpectedLivePohCaseId(cases: unknown, account: string, expec
   });
   return matches ? expected : "";
 }
+
+/**
+ * An older case or a case belonging to another account cannot confirm the
+ * encrypted video and reviewer-access transactions of a new async submission.
+ * This checks case identity only; it grants neither reviewability nor tier.
+ */
+export function findExpectedAsyncPohCase(cases: unknown, account: string, expectedCaseId: string): Record<string, unknown> | null {
+  const owner = String(account || "").trim();
+  const expected = String(expectedCaseId || "").trim();
+  const prefix = `pohasync:${owner.replace(/^@/, "")}:`;
+  if (!owner || !expected.startsWith(prefix) || expected.length <= prefix.length) return null;
+  if (!Array.isArray(cases)) return null;
+  const match = cases.find((item: unknown) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+    const record = item as Record<string, unknown>;
+    return record.case_id === expected && record.account_id === owner;
+  });
+  return match as Record<string, unknown> | null;
+}
