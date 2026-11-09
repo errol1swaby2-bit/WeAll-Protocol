@@ -79,6 +79,12 @@ be verified, the relevant new signed request is disabled and the UI presents
 the history as **unknown**, never zero. Previously loaded cases can remain
 visible but are explicitly stale until a successful refresh.
 
+The repeated real-backend browser custody journey also includes a bounded
+F2 subject-side check: a newly registered Tier-0 account enters the guided
+verification page, must complete text preparation before reaching recording,
+and cannot reach signed submission without a valid recorded video and consent.
+It deliberately does **not** use fake camera footage or certify real PoH.
+
 These are **presentation and regression-test increments**, not completed
 public PoH. The current `AccountVerificationPage.tsx` still contains too
 much business logic and requires component/route extraction after source
