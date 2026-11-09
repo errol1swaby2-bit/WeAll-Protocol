@@ -50,8 +50,10 @@ export function allowedAsyncPohStep(
   requested: AsyncPohGuideStep,
   readiness: AsyncPohRouteReadiness,
 ): AsyncPohGuideStep {
-  if (readiness.pendingJournal) return "track";
+  // Native stop-camera controls take priority over a parallel-tab journal.
+  // Signing remains separately blocked while any journal is unresolved.
   if (readiness.recordingActive) return "record";
+  if (readiness.pendingJournal) return "track";
   if (requested === "explain" || requested === "track") return requested;
   if (!readiness.basicAccountCreated) return "explain";
   if (requested === "prepare") return requested;
