@@ -125,6 +125,33 @@ both categories return successful reads. Advanced API payloads remain
 collapsed by default. Focused tests verify no signer, session or local
 authority mutation was introduced in the read-only component.
 
+### F2 URL-backed guided routes (bounded)
+
+The verification overview at `/verification` remains a status-first entry.
+Authenticated async stages now have direct routes
+`/verification/async/{explain,prepare,record,review,submit,track}`.
+Live preparation uses
+`/verification/live/journey/{explain,request,track}`. The pre-existing
+`/verification/live/:caseId` remains the case-scoped transport/attendance
+room and must not be shadowed by the new route matcher.
+
+These routes deliberately render through one mounted PoH controller: the
+browser retains local recording/consent while moving between adjacent
+stages, rather than exporting media to navigation URLs or localStorage.
+Reloading, copying or directly entering `review` or `submit` cannot
+reconstitute a video. The pure `allowedAsyncPohStep` gate returns users to
+the earliest safe preparation, recording or review stage. Active recording
+cannot be abandoned through the in-app verification overview. An unresolved
+signed/upload journal forces the **track** page; live requests with uncertain
+or in-flight outcomes cannot be repeated from a copied URL.
+
+The mandatory `test:poh-guided-routes` gate checks valid route maps,
+blocked direct navigation, missing video, missing consent, pending
+journal and active recording. The repeated real-browser custody gate now
+navigates through the actual URL stages, then uses a browser reload and a
+local-only negative interruption marker. These checks are not evidence
+of real end-to-end PoH adjudication or multi-device attendance.
+
 These are **presentation and regression-test increments**, not completed
 public PoH. The current `AccountVerificationPage.tsx` still contains too
 much business logic and requires component/route extraction after source
