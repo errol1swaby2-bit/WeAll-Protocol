@@ -48,4 +48,9 @@ assert.match(source, /onClick=\{\(\) => void submitLiveRequest\(\)\}/);
 assert.match(source, /No canonical live case is visible yet/);
 assert.match(source, /A deterministic expected case ID or pending request is not proof/);
 assert.match(source, /data-testid="live-verification-complete"/);
+assert.match(source, /accountLevel >= 2 \? \(/);
+assert.match(source, /data-testid="trusted-responsibilities-locked"/);
+assert.match(source, /aria-label="Async verification steps"/);
+assert.match(source, /aria-label="Live verification steps"/);
+
 console.log("PASS: async camera preview and local playback, upload-versus-signed-case status truth");
