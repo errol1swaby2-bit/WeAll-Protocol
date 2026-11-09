@@ -67,7 +67,7 @@ def test_account_verification_submits_native_async_tx_sequence() -> None:
     assert "reconcileAsyncCaseVisible(acct, submittedAsyncCaseId, base, headers)" in page
     assert "submittedAsyncCaseId = caseId" in page
     assert "if (!asyncCaseReviewability(matched).reviewable)" in page
-    assert "return { phase: \"submitted\"" in page
+    assert 'return { phase: "submitted"' in page
     assert "reconcileAsyncCompatibilityCase" not in page
 
 
