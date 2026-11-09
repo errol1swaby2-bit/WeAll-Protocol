@@ -1491,11 +1491,12 @@ export default function AccountVerificationPage(): JSX.Element {
                     type="button"
                     className="btn btnPrimary"
                     onClick={() => setAsyncGuideStep("prepare")}
-                    disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent || asyncEvidenceBusy || signerSubmission.busy}
+                    disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.async || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
                   >
                     Prepare verification
                   </button>
                   {!basicAccountCreated ? <p className="miniMuted">Register your basic account on the network before starting verification.</p> : null}
+                  {!verificationHistoryReady.async ? <p className="calloutDanger" data-testid="async-history-unavailable" role="status">{casesBusy ? "Checking earlier cases…" : "Case history unavailable. A failed lookup is not evidence that no case exists. Refresh the account view before starting a new case."}</p> : null}
                 </div>
               ) : null}
 
@@ -1526,7 +1527,7 @@ export default function AccountVerificationPage(): JSX.Element {
                     <button
                       type="button"
                       className="btn btnPrimary"
-                      disabled={!asyncPreparationReady || !registered || asyncEvidenceBusy || signerSubmission.busy}
+                      disabled={!asyncPreparationReady || !registered || !verificationHistoryReady.async || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
                       onClick={() => {
                         ensureAsyncChallenge();
                         setAsyncGuideStep("record");
@@ -1652,7 +1653,7 @@ export default function AccountVerificationPage(): JSX.Element {
                     type="button"
                     className="btn btnPrimary"
                     onClick={() => void submitAsyncEvidence()}
-                    disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok || !!asyncUpload}
+                    disabled={!acct || !basicAccountCreated || !verificationHistoryReady.async || casesBusy || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok || !!asyncUpload}
                   >
                     {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : "Submit async verification evidence"}
                   </button>
@@ -1677,6 +1678,7 @@ export default function AccountVerificationPage(): JSX.Element {
                     <p className="calloutInfo">Existing cases may be visible below. Refresh the network view before deciding whether any new request is appropriate.</p>
                   )}
                   {asyncUpload ? <JsonDetails title="Latest async evidence upload payload" value={asyncUpload} /> : null}
+                  {!verificationHistoryReady.async && !casesBusy ? <p className="calloutDanger" role="status">The selected node could not verify your current case history. Previously displayed cases may be stale.</p> : null}
                   <button
                     type="button"
                     className="btn btnPrimary"
@@ -1733,9 +1735,10 @@ export default function AccountVerificationPage(): JSX.Element {
                         <button type="button" className="btn" onClick={() => setLiveGuideStep("track")}>Inspect existing live cases</button>
                       </div>
                     ) : null}
-                    <button type="button" className="btn btnPrimary" disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || liveRequestBusy || signerSubmission.busy} onClick={() => setLiveGuideStep("request")}>
+                    <button type="button" className="btn btnPrimary" disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || casesBusy || liveRequestBusy || signerSubmission.busy} onClick={() => setLiveGuideStep("request")}>
                       Prepare live verification request
                     </button>
+                    {!verificationHistoryReady.live ? <p className="calloutDanger" data-testid="live-history-unavailable" role="status">{casesBusy ? "Checking earlier cases…" : "Live case history unavailable. Reconcile previous requests before opening a new signed request."}</p> : null}
                   </div>
                 ) : null}
                 {liveGuideStep === "request" ? (
@@ -1746,7 +1749,7 @@ export default function AccountVerificationPage(): JSX.Element {
                       type="button"
                       className="btn btnPrimary"
                       onClick={() => void submitLiveRequest()}
-                      disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}
+                      disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || casesBusy || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}
                     >
                       {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : "Open live verification"}
                     </button>
@@ -1801,7 +1804,8 @@ export default function AccountVerificationPage(): JSX.Element {
                         </button>
                       </div>
                     ))}
-                    {liveCases.length === 0 ? <p className="miniMuted">No canonical live case is visible yet. The node may be catching up; do not blindly resubmit a signed request.</p> : null}
+                    {liveCases.length === 0 && verificationHistoryReady.live ? <p className="miniMuted">No canonical live case is visible yet. The node may be catching up; do not blindly resubmit a signed request.</p> : null}
+                    {!verificationHistoryReady.live ? <p className="calloutDanger" role="status">The node could not confirm live case history. Any earlier case view may be stale. Reconcile before trying again.</p> : null}
                     <button type="button" className="btn" disabled={liveRequestBusy} onClick={() => setLiveGuideStep("explain")}>Back to explanation</button>
                   </div>
                 ) : null}
