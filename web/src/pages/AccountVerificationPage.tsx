@@ -507,7 +507,6 @@ export default function AccountVerificationPage(): JSX.Element {
   const asyncJournalBlocked = asyncJournal.status !== "none";
   const isAsyncJourneyRoute = parseAsyncPohRoute(guidedRoutePath) !== null;
   const isLiveJourneyRoute = parseLivePohJourneyRoute(guidedRoutePath) !== null;
-  const isVerificationLanding = !isAsyncJourneyRoute && !isLiveJourneyRoute;
 
   function goAsyncStep(stage: AsyncPohGuideStep): void {
     setAsyncGuideStep(stage);
@@ -1465,6 +1464,12 @@ export default function AccountVerificationPage(): JSX.Element {
       if (safe !== asyncGuideStep) setAsyncGuideStep(safe);
       return;
     }
+    if (asyncRecordingState === "recording") {
+      // Even a direct jump from async capture to live preparation must not
+      // leave the camera running behind an unrelated guided view.
+      nav(asyncPohRoute("record"));
+      return;
+    }
     const requestedLive = parseLivePohJourneyRoute(guidedRoutePath);
     if (requestedLive) {
       const safe = allowedLivePohStep(requestedLive, accountLevel, liveJournalBlocked, liveRequestBusy);
@@ -1475,9 +1480,7 @@ export default function AccountVerificationPage(): JSX.Element {
       if (safe !== liveGuideStep) setLiveGuideStep(safe);
       return;
     }
-    if (guidedRoutePath === "/verification" && asyncRecordingState === "recording") {
-      nav(asyncPohRoute("record"));
-    }
+
   }, [
     guidedRoutePath, basicAccountCreated, asyncPreparationReady,
     asyncRecordedBlob, asyncDurationError, asyncRecordingState,
