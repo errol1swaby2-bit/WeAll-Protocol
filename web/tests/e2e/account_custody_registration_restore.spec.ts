@@ -884,6 +884,37 @@ test.describe("real browser account custody", () => {
         await expect(restoredPage.getByTestId("async-evidence-live-preview")).toHaveCount(0);
         await expect(restoredPage.getByRole("button", { name: "Review recorded video" })).toBeDisabled();
         await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
+
+        // Simulate ONLY a browser-local interruption marker, not a fake PoH
+        // recording, signature, or backend case. Reload must preserve the
+        // fail-closed warning even when the backend returns an empty history.
+        await restoredPage.evaluate((acct: string) => {
+          localStorage.setItem(
+            "weall.poh_submission_pending_v1::async::" + encodeURIComponent(acct),
+            JSON.stringify({
+              version: 1,
+              account: acct,
+              kind: "async",
+              nodeBase: "/",
+              phase: "upload_started",
+              caseId: "pohasync:" + acct.replace(/^@/, "") + ":async-LOCAL-INTERRUPTION",
+              txId: "",
+              updatedAtMs: Date.now(),
+            }),
+          );
+        }, account);
+        await restoredPage.reload();
+        await expect(restoredPage.getByTestId("poh-async-interrupted-warning")).toBeVisible({ timeout: 30_000 });
+        await expect(restoredPage.getByTestId("async-step-track")).toBeVisible();
+        await expect(restoredPage.getByTestId("async-step-submit")).toHaveCount(0);
+        await restoredPage.getByRole("button", { name: "Refresh canonical verification status" }).click();
+        await expect(restoredPage.getByTestId("poh-async-interrupted-warning")).toBeVisible();
+
+        // Clean up this local-only negative fixture before the independent
+        // browser nonce-contention rehearsal; no production reset UI exists.
+        await restoredPage.evaluate((acct: string) => {
+          localStorage.removeItem("weall.poh_submission_pending_v1::async::" + encodeURIComponent(acct));
+        }, account);
         await restoredPage.goto("/#/home");
 
         // Two tabs share durable *public* metadata, not sessionStorage bearer
