@@ -112,6 +112,9 @@ a **local-only negative marker** and reloads to prove a recorded
 interruption cannot silently turn an empty case history into permission
 for another signed request. It does not create a fictitious PoH case.
 
+The async/live progress indicators now share a read-only `PohStepProgress`
+component with active-step announcements and a marked current step.
+
 The verification screen's read-only history and advanced technical
 records are extracted into `VerificationHistoryPanel`, and role eligibility
 display into `TrustedResponsibilitiesPanel`. The existing parent continues
