@@ -85,11 +85,39 @@ verification page, must complete text preparation before reaching recording,
 and cannot reach signed submission without a valid recorded video and consent.
 It deliberately does **not** use fake camera footage or certify real PoH.
 
+### Interrupted submission recovery — bounded implementation
+
+A new account-scoped, non-secret browser journal is written **before**
+sending an async evidence upload or a live signed request. It records only
+the selected node API base, case type, progress phase, known case ID and
+known canonical transaction ID. It never stores raw video, evidence encryption
+keys, challenge phrases, response texts, encrypted evidence bytes, bearer
+tokens or reviewer envelopes. If local storage cannot be read/written or
+a previous request remains unresolved, further signed PoH requests fail closed.
+
+After a browser reload the subject is guided to the **track** stage rather
+than to a new submission. The warning survives a failed, empty or lagging
+case-list read. A request is considered reconciled only if a successful
+canonical case-history response from the **same configured node** contains
+the exact recorded case ID. That merely proves a case is visible on the
+chosen node; it does **not** prove reviewer eligibility, finality,
+independence or an approved PoH tier. Lost-acknowledgment windows with no
+available case ID still require operator-led investigation; there is no
+automatic resend or unverified one-click local-journal clearing.
+
+The new `test:poh-submission-journal` exercise tests malformed/denied
+storage, same-case updates, wrong-node isolation and exact-case
+reconciliation. The live repeated browser custody test additionally inserts
+a **local-only negative marker** and reloads to prove a recorded
+interruption cannot silently turn an empty case history into permission
+for another signed request. It does not create a fictitious PoH case.
+
 These are **presentation and regression-test increments**, not completed
 public PoH. The current `AccountVerificationPage.tsx` still contains too
 much business logic and requires component/route extraction after source
-and live-browser acceptance. It also needs explicit durable uncertain-case
-resume and interrupted upload coverage. Manual tier override, fixture-only
+and live-browser acceptance. Durable uncertain-case warning and no-resubmit gates are now implemented,
+but complete authenticated receipt/nonce reconciliation and recoverable
+interrupted upload continuation still require end-to-end acceptance. Manual tier override, fixture-only
 success and replay-based signing shortcuts are prohibited.
 
 ## Remaining UX decompression before the combined PR
