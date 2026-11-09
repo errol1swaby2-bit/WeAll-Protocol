@@ -1446,6 +1446,45 @@ export default function AccountVerificationPage(): JSX.Element {
   const asyncStepNames = ["Understand", "Prepare", "Record", "Review", "Submit", "Track"] as const;
   const asyncStepIds = ["explain", "prepare", "record", "review", "submit", "track"] as const;
 
+  // URL stage changes are UI-only. Reload cannot recover in-memory video.
+  useEffect(() => {
+    const requestedAsync = parseAsyncPohRoute(guidedRoutePath);
+    if (requestedAsync) {
+      const safe = allowedAsyncPohStep(requestedAsync, {
+        basicAccountCreated,
+        prepared: asyncPreparationReady,
+        recordedValid: !!asyncRecordedBlob && !asyncDurationError && asyncRecordingState === "ready",
+        consentAndEvidenceValid: asyncSubmitCheck.ok,
+        pendingJournal: asyncJournalBlocked,
+        recordingActive: asyncRecordingState === "recording",
+      });
+      if (safe !== requestedAsync) {
+        nav(asyncPohRoute(safe));
+        return;
+      }
+      if (safe !== asyncGuideStep) setAsyncGuideStep(safe);
+      return;
+    }
+    const requestedLive = parseLivePohJourneyRoute(guidedRoutePath);
+    if (requestedLive) {
+      const safe = allowedLivePohStep(requestedLive, accountLevel, liveJournalBlocked, liveRequestBusy);
+      if (safe !== requestedLive) {
+        nav(livePohRoute(safe));
+        return;
+      }
+      if (safe !== liveGuideStep) setLiveGuideStep(safe);
+      return;
+    }
+    if (guidedRoutePath === "/verification" && asyncRecordingState === "recording") {
+      nav(asyncPohRoute("record"));
+    }
+  }, [
+    guidedRoutePath, basicAccountCreated, asyncPreparationReady,
+    asyncRecordedBlob, asyncDurationError, asyncRecordingState,
+    asyncSubmitCheck.ok, asyncJournalBlocked, accountLevel,
+    liveJournalBlocked, liveRequestBusy,
+  ]);
+
   return (
     <div className="pageStack accountVerificationPage">
       <section className="card heroCard">
