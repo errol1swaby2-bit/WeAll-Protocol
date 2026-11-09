@@ -65,4 +65,19 @@ assert.match(source, /data-testid="live-history-unavailable"/);
 assert.match(source, /if \(!verificationHistoryReady\.async\)/);
 assert.match(source, /if \(!verificationHistoryReady\.live\)/);
 
+// Durable warning markers are written before any external side effect.
+// The journal is not a receipt or evidence backup and must never auto-resend.
+assert.match(source, /requireNoUnresolvedPoh\("async"\)/);
+assert.match(source, /recordPohStage\("async", "upload_started", caseId\)/);
+assert.match(source, /recordPohStage\("async", "encrypted_uploaded", caseId\)/);
+assert.match(source, /recordPohStage\("async", "signed_started", caseId\)/);
+assert.match(source, /requireNoUnresolvedPoh\("live"\)/);
+assert.match(source, /recordPohStage\("live", "signed_started", ""\)/);
+assert.match(source, /recordPohStage\("live", "signed_returned", expectedCaseId, txId\)/);
+assert.match(source, /clearReconciledPohJournal\(acct, "async"/);
+assert.match(source, /clearReconciledPohJournal\(acct, "live"/);
+assert.match(source, /asyncJournalBlocked/);
+assert.match(source, /liveJournalBlocked/);
+assert.match(source, /PohSubmissionStatusNotice/);
+
 console.log("PASS: async camera preview and local playback, upload-versus-signed-case status truth");
