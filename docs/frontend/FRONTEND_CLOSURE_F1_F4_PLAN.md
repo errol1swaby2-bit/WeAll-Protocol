@@ -120,6 +120,11 @@ yet supplied independent live media acceptance evidence. The room also polls
 the exact canonical case while active so new juror assignments can reach a
 previously opened room. A transient observer failure preserves the last
 known case rather than substituting mutable presence or a different case.
+When canonical membership removes a reviewer, the UI closes that reviewer's
+existing peer connection instead of continuing transmission. Terminal
+verification status stops local capture and closes all peer connections.
+These are transport safety boundaries, not claims that peer credentials
+or WebRTC transport prove the on-chain verdict.
 
 The flow must not persist raw video in unsecured storage, bypass account
 tier/reputation gates, mark accepted as confirmed, or claim that a media upload
