@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "0d1d1406b0231a23192a1a90b9043d4724a61a285b747e8c4eb69d4d1339e087",
+      "sha256": "156ee4fdfe423c5a3a7742014d97edaadb0a521ef39f87d250a60d90b4eca87e",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -33462,7 +33462,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "9bb47a77cc6870649847d852bc13b36efe7cc79e4038bca0deb4bdd8d8d2f2fd",
+      "sha256": "e9f9cb0057df8f67b1f2eb4d815489c5025ddd2a4b2f823eb0f1cbe263cafec5",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
