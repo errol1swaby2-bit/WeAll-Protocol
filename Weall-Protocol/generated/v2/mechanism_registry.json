@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "11cdbd76c1218f279e0149d3716f8c1a07e81e94fa705fa0d83732c8ebc2c6fb"
+    "source_tree_digest": "a68142b50f585e95b03a895fdd251ad40d237dc122da4965ba4238ac837b2189"
   },
   "rows": [
     {
@@ -3137,6 +3137,7 @@
         "../web/src/components/NodeConnectionPanel.tsx",
         "../web/src/components/OperatorCommandWizard.tsx",
         "../web/src/components/OperatorIncidentTimeline.tsx",
+        "../web/src/components/PohStepProgress.tsx",
         "../web/src/components/PohSubmissionStatusNotice.tsx",
         "../web/src/components/ProcedureTimeline.tsx",
         "../web/src/components/ProtocolStatusSummary.tsx",
@@ -3144,10 +3145,12 @@
         "../web/src/components/SessionPill.tsx",
         "../web/src/components/SessionRecoveryBanner.tsx",
         "../web/src/components/SidebarNav.tsx",
+        "../web/src/components/TrustedResponsibilitiesPanel.tsx",
         "../web/src/components/TxPropagationTimeline.tsx",
         "../web/src/components/TxQueueProvider.tsx",
         "../web/src/components/TxStatusToast.tsx",
         "../web/src/components/ValidatorReadinessWizard.tsx",
+        "../web/src/components/VerificationHistoryPanel.tsx",
         "../web/src/components/WalletPanel.tsx",
         "../web/src/context/AccountContext.tsx",
         "../web/src/hooks/useMutationRefresh.ts",

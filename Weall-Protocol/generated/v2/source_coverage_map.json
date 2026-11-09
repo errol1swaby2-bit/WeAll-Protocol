@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2082,
+  "file_count": 2086,
   "files": [
     {
       "affected_registers": [
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "6dd57799adfa734974ec809f55240a3cac5a2b1a5819f3ebc8521d5c5794270d",
+      "sha256": "1e357e3f053c64e6ccbcc107f1064d945d989be563ab201269e692dfd410e9e6",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -147,7 +147,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "893705f731d13def40d7a84dd8c77cd913165bc8bb9cd6066368bce23fbfcb0d",
+      "sha256": "2b8451f5608b2536ac6a92741c431ab8e7cf8580e3ff645cd31225b1409b4a11",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -7014,7 +7014,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "287770132cde87b8f08e50fcbe4d807b203c135b372673e3e852b697923a2b02",
+      "sha256": "3c2d49b819fc34cef3ed480bbdbc44b7d3e6d6d6f9b1530b308cf7f705a3b778",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -30884,7 +30884,7 @@
       ],
       "path": "../web/scripts/test_async_evidence_preview.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "d14585df2585bf6130e7305be59afcf6323004b35d985ce1c5fe79ff7b110afc",
+      "sha256": "b213bfca4edb96671da39577251a4de101f9569f82ad1e754292d8f4e12d480e",
       "source_id": "SRC-B467025251B14F3C"
     },
     {
@@ -31506,6 +31506,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_verification_history_panel.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "dc1a3870796ace6d0a0b17261c4a0b3deb45492d24defc665737488db05bf43b",
+      "source_id": "SRC-7B41F5E925B6C31D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_wallet_tipping_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "a284e51feb343165025b9a679287f1b84fd14d1a0bee14cc0fceda7aee4c4611",
@@ -31949,6 +31962,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/components/PohStepProgress.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "8feaed316abc4a34a4baa9a9ade85acb93fdfded2db7ae89721e619a53a006f8",
+      "source_id": "SRC-399F9B897EB7C74D"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/components/PohSubmissionStatusNotice.tsx",
       "primary_mechanism_id": "M-069",
       "sha256": "6728472f9bb24368aa092e1977aa93219e93bcc5fc3b4cc7812604f6e5b2e0d3",
@@ -32054,6 +32082,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/components/TrustedResponsibilitiesPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "151518a24469ee99be53f2740d0590b59043b382ebb757235ce39074c316671a",
+      "source_id": "SRC-DCACBF1FD738E6E4"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/components/TxPropagationTimeline.tsx",
       "primary_mechanism_id": "M-069",
       "sha256": "1909d84bf7dafd9f6ca1d325b5c954fde002c0bb999068291a9e9d1ee23428e3",
@@ -32103,6 +32146,21 @@
       "primary_mechanism_id": "M-069",
       "sha256": "7f92451678c53c865e5d99891b8b75bb8f3eac2bb17412bcd45ea355fee1c07e",
       "source_id": "SRC-84ACB31990550FC9"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/components/VerificationHistoryPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "82d3a4f0c5e26bccad986ff93f520001cade1d15944cb532869989f4a76e66a9",
+      "source_id": "SRC-5F29BDAF9D57916A"
     },
     {
       "affected_registers": [
@@ -32866,7 +32924,7 @@
       ],
       "path": "../web/src/pages/AccountVerificationPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "46191a0327e30c51cadf4021fdd9649070ab4c6eeefe4aeb54ff68af7f0d8c5f",
+      "sha256": "f0589012c281de8d71a95f05404c8fb390ead5738f6a39c0b660d70689811ca6",
       "source_id": "SRC-6E72AE85995D2D5D"
     },
     {
@@ -33376,7 +33434,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "2163c921fb547c379dc7bcad946a5f963d7ffc8f3b138a06c521a6cc865dcfc6",
+      "sha256": "9f1eb97df9ac907a5b996d6cdb91f0163ff655858f9e53d6978fe297970ca5e6",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
