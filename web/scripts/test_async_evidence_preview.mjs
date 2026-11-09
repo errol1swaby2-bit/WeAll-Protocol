@@ -34,4 +34,13 @@ assert.match(source, /setAsyncConsent\(false\)/);
 assert.match(source, /Only a canonical account tier update confirms verification/);
 assert.match(source, /Inspect existing verification cases/);
 assert.match(source, /Do not repeat an uncertain signed submission/);
+// Live PoH must display request and canonical case visibility as separate stages.
+for (const step of ["explain", "request", "track"]) {
+  assert.ok(source.includes(`data-testid="live-step-${step}"`), `missing live ${step} stage`);
+  assert.ok(source.includes(`liveGuideStep === "${step}"`), `ungated live ${step} stage`);
+}
+assert.match(source, /onClick=\{\(\) => void submitLiveRequest\(\)\}/);
+assert.match(source, /No canonical live case is visible yet/);
+assert.match(source, /A deterministic expected case ID or pending request is not proof/);
+assert.match(source, /data-testid="live-verification-complete"/);
 console.log("PASS: async camera preview and local playback, upload-versus-signed-case status truth");
