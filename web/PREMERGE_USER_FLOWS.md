@@ -1,4 +1,4 @@
-# F1 pre-merge user journey decompression and remote-access truth
+# F1–F4 pre-merge user journeys and remote-access truth
 
 Status: **design/implementation checklist**, not a claim of public network readiness,
 PoH acceptance, consensus finality, or permission to merge PR #82.
@@ -57,9 +57,32 @@ Never automatically retry an ambiguous signed submission.
    does not satisfy any protocol rule that explicitly requires a person's
    own independent full node or a distinct PoH reviewer.
 
+## F2 bounded UI implementation — subject to exact-head CI
+
+PR #82 now stages the Tier-1 async process into six separately visible
+steps: understand → prepare → record → review/consent → encrypted submit →
+canonical track. Native camera recording and the existing signed
+`POH_ASYNC_REQUEST_OPEN`, `POH_ASYNC_EVIDENCE_DECLARE`, and
+`POH_ASYNC_EVIDENCE_BIND` paths remain the authority sources. A successful
+encrypted upload switches to **track**, not **verified**; pending/unknown
+signed operations are not automatically resubmitted.
+
+For Tier-2 live review, the visible steps are understand → request →
+track/open a visible case. The existing live room remains a separate route;
+only an authoritative tier update is shown as completed verification.
+Keyboard transitions restore focus to newly displayed stage headings, and
+Tier-2 service-role controls are folded away until eligible.
+
+These are **presentation and regression-test increments**, not completed
+public PoH. The current `AccountVerificationPage.tsx` still contains too
+much business logic and requires component/route extraction after source
+and live-browser acceptance. It also needs explicit durable uncertain-case
+resume and interrupted upload coverage. Manual tier override, fixture-only
+success and replay-based signing shortcuts are prohibited.
+
 ## Remaining UX decompression before the combined PR
 
-- Move the 80k-character account-verification page's async case creation,
+- Extract the now-larger account-verification page's async case creation,
   live room preparation, case history, and reviewer responsibilities into
   smaller bounded route components with independently visible progression.
 - Present one primary next action per account tier, with read-only history
@@ -82,6 +105,6 @@ reachable. PR #82 itself does not include PR #78's separate node discovery
 branch. Evaluate both against the eventual combined tree, not by pretending
 either branch alone is a public network.
 
-PR #82's saved recovery/verification and unavailable-node UX are the first
-bounded improvements in this checklist. All later work remains an open
-acceptance task until implemented and tested on the exact PR head.
+PR #82's saved recovery/verification, unavailable-node UX, and F2 guided
+verification presentation are bounded implementation increments. Remaining
+F2–F4 work is open until implemented and tested on exact commit evidence.
