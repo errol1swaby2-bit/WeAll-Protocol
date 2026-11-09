@@ -15,7 +15,7 @@ or accepted upload is an on-chain final outcome.
   recovery protections must hold in this mode.
 - **Independent node operator:** runs, stores and independently verifies a
   WeAll node, configures upstream and identity, and passes a separate node
-  operator rehearsal. Web hosting and Cloudflare alone cannot perform this.
+  operator rehearsal. Static website hosting alone cannot perform this.
 
 ## Public browser onboarding (progressively disclosed)
 
@@ -139,7 +139,7 @@ success and replay-based signing shortcuts are prohibited.
 ## Current launch limitation
 
 The checked-in testnet seed registry has an empty signature and requires
-rotation/re-signing. The HTTPS Cloudflare package in PR #78 is a static
+rotation/re-signing. The optional HTTPS static-page package in PR #78 is a static
 browser entry point; it cannot authorize genesis or make a node publicly
 reachable. PR #82 itself does not include PR #78's separate node discovery
 branch. Evaluate both against the eventual combined tree, not by pretending
