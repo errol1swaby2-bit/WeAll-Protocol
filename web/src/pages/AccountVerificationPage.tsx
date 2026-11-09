@@ -1617,6 +1617,7 @@ export default function AccountVerificationPage(): JSX.Element {
             status={verifiedStatus}
             description="Complete your first human review through six separate stages. Every upload, signed case, reviewer decision and account tier is verified separately."
           >
+            {isAsyncJourneyRoute ? (
             <div className="formStack" data-testid="async-guided-journey">
               <PohStepProgress
                 label="Async verification steps"
@@ -1855,6 +1856,19 @@ export default function AccountVerificationPage(): JSX.Element {
                 </div>
               ) : null}
             </div>
+            ) : (
+              <div className="buttonRowWide" data-testid="async-verification-landing">
+                <button
+                  type="button"
+                  className="btn btnPrimary"
+                  onClick={() => goAsyncStep(asyncJournalBlocked ? "track" : "explain")}
+                  disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent}
+                >
+                  {asyncJournalBlocked ? "Check interrupted async verification" : "Begin async human review"}
+                </button>
+                <p className="miniMuted">Your local video and consent will not be restored from browser history or a copied link.</p>
+              </div>
+            )}
           </StatusCard>
         ) : (
           <StatusCard
@@ -1876,6 +1890,7 @@ export default function AccountVerificationPage(): JSX.Element {
                 The canonical account view reports Tier 2. Any separate reviewer or validator authority still requires its own eligibility and authorization.
               </div>
             ) : (
+              isLiveJourneyRoute ? (
               <div className="formStack" data-testid="live-guided-journey">
                 <PohStepProgress
                   label="Live verification steps"
@@ -1986,6 +2001,18 @@ export default function AccountVerificationPage(): JSX.Element {
                   </div>
                 ) : null}
               </div>
+              ) : (
+                <div className="buttonRowWide" data-testid="live-verification-landing">
+                  <button
+                    type="button"
+                    className="btn btnPrimary"
+                    onClick={() => goLiveStep(liveJournalBlocked ? "track" : "explain")}
+                    disabled={!acct || !hasLocalKeypair || !sessionKeyPresent}
+                  >
+                    {liveJournalBlocked ? "Check interrupted live verification" : "Begin live human review"}
+                  </button>
+                </div>
+              )
             )}
         </StatusCard>
         ) : null}
