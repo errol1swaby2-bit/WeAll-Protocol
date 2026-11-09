@@ -135,9 +135,12 @@ Live preparation uses
 `/verification/live/:caseId` remains the case-scoped transport/attendance
 room and must not be shadowed by the new route matcher.
 
-These routes deliberately render through one mounted PoH controller: the
-browser retains local recording/consent while moving between adjacent
-stages, rather than exporting media to navigation URLs or localStorage.
+These routes deliberately render through one mounted PoH controller. The
+AppShell gives the overview and guided stage routes a shared *content* key,
+while keeping its ordinary per-route key for drawer/focus resets. This
+prevents a route transition from unmounting active video controls and losing
+in-memory recording/consent. A browser reload still destroys those ephemeral
+secrets; it does not write media to navigation URLs or localStorage.
 Reloading, copying or directly entering `review` or `submit` cannot
 reconstitute a video. The pure `allowedAsyncPohStep` gate returns users to
 the earliest safe preparation, recording or review stage. Active recording
