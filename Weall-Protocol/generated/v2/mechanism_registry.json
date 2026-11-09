@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "56aab459ee02dd540cd4fe5a03c5ccf0d18938bbc83691ccd297fa98d99583e5"
+    "source_tree_digest": "5c6a6a108a3cf065046b7b0395987fcab39b02f6e3c33ae8fa03407bcb727b02"
   },
   "rows": [
     {
@@ -3137,6 +3137,7 @@
         "../web/src/components/NodeConnectionPanel.tsx",
         "../web/src/components/OperatorCommandWizard.tsx",
         "../web/src/components/OperatorIncidentTimeline.tsx",
+        "../web/src/components/PohSubmissionStatusNotice.tsx",
         "../web/src/components/ProcedureTimeline.tsx",
         "../web/src/components/ProtocolStatusSummary.tsx",
         "../web/src/components/RequirementList.tsx",
@@ -3175,6 +3176,7 @@
         "../web/src/lib/nodeConnectionManager.ts",
         "../web/src/lib/onboarding.ts",
         "../web/src/lib/pendingWork.ts",
+        "../web/src/lib/pohSubmissionJournal.ts",
         "../web/src/lib/procedureClock.ts",
         "../web/src/lib/revalidation.ts",
         "../web/src/lib/reviewLanes.ts",

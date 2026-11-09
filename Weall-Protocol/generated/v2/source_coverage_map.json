@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2079,
+  "file_count": 2082,
   "files": [
     {
       "affected_registers": [
@@ -121,7 +121,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "b46c50bc215df59a590bd37976284177dcf32e207a425a96cdb56c7e50f046d9",
+      "sha256": "e1eaebc5778409e695b3ca0e92d770aabdd0cbe753f86c4ac0af19ebe4207074",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -147,7 +147,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "bd58427edcd356292e609247e8b07cb3d688b383f13a88b59be95443eda59edb",
+      "sha256": "893705f731d13def40d7a84dd8c77cd913165bc8bb9cd6066368bce23fbfcb0d",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -3340,7 +3340,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "cf959dd21a33ea5e7bb791c57320210536ebe880aa258968f6d7594ea33d36cc",
+      "sha256": "235766e35469f63cfa5c34c85d3999b7aede631a5c7f7e1354bc768396b26bfb",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3466,7 +3466,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "32b164c5dcaaf51615356d6c41fa67fc32a3ac6cb015bfb6affd383ac2f3735c",
+      "sha256": "c920815126f32ab239dd96982f24f56f764fe652a13e0a9a7c1ea2e3c66ec8c2",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3564,7 +3564,7 @@
       ],
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "4ee46df0f322897c5fa963939ddba13d572470e341fdc61068490d4dcdccd980",
+      "sha256": "78c623ac294c5b4f3e4ce088b6ed4abd5f3efee3d8730bb8dd4e3c7429b6dba5",
       "source_id": "SRC-693A4A1C6F167853"
     },
     {
@@ -3648,7 +3648,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "39af95c51255aa155d7f342b4ffc99fffba6d63e98ca468514d51f9376eb414e",
+      "sha256": "039e865757fb31ef3a7f4eb7fa4cee3eb159933bc1339a16003ca678799d9e6a",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -7014,7 +7014,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "39554c914b727cf3c20f7f75b2f4207cbc878afd344e06c035a56140dfcbff50",
+      "sha256": "287770132cde87b8f08e50fcbe4d807b203c135b372673e3e852b697923a2b02",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -30884,7 +30884,7 @@
       ],
       "path": "../web/scripts/test_async_evidence_preview.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "30c3e932f4864e61843e0d3bb4a46f0404e62dd04ab17422025f961d8c6332ca",
+      "sha256": "d14585df2585bf6130e7305be59afcf6323004b35d985ce1c5fe79ff7b110afc",
       "source_id": "SRC-B467025251B14F3C"
     },
     {
@@ -31224,6 +31224,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "2ea1ceceecfc7b923df6ef7a849460d1b295e11de92e37bde249f1b704d58f5c",
       "source_id": "SRC-FA17C74C3E8FAF7A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_poh_submission_journal.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "bb67bddb6291b8e510911b39b73f5939b9c42a310542aab658d1eb4e2662fd2c",
+      "source_id": "SRC-D9621B22A4154305"
     },
     {
       "affected_registers": [
@@ -31936,6 +31949,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/components/PohSubmissionStatusNotice.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "6728472f9bb24368aa092e1977aa93219e93bcc5fc3b4cc7812604f6e5b2e0d3",
+      "source_id": "SRC-4F1DEA5EF6ACB1E2"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/components/ProcedureTimeline.tsx",
       "primary_mechanism_id": "M-069",
       "sha256": "df88e38d5252391a06823f0ab7e87e9f8812df8241c4fe9c6d4c9aa27161b782",
@@ -32529,6 +32557,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/lib/pohSubmissionJournal.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "3edaecaf949f9c8a67a2552d69c92d14c695916dc97384a5d99012695656da3a",
+      "source_id": "SRC-B786762E8EF35ACC"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/lib/procedureClock.ts",
       "primary_mechanism_id": "M-069",
       "sha256": "29b152fc3312cb395edc01621037477cbdcb0ce5fdb0bdde3a03fd5773120ccf",
@@ -32823,7 +32866,7 @@
       ],
       "path": "../web/src/pages/AccountVerificationPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "c629affa4d402b7c2e72882d0f9f65dcbf3974883afdf043099686c024cb76ec",
+      "sha256": "165f932cc8d73e24d0538780dd2799908ff2b72cb8d58d3460ce6f23f955f0af",
       "source_id": "SRC-6E72AE85995D2D5D"
     },
     {
@@ -33333,7 +33376,7 @@
       ],
       "path": "../web/tests/e2e/account_custody_registration_restore.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "8e8590b48b9f9f9cd7736bdb6e4b83dade1f2762d357cd2cc9df5235774c1ed1",
+      "sha256": "2163c921fb547c379dc7bcad946a5f963d7ffc8f3b138a06c521a6cc865dcfc6",
       "source_id": "SRC-8044E08FEEC432D9"
     },
     {
