@@ -399,6 +399,16 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }, [caseId, apiBase, account, liveCase?.case_id, isFinal]);
 
   useEffect(() => {
+    // Removing an assigned peer from canonical case membership must stop
+    // transmission immediately, even if its old WebRTC connection is still
+    // technically healthy. Presence must never keep that connection alive.
+    const allowedPeers = new Set(p2pRemoteAccounts);
+    for (const peer of peerConnectionsRef.current.keys()) {
+      if (!allowedPeers.has(peer)) resetPeerConnection(peer);
+    }
+  }, [caseId, p2pRemoteAccounts.join("|")]);
+
+  useEffect(() => {
     if (!sessionId) return;
     void loadRoomSidecars(sessionId);
   }, [sessionId, apiBase]);

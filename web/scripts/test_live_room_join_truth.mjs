@@ -67,6 +67,7 @@ assert.match(actors, /!track\.muted/);
 assert.match(page, /if \(!p2pRemoteAccounts\.includes\(from\)\) return;/);
 assert.match(page, /const refreshCanonicalCase = async/);
 assert.match(page, /nextCase\?\.case_id === caseId/);
+assert.match(page, /if \(!allowedPeers\.has\(peer\)\) resetPeerConnection\(peer\)/);
 assert.match(page, /window\.setInterval\(\(\) => void refreshCanonicalCase\(\), 4000\)/);
 assert.doesNotMatch(
   page.slice(page.indexOf("const p2pParticipantAccounts = useMemo"), page.indexOf("const p2pRemoteAccounts = useMemo")),
