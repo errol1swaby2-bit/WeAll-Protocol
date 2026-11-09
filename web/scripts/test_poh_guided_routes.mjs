@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   allowedAsyncPohStep,
   allowedLivePohStep,
+  findExpectedLivePohCaseId,
   asyncPohRoute,
   livePohRoute,
   parseAsyncPohRoute,
@@ -41,6 +42,22 @@ assert.equal(allowedLivePohStep("request", 0, false, false), "explain");
 assert.equal(allowedLivePohStep("request", 2, false, false), "explain");
 assert.equal(allowedLivePohStep("request", 1, true, false), "track");
 assert.equal(allowedLivePohStep("explain", 1, false, true), "track");
+// Old cases, even for this same account, must never confirm a different signed request.
+const oldLiveCases = [
+  { case_id: "poh_live:@alice:4", account_id: "@alice" },
+  { case_id: "poh_live:@alice:7", account_id: "@alice" },
+];
+assert.equal(findExpectedLivePohCaseId(oldLiveCases, "@alice", "poh_live:@alice:8"), "");
+assert.equal(findExpectedLivePohCaseId([...oldLiveCases, { case_id: "poh_live:@alice:8", account_id: "@alice" }], "@alice", "poh_live:@alice:8");
+assert.equal(findExpectedLivePohCaseId([{ case_id: "poh_live:@alice:8", account_id: "@mallory" }], "@alice", "poh_live:@alice:8"), "");
+assert.equal(findExpectedLivePohCaseId([{ case_id: "poh_live:@alice:8", account_id: "@alice" }], "@alice", "poh_live:@alice:0"), "");
+assert.equal(findExpectedLivePohCaseId([{ case_id: "poh_live:@alice:8", account_id: "@alice" }], "@alice", ""), "");
+assert.equal(findExpectedLivePohCaseId(null, "@alice", "poh_live:@alice:8"), "");
+// Live request reconciliation must bind to the nonce-derived case, never any() case.
+const livePage = readFileSync(new URL("../src/pages/AccountVerificationPage.tsx", import.meta.url), "utf8");
+assert.match(livePage, /reconcileLiveCaseVisible\(acct, liveExpectedCaseIdRef\.current, base, headers\)/);
+assert.match(livePage, /waitForLiveCaseIdVisible\(acct, expectedCaseId, base, headers/);
+
 // App-shell route transitions MUST NOT remount the native recorder when
 // only a guided step changed. All unrelated routes retain their distinct keys.
 const shell = readFileSync(new URL("../src/components/AppShell.tsx", import.meta.url), "utf8");

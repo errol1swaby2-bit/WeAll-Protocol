@@ -85,6 +85,12 @@ Remaining proposed deeper components and routes:
   attendance and outcome; preserve its P2P/commitment trust boundary.
 - /reviews — reviewers see only assigned, authorized cases.
 
+In the 2026-11-09 F2 follow-up, live-case reconciliation and room navigation
+must bind to the nonce-derived ID of the **newly signed request**. Existing
+case-history entries for the same account do not establish that the new case is
+visible, confirmed or reviewable. The pending room is still not a finality
+claim; exact-head CI and independent live media/reviewer acceptance remain open.
+
 The flow must not persist raw video in unsecured storage, bypass account
 tier/reputation gates, mark accepted as confirmed, or claim that a media upload
 alone means reviewable/finalized. Interrupted workflows should recover status

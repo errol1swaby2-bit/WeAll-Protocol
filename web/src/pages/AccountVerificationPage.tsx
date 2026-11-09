@@ -31,6 +31,7 @@ import { currentHashPath, nav } from "../lib/router";
 import {
   allowedAsyncPohStep,
   allowedLivePohStep,
+  findExpectedLivePohCaseId,
   asyncPohRoute,
   livePohRoute,
   parseAsyncPohRoute,
@@ -260,20 +261,21 @@ async function reconcileAsyncCompatibilityCase(account: string, base: string, he
   return reconcileVerificationLevel(account, 1, base);
 }
 
-async function reconcileLiveCaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+async function reconcileLiveCaseVisible(account: string, expectedCaseId: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  if (!expectedCaseId) return null;
   try {
     const mine = await weall.pohLiveMyCases(account, base, headers);
-    const cases = Array.isArray(mine?.cases) ? mine.cases : [];
-    if (cases.length > 0) return { phase: "confirmed", detail: "Your live verification case is visible." };
+    const matched = mine?.ok === true ? findExpectedLivePohCaseId(mine.cases, account, expectedCaseId) : "";
+    if (matched) return { phase: "confirmed", detail: "The case opened by this signed request is visible on the selected node." };
   } catch {
-    // ignore
+    // Unavailable case history does not establish a new signed request succeeded.
   }
   return null;
 }
 
-async function waitForLiveCaseIdVisible(account: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<string> {
+async function waitForLiveCaseIdVisible(account: string, expectedCaseId: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<string> {
   const acct = normalizeAccount(account);
-  if (!acct) return "";
+  if (!acct || !expectedCaseId) return "";
   const started = Date.now();
   const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 45000));
   const intervalMs = Math.max(250, Number(options?.intervalMs ?? 750));
@@ -281,14 +283,10 @@ async function waitForLiveCaseIdVisible(account: string, base: string, headers?:
   while (Date.now() - started < maxWaitMs) {
     try {
       const mine = await weall.pohLiveMyCases(acct, base, headers);
-      const cases = Array.isArray(mine?.cases) ? mine.cases : [];
-      const visible = cases
-        .map((item: any) => String(item?.case_id || item?.id || "").trim())
-        .filter(Boolean);
-      if (visible.length > 0) return visible[visible.length - 1];
+      const matched = mine?.ok === true ? findExpectedLivePohCaseId(mine.cases, acct, expectedCaseId) : "";
+      if (matched) return matched;
     } catch {
-      // The request may be confirmed upstream before the read-model exposes the
-      // live case locally. Keep polling within a bounded local rehearsal window.
+      // A read-model lag or outage cannot authorize routing to an old case.
     }
     await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
   }
@@ -461,6 +459,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const recordingPreviewRef = useRef<HTMLVideoElement | null>(null);
   const asyncStepHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const liveStepHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const liveExpectedCaseIdRef = useRef<string>("");
   const asyncFocusInitializedRef = useRef(false);
   const liveFocusInitializedRef = useRef(false);
   const recordingChunksRef = useRef<Blob[]>([]);
@@ -1295,7 +1294,7 @@ export default function AccountVerificationPage(): JSX.Element {
             : "Live verification request submitted. Opening live room…",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
-        finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, base, headers) },
+        finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, liveExpectedCaseIdRef.current, base, headers) },
         task: async () => {
           requireNoUnresolvedPoh("live");
           const kp = getKeypair(acct);
@@ -1322,6 +1321,7 @@ export default function AccountVerificationPage(): JSX.Element {
           // The case ID is not known until the signed nonce returns. A
           // pre-dispatch marker with an empty ID deliberately requires
           // manual reconciliation if the response is lost.
+          liveExpectedCaseIdRef.current = "";
           recordPohStage("live", "signed_started", "");
           goLiveStep("track");
           const submit = await submitSignedTxInSequence({
@@ -1334,6 +1334,8 @@ export default function AccountVerificationPage(): JSX.Element {
           const txId = String(submit?.result?.tx_id || (submit as any)?.tx_id || "");
           const signedNonce = Number(submit?.env?.nonce || 0);
           const expectedCaseId = expectedLiveCaseIdFromNonce(acct, signedNonce);
+          if (!expectedCaseId) throw new Error("The signed live request has no valid nonce-derived case ID. Reconcile the original transaction; do not submit another request.");
+          liveExpectedCaseIdRef.current = expectedCaseId;
           recordPohStage("live", "signed_returned", expectedCaseId, txId);
           const txVisible = await waitForSubmittedTxVisible(base, txId, {
             maxWaitMs: 30_000,
@@ -1345,13 +1347,13 @@ export default function AccountVerificationPage(): JSX.Element {
             requireLocalStateSynced: false,
             acceptAccepted: true,
           });
-          const visibleCaseId = await waitForLiveCaseIdVisible(acct, base, headers, {
+          const visibleCaseId = await waitForLiveCaseIdVisible(acct, expectedCaseId, base, headers, {
             maxWaitMs: txVisible ? 30_000 : 5_000,
             intervalMs: 1_000,
           });
-          if (!txVisible && !visibleCaseId && !expectedCaseId) {
-            throw new Error("Live verification request was not confirmed on genesis and synced back to the observer yet. Wait for sync and try again.");
-          }
+          // An acknowledged submission may still be absent from local history.
+          // The derived room remains pending until this exact case is observed;
+          // visibility of older cases cannot substitute for this request.
           // Batch 420: preserve the older Batch 394/394b static contract
           // while Batch 417 still routes with the deterministic expected case id
           // when observer-local live-case reads lag behind genesis.
@@ -1377,12 +1379,12 @@ export default function AccountVerificationPage(): JSX.Element {
       // Batch 417 still prefers deterministic expected_case_id fallback.
       // String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible
       const resultCaseId = String((r as any)?.case_id || (r as any)?.expected_case_id || "").trim();
-      const visibleCaseId = resultCaseId || await waitForLiveCaseIdVisible(acct, base, headers, {
-        maxWaitMs: 30_000,
-        intervalMs: 1_000,
-      });
-      if (visibleCaseId) {
-        nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`);
+      const expectedCaseId = String((r as any)?.expected_case_id || "").trim();
+      if (resultCaseId && resultCaseId === expectedCaseId) {
+        // This is a pending room route, not an assertion of case finality.
+        nav(`/verification/live/${encodeURIComponent(resultCaseId)}`);
+      } else {
+        goLiveStep("track");
       }
     } catch (e: any) {
       if (acct && readPohSubmissionJournal(acct, "live").status !== "none") {

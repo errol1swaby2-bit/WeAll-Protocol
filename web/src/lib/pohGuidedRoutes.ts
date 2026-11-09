@@ -75,3 +75,24 @@ export function allowedLivePohStep(
   if (requested === "explain" || requested === "track") return requested;
   return tier >= 1 && tier < 2 ? "request" : "explain";
 }
+
+/**
+ * Case IDs are derived from the nonce of *this signed request*. A pre-existing
+ * case for the same account must never satisfy a new request's reconciliation
+ * or redirect the user into an unrelated live room.
+ */
+export function findExpectedLivePohCaseId(cases: unknown, account: string, expectedCaseId: string): string {
+  const owner = String(account || "").trim();
+  const expected = String(expectedCaseId || "").trim();
+  const prefix = `poh_live:${owner}:`;
+  if (!owner || !expected.startsWith(prefix)) return "";
+  const nonce = expected.slice(prefix.length);
+  if (!/^[1-9][0-9]*$/.test(nonce) || !Number.isSafeInteger(Number(nonce))) return "";
+  if (!Array.isArray(cases)) return "";
+  const matches = cases.some((item: unknown) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+    const record = item as Record<string, unknown>;
+    return record.case_id === expected && record.account_id === owner;
+  });
+  return matches ? expected : "";
+}
