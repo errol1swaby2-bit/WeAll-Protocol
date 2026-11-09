@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import PohSubmissionStatusNotice from "../components/PohSubmissionStatusNotice";
 import {
   beginNonceSequence,
   getAuthHeaders,
@@ -490,8 +491,8 @@ export default function AccountVerificationPage(): JSX.Element {
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   // Preserve last-seen cases, but never treat a failed history lookup as an empty history.
   const [verificationHistoryReady, setVerificationHistoryReady] = useState({ async: false, live: false });
-  const [asyncJournal, setAsyncJournal] = useState<PohJournalRead>({ status: "unavailable" });
-  const [liveJournal, setLiveJournal] = useState<PohJournalRead>({ status: "unavailable" });
+  const [asyncJournal, setAsyncJournal] = useState<PohJournalRead>(() => acct ? readPohSubmissionJournal(acct, "async") : { status: "unavailable" });
+  const [liveJournal, setLiveJournal] = useState<PohJournalRead>(() => acct ? readPohSubmissionJournal(acct, "live") : { status: "unavailable" });
   const asyncJournalBlocked = asyncJournal.status !== "none";
   const liveJournalBlocked = liveJournal.status !== "none";
 
@@ -1565,6 +1566,13 @@ export default function AccountVerificationPage(): JSX.Element {
                   : `Step ${asyncStepIds.indexOf(asyncGuideStep) + 1} of 6: ${asyncStepNames[asyncStepIds.indexOf(asyncGuideStep)]}`}
               </p>
 
+              <PohSubmissionStatusNotice
+                kind="async"
+                journal={asyncJournal}
+                currentNodeBase={base}
+                onTrack={() => setAsyncGuideStep("track")}
+              />
+
               {asyncGuideStep === "explain" ? (
                 <div className="formStack" data-testid="async-step-explain">
                   <h3 ref={asyncStepHeadingRef} tabIndex={-1}>Before you record</h3>
@@ -1586,7 +1594,7 @@ export default function AccountVerificationPage(): JSX.Element {
                     type="button"
                     className="btn btnPrimary"
                     onClick={() => setAsyncGuideStep("prepare")}
-                    disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.async || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
+                    disabled={!acct || !basicAccountCreated || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
                   >
                     Prepare verification
                   </button>
@@ -1622,7 +1630,7 @@ export default function AccountVerificationPage(): JSX.Element {
                     <button
                       type="button"
                       className="btn btnPrimary"
-                      disabled={!asyncPreparationReady || !registered || !verificationHistoryReady.async || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
+                      disabled={!asyncPreparationReady || !registered || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
                       onClick={() => {
                         ensureAsyncChallenge();
                         setAsyncGuideStep("record");
@@ -1748,7 +1756,7 @@ export default function AccountVerificationPage(): JSX.Element {
                     type="button"
                     className="btn btnPrimary"
                     onClick={() => void submitAsyncEvidence()}
-                    disabled={!acct || !basicAccountCreated || !verificationHistoryReady.async || casesBusy || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok || !!asyncUpload}
+                    disabled={!acct || !basicAccountCreated || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok || !!asyncUpload}
                   >
                     {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : "Submit async verification evidence"}
                   </button>
@@ -1815,6 +1823,13 @@ export default function AccountVerificationPage(): JSX.Element {
                     </li>
                   ))}
                 </ol>
+                <PohSubmissionStatusNotice
+                  kind="live"
+                  journal={liveJournal}
+                  currentNodeBase={base}
+                  onTrack={() => setLiveGuideStep("track")}
+                />
+
                 {liveGuideStep === "explain" ? (
                   <div className="formStack" data-testid="live-step-explain">
                   <h3 ref={liveStepHeadingRef} tabIndex={-1}>Before live verification</h3>
@@ -1830,7 +1845,7 @@ export default function AccountVerificationPage(): JSX.Element {
                         <button type="button" className="btn" onClick={() => setLiveGuideStep("track")}>Inspect existing live cases</button>
                       </div>
                     ) : null}
-                    <button type="button" className="btn btnPrimary" disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || casesBusy || liveRequestBusy || signerSubmission.busy} onClick={() => setLiveGuideStep("request")}>
+                    <button type="button" className="btn btnPrimary" disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || liveJournalBlocked || casesBusy || liveRequestBusy || signerSubmission.busy} onClick={() => setLiveGuideStep("request")}>
                       Prepare live verification request
                     </button>
                     {!verificationHistoryReady.live ? <p className="calloutDanger" data-testid="live-history-unavailable" role="status">{casesBusy ? "Checking earlier cases…" : "Live case history unavailable. Reconcile previous requests before opening a new signed request."}</p> : null}
@@ -1844,7 +1859,7 @@ export default function AccountVerificationPage(): JSX.Element {
                       type="button"
                       className="btn btnPrimary"
                       onClick={() => void submitLiveRequest()}
-                      disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || casesBusy || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}
+                      disabled={!acct || !hasLocalKeypair || !sessionKeyPresent || !verificationHistoryReady.live || liveJournalBlocked || casesBusy || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}
                     >
                       {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : "Open live verification"}
                     </button>
