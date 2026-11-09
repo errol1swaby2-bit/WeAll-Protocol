@@ -107,6 +107,15 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
   const breadcrumbs = deriveBreadcrumbs(route, meta);
   const headerTitle = titleForRoute(route, meta);
   const routeKey = JSON.stringify(route);
+  // The guided verification stages share one in-memory controller for native
+  // video/consent and partially submitted evidence. Only its presentation
+  // route changes. Keep global route keys distinct for drawers/focus, but
+  // never remount the PoH controller merely to advance a local step.
+  const contentRouteKey = (
+    route.path === "/verification" ||
+    route.path === "/verification/async/:stage" ||
+    route.path === "/verification/live/journey/:stage"
+  ) ? "verification-guided-controller" : routeKey;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -293,7 +302,7 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
         </section>
 
         <div className="appShellBody">
-          <main key={routeKey} id="app-shell-content" className="appShellContent" tabIndex={-1}>
+          <main key={contentRouteKey} id="app-shell-content" className="appShellContent" tabIndex={-1}>
             {children}
           </main>
         </div>
