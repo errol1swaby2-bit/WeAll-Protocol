@@ -1791,6 +1791,7 @@ export default function AccountVerificationPage(): JSX.Element {
         ) : null}
       </section>
 
+      {accountLevel >= 2 ? (
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1848,6 +1849,15 @@ export default function AccountVerificationPage(): JSX.Element {
           </div>
         </div>
       </section>
+      ) : (
+        <details className="advancedDisclosure" data-testid="trusted-responsibilities-locked">
+          <summary>Later: trusted responsibilities (live verification required)</summary>
+          <p className="miniMuted">
+            Reviewer, juror, validator and operator responsibilities require additional authorization.
+            They remain unavailable until the canonical account tier and applicable role-specific rules permit them.
+          </p>
+        </details>
+      )}
 
       <section className="grid2">
         <article className="card">
