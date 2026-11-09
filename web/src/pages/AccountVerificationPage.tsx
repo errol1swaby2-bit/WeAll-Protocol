@@ -923,6 +923,7 @@ export default function AccountVerificationPage(): JSX.Element {
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.access_bind?.result?.tx_id || res?.bind?.result?.tx_id || res?.declare?.result?.tx_id || res?.open?.result?.tx_id,
         task: async () => {
+          requireNoUnresolvedPoh("async");
           const caseId = `pohasync:${String(acct).replace(/^@/, "")}:${challenge.challengeId}`;
           const evidenceContext = `weall:poh-evidence:v1:${caseId}:${acct}`;
           const subjectKem = ensureEvidenceKemKeypair(acct);
@@ -940,11 +941,16 @@ export default function AccountVerificationPage(): JSX.Element {
           uploadHeaders.set("X-WeAll-Evidence-Encryption", "aes-256-gcm");
           uploadHeaders.set("X-WeAll-Evidence-Context-Commitment", encryptedEvidence.encryptionContextCommitment);
           uploadHeaders.set("X-WeAll-Evidence-Ciphertext-Commitment", encryptedEvidence.ciphertextCommitment);
+          // Write before the first external side effect. A crash, lost HTTP
+          // reply or tab reload must never license a second evidence upload.
+          recordPohStage("async", "upload_started", caseId);
+          setAsyncGuideStep("track");
           const upload: UploadState = await weall.pohAsyncVideoUpload(encryptedEvidence.file, base, uploadHeaders);
           if (!String(upload?.cid || "").trim()) {
             throw new Error("The media endpoint returned no ciphertext CID; the signed case was not submitted.");
           }
           acceptedUpload = upload;
+          recordPohStage("async", "encrypted_uploaded", caseId);
           setAsyncUpload(upload);
           // Storage acceptance is a separate phase from canonical case review.
           // The tracking screen never implies that signed transactions finalized.
@@ -963,6 +969,7 @@ export default function AccountVerificationPage(): JSX.Element {
           // N is already pending for the same signer. Legacy evidence_cid and
           // video_commitment plaintext fields are intentionally not submitted.
           const sequence = await beginNonceSequence(acct, base);
+          recordPohStage("async", "signed_started", caseId);
           const openedAtMs = Date.now();
           const open = await submitSignedTxInSequence({
             sequence,
@@ -979,6 +986,7 @@ export default function AccountVerificationPage(): JSX.Element {
             parent: null,
             base,
           });
+          recordPohStage("async", "signed_returned", caseId, String(open?.result?.tx_id || ""));
           const declare = await submitSignedTxInSequence({
             sequence,
             tx_type: "POH_ASYNC_EVIDENCE_DECLARE",
@@ -1118,6 +1126,12 @@ export default function AccountVerificationPage(): JSX.Element {
       await refreshAccountContext();
     } catch (e: any) {
       const original = prettyErr(e);
+      if (acct && readPohSubmissionJournal(acct, "async").status !== "none") {
+        // Even when the request failed before a visible acknowledgement,
+        // an earlier side effect may have been admitted. Track, do not retry.
+        setAsyncGuideStep("track");
+        rereadPohJournals();
+      }
       if (acceptedUpload) {
         setAsyncGuideStep("track");
         setErr({
@@ -1243,6 +1257,7 @@ export default function AccountVerificationPage(): JSX.Element {
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
         finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, base, headers) },
         task: async () => {
+          requireNoUnresolvedPoh("live");
           const kp = getKeypair(acct);
           const commitments = await createLiveVerificationCommitments({
             account: acct,
@@ -1264,6 +1279,11 @@ export default function AccountVerificationPage(): JSX.Element {
           // deterministic live case id from the signed nonce and open the room
           // even when observer-local reads lag behind genesis confirmation.
           const sequence = await beginNonceSequence(acct, base);
+          // The case ID is not known until the signed nonce returns. A
+          // pre-dispatch marker with an empty ID deliberately requires
+          // manual reconciliation if the response is lost.
+          recordPohStage("live", "signed_started", "");
+          setLiveGuideStep("track");
           const submit = await submitSignedTxInSequence({
             sequence,
             tx_type: String(skeletonTx.tx_type || ""),
@@ -1274,6 +1294,7 @@ export default function AccountVerificationPage(): JSX.Element {
           const txId = String(submit?.result?.tx_id || (submit as any)?.tx_id || "");
           const signedNonce = Number(submit?.env?.nonce || 0);
           const expectedCaseId = expectedLiveCaseIdFromNonce(acct, signedNonce);
+          recordPohStage("live", "signed_returned", expectedCaseId, txId);
           const txVisible = await waitForSubmittedTxVisible(base, txId, {
             maxWaitMs: 30_000,
             intervalMs: 1_000,
@@ -1324,6 +1345,10 @@ export default function AccountVerificationPage(): JSX.Element {
         nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`);
       }
     } catch (e: any) {
+      if (acct && readPohSubmissionJournal(acct, "live").status !== "none") {
+        setLiveGuideStep("track");
+        rereadPohJournals();
+      }
       setErr(prettyErr(e));
     } finally {
       setLiveRequestBusy(false);
