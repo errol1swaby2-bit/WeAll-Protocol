@@ -116,7 +116,10 @@ assigned case jurors: room presence and transport sidecars cannot expand
 media recipients. The external test now checks an individual named peer's
 connected RTCPeerConnection, an unmuted live video track, and decoded video
 frame dimensions before approving two-way media acceptance. No test run has
-yet supplied independent live media acceptance evidence.
+yet supplied independent live media acceptance evidence. The room also polls
+the exact canonical case while active so new juror assignments can reach a
+previously opened room. A transient observer failure preserves the last
+known case rather than substituting mutable presence or a different case.
 
 The flow must not persist raw video in unsecured storage, bypass account
 tier/reputation gates, mark accepted as confirmed, or claim that a media upload

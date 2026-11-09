@@ -372,6 +372,33 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }, [caseId, apiBase, liveCase?.case_id]);
 
   useEffect(() => {
+    if (!caseId || !liveCase?.case_id || isFinal) return undefined;
+    let disposed = false;
+    let inFlight = false;
+    // A room may be opened before its jurors have been assigned/accepted.
+    // Only the canonical case (never presence/transport sidecars) can expand
+    // the eligible peer set; refresh without clearing active media or busy UI.
+    const refreshCanonicalCase = async (): Promise<void> => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const response = await weall.pohLiveCase(caseId, apiBase, headers);
+        const nextCase = response?.case as LiveCase | null;
+        if (!disposed && nextCase?.case_id === caseId) setLiveCase(nextCase);
+      } catch {
+        // A temporarily stale observer is not authority to alter membership.
+      } finally {
+        inFlight = false;
+      }
+    };
+    const id = window.setInterval(() => void refreshCanonicalCase(), 4000);
+    return () => {
+      disposed = true;
+      window.clearInterval(id);
+    };
+  }, [caseId, apiBase, account, liveCase?.case_id, isFinal]);
+
+  useEffect(() => {
     if (!sessionId) return;
     void loadRoomSidecars(sessionId);
   }, [sessionId, apiBase]);
