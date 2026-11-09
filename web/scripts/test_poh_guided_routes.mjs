@@ -48,7 +48,7 @@ const oldLiveCases = [
   { case_id: "poh_live:@alice:7", account_id: "@alice" },
 ];
 assert.equal(findExpectedLivePohCaseId(oldLiveCases, "@alice", "poh_live:@alice:8"), "");
-assert.equal(findExpectedLivePohCaseId([...oldLiveCases, { case_id: "poh_live:@alice:8", account_id: "@alice" }], "@alice", "poh_live:@alice:8");
+assert.equal(findExpectedLivePohCaseId([...oldLiveCases, { case_id: "poh_live:@alice:8", account_id: "@alice" }], "@alice", "poh_live:@alice:8"), "poh_live:@alice:8");
 assert.equal(findExpectedLivePohCaseId([{ case_id: "poh_live:@alice:8", account_id: "@mallory" }], "@alice", "poh_live:@alice:8"), "");
 assert.equal(findExpectedLivePohCaseId([{ case_id: "poh_live:@alice:8", account_id: "@alice" }], "@alice", "poh_live:@alice:0"), "");
 assert.equal(findExpectedLivePohCaseId([{ case_id: "poh_live:@alice:8", account_id: "@alice" }], "@alice", ""), "");
