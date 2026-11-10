@@ -695,6 +695,10 @@ export function matchRoute(path: string): RouteMatch {
   if (r === "/groups/new") return { path: "/groups/create" };
   if (r === "/decisions/new") return { path: "/decisions/create" };
   if (r === "/tasks") return { path: "/reviews" };
+  if (r === "/tasks/content" || r === "/tasks/disputes" ||
+      r === "/tasks/poh-async" || r === "/tasks/poh-live") {
+    return { path: "/reviews" };
+  }
   if (r === "/me/security/sessions") return { path: "/session" };
   if (r === "/me/transactions") return { path: "/transactions" };
   if (r === "/protocol/economics") return { path: "/economics" };

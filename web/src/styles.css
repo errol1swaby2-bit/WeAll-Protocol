@@ -3592,3 +3592,31 @@ summary:focus-visible {
 .accountProfilePane { min-width: 0; width: 100%; }
 .accountProfilePane[hidden] { display: none !important; }
 .accountProfilePane > .summaryCardGrid { margin-bottom: 16px; }
+
+
+/* V1.6: each reviewer duty has a focused, linkable workspace. */
+.reviewerWorkspaceTabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px 2px 12px;
+}
+.reviewerWorkspaceTab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.reviewerWorkspaceTab.isActive {
+  color: var(--text);
+  font-weight: 700;
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+.reviewerWorkspaceTab:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}

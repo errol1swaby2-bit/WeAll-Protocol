@@ -13,6 +13,8 @@ const verification = read("src/pages/AccountVerificationPage.tsx");
 const verificationSections = read("src/lib/verificationSections.ts");
 const account = read("src/pages/Account.tsx");
 const accountTabs = read("src/lib/accountProfileTabs.ts");
+const reviewer = read("src/pages/JurorDashboard.tsx");
+const reviewerWorkspaces = read("src/lib/reviewerWorkspaces.ts");
 
 for (const tab of ["posts", "about", "members", "decisions", "governance", "treasury", "responsibilities", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
@@ -71,4 +73,21 @@ assert.ok(account.includes("ACCOUNT_PROFILE_TABS.filter((entry) => isSelf || !en
 assert.ok(account.includes('title="Public posts"'), "Public post feed must remain");
 assert.ok(account.includes("async function") || account.includes("function runOperatorTx"), "Existing signed operator actions must remain");
 assert.ok(css.includes(".accountProfilePane[hidden]"), "Inactive public profile sections must hide");
-console.log("OK: v1.6 group/profile navigation, focused verification, account workspaces and aliases");
+for (const section of ["overview", "content_review", "dispute_review", "poh_async_review", "poh_live_review", "reported"]) {
+  assert.ok(reviewerWorkspaces.includes(`id: "${section}"`), `Missing reviewer workspace: ${section}`);
+  assert.ok(reviewer.includes(`workspace === "${section}"`), `Reviewer page missing focused section: ${section}`);
+}
+for (const path of ["/tasks/content", "/tasks/disputes", "/tasks/poh-async", "/tasks/poh-live"]) {
+  assert.ok(router.includes(`r === "${path}"`), `Missing reviewer path: ${path}`);
+  assert.ok(reviewerWorkspaces.includes(`href: "${path}"`), `Reviewer nav must use its named route: ${path}`);
+}
+assert.ok(reviewer.includes('aria-label="Reviewer workspaces"'), "Reviewer workspace navigation needs named landmark");
+assert.ok(reviewer.includes('title="Assigned content reviews"'), "Content context is still separate from dispute actions");
+assert.ok(reviewer.includes('title="Assigned dispute work"'), "Dispute jury has its own focused view");
+assert.ok(reviewer.includes('title="Reports you submitted"'), "Reporter tracking is separated from jury service");
+assert.ok(reviewer.includes('reviewerLaneStatus("dispute_review").label'), "Dispute decisions must display canonical lane opt-in posture");
+assert.ok(reviewer.includes('item?.ciphertext_cid || item?.encrypted_blob_cid'), "Protected identity evidence remains excluded from ordinary media gallery");
+assert.ok(reviewer.includes('encryptedEvidence.length && reviewerEvidenceUnlocked'), "Protected evidence remains gated by accepted assignment");
+assert.ok(reviewer.includes('async function') && reviewer.includes('submitSkeletonTx'), "Existing signed review path must remain");
+assert.ok(css.includes(".reviewerWorkspaceTab:focus-visible"), "Reviewer workspace tabs must support visible keyboard focus");
+console.log("OK: v1.6 group/profile, verification, reviewer workspaces, and compatibility aliases");
