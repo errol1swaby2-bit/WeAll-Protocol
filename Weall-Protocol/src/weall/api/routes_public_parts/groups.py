@@ -275,6 +275,8 @@ def _public_group_governance_contract(
         "feed": f"/v1/groups/{group_id}/feed",
         "content": f"/v1/groups/{group_id}/content",
         "tx_status": "/v1/tx/status/{tx_id}",
+        "elections": f"/v1/groups/{group_id}/elections",
+        "election_detail": f"/v1/groups/{group_id}/elections/{{election_id}}",
     }
 
     return {
@@ -506,6 +508,131 @@ def v1_group_governance_contract(group_id: str, request: Request):
     if not isinstance(g, dict):
         raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
     return _public_group_governance_contract(st, group_id=group_id, group=g)
+
+
+
+def _public_election_row(
+    election: dict[str, Any], *, election_id: str, group_id: str,
+    observed_height: int | None, viewer: str | None,
+) -> dict[str, Any]:
+    """Explicitly allowlisted election view, never raw voter/ballot state."""
+    raw_candidates = election.get("candidates")
+    candidates = (
+        sorted({_str_param(v).strip() for v in raw_candidates if _str_param(v).strip()})
+        if isinstance(raw_candidates, list) else None
+    )
+    snapshot = election.get("voter_snapshot")
+    snapshot = snapshot if isinstance(snapshot, list) else None
+    status = _str_param(election.get("status") or "unknown").strip().lower()
+    raw_winners = election.get("winners")
+    winners = (
+        [_str_param(v).strip() for v in raw_winners if _str_param(v).strip()]
+        if status == "finalized" and isinstance(raw_winners, list) else []
+    )
+
+    def height(field: str) -> int | None:
+        value = election.get(field)
+        if isinstance(value, bool):
+            return None
+        try:
+            n = int(value)
+            return n if n >= 0 else None
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+    return {
+        "election_id": election_id,
+        "group_id": group_id,
+        "status": status,
+        "source": "canonical_group_emissary_elections_snapshot",
+        "classification": "public_derived_read_only",
+        "observed_height": observed_height,
+        "candidates": candidates,
+        "candidate_count": len(candidates) if candidates is not None else None,
+        "seats": height("seats"),
+        "start_height": height("start_height"),
+        "end_height": height("end_height"),
+        "created_at_height": height("created_at_height"),
+        "finalized_at_height": height("finalized_at_height"),
+        "winners": winners,
+        "outcome_recorded": status in {"finalized", "no_decision"},
+        "voter_snapshot_count": len(snapshot) if snapshot is not None else None,
+        "viewer_in_voter_snapshot": (
+            _str_param(viewer).strip() in [str(v) for v in snapshot]
+            if viewer and snapshot is not None else None
+        ),
+        "ballot_submission_authorized": False,
+        "ballot_authorization_note": (
+            "Observed read model only; canonical eligibility and height gates run at execution."
+        ),
+    }
+
+
+def _group_elections_source(
+    request: Request, group_id: str,
+) -> tuple[dict[str, Any], str | None, int | None]:
+    state = _snapshot(request)
+    if not isinstance(_group_record(state, group_id), dict):
+        raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
+    root = state.get("group_emissary_elections")
+    elections = root if isinstance(root, dict) else {}
+    viewer = None
+    try:
+        viewer = require_account_session(request, state)
+    except PermissionError:
+        pass
+    h = state.get("height")
+    observed_height = h if isinstance(h, int) and not isinstance(h, bool) and h >= 0 else None
+    return elections, viewer, observed_height
+
+
+@router.get("/groups/{group_id}/elections")
+def v1_group_elections(group_id: str, request: Request):
+    """Public, paginated index of current and completed canonical elections."""
+    elections, viewer, observed_height = _group_elections_source(request, group_id)
+    rows = [
+        _public_election_row(
+            election, election_id=str(key), group_id=group_id,
+            observed_height=observed_height, viewer=viewer,
+        )
+        for key, election in elections.items()
+        if isinstance(election, dict)
+        and _str_param(election.get("group_id")).strip() == group_id
+        and _str_param(key).strip()
+    ]
+    rows.sort(key=lambda row: (
+        -(row["created_at_height"] if row["created_at_height"] is not None else -1),
+        row["election_id"],
+    ))
+    limit = max(1, min(200, _int_param(request.query_params.get("limit"), 50)))
+    offset = max(0, _int_param(request.query_params.get("offset"), 0))
+    page = rows[offset:offset + limit]
+    next_offset = offset + len(page) if offset + len(page) < len(rows) else None
+    return {
+        "ok": True, "group_id": group_id, "read_only": True,
+        "source": "canonical_group_emissary_elections_snapshot",
+        "observed_height": observed_height,
+        "total": len(rows), "items": page, "next_offset": next_offset,
+    }
+
+
+@router.get("/groups/{group_id}/elections/{election_id}")
+def v1_group_election_detail(group_id: str, election_id: str, request: Request):
+    """Read by exact scope and election ID. Not an authorization endpoint."""
+    elections, viewer, observed_height = _group_elections_source(request, group_id)
+    election = elections.get(election_id)
+    if not isinstance(election, dict) or _str_param(election.get("group_id")).strip() != group_id:
+        raise ApiError.not_found(
+            "not_found", "Election not found in this group",
+            {"group_id": group_id, "election_id": election_id},
+        )
+    return {
+        "ok": True, "group_id": group_id, "read_only": True,
+        "election": _public_election_row(
+            election, election_id=election_id, group_id=group_id,
+            observed_height=observed_height, viewer=viewer,
+        ),
+    }
 
 
 @router.get("/groups/{group_id}/membership")
