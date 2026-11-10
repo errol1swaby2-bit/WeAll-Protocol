@@ -191,8 +191,10 @@ def test_group_election_index_is_allowlisted_public_scoped_and_paginated() -> No
     assert body["items"][0]["viewer_in_voter_snapshot"] is None
     assert body["items"][0]["ballot_submission_authorized"] is False
     serialized = str(body) + str(second.json())
-    for forbidden in ("never_publish", "nullifiers", "ranking", "ballots", "voter_snapshot':"):
+    for forbidden in ("never_publish", "nullifiers", "ranking", "ballots"):
         assert forbidden not in serialized
+    for row in body["items"] + second.json()["items"]:
+        assert "voter_snapshot" not in row
     assert state == original
 
 
