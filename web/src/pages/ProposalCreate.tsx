@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { api, getApiBaseUrl } from "../api/weall";
+import { api, getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import RequirementList from "../components/RequirementList";
 import ActionLifecycleCard from "../components/ActionLifecycleCard";
@@ -111,7 +111,7 @@ export default function ProposalCreate({ scopeGroupId }: { scopeGroupId?: string
     setGroupId(groupContextId);
     let active = true;
     setScopedGroupStatus("loading");
-    void api.groups.governance(groupContextId, base)
+    void weall.groupGovernanceContract(groupContextId, base)
       .then((contract: unknown) => {
         if (active) setScopedGroupStatus(verifiedGroupContract(contract, groupContextId) ? "ready" : "error");
       })
@@ -201,7 +201,7 @@ export default function ProposalCreate({ scopeGroupId }: { scopeGroupId?: string
         requireExactGroupProposalScope(payload, groupContextId);
         // Recheck immediately before signing; a route, client cache or
         // group name alone is never sufficient proof of canonical existence.
-        const currentGroup = await api.groups.governance(groupContextId, base);
+        const currentGroup = await weall.groupGovernanceContract(groupContextId, base);
         if (!verifiedGroupContract(currentGroup, groupContextId)) {
           throw new Error("This group's canonical governance contract could not be verified. No decision was submitted.");
         }

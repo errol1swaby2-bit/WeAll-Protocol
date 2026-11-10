@@ -53,7 +53,7 @@ assert.deepEqual(matchRoute("/groups/group-a/emissaries/elections"), { path: "/g
 assert.deepEqual(matchRoute("/groups/group-a/emissaries/elections/election-1"), { path: "/groups/:id", id: "group-a" });
 assert.ok(app.includes('<ProposalCreate scopeGroupId={route.id} />'), "Group decision deep link must bind composer to exact canonical route ID");
 assert.ok(createDecision.includes('requireExactGroupProposalScope(payload, groupContextId)'), "Group proposal payload must be validated against route group ID");
-assert.ok(createDecision.includes('const currentGroup = await api.groups.governance(groupContextId, base)'), "Canonical group contract must be refreshed before signing");
+assert.ok(createDecision.includes('const currentGroup = await weall.groupGovernanceContract(groupContextId, base)'), "Canonical group contract must be refreshed before signing");
 assert.ok(createDecision.includes('groupContextId ? "" : actionTxType'), "Group context must not carry a stale executable action");
 assert.ok(createDecision.includes('scopedGroupStatus !== "ready"'), "Group signing blocked until canonical contract is read");
 assert.ok(groups.includes('activeTab === "election_detail"'), "Election detail must have an explicit read-only panel");
