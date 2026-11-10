@@ -567,6 +567,13 @@ def _public_election_row(
             if viewer and snapshot is not None
             else None
         ),
+        # CURRENT PUBLIC TX CONTRACT: signer + plaintext ranking coexist in the
+        # signed GROUP_EMISSARY_BALLOT_CAST envelope, even under strict profiles.
+        # Aggregating apply-state ballots does not hide a transaction already
+        # exposed through ingress, propagation or committed history.
+        "ballot_transport_disclosure": "signed_envelope_contains_signer_and_plaintext_ranking",
+        "ballot_transport_privacy_verified": False,
+        "secret_ballot_supported": False,
         "ballot_submission_authorized": False,
         "ballot_authorization_note": (
             "Observed read model only; canonical eligibility and height gates run at execution."

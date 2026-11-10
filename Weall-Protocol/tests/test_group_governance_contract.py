@@ -190,6 +190,12 @@ def test_group_election_index_is_allowlisted_public_scoped_and_paginated() -> No
     assert body["items"][0]["voter_snapshot_count"] == 1
     assert body["items"][0]["viewer_in_voter_snapshot"] is None
     assert body["items"][0]["ballot_submission_authorized"] is False
+    assert body["items"][0]["ballot_transport_privacy_verified"] is False
+    assert body["items"][0]["secret_ballot_supported"] is False
+    assert (
+        body["items"][0]["ballot_transport_disclosure"]
+        == "signed_envelope_contains_signer_and_plaintext_ranking"
+    )
     serialized = str(body) + str(second.json())
     for forbidden in ("never_publish", "nullifiers", "ranking", "ballots"):
         assert forbidden not in serialized
@@ -209,6 +215,7 @@ def test_group_election_detail_exact_scope_and_completed_outcomes() -> None:
     assert finished.json()["election"]["winners"] == ["@alice"]
     assert finished.json()["election"]["outcome_recorded"] is True
     assert finished.json()["election"]["finalized_at_height"] == 6
+    assert finished.json()["election"]["ballot_submission_authorized"] is False
     assert empty.status_code == 200
     assert empty.json()["election"]["status"] == "no_decision"
     assert empty.json()["election"]["winners"] == []
