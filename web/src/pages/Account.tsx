@@ -83,13 +83,14 @@ type ProfileFormState = {
   display_name: string;
   bio: string;
   avatar_cid: string;
+  banner_cid: string;
   website: string;
   location: string;
   tags_text: string;
 };
 
 function emptyProfileForm(): ProfileFormState {
-  return { display_name: "", bio: "", avatar_cid: "", website: "", location: "", tags_text: "" };
+  return { display_name: "", bio: "", avatar_cid: "", banner_cid: "", website: "", location: "", tags_text: "" };
 }
 
 function profileFormFromPublicProfile(profile: Record<string, any>, account: string): ProfileFormState {
@@ -98,6 +99,7 @@ function profileFormFromPublicProfile(profile: Record<string, any>, account: str
     display_name: String(profile.display_name || account || "").trim(),
     bio: String(profile.bio || ""),
     avatar_cid: String(profile.avatar_cid || ""),
+    banner_cid: String(profile.banner_cid || ""),
     website: String(profile.website || ""),
     location: String(profile.location || ""),
     tags_text: tags.join(", "),
@@ -148,6 +150,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [profileErr, setProfileErr] = useState<{ msg: string; details: any } | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>(() => emptyProfileForm());
   const [profileDirty, setProfileDirty] = useState<boolean>(false);
+  const [showPublicBanner, setShowPublicBanner] = useState(true);
   const [busy, setBusy] = useState<"profile" | "register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "jurorResume" | "validatorPause" | "nodePause" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
@@ -267,6 +270,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const publicProfileTags = Array.isArray(publicProfile.tags) ? publicProfile.tags.map((tag: any) => String(tag || "").trim()).filter(Boolean) : [];
   const profileAvatarMedia = asRecord(publicProfile.avatar_media);
   const profileAvatarPath = String(profileAvatarMedia.fetch_path || "");
+  const bannerMedia = asRecord(publicProfile.banner_media);
+  const rawBannerPath = String(bannerMedia.fetch_path || "");
+  const profileBannerPath = new RegExp("^/v1/media/proxy/[A-Za-z0-9]+$").test(rawBannerPath) ? rawBannerPath : "";
+  const bannerDraftCid = profileForm.banner_cid.trim();
+  const bannerDraftValid = !bannerDraftCid || /^[A-Za-z0-9]{32,256}$/.test(bannerDraftCid);
   const profileTruthBoundary = String(profileView?.truth_boundary || "public_derived_index_view_of_chain_state");
   const profileReceiptStatusTemplate = String(profileView?.receipt_paths?.status_template || "/v1/tx/status/{tx_id}");
   const profileResultTxId = txIdFromResult(profileResult);
@@ -424,12 +432,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (!accountExists) throw new Error("register_the_account_first");
       if (signerBusy) throw new Error("signer_submission_busy");
       if (!localPubkey) throw new Error("missing_account_signer");
+      if (!bannerDraftValid) throw new Error("Public banner must be a plain IPFS CID (not a URL or markup).");
 
       const skeleton = await weall.profileUpdateTx({
         account_id: acct,
         display_name: optionalField(profileForm.display_name),
         bio: profileForm.bio,
         avatar_cid: optionalField(profileForm.avatar_cid),
+        banner_cid: bannerDraftCid,
         website: optionalField(profileForm.website),
         location: optionalField(profileForm.location),
         tags: splitProfileTags(profileForm.tags_text),
@@ -925,7 +935,27 @@ export default function Account({ account }: { account: string }): JSX.Element {
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={refreshAccountSurface} onDismiss={() => setErr(null)} />
 
       <section className="card publicProfileCard">
+        {showPublicBanner ? (
+          <div className="publicProfileBanner" aria-label="Public profile background">
+            {profileBannerPath ? (
+              <img
+                src={`${base}${profileBannerPath}`}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
+          </div>
+        ) : null}
         <div className="cardBody formStack">
+          {profileBannerPath ? (
+            <div className="buttonRow">
+              <button className="btn btnGhost" type="button" onClick={() => setShowPublicBanner((visible) => !visible)}>
+                {showPublicBanner ? "Hide decorative background" : "Show public background"}
+              </button>
+            </div>
+          ) : null}
           <div className="sectionHead">
             <div className="profileIdentityRow">
               {profileAvatarPath ? (
@@ -981,6 +1011,34 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <nav className="accountProfileTabs" aria-label="Account profile sections">
+        {ACCOUNT_PROFILE_TABS.filter((entry) => isSelf || !entry.ownerOnly).map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={`accountProfileTab ${activeProfileTab === entry.id ? "isActive" : ""}`}
+            aria-current={activeProfileTab === entry.id ? "page" : undefined}
+            onClick={() => selectProfileTab(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
+      {isSelf ? (
+        <div className="accountProfilePane" hidden={activeProfileTab !== "appearance"}>
+          <section className="card">
+            <div className="cardBody formStack">
+              <div className="sectionHead">
+                <div>
+                  <div className="eyebrow">Public identity</div>
+                  <h2 className="cardTitle">Edit your public profile</h2>
+                  <p className="cardDesc">Your picture, banner, name and bio are signed public metadata, not private device wallpaper settings.</p>
+                </div>
+              </div>
           {profileResult ? (
             <div className="calloutInfo" data-testid="profile-tx-status-callout">
               <strong>Profile action submitted</strong>
@@ -1051,6 +1109,31 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     />
                   </label>
                 </div>
+                <div className="infoCard compact">
+                  <div className="feedMediaTitle">Public profile background</div>
+                  <p className="cardDesc">
+                    Enter an existing public image CID. The background becomes shared public profile metadata
+                    only after the signed PROFILE_UPDATE transaction commits. The image must already be available
+                    through this node's media proxy; this is not a private wallpaper.
+                  </p>
+                  <label>
+                    <span className="eyebrow">Public banner CID</span>
+                    <input
+                      value={profileForm.banner_cid}
+                      maxLength={256}
+                      onChange={(e) => updateProfileForm("banner_cid", e.target.value)}
+                      placeholder="Public IPFS image CID (blank removes the banner)"
+                    />
+                  </label>
+                  {!bannerDraftValid ? (
+                    <div className="calloutDanger">Use a plain CID of 32–256 letters/digits, or leave the field blank to remove the public background.</div>
+                  ) : null}
+                  {bannerDraftCid && bannerDraftValid ? (
+                    <div className="publicProfileBanner publicProfileBanner--draft">
+                      <img src={`${base}/v1/media/proxy/${encodeURIComponent(bannerDraftCid)}`} alt="Draft public background preview" loading="lazy" decoding="async" />
+                    </div>
+                  ) : null}
+                </div>
                 <div className="grid2">
                   <label>
                     <div className="eyebrow">Location</div>
@@ -1072,7 +1155,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <div className="buttonRow">
                   <button
                     className="btn btnPrimary"
-                    disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy}
+                    disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy || !bannerDraftValid}
                     onClick={() => void runProfileUpdate()}
                   >
                     {busy === "profile" ? "Submitting profile update…" : "Submit public profile update"}
@@ -1092,22 +1175,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
               </div>
             </details>
           ) : null}
-        </div>
-      </section>
 
-      <nav className="accountProfileTabs" aria-label="Account profile sections">
-        {ACCOUNT_PROFILE_TABS.filter((entry) => isSelf || !entry.ownerOnly).map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            className={`accountProfileTab ${activeProfileTab === entry.id ? "isActive" : ""}`}
-            aria-current={activeProfileTab === entry.id ? "page" : undefined}
-            onClick={() => selectProfileTab(entry.id)}
-          >
-            {entry.label}
-          </button>
-        ))}
-      </nav>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <div className="accountProfilePane" hidden={activeProfileTab !== "overview"}>
       <section className="summaryCardGrid" aria-label="Account and profile protocol state summary">

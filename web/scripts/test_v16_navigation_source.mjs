@@ -72,6 +72,14 @@ for (const tab of ["posts", "overview", "reputation", "eligibility", "responsibi
   assert.ok(account.includes(`activeProfileTab !== "${tab}"`), `Account UI missing focused pane: ${tab}`);
 }
 assert.ok(accountTabs.includes("!tab.ownerOnly || isOwner"), "Public visitors cannot open owner-only panels");
+assert.ok(accountTabs.includes('id: "appearance"'), "Public profile edit needs owner-only tab");
+assert.ok(account.includes('activeProfileTab !== "appearance"'), "Public profile edits need a focused panel");
+assert.ok(router.includes('r === "/me/profile-appearance"'), "Owner appearance deep-link missing");
+assert.ok(account.includes('banner_cid: bannerDraftCid'), "Banner publication must use signed PROFILE_UPDATE payload");
+assert.ok(account.includes('publicProfile.banner_media'), "Other accounts need canonical public banner reference");
+assert.ok(account.includes('Hide decorative background'), "Viewers need a decorative suppression control");
+assert.ok(account.includes('!bannerDraftValid'), "Invalid banner CIDs must not be signed");
+assert.ok(css.includes(".publicProfileBanner img"), "Public banner image must be bounded");
 assert.ok(account.includes("ACCOUNT_PROFILE_TABS.filter((entry) => isSelf || !entry.ownerOnly)"), "Visitor nav must exclude owner-only tabs");
 assert.ok(account.includes('title="Public posts"'), "Public post feed must remain");
 assert.ok(account.includes("async function") || account.includes("function runOperatorTx"), "Existing signed operator actions must remain");

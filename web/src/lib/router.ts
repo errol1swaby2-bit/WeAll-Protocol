@@ -691,6 +691,7 @@ export function matchRoute(path: string): RouteMatch {
   // Aliasing is not proof that a proposed dedicated subworkspace is implemented.
   if (r === "/start") return { path: "/login" };
   if (r === "/me") return { path: "/profile" };
+  if (r === "/me/profile-appearance") return { path: "/profile" };
   if (r === "/feed/new") return { path: "/create" };
   if (r === "/groups/new") return { path: "/groups/create" };
   if (r === "/decisions/new") return { path: "/decisions/create" };
