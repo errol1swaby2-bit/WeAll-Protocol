@@ -200,7 +200,14 @@ def test_group_election_index_is_allowlisted_public_scoped_and_paginated() -> No
     for forbidden in ("never_publish", "nullifiers", "ballots"):
         assert forbidden not in serialized
     for row in body["items"] + second.json()["items"]:
-        for secret_key in ("voter_snapshot", "ranking", "ballots", "ballot_boxes", "ballot_nullifiers", "payload"):
+        for secret_key in (
+            "voter_snapshot",
+            "ranking",
+            "ballots",
+            "ballot_boxes",
+            "ballot_nullifiers",
+            "payload",
+        ):
             assert secret_key not in row
     assert state == original
 
