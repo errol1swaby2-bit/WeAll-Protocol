@@ -56,7 +56,10 @@ assert.ok(createDecision.includes('const currentGroup = await weall.groupGoverna
 assert.ok(createDecision.includes('groupContextId ? "" : actionTxType'), "Group context must not carry a stale executable action");
 assert.ok(createDecision.includes('scopedGroupStatus !== "ready"'), "Group signing blocked until canonical contract is read");
 assert.ok(groups.includes('activeTab === "election_detail"'), "Election detail must have an explicit read-only panel");
-assert.ok(groups.includes('A candidate count cannot authorize a signed ballot'), "Missing candidate and voter roster must block ballot creation");
+assert.ok(groups.includes('This election API is read-only'), "Canonical election detail remains read-only");
+assert.ok(groups.includes('weall.groupElections(selected, { limit: 100, offset: 0 }, base, headers)'), "Election index must query canonical backend");
+assert.ok(groups.includes('weall.groupElection(selected, electionDetailId, base, headers)'), "Election detail must request exact group/election ID");
+assert.ok(groups.includes('item.election_id !== electionDetailId'), "Election detail must reject mismatched ID");
 assert.ok(!groups.includes('tx_type: "GROUP_EMISSARY_BALLOT_CAST"'), "Do not enable blind ranked ballots");
 assert.equal(verifiedGroupContract({ok:true,group_id:"g1"}, "g1"),true);
 assert.equal(verifiedGroupContract({ok:true,group_id:"g2"}, "g1"),false);

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { api, getApiBaseUrl, weall, type GroupGovernanceContract } from "../api/weall";
+import { api, getApiBaseUrl, weall, type GroupGovernanceContract, type GroupElectionRecord } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -49,6 +49,11 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [groupReportsStatus, setGroupReportsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [groupReportsBounded, setGroupReportsBounded] = useState(true);
   const [decisionsStatus, setDecisionsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [electionRows, setElectionRows] = useState<GroupElectionRecord[]>([]);
+  const [electionDetail, setElectionDetail] = useState<GroupElectionRecord | null>(null);
+  const [electionTotal, setElectionTotal] = useState<number | null>(null);
+  const [electionNextOffset, setElectionNextOffset] = useState<number | null>(null);
+  const [electionsStatus, setElectionsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus | null>(null);
   const [governanceContract, setGovernanceContract] = useState<GroupGovernanceContract | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
@@ -57,9 +62,13 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [reportBusyId, setReportBusyId] = useState<string | null>(null);
   const [reportInfo, setReportInfo] = useState<{ msg: string; details?: any } | null>(null);
   const [activeTab, setActiveTab] = useState<GroupWorkspaceTab>(() => groupWorkspaceTabFromHash(typeof window !== "undefined" ? window.location.hash : ""));
+  const [electionDetailId, setElectionDetailId] = useState<string>(() => groupElectionIdFromHash(typeof window !== "undefined" ? window.location.hash : ""));
 
   useEffect(() => {
-    const onHashChange = () => setActiveTab(groupWorkspaceTabFromHash(window.location.hash));
+    const onHashChange = () => {
+      setActiveTab(groupWorkspaceTabFromHash(window.location.hash));
+      setElectionDetailId(groupElectionIdFromHash(window.location.hash));
+    };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
@@ -80,6 +89,51 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const currentGroupRoute = selected ? `/groups/${encodeURIComponent(selected)}` : "/groups";
   const openGroupTab = (tab: GroupProfileTab) => nav(`${currentGroupRoute}?tab=${tab}`);
+
+  useEffect(() => {
+    if (!selected || (activeTab !== "elections" && activeTab !== "election_detail")) return;
+    let active = true;
+    setElectionsStatus("loading");
+    setElectionRows([]);
+    setElectionDetail(null);
+    setElectionTotal(null);
+    setElectionNextOffset(null);
+    const headers = acct ? getAuthHeaders(acct) : undefined;
+    const source = activeTab === "elections"
+      ? weall.groupElections(selected, { limit: 100, offset: 0 }, base, headers)
+      : weall.groupElection(selected, electionDetailId, base, headers);
+    void source.then(response => {
+      if (!active) return;
+      if (response.ok !== true || response.group_id !== selected || response.read_only !== true) {
+        throw new Error("Election response has invalid group provenance.");
+      }
+      if ("items" in response) {
+        if (!Array.isArray(response.items) || response.items.some(item =>
+            item.group_id !== selected || item.source !== "canonical_group_emissary_elections_snapshot")) {
+          throw new Error("Election index contains a mismatched group.");
+        }
+        setElectionRows(response.items);
+        setElectionTotal(response.total);
+        setElectionNextOffset(response.next_offset);
+      } else {
+        const item = response.election;
+        if (!item || item.group_id !== selected || item.election_id !== electionDetailId ||
+            item.source !== "canonical_group_emissary_elections_snapshot") {
+          throw new Error("Election detail does not match the requested group and election.");
+        }
+        setElectionDetail(item);
+      }
+      setElectionsStatus("ready");
+    }).catch(() => {
+      if (!active) return;
+      setElectionRows([]);
+      setElectionDetail(null);
+      setElectionTotal(null);
+      setElectionNextOffset(null);
+      setElectionsStatus("error");
+    });
+    return () => { active = false; };
+  }, [activeTab, selected, electionDetailId, base, acct]);
 
   useEffect(() => {
     if (activeTab !== "decisions" || !selected) return;
@@ -448,7 +502,6 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const groupReadVisibility = String(governanceContract?.public_only_contract?.read_visibility || "public");
   const adminShortcutsSupported = governanceContract?.authority_contract?.admin_shortcuts_supported === true;
   const permissionSummary = governanceContract?.participation_permissions || {};
-  const electionDetailId = groupElectionIdFromHash(typeof window !== "undefined" ? window.location.hash : "");
   const activeGroupElections = Array.isArray(governanceContract?.authority_contract?.active_group_elections)
     ? governanceContract?.authority_contract?.active_group_elections || []
     : [];
@@ -825,52 +878,92 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       ) : null}
 
       {activeTab === "elections" || activeTab === "election_detail" ? (
-        <section className="card" aria-label="Group emissary election index">
+        <section className="card" aria-label="Canonical group emissary elections">
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Group elections · canonical summary</div>
-                <h2 className="cardTitle">{activeTab === "election_detail" ? "Election record" : "Active emissary elections"}</h2>
-                <p className="cardDesc">The group's public governance contract exposes active election IDs, status and candidate counts only. It does not expose a verified candidate roster, eligible voter snapshot, end height, ballot history or finalized results.</p>
+                <div className="eyebrow">Canonical group elections · public read</div>
+                <h2 className="cardTitle">{activeTab === "election_detail" ? "Election record" : "Emissary election history"}</h2>
+                <p className="cardDesc">
+                  Public read-only election state. Active, finalized and no-decision outcomes are distinct.
+                  Voter snapshot membership is visible only to an authenticated viewer and never grants ballot authorization.
+                </p>
               </div>
               <button className="btn" onClick={() => openGroupTab("emissaries")}>Back to emissaries</button>
             </div>
-            {!governanceContract || String(governanceContract?.group_id || "") !== selected ? (
-              <div className="calloutDanger">Group election summary is unavailable or its scope cannot be verified. No election absence or ballot eligibility claim is made.</div>
-            ) : activeTab === "elections" ? (
+            {electionsStatus === "loading" ? <p className="cardDesc">Reading canonical election records…</p> : null}
+            {electionsStatus === "error" ? (
+              <div className="calloutDanger">Canonical election records could not be verified for this group. No election, winner, or eligibility claim is made.</div>
+            ) : null}
+            {electionsStatus === "ready" && activeTab === "elections" ? (
               <>
-                {activeGroupElections.length ? activeGroupElections.map((election: Record<string, unknown>) => {
-                  const id = String(election.election_id || "").trim();
-                  if (!id) return null;
-                  return (
-                    <button className="quickCard quickCardMain" key={id}
-                      onClick={() => nav(`${currentGroupRoute}/emissaries/elections/${encodeURIComponent(id)}`)}>
-                      <strong>{id}</strong>
-                      <span className="miniTag">{String(election.status || "status unavailable")} · {String(election.candidate_count ?? "?")} candidate(s)</span>
-                    </button>
-                  );
-                }) : <div className="cardDesc">No open elections were returned in this group snapshot; closed and historical elections are not indexed here.</div>}
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">{electionRows.length} returned · {electionTotal ?? "?"} matching current-state records</span>
+                  <span className="surfaceBoundaryTag">{electionNextOffset == null ? "This page includes all current indexed records" : "Additional pages available; this is a bounded sample"}</span>
+                </div>
+                {electionRows.map(election => (
+                  <button type="button" className="quickCard quickCardMain" key={election.election_id}
+                    onClick={() => nav(`${currentGroupRoute}/emissaries/elections/${encodeURIComponent(election.election_id)}`)}>
+                    <strong className="mono">{election.election_id}</strong>
+                    <span className="miniTag">{election.status} · {election.candidate_count ?? "unknown"} candidates · {election.seats ?? "unknown"} seats</span>
+                    <small>{election.status === "no_decision" ? "No decision recorded" : election.status === "finalized" ? "Finalized outcome recorded" : "No finalized outcome claimed"}</small>
+                  </button>
+                ))}
+                {!electionRows.length ? <p className="cardDesc">No elections are indexed in this group's current runtime snapshot; historical block archives may differ.</p> : null}
+                {electionNextOffset != null ? <div className="calloutInfo">More current-state records exist beyond this bounded page. The index API supports pagination; this UI does not yet load additional pages.</div> : null}
               </>
-            ) : (
+            ) : null}
+            {electionsStatus === "ready" && activeTab === "election_detail" && electionDetail ? (
               <>
-                {(() => {
-                  const election = activeGroupElections.find((row: Record<string, unknown>) =>
-                    String(row.election_id || "").trim() === electionDetailId);
-                  return election ? (
-                    <div className="detailFocusStrip">
-                      <article className="detailFocusCard">
-                        <div className="detailFocusLabel">Verified election summary</div>
-                        <div className="detailFocusValue mono">{electionDetailId}</div>
-                        <div className="detailFocusText">Status: {String(election.status || "unavailable")} · Candidate count: {String(election.candidate_count ?? "unavailable")} · Group: {selected}</div>
-                      </article>
-                    </div>
-                  ) : <div className="calloutInfo">This election ID is not in the returned active list. It may be closed, historical, unknown, or not yet visible. No election outcome is inferred.</div>;
-                })()}
-                <button className="btn" onClick={() => nav(`${currentGroupRoute}/emissaries/elections`)}>Back to active elections</button>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">Group: {electionDetail.group_id}</span>
+                  <span className="surfaceBoundaryTag">Status: {electionDetail.status}</span>
+                  <span className="surfaceBoundaryTag">Observed height: {electionDetail.observed_height ?? "unavailable"}</span>
+                </div>
+                <div className="detailFocusStrip">
+                  <article className="detailFocusCard">
+                    <div className="detailFocusLabel">Election ID</div>
+                    <div className="detailFocusValue mono">{electionDetail.election_id}</div>
+                    <div className="detailFocusText">Seats: {electionDetail.seats ?? "not exposed"} · Candidates: {electionDetail.candidate_count ?? "not exposed"}</div>
+                  </article>
+                  <article className="detailFocusCard">
+                    <div className="detailFocusLabel">Canonical height window</div>
+                    <div className="detailFocusValue">{electionDetail.start_height ?? "unknown"} → {electionDetail.end_height ?? "unknown"}</div>
+                    <div className="detailFocusText">Observed at height {electionDetail.observed_height ?? "unknown"}. Actual inclusion height may differ.</div>
+                  </article>
+                  <article className="detailFocusCard">
+                    <div className="detailFocusLabel">Your voter snapshot membership</div>
+                    <div className="detailFocusValue">{electionDetail.viewer_in_voter_snapshot == null ? "Not verified" : electionDetail.viewer_in_voter_snapshot ? "In snapshot" : "Not in snapshot"}</div>
+                    <div className="detailFocusText">Snapshot size: {electionDetail.voter_snapshot_count ?? "unavailable"}. Membership is not final authorization to cast a ballot.</div>
+                  </article>
+                  <article className="detailFocusCard">
+                    <div className="detailFocusLabel">Outcome</div>
+                    <div className="detailFocusValue">{electionDetail.status === "no_decision" ? "No decision" : electionDetail.status === "finalized" ? "Finalized" : "Not finalized"}</div>
+                    <div className="detailFocusText">Finalized at height: {electionDetail.finalized_at_height ?? "not recorded"}.</div>
+                  </article>
+                </div>
+                <h3 className="cardTitle">Canonical candidate accounts</h3>
+                {electionDetail.candidates === null
+                  ? <p className="cardDesc">Candidate IDs are not present in the indexed record.</p>
+                  : electionDetail.candidates.length
+                    ? <div className="surfaceBoundaryList">{electionDetail.candidates.map(candidate => <span className="surfaceBoundaryTag mono" key={candidate}>{candidate}</span>)}</div>
+                    : <p className="cardDesc">No candidates in the indexed record.</p>}
+                {electionDetail.status === "finalized" ? (
+                  <div className="formStack">
+                    <h3 className="cardTitle">Recorded winners</h3>
+                    {electionDetail.winners.length
+                      ? <div className="surfaceBoundaryList">{electionDetail.winners.map(winner => <span className="surfaceBoundaryTag mono" key={winner}>{winner}</span>)}</div>
+                      : <p className="cardDesc">The finalized record exposes no winners.</p>}
+                  </div>
+                ) : electionDetail.status === "no_decision"
+                  ? <div className="calloutInfo">No decision was recorded. No emissary authority is inferred.</div>
+                  : null}
+                <button className="btn" onClick={() => nav(`${currentGroupRoute}/emissaries/elections`)}>Back to election history</button>
               </>
-            )}
+            ) : null}
             <div className="calloutInfo">
-              Ranked ballots and election finalization are disabled here because canonical candidate IDs, the voter snapshot and protocol-height windows cannot be verified from the current public group contract. A candidate count cannot authorize a signed ballot.
+              This election API is read-only. No ballots, finalization, emissary execution or treasury authority are
+              available here. A public candidate list or authenticated snapshot hint does not authorize a signed vote.
             </div>
           </div>
         </section>

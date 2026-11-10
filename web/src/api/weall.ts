@@ -272,6 +272,46 @@ export type StatusResponse = {
   tip?: string;
 };
 
+export type GroupElectionRecord = {
+  election_id: string;
+  group_id: string;
+  status: string;
+  source: "canonical_group_emissary_elections_snapshot";
+  classification: "public_derived_read_only";
+  observed_height: number | null;
+  candidates: string[] | null;
+  candidate_count: number | null;
+  seats: number | null;
+  start_height: number | null;
+  end_height: number | null;
+  created_at_height: number | null;
+  finalized_at_height: number | null;
+  winners: string[];
+  outcome_recorded: boolean;
+  voter_snapshot_count: number | null;
+  viewer_in_voter_snapshot: boolean | null;
+  ballot_submission_authorized: false;
+  ballot_authorization_note: string;
+};
+
+export type GroupElectionIndex = {
+  ok: boolean;
+  group_id: string;
+  read_only: true;
+  source: "canonical_group_emissary_elections_snapshot";
+  observed_height: number | null;
+  total: number;
+  next_offset: number | null;
+  items: GroupElectionRecord[];
+};
+
+export type GroupElectionDetail = {
+  ok: boolean;
+  group_id: string;
+  read_only: true;
+  election: GroupElectionRecord;
+};
+
 export type GroupGovernanceContract = {
   ok?: boolean;
   group_id?: string;
@@ -875,6 +915,16 @@ export const weall = {
       base,
       headers,
     );
+  },
+
+  groupElections(id: string, params?: { limit?: number; offset?: number }, base?: string, headers?: HeadersInit): Promise<GroupElectionIndex> {
+    return apiGet(withSearch(`/v1/groups/${encodeURIComponent(id)}/elections`, {
+      limit: params?.limit, offset: params?.offset,
+    }), base, headers);
+  },
+
+  groupElection(id: string, electionId: string, base?: string, headers?: HeadersInit): Promise<GroupElectionDetail> {
+    return apiGet(`/v1/groups/${encodeURIComponent(id)}/elections/${encodeURIComponent(electionId)}`, base, headers);
   },
 
   groupGovernanceContract(id: string, base?: string, headers?: HeadersInit): Promise<GroupGovernanceContract> {
