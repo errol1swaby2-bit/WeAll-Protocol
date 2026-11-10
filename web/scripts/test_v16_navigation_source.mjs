@@ -76,7 +76,8 @@ assert.ok(accountTabs.includes('id: "appearance"'), "Public profile edit needs o
 assert.ok(account.includes('activeProfileTab !== "appearance"'), "Public profile edits need a focused panel");
 assert.ok(account.includes('open={profileDirty || activeProfileTab === "appearance"}'), "Public profile editor must open when its section is selected");
 assert.ok(router.includes('r === "/me/profile-appearance"'), "Owner appearance deep-link missing");
-assert.ok(account.includes('banner_cid: bannerDraftCid'), "Banner publication must use signed PROFILE_UPDATE payload");
+assert.ok(account.includes('banner_cid: bannerChanged ? bannerDraftCid : undefined'), "Only new banner CIDs can be submitted in signed PROFILE_UPDATE");
+assert.ok(account.includes('bannerRemovalUnsupported'), "Public banner removal must fail closed when protocol schema rejects empty values");
 assert.ok(account.includes('publicProfile.banner_media'), "Other accounts need canonical public banner reference");
 assert.ok(account.includes('Hide decorative background'), "Viewers need a decorative suppression control");
 assert.ok(account.includes('!bannerDraftValid'), "Invalid banner CIDs must not be signed");

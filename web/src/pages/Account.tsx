@@ -273,8 +273,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const bannerMedia = asRecord(publicProfile.banner_media);
   const rawBannerPath = String(bannerMedia.fetch_path || "");
   const profileBannerPath = new RegExp("^/v1/media/proxy/[A-Za-z0-9]+$").test(rawBannerPath) ? rawBannerPath : "";
+  const canonicalBannerCid = String(publicProfile.banner_cid || "").trim();
   const bannerDraftCid = profileForm.banner_cid.trim();
-  const bannerDraftValid = !bannerDraftCid || /^[A-Za-z0-9]{32,256}$/.test(bannerDraftCid);
+  const bannerChanged = bannerDraftCid !== canonicalBannerCid;
+  // The PROFILE_UPDATE transaction schema requires a nonempty CID; omission
+  // means "unchanged", never "delete". Never simulate deletion in the client.
+  const bannerRemovalUnsupported = !!canonicalBannerCid && !bannerDraftCid;
+  const bannerDraftValid = !bannerChanged || /^[A-Za-z0-9]{32,256}$/.test(bannerDraftCid);
   const profileTruthBoundary = String(profileView?.truth_boundary || "public_derived_index_view_of_chain_state");
   const profileReceiptStatusTemplate = String(profileView?.receipt_paths?.status_template || "/v1/tx/status/{tx_id}");
   const profileResultTxId = txIdFromResult(profileResult);
@@ -439,7 +444,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
         display_name: optionalField(profileForm.display_name),
         bio: profileForm.bio,
         avatar_cid: optionalField(profileForm.avatar_cid),
-        banner_cid: bannerDraftCid,
+        banner_cid: bannerChanged ? bannerDraftCid : undefined,
         website: optionalField(profileForm.website),
         location: optionalField(profileForm.location),
         tags: splitProfileTags(profileForm.tags_text),
@@ -1114,7 +1119,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   <p className="cardDesc">
                     Enter an existing public image CID. The background becomes shared public profile metadata
                     only after the signed PROFILE_UPDATE transaction commits. The image must already be available
-                    through this node's media proxy; this is not a private wallpaper.
+                    through this node's media proxy; this is not a private wallpaper. Banner removal is not yet
+                    supported by the canonical PROFILE_UPDATE transaction schema.
                   </p>
                   <label>
                     <span className="eyebrow">Public banner CID</span>
@@ -1122,11 +1128,15 @@ export default function Account({ account }: { account: string }): JSX.Element {
                       value={profileForm.banner_cid}
                       maxLength={256}
                       onChange={(e) => updateProfileForm("banner_cid", e.target.value)}
-                      placeholder="Public IPFS image CID (blank removes the banner)"
+                      placeholder="Public IPFS image CID (publish or replace)"
                     />
                   </label>
                   {!bannerDraftValid ? (
-                    <div className="calloutDanger">Use a plain CID of 32–256 letters/digits, or leave the field blank to remove the public background.</div>
+                    <div className="calloutDanger">
+                      {bannerRemovalUnsupported
+                        ? "Removing an existing public banner is not supported by this protocol contract. Keep it unchanged or replace it with another public image CID."
+                        : "Use a plain public image CID of 32–256 letters/digits; URLs and markup are not accepted."}
+                    </div>
                   ) : null}
                   {bannerDraftCid && bannerDraftValid ? (
                     <div className="publicProfileBanner publicProfileBanner--draft">
