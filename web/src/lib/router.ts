@@ -687,6 +687,23 @@ function decodeRoutePart(value: string): string {
 export function matchRoute(path: string): RouteMatch {
   const r = path.split("?")[0];
 
+  // V1.6 compatibility aliases reuse existing canonical screen and backend gates.
+  // Aliasing is not proof that a proposed dedicated subworkspace is implemented.
+  if (r === "/start") return { path: "/login" };
+  if (r === "/me") return { path: "/profile" };
+  if (r === "/feed/new") return { path: "/create" };
+  if (r === "/groups/new") return { path: "/groups/create" };
+  if (r === "/decisions/new") return { path: "/decisions/create" };
+  if (r === "/tasks") return { path: "/reviews" };
+  if (r === "/me/security/sessions") return { path: "/session" };
+  if (r === "/me/transactions") return { path: "/transactions" };
+  if (r === "/protocol/economics") return { path: "/economics" };
+  if (r === "/protocol/tools") return { path: "/advanced" };
+  if (r.startsWith("/people/")) {
+    const account = decodeRoutePart(r.slice("/people/".length));
+    if (account) return { path: "/account/:account", account };
+  }
+
   if (r === "/" || r === "/login") return { path: "/login" };
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };

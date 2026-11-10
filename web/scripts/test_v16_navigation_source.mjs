@@ -8,6 +8,7 @@ const css = read("src/styles.css");
 const shell = read("src/components/AppShell.tsx");
 const nav = read("src/components/PrimaryNavigation.tsx");
 const sidebar = read("src/components/SidebarNav.tsx");
+const router = read("src/lib/router.ts");
 
 for (const tab of ["posts", "about", "members", "governance", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
@@ -27,4 +28,20 @@ assert.ok(groups.includes('detailDescription || "Public community profile.'), "G
 assert.ok(css.includes("@media (max-width: 640px)"), "Mobile breakpoint required");
 assert.ok(css.includes("safe-area-inset-bottom"), "Mobile safe-area padding required");
 
-console.log("OK: v1.6 group tabs and stable primary navigation source contracts");
+for (const alias of [
+  'r === "/start"',
+  'r === "/me"',
+  'r === "/feed/new"',
+  'r === "/groups/new"',
+  'r === "/decisions/new"',
+  'r === "/tasks"',
+  'r === "/me/security/sessions"',
+  'r === "/me/transactions"',
+  'r === "/protocol/economics"',
+  'r === "/protocol/tools"',
+  'r.startsWith("/people/")',
+]) {
+  assert.ok(router.includes(alias), `Missing backward-compatible target alias: ${alias}`);
+}
+assert.ok(router.includes('r.slice("/people/".length)'), "Public-profile handle must be preserved across aliases");
+console.log("OK: v1.6 group profile, primary navigation and compatibility aliases source contracts");
