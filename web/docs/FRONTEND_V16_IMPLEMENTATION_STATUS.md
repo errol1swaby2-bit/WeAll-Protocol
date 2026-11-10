@@ -8,6 +8,8 @@
 - A group-first, URL-addressable public profile with focused Posts, About, Members, Governance, and Emissaries tabs.
 - Existing group data reads, signed membership actions, moderator membership decisions, post reporting and public emissary election views retained on their applicable panels.
 - Mobile bottom navigation, keyboard focus visibility and scrollable group section tabs.
+- Eleven compatibility aliases for proposed URLs, all resolving to existing backend-gated screens, without claiming new task implementation.
+- The complete v1.6 design target is checked in as `FRONTEND_V16_PRODUCT_SPEC.md`; this status page identifies the implemented subset.
 
 ## Pending before calling the full v1.6 frontend implemented
 
