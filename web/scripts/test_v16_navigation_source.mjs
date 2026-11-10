@@ -9,6 +9,8 @@ const shell = read("src/components/AppShell.tsx");
 const nav = read("src/components/PrimaryNavigation.tsx");
 const sidebar = read("src/components/SidebarNav.tsx");
 const router = read("src/lib/router.ts");
+const verification = read("src/pages/AccountVerificationPage.tsx");
+const verificationSections = read("src/lib/verificationSections.ts");
 
 for (const tab of ["posts", "about", "members", "governance", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
@@ -44,4 +46,15 @@ for (const alias of [
   assert.ok(router.includes(alias), `Missing backward-compatible target alias: ${alias}`);
 }
 assert.ok(router.includes('r.slice("/people/".length)'), "Public-profile handle must be preserved across aliases");
-console.log("OK: v1.6 group profile, primary navigation and compatibility aliases source contracts");
+for (const section of ["overview", "async", "live", "responsibilities", "history", "technical"]) {
+  assert.ok(verificationSections.includes(`id: "${section}"`), `Missing verification section: ${section}`);
+  assert.ok(verification.includes(`activeSection !== "${section}"`), `Verification must have focused section: ${section}`);
+}
+assert.ok(verification.includes('asyncRecordingState === "recording" && requested !== "async"'), "Switching sections must not hide an active camera recording");
+assert.ok(verification.includes("Recording fresh verification video") || verification.includes("Record fresh verification video"), "Camera capture action must survive layout refactor");
+assert.ok(verification.includes("Assigned reviewers may view this evidence"), "Evidence consent must remain visible");
+assert.ok(verification.includes("submitAsyncEvidence()"), "Signed async submission must remain");
+assert.ok(verification.includes("submitLiveRequest()"), "Signed live request must remain");
+assert.ok(router.includes('r === "/verification/async"'), "Dedicated verification entry alias required");
+assert.ok(css.includes(".verificationSection[hidden]"), "Inactive verification panels must actually hide");
+console.log("OK: v1.6 group, primary navigation, verification task panels and compatibility aliases");

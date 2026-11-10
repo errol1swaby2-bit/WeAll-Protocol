@@ -705,6 +705,9 @@ export function matchRoute(path: string): RouteMatch {
   }
 
   if (r === "/" || r === "/login") return { path: "/login" };
+  if (r === "/verification/async" || r === "/verification/live/request" || r === "/verification/history") {
+    return { path: "/verification" };
+  }
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };
   if (r === "/create") return { path: "/create" };

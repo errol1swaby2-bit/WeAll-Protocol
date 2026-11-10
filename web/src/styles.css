@@ -3523,3 +3523,42 @@ summary:focus-visible {
     padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+
+/* Frontend v1.6: one verification task panel at a time. */
+.verificationSectionTabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 2px 12px;
+  max-width: 100%;
+  overflow-x: auto;
+  align-items: center;
+}
+.verificationSectionTab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+.verificationSectionTab.isActive {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+.verificationSectionTab:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.verificationSection[hidden] { display: none !important; }
+.verificationSection { min-width: 0; width: 100%; }
+.accountVerificationPage > .grid3 > .verificationSection {
+  min-width: 0;
+}
+.accountVerificationPage > .grid3 {
+  grid-template-columns: minmax(0, 1fr);
+}
+.accountVerificationPage .verificationSection > .grid2,
+.accountVerificationPage .verificationSection > .grid3 {
+  grid-template-columns: minmax(0, 1fr);
+}
