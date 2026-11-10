@@ -26,6 +26,17 @@ for (const tab of ["posts", "about", "members", "decisions", "governance", "trea
 assert.ok(tabs.includes('new URLSearchParams(query).get("tab")'), "Group tabs must have linkable query state");
 assert.ok(groups.includes('window.addEventListener("hashchange", onHashChange)'), "Direct links and back/forward must change group tabs");
 assert.ok(groups.includes("async function decideMembership"), "Existing signed membership moderation must remain");
+assert.ok(tabs.includes("groupWorkspaceTabFromHash"), "Role-specific desk must be separate from public group profile tabs");
+assert.ok(tabs.includes('return "membership_review"'), "Deep-linked membership moderator desk must select the focused panel");
+assert.ok(router.includes("groupRoleRoute"), "Group role paths must resolve before the catch-all group ID");
+assert.ok(router.includes('manage\\/members'), "Membership task path must be explicitly bounded");
+assert.ok(groups.includes('activeTab === "membership_review"'), "Moderator request task must have a focused workspace");
+assert.ok(groups.includes('GROUP_PROFILE_TABS.filter((tab) => tab.id !== "responsibilities" || !!acct)'), "Anonymous visitors must not see role navigation");
+assert.ok(groups.includes('!acct || !canSign ?') && groups.includes('!canModerate ?'), "Unassigned or signerless users must see no applicant queue or action");
+assert.ok(groups.includes('Object.prototype.hasOwnProperty.call(freshRequests, member)'), "Signed membership decisions must recheck a live pending request");
+assert.ok(groups.includes('freshModerators.some'), "Signed membership decisions must recheck live moderator listing");
+assert.ok(groups.includes('tx_type: "GROUP_MEMBERSHIP_DECIDE"'), "Do not replace canonical signed decisions with UI-only approval");
+assert.ok(groups.includes('No approval controls or pending applicant accounts are displayed.'), "No pending applicant disclosure without group moderator listing");
 assert.ok(groups.includes("async function reportGroupPost"), "Existing report flow must remain");
 assert.ok(groups.includes("Group governance contract"), "Public group governance reads must remain");
 assert.ok(groups.includes('String(item?.group_id || item?.raw?.group_id || "").trim() === selected'), "Group decision reads must use exact canonical scope");

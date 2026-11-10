@@ -22,3 +22,14 @@ export function groupProfileTabFromHash(hash: string): GroupProfileTab {
   const tab = GROUP_PROFILE_TABS.find((candidate) => candidate.id === requested);
   return tab ? tab.id : "posts";
 }
+
+// Group role work is not a public profile tab. The review desk is deliberately
+// reachable only by an explicit deep link; its actions remain backend-gated.
+export type GroupWorkspaceTab = GroupProfileTab | "membership_review";
+
+export function groupWorkspaceTabFromHash(hash: string): GroupWorkspaceTab {
+  const path = String(hash || "").replace(/^#/, "").split("?")[0];
+  if (/^\/groups\/[^/]+\/manage\/members$/.test(path)) return "membership_review";
+  if (/^\/groups\/[^/]+\/responsibilities$/.test(path)) return "responsibilities";
+  return groupProfileTabFromHash(hash);
+}

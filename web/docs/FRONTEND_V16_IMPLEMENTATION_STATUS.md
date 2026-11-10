@@ -38,3 +38,11 @@
 - Latest exact-head CI, local browser acceptance, two-node PoH, real public profile publication, and cross-machine independence are **not yet proven** by this status note.
 
 **Do not merge** until the full intended frontend behavior is implemented, independently tested and reviewed. P2P private messaging, private profile wallpaper and arbitrary executable themes remain **out of scope**.
+
+## Group responsibility / membership-moderation increment (2026-11-10, pending CI)
+
+- Added exact-group deep links `/groups/:id/responsibilities` and `/groups/:id/manage/members` resolving to the same canonical group object rather than treating a task suffix as part of the group ID.
+- Group responsibilities are now a signed-in contextual dashboard. Member participation, moderator membership reviews, and unsupported emissary/treasury action desks are explicitly distinguished. This presentation does **not** grant any role.
+- The public Members tab no longer houses moderator approval controls. The separate membership desk reveals pending applicant identifiers and approve/reject actions only when an authenticated local signer is present, the account is listed as a moderator in the returned group state, and the group's membership mode requires approval. An unassigned or anonymous visitor sees no pending applicant list in this UI.
+- Before submitting the existing signed `GROUP_MEMBERSHIP_DECIDE`, the client fetches fresh group state and fails closed unless the moderator is still listed and the exact request remains pending. Backend authorization and inclusion are still independently required. There are no new transaction types or administrative shortcuts.
+- Added fail-closed source checks to `test:v16-navigation-source`. **Build, browser acceptance, and exact-head CI results are not yet verified for this new increment.** A canonical read model may omit restricted membership requests; that condition blocks actions here rather than assuming permission. PR #88 stays **DRAFT / NO-GO**, and existing backend/reviewer/focused-P1 failures remain unresolved.

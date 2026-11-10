@@ -6,7 +6,7 @@ import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav, navWithReturn } from "../lib/router";
-import { GROUP_PROFILE_TABS, groupProfileTabFromHash, type GroupProfileTab } from "../lib/groupProfileTabs";
+import { GROUP_PROFILE_TABS, groupWorkspaceTabFromHash, type GroupProfileTab, type GroupWorkspaceTab } from "../lib/groupProfileTabs";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
@@ -52,10 +52,10 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [busy, setBusy] = useState<boolean>(false);
   const [reportBusyId, setReportBusyId] = useState<string | null>(null);
   const [reportInfo, setReportInfo] = useState<{ msg: string; details?: any } | null>(null);
-  const [activeTab, setActiveTab] = useState<GroupProfileTab>(() => groupProfileTabFromHash(typeof window !== "undefined" ? window.location.hash : ""));
+  const [activeTab, setActiveTab] = useState<GroupWorkspaceTab>(() => groupWorkspaceTabFromHash(typeof window !== "undefined" ? window.location.hash : ""));
 
   useEffect(() => {
-    const onHashChange = () => setActiveTab(groupProfileTabFromHash(window.location.hash));
+    const onHashChange = () => setActiveTab(groupWorkspaceTabFromHash(window.location.hash));
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
@@ -265,6 +265,24 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
     setErr(null);
     setBusy(true);
     try {
+      // A visible role badge is not authority. Re-read current group state
+      // before signing so revoked moderators and settled requests fail closed.
+      const freshResponse: any = await api.groups.get(selected, base);
+      const freshGroup: any = freshResponse?.group || freshResponse;
+      const freshModerators: unknown[] = Array.isArray(freshGroup?.moderators)
+        ? freshGroup.moderators
+        : Array.isArray(freshGroup?.roles?.moderators) ? freshGroup.roles.moderators : [];
+      if (!freshModerators.some((candidate) => String(candidate || "").trim().toLowerCase() === acct.toLowerCase())) {
+        throw new Error("Your moderator assignment is not present in the latest group state. No decision was submitted.");
+      }
+      const freshMode = String(freshGroup?.membership_mode || freshGroup?.meta?.membership_mode || "").trim().toLowerCase();
+      const freshRequests = freshGroup?.membership_requests;
+      if (freshMode !== "approval_required" ||
+          !freshRequests || typeof freshRequests !== "object" ||
+          Array.isArray(freshRequests) ||
+          !Object.prototype.hasOwnProperty.call(freshRequests, member)) {
+        throw new Error("This membership request is not pending in the latest group state. No decision was submitted.");
+      }
       await tx.runTx({
         title: decision === "accept" ? "Approve membership" : "Reject membership",
         pendingKey: txPendingKey(["group-membership-decision", selected, member, decision, acct]),
@@ -444,7 +462,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       </section>
 
       <nav className="groupProfileTabs" aria-label="Group profile sections">
-        {GROUP_PROFILE_TABS.map((tab) => (
+        {GROUP_PROFILE_TABS.filter((tab) => tab.id !== "responsibilities" || !!acct).map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -589,24 +607,58 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       ) : null}
 
       {activeTab === "responsibilities" ? (
-      <section className="card" aria-label="Group responsibilities">
+      <section className="card" aria-label="My group responsibilities">
         <div className="cardBody formStack">
-          <div className="eyebrow">Group-specific responsibilities</div>
-          <h2 className="cardTitle">Community responsibility desks</h2>
+          <div className="eyebrow">My work · this group only</div>
+          <h2 className="cardTitle">Group responsibilities</h2>
           <p className="cardDesc">
-            Review public responsibilities in their group context. Membership decisions still require
-            the canonical moderator role; emissary mandates and treasury execution require their
-            separately authorized protocol actions.
+            This dashboard routes your actual membership and moderator tasks. It does not
+            assign any role, confer juror authority, or authorize treasury or emissary execution.
           </p>
-          <div className="buttonRow buttonRowWide">
-            <button className="btn" onClick={() => openGroupTab("members")}>Membership review</button>
-            <button className="btn" onClick={() => openGroupTab("emissaries")}>Emissary elections</button>
-            <button className="btn" onClick={() => openGroupTab("governance")}>Governance record</button>
-          </div>
-          <div className="calloutInfo">
-            Dedicated treasury and emissary action dashboards remain unavailable until the corresponding
-            signed transaction and mandate contracts are verified. This page does not grant roles.
-          </div>
+          {!acct ? (
+            <div className="calloutInfo">
+              Sign in to inspect your group responsibilities. Public records remain available in the other tabs.
+              <div className="buttonRow"><button className="btn" onClick={() => navWithReturn("/login", currentGroupRoute + "?tab=responsibilities")}>Sign in</button></div>
+            </div>
+          ) : (
+            <>
+              <div className="surfaceBoundaryList">
+                <span className="surfaceBoundaryTag">Account: {acct}</span>
+                <span className="surfaceBoundaryTag">Membership: {isMember ? "member" : isPendingMembership ? "pending" : "not confirmed"}</span>
+                <span className="surfaceBoundaryTag">Moderator listing: {canModerate ? "present in group read model" : "not present"}</span>
+                <span className="surfaceBoundaryTag">Signing device: {canSign ? "available" : "unavailable"}</span>
+              </div>
+              <div className="detailFocusStrip actionFocusStrip">
+                <article className="detailFocusCard">
+                  <div className="detailFocusLabel">Member participation</div>
+                  <div className="detailFocusValue">{isMember ? "Membership confirmed" : isPendingMembership ? "Request awaiting decision" : "No confirmed membership"}</div>
+                  <div className="detailFocusText">Join or leave using the existing signed membership action. Posting and voting remain subject to canonical account and group rules.</div>
+                  <button className="btn" onClick={() => openGroupTab("members")}>Open membership</button>
+                </article>
+                <article className="detailFocusCard">
+                  <div className="detailFocusLabel">Membership moderator</div>
+                  <div className="detailFocusValue">{canModerate ? "Listed as moderator" : "Not assigned"}</div>
+                  <div className="detailFocusText">
+                    {canModerate
+                      ? membershipMode === "approval_required"
+                        ? "Open the dedicated request desk. Each signed decision rechecks the live group state."
+                        : "This group does not currently use an approval-required membership queue."
+                      : "No moderator action is offered without the group listing your account as a moderator."}
+                  </div>
+                  {canModerate && membershipMode === "approval_required" ? (
+                    <button className="btn" disabled={!canSign} onClick={() => nav(currentGroupRoute + "/manage/members")}>Open membership approval desk</button>
+                  ) : null}
+                </article>
+                <article className="detailFocusCard">
+                  <div className="detailFocusLabel">Emissary and treasury mandates</div>
+                  <div className="detailFocusValue">Execution desk unavailable</div>
+                  <div className="detailFocusText">No verified group-scoped mandate, treasury signer, expiry or execution receipt API is connected. An election or role listing cannot substitute for one.</div>
+                  <button className="btn" onClick={() => openGroupTab("emissaries")}>Inspect public election records</button>
+                </article>
+              </div>
+              {!canSign ? <div className="calloutInfo">Restore your local signing key before attempting any signed action.</div> : null}
+            </>
+          )}
         </div>
       </section>
       ) : null}
@@ -694,23 +746,49 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         onDismiss={() => setErr(null)}
       />
 
-      {activeTab === "members" && membershipMode === "approval_required" && canModerate ? (
+      {activeTab === "membership_review" ? (
         <section className="card" aria-label="Group membership approvals">
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Moderator responsibility</div>
-                <h2 className="cardTitle">Membership requests</h2>
-                <div className="cardDesc">Only an included, authorized moderator-signed decision can accept or reject a pending request.</div>
+                <div className="eyebrow">Moderator task · {detailName}</div>
+                <h2 className="cardTitle">Membership request decisions</h2>
+                <p className="cardDesc">
+                  Approval and rejection are separate signed transactions. Only an included
+                  backend-authorized GROUP_MEMBERSHIP_DECIDE can change the canonical membership state.
+                </p>
               </div>
+              <button className="btn" onClick={() => openGroupTab("responsibilities")}>Back to my group work</button>
             </div>
-            {pendingMembershipAccounts.length ? pendingMembershipAccounts.map((member) => (
-              <div className="buttonRow buttonRowWide" key={member}>
-                <span className="mono">{member}</span>
-                <button className="btn btnPrimary" disabled={busy || signerSubmission.busy || !canSign} onClick={() => void decideMembership(member, "accept")}>Approve</button>
-                <button className="btn" disabled={busy || signerSubmission.busy || !canSign} onClick={() => void decideMembership(member, "reject")}>Reject</button>
+            {!acct || !canSign ? (
+              <div className="calloutInfo">
+                This task requires an authenticated local signer. No membership request information is shown.
+                <button className="btn" onClick={() => navWithReturn(acct ? "/session" : "/login", currentGroupRoute + "/manage/members")}>Restore signing session</button>
               </div>
-            )) : <div className="cardDesc">No pending membership requests are visible in the current canonical group read model.</div>}
+            ) : !canModerate ? (
+              <div className="calloutInfo">
+                Moderator assignment is not present in this group's read model.
+                No approval controls or pending applicant accounts are displayed.
+              </div>
+            ) : membershipMode !== "approval_required" ? (
+              <div className="calloutInfo">This group has no approval-required membership queue. No decision can be submitted here.</div>
+            ) : (
+              <>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">Exact group: {selected}</span>
+                  <span className="surfaceBoundaryTag">Pending in returned snapshot: {pendingMembershipAccounts.length}</span>
+                  <span className="surfaceBoundaryTag">Moderator status: rechecked before every submission</span>
+                </div>
+                {pendingMembershipAccounts.length ? pendingMembershipAccounts.map((member) => (
+                  <div className="buttonRow buttonRowWide" key={member}>
+                    <span className="mono">{member}</span>
+                    <button className="btn btnPrimary" disabled={busy || signerSubmission.busy} onClick={() => void decideMembership(member, "accept")}>Approve</button>
+                    <button className="btn" disabled={busy || signerSubmission.busy} onClick={() => void decideMembership(member, "reject")}>Reject</button>
+                  </div>
+                )) : <div className="cardDesc">No pending membership requests are visible in this group snapshot. This is not a claim about prior requests.</div>}
+                <p className="cardDesc">A successful submission alone is not finality. The receipt and refreshed canonical group state must confirm the decision.</p>
+              </>
+            )}
           </div>
         </section>
       ) : null}
