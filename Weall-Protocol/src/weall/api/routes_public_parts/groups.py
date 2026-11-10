@@ -510,16 +510,20 @@ def v1_group_governance_contract(group_id: str, request: Request):
     return _public_group_governance_contract(st, group_id=group_id, group=g)
 
 
-
 def _public_election_row(
-    election: dict[str, Any], *, election_id: str, group_id: str,
-    observed_height: int | None, viewer: str | None,
+    election: dict[str, Any],
+    *,
+    election_id: str,
+    group_id: str,
+    observed_height: int | None,
+    viewer: str | None,
 ) -> dict[str, Any]:
     """Explicitly allowlisted election view, never raw voter/ballot state."""
     raw_candidates = election.get("candidates")
     candidates = (
         sorted({_str_param(v).strip() for v in raw_candidates if _str_param(v).strip()})
-        if isinstance(raw_candidates, list) else None
+        if isinstance(raw_candidates, list)
+        else None
     )
     snapshot = election.get("voter_snapshot")
     snapshot = snapshot if isinstance(snapshot, list) else None
@@ -527,7 +531,8 @@ def _public_election_row(
     raw_winners = election.get("winners")
     winners = (
         [_str_param(v).strip() for v in raw_winners if _str_param(v).strip()]
-        if status == "finalized" and isinstance(raw_winners, list) else []
+        if status == "finalized" and isinstance(raw_winners, list)
+        else []
     )
 
     def height(field: str) -> int | None:
@@ -559,7 +564,8 @@ def _public_election_row(
         "voter_snapshot_count": len(snapshot) if snapshot is not None else None,
         "viewer_in_voter_snapshot": (
             _str_param(viewer).strip() in [str(v) for v in snapshot]
-            if viewer and snapshot is not None else None
+            if viewer and snapshot is not None
+            else None
         ),
         "ballot_submission_authorized": False,
         "ballot_authorization_note": (
@@ -569,7 +575,8 @@ def _public_election_row(
 
 
 def _group_elections_source(
-    request: Request, group_id: str,
+    request: Request,
+    group_id: str,
 ) -> tuple[dict[str, Any], str | None, int | None]:
     state = _snapshot(request)
     if not isinstance(_group_record(state, group_id), dict):
@@ -592,27 +599,36 @@ def v1_group_elections(group_id: str, request: Request):
     elections, viewer, observed_height = _group_elections_source(request, group_id)
     rows = [
         _public_election_row(
-            election, election_id=str(key), group_id=group_id,
-            observed_height=observed_height, viewer=viewer,
+            election,
+            election_id=str(key),
+            group_id=group_id,
+            observed_height=observed_height,
+            viewer=viewer,
         )
         for key, election in elections.items()
         if isinstance(election, dict)
         and _str_param(election.get("group_id")).strip() == group_id
         and _str_param(key).strip()
     ]
-    rows.sort(key=lambda row: (
-        -(row["created_at_height"] if row["created_at_height"] is not None else -1),
-        row["election_id"],
-    ))
+    rows.sort(
+        key=lambda row: (
+            -(row["created_at_height"] if row["created_at_height"] is not None else -1),
+            row["election_id"],
+        )
+    )
     limit = max(1, min(200, _int_param(request.query_params.get("limit"), 50)))
     offset = max(0, _int_param(request.query_params.get("offset"), 0))
-    page = rows[offset:offset + limit]
+    page = rows[offset : offset + limit]
     next_offset = offset + len(page) if offset + len(page) < len(rows) else None
     return {
-        "ok": True, "group_id": group_id, "read_only": True,
+        "ok": True,
+        "group_id": group_id,
+        "read_only": True,
         "source": "canonical_group_emissary_elections_snapshot",
         "observed_height": observed_height,
-        "total": len(rows), "items": page, "next_offset": next_offset,
+        "total": len(rows),
+        "items": page,
+        "next_offset": next_offset,
     }
 
 
@@ -623,14 +639,20 @@ def v1_group_election_detail(group_id: str, election_id: str, request: Request):
     election = elections.get(election_id)
     if not isinstance(election, dict) or _str_param(election.get("group_id")).strip() != group_id:
         raise ApiError.not_found(
-            "not_found", "Election not found in this group",
+            "not_found",
+            "Election not found in this group",
             {"group_id": group_id, "election_id": election_id},
         )
     return {
-        "ok": True, "group_id": group_id, "read_only": True,
+        "ok": True,
+        "group_id": group_id,
+        "read_only": True,
         "election": _public_election_row(
-            election, election_id=election_id, group_id=group_id,
-            observed_height=observed_height, viewer=viewer,
+            election,
+            election_id=election_id,
+            group_id=group_id,
+            observed_height=observed_height,
+            viewer=viewer,
         ),
     }
 
