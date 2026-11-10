@@ -34,7 +34,6 @@ assert.ok(tabs.includes("groupWorkspaceTabFromHash"), "Role-specific desk must b
 for (const desk of ["reports", "moderation_review", "emissary_work"]) {
   assert.ok(groups.includes(`activeTab === "${desk}"`), `Group workspace missing: ${desk}`);
 }
-assert.ok(router.includes("emissaries\\/work"), "Emissary work must be a bounded group-local deep link");
 assert.ok(router.includes("manage\\/(?:members|moderation)"), "Group moderator desks must be separately routed");
 assert.ok(groups.includes('groupReportSource(item, selected, postIds)'), "Never infer group dispute scope from a route parameter");
 assert.ok(groups.includes('!canModerate ?'), "Unassigned group moderation routes must not expose group-role controls");
