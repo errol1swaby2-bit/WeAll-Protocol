@@ -6,7 +6,9 @@ import { prefetchRouteChunk } from "../lib/routePrefetch";
 import { currentHashPath, getNavSections, isActiveNavPath, nav } from "../lib/router";
 import { verificationLabel } from "../lib/userLanguage";
 
-export default function SidebarNav({ showAdvancedMode = false, onNavigate }: { showAdvancedMode?: boolean; onNavigate?: () => void }): JSX.Element {
+const PRIMARY_DESTINATIONS = new Set(["/home", "/feed", "/groups", "/decisions", "/profile"]);
+
+export default function SidebarNav({ showAdvancedMode = false, hidePrimary = false, onNavigate }: { showAdvancedMode?: boolean; hidePrimary?: boolean; onNavigate?: () => void }): JSX.Element {
   const [currentPath, setCurrentPath] = useState<string>(currentHashPath());
   const session = getSession();
   const account = session?.account || "";
@@ -15,7 +17,12 @@ export default function SidebarNav({ showAdvancedMode = false, onNavigate }: { s
   const ready = !!session?.account && !!keypair?.secretKeyB64;
   const tier = Number(accountState?.poh_tier ?? 0);
   const accountLabel = verificationLabel(tier);
-  const sections = getNavSections({ ready, tier, showAdvanced: showAdvancedMode });
+  const sections = getNavSections({ ready, tier, showAdvanced: showAdvancedMode })
+    .map((section) => ({
+      ...section,
+      items: hidePrimary ? section.items.filter((item) => !PRIMARY_DESTINATIONS.has(item.href)) : section.items,
+    }))
+    .filter((section) => section.items.length > 0);
 
   useEffect(() => {
     function onHashChange() {

@@ -217,7 +217,7 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
 
               {menuOpen ? (
                 <div id="app-shell-primary-menu" className="appShellMenuPopover">
-                  <SidebarNav showAdvancedMode={showAdvancedMode} onNavigate={() => setMenuOpen(false)} />
+                  <SidebarNav showAdvancedMode={showAdvancedMode} hidePrimary onNavigate={() => setMenuOpen(false)} />
                   <div className="appShellMenuFooter">
                     <ConnectionPill />
                     <SessionPill />

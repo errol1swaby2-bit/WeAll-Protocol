@@ -378,7 +378,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="eyebrow">Group detail</div>
               <h1 className="heroTitle heroTitleSm">{detailName}</h1>
               <p className="heroText">
-                Read the public group charter, inspect membership and governance posture, and use signed actions only for participation changes.
+                {detailDescription || "Public community profile. Browse this group's posts, membership and governance records."}
               </p>
             </div>
 

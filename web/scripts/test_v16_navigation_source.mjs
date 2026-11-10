@@ -7,6 +7,7 @@ const tabs = read("src/lib/groupProfileTabs.ts");
 const css = read("src/styles.css");
 const shell = read("src/components/AppShell.tsx");
 const nav = read("src/components/PrimaryNavigation.tsx");
+const sidebar = read("src/components/SidebarNav.tsx");
 
 for (const tab of ["posts", "about", "members", "governance", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
@@ -20,6 +21,9 @@ assert.ok(groups.includes("Group governance contract"), "Public group governance
 assert.ok(groups.includes("Frontend cache authority: never"), "UI cannot grant governance authority");
 assert.ok(nav.includes('aria-label="Main navigation"'), "Five-destination navigation must have landmark");
 assert.ok(shell.includes("<PrimaryNavigation currentPath={route.path}"), "Shell must mount primary navigation");
+assert.ok(shell.includes("hidePrimary onNavigate="), "Popover should offer secondary navigation, not duplicate the five fixed destinations");
+assert.ok(sidebar.includes("PRIMARY_DESTINATIONS"), "Secondary menu must filter fixed destinations");
+assert.ok(groups.includes('detailDescription || "Public community profile.'), "Group identity should show the actual public group description");
 assert.ok(css.includes("@media (max-width: 640px)"), "Mobile breakpoint required");
 assert.ok(css.includes("safe-area-inset-bottom"), "Mobile safe-area padding required");
 
