@@ -753,7 +753,7 @@ export function matchRoute(path: string): RouteMatch {
 
   // Role-specific group work must not be interpreted as part of a group ID.
   // The group page checks canonical role state before rendering any action.
-  const groupRoleRoute = /^\/groups\/([^/]+)\/(responsibilities|manage\/members)$/.exec(r);
+  const groupRoleRoute = /^\/groups\/([^/]+)\/(responsibilities|reports|manage\/(?:members|moderation)|emissaries\/work)$/.exec(r);
   if (groupRoleRoute) {
     const id = decodeRoutePart(groupRoleRoute[1]);
     if (id) return { path: "/groups/:id", id };

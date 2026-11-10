@@ -12,6 +12,7 @@ import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { reconcileMembershipDecision, reconcileMembershipPending, reconcileMembershipState } from "../lib/groupsRevalidation";
+import { groupReportSource, publicRoleAccounts } from "../lib/groupOversight";
 import { refreshMutationSlices, requestGlobalRefresh } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 
@@ -44,6 +45,9 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [members, setMembers] = useState<any[]>([]);
   const [groupPosts, setGroupPosts] = useState<any[]>([]);
   const [groupDecisions, setGroupDecisions] = useState<any[]>([]);
+  const [groupReports, setGroupReports] = useState<Array<{ item: any; source: string }>>([]);
+  const [groupReportsStatus, setGroupReportsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [groupReportsBounded, setGroupReportsBounded] = useState(true);
   const [decisionsStatus, setDecisionsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus | null>(null);
   const [governanceContract, setGovernanceContract] = useState<GroupGovernanceContract | null>(null);
@@ -101,6 +105,47 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       });
     return () => { active = false; };
   }, [activeTab, selected, base]);
+
+  useEffect(() => {
+    if (!selected || activeTab !== "reports") return;
+    let active = true;
+    setGroupReports([]);
+    setGroupReportsBounded(true);
+    setGroupReportsStatus("loading");
+    // The dispute endpoint has no exact group_id filter. Match ONLY against
+    // group-feed post IDs or the canonical target snapshot's group_id.
+    // Both lists are capped; a zero match does NOT mean zero historical reports.
+    const headers = acct ? getAuthHeaders(acct) : undefined;
+    void Promise.all([
+      weall.groupFeed(selected, { limit: 100 }, base, headers),
+      weall.disputes({ limit: 200, includeSummary: true }, base, headers),
+    ]).then(([feed, reports]: [any, any]) => {
+      if (!active) return;
+      if (String(feed?.group_id || "").trim() !== selected || !Array.isArray(feed?.items) || !Array.isArray(reports?.items)) {
+        throw new Error("Group report sources are incomplete or scoped to a different group.");
+      }
+      const postIds = new Set<string>(feed.items.map((p: any) =>
+        String(p?.post_id || p?.id || "").trim()).filter(Boolean));
+      const matched: Array<{ item: any; source: string }> = [];
+      for (const item of reports.items) {
+        const reportId = String(item?.id || item?.dispute_id || "").trim();
+        if (!reportId) continue;
+        const source = groupReportSource(item, selected, postIds);
+        if (source) matched.push({ item, source });
+      }
+      setGroupReports(matched);
+      const total = Number(reports?.summary?.total);
+      setGroupReportsBounded(Boolean(feed?.next_cursor) || feed.items.length >= 100 ||
+        reports.items.length >= 200 || !Number.isFinite(total) || total > reports.items.length);
+      setGroupReportsStatus("ready");
+    }).catch(() => {
+      if (!active) return;
+      setGroupReports([]);
+      setGroupReportsBounded(true);
+      setGroupReportsStatus("error");
+    });
+    return () => { active = false; };
+  }, [activeTab, selected, base, acct]);
 
   async function loadAccountState(): Promise<void> {
     if (!acct) {
@@ -269,10 +314,8 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       // before signing so revoked moderators and settled requests fail closed.
       const freshResponse: any = await api.groups.get(selected, base);
       const freshGroup: any = freshResponse?.group || freshResponse;
-      const freshModerators: unknown[] = Array.isArray(freshGroup?.moderators)
-        ? freshGroup.moderators
-        : Array.isArray(freshGroup?.roles?.moderators) ? freshGroup.roles.moderators : [];
-      if (!freshModerators.some((candidate) => String(candidate || "").trim().toLowerCase() === acct.toLowerCase())) {
+      const freshModerators = publicRoleAccounts(freshGroup?.moderators || freshGroup?.roles?.moderators);
+      if (!freshModerators.some((candidate) => candidate.toLowerCase() === acct.toLowerCase())) {
         throw new Error("Your moderator assignment is not present in the latest group state. No decision was submitted.");
       }
       const freshMode = String(freshGroup?.membership_mode || freshGroup?.meta?.membership_mode || "").trim().toLowerCase();
@@ -390,8 +433,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const pendingMembershipAccounts = detail?.membership_requests && typeof detail.membership_requests === "object"
     && !Array.isArray(detail.membership_requests)
     ? Object.keys(detail.membership_requests).sort() : [];
-  const moderatorAccounts = Array.isArray(detail?.moderators)
-    ? detail.moderators : Array.isArray(detail?.roles?.moderators) ? detail.roles.moderators : [];
+  const moderatorAccounts = publicRoleAccounts(detail?.moderators || detail?.roles?.moderators);
   // The backend is authoritative: revoked moderators cannot approve even if
   // the local role cache has not refreshed.
   const canModerate = !!acct && moderatorAccounts.some((member: unknown) =>
@@ -650,10 +692,23 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                   ) : null}
                 </article>
                 <article className="detailFocusCard">
+                  <div className="detailFocusLabel">Public content oversight</div>
+                  <div className="detailFocusValue">Reports are not jury assignments</div>
+                  <div className="detailFocusText">
+                    Browse public reports matched to this group's canonical posts. Group moderation does not
+                    grant dispute juror authority; assigned verdict work remains in the Review Center.
+                  </div>
+                  <button className="btn" onClick={() => openGroupTab("reports")}>Inspect group reports</button>
+                  {canModerate ? (
+                    <button className="btn" onClick={() => nav(currentGroupRoute + "/manage/moderation")}>Moderator case routing</button>
+                  ) : null}
+                </article>
+                <article className="detailFocusCard">
                   <div className="detailFocusLabel">Emissary and treasury mandates</div>
                   <div className="detailFocusValue">Execution desk unavailable</div>
                   <div className="detailFocusText">No verified group-scoped mandate, treasury signer, expiry or execution receipt API is connected. An election or role listing cannot substitute for one.</div>
                   <button className="btn" onClick={() => openGroupTab("emissaries")}>Inspect public election records</button>
+                  <button className="btn" onClick={() => nav(currentGroupRoute + "/emissaries/work")}>Mandate availability</button>
                 </article>
               </div>
               {!canSign ? <div className="calloutInfo">Restore your local signing key before attempting any signed action.</div> : null}
@@ -661,6 +716,108 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           )}
         </div>
       </section>
+      ) : null}
+
+      {activeTab === "reports" ? (
+        <section className="card" aria-label="Public group report records">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Group · public oversight</div>
+                <h2 className="cardTitle">Reports on group content</h2>
+                <p className="cardDesc">
+                  Matched using the public dispute target's canonical group snapshot or a post ID from
+                  this group's returned feed. The APIs do not expose a complete group-filtered dispute index.
+                </p>
+              </div>
+              <button className="btn" onClick={() => nav("/reports")}>All public reports</button>
+            </div>
+            <div className="calloutInfo">
+              This is a bounded, public record sample, not a comprehensive moderation queue.
+              A group moderator does not automatically become a dispute juror. No verdict or removal controls are available here.
+            </div>
+            {groupReportsStatus === "loading" ? <p className="cardDesc">Loading the group's public report sample…</p> : null}
+            {groupReportsStatus === "error" ? <div className="calloutDanger">Public report sources could not be verified for this group. No absence claim is made.</div> : null}
+            {groupReportsStatus === "ready" ? (
+              <>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">{groupReports.length} matches in returned sample</span>
+                  <span className="surfaceBoundaryTag">{groupReportsBounded ? "Source window is incomplete or unverified" : "Current bounded source window inspected; history not guaranteed"}</span>
+                </div>
+                {groupReports.map(({ item, source }) => {
+                  const reportId = String(item?.id || item?.dispute_id || "").trim();
+                  return (
+                    <article className="quickCard quickCardSplit" key={reportId}>
+                      <div className="quickCardMain">
+                        <strong>Report {reportId}</strong>
+                        <span className="miniTag">{String(item?.stage || item?.status || "status unavailable")}</span>
+                        <small>Target {String(item?.target_id || "unavailable")} · {source === "canonical_target_snapshot" ? "canonical group snapshot" : "returned group post"}</small>
+                      </div>
+                      <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(reportId)}`)}>Open public record</button>
+                    </article>
+                  );
+                })}
+                {!groupReports.length ? (
+                  <div className="emptyState compactEmpty">
+                    <div className="emptyTitle">No matching reports in the returned sample</div>
+                    <div className="emptyText">Hidden content, older cases and unreturned pages may be missing. This does not establish that the group has never had reports.</div>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "moderation_review" ? (
+        <section className="card" aria-label="Group moderator case routing">
+          <div className="cardBody formStack">
+            <div className="eyebrow">My group work · content oversight</div>
+            <h2 className="cardTitle">Moderator case routing</h2>
+            <p className="cardDesc">A group moderator's membership powers do not confer content dispute voting authority. Only a separately assigned, opted-in juror can issue a review verdict.</p>
+            {!acct || !canSign ? (
+              <div className="calloutInfo">Sign in with your local signer to open group responsibility routes.</div>
+            ) : !canModerate ? (
+              <div className="calloutInfo">No moderator assignment is present in the current group read model. No group-role action is available.</div>
+            ) : (
+              <>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">Group: {selected}</span>
+                  <span className="surfaceBoundaryTag">Moderator listing: present</span>
+                  <span className="surfaceBoundaryTag">Dispute jury: independently assigned</span>
+                </div>
+                <p className="cardDesc">Open the public group reports index for oversight. The separate Review Center verifies reviewer opt-in, case assignment and conflict rules before any signed dispute action.</p>
+                <div className="buttonRow buttonRowWide">
+                  <button className="btn" onClick={() => openGroupTab("reports")}>Public group reports</button>
+                  <button className="btn" onClick={() => nav("/tasks/disputes")}>Assigned dispute reviews</button>
+                  <button className="btn" onClick={() => nav(currentGroupRoute + "/manage/members")}>Membership approval desk</button>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "emissary_work" ? (
+        <section className="card" aria-label="Group emissary mandate status">
+          <div className="cardBody formStack">
+            <div className="eyebrow">Group responsibilities · emissary</div>
+            <h2 className="cardTitle">Mandate execution unavailable</h2>
+            <p className="cardDesc">
+              The group governance endpoint exposes public active election summaries, not a verified
+              elected-seat, mandate-scope, expiry, timelock or executable receipt contract.
+              No signature or treasury action is authorized from this page.
+            </p>
+            <div className="calloutInfo">
+              A candidate listing, election, group membership or moderator badge cannot establish an
+              active executable mandate. Use the public records until the backend exposes a complete canonical authorization chain.
+            </div>
+            <div className="buttonRow buttonRowWide">
+              <button className="btn" onClick={() => openGroupTab("emissaries")}>View public elections</button>
+              <button className="btn" onClick={() => openGroupTab("decisions")}>View group decisions</button>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {activeTab === "emissaries" ? (

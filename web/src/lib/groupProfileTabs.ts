@@ -9,6 +9,7 @@ export const GROUP_PROFILE_TABS = [
   { id: "decisions", label: "Decisions" },
   { id: "governance", label: "Governance" },
   { id: "treasury", label: "Treasury" },
+  { id: "reports", label: "Reports" },
   { id: "responsibilities", label: "Responsibilities" },
   { id: "emissaries", label: "Emissaries" },
 ] as const;
@@ -25,11 +26,14 @@ export function groupProfileTabFromHash(hash: string): GroupProfileTab {
 
 // Group role work is not a public profile tab. The review desk is deliberately
 // reachable only by an explicit deep link; its actions remain backend-gated.
-export type GroupWorkspaceTab = GroupProfileTab | "membership_review";
+export type GroupWorkspaceTab = GroupProfileTab | "membership_review" | "moderation_review" | "emissary_work";
 
 export function groupWorkspaceTabFromHash(hash: string): GroupWorkspaceTab {
   const path = String(hash || "").replace(/^#/, "").split("?")[0];
   if (/^\/groups\/[^/]+\/manage\/members$/.test(path)) return "membership_review";
+  if (/^\/groups\/[^/]+\/manage\/moderation$/.test(path)) return "moderation_review";
+  if (/^\/groups\/[^/]+\/emissaries\/work$/.test(path)) return "emissary_work";
+  if (/^\/groups\/[^/]+\/reports$/.test(path)) return "reports";
   if (/^\/groups\/[^/]+\/responsibilities$/.test(path)) return "responsibilities";
   return groupProfileTabFromHash(hash);
 }

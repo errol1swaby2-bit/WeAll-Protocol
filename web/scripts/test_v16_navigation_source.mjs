@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const groups = read("src/pages/Group.tsx");
 const tabs = read("src/lib/groupProfileTabs.ts");
+const oversight = read("src/lib/groupOversight.ts");
 const css = read("src/styles.css");
 const shell = read("src/components/AppShell.tsx");
 const nav = read("src/components/PrimaryNavigation.tsx");
@@ -19,7 +20,7 @@ const settings = read("src/pages/Settings.tsx");
 const settingsSections = read("src/lib/settingsSections.ts");
 const themePresets = read("src/lib/themePresets.ts");
 
-for (const tab of ["posts", "about", "members", "decisions", "governance", "treasury", "responsibilities", "emissaries"]) {
+for (const tab of ["posts", "about", "members", "decisions", "governance", "treasury", "reports", "responsibilities", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
   assert.ok(groups.includes(`activeTab === "${tab}"`), `Missing focused pane: ${tab}`);
 }
@@ -27,6 +28,27 @@ assert.ok(tabs.includes('new URLSearchParams(query).get("tab")'), "Group tabs mu
 assert.ok(groups.includes('window.addEventListener("hashchange", onHashChange)'), "Direct links and back/forward must change group tabs");
 assert.ok(groups.includes("async function decideMembership"), "Existing signed membership moderation must remain");
 assert.ok(tabs.includes("groupWorkspaceTabFromHash"), "Role-specific desk must be separate from public group profile tabs");
+for (const desk of ["reports", "moderation_review", "emissary_work"]) {
+  assert.ok(groups.includes(`activeTab === "${desk}"`), `Group workspace missing: ${desk}`);
+}
+assert.ok(router.includes("emissaries\\/work"), "Emissary work must be a bounded group-local deep link");
+assert.ok(router.includes("manage\\/(?:members|moderation)"), "Group moderator desks must be separately routed");
+assert.ok(groups.includes('groupReportSource(item, selected, postIds)'), "Never infer group dispute scope from a route parameter");
+assert.ok(groups.includes('!canModerate ?'), "Unassigned group moderation routes must not expose group-role controls");
+assert.ok(groups.includes('No verdict or removal controls are available here.'), "Group reports must not confer juror verdict power");
+assert.ok(oversight.includes("groupReportSource"), "Group reports must use a shared safe scope classifier");
+assert.ok(oversight.includes("publicRoleAccounts"), "Canonical moderator arrays and role maps must both be handled");
+const ts = await import("typescript");
+const compiled = ts.transpileModule(oversight, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const { groupReportSource, publicRoleAccounts } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+assert.deepEqual(publicRoleAccounts({ alice: { active: true }, bob: {} }), ["alice", "bob"]);
+assert.deepEqual(publicRoleAccounts([" bob ", "alice", "bob"]), ["alice", "bob"]);
+const ids = new Set(["post-in-group"]);
+assert.equal(groupReportSource({ target_type: "content", target_id: "post-in-group" }, "g1", ids), "returned_group_post");
+assert.equal(groupReportSource({ target_type: "content", target_id: "post-in-group", target_content_snapshot: { group_id: "other" } }, "g1", ids), null);
+assert.equal(groupReportSource({ target_type: "content", target_id: "hidden", target_content_snapshot: { group_id: "g1" } }, "g1", ids), "canonical_target_snapshot");
+assert.equal(groupReportSource({ target_type: "comment", target_id: "post-in-group" }, "g1", ids), null);
+assert.equal(groupReportSource({ target_type: "poh", target_id: "post-in-group" }, "g1", ids), null);
 assert.ok(tabs.includes('return "membership_review"'), "Deep-linked membership moderator desk must select the focused panel");
 assert.ok(router.includes("groupRoleRoute"), "Group role paths must resolve before the catch-all group ID");
 assert.ok(router.includes('manage\\/members'), "Membership task path must be explicitly bounded");
