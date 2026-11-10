@@ -3447,3 +3447,79 @@ summary:focus-visible {
 .appShell--focus .appShellContent :is(.infoCardText, .statValue, .mono, .cardTitle) {
   overflow-wrap: anywhere;
 }
+
+
+/* Frontend v1.6: stable primary navigation and focused public group profile. */
+.primaryNavigation {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--panel-strong);
+  border-bottom: 1px solid var(--border);
+}
+.primaryNavigationItem {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 98px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted-strong);
+  font-size: 13px;
+}
+.primaryNavigationGlyph { font-size: 18px; line-height: 1; }
+.primaryNavigationItem.isActive,
+.groupProfileTab.isActive {
+  background: var(--accent-soft);
+  color: var(--text);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+.primaryNavigationItem:focus-visible,
+.groupProfileTab:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.groupProfileTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px 2px 12px;
+}
+.groupProfileTab {
+  white-space: nowrap;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 10px 16px;
+  min-height: 44px;
+}
+@media (max-width: 640px) {
+  .primaryNavigation {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    z-index: 75;
+    gap: 2px;
+    justify-content: space-around;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.22);
+  }
+  .primaryNavigationItem {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 46px;
+    padding: 5px 2px;
+    font-size: 11px;
+  }
+  .primaryNavigationGlyph { font-size: 17px; }
+  .appShell--focus .appShellContent {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+}

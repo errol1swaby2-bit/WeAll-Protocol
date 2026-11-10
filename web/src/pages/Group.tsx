@@ -6,6 +6,7 @@ import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav, navWithReturn } from "../lib/router";
+import { GROUP_PROFILE_TABS, groupProfileTabFromHash, type GroupProfileTab } from "../lib/groupProfileTabs";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
@@ -49,6 +50,13 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [busy, setBusy] = useState<boolean>(false);
   const [reportBusyId, setReportBusyId] = useState<string | null>(null);
   const [reportInfo, setReportInfo] = useState<{ msg: string; details?: any } | null>(null);
+  const [activeTab, setActiveTab] = useState<GroupProfileTab>(() => groupProfileTabFromHash(typeof window !== "undefined" ? window.location.hash : ""));
+
+  useEffect(() => {
+    const onHashChange = () => setActiveTab(groupProfileTabFromHash(window.location.hash));
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
@@ -65,6 +73,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const currentGroupRoute = selected ? `/groups/${encodeURIComponent(selected)}` : "/groups";
+  const openGroupTab = (tab: GroupProfileTab) => nav(`${currentGroupRoute}?tab=${tab}`);
 
   async function loadAccountState(): Promise<void> {
     if (!acct) {
@@ -407,6 +416,21 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </div>
       </section>
 
+      <nav className="groupProfileTabs" aria-label="Group profile sections">
+        {GROUP_PROFILE_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`groupProfileTab ${activeTab === tab.id ? "isActive" : ""}`}
+            aria-current={activeTab === tab.id ? "page" : undefined}
+            onClick={() => openGroupTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {activeTab === "about" ? (
       <section className="surfaceBoundaryBar" aria-label="Group detail route contract">
         <div className="surfaceBoundaryHeader">
           <div>
@@ -425,7 +449,9 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           <span className="surfaceBoundaryTag">Posting uses the create-post page</span>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "governance" ? (
       <section className="card" aria-label="Group governance contract">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -470,7 +496,9 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "emissaries" ? (
       <section className="card" aria-label="Group emissary election records">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -506,7 +534,9 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "members" ? (
       <section className="detailFocusStrip" aria-label="Group detail posture">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Membership state</div>
@@ -536,6 +566,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           </div>
         </article>
       </section>
+      ) : null}
 
       {signerSubmission.busy ? (
         <div className="calloutInfo">
@@ -550,7 +581,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         onDismiss={() => setErr(null)}
       />
 
-      {membershipMode === "approval_required" && canModerate ? (
+      {activeTab === "members" && membershipMode === "approval_required" && canModerate ? (
         <section className="card" aria-label="Group membership approvals">
           <div className="cardBody formStack">
             <div className="sectionHead">
@@ -585,6 +616,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </section>
       ) : null}
 
+      {activeTab === "about" || activeTab === "members" ? (
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -653,7 +685,9 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           )}
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "posts" ? (
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -692,6 +726,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           )}
         </div>
       </section>
+      ) : null}
     </div>
   );
 }
