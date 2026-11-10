@@ -290,6 +290,9 @@ export type GroupElectionRecord = {
   outcome_recorded: boolean;
   voter_snapshot_count: number | null;
   viewer_in_voter_snapshot: boolean | null;
+  ballot_transport_disclosure: "signed_envelope_contains_signer_and_plaintext_ranking";
+  ballot_transport_privacy_verified: false;
+  secret_ballot_supported: false;
   ballot_submission_authorized: false;
   ballot_authorization_note: string;
 };

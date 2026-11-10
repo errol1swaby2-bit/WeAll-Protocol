@@ -5,6 +5,9 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const groups = read("src/pages/Group.tsx");
 const tabs = read("src/lib/groupProfileTabs.ts");
 const oversight = read("src/lib/groupOversight.ts");
+const ballotPlan = read("src/lib/groupBallotPlanning.ts");
+const ballotUI = read("src/components/GroupBallotPlanner.tsx");
+const ballotApi = read("src/api/weall.ts");
 const decisionScope = read("src/lib/groupDecisionScope.ts");
 const createDecision = read("src/pages/ProposalCreate.tsx");
 const app = read("src/App.tsx");
@@ -61,6 +64,46 @@ assert.ok(groups.includes('weall.groupElections(selected, { limit: 100, offset: 
 assert.ok(groups.includes('weall.groupElection(selected, electionDetailId, base, headers)'), "Election detail must request exact group/election ID");
 assert.ok(groups.includes('item.election_id !== electionDetailId'), "Election detail must reject mismatched ID");
 assert.ok(!groups.includes('tx_type: "GROUP_EMISSARY_BALLOT_CAST"'), "Do not enable blind ranked ballots");
+assert.ok(groups.includes("<GroupBallotPlanner"), "The group election detail needs local-only ranked ballot practice");
+assert.ok(ballotUI.includes("localBallotPlanningGate(election, groupId)"), "Practice must use the canonical privacy gate");
+assert.ok(ballotUI.includes("useEffect(() => {") && ballotUI.includes("setRanking([])"), "Practice must clear ranking when election record changes");
+assert.ok(ballotUI.includes("Secret-ballot protection is not verified"), "Visible disclosure of plaintext signed-envelope risk required");
+for (const banned of ["submitSignedTx", "txSubmit", "runTx(", "fetch(", "localStorage", "sessionStorage", "navigator.sendBeacon", "XMLHttpRequest", "console.log"]) {
+  assert.ok(!ballotUI.includes(banned), `Ballot preparation component must not transmit/store drafts: ${banned}`);
+}
+assert.ok(ballotApi.includes('ballot_transport_privacy_verified: false'), "API types must explicitly fail secret-ballot readiness");
+const compiledBallot = ts.transpileModule(ballotPlan, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const { localBallotPlanningGate, rankCandidate, unrankCandidate, moveRankedCandidate } =
+  await import(`data:text/javascript;base64,${Buffer.from(compiledBallot).toString("base64")}`);
+const testElection = {
+  election_id: "e1", group_id: "g1", status: "open",
+  source: "canonical_group_emissary_elections_snapshot",
+  candidates: ["@alice", "@bob", "@carl"],
+  observed_height: 4, start_height: 3, end_height: 9,
+  ballot_transport_disclosure: "signed_envelope_contains_signer_and_plaintext_ranking",
+  ballot_transport_privacy_verified: false, secret_ballot_supported: false,
+  ballot_submission_authorized: false,
+};
+assert.deepEqual(localBallotPlanningGate(testElection, "g1").canPrepare, true);
+assert.equal(localBallotPlanningGate(testElection, "g1").canSubmit, false);
+for (const unsafe of [
+  { ...testElection, group_id: "g2" },
+  { ...testElection, candidates: null },
+  { ...testElection, candidates: ["@alice", "@alice"] },
+  { ...testElection, status: "finalized" },
+  { ...testElection, observed_height: 10 },
+  { ...testElection, start_height: null },
+  { ...testElection, ballot_transport_disclosure: undefined },
+  { ...testElection, ballot_transport_privacy_verified: true },
+  { ...testElection, ballot_submission_authorized: true },
+]) assert.equal(localBallotPlanningGate(unsafe, "g1").canPrepare, false);
+assert.deepEqual(rankCandidate([], "@alice", testElection.candidates), ["@alice"]);
+assert.deepEqual(rankCandidate(["@alice"], "@alice", testElection.candidates), ["@alice"]);
+assert.deepEqual(rankCandidate(["@alice"], "@unknown", testElection.candidates), ["@alice"]);
+assert.deepEqual(moveRankedCandidate(["@alice", "@bob"], "@bob", -1), ["@bob", "@alice"]);
+assert.deepEqual(moveRankedCandidate(["@alice", "@bob"], "@alice", -1), ["@alice", "@bob"]);
+assert.deepEqual(unrankCandidate(["@alice", "@bob"], "@alice"), ["@bob"]);
+
 assert.equal(verifiedGroupContract({ok:true,group_id:"g1"}, "g1"),true);
 assert.equal(verifiedGroupContract({ok:true,group_id:"g2"}, "g1"),false);
 assert.equal(verifiedGroupContract({ok:false,group_id:"g1"}, "g1"),false);

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { api, getApiBaseUrl, weall, type GroupGovernanceContract, type GroupElectionRecord } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import GroupBallotPlanner from "../components/GroupBallotPlanner";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
@@ -958,6 +959,11 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                 ) : electionDetail.status === "no_decision"
                   ? <div className="calloutInfo">No decision was recorded. No emissary authority is inferred.</div>
                   : null}
+                <GroupBallotPlanner
+                  key={`${selected}:${electionDetail.election_id}`}
+                  groupId={selected}
+                  election={electionDetail}
+                />
                 <button className="btn" onClick={() => nav(`${currentGroupRoute}/emissaries/elections`)}>Back to election history</button>
               </>
             ) : null}
