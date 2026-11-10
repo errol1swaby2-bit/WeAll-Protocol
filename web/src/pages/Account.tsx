@@ -1058,7 +1058,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           ) : null}
 
           {isSelf ? (
-            <details className="detailsPanel" open={profileDirty}>
+            <details className="detailsPanel" open={profileDirty || activeProfileTab === "appearance"}>
               <summary>Edit public profile</summary>
               <div className="formStack">
                 <div className="infoCard compact">

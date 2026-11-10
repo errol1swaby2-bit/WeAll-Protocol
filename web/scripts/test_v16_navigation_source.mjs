@@ -74,6 +74,7 @@ for (const tab of ["posts", "overview", "reputation", "eligibility", "responsibi
 assert.ok(accountTabs.includes("!tab.ownerOnly || isOwner"), "Public visitors cannot open owner-only panels");
 assert.ok(accountTabs.includes('id: "appearance"'), "Public profile edit needs owner-only tab");
 assert.ok(account.includes('activeProfileTab !== "appearance"'), "Public profile edits need a focused panel");
+assert.ok(account.includes('open={profileDirty || activeProfileTab === "appearance"}'), "Public profile editor must open when its section is selected");
 assert.ok(router.includes('r === "/me/profile-appearance"'), "Owner appearance deep-link missing");
 assert.ok(account.includes('banner_cid: bannerDraftCid'), "Banner publication must use signed PROFILE_UPDATE payload");
 assert.ok(account.includes('publicProfile.banner_media'), "Other accounts need canonical public banner reference");

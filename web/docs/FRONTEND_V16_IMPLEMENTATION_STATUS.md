@@ -17,6 +17,8 @@
 - Reviewer Center now exposes dedicated URL-addressable views for Overview, Content review, Dispute juror work, Async PoH, Live PoH and My Reports. The four reviewer queues preserve their original backend authority and signed actions; the reporter's own report-tracking list remains read-only and distinct.
 - The previous `/reviews?lane=...` links remain supported. New `/tasks/content`, `/tasks/disputes`, `/tasks/poh-async`, `/tasks/poh-live` routes are focused view aliases, **not** separately implemented review engines or permission grants. The latest reviewer change is pending exact-head CI.
 - Settings now has a category overview and focused Connection, Themes, Layout, Accessibility and Advanced panels. Eight bundled light/dark theme previews apply the existing safe client color controls and persist locally; there are no uploaded wallpapers, arbitrary CSS imports or public theme writes.
+- Public profiles now display the backend's committed `banner_media.fetch_path` where supplied, with a visitor-side decorative hide control. The owner's `/me/profile-appearance` alias opens a focused public profile editor that can preview a public image CID and submit/clear `banner_cid` through the **existing signed `PROFILE_UPDATE`** skeleton. This is protocol-native public profile metadata, not a personal wallpaper; the image must already exist and be readable via the public proxy. No media upload workflow was added.
+- On-chain inclusion, media durability, authorization, legacy CID behavior and browser appearance acceptance require separate validation; the editor's submission toast is not definitive confirmation.
 - Reviewer and appearance changes are both queued for exact-head Web CI. Actual browser accessibility and devnet PoH regressions are not proven by static assertions alone.
 
 ## Pending before calling the full v1.6 frontend implemented
@@ -25,7 +27,8 @@
 - Implement *authorized* public profile backgrounds/media publication with real backend contracts and durable receipts. The new public profile tabs do not publish media.
 - Extend the initial group-scoped decisions index and honest treasury/role boundaries into complete paginated group proposal, emissary mandate and treasury read models once the backend exposes authoritative contracts. No spend or unsupported appointment controls.
 - Complete each reviewer lane's independent task workspace, conflict/recusal evidence and acceptance flow; the new review queues are one frontend-only separation step. Canonical receipt/failure states, social/content moderation lifecycle and node operator workspaces remain unfinished.
-- Add fully specified custom-theme editing, safe import/export validation, high contrast modes and follow-device handling; the current gallery only applies preset light/dark accent combinations. Public profile background publication remains a separately gated and unimplemented feature.
+- Add fully specified custom-theme editing, safe import/export validation, high contrast modes and follow-device handling; the current gallery only applies preset light/dark accent combinations.
+- Add an authorized media-upload/crop flow for public profile banners; the current implementation intentionally accepts only already-published public media CIDs and does not claim an integrated upload flow.
 - Complete the remaining v1.6 route aliases, all remaining journey contracts, browser history tests, accessibility, desktop/mobile visual regression and independent-process backend/frontend tests.
 - Unresolved source validation issues in the PR #81 integration base must remain open. No production activation, fund transfers, validator authorization or new consensus semantics.
 
