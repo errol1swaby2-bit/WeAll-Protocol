@@ -703,6 +703,11 @@ export function matchRoute(path: string): RouteMatch {
   if (r === "/me/transactions") return { path: "/transactions" };
   if (r === "/protocol/economics") return { path: "/economics" };
   if (r === "/protocol/tools") return { path: "/advanced" };
+  if (r === "/settings/appearance" || r === "/settings/themes" ||
+      r === "/settings/layout" || r === "/settings/accessibility" ||
+      r === "/settings/connection" || r === "/settings/advanced") {
+    return { path: "/settings" };
+  }
   if (r.startsWith("/people/")) {
     const account = decodeRoutePart(r.slice("/people/".length));
     if (account) return { path: "/account/:account", account };

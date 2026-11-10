@@ -15,6 +15,9 @@ const account = read("src/pages/Account.tsx");
 const accountTabs = read("src/lib/accountProfileTabs.ts");
 const reviewer = read("src/pages/JurorDashboard.tsx");
 const reviewerWorkspaces = read("src/lib/reviewerWorkspaces.ts");
+const settings = read("src/pages/Settings.tsx");
+const settingsSections = read("src/lib/settingsSections.ts");
+const themePresets = read("src/lib/themePresets.ts");
 
 for (const tab of ["posts", "about", "members", "decisions", "governance", "treasury", "responsibilities", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
@@ -90,4 +93,17 @@ assert.ok(reviewer.includes('item?.ciphertext_cid || item?.encrypted_blob_cid'),
 assert.ok(reviewer.includes('encryptedEvidence.length && reviewerEvidenceUnlocked'), "Protected evidence remains gated by accepted assignment");
 assert.ok(reviewer.includes('async function') && reviewer.includes('submitSkeletonTx'), "Existing signed review path must remain");
 assert.ok(css.includes(".reviewerWorkspaceTab:focus-visible"), "Reviewer workspace tabs must support visible keyboard focus");
-console.log("OK: v1.6 group/profile, verification, reviewer workspaces, and compatibility aliases");
+for (const name of ["overview", "connection", "themes", "layout", "accessibility", "advanced"]) {
+  assert.ok(settingsSections.includes(`id: "${name}"`), `Missing settings section: ${name}`);
+}
+for (const url of ["/settings/connection", "/settings/themes", "/settings/layout", "/settings/accessibility", "/settings/advanced"]) {
+  assert.ok(router.includes(`r === "${url}"`), `Missing settings route alias: ${url}`);
+}
+assert.ok(settings.includes('aria-label="Theme presets"'), "Theme gallery needs an accessible name");
+assert.ok(settings.includes('aria-pressed={selected}'), "Selected appearance preset must be distinguishable");
+assert.ok(settings.includes('saveSettings(next)'), "Theme changes remain browser-local settings");
+assert.ok(themePresets.includes('THEME_PRESETS'), "Safe, built-in theme palettes required");
+assert.ok(!themePresets.includes('url('), "Preset theme file must not fetch background images");
+assert.ok(!settings.includes('FileReader'), "No private wallpapers in v1.6");
+assert.ok(css.includes(".settingsSectionTab:focus-visible"), "Keyboard focus required on settings category navigation");
+console.log("OK: v1.6 grouped reviewers, focused settings, browser-local theme presets and route aliases");

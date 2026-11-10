@@ -3620,3 +3620,68 @@ summary:focus-visible {
   outline: 3px solid var(--accent-focus);
   outline-offset: 2px;
 }
+
+
+/* V1.6 browser-local settings categories and vetted theme previews. */
+.settingsSectionTabs {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  align-items: center;
+  overflow-x: auto;
+  padding: 8px 2px 12px;
+}
+.settingsSectionTab {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 10px 14px;
+  min-height: 44px;
+  border-radius: 999px;
+}
+.settingsSectionTab.isActive,
+.themePresetTile.isActive {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+.settingsSectionTab:focus-visible,
+.settingsCategoryTile:focus-visible,
+.themePresetTile:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.settingsCategoryGrid, .themePresetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+.settingsCategoryTile, .themePresetTile {
+  min-width: 0;
+  text-align: left;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  min-height: 66px;
+}
+.themePresetPreview {
+  display: block;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+}
+.themePresetMockCard {
+  border-radius: 9px;
+  min-height: 54px;
+  padding: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.themePresetMockHeading { font-size: 12px; font-weight: 700; }
+.themePresetMockAccent { height: 8px; width: 60%; border-radius: 5px; }
+@media (max-width: 640px) {
+  .themePresetGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .themePresetTile { padding: 10px; }
+}
