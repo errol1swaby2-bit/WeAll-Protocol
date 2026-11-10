@@ -6,7 +6,7 @@ import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav, navWithReturn } from "../lib/router";
-import { GROUP_PROFILE_TABS, groupWorkspaceTabFromHash, type GroupProfileTab, type GroupWorkspaceTab } from "../lib/groupProfileTabs";
+import { GROUP_PROFILE_TABS, groupWorkspaceTabFromHash, groupElectionIdFromHash, type GroupProfileTab, type GroupWorkspaceTab } from "../lib/groupProfileTabs";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
@@ -448,6 +448,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const groupReadVisibility = String(governanceContract?.public_only_contract?.read_visibility || "public");
   const adminShortcutsSupported = governanceContract?.authority_contract?.admin_shortcuts_supported === true;
   const permissionSummary = governanceContract?.participation_permissions || {};
+  const electionDetailId = groupElectionIdFromHash(typeof window !== "undefined" ? window.location.hash : "");
   const activeGroupElections = Array.isArray(governanceContract?.authority_contract?.active_group_elections)
     ? governanceContract?.authority_contract?.active_group_elections || []
     : [];
@@ -597,7 +598,10 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                 The bounded public index returns at most 200 proposals; this is not an exhaustive historical archive.
               </p>
             </div>
-            <button className="btn" onClick={() => nav("/decisions")}>Browse all decisions</button>
+            <div className="buttonRow buttonRowWide">
+              <button className="btn" onClick={() => nav("/decisions")}>Browse all decisions</button>
+              <button className="btn btnPrimary" onClick={() => nav(`${currentGroupRoute}/decisions/new`)}>Propose for this group</button>
+            </div>
           </div>
           {decisionsStatus === "loading" ? <div className="cardDesc">Loading group decisions…</div> : null}
           {decisionsStatus === "error" ? <div className="calloutDanger">Group decisions could not be loaded from this node. No absence claim is made.</div> : null}
@@ -820,6 +824,58 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </section>
       ) : null}
 
+      {activeTab === "elections" || activeTab === "election_detail" ? (
+        <section className="card" aria-label="Group emissary election index">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Group elections · canonical summary</div>
+                <h2 className="cardTitle">{activeTab === "election_detail" ? "Election record" : "Active emissary elections"}</h2>
+                <p className="cardDesc">The group's public governance contract exposes active election IDs, status and candidate counts only. It does not expose a verified candidate roster, eligible voter snapshot, end height, ballot history or finalized results.</p>
+              </div>
+              <button className="btn" onClick={() => openGroupTab("emissaries")}>Back to emissaries</button>
+            </div>
+            {!governanceContract || String(governanceContract?.group_id || "") !== selected ? (
+              <div className="calloutDanger">Group election summary is unavailable or its scope cannot be verified. No election absence or ballot eligibility claim is made.</div>
+            ) : activeTab === "elections" ? (
+              <>
+                {activeGroupElections.length ? activeGroupElections.map((election: Record<string, unknown>) => {
+                  const id = String(election.election_id || "").trim();
+                  if (!id) return null;
+                  return (
+                    <button className="quickCard quickCardMain" key={id}
+                      onClick={() => nav(`${currentGroupRoute}/emissaries/elections/${encodeURIComponent(id)}`)}>
+                      <strong>{id}</strong>
+                      <span className="miniTag">{String(election.status || "status unavailable")} · {String(election.candidate_count ?? "?")} candidate(s)</span>
+                    </button>
+                  );
+                }) : <div className="cardDesc">No open elections were returned in this group snapshot; closed and historical elections are not indexed here.</div>}
+              </>
+            ) : (
+              <>
+                {(() => {
+                  const election = activeGroupElections.find((row: Record<string, unknown>) =>
+                    String(row.election_id || "").trim() === electionDetailId);
+                  return election ? (
+                    <div className="detailFocusStrip">
+                      <article className="detailFocusCard">
+                        <div className="detailFocusLabel">Verified election summary</div>
+                        <div className="detailFocusValue mono">{electionDetailId}</div>
+                        <div className="detailFocusText">Status: {String(election.status || "unavailable")} · Candidate count: {String(election.candidate_count ?? "unavailable")} · Group: {selected}</div>
+                      </article>
+                    </div>
+                  ) : <div className="calloutInfo">This election ID is not in the returned active list. It may be closed, historical, unknown, or not yet visible. No election outcome is inferred.</div>;
+                })()}
+                <button className="btn" onClick={() => nav(`${currentGroupRoute}/emissaries/elections`)}>Back to active elections</button>
+              </>
+            )}
+            <div className="calloutInfo">
+              Ranked ballots and election finalization are disabled here because canonical candidate IDs, the voter snapshot and protocol-height windows cannot be verified from the current public group contract. A candidate count cannot authorize a signed ballot.
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {activeTab === "emissaries" ? (
       <section className="card" aria-label="Group emissary election records">
         <div className="cardBody formStack">
@@ -832,7 +888,10 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               </div>
             </div>
             <div className="statusSummary">
-              <button className="btn" onClick={() => nav("/transactions")}>Track related transactions</button>
+              <div className="buttonRow buttonRowWide">
+                <button className="btn" onClick={() => nav(`${currentGroupRoute}/emissaries/elections`)}>Inspect active elections</button>
+                <button className="btn" onClick={() => nav("/transactions")}>Track related transactions</button>
+              </div>
             </div>
           </div>
 

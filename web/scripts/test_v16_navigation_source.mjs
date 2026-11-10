@@ -5,6 +5,9 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const groups = read("src/pages/Group.tsx");
 const tabs = read("src/lib/groupProfileTabs.ts");
 const oversight = read("src/lib/groupOversight.ts");
+const decisionScope = read("src/lib/groupDecisionScope.ts");
+const createDecision = read("src/pages/ProposalCreate.tsx");
+const app = read("src/App.tsx");
 const css = read("src/styles.css");
 const shell = read("src/components/AppShell.tsx");
 const nav = read("src/components/PrimaryNavigation.tsx");
@@ -43,6 +46,29 @@ const compiled = ts.transpileModule(oversight, { compilerOptions: { module: ts.M
 const { groupReportSource, publicRoleAccounts } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
 const compiledRouter = ts.transpileModule(router, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
 const { matchRoute } = await import(`data:text/javascript;base64,${Buffer.from(compiledRouter).toString("base64")}`);
+const compiledScope = ts.transpileModule(decisionScope, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const { requireExactGroupProposalScope, verifiedGroupContract } = await import(`data:text/javascript;base64,${Buffer.from(compiledScope).toString("base64")}`);
+assert.deepEqual(matchRoute("/groups/group-a/decisions/new"), { path: "/groups/:id/decisions/new", id: "group-a" });
+assert.deepEqual(matchRoute("/groups/group-a/emissaries/elections"), { path: "/groups/:id", id: "group-a" });
+assert.deepEqual(matchRoute("/groups/group-a/emissaries/elections/election-1"), { path: "/groups/:id", id: "group-a" });
+assert.ok(app.includes('<ProposalCreate scopeGroupId={route.id} />'), "Group decision deep link must bind composer to exact canonical route ID");
+assert.ok(createDecision.includes('requireExactGroupProposalScope(payload, groupContextId)'), "Group proposal payload must be validated against route group ID");
+assert.ok(createDecision.includes('const currentGroup = await api.groups.governance(groupContextId, base)'), "Canonical group contract must be refreshed before signing");
+assert.ok(createDecision.includes('groupContextId ? "" : actionTxType'), "Group context must not carry a stale executable action");
+assert.ok(createDecision.includes('scopedGroupStatus !== "ready"'), "Group signing blocked until canonical contract is read");
+assert.ok(groups.includes('activeTab === "election_detail"'), "Election detail must have an explicit read-only panel");
+assert.ok(groups.includes('A candidate count cannot authorize a signed ballot'), "Missing candidate and voter roster must block ballot creation");
+assert.ok(!groups.includes('tx_type: "GROUP_EMISSARY_BALLOT_CAST"'), "Do not enable blind ranked ballots");
+assert.equal(verifiedGroupContract({ok:true,group_id:"g1"}, "g1"),true);
+assert.equal(verifiedGroupContract({ok:true,group_id:"g2"}, "g1"),false);
+assert.equal(verifiedGroupContract({ok:false,group_id:"g1"}, "g1"),false);
+requireExactGroupProposalScope({ group_id: "g1", electorate_scope: "group_members" }, "g1");
+for (const bad of [
+ { group_id: "g2", electorate_scope: "group_members" },
+ { group_id: "g1", electorate_scope: "protocol" },
+ { group_id: "g1", electorate_scope: "group_members", scope_id: "g2" },
+ { electorate_scope: "group_members" },
+]) assert.throws(() => requireExactGroupProposalScope(bad, "g1"), /scope|group/i);
 for (const route of [
   "/groups/group-a/manage/members",
   "/groups/group-a/manage/moderation",

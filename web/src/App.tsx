@@ -65,6 +65,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
       return readyForApp ? <GroupCreate /> : <LoginPage />;
     case "/groups/:id":
       return <Group groupId={route.id} />;
+    case "/groups/:id/decisions/new":
+      return readyForApp ? <ProposalCreate scopeGroupId={route.id} /> : <LoginPage />;
     case "/decisions":
       return <Proposals />;
     case "/decisions/create":

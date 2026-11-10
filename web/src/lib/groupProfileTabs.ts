@@ -26,14 +26,24 @@ export function groupProfileTabFromHash(hash: string): GroupProfileTab {
 
 // Group role work is not a public profile tab. The review desk is deliberately
 // reachable only by an explicit deep link; its actions remain backend-gated.
-export type GroupWorkspaceTab = GroupProfileTab | "membership_review" | "moderation_review" | "emissary_work";
+export type GroupWorkspaceTab = GroupProfileTab | "membership_review" | "moderation_review" | "emissary_work" | "elections" | "election_detail";
 
 export function groupWorkspaceTabFromHash(hash: string): GroupWorkspaceTab {
   const path = String(hash || "").replace(/^#/, "").split("?")[0];
   if (/^\/groups\/[^/]+\/manage\/members$/.test(path)) return "membership_review";
   if (/^\/groups\/[^/]+\/manage\/moderation$/.test(path)) return "moderation_review";
   if (/^\/groups\/[^/]+\/emissaries\/work$/.test(path)) return "emissary_work";
+  if (/^\/groups\/[^/]+\/emissaries\/elections\/[^/]+$/.test(path)) return "election_detail";
+  if (/^\/groups\/[^/]+\/emissaries\/elections$/.test(path)) return "elections";
   if (/^\/groups\/[^/]+\/reports$/.test(path)) return "reports";
   if (/^\/groups\/[^/]+\/responsibilities$/.test(path)) return "responsibilities";
   return groupProfileTabFromHash(hash);
+}
+
+/** IDs in deep links are presentation context, not proof of an election record. */
+export function groupElectionIdFromHash(hash: string): string {
+  const path = String(hash || "").replace(/^#/, "").split("?")[0];
+  const match = /^\/groups\/[^/]+\/emissaries\/elections\/([^/]+)$/.exec(path);
+  if (!match) return "";
+  try { return decodeURIComponent(match[1]); } catch { return ""; }
 }

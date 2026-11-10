@@ -15,6 +15,7 @@ import { nav, navWithReturn } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import { governanceProposalIdOf, reconcileProposalVisible } from "../lib/governance";
+import { requireExactGroupProposalScope, verifiedGroupContract } from "../lib/groupDecisionScope";
 
 function prettyErr(e: any): { msg: string; details: any } {
   return actionableTxError(e, "Decision action failed.");
@@ -66,14 +67,15 @@ function normalizeCreatePayload(input: {
   return payload;
 }
 
-export default function ProposalCreate(): JSX.Element {
+export default function ProposalCreate({ scopeGroupId }: { scopeGroupId?: string }): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [proposalId, setProposalId] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [startStage, setStartStage] = useState("draft");
-  const [groupId, setGroupId] = useState("");
+  const [groupId, setGroupId] = useState(() => scopeGroupId || "");
+  const [scopedGroupStatus, setScopedGroupStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; label: string }>>([]);
   const [groupLoadError, setGroupLoadError] = useState("");
   const [actionTxType, setActionTxType] = useState("");
@@ -91,6 +93,8 @@ export default function ProposalCreate(): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(acct);
   const { refresh: refreshAccountContext } = useAccount();
   const showAdvancedMode = canShowAdvancedMode();
+  const groupContextId = String(scopeGroupId || "").trim();
+  const allowAdvancedPayload = showAdvancedMode && !groupContextId;
 
   const createGate = useMemo(
     () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
@@ -98,6 +102,22 @@ export default function ProposalCreate(): JSX.Element {
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const resolvedProposalId = useMemo(() => proposalId.trim() || buildGeneratedProposalId(acct, title, body), [acct, body, proposalId, title]);
+
+  useEffect(() => {
+    if (!groupContextId) {
+      setScopedGroupStatus("idle");
+      return;
+    }
+    setGroupId(groupContextId);
+    let active = true;
+    setScopedGroupStatus("loading");
+    void api.groups.governance(groupContextId, base)
+      .then((contract: unknown) => {
+        if (active) setScopedGroupStatus(verifiedGroupContract(contract, groupContextId) ? "ready" : "error");
+      })
+      .catch(() => { if (active) setScopedGroupStatus("error"); });
+    return () => { active = false; };
+  }, [base, groupContextId]);
 
   async function loadAccountState(): Promise<void> {
     if (!acct) {
@@ -156,16 +176,36 @@ export default function ProposalCreate(): JSX.Element {
       return;
     }
 
-    if (!useAdvancedPayload && (!title.trim() || !body.trim())) {
+    if (!(allowAdvancedPayload && useAdvancedPayload) && (!title.trim() || !body.trim())) {
       setErr({ msg: "Add a title and a description of what people are deciding.", details: null });
       return;
     }
 
     setBusy(true);
     try {
-      const payload = useAdvancedPayload
+      const payload = allowAdvancedPayload && useAdvancedPayload
         ? JSON.parse(payloadJson)
-        : normalizeCreatePayload({ proposalId, title, body, actionTxType, actionPayloadJson, startStage, groupId, account: acct });
+        : normalizeCreatePayload({
+            proposalId, title, body,
+            actionTxType: groupContextId ? "" : actionTxType,
+            actionPayloadJson: groupContextId ? "{}" : actionPayloadJson,
+            startStage,
+            groupId: groupContextId || groupId,
+            account: acct,
+          });
+
+      if (groupContextId) {
+        if (scopedGroupStatus !== "ready") {
+          throw new Error("Group governance context has not been verified. No decision was submitted.");
+        }
+        requireExactGroupProposalScope(payload, groupContextId);
+        // Recheck immediately before signing; a route, client cache or
+        // group name alone is never sufficient proof of canonical existence.
+        const currentGroup = await api.groups.governance(groupContextId, base);
+        if (!verifiedGroupContract(currentGroup, groupContextId)) {
+          throw new Error("This group's canonical governance contract could not be verified. No decision was submitted.");
+        }
+      }
 
       await tx.runTx({
         title: "Create community decision",
@@ -212,8 +252,9 @@ export default function ProposalCreate(): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Create decision</div>
-              <h1 className="heroTitle heroTitleSm">Create a community decision</h1>
+              <h1 className="heroTitle heroTitleSm">{groupContextId ? "Create a group decision" : "Create a community decision"}</h1>
               <p className="heroText">
+                {groupContextId ? `This decision is bound to canonical group ${groupContextId}. Group membership and proposal authority are validated by the backend.` : null}
                 Decision creation is separated from the decision queue. Submitting here creates a signed governance transaction; Transactions and the detail page prove whether it becomes visible/final.
               </p>
             </div>
@@ -231,6 +272,23 @@ export default function ProposalCreate(): JSX.Element {
           </div>
         </div>
       </section>
+
+      {groupContextId ? (
+        <section className="card" aria-label="Verified group decision scope">
+          <div className="cardBody formStack">
+            <div className="eyebrow">Exact group context</div>
+            <div className="mono">{groupContextId}</div>
+            <div className="surfaceBoundaryList">
+              <span className="surfaceBoundaryTag">Electorate scope: group_members</span>
+              <span className="surfaceBoundaryTag">Contract: {scopedGroupStatus === "ready" ? "read verified" : scopedGroupStatus === "loading" ? "checking" : "not verified"}</span>
+            </div>
+            {scopedGroupStatus === "error" ? (
+              <div className="calloutDanger">The exact group governance contract is unavailable or mismatched. Submission is blocked; no alternative group or protocol-wide fallback is permitted.</div>
+            ) : null}
+            <button className="btn" onClick={() => nav(`/groups/${encodeURIComponent(groupContextId)}?tab=decisions`)}>Back to this group's decisions</button>
+          </div>
+        </section>
+      ) : null}
 
       {signerSubmission.busy ? (
         <div className="calloutInfo">
@@ -294,7 +352,7 @@ export default function ProposalCreate(): JSX.Element {
               </div>
             </div>
             <div className="statusSummary">
-              <button className="btn" onClick={() => nav("/decisions")}>Back to decisions</button>
+              <button className="btn" onClick={() => nav(groupContextId ? `/groups/${encodeURIComponent(groupContextId)}?tab=decisions` : "/decisions")}>Back to decisions</button>
             </div>
           </div>
 
@@ -308,27 +366,27 @@ export default function ProposalCreate(): JSX.Element {
           {!acct || !canSign ? (
             <div className="calloutInfo">
               Decision creation requires an active device session on this browser.
-              <button className="btn" style={{ marginLeft: 12 }} onClick={() => navWithReturn(acct ? "/session" : "/login", "/decisions/create")}>
+              <button className="btn" style={{ marginLeft: 12 }} onClick={() => navWithReturn(acct ? "/session" : "/login", groupContextId ? `/groups/${encodeURIComponent(groupContextId)}/decisions/new` : "/decisions/create")}>
                 {acct ? "Open session recovery" : "Open login"}
               </button>
             </div>
           ) : null}
 
-          {showAdvancedMode ? (
+          {allowAdvancedPayload ? (
             <label className="fieldLabel">
               <input type="checkbox" checked={useAdvancedPayload} onChange={(e) => setUseAdvancedPayload(e.target.checked)} />
               Use advanced decision JSON
             </label>
           ) : null}
 
-          {showAdvancedMode && useAdvancedPayload ? (
+          {allowAdvancedPayload && useAdvancedPayload ? (
             <label className="fieldLabel">
               Decision technical JSON
               <textarea rows={16} value={payloadJson} onChange={(e) => setPayloadJson(e.target.value)} placeholder='{"proposal_id":"proposal:alice:1","title":"Example","body":"Body"}' />
             </label>
           ) : (
             <>
-              {showAdvancedMode ? (
+              {allowAdvancedPayload ? (
                 <label className="fieldLabel">
                   Advanced decision id
                   <input value={proposalId} onChange={(e) => setProposalId(e.target.value)} placeholder="Leave blank to auto-generate" />
@@ -348,12 +406,16 @@ export default function ProposalCreate(): JSX.Element {
 
               <label className="fieldLabel">
                 Decision scope
+                {groupContextId ? (
+                  <input value={groupContextId} readOnly aria-label="Canonical group decision scope" />
+                ) : (
                 <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
                   <option value="">Protocol-wide</option>
                   {availableGroups.map((group) => (
                     <option key={group.id} value={group.id}>{group.label} · {group.id}</option>
                   ))}
                 </select>
+                )}
                 <span className="fieldHint">
                   A group name describes its purpose but does not confer authority over a town or another group.
                   Group-scoped decisions use the selected group ID and the group's participation rules.
@@ -377,13 +439,13 @@ export default function ProposalCreate(): JSX.Element {
                 </span>
               </label>
               <div className="calloutInfo" role="note">
-                {actionTxType.trim() && showAdvancedMode
+                {actionTxType.trim() && allowAdvancedPayload
                   ? "Executable governance request: the specified action must pass the electorate, scope, and backend authorization checks. Creation does not execute it."
                   : "Recorded community decision: a vote can record collective support, but this proposal has no executable protocol action and cannot bind third parties."}
-                {!showAdvancedMode ? " Executable actions require separately authorized advanced governance tooling." : ""}
+                {!allowAdvancedPayload ? " Executable actions require separately authorized advanced governance tooling." : ""}
               </div>
 
-              {showAdvancedMode ? (
+              {allowAdvancedPayload ? (
                 <details className="detailsPanel">
                   <summary>View technical action options</summary>
                   <label className="fieldLabel">
@@ -401,7 +463,7 @@ export default function ProposalCreate(): JSX.Element {
             </>
           )}
 
-          {showAdvancedMode ? (
+          {allowAdvancedPayload ? (
             <div className="feedMediaCard">
               <div className="feedMediaTitle">Advanced decision id preview</div>
               <div className="feedMediaMeta mono">{resolvedProposalId}</div>
@@ -409,7 +471,7 @@ export default function ProposalCreate(): JSX.Element {
           ) : null}
 
           <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void createProposal()} disabled={busy || signerSubmission.busy}>
+            <button className="btn btnPrimary" onClick={() => void createProposal()} disabled={busy || signerSubmission.busy || (!!groupContextId && scopedGroupStatus !== "ready")}>
               {busy ? "Saving…" : signerSubmission.busy ? "Waiting…" : "Create decision"}
             </button>
           </div>

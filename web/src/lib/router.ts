@@ -76,6 +76,7 @@ export type RouteMatch =
   | { path: "/groups" }
   | { path: "/groups/create" }
   | { path: "/groups/:id"; id: string }
+  | { path: "/groups/:id/decisions/new"; id: string }
   | { path: "/activity" }
   | { path: "/decisions" }
   | { path: "/decisions/create" }
@@ -352,6 +353,26 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Group",
       contextPanelData: "Group activity, membership state, and helpful actions",
       blockingDependencies: [],
+    }),
+  },
+  "/groups/:id/decisions/new": {
+    section: "Groups",
+    label: "Create Group Decision",
+    title: "Create Group Decision",
+    description: "Draft a signed governance proposal bound to the verified canonical group ID.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    minPohTier: 2,
+    mode: "action",
+    fab: "none",
+    rightRail: "decision_create",
+    normalNav: false,
+    breadcrumbs: [{ label: "Groups", href: "/groups" }],
+    dataContract: contract({
+      primaryObject: "Group-scoped governance proposal",
+      contextPanelData: "Canonical group ID, electorate scope, signer readiness and submission status",
+      blockingDependencies: ["Account session", "Trusted account state", "Canonical group governance contract"],
     }),
   },
   "/activity": {
@@ -751,9 +772,16 @@ export function matchRoute(path: string): RouteMatch {
     if (id) return { path: "/reports/:id", id };
   }
 
+  // Deep-linked group proposal creation resolves before the group-id catch-all.
+  const groupProposalRoute = /^\/groups\/([^/]+)\/decisions\/new$/.exec(r);
+  if (groupProposalRoute) {
+    const id = decodeRoutePart(groupProposalRoute[1]);
+    if (id) return { path: "/groups/:id/decisions/new", id };
+  }
+
   // Role-specific group work must not be interpreted as part of a group ID.
   // The group page checks canonical role state before rendering any action.
-  const groupRoleRoute = /^\/groups\/([^/]+)\/(responsibilities|reports|manage\/(?:members|moderation)|emissaries\/work)$/.exec(r);
+  const groupRoleRoute = /^\/groups\/([^/]+)\/(responsibilities|reports|manage\/(?:members|moderation)|emissaries\/(?:work|elections(?:\/[^/]+)?))$/.exec(r);
   if (groupRoleRoute) {
     const id = decodeRoutePart(groupRoleRoute[1]);
     if (id) return { path: "/groups/:id", id };
