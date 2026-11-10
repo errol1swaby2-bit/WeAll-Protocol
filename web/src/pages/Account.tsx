@@ -10,6 +10,7 @@ import { createNodeKeyFile, downloadNodeKeyFile, type NodeKeyFile } from "../aut
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { nav } from "../lib/router";
+import { ACCOUNT_PROFILE_TABS, accountProfileTabFromHash, type AccountProfileTab } from "../lib/accountProfileTabs";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
@@ -154,6 +155,23 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [storageCapacityGb, setStorageCapacityGb] = useState<string>("100");
   const [storageEndpointCommitment, setStorageEndpointCommitment] = useState<string>("");
   const [validatorReadinessCommitment, setValidatorReadinessCommitment] = useState<string>("");
+  const [activeProfileTab, setActiveProfileTab] = useState<AccountProfileTab>(() =>
+    accountProfileTabFromHash(typeof window === "undefined" ? "" : window.location.hash, isSelf),
+  );
+
+  useEffect(() => {
+    const onHashChange = () => setActiveProfileTab(accountProfileTabFromHash(window.location.hash, isSelf));
+    onHashChange();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [isSelf]);
+
+  const selectProfileTab = (tab: AccountProfileTab) => {
+    if (!isSelf && ACCOUNT_PROFILE_TABS.find((entry) => entry.id === tab)?.ownerOnly) return;
+    const target = isSelf ? "/profile" : `/account/${encodeURIComponent(acct)}`;
+    nav(`${target}?tab=${tab}`);
+    setActiveProfileTab(tab);
+  };
 
   async function load(): Promise<void> {
     setErr(null);
@@ -906,29 +924,6 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={refreshAccountSurface} onDismiss={() => setErr(null)} />
 
-      <section className="summaryCardGrid" aria-label="Account and profile protocol state summary">
-        <article className="summaryCard">
-          <div className="summaryCardLabel">Canonical account id</div>
-          <div className="summaryCardValue mono">{acct}</div>
-          <div className="summaryCardText">This is the protocol account id used in signed transactions and public read models.</div>
-        </article>
-        <article className="summaryCard">
-          <div className="summaryCardLabel">Account public key summary</div>
-          <div className="summaryCardValue">{accountKeySummary}</div>
-          <div className="summaryCardText mono">{activeAccountPubkey || localPubkey || "No active public key visible from this view."}</div>
-        </article>
-        <article className="summaryCard">
-          <div className="summaryCardLabel">PoH / Tier status</div>
-          <div className="summaryCardValue">{verificationLabel(tier)}</div>
-          <div className="summaryCardText">PoH/Tier status is protocol eligibility, not real-world identity certainty or legal identity proof.</div>
-        </article>
-        <article className="summaryCard">
-          <div className="summaryCardLabel">Public profile source</div>
-          <div className="summaryCardValue">Chain read model</div>
-          <div className="summaryCardText mono">{profileTruthBoundary}</div>
-        </article>
-      </section>
-
       <section className="card publicProfileCard">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1100,6 +1095,43 @@ export default function Account({ account }: { account: string }): JSX.Element {
         </div>
       </section>
 
+      <nav className="accountProfileTabs" aria-label="Account profile sections">
+        {ACCOUNT_PROFILE_TABS.filter((entry) => isSelf || !entry.ownerOnly).map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={`accountProfileTab ${activeProfileTab === entry.id ? "isActive" : ""}`}
+            aria-current={activeProfileTab === entry.id ? "page" : undefined}
+            onClick={() => selectProfileTab(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="accountProfilePane" hidden={activeProfileTab !== "overview"}>
+      <section className="summaryCardGrid" aria-label="Account and profile protocol state summary">
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Canonical account id</div>
+          <div className="summaryCardValue mono">{acct}</div>
+          <div className="summaryCardText">This is the protocol account id used in signed transactions and public read models.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Account public key summary</div>
+          <div className="summaryCardValue">{accountKeySummary}</div>
+          <div className="summaryCardText mono">{activeAccountPubkey || localPubkey || "No active public key visible from this view."}</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">PoH / Tier status</div>
+          <div className="summaryCardValue">{verificationLabel(tier)}</div>
+          <div className="summaryCardText">PoH/Tier status is protocol eligibility, not real-world identity certainty or legal identity proof.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Public profile source</div>
+          <div className="summaryCardValue">Chain read model</div>
+          <div className="summaryCardText mono">{profileTruthBoundary}</div>
+        </article>
+      </section>
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Account posture</div>
@@ -1136,7 +1168,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </article>
       </section>
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "responsibilities"}>
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1255,9 +1289,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </div>
       </section>
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "overview"}>
       <WalletPanel account={acct} base={base} />
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "reputation"}>
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1323,7 +1361,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </div>
       </section>
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "eligibility"}>
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1420,7 +1460,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </article>
       </section>
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "node"}>
       {isSelf ? (
         <details className="detailsPanel accountAdvancedOperatorPanel" open={shouldOpenOperatorPanel}>
           <summary>Network service opt-ins: validator, storage, and helper setup</summary>
@@ -1834,8 +1876,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </section>
         </details>
       ) : null}
+      </div>
 
-      <div>
+      <div className="accountProfilePane" hidden={activeProfileTab !== "posts"}>
         <FeedView
           base={base}
           title="Public posts"

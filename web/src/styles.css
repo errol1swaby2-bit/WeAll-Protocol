@@ -3562,3 +3562,33 @@ summary:focus-visible {
 .accountVerificationPage .verificationSection > .grid3 {
   grid-template-columns: minmax(0, 1fr);
 }
+
+
+/* Frontend v1.6: focused public profile and owner workspaces. */
+.accountProfileTabs {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  overflow-x: auto;
+  align-items: center;
+  padding: 8px 2px 12px;
+}
+.accountProfileTab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+.accountProfileTab.isActive {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+.accountProfileTab:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.accountProfilePane { min-width: 0; width: 100%; }
+.accountProfilePane[hidden] { display: none !important; }
+.accountProfilePane > .summaryCardGrid { margin-bottom: 16px; }

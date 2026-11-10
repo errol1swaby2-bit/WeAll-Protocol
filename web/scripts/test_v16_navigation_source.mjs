@@ -11,6 +11,8 @@ const sidebar = read("src/components/SidebarNav.tsx");
 const router = read("src/lib/router.ts");
 const verification = read("src/pages/AccountVerificationPage.tsx");
 const verificationSections = read("src/lib/verificationSections.ts");
+const account = read("src/pages/Account.tsx");
+const accountTabs = read("src/lib/accountProfileTabs.ts");
 
 for (const tab of ["posts", "about", "members", "governance", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
@@ -57,4 +59,13 @@ assert.ok(verification.includes("submitAsyncEvidence()"), "Signed async submissi
 assert.ok(verification.includes("submitLiveRequest()"), "Signed live request must remain");
 assert.ok(router.includes('r === "/verification/async"'), "Dedicated verification entry alias required");
 assert.ok(css.includes(".verificationSection[hidden]"), "Inactive verification panels must actually hide");
-console.log("OK: v1.6 group, primary navigation, verification task panels and compatibility aliases");
+for (const tab of ["posts", "overview", "reputation", "eligibility", "responsibilities", "node"]) {
+  assert.ok(accountTabs.includes(`id: "${tab}"`), `Missing account tab: ${tab}`);
+  assert.ok(account.includes(`activeProfileTab !== "${tab}"`), `Account UI missing focused pane: ${tab}`);
+}
+assert.ok(accountTabs.includes("!tab.ownerOnly || isOwner"), "Public visitors cannot open owner-only panels");
+assert.ok(account.includes("ACCOUNT_PROFILE_TABS.filter((entry) => isSelf || !entry.ownerOnly)"), "Visitor nav must exclude owner-only tabs");
+assert.ok(account.includes('title="Public posts"'), "Public post feed must remain");
+assert.ok(account.includes("async function") || account.includes("function runOperatorTx"), "Existing signed operator actions must remain");
+assert.ok(css.includes(".accountProfilePane[hidden]"), "Inactive public profile sections must hide");
+console.log("OK: v1.6 group/profile navigation, focused verification, account workspaces and aliases");
