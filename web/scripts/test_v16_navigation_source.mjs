@@ -14,7 +14,7 @@ const verificationSections = read("src/lib/verificationSections.ts");
 const account = read("src/pages/Account.tsx");
 const accountTabs = read("src/lib/accountProfileTabs.ts");
 
-for (const tab of ["posts", "about", "members", "governance", "emissaries"]) {
+for (const tab of ["posts", "about", "members", "decisions", "governance", "treasury", "responsibilities", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
   assert.ok(groups.includes(`activeTab === "${tab}"`), `Missing focused pane: ${tab}`);
 }
@@ -23,6 +23,9 @@ assert.ok(groups.includes('window.addEventListener("hashchange", onHashChange)')
 assert.ok(groups.includes("async function decideMembership"), "Existing signed membership moderation must remain");
 assert.ok(groups.includes("async function reportGroupPost"), "Existing report flow must remain");
 assert.ok(groups.includes("Group governance contract"), "Public group governance reads must remain");
+assert.ok(groups.includes('String(item?.group_id || item?.raw?.group_id || "").trim() === selected'), "Group decision reads must use exact canonical scope");
+assert.ok(groups.includes("does not expose a verified group treasury ledger"), "No fake economic activation");
+assert.ok(groups.includes("A ballot or elected emissary"), "Treasury mandate cannot be inferred from roles");
 assert.ok(groups.includes("Frontend cache authority: never"), "UI cannot grant governance authority");
 assert.ok(nav.includes('aria-label="Main navigation"'), "Five-destination navigation must have landmark");
 assert.ok(shell.includes("<PrimaryNavigation currentPath={route.path}"), "Shell must mount primary navigation");

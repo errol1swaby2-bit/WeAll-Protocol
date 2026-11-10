@@ -43,6 +43,8 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [detail, setDetail] = useState<any | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [groupPosts, setGroupPosts] = useState<any[]>([]);
+  const [groupDecisions, setGroupDecisions] = useState<any[]>([]);
+  const [decisionsStatus, setDecisionsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus | null>(null);
   const [governanceContract, setGovernanceContract] = useState<GroupGovernanceContract | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
@@ -74,6 +76,31 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const currentGroupRoute = selected ? `/groups/${encodeURIComponent(selected)}` : "/groups";
   const openGroupTab = (tab: GroupProfileTab) => nav(`${currentGroupRoute}?tab=${tab}`);
+
+  useEffect(() => {
+    if (activeTab !== "decisions" || !selected) return;
+    let active = true;
+    setGroupDecisions([]);
+    setDecisionsStatus("loading");
+    // Canonical group scope is taken from each returned proposal; never infer it
+    // from browser navigation or a group membership cached in this client.
+    void weall.proposals({ limit: 200, includeSummary: true }, base)
+      .then((result: any) => {
+        if (!active) return;
+        const rows = Array.isArray(result?.items) ? result.items : [];
+        const scoped = rows.filter((item: any) =>
+          String(item?.group_id || item?.raw?.group_id || "").trim() === selected,
+        );
+        setGroupDecisions(scoped);
+        setDecisionsStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setGroupDecisions([]);
+        setDecisionsStatus("error");
+      });
+    return () => { active = false; };
+  }, [activeTab, selected, base]);
 
   async function loadAccountState(): Promise<void> {
     if (!acct) {
@@ -493,6 +520,92 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="detailFocusValue">Public candidate records</div>
               <div className="detailFocusText">Candidate lists, candidate votes, term activation, and term expiration must be public group-governance records; the UI should not present admin-only appointment as group authority.</div>
             </article>
+          </div>
+        </div>
+      </section>
+      ) : null}
+
+      {activeTab === "decisions" ? (
+      <section className="card" aria-label="Group-specific decisions">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Group governance</div>
+              <h2 className="cardTitle">Decisions in this community</h2>
+              <p className="cardDesc">
+                Only proposals explicitly identifying this group's canonical scope appear here.
+                The bounded public index returns at most 200 proposals; this is not an exhaustive historical archive.
+              </p>
+            </div>
+            <button className="btn" onClick={() => nav("/decisions")}>Browse all decisions</button>
+          </div>
+          {decisionsStatus === "loading" ? <div className="cardDesc">Loading group decisions…</div> : null}
+          {decisionsStatus === "error" ? <div className="calloutDanger">Group decisions could not be loaded from this node. No absence claim is made.</div> : null}
+          {decisionsStatus === "ready" && !groupDecisions.length ? (
+            <div className="emptyState compactEmpty">
+              <div className="emptyTitle">No group-scoped decisions in the returned index</div>
+              <div className="emptyText">This does not prove there have never been group decisions.</div>
+            </div>
+          ) : null}
+          {decisionsStatus === "ready" ? groupDecisions.map((item: any, index: number) => {
+            const proposalId = String(item?.proposal_id || item?.id || "").trim();
+            if (!proposalId) return null;
+            return (
+              <button
+                type="button"
+                className="quickCard quickCardMain"
+                key={proposalId || String(index)}
+                onClick={() => nav(`/decisions/${encodeURIComponent(proposalId)}`)}
+              >
+                <strong>{String(item?.title || "Group decision")}</strong>
+                <span className="miniTag">{String(item?.stage || item?.status || "status unavailable")}</span>
+              </button>
+            );
+          }) : null}
+        </div>
+      </section>
+      ) : null}
+
+      {activeTab === "treasury" ? (
+      <section className="card" aria-label="Group treasury transparency">
+        <div className="cardBody formStack">
+          <div className="eyebrow">Group treasury</div>
+          <h2 className="cardTitle">Treasury status and mandate</h2>
+          <div className="calloutInfo">
+            This integration does not expose a verified group treasury ledger or authorized payment workflow.
+            No balance, proposed spending power, or executable group payment is claimed here.
+          </div>
+          <p className="cardDesc">
+            Group-scoped spending decisions and authorization records must be reviewed under the same
+            constitutional and economic activation gates as the protocol. A ballot or elected emissary
+            is not, by itself, authority to transfer funds.
+          </p>
+          <div className="buttonRow buttonRowWide">
+            <button className="btn" onClick={() => openGroupTab("decisions")}>View group decisions</button>
+            <button className="btn" onClick={() => nav("/protocol/economics")}>Read locked economics status</button>
+          </div>
+        </div>
+      </section>
+      ) : null}
+
+      {activeTab === "responsibilities" ? (
+      <section className="card" aria-label="Group responsibilities">
+        <div className="cardBody formStack">
+          <div className="eyebrow">Group-specific responsibilities</div>
+          <h2 className="cardTitle">Community responsibility desks</h2>
+          <p className="cardDesc">
+            Review public responsibilities in their group context. Membership decisions still require
+            the canonical moderator role; emissary mandates and treasury execution require their
+            separately authorized protocol actions.
+          </p>
+          <div className="buttonRow buttonRowWide">
+            <button className="btn" onClick={() => openGroupTab("members")}>Membership review</button>
+            <button className="btn" onClick={() => openGroupTab("emissaries")}>Emissary elections</button>
+            <button className="btn" onClick={() => openGroupTab("governance")}>Governance record</button>
+          </div>
+          <div className="calloutInfo">
+            Dedicated treasury and emissary action dashboards remain unavailable until the corresponding
+            signed transaction and mandate contracts are verified. This page does not grant roles.
           </div>
         </div>
       </section>

@@ -6,7 +6,10 @@ export const GROUP_PROFILE_TABS = [
   { id: "posts", label: "Posts" },
   { id: "about", label: "About" },
   { id: "members", label: "Members" },
+  { id: "decisions", label: "Decisions" },
   { id: "governance", label: "Governance" },
+  { id: "treasury", label: "Treasury" },
+  { id: "responsibilities", label: "Responsibilities" },
   { id: "emissaries", label: "Emissaries" },
 ] as const;
 
