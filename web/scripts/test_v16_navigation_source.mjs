@@ -41,6 +41,19 @@ assert.ok(oversight.includes("publicRoleAccounts"), "Canonical moderator arrays 
 const ts = await import("typescript");
 const compiled = ts.transpileModule(oversight, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
 const { groupReportSource, publicRoleAccounts } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const compiledRouter = ts.transpileModule(router, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const { matchRoute } = await import(`data:text/javascript;base64,${Buffer.from(compiledRouter).toString("base64")}`);
+for (const route of [
+  "/groups/group-a/manage/members",
+  "/groups/group-a/manage/moderation",
+  "/groups/group-a/emissaries/work",
+  "/groups/group-a/responsibilities",
+  "/groups/group-a/reports",
+]) {
+  assert.deepEqual(matchRoute(route), { path: "/groups/:id", id: "group-a" }, `Group task route must preserve exact group ID: ${route}`);
+}
+assert.deepEqual(matchRoute("/groups/group-a"), { path: "/groups/:id", id: "group-a" });
+
 assert.deepEqual(publicRoleAccounts({ alice: { active: true }, bob: {} }), ["alice", "bob"]);
 assert.deepEqual(publicRoleAccounts([" bob ", "alice", "bob"]), ["alice", "bob"]);
 const ids = new Set(["post-in-group"]);
@@ -51,7 +64,7 @@ assert.equal(groupReportSource({ target_type: "comment", target_id: "post-in-gro
 assert.equal(groupReportSource({ target_type: "poh", target_id: "post-in-group" }, "g1", ids), null);
 assert.ok(tabs.includes('return "membership_review"'), "Deep-linked membership moderator desk must select the focused panel");
 assert.ok(router.includes("groupRoleRoute"), "Group role paths must resolve before the catch-all group ID");
-assert.ok(router.includes('manage\\/members'), "Membership task path must be explicitly bounded");
+assert.ok(router.includes('manage\\/(?:members|moderation)'), "Moderator task paths must be explicitly bounded");
 assert.ok(groups.includes('activeTab === "membership_review"'), "Moderator request task must have a focused workspace");
 assert.ok(groups.includes('GROUP_PROFILE_TABS.filter((tab) => tab.id !== "responsibilities" || !!acct)'), "Anonymous visitors must not see role navigation");
 assert.ok(groups.includes('!acct || !canSign ?') && groups.includes('!canModerate ?'), "Unassigned or signerless users must see no applicant queue or action");
