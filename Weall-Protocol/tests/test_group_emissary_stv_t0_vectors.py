@@ -82,7 +82,9 @@ def _tx(tx_type: str, signer: str, nonce: int, payload: dict) -> TxEnvelope:
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="")
 
 
-@pytest.mark.parametrize("case_id", ["no_ballots_no_decision", "minimum_five_fill", "candidate_count_equals_seats"])
+@pytest.mark.parametrize(
+    "case_id", ["no_ballots_no_decision", "minimum_five_fill", "candidate_count_equals_seats"]
+)
 def test_canonical_finalize_t0_golden_and_authority_boundary(case_id: str) -> None:
     case = next(row for row in VECTORS["cases"] if row["id"] == case_id)
     group_id = f"g:t0-{case_id}"
@@ -156,4 +158,7 @@ def test_canonical_finalize_t0_golden_and_authority_boundary(case_id: str) -> No
     else:
         assert group["emissaries"] == case["expected"]["final_winners"]
         assert group["signers"] == case["expected"]["final_winners"]
-        assert state["roles"]["treasuries_by_id"][treasury_id]["signers"] == case["expected"]["final_winners"]
+        assert (
+            state["roles"]["treasuries_by_id"][treasury_id]["signers"]
+            == case["expected"]["final_winners"]
+        )
