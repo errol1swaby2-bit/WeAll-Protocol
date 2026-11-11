@@ -1666,11 +1666,37 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert isinstance(certified_view8, dict)
         for later_view in (6, 8):
             later_leader = leader_for_view(bft.VALIDATORS, later_view)
-            result = workers[later_leader].send(
-                "rebroadcast_stored_proposal",
-                block_id=surviving_proposals[later_view]["block_id"],
-            )
-            assert result["broadcast_called"] is True
+            original_id = str(surviving_proposals[later_view]["block_id"])
+            # These two survivor proposals originate at different peers.
+            # TCP delivers each peer's packets in order, but not packets
+            # across peer connections. Never deliver view 8 / its QC before
+            # the returning process has cached the signed view-6 ancestor.
+            cached: Json = {}
+            deadline = time.monotonic() + 10
+            next_rebroadcast = 0.0
+            while time.monotonic() < deadline:
+                cached = workers[offline].send("fetch_debug")
+                if any(
+                    row.get("id") == original_id
+                    for row in cached.get("pending_blocks", [])
+                ):
+                    break
+                if time.monotonic() >= next_rebroadcast:
+                    result = workers[later_leader].send(
+                        "rebroadcast_stored_proposal", block_id=original_id
+                    )
+                    assert result["broadcast_called"] is True
+                    next_rebroadcast = time.monotonic() + 0.75
+                time.sleep(0.1)
+            assert any(
+                row.get("id") == original_id
+                for row in cached.get("pending_blocks", [])
+            ), {
+                "missing_signed_view": later_view,
+                "missing_signed_block_id": original_id,
+                "lagging": cached,
+                "survivor": workers[later_leader].send("frontier_debug"),
+            }
         source8 = leader_for_view(bft.VALIDATORS, 8)
         assert (
             workers[source8].send("broadcast_signed_qc", qc=certified_view8)["broadcast_called"]
