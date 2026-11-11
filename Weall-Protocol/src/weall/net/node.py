@@ -1546,6 +1546,20 @@ class NetNode:
         self.transport.bind(addr)
 
     def connect(self, addr: PeerAddr) -> Connection:
+        # NetMeshLoop may dial known peers on every network tick. Reusing an
+        # existing outbound connection is essential: TCP transport connections
+        # are keyed by URI, so replacing one mid-handshake strands the session.
+        target = str(addr.uri or "").strip()
+        if target:
+            for existing in self.transport.connections():
+                peer_addr = getattr(existing, "peer_addr", None)
+                if (
+                    str(getattr(peer_addr, "uri", "") or "").strip() == target
+                    and not bool(getattr(existing, "closed", False))
+                    and not bool(getattr(existing, "inbound", False))
+                ):
+                    return existing
+
         conn = self.transport.connect(addr)
         self._conns[str(conn.peer_id)] = conn
         # Start handshake: send hello
