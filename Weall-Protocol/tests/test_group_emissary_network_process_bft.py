@@ -836,16 +836,14 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         restarted_status: Json = {}
         while time.monotonic() < deadline:
             restarted_status = workers[restarted].send("peer_status")
-            if connected_identity_set(restarted_status) >= (
-                set(bft.VALIDATORS) - {restarted}
-            ):
+            if connected_identity_set(restarted_status) >= (set(bft.VALIDATORS) - {restarted}):
                 break
             time.sleep(0.1)
         assert restarted_status["runtime"]["thread_alive"] is True, restarted_status
         assert restarted_status["runtime"]["unhealthy"] is False, restarted_status
-        assert connected_identity_set(restarted_status) >= (
-            set(bft.VALIDATORS) - {restarted}
-        ), restarted_status
+        assert connected_identity_set(restarted_status) >= (set(bft.VALIDATORS) - {restarted}), (
+            restarted_status
+        )
 
         for worker in workers.values():
             worker.send("set_view", view=next_view)
@@ -853,9 +851,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert int(proposal4["view"]) == next_view
         assert proposal4["prev_block_id"] == proposals[3]["block_id"]
         assert (
-            workers[restarted].send("broadcast_proposal", proposal=proposal4)[
-                "broadcast_called"
-            ]
+            workers[restarted].send("broadcast_proposal", proposal=proposal4)["broadcast_called"]
             is True
         )
         expected_votes = set(bft.VALIDATORS) - {restarted}
@@ -863,9 +859,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
             for validator in expected_votes:
-                votes = workers[validator].send(
-                    "sent_votes", block_id=proposal4["block_id"]
-                )
+                votes = workers[validator].send("sent_votes", block_id=proposal4["block_id"])
                 if len(votes) == 1 and votes[0]["signer"] == validator:
                     received_votes.add(validator)
             if received_votes == expected_votes:
@@ -878,11 +872,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         while time.monotonic() < deadline:
             for validator, worker in workers.items():
                 qc = worker.send("qc_observation", block_id=proposal4["block_id"])
-                if (
-                    isinstance(qc, dict)
-                    and qc["verified"]
-                    and len(qc["signers"]) >= 3
-                ):
+                if isinstance(qc, dict) and qc["verified"] and len(qc["signers"]) >= 3:
                     certified.add(validator)
             if certified == set(bft.VALIDATORS):
                 break
@@ -903,14 +893,12 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             time.sleep(0.1)
             post_restart = [worker.send("snapshot") for worker in workers.values()]
         frontier = {
-            validator: worker.send("frontier_debug")
-            for validator, worker in workers.items()
+            validator: worker.send("frontier_debug") for validator, worker in workers.items()
         }
         assert all(snap["height"] == 3 for snap in post_restart), frontier
         assert all(snap["tip"] == proposals[2]["block_id"] for snap in post_restart), frontier
         assert all(
-            snap["finalized_block_id"] == proposals[2]["block_id"]
-            for snap in post_restart
+            snap["finalized_block_id"] == proposals[2]["block_id"] for snap in post_restart
         ), frontier
         assert len({snap["state_root"] for snap in post_restart}) == 1, frontier
     finally:
