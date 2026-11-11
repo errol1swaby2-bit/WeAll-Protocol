@@ -834,6 +834,7 @@ def test_four_validator_qc_finalizes_signed_emissary_election_creation(
     assert persisted["block_id"] == block1["block_id"]
     assert persisted["receipts"] == block1["receipts"]
 
+
 @pytest.mark.parametrize(
     "turnout",
     [3, 4],
@@ -1029,12 +1030,12 @@ def test_four_validator_qc_finalizes_signed_emissary_ballots_and_treasury(
     election_after_restart = restarted.state["group_emissary_elections"][election_id]
     group_after_restart = restarted.state["roles"]["groups_by_id"][group_id]
     treasury_after_restart = restarted.state["roles"]["treasuries_by_id"][treasury_id]
-    assert election_after_restart["status"] == (
-        "no_decision" if turnout == 3 else "finalized"
+    assert election_after_restart["status"] == ("no_decision" if turnout == 3 else "finalized")
+    assert (
+        group_after_restart["signers"]
+        == nodes[VALIDATORS[0]].state["roles"]["groups_by_id"][group_id]["signers"]
     )
-    assert group_after_restart["signers"] == nodes[VALIDATORS[0]].state["roles"][
-        "groups_by_id"
-    ][group_id]["signers"]
-    assert treasury_after_restart["signers"] == nodes[VALIDATORS[0]].state["roles"][
-        "treasuries_by_id"
-    ][treasury_id]["signers"]
+    assert (
+        treasury_after_restart["signers"]
+        == nodes[VALIDATORS[0]].state["roles"]["treasuries_by_id"][treasury_id]["signers"]
+    )
