@@ -11,6 +11,10 @@ on:
       - Weall-Protocol/src/weall/runtime/ballot_policy.py
       - Weall-Protocol/src/weall/api/routes_public_parts/tx.py
       - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_CONFIDENTIAL_BALLOT_DESIGN_V0_1.md
+      - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_CRYPTO_ARCHITECTURE_ADR_V0_2.md
+      - Weall-Protocol/specs/research/group_emissary_ballot_architecture_v0_1.json
+      - Weall-Protocol/scripts/validate_group_emissary_architecture_review.py
+      - Weall-Protocol/tests/test_group_emissary_architecture_review_contract.py
       - Weall-Protocol/src/weall/runtime/apply/groups.py
       - web/src/pages/Group.tsx
       - web/src/api/weall.ts
@@ -52,14 +56,21 @@ jobs:
             sha256sum tests/test_group_governance_contract.py
             sha256sum tests/test_group_emissary_ballot_transport_boundary.py
             sha256sum docs/production_readiness/GROUP_EMISSARY_CONFIDENTIAL_BALLOT_DESIGN_V0_1.md
+            sha256sum docs/production_readiness/GROUP_EMISSARY_CRYPTO_ARCHITECTURE_ADR_V0_2.md
+            sha256sum specs/research/group_emissary_ballot_architecture_v0_1.json
+            sha256sum scripts/validate_group_emissary_architecture_review.py
+            sha256sum tests/test_group_emissary_architecture_review_contract.py
+            echo "architecture_research_only=true"
+            echo "production_cryptographic_suite=NOT_SELECTED"
             echo "secret_ballot_transport=NOT_VERIFIED"
             echo "existing_signed_ballot_discloses_voter_and_ranking=true"
           } > "$OUT/source_and_scope.txt"
           set +e
           {
-            ruff format --check src/weall/api/routes_public_parts/groups.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py &&
-            ruff check src/weall/api/routes_public_parts/groups.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py &&
-            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py
+            ruff format --check src/weall/api/routes_public_parts/groups.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py &&
+            ruff check src/weall/api/routes_public_parts/groups.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py &&
+            python scripts/validate_group_emissary_architecture_review.py &&
+            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py tests/test_group_emissary_architecture_review_contract.py
           } 2>&1 | tee "$OUT/targeted_pytest.log"
           RC="${PIPESTATUS[0]}"
           set -e
