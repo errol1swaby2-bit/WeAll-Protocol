@@ -1676,10 +1676,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             next_rebroadcast = 0.0
             while time.monotonic() < deadline:
                 cached = workers[offline].send("fetch_debug")
-                if any(
-                    row.get("id") == original_id
-                    for row in cached.get("pending_blocks", [])
-                ):
+                if any(row.get("id") == original_id for row in cached.get("pending_blocks", [])):
                     break
                 if time.monotonic() >= next_rebroadcast:
                     result = workers[later_leader].send(
@@ -1688,10 +1685,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                     assert result["broadcast_called"] is True
                     next_rebroadcast = time.monotonic() + 0.75
                 time.sleep(0.1)
-            assert any(
-                row.get("id") == original_id
-                for row in cached.get("pending_blocks", [])
-            ), {
+            assert any(row.get("id") == original_id for row in cached.get("pending_blocks", [])), {
                 "missing_signed_view": later_view,
                 "missing_signed_block_id": original_id,
                 "lagging": cached,
