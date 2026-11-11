@@ -1180,7 +1180,6 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             worker.close()
 
 
-
 def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
     tmp_path: Path,
 ) -> None:
@@ -1265,13 +1264,9 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
 
         # QC(view=0) must itself advance every validator to view=1.
         # No controller set_view call is allowed in the rest of this test.
-        assert all(
-            worker.send("frontier_debug")["view"] == 1 for worker in workers.values()
-        )
+        assert all(worker.send("frontier_debug")["view"] == 1 for worker in workers.values())
         offline = leader_for_view(bft.VALIDATORS, 1)
-        assert offline not in {
-            leader_for_view(bft.VALIDATORS, view) for view in (2, 3, 4)
-        }
+        assert offline not in {leader_for_view(bft.VALIDATORS, view) for view in (2, 3, 4)}
         offline_before = workers[offline].send("snapshot")
         assert offline_before["height"] == 1
         workers.pop(offline).close()
@@ -1293,8 +1288,7 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
                 validator: worker.send("snapshot") for validator, worker in workers.items()
             }
             liveness_frontiers = {
-                validator: worker.send("frontier_debug")
-                for validator, worker in workers.items()
+                validator: worker.send("frontier_debug") for validator, worker in workers.items()
             }
             if all(
                 final_snapshots[validator]["height"] >= 2
@@ -1311,9 +1305,7 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
         }
         assert len({snap["tip"] for snap in final_snapshots.values()}) == 1
         assert len({snap["state_root"] for snap in final_snapshots.values()}) == 1
-        assert all(
-            snap["finalized_block_id"] == snap["tip"] for snap in final_snapshots.values()
-        )
+        assert all(snap["finalized_block_id"] == snap["tip"] for snap in final_snapshots.values())
         # All survivors have advanced from view 1 to 2 by independently
         # accepting a three-signer timeout certificate; subsequent views 2-4
         # are justified by the genuinely network-certified proposals.
