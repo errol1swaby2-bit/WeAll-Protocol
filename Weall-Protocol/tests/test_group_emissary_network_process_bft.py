@@ -296,6 +296,56 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         ]
     if command == "fetch_descriptors":
         return node.bft_resolved_pending_fetch_request_descriptors()
+    if command == "fetch_debug":
+        pending_ids = node._ordered_pending_block_ids()
+        speculative = node._bft_speculative_blocks_map()
+        return {
+            "height": int(node.state.get("height") or 0),
+            "tip": str(node.state.get("tip") or ""),
+            "finalized": str(node._bft.finalized_block_id or ""),
+            "high_qc": node._bft.high_qc.to_json().get("block_id")
+            if node._bft.high_qc is not None
+            else "",
+            "fetch_enabled": bool(loop._bft_fetch_enabled),
+            "fetch_sources": list(loop._bft_fetch_base_urls()),
+            "last_fetch_ms": int(loop._last_bft_fetch_ms),
+            "fetch_cooldowns": dict(loop._bft_fetch_cooldowns),
+            "source_cooldowns": dict(loop._bft_fetch_source_cooldowns),
+            "source_penalty_drops": int(loop._bft_fetch_source_penalty_drops),
+            "requests": node.bft_resolved_pending_fetch_request_descriptors(),
+            "missing_qcs": [
+                {"id": str(k), "hash": str(v.get("block_hash") or "")}
+                for k, v in node._pending_missing_qc_entries().items()
+                if isinstance(v, dict)
+            ],
+            "pending_blocks": [
+                {
+                    "id": bid,
+                    "height": int(blk.get("height") or 0),
+                    "parent": str(blk.get("prev_block_id") or ""),
+                    "hash": str(blk.get("block_hash") or ""),
+                }
+                for bid in pending_ids
+                for blk in [node._bft_pending_block_json(bid)]
+                if isinstance(blk, dict)
+            ],
+            "speculative": [
+                {
+                    "id": str(bid),
+                    "height": int(record.get("height") or 0),
+                    "parent": str(record.get("prev_block_id") or ""),
+                }
+                for bid, record in speculative.items()
+                if isinstance(record, dict)
+                and int(record.get("height") or 0) > int(node.state.get("height") or 0)
+            ][:16],
+            "finalized_replay_path": sorted(
+                node._finalized_replay_path_ids(
+                    str(node._bft.finalized_block_id or "")
+                ) or []
+            ),
+            "runtime": loop.runtime_debug(),
+        }
     if command == "qc_observation":
         block_id = str(request["block_id"])
         qc = node._bft.high_qc
@@ -1537,6 +1587,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             "source": source_snapshot,
             "fetch_descriptors": last_fetch_descriptors,
             "frontier": workers[offline].send("frontier_debug"),
+            "fetch_debug": workers[offline].send("fetch_debug"),
             "status": workers[offline].send("peer_status"),
         }
         for height in (4, 5, 6):
