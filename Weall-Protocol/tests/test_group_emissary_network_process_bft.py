@@ -785,11 +785,37 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 break
             time.sleep(0.1)
 
+        handshake_evidence = {
+            validator: {
+                "runtime": status["runtime"],
+                "counts": status["peers"]["counts"],
+                "peers": [
+                    {
+                        key: peer.get(key)
+                        for key in (
+                            "peer_id",
+                            "connected",
+                            "established",
+                            "identity_verified",
+                            "account_id",
+                            "banned",
+                            "strikes",
+                            "last_error",
+                        )
+                    }
+                    for peer in status["peers"]["peers"]
+                    if peer["connected"] or peer["banned"] or peer["strikes"]
+                ],
+            }
+            for validator, status in last_status.items()
+        }
         for validator in bft.VALIDATORS:
             status = last_status[validator]
-            assert status["runtime"]["thread_alive"] is True, status
-            assert status["runtime"]["unhealthy"] is False, status
-            assert connected_identity_set(status) >= (set(bft.VALIDATORS) - {validator}), status
+            assert status["runtime"]["thread_alive"] is True, handshake_evidence
+            assert status["runtime"]["unhealthy"] is False, handshake_evidence
+            assert connected_identity_set(status) >= (set(bft.VALIDATORS) - {validator}), (
+                json.dumps(handshake_evidence, sort_keys=True)
+            )
 
         transition_votes = [
             worker.send("transition_vote", block_id=boundary_id) for worker in workers.values()
