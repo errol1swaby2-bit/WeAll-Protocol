@@ -185,9 +185,7 @@ def test_group_governance_eligible_electorate_differs_from_raw_member_snapshot()
         voters[3]: {"poh_tier": 2, "locked": True},
         voters[4]: {"poh_tier": 2, "suspended": True},
     }
-    eligible_group_governance = _active_group_member_ids(
-        state, {"group_id": "g:quorum"}
-    )
+    eligible_group_governance = _active_group_member_ids(state, {"group_id": "g:quorum"})
     assert eligible_group_governance == [voters[0]]
     election = state["group_emissary_elections"]["e:quorum"]
     assert election["eligible_voter_count"] == 5
