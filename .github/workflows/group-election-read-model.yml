@@ -68,8 +68,8 @@ jobs:
             sha256sum scripts/validate_group_emissary_stv_t0.py
             sha256sum specs/research/group_emissary_stv_t0_vectors_v0_1.json
             sha256sum docs/production_readiness/GROUP_EMISSARY_STV_T0_BEHAVIOR_AND_DEVIATIONS.md
-            echo "t0_observed_stv_behavior=NOT_NORMATIVE_STV_APPROVAL"
-            echo "stv_surplus_transfer_defect=DOCUMENTED_NOT_REPAIRED"
+            echo "t0_weall_sequential_redistribution=INTENDED_AND_NO_CONSENSUS_CHANGE"
+            echo "stv_full_weight_sequential_redistribution=INTENTIONAL_CURRENT_BEHAVIOR"
             echo "architecture_research_only=true"
             echo "production_cryptographic_suite=NOT_SELECTED"
             echo "secret_ballot_transport=NOT_VERIFIED"

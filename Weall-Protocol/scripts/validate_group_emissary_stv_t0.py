@@ -2,10 +2,11 @@
 
 Not a normative STV implementation. In particular, production code reassigns
 both retained weight AND surplus after electing a candidate. Because the split
-parcels retain the same preferences and their weights sum to the original
-weight exactly, its effective active-preference transfers are full-weight.
-This reference intentionally uses no production tally code, Fraction, piles,
-or production ballot classes to expose that equivalence and detect drift.
+parcels retain the same preferences and sum to the original weight, this
+matches WeAll's INTENDED sequential redistribution: full voting weight
+moves to the next remaining ranked candidate after each seat is filled.
+This reference uses no production tally code, Fraction, piles, or production
+ballot classes; it verifies the intended WeAll rule, not conventional STV.
 No signatures, cryptography or consensus authority here.
 """
 
@@ -92,7 +93,15 @@ def validate_corpus(value: Any) -> list[str]:
         ("normative_stv_compliance_claimed", False),
         ("confidential_ballot_claimed", False),
         ("consensus_changes_authorized", False),
-        ("reference_model", "full_active_preference_transfer_observed_not_normative_droop"),
+        ("reference_model", "weall_sequential_full_weight_ranked_redistribution_v0_1"),
+        (
+            "intended_transfer_rule",
+            "full_weight_after_each_elected_seat_to_next_eligible_preference",
+        ),
+        (
+            "intended_transfer_rule_provenance",
+            "protocol_architect_clarification_2026-11-10",
+        ),
     ):
         if value.get(key) != expected:
             failures.append(f"invalid_{key}")
@@ -166,7 +175,10 @@ def main() -> int:
         for failure in sorted(set(failures)):
             print(f"FAIL: {failure}")
         return 1
-    print("PASS: observed STV golden vectors; NOT normative STV or confidential-ballot proof")
+    print(
+        "PASS: intended WeAll sequential preference redistribution; "
+        "NOT conventional STV or confidential-ballot proof"
+    )
     return 0
 
 

@@ -4,12 +4,12 @@
   "source_commit": "f98fd31e15eb55ef98d282f17e7b028c49dd6058",
   "source_path": "Weall-Protocol/src/weall/runtime/apply/groups.py",
   "source_blob_sha": "0566fcb02135864ed6b86dbafe58f9ffabffbe44",
-  "reference_model": "full_active_preference_transfer_observed_not_normative_droop",
+  "reference_model": "weall_sequential_full_weight_ranked_redistribution_v0_1",
   "normative_stv_compliance_claimed": false,
   "confidential_ballot_claimed": false,
   "consensus_changes_authorized": false,
   "required_vectors": [
-    "surplus_full_transfer_deviation",
+    "first_seat_full_preference_redistribution",
     "quota_tie_lexicographic",
     "elimination_tie_lexicographic",
     "partial_and_exhausted_preferences",
@@ -17,11 +17,12 @@
     "no_ballots_no_decision",
     "duplicate_invalid_normalization",
     "zero_seats_raw_only",
-    "candidate_count_equals_seats"
+    "candidate_count_equals_seats",
+    "five_seats_repeated_full_preference_redistribution"
   ],
   "cases": [
     {
-      "id": "surplus_full_transfer_deviation",
+      "id": "first_seat_full_preference_redistribution",
       "scope": "raw_helper_only",
       "seats": 2,
       "candidates": [
@@ -100,7 +101,7 @@
         "final_status": "not_applicable",
         "final_winners": null
       },
-      "risk_note": "Surplus case: canonical reassigns retained and surplus fractions, effectively full-transfer. A then C win, unlike ordinary quota-retaining STV."
+      "risk_note": "WeAll design intent: once A fills the first seat, its full active ballot weights are reassigned to the next eligible ranked candidate, C. This is deliberate sequential preference redistribution, NOT a quota-retaining STV implementation defect."
     },
     {
       "id": "quota_tie_lexicographic",
@@ -546,6 +547,135 @@
         ]
       },
       "risk_note": "When seats equal candidate count, raw helper fills everyone alphabetically irrespective of ballot preference."
+    },
+    {
+      "id": "five_seats_repeated_full_preference_redistribution",
+      "scope": "finalization_integration",
+      "seats": 5,
+      "candidates": [
+        "@f",
+        "@e",
+        "@d",
+        "@c",
+        "@b",
+        "@a"
+      ],
+      "ballots": [
+        {
+          "voter": "@v1",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v2",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v3",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v4",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v5",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v6",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 2,
+        "raw_winners": [
+          "@a",
+          "@b",
+          "@c",
+          "@d",
+          "@e"
+        ],
+        "trace": [
+          {
+            "action": "elect",
+            "id": "@a",
+            "tally": 6
+          },
+          {
+            "action": "elect",
+            "id": "@b",
+            "tally": 6
+          },
+          {
+            "action": "elect",
+            "id": "@c",
+            "tally": 6
+          },
+          {
+            "action": "elect",
+            "id": "@d",
+            "tally": 6
+          },
+          {
+            "action": "elect",
+            "id": "@e",
+            "tally": 6
+          }
+        ],
+        "final_status": "finalized",
+        "final_winners": [
+          "@a",
+          "@b",
+          "@c",
+          "@d",
+          "@e"
+        ]
+      },
+      "risk_note": "WeAll intended rule exercised in a five-seat canonical election: after each seat is filled, the same six full-weight ballots move to the next eligible ranked choice. This is deliberate; it differs from quota-retaining STV."
     }
-  ]
+  ],
+  "intended_transfer_rule": "full_weight_after_each_elected_seat_to_next_eligible_preference",
+  "intended_transfer_rule_provenance": "protocol_architect_clarification_2026-11-10"
 }

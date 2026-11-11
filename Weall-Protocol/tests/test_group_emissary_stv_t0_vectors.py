@@ -67,15 +67,30 @@ def test_t0_golden_manifest_no_normative_or_privacy_claims() -> None:
     assert validate_corpus(mutated)
 
 
-def test_observed_full_transfer_surplus_can_change_second_seat() -> None:
-    case = next(row for row in VECTORS["cases"] if row["id"] == "surplus_full_transfer_deviation")
+def test_intended_first_seat_redistributes_full_preference_weight() -> None:
+    case = next(row for row in VECTORS["cases"] if row["id"] == "first_seat_full_preference_redistribution")
     assert _production_winners(case) == ["@a", "@c"]
     assert case["expected"]["quota"] == 3
-    # Four A-first ballots re-enter the remaining C tally after A has been
-    # elected. Conventional quota-retaining transfer would transfer only
-    # one vote of surplus in total, not all four; this is a material
-    # nonstandard result and must not be silently represented as Droop STV.
+    # WeAll deliberately moves all four A-first votes to their next eligible
+    # ranked choice C after A fills the first seat. Do not 'fix' this into
+    # conventional quota-retaining STV without an explicit design change.
     assert case["expected"]["trace"][1] == {"action": "elect", "id": "@c", "tally": 4}
+
+
+def test_five_seats_move_all_votes_to_next_ranked_candidate() -> None:
+    case = next(
+        row
+        for row in VECTORS["cases"]
+        if row["id"] == "five_seats_repeated_full_preference_redistribution"
+    )
+    assert case["expected"]["quota"] == 2
+    assert _production_winners(case) == ["@a", "@b", "@c", "@d", "@e"]
+    # All six voters support A, then B, then C, D and E. Each time a seat
+    # is filled, full ballot weight follows the next still-eligible preference.
+    assert case["expected"]["trace"] == [
+        {"action": "elect", "id": candidate, "tally": 6}
+        for candidate in ("@a", "@b", "@c", "@d", "@e")
+    ]
 
 
 def _tx(tx_type: str, signer: str, nonce: int, payload: dict) -> TxEnvelope:
@@ -83,7 +98,13 @@ def _tx(tx_type: str, signer: str, nonce: int, payload: dict) -> TxEnvelope:
 
 
 @pytest.mark.parametrize(
-    "case_id", ["no_ballots_no_decision", "minimum_five_fill", "candidate_count_equals_seats"]
+    "case_id",
+    [
+        "no_ballots_no_decision",
+        "minimum_five_fill",
+        "candidate_count_equals_seats",
+        "five_seats_repeated_full_preference_redistribution",
+    ]
 )
 def test_canonical_finalize_t0_golden_and_authority_boundary(case_id: str) -> None:
     case = next(row for row in VECTORS["cases"] if row["id"] == case_id)

@@ -34,6 +34,10 @@ The current `GROUP_EMISSARY_BALLOT_CAST` schema has `signer` alongside plaintext
 
 **External evidence, not repo results:** NIST FIPS 203 specifies **ML-KEM**, a key-encapsulation mechanism, and FIPS 204 specifies **ML-DSA**, a signature scheme. Neither standard defines a full end-to-end anonymous ranked election. ElectionGuard's glossary says its current protocol does not support ranked-choice voting, so it cannot be treated as a proven drop-in STV engine. Verificatum documents classical verifiable mix-net tooling, including grouped ciphertext processing for ranked elections, but does **not** establish WeAll-grade PQ end-to-end security or integration. Sources are listed below.
 
+## Intended ranked-redistribution semantics (clarified 2026-11-10)
+
+WeAll's protocol architect clarified that **after a candidate fills a seat, all votes assigned to that candidate move at full weight to the voter's next still-eligible preferred candidate**. That redistribution repeats for subsequent seats. Thus the earlier T0 description of this transfer as a retained-quota *defect* was incorrect and is withdrawn. The existing helper implements the intended full-weight transfer, although it should not be represented as conventional surplus-retaining Droop STV. The proposed private tally, shuffle/decryption reference and public verifiability work must reproduce **WeAll's intended sequential redistribution**, not silently substitute conventional STV. Other tally policy choices (tie handling, candidate fill, quorum, exhaustion) remain reviewable independently.
+
 ## Security requirements that rule out a short-cut
 
 - **No attributed envelope:** the public ballot transaction, mempool and block history cannot include both a registered-account signer and a ballot ciphertext/choice that can be linked by deterministic identity, timing, plaintext or proof witness. A new proof-bearing admission mechanism needs its own versioned schema; do not bypass SYSTEM restrictions or reuse `GROUP_EMISSARY_BALLOT_CAST`.

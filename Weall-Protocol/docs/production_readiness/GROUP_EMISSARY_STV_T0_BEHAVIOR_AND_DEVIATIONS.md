@@ -1,40 +1,56 @@
-# T0 — Current group-emissary STV golden vectors and nonstandard transfer finding
+# T0 — Intended WeAll sequential preference redistribution: behavioral golden vectors
 
-**Status:** OBSERVED CURRENT BEHAVIOR ONLY · NOT A NORMATIVE STV CERTIFICATION · NO PROTOCOL CHANGE  
-**Source audited:** `src/weall/runtime/apply/groups.py` (`_stv_winners` and `_apply_group_emissary_election_finalize`) at commit `f98fd31e15eb55ef98d282f17e7b028c49dd6058`.  
-**Fixture:** `specs/research/group_emissary_stv_t0_vectors_v0_1.json`  
-**Independent behavioral model:** `scripts/validate_group_emissary_stv_t0.py`  
-**Cross-check tests:** `tests/test_group_emissary_stv_t0_vectors.py`
+**Status:** INTENDED WEALL RULE VERIFIED AGAINST CURRENT CODE · NOT CONVENTIONAL QUOTA-RETAINING STV · NO PROTOCOL CHANGE  
+**Source audited:** `src/weall/runtime/apply/groups.py` (`_stv_winners` and `_apply_group_emissary_election_finalize`), anchored to prior source commit `f98fd31e15eb55ef98d282f17e7b028c49dd6058`.  
+**Golden vectors:** `specs/research/group_emissary_stv_t0_vectors_v0_1.json`  
+**Independent reference model:** `scripts/validate_group_emissary_stv_t0.py`  
+**Focused tests:** `tests/test_group_emissary_stv_t0_vectors.py`
 
-## Purpose
+## Explicit design-intent clarification (2026-11-10)
 
-Freeze the **existing** election selection behavior as hard-coded outcomes and event traces, without changing consensus code. The reference uses one unit per active preference and no production `Fraction`, pile structures or runtime tally imports. These checks protect current historical replay compatibility; they do **not** endorse the algorithm or prove that it satisfies ordinary STV.
+The WeAll protocol architect clarified the intended election rule:
 
-## High-priority discrepancy: quota weight is not retained
+> Once the first slot makes its choice, the votes are redistributed to the voters' preferred second candidate.
 
-The current helper describes itself as “Deterministic STV (Droop quota) with Fraction weights.” It determines a Droop-style quota and splits elected candidates' piles into retained and surplus weights. **But it then removes the elected candidate from the active set and reassigns both the retained and surplus parcels to their next eligible preference**. Since their fractional weights sum to the previous weight and share the same preference list, this is mathematically equivalent to transferring **100%** of that ballot's active weight after election rather than retaining the quota.
+**Interpretation encoded in the tests:** when a candidate is selected to occupy a seat, every ballot currently assigned to that candidate remains at full weight and is reassigned to its highest-ranked *still-eligible* candidate. The same process repeats for each successive seat. If a voter's second choice is already elected or eliminated, the tally uses that voter's next eligible ranked choice. If no preference remains, that ballot is exhausted. Candidates not yet selected or eliminated retain their votes.
 
-**Golden example:** 2 seats, 4 candidates, 7 ballots: A→C four times, B twice, D→B once. Quota is 3. Current behavior elects **A then C**, because all four A voters flow to C. Under conventional surplus-only transfer, only one of A's four votes of surplus flows to C; when D is eliminated, B would reach quota and win the second seat. The current result is therefore not safely described as ordinary Droop-quota STV.
+This is an **intentional full-weight, sequential ranked-preference redistribution mechanism**. It is not conventional surplus-only STV, even though the existing helper docstring names a Droop quota and calls itself “STV.” The earlier audit incorrectly labeled the full-weight transfer a **defect**. That classification is **withdrawn**. The current code and the stated intention agree on the central transfer behavior.
 
-This may alter elected emissaries and, via `_apply_group_emissary_election_finalize`, the group signer and treasury signer thresholds. Treat this as a **high-priority governance-integrity finding requiring separate protocol resolution and historical replay analysis**. Do **not** silently fix it within this golden-vector increment.
+The helper currently splits winning piles into retained and surplus fractions but then reassigns both to the remaining active candidates, preserving full vote weight. This is an implementation equivalence, not evidence of an unintended tally error.
 
-## Other current behavior characterized
+## Confirmed examples
 
-- When two candidates meet quota with the same weight, lexicographically smaller IDs elect first.
-- When two candidates have the same lowest weight, lexicographically smaller IDs eliminate first.
-- Invalid/duplicate candidate preferences are filtered, empty ballots are ignored for quota, and exhausted partial rankings cease to contribute.
-- A helper call with `seats <= 0` returns no winners; valid election creation must require at least five emissary seats.
-- When candidate count equals remaining seats, the helper fills the remaining slate alphabetically, regardless of first-choice count.
-- With one participating voter and six candidates for five seats, a slate of five can still be seated. This is current behavior, **not proof of electorate legitimacy or quorum sufficiency**.
-- With **zero valid ballots**, the raw STV helper would still fill the slate, but the **canonical finalizer explicitly returns `no_decision`** and must not alter group or treasury authority. The integration tests bind this distinction.
-- The strict profile's aggregated apply-state is not a secret ballot: canonical signed envelopes still identify the signer alongside plaintext choices. T0 uses synthetic ranking fixtures and confers no new privacy claim.
+### Two seats, seven voters
 
-## Evidence gates and limits
+Four ballots: A → C. Two ballots: B. One ballot: D → B.
 
-The fixture stores hard-coded winners, quota and deterministic event traces for nine cases. The independent no-Fraction behavioral reference and production helper must both match each vector. Candidate/voter insertion order reversal must not alter results. Three five-seat fixtures also exercise actual current finalization, including signer/treasury authority effects and the no-decision non-mutation boundary.
+- A wins the first seat with four first choices; all four A ballots move to C.
+- C receives four votes and wins the second seat.
+- **WeAll expected result: A, C.** A conventional surplus-retaining STV calculation might produce A, B, but **that is not WeAll's specified rule** and should not be substituted.
 
-These tests are source/fixture evidence. They do not establish signed two-node consensus finality, full chain replay across versions, cryptographic tally soundness, a normative STV correction, a quantum-resistant ballot system, or constitutional approval.
+### Five seats, six voters
 
-**Next isolated work:** open a distinct protocol-compatibility/design decision for the retained-quota defect, specify intended STV variant, review impact on existing historical blocks and election finality, devise a versioned activation/migration rule if a change is authorized, and demonstrate its invariants before any new emissary election uses the corrected algorithm.
+All six voters rank A → B → C → D → E → F.
 
-**No new ballot transaction, no secret-ballot activation, no new treasury authority, no runtime code change. PR #88 and PR #81 remain DRAFT / NO-GO.**
+The full six votes move in order to the next eligible preferred candidate after every selection. The five selected emissaries, in order, are **A, B, C, D, E**, with a tally of six at each seat selection. The new golden vector and canonical finalization integration test cover this sequence.
+
+## Additional existing invariants
+
+- Lexicographically sorted candidate IDs break equal leading-tally elections and equal-low-tally eliminations.
+- Duplicate/unknown ranked choices are filtered; partial ballots can exhaust.
+- The election-creation/finalization contract requires at least **five seats**, while raw helper tests may exercise smaller or zero-seat edge cases.
+- When remaining candidate count equals the number of unfilled seats, remaining candidates are seated alphabetically. This is an explicit existing edge behavior to review against the intended governance contract, not a claim of voter turnout.
+- With one ballot and six nominees for five seats, the current code seats five emissaries. **No minimum-turnout or quorum rule is established by this test.** Those legitimacy rules are a separate governance question.
+- With zero valid ballots, canonical finalization returns **no_decision** and leaves group and treasury authorization unchanged. Do not infer finalization behavior solely from the helper's raw zero-ballot result.
+- Current signed ballot envelopes still expose signer and plaintext ranking. Sequential redistribution does not establish a secret ballot.
+
+## Replay, change control and limits
+
+Golden fixtures and the independent reference model verify the design's current transfer semantics against the production helper without altering production consensus. Two paths are kept separate:
+
+1. **Existing rule preservation:** no migration or retained-quota correction is warranted by the transfer behavior alone. Preserve historical replay.
+2. **Possible future rule changes:** changes to tie handling, empty/partial ranking behavior, default seat filling, turnout/quorum requirements, election eligibility or cryptographic ballot transport would require a separate constitutional decision, versioned activation and replay analysis.
+
+The independent reference is behavioral, not an independent proof of every consensus-state path, constitutional approval, production ledger history, multi-node finality or cryptographic privacy. The public election UI remains read-only; no ballot-submission authority is enabled.
+
+**PR #88 and stacked PR #81 remain DRAFT / NO-GO.** No runtime tally rule, treasury signer authority or production voting path was changed in this clarification.
