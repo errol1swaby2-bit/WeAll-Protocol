@@ -67,6 +67,29 @@ independently verified. The 11 predicate/exception propagation runtime tests
 and the four AST extractor regressions are evidence, not authorization to
 refresh any reviewed digest.
 
+## Bounded transitive target-validation extraction evidence (subsequent increment)
+
+The dedicated `DISPUTE_OPEN` handler calls
+`_validate_dispute_target_type` before it initializes or writes the dispute.
+That helper raises `DisputeApplyError("forbidden",
+"unsupported_dispute_target_type", ...)` for unrecognized target types.
+The compiler's preexisting local-call prefix allowlist omitted this
+`_validate_` helper and therefore omitted the operative rejection from the
+static `DISPUTE_OPEN` failure index.
+
+The V2 traversal is now extended **only for the direct edge from
+`dispute_open` to `_validate_dispute_target_type` in `DISPUTE_OPEN`**.
+A focused source-regression checks both the dedicated entrypoint and the
+shared dispatcher entrypoint, while the existing direct-versus-dispatched
+runtime rejection tests cover the actual error tuple and prevent phantom
+dispute, account or queue effects. This is extraction-evidence hardening,
+not proof that the static analysis is exhaustive: it still misses some
+indirect helper reads/writes, cannot determine branch reachability, and
+does not establish independent semantic acceptance. In particular, the
+static proposal-specific error paths are currently unreachable behind the
+target allowlist. No acceptance digest or generated V2 derivative was
+refreshed or approved by this correction.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.

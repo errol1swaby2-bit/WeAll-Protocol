@@ -56,6 +56,24 @@ def test_dispute_open_standalone_analysis_does_not_capture_other_transactions() 
     assert analysis["semantic_precision"] == "function_static"
 
 
+def test_dispute_open_includes_transitive_target_allowlist_rejection() -> None:
+    """The dedicated DISPUTE_OPEN contract must see its live target validator."""
+    path = ROOT / "src/weall/runtime/apply/dispute.py"
+    required = {"code": "forbidden", "reason": "unsupported_dispute_target_type"}
+    for dispatch in ("dispute_open", "apply_dispute"):
+        analysis = compiler._tx_function_analysis(
+            "DISPUTE_OPEN",
+            path,
+            dispatch,
+            {"DISPUTE_OPEN", "DISPUTE_RESOLVE", "DISPUTE_APPEAL"},
+            set(),
+            ["disputes_by_id"],
+        )
+        assert required in analysis["failure_codes"]
+        assert analysis["function"] == "dispute_open"
+        assert analysis["return_keys"] == ["applied", "dispute_id"]
+
+
 def test_review_material_does_not_bind_line_number_or_fabricate_authority() -> None:
     path = ROOT / "src/weall/runtime/apply/dispute.py"
     analysis = compiler._tx_function_analysis(

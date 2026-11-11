@@ -968,6 +968,18 @@ def _tx_function_analysis(
         for called in _direct_local_calls(fn.node, set(functions)):
             if called in visited:
                 continue
+            # DISPUTE_OPEN calls a source-local target-type validator before
+            # any canonical state mutation. Its rejection is part of the real
+            # transaction contract, even though generic traversal deliberately
+            # does not follow arbitrary _validate_ helpers across families.
+            # Keep this one reviewed edge bound to the exact entrypoint so
+            # unrelated V2 semantic-review digests are not silently expanded.
+            dispute_open_target_validation = (
+                tx_type == "DISPUTE_OPEN"
+                and target.name == "dispute_open"
+                and name == "dispute_open"
+                and called == "_validate_dispute_target_type"
+            )
             if called.startswith(
                 (
                     "apply_",
@@ -981,7 +993,7 @@ def _tx_function_analysis(
                     "_find_",
                     "_ensure_",
                 )
-            ):
+            ) or dispute_open_target_validation:
                 queue.append(called)
 
     reads: set[str] = set()
