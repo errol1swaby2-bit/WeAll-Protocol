@@ -98,9 +98,7 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
             "finalized": str(node._bft.finalized_block_id or ""),
             "finalized_view": int(node._bft.finalized_view),
             "high_qc": (
-                node._bft.high_qc.to_json()["block_id"]
-                if node._bft.high_qc is not None
-                else None
+                node._bft.high_qc.to_json()["block_id"] if node._bft.high_qc is not None else None
             ),
             "pending_candidates": sorted(node._pending_candidates),
             "pending_remote": sorted(node._pending_remote_blocks),
@@ -798,20 +796,20 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         snapshots = [worker.send("snapshot") for worker in workers.values()]
         while time.monotonic() < deadline:
             if all(
-                snap["height"] == 2
-                and snap["tip"] == proposals[1]["block_id"]
+                snap["height"] == 2 and snap["tip"] == proposals[1]["block_id"]
                 for snap in snapshots
             ):
                 break
             time.sleep(0.1)
             snapshots = [worker.send("snapshot") for worker in workers.values()]
         frontier = {
-            validator: worker.send("frontier_debug")
-            for validator, worker in workers.items()
+            validator: worker.send("frontier_debug") for validator, worker in workers.items()
         }
         assert all(snap["height"] == 2 for snap in snapshots), frontier
         assert all(snap["tip"] == proposals[1]["block_id"] for snap in snapshots), frontier
-        assert all(snap["finalized_block_id"] == proposals[1]["block_id"] for snap in snapshots), frontier
+        assert all(snap["finalized_block_id"] == proposals[1]["block_id"] for snap in snapshots), (
+            frontier
+        )
         assert len({snap["state_root"] for snap in snapshots}) == 1, frontier
     finally:
         for worker in workers.values():
