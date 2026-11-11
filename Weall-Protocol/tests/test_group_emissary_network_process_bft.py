@@ -227,8 +227,8 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     if command == "start_block_http":
         # Real production read-only state/block route, isolated on localhost.
         # Only the test transport/server lifecycle is supplied by this harness.
-        from fastapi import FastAPI
         import uvicorn
+        from fastapi import FastAPI
 
         from weall.api.routes_public_parts.state import router as state_router
 
@@ -1540,9 +1540,10 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             "status": workers[offline].send("peer_status"),
         }
         for height in (4, 5, 6):
-            assert workers[offline].send("block", height=height)["block_id"] == workers[
-                source
-            ].send("block", height=height)["block_id"]
+            assert (
+                workers[offline].send("block", height=height)["block_id"]
+                == workers[source].send("block", height=height)["block_id"]
+            )
     finally:
         for worker in workers.values():
             worker.close()
