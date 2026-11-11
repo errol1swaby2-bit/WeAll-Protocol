@@ -450,17 +450,13 @@ def test_socket_separated_production_qc_election_recovery(
                 for validator, worker in workers.items():
                     if validator == delayed:
                         continue
-                    result = worker.send(
-                        "netmesh_qc", qc=qc, from_validator=leader
-                    )
+                    result = worker.send("netmesh_qc", qc=qc, from_validator=leader)
                     assert result["accepted"] is True
                 # Delayed delivery is observable before the withheld process
                 # receives the same certified QC; never compare roots until
                 # the withheld validator has caught up.
                 before_delayed = workers[delayed].send("snapshot")
-                result = workers[delayed].send(
-                    "netmesh_qc", qc=qc, from_validator=leader
-                )
+                result = workers[delayed].send("netmesh_qc", qc=qc, from_validator=leader)
                 assert result["accepted"] is True
                 delivered = workers[delayed].send("snapshot")
                 assert delivered["height"] >= before_delayed["height"]
