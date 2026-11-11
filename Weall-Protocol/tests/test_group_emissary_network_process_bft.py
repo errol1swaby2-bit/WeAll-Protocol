@@ -138,9 +138,7 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         assert loop.node is not None
         qcj = request["qc"]
         assert node.bft_verify_qc_json(qcj) is not None
-        loop.node.broadcast_message(
-            BftQcMsg(header=_wire_header(node, MsgType.BFT_QC), qc=qcj)
-        )
+        loop.node.broadcast_message(BftQcMsg(header=_wire_header(node, MsgType.BFT_QC), qc=qcj))
         return {"broadcast_called": True}
     if command == "fetch_descriptors":
         return node.bft_resolved_pending_fetch_request_descriptors()
