@@ -975,14 +975,26 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             }
             surviving_proposals[view] = proposal
             assert proposal["view"] == view
-            local_vote = workers[leader].send("vote_proposal", proposal=proposal)
-            assert local_vote["signer"] == leader
-            assert local_vote["block_id"] == proposal["block_id"]
-            workers[leader].send("receive_vote", vote=local_vote)
+            # No RPC-supplied local vote: the production NetMeshLoop must
+            # independently sign, admit and gossip its elected leader's vote.
             assert (
                 workers[leader].send("broadcast_proposal", proposal=proposal)["broadcast_called"]
                 is True
             )
+            local_votes: list[Json] = []
+            local_deadline = time.monotonic() + 15
+            while time.monotonic() < local_deadline:
+                local_votes = workers[leader].send("sent_votes", block_id=proposal["block_id"])
+                if len(local_votes) == 1:
+                    break
+                time.sleep(0.1)
+            assert len(local_votes) == 1, {"view": view, "leader": leader, "votes": local_votes}
+            assert local_votes[0]["signer"] == leader
+            assert local_votes[0]["block_id"] == proposal["block_id"]
+            # Re-broadcasting an identical proposal must not sign a second
+            # local vote for the same view and block.
+            workers[leader].send("broadcast_proposal", proposal=proposal)
+            assert workers[leader].send("sent_votes", block_id=proposal["block_id"]) == local_votes
 
             expected_remote = online - {leader}
             sent: set[str] = set()
