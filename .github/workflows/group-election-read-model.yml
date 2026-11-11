@@ -67,7 +67,6 @@ jobs:
           } > "$OUT/source_and_scope.txt"
           set +e
           {
-            ruff format --diff scripts/validate_group_emissary_architecture_review.py || true
             ruff format --check src/weall/api/routes_public_parts/groups.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py &&
             ruff check src/weall/api/routes_public_parts/groups.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py &&
             python scripts/validate_group_emissary_architecture_review.py &&

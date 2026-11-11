@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 import json
+from copy import deepcopy
 
 from scripts.validate_group_emissary_architecture_review import (
     MANIFEST,

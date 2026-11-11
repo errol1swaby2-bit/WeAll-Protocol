@@ -82,9 +82,7 @@ def validate_review_matrix(value: Any) -> list[str]:
         if value.get("preferred_feasibility_track") not in seen:
             errors.append("unlisted_feasibility_track")
         rejected = {
-            row.get("id"): row.get("disposition")
-            for row in candidates
-            if isinstance(row, dict)
+            row.get("id"): row.get("disposition") for row in candidates if isinstance(row, dict)
         }
         for rejected_id, decision in (
             ("additive_homomorphic_first_choice_totals", "REJECT_AS_STV_REPLACEMENT"),
@@ -108,9 +106,15 @@ def validate_review_matrix(value: Any) -> list[str]:
             errors.append("missing_low_end_laptop_target")
     bindings = value.get("required_election_bindings")
     if not isinstance(bindings, list) or not {
-        "chain_id", "group_id", "election_id", "election_version",
-        "snapshot_commitment", "candidate_order_commitment",
-        "election_start_height", "election_end_height", "ballot_profile_version",
+        "chain_id",
+        "group_id",
+        "election_id",
+        "election_version",
+        "snapshot_commitment",
+        "candidate_order_commitment",
+        "election_start_height",
+        "election_end_height",
+        "ballot_profile_version",
     }.issubset(set(map(str, bindings))):
         errors.append("missing_election_context_bindings")
     return errors
@@ -121,8 +125,14 @@ def main() -> int:
     failures = validate_review_matrix(matrix)
     adr = ADR.read_text(encoding="utf-8")
     for required in (
-        "NO-GO", "research", "post-quantum", "4 GB RAM",
-        "Verificatum", "ElectionGuard", "no new", "STV",
+        "NO-GO",
+        "research",
+        "post-quantum",
+        "4 GB RAM",
+        "Verificatum",
+        "ElectionGuard",
+        "no new",
+        "STV",
     ):
         if required.lower() not in adr.lower():
             failures.append(f"adr_missing_{required.replace(' ', '_').lower()}")
