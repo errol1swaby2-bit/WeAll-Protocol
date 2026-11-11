@@ -982,7 +982,21 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 break
             time.sleep(0.1)
             surviving = [worker.send("snapshot") for worker in workers.values()]
-        assert all(snap["height"] == 4 for snap in surviving), surviving
+        frontier = {
+            validator: worker.send("frontier_debug") for validator, worker in workers.items()
+        }
+        assert all(snap["height"] == 4 for snap in surviving), {
+            "snapshots": surviving,
+            "frontier": frontier,
+            "proposed": {
+                str(view): {
+                    "block_id": proposal["block_id"],
+                    "parent": proposal["prev_block_id"],
+                    "height": proposal["height"],
+                }
+                for view, proposal in surviving_proposals.items()
+            },
+        }
         assert all(snap["tip"] == surviving_proposals[5]["block_id"] for snap in surviving)
         assert len({snap["state_root"] for snap in surviving}) == 1
     finally:
