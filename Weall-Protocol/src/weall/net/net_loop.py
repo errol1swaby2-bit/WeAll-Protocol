@@ -2008,7 +2008,30 @@ class NetMeshLoop:
                 self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
                 self._relay_submit_message(msg)
 
-            self._send_local_bft_artifact_if_current("proposal", block, _send)
+            if not self._send_local_bft_artifact_if_current("proposal", block, _send):
+                return
+
+            # The elected leader cannot receive its own proposal via a peer
+            # socket. Count its vote through the same signed executor admission
+            # and verified vote/QC handler used by remote validators. Without
+            # this local path, a 3-of-4 surviving quorum has only two incoming
+            # follower votes and can stall despite an otherwise valid proposal.
+            local_id = str(getattr(self.node.cfg, "peer_id", "") or "").strip()
+            if self._bft_enabled and proposer and proposer == local_id:
+                on_proposal = getattr(self._executor, "bft_on_proposal", None)
+                if callable(on_proposal):
+                    local_vote = on_proposal(block)
+                    if isinstance(local_vote, dict) and local_vote:
+                        accepted = self._on_bft_vote(
+                            local_id,
+                            BftVoteMsg(
+                                header=self._mk_header(mtype=MsgType.BFT_VOTE),
+                                view=int(local_vote.get("view") or 0),
+                                vote=local_vote,
+                            ),
+                        )
+                        if accepted is not True and _is_prod():
+                            raise BftOutboundBridgeError("local_leader_vote_rejected")
         except Exception as e:
             if _is_prod():
                 if isinstance(e, BftOutboundBridgeError):
