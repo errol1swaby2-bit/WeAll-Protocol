@@ -21,8 +21,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 import test_p0_03_production_composition as bft
+
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.bft_hotstuff import leader_for_view
 from weall.runtime.state_hash import compute_state_root
