@@ -172,9 +172,8 @@ def commit_block_candidate(
         next_epoch, next_set_hash = _validator_context_for_state(new_state)
         if next_epoch <= 0:
             next_set_hash = ""
-        same_validator_generation = (
-            next_epoch == int(previous_epoch)
-            and next_set_hash == str(previous_set_hash or "")
+        same_validator_generation = next_epoch == int(previous_epoch) and next_set_hash == str(
+            previous_set_hash or ""
         )
 
         with self._db.write_tx() as con:
