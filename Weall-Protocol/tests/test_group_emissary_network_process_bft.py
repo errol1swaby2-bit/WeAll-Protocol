@@ -957,9 +957,39 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             time.sleep(0.1)
         assert restarted_status["runtime"]["thread_alive"] is True, restarted_status
         assert restarted_status["runtime"]["unhealthy"] is False, restarted_status
-        assert connected_identity_set(restarted_status) >= (set(bft.VALIDATORS) - {restarted}), (
-            restarted_status
-        )
+        if connected_identity_set(restarted_status) < (set(bft.VALIDATORS) - {restarted}):
+            statuses = {
+                validator: status
+                for validator, status in (
+                    (validator, worker.send("peer_status"))
+                    for validator, worker in workers.items()
+                )
+            }
+            evidence = {
+                validator: {
+                    "handshake_context": status["handshake_context"],
+                    "counts": status["peers"]["counts"],
+                    "peers": [
+                        {
+                            key: peer.get(key)
+                            for key in (
+                                "peer_id",
+                                "connected",
+                                "established",
+                                "identity_verified",
+                                "account_id",
+                                "banned",
+                                "strikes",
+                                "last_error",
+                            )
+                        }
+                        for peer in status["peers"]["peers"]
+                        if peer["connected"] or peer["banned"] or peer["strikes"]
+                    ],
+                }
+                for validator, status in statuses.items()
+            }
+            pytest.fail(json.dumps(evidence, sort_keys=True))
 
         for worker in workers.values():
             worker.send("set_view", view=next_view)
