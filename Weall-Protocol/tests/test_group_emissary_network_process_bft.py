@@ -196,6 +196,10 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         finally:
             node._release_spec_exec_slot(slot)
         return evidence
+    if command == "peer_strike_debug":
+        # Synthetic worker-only diagnostics: preserve the real strike/ban
+        # policy, but expose why an honest restarted validator was rejected.
+        return list(getattr(loop, "_test_strike_events", []))
     if command == "peer_status":
         assert loop.node is not None
         return {
@@ -603,6 +607,37 @@ def _run_worker(
             loop._last_bft_propose_ms = now_ms
             loop._last_bft_vote_ms = now_ms
             loop._last_bft_timeout_ms = now_ms
+            from weall.net.node import NetNode
+
+            # Only the separate test worker installs this bounded tracer.
+            # It observes the existing call sites; never reduces strike
+            # weights, resets bans, or patches wire/session verification.
+            strikes: list[Json] = []
+            original_strike = NetNode._strike
+
+            def observed_strike(net_node, rec, weight):
+                caller = sys._getframe(1)
+                msg = caller.f_locals.get("msg")
+                exc = caller.f_locals.get("e")
+                strikes.append(
+                    {
+                        "peer_id": str(rec.peer_id),
+                        "weight": int(weight),
+                        "callsite": int(caller.f_lineno),
+                        "message_type": str(
+                            getattr(getattr(msg, "header", None), "type", "") or ""
+                        ),
+                        "exception_type": type(exc).__name__ if exc is not None else "",
+                        "exception_reason": str(exc)[:160] if exc is not None else "",
+                        "session_status": str(rec.router.handshake.status),
+                    }
+                )
+                if len(strikes) > 64:
+                    del strikes[:-64]
+                return original_strike(net_node, rec, weight)
+
+            NetNode._strike = observed_strike
+            loop._test_strike_events = strikes
             assert loop.start() is True
         else:
             loop.node = _CaptureBroadcast(executor, validator)
@@ -1570,8 +1605,14 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
 
             evidence = {
                 "lagging": peer_evidence(last_rejoin_status),
+                "lagging_strike_trace": workers[offline].send("peer_strike_debug"),
                 "online": {
                     validator: peer_evidence(worker.send("peer_status"))
+                    for validator, worker in workers.items()
+                    if validator != offline
+                },
+                "online_strike_traces": {
+                    validator: worker.send("peer_strike_debug")
                     for validator, worker in workers.items()
                     if validator != offline
                 },
