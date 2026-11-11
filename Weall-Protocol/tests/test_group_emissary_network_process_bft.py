@@ -229,6 +229,7 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         # Only the test transport/server lifecycle is supplied by this harness.
         import uvicorn
         from fastapi import FastAPI
+        from fastapi.responses import JSONResponse
 
         from weall.api.routes_public_parts.state import router as state_router
 
@@ -236,6 +237,30 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         app = FastAPI()
         app.state.executor = node
         app.include_router(state_router, prefix="/v1")
+        fault_lock = threading.Lock()
+        fault_state = {"remaining": 0, "rejected": 0, "reads": 0}
+        loop._test_block_http_fault_lock = fault_lock
+        loop._test_block_http_fault_state = fault_state
+
+        @app.middleware("http")
+        async def fail_initial_block_reads(request_http, call_next):
+            # Transport fault injection is test-local: only delay block HTTP,
+            # never patch the production handler or the consensus verifier.
+            if request_http.method == "GET" and request_http.url.path.startswith(
+                "/v1/state/block/"
+            ):
+                with fault_lock:
+                    fault_state["reads"] += 1
+                    reject = fault_state["remaining"] > 0
+                    if reject:
+                        fault_state["remaining"] -= 1
+                        fault_state["rejected"] += 1
+                if reject:
+                    return JSONResponse(
+                        status_code=503,
+                        content={"ok": False, "error": "temporary_test_transport_outage"},
+                    )
+            return await call_next(request_http)
         server = uvicorn.Server(
             uvicorn.Config(
                 app,
@@ -254,6 +279,20 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
             time.sleep(0.05)
         assert server.started is True
         return {"url": f"http://127.0.0.1:{port}"}
+    if command == "configure_block_http_outage":
+        # Configure bounded, deterministic HTTP transport failures only after
+        # the direct positive/negative raw-route permission probes.
+        failures = int(request["failed_requests"])
+        assert 0 <= failures <= 2
+        with loop._test_block_http_fault_lock:
+            state = loop._test_block_http_fault_state
+            state["remaining"] = failures
+            state["rejected"] = 0
+            state["reads"] = 0
+        return {"scheduled_failures": failures}
+    if command == "block_http_outage_status":
+        with loop._test_block_http_fault_lock:
+            return dict(loop._test_block_http_fault_state)
     if command == "enable_bft_fetch":
         # Unlock the normal production NetMeshLoop fetch tick only after the
         # returning node has authenticated all surviving TCP identities.
@@ -1584,6 +1623,9 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert raw_payload["ok"] is True
         assert raw_payload["block"]["block_id"] == certified_view5["block_id"]
 
+        assert workers[source].send(
+            "configure_block_http_outage", failed_requests=2
+        ) == {"scheduled_failures": 2}
         assert workers[offline].send("enable_bft_fetch", base_url=source_url) == {
             "enabled": True,
             "sources": 1,
@@ -1604,7 +1646,12 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert stage_one["height"] >= 4, {
             "lagging": stage_one,
             "fetch": workers[offline].send("fetch_debug"),
+            "http_faults": workers[source].send("block_http_outage_status"),
         }
+        outage = workers[source].send("block_http_outage_status")
+        assert outage["remaining"] == 0, outage
+        assert outage["rejected"] == 2, outage
+        assert outage["reads"] >= 3, outage
 
         # Deliver the surviving quorum's actual signed, not-yet-committed
         # descendants through authenticated TCP. Those bodies establish the
