@@ -1295,11 +1295,7 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
                 # A later timeout certificate may replace the latest TC after
                 # finality. Retain the first independently verified view-1 TC.
                 tc = frontier["timeout_certificate"]
-                if (
-                    isinstance(tc, dict)
-                    and tc["view"] == 1
-                    and set(tc["signers"]) == surviving
-                ):
+                if isinstance(tc, dict) and tc["view"] == 1 and set(tc["signers"]) == surviving:
                     observed_view1_certificates[validator] = tc
             if len(observed_view1_certificates) == len(surviving) and all(
                 final_snapshots[validator]["height"] >= 2
