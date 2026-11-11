@@ -46,6 +46,27 @@ The columns enumerate fields that changed in `changed_fields_against_checked_in_
 
 **Additional specific comparison:** The appeal candidate adds `appeal_panel_available_candidate_count`, `appeal_panel_blocked_reason`, `appeal_panel_required_size`, `appeal_pending_since_height`, and `appeal_substitute_required_count`, while the tracked derivation included five ballot-mutation keys now absent from that static transaction slice. This is a material boundary to review, not an assertion that appeal voting was removed from runtime.
 
+## Follow-up: dynamic-error AST extraction correction
+
+The compiler's `_extract_failures` previously treated a dynamic first
+argument to `RolesApplyError` as the literal canonical failure code
+`RolesApplyError`. This is not the code emitted by
+`_require_role_activation_eligible`: the typed runtime exception receives
+`decision["code"]` and `decision["reason"]` from the operative pure
+predicate. The narrow reviewed correction maps **only** these unresolved
+dynamic `RolesApplyError` call sites to the existing registered static
+fallback `runtime_apply_error:see_handler`. It does not fabricate individual
+runtime failure codes or constitute semantic acceptance.
+
+A proposed generic dynamic-first-argument correction was observed in CI to
+expand stale review digests from 20 to 43 transactions, including 23 additional
+PoH transactions. That broad change was not accepted in this increment.
+Other dynamic error families remain an explicit **future static-analysis
+audit task**; their earlier reports must not be assumed complete or
+independently verified. The 11 predicate/exception propagation runtime tests
+and the four AST extractor regressions are evidence, not authorization to
+refresh any reviewed digest.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
