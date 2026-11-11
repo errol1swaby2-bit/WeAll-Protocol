@@ -111,9 +111,7 @@ def _fixture() -> dict:
 
 def _admit_and_execute(state: dict, signed: dict) -> dict:
     envelope = TxEnvelope.from_json(signed)
-    verdict = admit_tx(
-        envelope, state, canon=load_default_tx_index(), context="block"
-    )
+    verdict = admit_tx(envelope, state, canon=load_default_tx_index(), context="block")
     assert verdict.ok, f"{envelope.tx_type}: {verdict}"
     applied = apply_tx_atomic_meta_bounded_rollback(state, envelope)
     assert isinstance(applied, dict)
@@ -125,9 +123,7 @@ def _run(turnout: int) -> dict:
     state = _fixture()
     group = state["roles"]["groups_by_id"]["g:signed"]
     original_signers = list(group["signers"])
-    original_treasury = list(
-        state["roles"]["treasuries_by_id"][group["treasury_id"]]["signers"]
-    )
+    original_treasury = list(state["roles"]["treasuries_by_id"][group["treasury_id"]]["signers"])
     _admit_and_execute(
         state,
         _signed(
