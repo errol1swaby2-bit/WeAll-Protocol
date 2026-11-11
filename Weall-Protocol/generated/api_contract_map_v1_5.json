@@ -8,7 +8,7 @@
     "disputes": 8,
     "economics": 5,
     "gov": 15,
-    "groups": 9,
+    "groups": 11,
     "health": 3,
     "helper_readiness": 1,
     "media": 6,
@@ -38,7 +38,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 159,
+  "route_count": 161,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -166,7 +166,7 @@
       "route_id": "db3e7abe13b2eeaa",
       "route_path_without_v1_prefix": "/accounts/{account}/nonce",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2058,
+      "source_lineno": 2229,
       "summary": "",
       "tags": [
         "tx"
@@ -1112,7 +1112,7 @@
       "route_id": "29efd6a28c8692ed",
       "route_path_without_v1_prefix": "/groups",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 441,
+      "source_lineno": 443,
       "summary": "",
       "tags": [
         "groups"
@@ -1134,7 +1134,7 @@
       "route_id": "cdb02f51a1bac5b7",
       "route_path_without_v1_prefix": "/groups/join",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 578,
+      "source_lineno": 746,
       "summary": "",
       "tags": [
         "groups"
@@ -1156,7 +1156,7 @@
       "route_id": "88c87869abd7ebbd",
       "route_path_without_v1_prefix": "/groups/leave",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 608,
+      "source_lineno": 776,
       "summary": "",
       "tags": [
         "groups"
@@ -1178,7 +1178,7 @@
       "route_id": "d2252da524964f65",
       "route_path_without_v1_prefix": "/groups/{group_id}",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 479,
+      "source_lineno": 481,
       "summary": "",
       "tags": [
         "groups"
@@ -1200,12 +1200,56 @@
       "route_id": "e91c601cbde31684",
       "route_path_without_v1_prefix": "/groups/{group_id}/content",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 635,
+      "source_lineno": 803,
       "summary": "",
       "tags": [
         "groups"
       ],
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_canonical_group_emissary_election_projection",
+      "cache_policy": "no_store_dynamic_public_election_read_model",
+      "error_model": "standard_api_error_envelope_or_group_election_read_payload",
+      "function": "v1_group_elections",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "module": "groups",
+      "path": "/v1/groups/{group_id}/elections",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "route_id": "b9d64e1eb84fd17b",
+      "route_path_without_v1_prefix": "/groups/{group_id}/elections",
+      "source": "src/weall/api/routes_public_parts/groups.py",
+      "source_lineno": 616,
+      "summary": "",
+      "tags": [
+        "groups"
+      ],
+      "truth_boundary": "Public, scoped, derived election read model only; no voter/ballot-map disclosure, no nominee eligibility or election activation authority. Signed ballot envelopes currently expose signer and plaintext ranking; no secret-ballot claim."
+    },
+    {
+      "auth": "public_read_canonical_group_emissary_election_projection",
+      "cache_policy": "no_store_dynamic_public_election_read_model",
+      "error_model": "standard_api_error_envelope_or_group_election_read_payload",
+      "function": "v1_group_election_detail",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "module": "groups",
+      "path": "/v1/groups/{group_id}/elections/{election_id}",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "route_id": "219a564356782f7c",
+      "route_path_without_v1_prefix": "/groups/{group_id}/elections/{election_id}",
+      "source": "src/weall/api/routes_public_parts/groups.py",
+      "source_lineno": 655,
+      "summary": "",
+      "tags": [
+        "groups"
+      ],
+      "truth_boundary": "Public, scoped, derived election read model only; no voter/ballot-map disclosure, no nominee eligibility or election activation authority. Signed ballot envelopes currently expose signer and plaintext ranking; no secret-ballot claim."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -1222,7 +1266,7 @@
       "route_id": "082e36186a8bca97",
       "route_path_without_v1_prefix": "/groups/{group_id}/feed",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 697,
+      "source_lineno": 865,
       "summary": "",
       "tags": [
         "groups"
@@ -1244,7 +1288,7 @@
       "route_id": "3b9f1f7e577020e3",
       "route_path_without_v1_prefix": "/groups/{group_id}/governance-contract",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 503,
+      "source_lineno": 505,
       "summary": "",
       "tags": [
         "groups"
@@ -1266,7 +1310,7 @@
       "route_id": "3b69ac9b201cc37e",
       "route_path_without_v1_prefix": "/groups/{group_id}/members",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 523,
+      "source_lineno": 691,
       "summary": "",
       "tags": [
         "groups"
@@ -1288,7 +1332,7 @@
       "route_id": "476f099dcce4f6d4",
       "route_path_without_v1_prefix": "/groups/{group_id}/membership",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 512,
+      "source_lineno": 680,
       "summary": "",
       "tags": [
         "groups"
@@ -1772,7 +1816,7 @@
       "route_id": "b0187fa58e1688ae",
       "route_path_without_v1_prefix": "/observer/edge/reconcile/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2109,
+      "source_lineno": 2280,
       "summary": "",
       "tags": [
         "tx"
@@ -1794,7 +1838,7 @@
       "route_id": "04995dd6136e4668",
       "route_path_without_v1_prefix": "/observer/edge/status",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2071,
+      "source_lineno": 2242,
       "summary": "",
       "tags": [
         "tx"
@@ -1816,7 +1860,7 @@
       "route_id": "b2fe3cc719b867ce",
       "route_path_without_v1_prefix": "/observer/edge/tx-queue/drain",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2097,
+      "source_lineno": 2268,
       "summary": "",
       "tags": [
         "tx"
@@ -3466,7 +3510,7 @@
       "route_id": "d2201e5bc7a4e9b1",
       "route_path_without_v1_prefix": "/tx/catalog",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2340,
+      "source_lineno": 2515,
       "summary": "",
       "tags": [
         "tx"
@@ -3488,7 +3532,7 @@
       "route_id": "229010cafa55f7fb",
       "route_path_without_v1_prefix": "/tx/status/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2122,
+      "source_lineno": 2293,
       "summary": "",
       "tags": [
         "tx"
@@ -3510,7 +3554,7 @@
       "route_id": "961aec58581a92df",
       "route_path_without_v1_prefix": "/tx/submit",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1838,
+      "source_lineno": 2009,
       "summary": "",
       "tags": [
         "tx"
