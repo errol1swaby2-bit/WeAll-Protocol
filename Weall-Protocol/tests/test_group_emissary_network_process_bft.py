@@ -809,9 +809,7 @@ def test_canonical_commit_preserves_live_bft_metadata_after_stale_candidate(
     """
     with bft._env(bft._setup_env()):
         executor = bft._make_executor(tmp_path, "bft-commit-liveness")
-        candidate = executor.build_block_candidate(
-            max_txs=0, allow_empty=True, force_ts_ms=1000
-        )
+        candidate = executor.build_block_candidate(max_txs=0, allow_empty=True, force_ts_ms=1000)
         block, candidate_state, applied_ids, invalid_ids, err = candidate
         assert err == ""
         assert isinstance(block, dict)
@@ -867,9 +865,7 @@ def test_atomic_bft_state_survives_postcommit_housekeeping_failure(
     """
     with bft._env(bft._setup_env()):
         executor = bft._make_executor(tmp_path, "bft-atomic-state")
-        candidate = executor.build_block_candidate(
-            max_txs=0, allow_empty=True, force_ts_ms=1000
-        )
+        candidate = executor.build_block_candidate(max_txs=0, allow_empty=True, force_ts_ms=1000)
         block, candidate_state, applied_ids, invalid_ids, err = candidate
         assert err == ""
         assert isinstance(block, dict)
@@ -1256,9 +1252,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                         validator: worker.send("frontier_debug")
                         for validator, worker in workers.items()
                     },
-                    "speculative_parent_replay": workers[leader].send(
-                        "speculative_parent_debug"
-                    ),
+                    "speculative_parent_replay": workers[leader].send("speculative_parent_debug"),
                 },
                 sort_keys=True,
             )
