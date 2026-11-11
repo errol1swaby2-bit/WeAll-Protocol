@@ -274,9 +274,9 @@ def commit_block_candidate(
         self.state = new_state
         try:
             current_epoch = int(self._current_validator_epoch())
-            current_set_hash = (
-                str(self._current_validator_set_hash() or "") if current_epoch > 0 else ""
-            )
+            current_set_hash = ""
+            if current_epoch > 0:
+                current_set_hash = str(self._current_validator_set_hash() or "")
             same_validator_generation = (
                 current_epoch == int(previous_epoch)
                 and current_set_hash == str(previous_set_hash or "")
