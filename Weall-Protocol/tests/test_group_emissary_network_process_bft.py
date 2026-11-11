@@ -344,7 +344,8 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
             "finalized_replay_path": sorted(
                 frontier_impl._finalized_replay_path_ids(
                     node, str(node._bft.finalized_block_id or "")
-                ) or []
+                )
+                or []
             ),
             "runtime": loop.runtime_debug(),
         }
