@@ -299,6 +299,8 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     if command == "fetch_debug":
         pending_ids = node._ordered_pending_block_ids()
         speculative = node._bft_speculative_blocks_map()
+        from weall.runtime import bft_pending_frontier_impl as frontier_impl
+
         return {
             "height": int(node.state.get("height") or 0),
             "tip": str(node.state.get("tip") or ""),
@@ -340,8 +342,8 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
                 and int(record.get("height") or 0) > int(node.state.get("height") or 0)
             ][:16],
             "finalized_replay_path": sorted(
-                node._finalized_replay_path_ids(
-                    str(node._bft.finalized_block_id or "")
+                frontier_impl._finalized_replay_path_ids(
+                    node, str(node._bft.finalized_block_id or "")
                 ) or []
             ),
             "runtime": loop.runtime_debug(),
