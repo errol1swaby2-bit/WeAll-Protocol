@@ -809,9 +809,10 @@ def test_canonical_commit_preserves_live_bft_metadata_after_stale_candidate(
     """
     with bft._env(bft._setup_env()):
         executor = bft._make_executor(tmp_path, "bft-commit-liveness")
-        block, candidate_state, applied_ids, invalid_ids, err = executor.build_block_candidate(
+        candidate = executor.build_block_candidate(
             max_txs=0, allow_empty=True, force_ts_ms=1000
         )
+        block, candidate_state, applied_ids, invalid_ids, err = candidate
         assert err == ""
         assert isinstance(block, dict)
         assert isinstance(candidate_state, dict)
