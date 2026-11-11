@@ -123,3 +123,8 @@
 
 - Added a narrowly scoped integration test to the existing production P0-03 BFT composition harness. A signed activated election CREATE must enter HTTP admission, pass a real proposed block, receive signed QCs from four validators over a three-chain, commit identically on all validators, and survive one follower restart with durable receipt and frozen Tier 2 quorum snapshot.
 - This is explicitly **election creation only**, not a QC-certified tally, independent network node PoH, real genesis, or confidential ballot transport. Test-only authority and activation are synthetic; draft release gates remain mandatory.
+
+## Four-validator QC-certified ballot + finalize lifecycle (2026-11-10; CI pending)
+
+- New parameterized P0-03 BFT production composition regression: test-only 3-of-5 and 4-of-5 turnout. Each signed create/cast/finalize stage is proposed, voted on by independent validator executors, QC-linked through a full three-chain, checked for equal final state roots, then checked after restarted follower recovery. No no-quorum treasury authority transfer is permitted.
+- Not a live network BFT test, public confidential-ballot proof, operator registration proof, or constitutional activation. PR #88 remains DRAFT / NO-GO.

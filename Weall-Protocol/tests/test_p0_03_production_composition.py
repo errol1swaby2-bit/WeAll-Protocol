@@ -7,6 +7,8 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from weall.crypto.sig import sign_signature_for_profile, sign_tx_envelope_dict
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.net.messages import BftProposalMsg, MsgType, WireHeader
@@ -831,3 +833,208 @@ def test_four_validator_qc_finalizes_signed_emissary_election_creation(
     assert isinstance(persisted, dict)
     assert persisted["block_id"] == block1["block_id"]
     assert persisted["receipts"] == block1["receipts"]
+
+@pytest.mark.parametrize(
+    "turnout",
+    [3, 4],
+    ids=["below_quorum_preserves_treasury", "quorum_met_transfers_treasury"],
+)
+def test_four_validator_qc_finalizes_signed_emissary_ballots_and_treasury(
+    tmp_path: Path,
+    turnout: int,
+) -> None:
+    """QC-certify every election stage in synthetic four-validator production composition.
+
+    View 1 creates the election, view 4 commits ballots and view 7 finalizes.
+    Each stage is followed by two descendants so HotStuff commits the
+    relevant transaction-containing block; never mistake a QC for finality.
+    """
+    pubs, privs = _key_material()
+    nodes, boundary_id, _boundary_hash = _install_prod_boundary(
+        tmp_path,
+        pubs=pubs,
+        privs=privs,
+        seed_emissary_electorate=True,
+    )
+    _prepare_transition_qc(
+        nodes,
+        boundary_id=boundary_id,
+        pubs=pubs,
+        privs=privs,
+    )
+
+    creator = "@emissarycreator"
+    candidates = [f"@e{i:02d}" for i in range(5)]
+    election_id = "e:bft-quorum"
+    group_id = "g:bft-election"
+    original_group = nodes[VALIDATORS[0]].state["roles"]["groups_by_id"][group_id]
+    original_signers = list(original_group["signers"])
+    treasury_id = original_group["treasury_id"]
+    original_treasury = list(
+        nodes[VALIDATORS[0]].state["roles"]["treasuries_by_id"][treasury_id]["signers"]
+    )
+
+    def signed(kind: str, actor: str, nonce: int, payload: Json) -> Json:
+        _pub, private = deterministic_mldsa_keypair(label=f"p0-03-group:{actor}")
+        return sign_tx_envelope_dict(
+            tx={
+                "tx_type": kind,
+                "signer": actor,
+                "nonce": nonce,
+                "chain_id": CHAIN_ID,
+                "network_id": CHAIN_ID,
+                "payload": payload,
+            },
+            privkey=private.private_bytes_raw().hex(),
+        )
+
+    def submit_at_view(view: int, signed_txs: list[Json]) -> None:
+        leader = leader_for_view(VALIDATORS, view)
+        with _env(_prod_env(leader, pub=pubs[leader], priv=privs[leader])):
+            for tx in signed_txs:
+                accepted = nodes[leader].submit_tx(tx, ingress="http")
+                assert accepted["ok"] is True, (view, tx["tx_type"], accepted)
+
+    proposals: dict[int, Json] = {}
+    for view in range(1, 10):
+        submitted: list[Json] = []
+        if view == 1:
+            submitted = [
+                signed(
+                    "GROUP_EMISSARY_ELECTION_CREATE",
+                    creator,
+                    1,
+                    {
+                        "group_id": group_id,
+                        "election_id": election_id,
+                        "seats": 5,
+                        "candidates": candidates,
+                        "start_height": 2,
+                        "end_height": 7,
+                    },
+                )
+            ]
+        elif view == 4:
+            assert all(int(node.state["height"]) == 2 for node in nodes.values())
+            for node in nodes.values():
+                election = node.state["group_emissary_elections"][election_id]
+                assert election["status"] == "open"
+                assert election["voter_snapshot"] == candidates
+                assert election["required_votes"] == 4
+            submitted = [
+                signed(
+                    "GROUP_EMISSARY_BALLOT_CAST",
+                    voter,
+                    1,
+                    {"election_id": election_id, "ranking": candidates},
+                )
+                for voter in candidates[:turnout]
+            ]
+        elif view == 7:
+            assert all(int(node.state["height"]) == 5 for node in nodes.values())
+            for node in nodes.values():
+                election = node.state["group_emissary_elections"][election_id]
+                assert election["status"] == "open"
+                assert node.state["roles"]["groups_by_id"][group_id]["signers"] == original_signers
+                assert (
+                    node.state["roles"]["treasuries_by_id"][treasury_id]["signers"]
+                    == original_treasury
+                )
+            submitted = [
+                signed(
+                    "GROUP_EMISSARY_ELECTION_FINALIZE",
+                    creator,
+                    2,
+                    {"group_id": group_id, "election_id": election_id},
+                )
+            ]
+
+        if submitted:
+            submit_at_view(view, submitted)
+        leader, block = _propose(
+            nodes,
+            view=view,
+            pubs=pubs,
+            privs=privs,
+            max_txs=len(submitted),
+        )
+        proposals[view] = block
+        if submitted:
+            receipts = block.get("receipts")
+            assert isinstance(receipts, list) and len(receipts) == len(submitted)
+            assert all(receipt.get("ok") is True for receipt in receipts)
+            assert sorted(receipt["tx_type"] for receipt in receipts) == sorted(
+                tx["tx_type"] for tx in submitted
+            )
+
+        votes = _follower_votes(
+            nodes,
+            block,
+            leader=leader,
+            pubs=pubs,
+            privs=privs,
+        )
+        qc = _form_qc(nodes[leader], leader, votes, pubs=pubs, privs=privs)
+        assert qc["block_id"] == block["block_id"]
+        _broadcast_qc(nodes, qc, pubs=pubs, privs=privs)
+
+        if view in (3, 6, 9):
+            containing_view = view - 2
+            expected = proposals[containing_view]
+            expected_height = {3: 2, 6: 5, 9: 8}[view]
+            roots = set()
+            for node in nodes.values():
+                assert node._bft.finalized_block_id == expected["block_id"]
+                assert node.state["tip"] == expected["block_id"]
+                assert int(node.state["height"]) == expected_height
+                roots.add(compute_state_root(node.state))
+            assert len(roots) == 1
+
+    for node in nodes.values():
+        election = node.state["group_emissary_elections"][election_id]
+        group = node.state["roles"]["groups_by_id"][group_id]
+        treasury = node.state["roles"]["treasuries_by_id"][treasury_id]
+        assert election["quorum_policy_version"] == 1
+        assert election["eligible_voter_count"] == 5
+        assert election["required_votes"] == 4
+        assert election["n_ballots"] == turnout
+        if turnout == 3:
+            assert election["status"] == "no_decision"
+            assert election["no_decision_reason"] == "quorum_unmet"
+            assert group["signers"] == original_signers
+            assert treasury["signers"] == original_treasury
+        else:
+            assert election["status"] == "finalized"
+            assert election["quorum_met"] is True
+            assert len(election["winners"]) == 5
+            assert group["signers"] == election["winners"]
+            assert treasury["signers"] == election["winners"]
+            assert group["threshold"] == 3
+            assert treasury["threshold"] == 3
+
+    follower_id = next(vid for vid in VALIDATORS if vid != leader_for_view(VALIDATORS, 7))
+    with _env(_prod_env(follower_id, pub=pubs[follower_id], priv=privs[follower_id])):
+        nodes[follower_id].mark_clean_shutdown()
+        restarted = _make_executor(tmp_path, follower_id, node_id=follower_id)
+
+    assert restarted.state["height"] == 8
+    assert compute_state_root(restarted.state) == compute_state_root(nodes[VALIDATORS[0]].state)
+    for containing_view, height in ((1, 2), (4, 5), (7, 8)):
+        expected = proposals[containing_view]
+        persisted = restarted.get_block_by_height(height)
+        assert isinstance(persisted, dict)
+        assert persisted["block_id"] == expected["block_id"]
+        assert persisted["receipts"] == expected["receipts"]
+
+    election_after_restart = restarted.state["group_emissary_elections"][election_id]
+    group_after_restart = restarted.state["roles"]["groups_by_id"][group_id]
+    treasury_after_restart = restarted.state["roles"]["treasuries_by_id"][treasury_id]
+    assert election_after_restart["status"] == (
+        "no_decision" if turnout == 3 else "finalized"
+    )
+    assert group_after_restart["signers"] == nodes[VALIDATORS[0]].state["roles"][
+        "groups_by_id"
+    ][group_id]["signers"]
+    assert treasury_after_restart["signers"] == nodes[VALIDATORS[0]].state["roles"][
+        "treasuries_by_id"
+    ][treasury_id]["signers"]
