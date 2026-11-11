@@ -97,6 +97,22 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     if command == "broadcast_proposal":
         loop._broadcast_bft_proposal(request["proposal"])
         return {"broadcast_called": True}
+    if command == "qc_observation":
+        block_id = str(request["block_id"])
+        qc = node._bft.high_qc
+        if qc is None or str(qc.block_id) != block_id:
+            return None
+        payload = qc.to_json()
+        votes = payload.get("votes")
+        assert isinstance(votes, list)
+        return {
+            "block_id": block_id,
+            "view": int(payload["view"]),
+            "verified": node.bft_verify_qc_json(payload) is not None,
+            "signers": sorted(
+                {str(vote.get("signer") or "") for vote in votes if isinstance(vote, dict)}
+            ),
+        }
     if command == "sent_votes":
         block_id = str(request["block_id"])
         # The production BFT outbox deletes obligations after successful send.
@@ -689,34 +705,81 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             worker.send("receive_qc", qc=qc0)
             worker.send("set_view", view=1)
 
-        leader = leader_for_view(bft.VALIDATORS, 1)
-        proposal = workers[leader].send("propose", max_txs=0)
-        assert int(proposal["view"]) == 1
-        assert (
-            workers[leader].send("broadcast_proposal", proposal=proposal)["broadcast_called"]
-            is True
-        )
+        proposals: dict[int, Json] = {}
+        for view in (1, 2, 3):
+            for worker in workers.values():
+                worker.send("set_view", view=view)
+            leader = leader_for_view(bft.VALIDATORS, view)
+            proposal = workers[leader].send("propose", max_txs=0)
+            proposals[view] = proposal
+            assert int(proposal["view"]) == view
+            assert (
+                workers[leader].send("broadcast_proposal", proposal=proposal)[
+                    "broadcast_called"
+                ]
+                is True
+            )
 
-        deadline = time.monotonic() + 15
-        follower_votes: dict[str, Json] = {}
-        while time.monotonic() < deadline:
-            for validator, worker in workers.items():
-                if validator == leader:
-                    continue
-                votes = worker.send("sent_votes", block_id=proposal["block_id"])
-                if len(votes) == 1:
-                    follower_votes[validator] = votes[0]
-            if len(follower_votes) == 3:
-                break
-            time.sleep(0.1)
-        assert set(follower_votes) == set(bft.VALIDATORS) - {leader}, {
-            "received": sorted(follower_votes),
-            "expected": sorted(set(bft.VALIDATORS) - {leader}),
-        }
+            # The RPC controller never forwards network votes. They must be
+            # emitted after an authenticated TCP proposal reaches each follower.
+            deadline = time.monotonic() + 18
+            follower_votes: dict[str, Json] = {}
+            while time.monotonic() < deadline:
+                for validator, worker in workers.items():
+                    if validator == leader:
+                        continue
+                    votes = worker.send("sent_votes", block_id=proposal["block_id"])
+                    if len(votes) == 1:
+                        follower_votes[validator] = votes[0]
+                if len(follower_votes) == 3:
+                    break
+                time.sleep(0.1)
+            expected_followers = set(bft.VALIDATORS) - {leader}
+            assert set(follower_votes) == expected_followers, {
+                "view": view,
+                "received": sorted(follower_votes),
+                "expected": sorted(expected_followers),
+            }
+            assert all(
+                vote["signer"] == validator and vote["block_id"] == proposal["block_id"]
+                for validator, vote in follower_votes.items()
+            )
+
+            # QCs must emerge from production vote handlers and be delivered
+            # through peer sockets. Inspect validated QC state on each process;
+            # do not inject a QC through RPC as the earlier baseline did.
+            qc_observations: dict[str, Json] = {}
+            deadline = time.monotonic() + 18
+            while time.monotonic() < deadline:
+                for validator, worker in workers.items():
+                    observation = worker.send(
+                        "qc_observation", block_id=proposal["block_id"]
+                    )
+                    if isinstance(observation, dict) and observation["verified"]:
+                        qc_observations[validator] = observation
+                if len(qc_observations) == 4:
+                    break
+                time.sleep(0.1)
+            assert set(qc_observations) == set(bft.VALIDATORS), {
+                "view": view,
+                "observed": sorted(qc_observations),
+            }
+            assert all(
+                observation["view"] == view
+                and len(observation["signers"]) >= 3
+                and set(observation["signers"]) <= set(bft.VALIDATORS)
+                for observation in qc_observations.values()
+            )
+
+        # The certified 3-chain must finalize view 1 on every independent
+        # process. The controller drives views, never network messages.
+        snapshots = [worker.send("snapshot") for worker in workers.values()]
+        assert all(snap["height"] == 2 for snap in snapshots), snapshots
+        assert all(snap["tip"] == proposals[1]["block_id"] for snap in snapshots)
         assert all(
-            vote["signer"] == validator and vote["block_id"] == proposal["block_id"]
-            for validator, vote in follower_votes.items()
+            snap["finalized_block_id"] == proposals[1]["block_id"] for snap in snapshots
         )
+        assert len({snap["state_root"] for snap in snapshots}) == 1
     finally:
         for worker in workers.values():
             worker.close()
