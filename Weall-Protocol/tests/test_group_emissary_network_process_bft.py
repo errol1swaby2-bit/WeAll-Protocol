@@ -1433,9 +1433,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 "certified": sorted(qc_proven),
             }
             if view in (5, 8):
-                captured_qc = workers[leader].send(
-                    "export_high_qc", block_id=proposal["block_id"]
-                )
+                captured_qc = workers[leader].send("export_high_qc", block_id=proposal["block_id"])
                 assert isinstance(captured_qc, dict)
                 assert captured_qc["block_id"] == proposal["block_id"]
                 if view == 5:
@@ -1621,9 +1619,10 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             )
             assert result["broadcast_called"] is True
         source8 = leader_for_view(bft.VALIDATORS, 8)
-        assert workers[source8].send(
-            "broadcast_signed_qc", qc=certified_view8
-        )["broadcast_called"] is True
+        assert (
+            workers[source8].send("broadcast_signed_qc", qc=certified_view8)["broadcast_called"]
+            is True
+        )
         catchup_deadline = time.monotonic() + 25
         caught_up: Json = {}
         last_fetch_descriptors: list[Json] = []
