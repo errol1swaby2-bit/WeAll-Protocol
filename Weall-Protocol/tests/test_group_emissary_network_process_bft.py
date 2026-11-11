@@ -1297,20 +1297,18 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
                 for validator, worker in workers.items()
             }
             if all(
-                state["height"] >= 2
-                and frontier["view"] >= 5
-                and isinstance(frontier["timeout_certificate"], dict)
-                for validator, (state, frontier) in (
-                    (validator, (final_snapshots[validator], liveness_frontiers[validator]))
-                    for validator in surviving
-                )
+                final_snapshots[validator]["height"] >= 2
+                and liveness_frontiers[validator]["view"] >= 5
+                and isinstance(liveness_frontiers[validator]["timeout_certificate"], dict)
+                for validator in surviving
             ):
                 break
             time.sleep(0.15)
 
-        assert all(
-            snap["height"] == 2 for snap in final_snapshots.values()
-        ), {"snapshots": final_snapshots, "frontiers": liveness_frontiers}
+        assert all(snap["height"] == 2 for snap in final_snapshots.values()), {
+            "snapshots": final_snapshots,
+            "frontiers": liveness_frontiers,
+        }
         assert len({snap["tip"] for snap in final_snapshots.values()}) == 1
         assert len({snap["state_root"] for snap in final_snapshots.values()}) == 1
         assert all(
