@@ -75,7 +75,9 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          target=Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json
+          # This step runs with working-directory: Weall-Protocol.
+          # Git pathspecs below are relative to that directory.
+          target=generated/b528_b532_completion_proof_v1_5.json
           if git diff --quiet -- "$target"; then
             echo "B528 derivative is already current."
             exit 0
