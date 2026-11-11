@@ -91,6 +91,21 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     command = request["command"]
     if command == "snapshot":
         return _worker_snapshot(node)
+    if command == "peer_status":
+        assert loop.node is not None
+        return {"runtime": loop.runtime_debug(), "peers": loop.node.peers_debug()}
+    if command == "broadcast_proposal":
+        loop._broadcast_bft_proposal(request["proposal"])
+        return {"broadcast_called": True}
+    if command == "outbound_votes":
+        block_id = str(request["block_id"])
+        return [
+            item["payload"]
+            for item in node.bft_pending_outbound_messages()
+            if item.get("kind") == "vote"
+            and isinstance(item.get("payload"), dict)
+            and str(item["payload"].get("block_id")) == block_id
+        ]
     if command == "transition_vote":
         assert node.bft_leader_propose(max_txs=0) is None
         boundary = str(request["block_id"])
@@ -181,24 +196,56 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     raise ValueError(f"unknown_command:{command}")
 
 
-def _run_worker(root: Path, validator: str, ready: Path) -> None:
+def _run_worker(
+    root: Path,
+    validator: str,
+    ready: Path,
+    *,
+    mesh_port: int = 0,
+    mesh_peers: tuple[int, ...] = (),
+) -> None:
     pubs, privs = bft._key_material()
-    with bft._env(bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])):
+    env = bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])
+    if mesh_port:
+        env.update(
+            {
+                "WEALL_NET_TRANSPORT": "tcp",
+                "WEALL_NET_REQUIRE_IDENTITY": "1",
+                "WEALL_NET_REQUIRE_IDENTITY_FOR_BFT": "1",
+                "WEALL_PEER_ID": validator,
+                "WEALL_PEERS": ",".join(f"tcp://127.0.0.1:{port}" for port in mesh_peers),
+                "WEALL_PEERS_FILE": str(root / f"peers-{validator[1:]}.json"),
+                "WEALL_BFT_FETCH_ENABLED": "0",
+            }
+        )
+    with bft._env(env):
         executor = bft._make_executor(root, validator, node_id=validator)
         assert executor._validator_signing_permitted() is True
         assert executor._active_validators() == bft.VALIDATORS
         loop = NetMeshLoop(
             executor=executor,
-            mempool=object(),
+            mempool=executor._mempool if mesh_port else object(),
             cfg=NetLoopConfig(
-                enabled=False,
+                enabled=bool(mesh_port),
                 bind_host="127.0.0.1",
-                bind_port=30303,
+                bind_port=mesh_port or 30303,
                 tick_ms=25,
                 schema_version="1",
             ),
         )
-        loop.node = _CaptureBroadcast(executor, validator)
+        if mesh_port:
+            # Suppress spontaneous view-driving during this bounded ingress test;
+            # only real peer transport and network delivery are autonomous.
+            now_ms = int(time.time() * 1000)
+            loop._bft_propose_interval_ms = 120_000
+            loop._bft_vote_interval_ms = 120_000
+            loop._bft_timeout_interval_ms = 120_000
+            loop._last_bft_propose_ms = now_ms
+            loop._last_bft_vote_ms = now_ms
+            loop._last_bft_timeout_ms = now_ms
+            assert loop.start() is True
+        else:
+            loop.node = _CaptureBroadcast(executor, validator)
         loop._bft_enabled = True
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
             listener.bind(("127.0.0.1", 0))
@@ -230,25 +277,38 @@ def _run_worker(root: Path, validator: str, ready: Path) -> None:
                         }
                     stream.write((json.dumps(response, sort_keys=True) + "\n").encode())
                     stream.flush()
+        if mesh_port:
+            loop.stop()
+            loop.join(timeout=3.0)
 
 
 class _NodeProcess:
-    def __init__(self, root: Path, validator: str) -> None:
+    def __init__(
+        self,
+        root: Path,
+        validator: str,
+        *,
+        mesh_port: int = 0,
+        mesh_peers: tuple[int, ...] = (),
+    ) -> None:
         self.validator = validator
         self.ready = root / f"rpc-{validator.replace('@', '')}.json"
         self.log_path = root / f"rpc-{validator.replace('@', '')}.log"
         self.ready.unlink(missing_ok=True)
         self.log = self.log_path.open("w", encoding="utf-8")
+        argv = [
+            sys.executable,
+            "-u",
+            str(Path(__file__).resolve()),
+            "--worker",
+            str(root),
+            validator,
+            str(self.ready),
+        ]
+        if mesh_port:
+            argv.extend([str(mesh_port), ",".join(str(port) for port in mesh_peers)])
         self.proc = subprocess.Popen(
-            [
-                sys.executable,
-                "-u",
-                str(Path(__file__).resolve()),
-                "--worker",
-                str(root),
-                validator,
-                str(self.ready),
-            ],
+            argv,
             cwd=ROOT,
             stdout=self.log,
             stderr=subprocess.STDOUT,
@@ -534,5 +594,140 @@ def test_socket_separated_production_qc_election_recovery(
             worker.close()
 
 
-if __name__ == "__main__" and len(sys.argv) == 5 and sys.argv[1] == "--worker":
-    _run_worker(Path(sys.argv[2]), sys.argv[3], Path(sys.argv[4]))
+def _free_tcp_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
+    tmp_path: Path,
+) -> None:
+    """Real TCP peer sessions, independently authenticated in four Python processes.
+
+    The RPC controller seeds the original boundary and chooses the view. It
+    never relays proposal/vote/QC network messages. This is static-peer loopback
+    transport, not automatic discovery, partition recovery or constitutional
+    activation.
+    """
+    pubs, privs = bft._key_material()
+    seeded, boundary_id, _ = bft._install_prod_boundary(
+        tmp_path,
+        pubs=pubs,
+        privs=privs,
+        seed_emissary_electorate=True,
+    )
+    for validator, executor in seeded.items():
+        with bft._env(bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])):
+            executor.mark_clean_shutdown()
+    seeded.clear()
+
+    workers: dict[str, _NodeProcess] = {}
+    ports = {validator: _free_tcp_port() for validator in bft.VALIDATORS}
+    try:
+        for validator in bft.VALIDATORS:
+            workers[validator] = _NodeProcess(
+                tmp_path,
+                validator,
+                mesh_port=ports[validator],
+                mesh_peers=tuple(
+                    port for other, port in ports.items() if other != validator
+                ),
+            )
+
+        deadline = time.monotonic() + 20
+        last_status: dict[str, Json] = {}
+        while time.monotonic() < deadline:
+            last_status = {
+                validator: worker.send("peer_status")
+                for validator, worker in workers.items()
+            }
+            def connected_identity_set(status: Json) -> set[str]:
+                return {
+                    str(peer["account_id"])
+                    for peer in status["peers"]["peers"]
+                    if peer["connected"]
+                    and peer["established"]
+                    and peer["identity_verified"]
+                    and not peer["banned"]
+                }
+
+            if all(
+                connected_identity_set(last_status[validator])
+                >= (set(bft.VALIDATORS) - {validator})
+                for validator in bft.VALIDATORS
+            ):
+                break
+            time.sleep(0.1)
+
+        for validator in bft.VALIDATORS:
+            status = last_status[validator]
+            assert status["runtime"]["thread_alive"] is True, status
+            assert status["runtime"]["unhealthy"] is False, status
+            assert connected_identity_set(status) >= (
+                set(bft.VALIDATORS) - {validator}
+            ), status
+
+        transition_votes = [
+            worker.send("transition_vote", block_id=boundary_id)
+            for worker in workers.values()
+        ]
+        collector = workers[bft.VALIDATORS[0]]
+        qc0 = None
+        for vote in transition_votes:
+            result = collector.send("receive_vote", vote=vote)
+            if isinstance(result, dict):
+                qc0 = result
+        assert isinstance(qc0, dict)
+        assert qc0["block_id"] == boundary_id
+        for worker in workers.values():
+            worker.send("receive_qc", qc=qc0)
+            worker.send("set_view", view=1)
+
+        leader = leader_for_view(bft.VALIDATORS, 1)
+        proposal = workers[leader].send("propose", max_txs=0)
+        assert int(proposal["view"]) == 1
+        assert workers[leader].send(
+            "broadcast_proposal", proposal=proposal
+        )["broadcast_called"] is True
+
+        deadline = time.monotonic() + 15
+        follower_votes: dict[str, Json] = {}
+        while time.monotonic() < deadline:
+            for validator, worker in workers.items():
+                if validator == leader:
+                    continue
+                votes = worker.send("outbound_votes", block_id=proposal["block_id"])
+                if len(votes) == 1:
+                    follower_votes[validator] = votes[0]
+            if len(follower_votes) == 3:
+                break
+            time.sleep(0.1)
+        assert set(follower_votes) == set(bft.VALIDATORS) - {leader}, {
+            "received": sorted(follower_votes),
+            "expected": sorted(set(bft.VALIDATORS) - {leader}),
+        }
+        assert all(
+            vote["signer"] == validator
+            and vote["block_id"] == proposal["block_id"]
+            for validator, vote in follower_votes.items()
+        )
+    finally:
+        for worker in workers.values():
+            worker.close()
+
+
+if __name__ == "__main__" and len(sys.argv) in (5, 7) and sys.argv[1] == "--worker":
+    mesh_port = int(sys.argv[5]) if len(sys.argv) == 7 else 0
+    mesh_peers = (
+        tuple(int(part) for part in sys.argv[6].split(",") if part)
+        if mesh_port
+        else ()
+    )
+    _run_worker(
+        Path(sys.argv[2]),
+        sys.argv[3],
+        Path(sys.argv[4]),
+        mesh_port=mesh_port,
+        mesh_peers=mesh_peers,
+    )
