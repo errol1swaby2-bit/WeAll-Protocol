@@ -1,12 +1,18 @@
-"""Loopback-process transport for the production four-validator election BFT lifecycle.
+"""Four-validator election BFT regression across isolated production executors.
 
-Four *separate Python interpreter processes*, each with its own production
-WeAllExecutor and persisted SQLite DB, communicate via localhost TCP RPC. The
-controller forwards genuine signed proposals/votes/QCs to production BFT entry
-points. This is not autonomous NetMeshLoop gossip or a public testnet proof.
+The baseline tests run four Python interpreters with separate SQLite stores,
+using a localhost RPC controller to relay genuinely signed proposal, vote and
+QC artifacts to production NetMeshLoop BFT ingress handlers.
 
-All bootstrap authority, group membership, account keys and activation height
-are synthetic test fixtures. Signed ballots disclose signer and ranking.
+The authenticated TCP test instead operates live NetNode/NetMeshLoop sockets.
+Its controller establishes a synthetic transition QC and controls view changes,
+but never forwards post-transition BFT packets. It verifies three-view finality,
+then restarts the next leader from durable state and proves fresh peer sessions,
+another network QC, and four-process committed convergence.
+
+These are fixed localhost peers, not autonomous discovery, partition catch-up,
+public testnet or constitutional approval. All bootstrap authority, group roles
+and keys are synthetic. Signed ballots disclose signer and ranking.
 """
 
 from __future__ import annotations
