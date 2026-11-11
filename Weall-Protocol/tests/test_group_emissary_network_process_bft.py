@@ -1409,6 +1409,60 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
         assert all(block["all_receipts_ok"] for block in committed)
         assert committed[0]["block_id"] == next(iter(final_snapshots.values()))["tip"]
         assert offline_before["height"] == 1
+
+        # Restore the genuine stopped process from its unchanged SQLite files.
+        # The returning node is deliberately one finalized block behind, and
+        # peer authentication must not depend on controller-injected QCs/views.
+        # Block fetch remains disabled: identity rejoin is NOT chain recovery.
+        workers[offline] = _NodeProcess(
+            tmp_path,
+            offline,
+            mesh_port=ports[offline],
+            mesh_peers=tuple(port for other, port in ports.items() if other != offline),
+        )
+        lagging = workers[offline].send("snapshot")
+        assert lagging["height"] == offline_before["height"] == 1
+        assert lagging["tip"] == offline_before["tip"]
+        assert lagging["state_root"] == offline_before["state_root"]
+
+        rejoin_status: Json = {}
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            rejoin_status = workers[offline].send("peer_status")
+            if identities(rejoin_status) >= surviving:
+                break
+            time.sleep(0.1)
+        if identities(rejoin_status) < surviving:
+            evidence = {
+                "offline_handshake": rejoin_status["handshake_context"],
+                "offline_counts": rejoin_status["peers"]["counts"],
+                "offline_peers": [
+                    {
+                        key: peer.get(key)
+                        for key in (
+                            "peer_id",
+                            "connected",
+                            "established",
+                            "identity_verified",
+                            "strikes",
+                            "banned",
+                            "last_error",
+                        )
+                    }
+                    for peer in rejoin_status["peers"]["peers"]
+                    if peer["connected"] or peer["strikes"] or peer["banned"]
+                ],
+                "survivor_handshakes": {
+                    validator: worker.send("peer_status")["handshake_context"]
+                    for validator, worker in workers.items()
+                    if validator != offline
+                },
+            }
+            pytest.fail(json.dumps(evidence, sort_keys=True))
+        assert rejoin_status["runtime"]["thread_alive"] is True
+        assert rejoin_status["runtime"]["unhealthy"] is False
+        # No speculative state was injected and no missing block fetched.
+        assert workers[offline].send("snapshot") == lagging
     finally:
         for worker in workers.values():
             worker.close()
