@@ -980,7 +980,7 @@ def _tx_function_analysis(
                 and name == "dispute_open"
                 and called == "_validate_dispute_target_type"
             )
-            if called.startswith(
+            should_follow_prefix = called.startswith(
                 (
                     "apply_",
                     "_apply_",
@@ -993,7 +993,8 @@ def _tx_function_analysis(
                     "_find_",
                     "_ensure_",
                 )
-            ) or dispute_open_target_validation:
+            )
+            if should_follow_prefix or dispute_open_target_validation:
                 queue.append(called)
 
     reads: set[str] = set()
