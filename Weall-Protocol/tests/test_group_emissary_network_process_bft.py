@@ -91,6 +91,31 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     command = request["command"]
     if command == "snapshot":
         return _worker_snapshot(node)
+    if command == "frontier_debug":
+        return {
+            "height": int(node.state.get("height") or 0),
+            "tip": str(node.state.get("tip") or ""),
+            "finalized": str(node._bft.finalized_block_id or ""),
+            "finalized_view": int(node._bft.finalized_view),
+            "high_qc": (
+                node._bft.high_qc.to_json()["block_id"]
+                if node._bft.high_qc is not None
+                else None
+            ),
+            "pending_candidates": sorted(node._pending_candidates),
+            "pending_remote": sorted(node._pending_remote_blocks),
+            "pending_qcs": sorted(node._pending_missing_qcs),
+            "pending_blocks": [
+                {
+                    "id": block_id,
+                    "height": int(block.get("height") or 0),
+                    "parent": str(block.get("prev_block_id") or ""),
+                }
+                for block_id in node._ordered_pending_block_ids()
+                for block in [node._bft_pending_block_json(block_id)]
+                if isinstance(block, dict)
+            ],
+        }
     if command == "peer_status":
         assert loop.node is not None
         return {"runtime": loop.runtime_debug(), "peers": loop.node.peers_debug()}
@@ -769,11 +794,25 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
 
         # The certified 3-chain must finalize view 1 on every independent
         # process. The controller drives views, never network messages.
+        deadline = time.monotonic() + 8
         snapshots = [worker.send("snapshot") for worker in workers.values()]
-        assert all(snap["height"] == 2 for snap in snapshots), snapshots
-        assert all(snap["tip"] == proposals[1]["block_id"] for snap in snapshots)
-        assert all(snap["finalized_block_id"] == proposals[1]["block_id"] for snap in snapshots)
-        assert len({snap["state_root"] for snap in snapshots}) == 1
+        while time.monotonic() < deadline:
+            if all(
+                snap["height"] == 2
+                and snap["tip"] == proposals[1]["block_id"]
+                for snap in snapshots
+            ):
+                break
+            time.sleep(0.1)
+            snapshots = [worker.send("snapshot") for worker in workers.values()]
+        frontier = {
+            validator: worker.send("frontier_debug")
+            for validator, worker in workers.items()
+        }
+        assert all(snap["height"] == 2 for snap in snapshots), frontier
+        assert all(snap["tip"] == proposals[1]["block_id"] for snap in snapshots), frontier
+        assert all(snap["finalized_block_id"] == proposals[1]["block_id"] for snap in snapshots), frontier
+        assert len({snap["state_root"] for snap in snapshots}) == 1, frontier
     finally:
         for worker in workers.values():
             worker.close()
