@@ -91,6 +91,7 @@ def test_epoch_transition_immediately_prunes_stale_pending_fetch_and_remote_arti
     ex._bft.last_voted_block_id = "old-generation-vote"
     ex._bft.last_proposed_view = 8
     ex._bft.last_proposed_block_id = "old-generation-proposal"
+    ex._persist_bft_state()
     ex._pending_missing_qcs["old-epoch-block"] = {
         "t": "QC",
         "chain_id": ex.chain_id,
@@ -123,6 +124,11 @@ def test_epoch_transition_immediately_prunes_stale_pending_fetch_and_remote_arti
     }
 
     _seed_validator_state(ex, new_validators, pubs, epoch=4)
+    # Reloading new membership alone must not be counted as a safety reset:
+    # these old-generation signer records are still live at this point.
+    assert ex._bft.view == 9
+    assert ex._bft.last_voted_view == 8
+    assert ex._bft.last_proposed_view == 8
     changed = ex._prune_pending_bft_artifacts_on_local_validator_transition(
         previous_epoch=3,
         previous_set_hash=old_set_hash,
