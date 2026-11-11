@@ -55,8 +55,7 @@ def test_dynamic_first_error_argument_does_not_shift_later_literal_reason() -> N
 
 def test_literal_error_codes_and_reasons_remain_precise() -> None:
     node = _fn(
-        "def apply(state):\n"
-        "    raise RolesApplyError('forbidden', 'live_verification_required')\n"
+        "def apply(state):\n    raise RolesApplyError('forbidden', 'live_verification_required')\n"
     )
     expected = [{"code": "forbidden", "reason": "live_verification_required"}]
     assert MODULE._extract_failures(node) == expected
