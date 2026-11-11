@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
 from weall.runtime.bft_hotstuff import validator_set_hash
+from weall.runtime.block_commit import _validator_context_for_state
 from weall.runtime.executor import WeAllExecutor
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
@@ -41,6 +43,38 @@ def _mk_executor(tmp_path: Path) -> tuple[WeAllExecutor, dict[str, str]]:
     return ex, pubs
 
 
+def test_atomic_commit_validator_context_distinguishes_generation_and_set(
+    tmp_path: Path,
+) -> None:
+    """The block transaction must not mistake protocol time for BFT authority."""
+    ex, pubs = _mk_executor(tmp_path)
+    original = ["v1", "v2", "v3", "v4"]
+    _seed_validator_state(ex, original, pubs, epoch=3)
+    before = _validator_context_for_state(ex.state)
+    assert before == (ex._current_validator_epoch(), ex._current_validator_set_hash())
+
+    protocol_epoch_only = copy.deepcopy(ex.state)
+    protocol_epoch_only["consensus"]["epochs"]["current"] = 71
+    assert _validator_context_for_state(protocol_epoch_only) == before
+
+    next_generation = copy.deepcopy(ex.state)
+    next_generation["consensus"]["validator_set"]["epoch"] = 4
+    assert _validator_context_for_state(next_generation) == (4, before[1])
+
+    next_membership = copy.deepcopy(ex.state)
+    replacement = ["v2", "v3", "v4", "v5"]
+    next_membership["consensus"]["validator_set"]["active_set"] = replacement
+    next_membership["consensus"]["validator_set"]["set_hash"] = validator_set_hash(replacement)
+    assert _validator_context_for_state(next_membership) == (
+        3,
+        validator_set_hash(replacement),
+    )
+
+    malformed = copy.deepcopy(ex.state)
+    malformed["consensus"]["validator_set"]["active_set"] = "invalid"
+    assert _validator_context_for_state(malformed) == (3, "")
+
+
 def test_epoch_transition_immediately_prunes_stale_pending_fetch_and_remote_artifacts(
     tmp_path: Path,
 ) -> None:
@@ -50,6 +84,11 @@ def test_epoch_transition_immediately_prunes_stale_pending_fetch_and_remote_arti
     _seed_validator_state(ex, old_validators, pubs, epoch=3)
 
     old_set_hash = ex._current_validator_set_hash()
+    ex._bft.bump_view(9)
+    ex._bft.last_voted_view = 8
+    ex._bft.last_voted_block_id = "old-generation-vote"
+    ex._bft.last_proposed_view = 8
+    ex._bft.last_proposed_block_id = "old-generation-proposal"
     ex._pending_missing_qcs["old-epoch-block"] = {
         "t": "QC",
         "chain_id": ex.chain_id,
@@ -91,6 +130,14 @@ def test_epoch_transition_immediately_prunes_stale_pending_fetch_and_remote_arti
     assert ex.bft_pending_fetch_requests() == []
     assert "old-epoch-block" not in ex._pending_missing_qcs
     assert "old-epoch-block" not in ex._pending_remote_blocks
+    assert ex._bft.view == 0
+    assert ex._bft.last_voted_view == -1
+    assert ex._bft.last_voted_block_id == ""
+    assert ex._bft.last_proposed_view == -1
+    assert ex._bft.last_proposed_block_id == ""
+    persisted_bft = ex._ledger_store.read().get("bft", {})
+    assert persisted_bft.get("last_voted_view") == -1
+    assert persisted_bft.get("last_proposed_view") == -1
 
 
 def test_epoch_transition_prunes_only_stale_epoch_artifacts_and_keeps_current_epoch_entries(
