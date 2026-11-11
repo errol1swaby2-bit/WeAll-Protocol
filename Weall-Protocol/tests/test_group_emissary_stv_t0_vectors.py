@@ -68,7 +68,9 @@ def test_t0_golden_manifest_no_normative_or_privacy_claims() -> None:
 
 
 def test_intended_first_seat_redistributes_full_preference_weight() -> None:
-    case = next(row for row in VECTORS["cases"] if row["id"] == "first_seat_full_preference_redistribution")
+    case = next(
+        row for row in VECTORS["cases"] if row["id"] == "first_seat_full_preference_redistribution"
+    )
     assert _production_winners(case) == ["@a", "@c"]
     assert case["expected"]["quota"] == 3
     # WeAll deliberately moves all four A-first votes to their next eligible
@@ -104,7 +106,7 @@ def _tx(tx_type: str, signer: str, nonce: int, payload: dict) -> TxEnvelope:
         "minimum_five_fill",
         "candidate_count_equals_seats",
         "five_seats_repeated_full_preference_redistribution",
-    ]
+    ],
 )
 def test_canonical_finalize_t0_golden_and_authority_boundary(case_id: str) -> None:
     case = next(row for row in VECTORS["cases"] if row["id"] == case_id)
