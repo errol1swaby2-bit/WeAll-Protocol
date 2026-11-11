@@ -306,6 +306,7 @@ def _install_prod_boundary(
     pubs: dict[str, str],
     privs: dict[str, str],
     seed_emissary_electorate: bool = False,
+    seed_authenticated_validator_keys: bool = False,
 ) -> tuple[dict[str, WeAllExecutor], str, str]:
     with _env(_setup_env()):
         template_seed = _make_executor(root, "template-seed", node_id="bootstrap-boundary")
@@ -316,6 +317,19 @@ def _install_prod_boundary(
         )
         if seed_emissary_electorate:
             _seed_emissary_fixture_in_height_zero_state(canonical)
+        if seed_authenticated_validator_keys:
+            # Synthetic pre-block identity keys for authenticated NetNode tests.
+            # Never retrofit keys after the genesis-boundary state root commits.
+            for vid in VALIDATORS:
+                canonical["accounts"][vid]["keys"] = {
+                    "by_id": {
+                        f"node-key:{vid}": {
+                            "pubkey": pubs[vid],
+                            "active": True,
+                            "revoked": False,
+                        }
+                    }
+                }
 
     boundary_id = ""
     boundary_hash = ""

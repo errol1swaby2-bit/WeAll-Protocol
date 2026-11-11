@@ -616,6 +616,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         pubs=pubs,
         privs=privs,
         seed_emissary_electorate=True,
+        seed_authenticated_validator_keys=True,
     )
     for validator, executor in seeded.items():
         with bft._env(bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])):
