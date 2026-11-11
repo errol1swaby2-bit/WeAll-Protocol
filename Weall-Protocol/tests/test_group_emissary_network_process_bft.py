@@ -630,18 +630,16 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 tmp_path,
                 validator,
                 mesh_port=ports[validator],
-                mesh_peers=tuple(
-                    port for other, port in ports.items() if other != validator
-                ),
+                mesh_peers=tuple(port for other, port in ports.items() if other != validator),
             )
 
         deadline = time.monotonic() + 20
         last_status: dict[str, Json] = {}
         while time.monotonic() < deadline:
             last_status = {
-                validator: worker.send("peer_status")
-                for validator, worker in workers.items()
+                validator: worker.send("peer_status") for validator, worker in workers.items()
             }
+
             def connected_identity_set(status: Json) -> set[str]:
                 return {
                     str(peer["account_id"])
@@ -664,13 +662,10 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             status = last_status[validator]
             assert status["runtime"]["thread_alive"] is True, status
             assert status["runtime"]["unhealthy"] is False, status
-            assert connected_identity_set(status) >= (
-                set(bft.VALIDATORS) - {validator}
-            ), status
+            assert connected_identity_set(status) >= (set(bft.VALIDATORS) - {validator}), status
 
         transition_votes = [
-            worker.send("transition_vote", block_id=boundary_id)
-            for worker in workers.values()
+            worker.send("transition_vote", block_id=boundary_id) for worker in workers.values()
         ]
         collector = workers[bft.VALIDATORS[0]]
         qc0 = None
@@ -687,9 +682,10 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         leader = leader_for_view(bft.VALIDATORS, 1)
         proposal = workers[leader].send("propose", max_txs=0)
         assert int(proposal["view"]) == 1
-        assert workers[leader].send(
-            "broadcast_proposal", proposal=proposal
-        )["broadcast_called"] is True
+        assert (
+            workers[leader].send("broadcast_proposal", proposal=proposal)["broadcast_called"]
+            is True
+        )
 
         deadline = time.monotonic() + 15
         follower_votes: dict[str, Json] = {}
@@ -708,8 +704,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             "expected": sorted(set(bft.VALIDATORS) - {leader}),
         }
         assert all(
-            vote["signer"] == validator
-            and vote["block_id"] == proposal["block_id"]
+            vote["signer"] == validator and vote["block_id"] == proposal["block_id"]
             for validator, vote in follower_votes.items()
         )
     finally:
@@ -719,11 +714,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
 
 if __name__ == "__main__" and len(sys.argv) in (5, 7) and sys.argv[1] == "--worker":
     mesh_port = int(sys.argv[5]) if len(sys.argv) == 7 else 0
-    mesh_peers = (
-        tuple(int(part) for part in sys.argv[6].split(",") if part)
-        if mesh_port
-        else ()
-    )
+    mesh_peers = tuple(int(part) for part in sys.argv[6].split(",") if part) if mesh_port else ()
     _run_worker(
         Path(sys.argv[2]),
         sys.argv[3],
