@@ -42,7 +42,10 @@ def _validator_context_for_state(state: Json) -> tuple[int, str]:
     consensus = state.get("consensus") if isinstance(state, dict) else None
     if generation is None:
         epochs = consensus.get("epochs") if isinstance(consensus, dict) else None
-        generation = max(0, _safe_int(epochs.get("current"), 0)) if isinstance(epochs, dict) else 0
+        if isinstance(epochs, dict):
+            generation = max(0, _safe_int(epochs.get("current"), 0))
+        else:
+            generation = 0
 
     explicit = consensus_active_validator_ids(state)
     validator_set = consensus.get("validator_set") if isinstance(consensus, dict) else None
