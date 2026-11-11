@@ -1282,6 +1282,7 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
 
         final_snapshots: dict[str, Json] = {}
         liveness_frontiers: dict[str, Json] = {}
+        observed_view1_certificates: dict[str, Json] = {}
         deadline = time.monotonic() + 55
         while time.monotonic() < deadline:
             final_snapshots = {
@@ -1290,10 +1291,19 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
             liveness_frontiers = {
                 validator: worker.send("frontier_debug") for validator, worker in workers.items()
             }
-            if all(
+            for validator, frontier in liveness_frontiers.items():
+                # A later timeout certificate may replace the latest TC after
+                # finality. Retain the first independently verified view-1 TC.
+                tc = frontier["timeout_certificate"]
+                if (
+                    isinstance(tc, dict)
+                    and tc["view"] == 1
+                    and set(tc["signers"]) == surviving
+                ):
+                    observed_view1_certificates[validator] = tc
+            if len(observed_view1_certificates) == len(surviving) and all(
                 final_snapshots[validator]["height"] >= 2
                 and liveness_frontiers[validator]["view"] >= 5
-                and isinstance(liveness_frontiers[validator]["timeout_certificate"], dict)
                 for validator in surviving
             ):
                 break
@@ -1309,11 +1319,14 @@ def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
         # All survivors have advanced from view 1 to 2 by independently
         # accepting a three-signer timeout certificate; subsequent views 2-4
         # are justified by the genuinely network-certified proposals.
+        assert set(observed_view1_certificates) == surviving, {
+            "observed_view1_certificates": observed_view1_certificates,
+            "frontiers": liveness_frontiers,
+        }
         for validator, frontier in liveness_frontiers.items():
-            tc = frontier["timeout_certificate"]
-            assert isinstance(tc, dict), {"validator": validator, "frontier": frontier}
-            assert tc["view"] == 1, frontier
-            assert set(tc["signers"]) == surviving, frontier
+            tc = observed_view1_certificates[validator]
+            assert tc["view"] == 1
+            assert set(tc["signers"]) == surviving
             assert frontier["view"] >= 5, frontier
 
         for validator, worker in workers.items():
