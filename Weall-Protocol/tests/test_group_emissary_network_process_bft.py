@@ -5,10 +5,12 @@ using a localhost RPC controller to relay genuinely signed proposal, vote and
 QC artifacts to production NetMeshLoop BFT ingress handlers.
 
 The authenticated TCP test instead operates live NetNode/NetMeshLoop sockets.
-Its controller establishes a synthetic transition QC and controls view changes,
-but never forwards post-transition BFT packets. It verifies three-view finality,
-then restarts the next leader from durable state and proves fresh peer sessions,
-another network QC, and four-process committed convergence.
+Its controller establishes a synthetic transition QC and controls view changes
+in the original regression, but never forwards post-transition BFT packets. It
+verifies three-view finality, durable leader restart and network convergence.
+The autonomous outage regression then keeps the scheduled view-1 leader offline
+and requires the three survivors to form a signed timeout certificate, advance
+their views, and finalize a three-chain without controller view or vote injection.
 
 These are fixed localhost peers, not autonomous discovery, partition catch-up,
 public testnet or constitutional approval. All bootstrap authority, group roles
@@ -101,6 +103,18 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         return {
             "height": int(node.state.get("height") or 0),
             "tip": str(node.state.get("tip") or ""),
+            "view": int(node._bft.view),
+            "last_proposed_view": int(node._bft.last_proposed_view),
+            "last_proposed_block_id": str(node._bft.last_proposed_block_id or ""),
+            "timeout_certificate": (
+                {
+                    "view": int(tc.view),
+                    "signers": list(tc.signers),
+                    "high_qc_id": str(tc.high_qc_id),
+                }
+                if (tc := node._bft.best_timeout_certificate()) is not None
+                else None
+            ),
             "finalized": str(node._bft.finalized_block_id or ""),
             "finalized_view": int(node._bft.finalized_view),
             "high_qc": (
@@ -123,6 +137,19 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     if command == "peer_status":
         assert loop.node is not None
         return {"runtime": loop.runtime_debug(), "peers": loop.node.peers_debug()}
+    if command == "enable_autonomous_bft":
+        # Enable normal production tick intervals after the harness has
+        # established its synthetic transition QC. No view, vote, proposal or
+        # QC is injected by this switch; progression remains network-driven.
+        assert loop.node is not None
+        assert loop._bft_enabled
+        loop._bft_propose_interval_ms = 250
+        loop._bft_vote_interval_ms = 250
+        loop._bft_timeout_interval_ms = 250
+        loop._last_bft_propose_ms = 0
+        loop._last_bft_vote_ms = 0
+        loop._last_bft_timeout_ms = 0
+        return {"enabled": True, "current_view": int(node._bft.view)}
     if command == "broadcast_proposal":
         loop._broadcast_bft_proposal(request["proposal"])
         return {"broadcast_called": True}
@@ -169,6 +196,22 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
                 {str(vote.get("signer") or "") for vote in votes if isinstance(vote, dict)}
             ),
         }
+    if command == "sent_timeouts":
+        view = int(request["view"])
+        enqueued: dict[str, Json] = {}
+        sent: set[str] = set()
+        for event in node._bft_journal.read_tail(limit=512, strict=True):
+            body = event.get("payload")
+            if not isinstance(body, dict) or body.get("kind") != "timeout":
+                continue
+            key = str(body.get("key") or "")
+            if event.get("event") == "bft_outbound_enqueued":
+                timeoutj = body.get("payload")
+                if isinstance(timeoutj, dict) and int(timeoutj.get("view", -1)) == view:
+                    enqueued[key] = timeoutj
+            elif event.get("event") == "bft_outbound_sent":
+                sent.add(key)
+        return [timeout for key, timeout in enqueued.items() if key in sent]
     if command == "sent_votes":
         block_id = str(request["block_id"])
         # The production BFT outbox deletes obligations after successful send.
@@ -1132,6 +1175,169 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         # The HTTP block-fetch source is deliberately not configured in this
         # increment: a pinned missing-block *request* is not replay/finality.
         assert workers[offline].send("snapshot")["height"] == 3
+    finally:
+        for worker in workers.values():
+            worker.close()
+
+
+
+def test_authenticated_tcp_three_of_four_autonomous_timeout_and_finality(
+    tmp_path: Path,
+) -> None:
+    """Offline scheduled leader: three real peers timeout and finalize unaided.
+
+    The controller seeds only the synthetic transition QC, then stops the view-1
+    leader. It does not set a post-transition view, submit a proposal, forward
+    a BFT message, inject a local vote, or install a certificate. All subsequent
+    timeout, proposal, vote and QC traffic crosses authenticated NetNode TCP.
+    """
+    pubs, privs = bft._key_material()
+    seeded, boundary_id, _ = bft._install_prod_boundary(
+        tmp_path,
+        pubs=pubs,
+        privs=privs,
+        seed_emissary_electorate=True,
+        seed_authenticated_validator_keys=True,
+    )
+    for validator, executor in seeded.items():
+        with bft._env(bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])):
+            executor.mark_clean_shutdown()
+    seeded.clear()
+
+    ports = {validator: _free_tcp_port() for validator in bft.VALIDATORS}
+    workers: dict[str, _NodeProcess] = {}
+    try:
+        for validator in bft.VALIDATORS:
+            workers[validator] = _NodeProcess(
+                tmp_path,
+                validator,
+                mesh_port=ports[validator],
+                mesh_peers=tuple(port for other, port in ports.items() if other != validator),
+            )
+        all_validators = set(bft.VALIDATORS)
+
+        def identities(status: Json) -> set[str]:
+            return {
+                str(peer["account_id"])
+                for peer in status["peers"]["peers"]
+                if peer["connected"]
+                and peer["established"]
+                and peer["identity_verified"]
+                and not peer["banned"]
+            }
+
+        handshake_deadline = time.monotonic() + 20
+        peer_states: dict[str, Json] = {}
+        while time.monotonic() < handshake_deadline:
+            peer_states = {
+                validator: worker.send("peer_status") for validator, worker in workers.items()
+            }
+            if all(
+                identities(peer_states[validator]) >= all_validators - {validator}
+                for validator in bft.VALIDATORS
+            ):
+                break
+            time.sleep(0.1)
+        assert all(
+            identities(peer_states[validator]) >= all_validators - {validator}
+            for validator in bft.VALIDATORS
+        ), peer_states
+        assert all(
+            status["runtime"]["thread_alive"] and not status["runtime"]["unhealthy"]
+            for status in peer_states.values()
+        )
+
+        # This is the test-owned synthetic bootstrap boundary ONLY.
+        transition_votes = [
+            worker.send("transition_vote", block_id=boundary_id) for worker in workers.values()
+        ]
+        collector = workers[bft.VALIDATORS[0]]
+        transition_qc: Json | None = None
+        for vote in transition_votes:
+            formed = collector.send("receive_vote", vote=vote)
+            if isinstance(formed, dict):
+                transition_qc = formed
+        assert isinstance(transition_qc, dict)
+        assert transition_qc["block_id"] == boundary_id
+        assert all(worker.send("verify_qc", qc=transition_qc) for worker in workers.values())
+        for worker in workers.values():
+            worker.send("receive_qc", qc=transition_qc)
+
+        # QC(view=0) must itself advance every validator to view=1.
+        # No controller set_view call is allowed in the rest of this test.
+        assert all(
+            worker.send("frontier_debug")["view"] == 1 for worker in workers.values()
+        )
+        offline = leader_for_view(bft.VALIDATORS, 1)
+        assert offline not in {
+            leader_for_view(bft.VALIDATORS, view) for view in (2, 3, 4)
+        }
+        offline_before = workers[offline].send("snapshot")
+        assert offline_before["height"] == 1
+        workers.pop(offline).close()
+        surviving = all_validators - {offline}
+        assert set(workers) == surviving
+
+        # Switch on production network ticks; the controller does not produce
+        # further consensus artifacts. A real pacemaker timeout (10s default)
+        # is necessary to move past the absent leader's view.
+        for worker in workers.values():
+            enabled = worker.send("enable_autonomous_bft")
+            assert enabled == {"enabled": True, "current_view": 1}
+
+        final_snapshots: dict[str, Json] = {}
+        liveness_frontiers: dict[str, Json] = {}
+        deadline = time.monotonic() + 55
+        while time.monotonic() < deadline:
+            final_snapshots = {
+                validator: worker.send("snapshot") for validator, worker in workers.items()
+            }
+            liveness_frontiers = {
+                validator: worker.send("frontier_debug")
+                for validator, worker in workers.items()
+            }
+            if all(
+                state["height"] >= 2
+                and frontier["view"] >= 5
+                and isinstance(frontier["timeout_certificate"], dict)
+                for validator, (state, frontier) in (
+                    (validator, (final_snapshots[validator], liveness_frontiers[validator]))
+                    for validator in surviving
+                )
+            ):
+                break
+            time.sleep(0.15)
+
+        assert all(
+            snap["height"] == 2 for snap in final_snapshots.values()
+        ), {"snapshots": final_snapshots, "frontiers": liveness_frontiers}
+        assert len({snap["tip"] for snap in final_snapshots.values()}) == 1
+        assert len({snap["state_root"] for snap in final_snapshots.values()}) == 1
+        assert all(
+            snap["finalized_block_id"] == snap["tip"] for snap in final_snapshots.values()
+        )
+        # All survivors have advanced from view 1 to 2 by independently
+        # accepting a three-signer timeout certificate; subsequent views 2-4
+        # are justified by the genuinely network-certified proposals.
+        for validator, frontier in liveness_frontiers.items():
+            tc = frontier["timeout_certificate"]
+            assert isinstance(tc, dict), {"validator": validator, "frontier": frontier}
+            assert tc["view"] == 1, frontier
+            assert set(tc["signers"]) == surviving, frontier
+            assert frontier["view"] >= 5, frontier
+
+        for validator, worker in workers.items():
+            timeouts = worker.send("sent_timeouts", view=1)
+            assert len(timeouts) == 1, {"validator": validator, "timeouts": timeouts}
+            assert timeouts[0]["signer"] == validator
+            assert timeouts[0]["view"] == 1
+            assert worker.send("peer_status")["runtime"]["unhealthy"] is False
+
+        committed = [worker.send("block", height=2) for worker in workers.values()]
+        assert len({block["block_id"] for block in committed}) == 1
+        assert all(block["all_receipts_ok"] for block in committed)
+        assert committed[0]["block_id"] == next(iter(final_snapshots.values()))["tip"]
+        assert offline_before["height"] == 1
     finally:
         for worker in workers.values():
             worker.close()
