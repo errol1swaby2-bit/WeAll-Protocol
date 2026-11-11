@@ -811,6 +811,108 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             frontier
         )
         assert len({snap["state_root"] for snap in snapshots}) == 1, frontier
+
+        # Restart the validator selected to lead the *next* view, keeping its
+        # exact SQLite store and TCP listening address. This is a real process
+        # interruption and network handshake recovery, not controller packet
+        # delivery or a replacement in-memory executor.
+        next_view = 4
+        restarted = leader_for_view(bft.VALIDATORS, next_view)
+        prior = workers[restarted].send("snapshot")
+        workers[restarted].close()
+        workers[restarted] = _NodeProcess(
+            tmp_path,
+            restarted,
+            mesh_port=ports[restarted],
+            mesh_peers=tuple(port for other, port in ports.items() if other != restarted),
+        )
+        recovered = workers[restarted].send("snapshot")
+        assert recovered["height"] == prior["height"] == 2
+        assert recovered["tip"] == prior["tip"] == proposals[1]["block_id"]
+        assert recovered["state_root"] == prior["state_root"]
+        assert recovered["finalized_block_id"] == prior["finalized_block_id"]
+
+        deadline = time.monotonic() + 20
+        restarted_status: Json = {}
+        while time.monotonic() < deadline:
+            restarted_status = workers[restarted].send("peer_status")
+            if connected_identity_set(restarted_status) >= (
+                set(bft.VALIDATORS) - {restarted}
+            ):
+                break
+            time.sleep(0.1)
+        assert restarted_status["runtime"]["thread_alive"] is True, restarted_status
+        assert restarted_status["runtime"]["unhealthy"] is False, restarted_status
+        assert connected_identity_set(restarted_status) >= (
+            set(bft.VALIDATORS) - {restarted}
+        ), restarted_status
+
+        for worker in workers.values():
+            worker.send("set_view", view=next_view)
+        proposal4 = workers[restarted].send("propose", max_txs=0)
+        assert int(proposal4["view"]) == next_view
+        assert proposal4["prev_block_id"] == proposals[3]["block_id"]
+        assert (
+            workers[restarted].send("broadcast_proposal", proposal=proposal4)[
+                "broadcast_called"
+            ]
+            is True
+        )
+        expected_votes = set(bft.VALIDATORS) - {restarted}
+        received_votes: set[str] = set()
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            for validator in expected_votes:
+                votes = workers[validator].send(
+                    "sent_votes", block_id=proposal4["block_id"]
+                )
+                if len(votes) == 1 and votes[0]["signer"] == validator:
+                    received_votes.add(validator)
+            if received_votes == expected_votes:
+                break
+            time.sleep(0.1)
+        assert received_votes == expected_votes
+
+        certified: set[str] = set()
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            for validator, worker in workers.items():
+                qc = worker.send("qc_observation", block_id=proposal4["block_id"])
+                if (
+                    isinstance(qc, dict)
+                    and qc["verified"]
+                    and len(qc["signers"]) >= 3
+                ):
+                    certified.add(validator)
+            if certified == set(bft.VALIDATORS):
+                break
+            time.sleep(0.1)
+        assert certified == set(bft.VALIDATORS)
+
+        # A post-restart QC must advance the next 3-chain commitment on *all*
+        # processes. This requires restored speculative ancestry on the
+        # restarted proposer and working authenticated network delivery.
+        deadline = time.monotonic() + 12
+        post_restart = [worker.send("snapshot") for worker in workers.values()]
+        while time.monotonic() < deadline:
+            if all(
+                snap["height"] == 3 and snap["tip"] == proposals[2]["block_id"]
+                for snap in post_restart
+            ):
+                break
+            time.sleep(0.1)
+            post_restart = [worker.send("snapshot") for worker in workers.values()]
+        frontier = {
+            validator: worker.send("frontier_debug")
+            for validator, worker in workers.items()
+        }
+        assert all(snap["height"] == 3 for snap in post_restart), frontier
+        assert all(snap["tip"] == proposals[2]["block_id"] for snap in post_restart), frontier
+        assert all(
+            snap["finalized_block_id"] == proposals[2]["block_id"]
+            for snap in post_restart
+        ), frontier
+        assert len({snap["state_root"] for snap in post_restart}) == 1, frontier
     finally:
         for worker in workers.values():
             worker.close()
