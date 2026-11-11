@@ -393,9 +393,7 @@ def _seed_emissary_fixture_in_height_zero_state(state: Json) -> None:
         ),
     )
     group = state["roles"]["groups_by_id"]["g:bft-election"]
-    group["members"] = {
-        voter: {"joined_at_nonce": 1} for voter in actors[1:]
-    }
+    group["members"] = {voter: {"joined_at_nonce": 1} for voter in actors[1:]}
 
 
 def _form_qc(
@@ -784,9 +782,7 @@ def test_four_validator_qc_finalizes_signed_emissary_election_creation(
         admission = nodes[leader1].submit_tx(create_tx, ingress="http")
     assert admission["ok"] is True, admission
 
-    actual_leader, block1 = _propose(
-        nodes, view=1, pubs=pubs, privs=privs, max_txs=1
-    )
+    actual_leader, block1 = _propose(nodes, view=1, pubs=pubs, privs=privs, max_txs=1)
     assert actual_leader == leader1
     assert block1["prev_block_id"] == boundary_id
     receipts = block1.get("receipts")
