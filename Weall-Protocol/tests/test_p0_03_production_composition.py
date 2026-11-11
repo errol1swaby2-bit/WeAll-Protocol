@@ -11,17 +11,17 @@ from weall.crypto.sig import sign_signature_for_profile, sign_tx_envelope_dict
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.net.messages import BftProposalMsg, MsgType, WireHeader
 from weall.net.net_loop import NetLoopConfig, NetMeshLoop
+from weall.runtime.apply.groups import apply_groups
 from weall.runtime.bft_hotstuff import (
     CONSENSUS_PHASE_BFT_ACTIVE,
     canonical_proposal_message,
     leader_for_view,
     validator_set_hash,
 )
-from weall.runtime.apply.groups import apply_groups
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE, PROTOCOL_VERSION
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.tx_admission_types import TxEnvelope
-from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE, PROTOCOL_VERSION
 from weall.runtime.validator_readiness_runner import build_validator_readiness_receipt
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
