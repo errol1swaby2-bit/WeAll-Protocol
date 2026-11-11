@@ -64,9 +64,7 @@ def test_atomic_commit_validator_context_distinguishes_generation_and_set(
     next_membership = copy.deepcopy(ex.state)
     replacement = ["v2", "v3", "v4", "v5"]
     next_membership["consensus"]["validator_set"]["active_set"] = replacement
-    next_membership["consensus"]["validator_set"]["set_hash"] = validator_set_hash(
-        replacement
-    )
+    next_membership["consensus"]["validator_set"]["set_hash"] = validator_set_hash(replacement)
     assert _validator_context_for_state(next_membership) == (
         3,
         validator_set_hash(replacement),
