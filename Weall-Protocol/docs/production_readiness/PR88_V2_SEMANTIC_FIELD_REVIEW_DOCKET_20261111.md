@@ -1,0 +1,57 @@
+# PR #88 — Source-bound V2 semantic field review docket
+
+**Date:** 2026-11-11
+**Status:** REQUIRES MAINTAINER SEMANTIC REVIEW — NOT APPROVED
+**Diagnostic source:** [PR77 V2 semantic field drift, no approval, run 43111338188](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43111338188/artifacts/13896501577) (`changed_fields.json`, `summary.json`, 20 transaction rows).
+**Reference branch HEAD before this docket:** `f5aa2c37201931ca2eef2d736fd6c97c7a39b78c`.
+
+This docket summarizes *actual current-versus-checked-in* field differences reported by the static V2 derivation. A changed field is not necessarily a runtime behavior change; conversely a static derivation is not sufficient evidence that all indirect runtime behavior has been captured. Nothing here confers independent review, semantic acceptance, genesis authorization, confidential-ballot approval, or release permission.
+
+## Priority findings and extraction limitations
+
+**P0 — Dynamic role eligibility errors are not literal error codes.** Nine role/reviewer transactions report a new `RolesApplyError:runtime_apply_failure` pair and omit several previously tracked explicit eligibility errors. In `src/weall/runtime/apply/roles.py::_require_role_activation_eligible`, actual errors are built from `str(decision["code"])` and `str(decision["reason"])`, where `decision` comes from `reputation_role_gate.role_activation_reputation_decision`. The static `scripts/compile_v2_spec.py::_extract_failures` extractor falls back to the *exception class name* when its arguments are not literal strings. Therefore this new pair is an **unresolved static-analysis placeholder, not a proven canonical error code**. Required: derive actual reason matrix through the pure predicate and caller tests, and either improve extractor coverage conservatively or explicitly represent unresolved dynamic failure semantics. Do **not** approve the placeholder as a complete failure contract.
+
+**P0 — `DISPUTE_OPEN` analysis scope shifted.** `src/weall/runtime/apply/dispute.py::apply_dispute` delegates `DISPUTE_OPEN` to `dispute_open`. The current static derivation now attaches the dedicated handler, while the checked-in acceptance was bound to the broad dispatcher: reported receipt keys **24 → 2**, read keys **87 → 17**, write keys **78 → 16**, failure pairs **25 → 5**, and named system follow-ups **15 → 3**. Much of this shrinkage can reflect more precise transaction scoping, but it also raises coverage questions for indirect helpers (panel selection, PoH, target owners, follow-up enqueue and rollback). Required: verify the effective receipt, state mutation, rejection, and queued follow-up behavior from end-to-end tests and the normative spec before changing the accepted digest.
+
+**P0 — Severe sanctions and appeal authorization.** Newly reported conditions include `severe_appeal_fresh_panel_unverified`, `severe_sanction_initial_outcome_mismatch`, `severe_sanction_initial_twenty_votes_unverified`, `automatic_severe_appeal_already_assigned`, `appeal_pending_panel`, `severe_sanction_automatic_appeal_unimplemented`, and `severe_sanction_authorization_unimplemented`. Review fail-closed behavior, required vote counts, independence/conflict exclusions, and final-receipt side effects; no approval from a digest update alone.
+
+**P0 — Group-emissary quorum and signer authority.** `GROUP_EMISSARY_ELECTION_CREATE` adds electorate source, eligible-voter count, quorum activation height, policy version and required votes to the write contract. `GROUP_EMISSARY_ELECTION_FINALIZE` adds quorum status/no-decision metadata and three receipt fields (`eligible_voter_count`, `required_votes`, `quorum_met`), plus `unsupported_group_emissary_quorum_version`. Review the 3-of-5 no-decision and 4-of-5 successful election outcomes, retained treasury signers, replay/restart consistency and the separate **public ballot identity/ranking privacy blocker**.
+
+## All twenty drift rows
+
+The columns enumerate fields that changed in `changed_fields_against_checked_in_contract`. The failure-condition column lists newly reported reasons, *not necessarily newly introduced runtime behavior*.
+
+| Transaction | Changed semantic fields | New candidate failure reason(s) / review concern |
+| --- | --- | --- |
+| `DISPUTE_OPEN` | failure_codes, implementation_source, receipt_contract, state_reads, state_writes, system_followups | `dispute_id_exists`, `active_proposal_dispute_protected`, `tier1_required_for_dispute`, `missing_target`, `proposal_not_found`; also huge removal of broad-dispatcher records |
+| `DISPUTE_JUROR_ASSIGN` | failure_codes, state_reads | `juror_conflict_reporter`; verify reporter/conflict identity aliases |
+| `DISPUTE_JUROR_ACCEPT` | failure_codes, state_reads | `juror_conflict_reporter`; verify no conflict can accept a panel seat |
+| `DISPUTE_VOTE_SUBMIT` | failure_codes, state_reads | `juror_conflict_reporter`, `severe_appeal_fresh_panel_unverified`; verify vote nullifier and fresh panel |
+| `DISPUTE_RESOLVE` | failure_codes, state_reads | `automatic_severe_appeal_already_assigned`, `severe_sanction_initial_outcome_mismatch`, `severe_sanction_initial_twenty_votes_unverified` |
+| `DISPUTE_APPEAL` | failure_codes, state_reads, state_writes | Adds `automatic_severe_appeal_already_assigned`; drops tracked `insufficient_fresh_appeal_panel`; writes shift from ballot fields to blocked/pending panel fields |
+| `DISPUTE_FINAL_RECEIPT` | failure_codes, state_reads | `appeal_pending_panel`, `severe_sanction_automatic_appeal_unimplemented`; verify no premature enforcement |
+| `CONTENT_FLAG` | failure_codes | `duplicate_flag_id`; verify idempotent receipts and no double enforcement |
+| `ACCOUNT_BAN` | failure_codes, state_reads | `duplicate_ban_receipt_conflict`, `severe_sanction_authorization_unimplemented`; verify authorization and duplicate handling |
+| `ROLE_JUROR_ENROLL` | failure_codes, state_reads, state_writes | Dynamic `RolesApplyError` placeholder; read `gate_version`/canonical gate reasons |
+| `ROLE_JUROR_ACTIVATE` | failure_codes, state_reads, state_writes | Same dynamic eligibility-code limitation; verify reputation and live PoH |
+| `ROLE_JUROR_REINSTATE` | failure_codes, state_reads, state_writes | Same; verify prior revocation and reinstatement boundary |
+| `ROLE_VALIDATOR_ACTIVATE` | failure_codes, state_reads, state_writes | Same; verifier authority must stay generation-bound and fail-closed |
+| `ROLE_NODE_OPERATOR_ACTIVATE` | failure_codes, state_reads, state_writes | Same; operator responsibility cannot bypass versioned activation |
+| `ROLE_EMISSARY_SEAT` | failure_codes, state_reads, state_writes | Same; verify election/signer and role gate separation |
+| `ROLE_GOV_EXECUTOR_SET` | failure_codes, state_reads, state_writes | Same; verify governance approval and executor authority |
+| `GROUP_EMISSARY_ELECTION_CREATE` | failure_codes, state_writes | `no_eligible_group_electorate`, electorate/quorum snapshot fields |
+| `GROUP_EMISSARY_ELECTION_FINALIZE` | failure_codes, receipt_contract, state_reads, state_writes | `unsupported_group_emissary_quorum_version`, quorum/no-decision receipt fields |
+| `REVIEWER_LANE_OPT_IN` | failure_codes, state_reads, state_writes | Same dynamic eligibility-code limitation; verify scope and non-escalation |
+| `REVIEWER_LANE_OPT_OUT` | failure_codes, state_reads, state_writes | Same placeholder; verify withdrawal without whole-juror deactivation |
+
+**Additional specific comparison:** The appeal candidate adds `appeal_panel_available_candidate_count`, `appeal_panel_blocked_reason`, `appeal_panel_required_size`, `appeal_pending_since_height`, and `appeal_substitute_required_count`, while the tracked derivation included five ballot-mutation keys now absent from that static transaction slice. This is a material boundary to review, not an assertion that appeal voting was removed from runtime.
+
+## Bounded next review actions
+
+1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
+2. **Role lane:** inspect `role_activation_reputation_decision` and role-specific caller branches. Enumerate and test the concrete `(code, reason)` outcomes for legacy and activated gate versions; fix or explicitly qualify dynamic static-analysis gaps before accepting any associated review digest.
+3. **Group election lane:** prove quorum policy versioning, 3/5 no-decision, 4/5 success, signer retention/change, restart replay and receipt fields. Preserve the confidential-ballot NO-GO independently.
+4. **Review record update:** only after human-maintainer semantic acceptance of the exact current contracts, run the existing *explicit per-transaction* `refresh_v2_semantic_reviews.py` procedure with an actual identified reviewer and appropriate review method. Never insert a fictitious reviewer, auto-update all 20, or claim independent authorization. Regenerate and verify all V2 derivatives from the exact clean checkout.
+5. **Release decision:** P1, Reviewer Readiness, Backend CI, privacy and constitutional/genesis gates remain **NO-GO** until the real checks pass on the exact HEAD.
+
+No `semantic_reviews.json`, stable-ID or V2 generated registry changes are authorized by this docket.
