@@ -1,7 +1,7 @@
 # Reviewer-safe, source-bound proof refresh. This workflow refreshes only a
 # deterministic B528-B532 evidence artifact after executing its actual harnesses.
 # It never updates semantic review decisions or release authorization.
-name: B528-B532 Verified Proof Refresh
+name: B528-B571 Verified Proof Refresh
 
 on:
   workflow_dispatch:
@@ -47,6 +47,12 @@ jobs:
           python scripts/gen_b528_b532_completion_proof_v1_5.py
           python scripts/gen_b528_b532_completion_proof_v1_5.py --check
           python scripts/gen_b528_b532_completion_proof_v1_5.py --verify-live
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --verify-live
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --verify-live
 
       - name: Fail closed on prohibited readiness claims
         run: |
@@ -67,7 +73,30 @@ jobs:
               "local_private_completion_rehearsal_not_public_beta_or_mainnet"
           ), "proof incorrectly claims public release"
           assert data.get("freshness", {}).get("mode") == "deterministic_input_digest_v1"
-          print("PASS: local bounded proof regenerated and release locks unchanged")
+          b534 = json.loads(Path("generated/b534_b538_completion_proof_v1_5.json").read_text())
+          assert b534.get("ok") is True
+          assert b534.get("locked_boundaries") == data.get("locked_boundaries")
+          assert b534.get("truth_boundary") == (
+              "local_private_full_node_process_rehearsal_not_public_beta_or_mainnet"
+          )
+          assert b534.get("freshness", {}).get("mode") == "deterministic_input_digest_v1"
+          b567 = json.loads(
+              Path("generated/b567_b571_autonomous_mechanics_proof_v1_5.json").read_text()
+          )
+          assert b567.get("ok") is True
+          assert b567.get("public_beta_ready") is False
+          assert b567.get("claim_boundaries") == {
+              "automatic_protocol_upgrades": False,
+              "complete_anti_sybil_solved": False,
+              "live_economics": False,
+              "mainnet_readiness": False,
+              "personalized_feed_ranking": False,
+              "production_helper_execution": False,
+              "public_multi_validator_bft": False,
+              "public_validator_readiness": False,
+          }
+          assert b567.get("freshness", {}).get("mode") == "deterministic_input_digest_v1"
+          print("PASS: all three bounded proofs regenerated; all release locks unchanged")
           PY
 
       - name: Commit only the verified derivative, if changed
@@ -77,13 +106,18 @@ jobs:
           git diff --check
           # This step runs with working-directory: Weall-Protocol.
           # Git pathspecs below are relative to that directory.
-          target=generated/b528_b532_completion_proof_v1_5.json
-          if git diff --quiet -- "$target"; then
-            echo "B528 derivative is already current."
+          targets=(
+            generated/b528_b532_completion_proof_v1_5.json
+            generated/b534_b538_completion_proof_v1_5.json
+            generated/b567_b571_autonomous_mechanics_proof_v1_5.json
+          )
+          if git diff --quiet -- "${targets[@]}"; then
+            echo "All three verified derivatives are already current."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- "$target"
-          git commit -m 'chore(evidence): regenerate verified B528-B532 source-bound proof'
+          git add -- "${targets[@]}"
+          git diff --cached --check
+          git commit -m 'chore(evidence): regenerate three live-verified source-bound proofs'
           git push origin HEAD:"${GITHUB_REF_NAME}"
