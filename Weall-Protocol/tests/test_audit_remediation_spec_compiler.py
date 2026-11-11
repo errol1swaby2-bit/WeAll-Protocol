@@ -40,9 +40,8 @@ def test_dynamic_typed_error_code_is_unresolved_not_exception_class() -> None:
         "def apply(state, decision):\n"
         "    raise RolesApplyError(str(decision['code']), str(decision['reason']), {})\n"
     )
-    assert MODULE._extract_failures(node) == [
-        {"code": "runtime_apply_error", "reason": "see_handler"}
-    ]
+    expected = [{"code": "runtime_apply_error", "reason": "see_handler"}]
+    assert MODULE._extract_failures(node) == expected
 
 
 def test_dynamic_first_error_argument_does_not_shift_later_literal_reason() -> None:
@@ -50,9 +49,8 @@ def test_dynamic_first_error_argument_does_not_shift_later_literal_reason() -> N
         "def apply(state):\n"
         "    raise RolesApplyError(state['error_code'], 'literal_second_argument')\n"
     )
-    assert MODULE._extract_failures(node) == [
-        {"code": "runtime_apply_error", "reason": "see_handler"}
-    ]
+    expected = [{"code": "runtime_apply_error", "reason": "see_handler"}]
+    assert MODULE._extract_failures(node) == expected
 
 
 def test_literal_error_codes_and_reasons_remain_precise() -> None:
@@ -60,9 +58,8 @@ def test_literal_error_codes_and_reasons_remain_precise() -> None:
         "def apply(state):\n"
         "    raise RolesApplyError('forbidden', 'live_verification_required')\n"
     )
-    assert MODULE._extract_failures(node) == [
-        {"code": "forbidden", "reason": "live_verification_required"}
-    ]
+    expected = [{"code": "forbidden", "reason": "live_verification_required"}]
+    assert MODULE._extract_failures(node) == expected
 
 
 def test_real_role_gate_error_uses_unresolved_static_marker() -> None:
