@@ -1459,8 +1459,7 @@ def _group_emissary_frozen_quorum(election: Json) -> tuple[int, int]:
     if (
         not snapshot
         or snapshot != sorted(set(snapshot))
-        or election.get("electorate_source")
-        != "group_governance_active_group_members_tier2"
+        or election.get("electorate_source") != "group_governance_active_group_members_tier2"
     ):
         raise GroupsApplyError("invalid_state", "emissary_electorate_snapshot_mismatch", {})
     eligible = len(snapshot)
