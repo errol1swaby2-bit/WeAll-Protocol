@@ -187,13 +187,9 @@ def test_signed_committed_emissary_quorum_replays_and_restarts(
             for voter in VOTERS[:turnout]
         ],
     )
-    original_signers = list(
-        producer.state["roles"]["groups_by_id"]["g:committed"]["signers"]
-    )
+    original_signers = list(producer.state["roles"]["groups_by_id"]["g:committed"]["signers"])
     treasury_id = producer.state["roles"]["groups_by_id"]["g:committed"]["treasury_id"]
-    original_treasury = list(
-        producer.state["roles"]["treasuries_by_id"][treasury_id]["signers"]
-    )
+    original_treasury = list(producer.state["roles"]["treasuries_by_id"][treasury_id]["signers"])
 
     block_finalize = _commit_and_replay(
         producer,
@@ -207,7 +203,11 @@ def test_signed_committed_emissary_quorum_replays_and_restarts(
             )
         ],
     )
-    assert [block_create["header"]["height"], block_ballots["header"]["height"], block_finalize["header"]["height"]] == [1, 2, 3]
+    assert [
+        block_create["header"]["height"],
+        block_ballots["header"]["height"],
+        block_finalize["header"]["height"],
+    ] == [1, 2, 3]
     election = producer.state["group_emissary_elections"]["e:committed"]
     group = producer.state["roles"]["groups_by_id"]["g:committed"]
     treasury = producer.state["roles"]["treasuries_by_id"][group["treasury_id"]]
@@ -233,6 +233,7 @@ def test_signed_committed_emissary_quorum_replays_and_restarts(
         assert durable["receipts"] == expected["receipts"]
     stored_election = restarted.state["group_emissary_elections"]["e:committed"]
     assert stored_election["status"] == election["status"]
-    assert restarted.state["roles"]["treasuries_by_id"][group["treasury_id"]][
-        "signers"
-    ] == treasury["signers"]
+    assert (
+        restarted.state["roles"]["treasuries_by_id"][group["treasury_id"]]["signers"]
+        == treasury["signers"]
+    )
