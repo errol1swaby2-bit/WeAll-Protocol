@@ -25,8 +25,11 @@ import os
 import socket
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 from types import SimpleNamespace
 from typing import Any
 
@@ -221,6 +224,48 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         loop._last_bft_vote_ms = 0
         loop._last_bft_timeout_ms = 0
         return {"enabled": True, "current_view": int(node._bft.view)}
+    if command == "start_block_http":
+        # Real production read-only state/block route, isolated on localhost.
+        # Only the test transport/server lifecycle is supplied by this harness.
+        from fastapi import FastAPI
+        import uvicorn
+
+        from weall.api.routes_public_parts.state import router as state_router
+
+        port = int(request["port"])
+        app = FastAPI()
+        app.state.executor = node
+        app.include_router(state_router, prefix="/v1")
+        server = uvicorn.Server(
+            uvicorn.Config(
+                app,
+                host="127.0.0.1",
+                port=port,
+                log_level="error",
+                access_log=False,
+            )
+        )
+        thread = threading.Thread(target=server.run, daemon=True)
+        loop._test_block_http_server = server
+        loop._test_block_http_thread = thread
+        thread.start()
+        deadline = time.monotonic() + 10
+        while not server.started and thread.is_alive() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert server.started is True
+        return {"url": f"http://127.0.0.1:{port}"}
+    if command == "enable_bft_fetch":
+        # Unlock the normal production NetMeshLoop fetch tick only after the
+        # returning node has authenticated all surviving TCP identities.
+        assert loop.node is not None
+        base = str(request["base_url"])
+        assert base.startswith("http://127.0.0.1:")
+        loop._bft_fetch_sources = [base]
+        loop._bft_fetch_enabled = True
+        loop._bft_fetch_interval_ms = 100
+        loop._bft_fetch_cooldown_ms = 250
+        loop._last_bft_fetch_ms = 0
+        return {"enabled": True, "sources": len(loop._bft_fetch_sources)}
     if command == "broadcast_proposal":
         loop._broadcast_bft_proposal(request["proposal"])
         return {"broadcast_called": True}
@@ -388,6 +433,9 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
             "receipt_signers": [receipt.get("signer") for receipt in block["receipts"]],
         }
     if command == "stop":
+        server = getattr(loop, "_test_block_http_server", None)
+        if server is not None:
+            server.should_exit = True
         node.mark_clean_shutdown()
         return {"stopping": True}
     raise ValueError(f"unknown_command:{command}")
@@ -413,6 +461,9 @@ def _run_worker(
                 "WEALL_PEERS": ",".join(f"tcp://127.0.0.1:{port}" for port in mesh_peers),
                 "WEALL_PEERS_FILE": str(root / f"peers-{validator[1:]}.json"),
                 "WEALL_BFT_FETCH_ENABLED": "0",
+                "WEALL_STATE_BLOCK_PUBLIC_RAW": "0",
+                "WEALL_STATE_RAW_READ_TOKEN": "bounded-bft-http-rehearsal-credential",
+                "WEALL_PEER_STATE_RAW_READ_TOKEN": "bounded-bft-http-rehearsal-credential",
             }
         )
     with bft._env(env):
@@ -1439,9 +1490,59 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             ),
             "source_peers": workers[source].send("peer_status"),
         }
-        # The HTTP block-fetch source is deliberately not configured in this
-        # increment: a pinned missing-block *request* is not replay/finality.
-        assert workers[offline].send("snapshot")["height"] == 3
+        # Expose a genuine production raw-block read route from the surviving
+        # validator. The credential is harness-local: an unauthenticated request
+        # must fail, while the existing fetch client supplies the configured
+        # operator header. No test RPC relays or applies any missing block.
+        raw_port = _free_tcp_port()
+        source_url = workers[source].send("start_block_http", port=raw_port)["url"]
+        url = f"{source_url}/v1/state/block/{certified_view5['block_id']}"
+        with pytest.raises(HTTPError) as denied:
+            urlopen(url, timeout=3)
+        assert denied.value.code == 403
+        authorized = Request(
+            url,
+            headers={"X-WeAll-State-Raw-Read-Token": "bounded-bft-http-rehearsal-credential"},
+        )
+        with urlopen(authorized, timeout=3) as response:
+            raw_payload = json.loads(response.read())
+        assert raw_payload["ok"] is True
+        assert raw_payload["block"]["block_id"] == certified_view5["block_id"]
+
+        assert workers[offline].send("enable_bft_fetch", base_url=source_url) == {
+            "enabled": True,
+            "sources": 1,
+        }
+        source_snapshot = workers[source].send("snapshot")
+        assert source_snapshot["height"] == 6
+        catchup_deadline = time.monotonic() + 25
+        caught_up: Json = {}
+        last_fetch_descriptors: list[Json] = []
+        while time.monotonic() < catchup_deadline:
+            caught_up = workers[offline].send("snapshot")
+            if (
+                caught_up["height"] == source_snapshot["height"]
+                and caught_up["tip"] == source_snapshot["tip"]
+                and caught_up["state_root"] == source_snapshot["state_root"]
+            ):
+                break
+            last_fetch_descriptors = workers[offline].send("fetch_descriptors")
+            time.sleep(0.15)
+        assert (
+            caught_up["height"] == source_snapshot["height"]
+            and caught_up["tip"] == source_snapshot["tip"]
+            and caught_up["state_root"] == source_snapshot["state_root"]
+        ), {
+            "lagging": caught_up,
+            "source": source_snapshot,
+            "fetch_descriptors": last_fetch_descriptors,
+            "frontier": workers[offline].send("frontier_debug"),
+            "status": workers[offline].send("peer_status"),
+        }
+        for height in (4, 5, 6):
+            assert workers[offline].send("block", height=height)["block_id"] == workers[
+                source
+            ].send("block", height=height)["block_id"]
     finally:
         for worker in workers.values():
             worker.close()
