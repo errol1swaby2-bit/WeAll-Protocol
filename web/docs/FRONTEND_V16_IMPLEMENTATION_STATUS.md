@@ -107,3 +107,9 @@
 - Added exact quorum math, pre/post activation, strict/legacy, one-ballot legacy compatibility, no-ballot and tampered snapshot negative regressions. **No parameter is set or election is activated in this PR**, and no constitutional authorization or confidential ballot is claimed. DRAFT / NO-GO.
 
 - **Activation blocker:** regular group governance filters group members by active account standing and PoH Tier 2; current group emissary snapshots are membership-only. The new quorum mirrors governance's default arithmetic, **not yet the eligible-electorate predicate**. A regression demonstrates this distinction. Do not activate until eligibility parity or deliberate differentiation is reviewed.
+
+## Quorum v1 electorate alignment (2026-11-10; exact-head validation pending)
+
+- Newly versioned **activated** emissary elections now reuse canonical group-governance `_active_group_member_ids` for their frozen voter snapshot, including active membership, an existing eligible account record, PoH Tier 2 by default, and account standing. No eligible voters causes fail-closed rejection. The persisted electorate source and normalized count are verified again at finalization before any signer transfer.
+- Historical/pre-activation elections remain unchanged, including raw member snapshots. The review tests distinguish frozen-snapshot eligibility from later status changes and verify ineligible accounts cannot cast against a newly created active election.
+- This aligns the **default group electorate predicate and quorum arithmetic** without introducing new governance overrides or a ballot privacy scheme. No activation parameter is set. Constitutional review, independent process replay/finality, and release gates remain unresolved. **DRAFT / NO-GO.**

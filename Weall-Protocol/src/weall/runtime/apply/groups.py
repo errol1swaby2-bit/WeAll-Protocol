@@ -1456,7 +1456,14 @@ def _group_emissary_frozen_quorum(election: Json) -> tuple[int, int]:
     snapshot = election.get("voter_snapshot")
     if not isinstance(snapshot, list) or any(not isinstance(v, str) or not v for v in snapshot):
         raise GroupsApplyError("invalid_state", "invalid_election_voter_snapshot", {})
-    eligible = len(set(snapshot))
+    if (
+        not snapshot
+        or snapshot != sorted(set(snapshot))
+        or election.get("electorate_source")
+        != "group_governance_active_group_members_tier2"
+    ):
+        raise GroupsApplyError("invalid_state", "emissary_electorate_snapshot_mismatch", {})
+    eligible = len(snapshot)
     required = int(quorum_threshold(eligible))
     # Bind finalization to the threshold captured at creation and fail closed
     # on corrupt or mutable quorum metadata.
@@ -1511,9 +1518,24 @@ def _apply_group_emissary_election_create(state: Json, env: TxEnvelope) -> Json:
     if end_h <= start_h:
         end_h = start_h + 1
 
-    snapshot = _group_member_snapshot(g)
     activation_height = _group_emissary_quorum_activation_height(state)
     quorum_v1 = activation_height is not None and now_h >= activation_height
+    if quorum_v1:
+        # Use the exact canonical active group-governance electorate predicate:
+        # membership status, resolved account identity, standing and default
+        # PoH Tier 2. Lazy import keeps pre-activation replay independent.
+        from weall.runtime.apply.governance import _active_group_member_ids
+
+        snapshot = _active_group_member_ids(state, {"group_id": group_id})
+        if not snapshot:
+            raise GroupsApplyError(
+                "forbidden",
+                "no_eligible_group_electorate",
+                {"group_id": group_id, "election_id": election_id},
+            )
+    else:
+        # Historical elections keep their original unfiltered snapshot.
+        snapshot = _group_member_snapshot(g)
 
     elections[election_id] = {
         "election_id": election_id,
@@ -1535,6 +1557,7 @@ def _apply_group_emissary_election_create(state: Json, env: TxEnvelope) -> Json:
     # elections (including ones finalized after activation) remain unchanged.
     if quorum_v1:
         elections[election_id]["quorum_policy_version"] = 1
+        elections[election_id]["electorate_source"] = "group_governance_active_group_members_tier2"
         elections[election_id]["quorum_activation_height"] = int(activation_height)
         elections[election_id]["eligible_voter_count"] = len(snapshot)
         elections[election_id]["required_votes"] = int(quorum_threshold(len(snapshot)))

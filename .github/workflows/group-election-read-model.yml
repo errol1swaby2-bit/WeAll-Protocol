@@ -20,6 +20,7 @@ on:
       - Weall-Protocol/specs/research/group_emissary_stv_t0_vectors_v0_1.json
       - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_STV_T0_BEHAVIOR_AND_DEVIATIONS.md
       - Weall-Protocol/src/weall/runtime/apply/groups.py
+      - Weall-Protocol/src/weall/runtime/apply/governance.py
       - Weall-Protocol/src/weall/runtime/param_policy.py
       - Weall-Protocol/tests/test_group_emissary_quorum_activation.py
       - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_QUORUM_ACTIVATION_V1.md
@@ -56,11 +57,13 @@ jobs:
           OUT="$RUNNER_TEMP/group-election-read"
           mkdir -p "$OUT"
           {
-            echo "scope=READ_ONLY_CANONICAL_GROUP_ELECTION_NOT_BALLOT_EXECUTION"
+            echo "scope=GROUP_ELECTION_QUORUM_AND_ELIGIBILITY_FOCUSED_NO_SECRET_BALLOT"
             echo "checkout_commit=$(git rev-parse HEAD)"
             echo "full_backend_generated_gate=NOT_SUBSTITUTED"
             sha256sum src/weall/api/routes_public_parts/groups.py
             sha256sum src/weall/runtime/apply/groups.py
+            sha256sum src/weall/runtime/apply/governance.py
+            echo "emissary_quorum_v1_electorate=SHARED_GROUP_GOVERNANCE_TIER2_AT_CREATE"
             sha256sum src/weall/runtime/param_policy.py
             sha256sum tests/test_group_emissary_quorum_activation.py
             sha256sum docs/production_readiness/GROUP_EMISSARY_QUORUM_ACTIVATION_V1.md
