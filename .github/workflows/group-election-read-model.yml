@@ -49,8 +49,10 @@ jobs:
       run:
         working-directory: Weall-Protocol
     steps:
-      - name: Checkout exact triggering revision
+      - name: Checkout exact PR head or dispatched revision
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -64,11 +66,18 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          EXPECTED_HEAD="${{ github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          if [[ "$ACTUAL_HEAD" != "$EXPECTED_HEAD" ]]; then
+            echo "exact_head_checkout_mismatch:$ACTUAL_HEAD!=$EXPECTED_HEAD" >&2
+            exit 1
+          fi
           OUT="$RUNNER_TEMP/group-election-read"
           mkdir -p "$OUT"
           {
             echo "scope=GROUP_ELECTION_QUORUM_AND_ELIGIBILITY_FOCUSED_NO_SECRET_BALLOT"
-            echo "checkout_commit=$(git rev-parse HEAD)"
+            echo "checkout_commit=$ACTUAL_HEAD"
+            echo "expected_head=$EXPECTED_HEAD"
             echo "full_backend_generated_gate=NOT_SUBSTITUTED"
             sha256sum src/weall/api/routes_public_parts/groups.py
             sha256sum src/weall/runtime/apply/groups.py
@@ -115,6 +124,8 @@ jobs:
           } > "$OUT/source_and_scope.txt"
           set +e
           {
+            # This read-only diff is diagnostic; the strict check below remains mandatory.
+            ruff format --diff src/weall/runtime/block_commit.py tests/test_group_emissary_network_process_bft.py || true
             ruff format --check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py src/weall/runtime/block_commit.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
             ruff check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py src/weall/runtime/block_commit.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
             python scripts/validate_group_emissary_architecture_review.py &&
@@ -130,7 +141,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: group-election-read-${{ github.sha }}
+          name: group-election-read-${{ github.event.pull_request.head.sha || github.sha }}
           retention-days: 14
           if-no-files-found: warn
           path: |
