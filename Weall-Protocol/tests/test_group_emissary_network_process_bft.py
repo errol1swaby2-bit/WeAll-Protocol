@@ -1177,6 +1177,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert last_rejoin_status["runtime"]["thread_alive"] is True
         assert last_rejoin_status["runtime"]["unhealthy"] is False
         if connected_identity_set(last_rejoin_status) < online:
+
             def peer_evidence(status: Json) -> Json:
                 return {
                     "handshake_context": status["handshake_context"],
