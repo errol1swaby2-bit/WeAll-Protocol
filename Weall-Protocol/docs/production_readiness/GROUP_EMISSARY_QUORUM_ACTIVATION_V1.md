@@ -49,3 +49,9 @@ Required before enabling the activation param: constitutional acceptance of the 
 Cases: 3/5 after test-only activation (no decision, authority unchanged); 4/5 (finalized); and one historical ballot with activation unset (legacy behavior retained). The activation parameter is injected **only into synthetic test genesis**.
 
 **Limits:** fixture members did not perform actual PoH/registration; these are local independently persisted executor instances, not network-separated machines. A locally committed block is not a multi-validator QC or HotStuff BFT finality certificate. Neither this test nor passing CI authorizes private ballot transport, a production activation, or merging the draft.
+
+## Four-validator HotStuff QC-certified election-create boundary (focused CI pending)
+
+`tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_election_creation` reuses the production BFT lifecycle composition fixture, seeded with test-only activated group membership and account keys **before** the canonical bootstrap boundary block. A real ML-DSA-signed election creation transaction enters the leader via HTTP-context admission and is included in the first four-validator BFT proposal. Independent validator votes form QCs over that proposal and its two successors, giving the first proposal the production three-chain finality required for commitment. All four persisted executors must agree on the finalized height, exact election snapshot, 4-of-5 quorum metadata and state root. One restarted follower must recover its committed block receipt from disk.
+
+**Scope:** QC-certified **election creation**, not ballots or election finalization. Validator authority, membership, account registration and quorum activation exist only in the synthetic height-zero fixture. This does not imply constitutional activation, public secret-ballot availability, or independently running networked nodes.

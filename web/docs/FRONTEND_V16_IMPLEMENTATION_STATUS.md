@@ -118,3 +118,8 @@
 
 - Added three canonical block-candidate/commit and independent persisted-follower tests covering 3/5 and 4/5 activated quorum plus one-ballot historical behavior with activation absent. Required evidence: real signed HTTP ingress, three blocks per scenario, committed successful receipts, equal producer/follower state roots, full durable per-height block/receipt recovery, and persisted election/treasury signer outcomes after follower restart.
 - This is **not QC-certified BFT finality, real live registration/PoH, or a network-separated two-node rehearsal**. Quorum activation is injected only into test genesis; no production activation, private ballots, or constitutional authorization. PR #88 remains DRAFT / NO-GO.
+
+## Production four-validator QC-certified election-create rehearsal (2026-11-10; CI pending)
+
+- Added a narrowly scoped integration test to the existing production P0-03 BFT composition harness. A signed activated election CREATE must enter HTTP admission, pass a real proposed block, receive signed QCs from four validators over a three-chain, commit identically on all validators, and survive one follower restart with durable receipt and frozen Tier 2 quorum snapshot.
+- This is explicitly **election creation only**, not a QC-certified tally, independent network node PoH, real genesis, or confidential ballot transport. Test-only authority and activation are synthetic; draft release gates remain mandatory.

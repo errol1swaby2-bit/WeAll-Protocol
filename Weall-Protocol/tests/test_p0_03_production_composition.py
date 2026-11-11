@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from weall.crypto.sig import sign_signature_for_profile
+from weall.crypto.sig import sign_signature_for_profile, sign_tx_envelope_dict
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.net.messages import BftProposalMsg, MsgType, WireHeader
 from weall.net.net_loop import NetLoopConfig, NetMeshLoop
@@ -17,7 +17,10 @@ from weall.runtime.bft_hotstuff import (
     leader_for_view,
     validator_set_hash,
 )
+from weall.runtime.apply.groups import apply_groups
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.state_hash import compute_state_root
+from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE, PROTOCOL_VERSION
 from weall.runtime.validator_readiness_runner import build_validator_readiness_receipt
 from weall.testing.sigtools import deterministic_mldsa_keypair
@@ -300,6 +303,7 @@ def _install_prod_boundary(
     *,
     pubs: dict[str, str],
     privs: dict[str, str],
+    seed_emissary_electorate: bool = False,
 ) -> tuple[dict[str, WeAllExecutor], str, str]:
     with _env(_setup_env()):
         template_seed = _make_executor(root, "template-seed", node_id="bootstrap-boundary")
@@ -308,6 +312,8 @@ def _install_prod_boundary(
             pubs=pubs,
             include_transition_bridge=True,
         )
+        if seed_emissary_electorate:
+            _seed_emissary_fixture_in_height_zero_state(canonical)
 
     boundary_id = ""
     boundary_hash = ""
@@ -352,6 +358,44 @@ def _install_prod_boundary(
             assert node._validator_signing_permitted() is True
             nodes[vid] = node
     return nodes, boundary_id, boundary_hash
+
+
+def _seed_emissary_fixture_in_height_zero_state(state: Json) -> None:
+    """Synthetic pre-block registration only; NOT real-world PoH/approval."""
+    state.setdefault("params", {})["group_emissary_quorum_activation_height"] = 2
+    actors = ["@emissary-creator", *[f"@e{i:02d}" for i in range(5)]]
+    accounts = state.setdefault("accounts", {})
+    for actor in actors:
+        public, _private = deterministic_mldsa_keypair(label=f"p0-03-group:{actor}")
+        accounts[actor] = {
+            "nonce": 0,
+            "balance": 1_000_000,
+            "poh_tier": 2,
+            "reputation": "10.000",
+            "reputation_milli": 10_000,
+            "banned": False,
+            "locked": False,
+            "keys": [
+                {
+                    "sig_profile": "pq-mldsa-v1",
+                    "pubkeys": {"mldsa": public},
+                    "active": True,
+                }
+            ],
+        }
+    apply_groups(
+        state,
+        TxEnvelope(
+            tx_type="GROUP_CREATE",
+            signer="@emissary-creator",
+            nonce=0,
+            payload={"group_id": "g:bft-election", "charter": "synthetic QC fixture"},
+        ),
+    )
+    group = state["roles"]["groups_by_id"]["g:bft-election"]
+    group["members"] = {
+        voter: {"joined_at_nonce": 1} for voter in actors[1:]
+    }
 
 
 def _form_qc(
@@ -428,13 +472,14 @@ def _propose(
     view: int,
     pubs: dict[str, str],
     privs: dict[str, str],
+    max_txs: int = 0,
 ) -> tuple[str, Json]:
     leader = leader_for_view(VALIDATORS, view)
     for vid, node in nodes.items():
         with _env(_prod_env(vid, pub=pubs[vid], priv=privs[vid])):
             node.bft_set_view(view)
     with _env(_prod_env(leader, pub=pubs[leader], priv=privs[leader])):
-        proposal = nodes[leader].bft_leader_propose(max_txs=0)
+        proposal = nodes[leader].bft_leader_propose(max_txs=max_txs)
     assert isinstance(proposal, dict) and proposal
     return leader, proposal
 
@@ -691,3 +736,102 @@ def test_prod_bft_proposal_ingress_routes_real_signed_proposal_to_follower(
             "justify_qc": proposal["justify_qc"],
         },
     )
+
+
+def test_four_validator_qc_finalizes_signed_emissary_election_creation(
+    tmp_path: Path,
+) -> None:
+    """Real QC three-chain commits an activated snapshot, not a ballot outcome."""
+    pubs, privs = _key_material()
+    nodes, boundary_id, _boundary_hash = _install_prod_boundary(
+        tmp_path,
+        pubs=pubs,
+        privs=privs,
+        seed_emissary_electorate=True,
+    )
+    qc0 = _prepare_transition_qc(
+        nodes,
+        boundary_id=boundary_id,
+        pubs=pubs,
+        privs=privs,
+    )
+    assert qc0["block_id"] == boundary_id
+
+    creator = "@emissary-creator"
+    _pub, private = deterministic_mldsa_keypair(label=f"p0-03-group:{creator}")
+    candidates = [f"@e{i:02d}" for i in range(5)]
+    create_tx = sign_tx_envelope_dict(
+        tx={
+            "tx_type": "GROUP_EMISSARY_ELECTION_CREATE",
+            "signer": creator,
+            "nonce": 1,
+            "chain_id": CHAIN_ID,
+            "network_id": CHAIN_ID,
+            "payload": {
+                "group_id": "g:bft-election",
+                "election_id": "e:qc-election",
+                "seats": 5,
+                "candidates": candidates,
+                "start_height": 2,
+                "end_height": 4,
+            },
+        },
+        privkey=private.private_bytes_raw().hex(),
+    )
+
+    leader1 = leader_for_view(VALIDATORS, 1)
+    with _env(_prod_env(leader1, pub=pubs[leader1], priv=privs[leader1])):
+        admission = nodes[leader1].submit_tx(create_tx, ingress="http")
+    assert admission["ok"] is True, admission
+
+    actual_leader, block1 = _propose(
+        nodes, view=1, pubs=pubs, privs=privs, max_txs=1
+    )
+    assert actual_leader == leader1
+    assert block1["prev_block_id"] == boundary_id
+    receipts = block1.get("receipts")
+    assert isinstance(receipts, list) and len(receipts) == 1
+    assert receipts[0]["ok"] is True
+    assert receipts[0]["tx_type"] == "GROUP_EMISSARY_ELECTION_CREATE"
+
+    qc1 = _form_qc(
+        nodes[leader1],
+        leader1,
+        _follower_votes(nodes, block1, leader=leader1, pubs=pubs, privs=privs),
+        pubs=pubs,
+        privs=privs,
+    )
+    assert qc1["block_id"] == block1["block_id"]
+    _broadcast_qc(nodes, qc1, pubs=pubs, privs=privs)
+
+    for view in (2, 3):
+        leader, block = _propose(nodes, view=view, pubs=pubs, privs=privs)
+        votes = _follower_votes(nodes, block, leader=leader, pubs=pubs, privs=privs)
+        qc = _form_qc(nodes[leader], leader, votes, pubs=pubs, privs=privs)
+        assert qc["block_id"] == block["block_id"]
+        _broadcast_qc(nodes, qc, pubs=pubs, privs=privs)
+
+    roots = set()
+    for node in nodes.values():
+        assert node.state["height"] == 2
+        assert node.state["tip"] == block1["block_id"]
+        assert node._bft.finalized_block_id == block1["block_id"]
+        election = node.state["group_emissary_elections"]["e:qc-election"]
+        assert election["quorum_policy_version"] == 1
+        assert election["voter_snapshot"] == candidates
+        assert election["eligible_voter_count"] == 5
+        assert election["required_votes"] == 4
+        assert election["status"] == "open"
+        roots.add(compute_state_root(node.state))
+    assert len(roots) == 1
+
+    follower_id = next(vid for vid in VALIDATORS if vid != leader1)
+    with _env(_prod_env(follower_id, pub=pubs[follower_id], priv=privs[follower_id])):
+        nodes[follower_id].mark_clean_shutdown()
+        restarted = _make_executor(tmp_path, follower_id, node_id=follower_id)
+    assert restarted.state["height"] == 2
+    assert compute_state_root(restarted.state) in roots
+    persisted = restarted.get_block_by_height(2)
+    assert isinstance(persisted, dict)
+    assert persisted["block_id"] == block1["block_id"]
+    assert persisted["receipts"] == block1["receipts"]
