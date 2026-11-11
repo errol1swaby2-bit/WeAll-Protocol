@@ -1,0 +1,87 @@
+# Reviewer-safe, source-bound proof refresh. This workflow refreshes only a
+# deterministic B528-B532 evidence artifact after executing its actual harnesses.
+# It never updates semantic review decisions or release authorization.
+name: B528-B532 Verified Proof Refresh
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/b528-proof-refresh.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: b528-proof-refresh-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  refresh-b528-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact triggering branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Rehearse and regenerate source-bound B528 proof
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --verify-live
+
+      - name: Fail closed on prohibited readiness claims
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("generated/b528_b532_completion_proof_v1_5.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          assert data.get("ok") is True, "live proof did not pass"
+          assert data.get("locked_boundaries") == {
+              "automatic_upgrades": False,
+              "live_economics": False,
+              "production_helpers": False,
+              "public_validators": False,
+          }, "release authorization boundary changed"
+          assert data.get("truth_boundary") == (
+              "local_private_completion_rehearsal_not_public_beta_or_mainnet"
+          ), "proof incorrectly claims public release"
+          assert data.get("freshness", {}).get("mode") == "deterministic_input_digest_v1"
+          print("PASS: local bounded proof regenerated and release locks unchanged")
+          PY
+
+      - name: Commit only the verified derivative, if changed
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          target=Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json
+          if git diff --quiet -- "$target"; then
+            echo "B528 derivative is already current."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$target"
+          git commit -m 'chore(evidence): regenerate verified B528-B532 source-bound proof'
+          git push origin HEAD:"${GITHUB_REF_NAME}"
