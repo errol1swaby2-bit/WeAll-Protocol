@@ -19,6 +19,7 @@ and keys are synthetic. Signed ballots disclose signer and ranking.
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import socket
@@ -134,6 +135,62 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
                 if isinstance(block, dict)
             ],
         }
+    if command == "speculative_parent_debug":
+        # Diagnose the same scratch-executor ancestry replay used to justify
+        # the next proposal, without mutating a live validator or accepting
+        # any unverified block as canonical.
+        from weall.runtime import bft_votecheck as votecheck
+
+        qc = node._bft_best_justify_qc_json()
+        qc_id = str(qc.get("block_id") or "") if isinstance(qc, dict) else ""
+        valid = node.bft_verify_qc_json(qc) is not None if isinstance(qc, dict) else False
+        chain = votecheck._speculative_chain_to_parent(node, qc_id) if qc_id else None
+        evidence: Json = {
+            "canonical_height": int(node.state.get("height") or 0),
+            "canonical_tip": str(node.state.get("tip") or ""),
+            "view": int(node._bft.view),
+            "last_proposed_view": int(node._bft.last_proposed_view),
+            "justify_qc_id": qc_id,
+            "justify_qc_verified": valid,
+            "chain_present": chain is not None,
+            "chain": [
+                {
+                    "block_id": str(block.get("block_id") or ""),
+                    "parent": str(block.get("prev_block_id") or ""),
+                    "height": int(block.get("height") or 0),
+                }
+                for block in (chain or [])
+            ],
+            "steps": [],
+        }
+        if chain is None:
+            return evidence
+        slot = node._acquire_spec_exec_slot()
+        try:
+            clone = node._reset_spec_exec_slot(slot)
+            clone.state = copy.deepcopy(node.state)
+            clone._ledger_store.write(clone.state)
+            clone._bft.load_from_state(clone.state)
+            clone._speculative_authenticated_ancestor_replay = True
+            for block in chain:
+                meta = clone.apply_block(copy.deepcopy(block))
+                evidence["steps"].append(
+                    {
+                        "block_id": str(block.get("block_id") or ""),
+                        "ok": bool(meta.ok),
+                        "error": str(meta.error or ""),
+                        "height_after": int(clone.state.get("height") or 0),
+                        "tip_after": str(clone.state.get("tip") or ""),
+                    }
+                )
+                if not meta.ok:
+                    break
+            evidence["resolved_parent"] = str(clone.state.get("tip") or "") == qc_id
+        except Exception as exc:
+            evidence["exception"] = f"{type(exc).__name__}:{exc}"
+        finally:
+            node._release_spec_exec_slot(slot)
+        return evidence
     if command == "peer_status":
         assert loop.node is not None
         return {
@@ -1084,6 +1141,9 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                         validator: worker.send("frontier_debug")
                         for validator, worker in workers.items()
                     },
+                    "speculative_parent_replay": workers[leader].send(
+                        "speculative_parent_debug"
+                    ),
                 },
                 sort_keys=True,
             )
