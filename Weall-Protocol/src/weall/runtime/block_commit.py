@@ -26,6 +26,7 @@ from weall.runtime.executor import (
     _consensus_fail_closed,
     _format_commit_failure,
     _now_ms,
+    _safe_int,
     maybe_trigger_failpoint,
     os,
     prune_emitted_system_queue,
@@ -41,7 +42,7 @@ def _validator_context_for_state(state: Json) -> tuple[int, str]:
     consensus = state.get("consensus") if isinstance(state, dict) else None
     if generation is None:
         epochs = consensus.get("epochs") if isinstance(consensus, dict) else None
-        generation = max(0, int(epochs.get("current") or 0)) if isinstance(epochs, dict) else 0
+        generation = max(0, _safe_int(epochs.get("current"), 0)) if isinstance(epochs, dict) else 0
 
     explicit = consensus_active_validator_ids(state)
     validator_set = consensus.get("validator_set") if isinstance(consensus, dict) else None
