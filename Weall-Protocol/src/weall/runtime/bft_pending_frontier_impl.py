@@ -1139,6 +1139,34 @@ def _bft_pending_artifact_matches_current_epoch(self, payload: Json) -> bool:
     return True
 
 
+def _known_divergence_from_finalized(
+    blocks: dict[str, Json], *, candidate: str, finalized: str
+) -> bool:
+    """Prune only when complete known ancestry proves a conflicting branch.
+
+    Missing blocks cannot prove non-descendancy. Their hash-bound QC fetch
+    obligation remains bounded and untrusted until parent history resolves it.
+    This helper never authorizes application or finality.
+    """
+    current = str(candidate or "").strip()
+    anchor = str(finalized or "").strip()
+    if not current or not anchor or current == anchor:
+        return False
+    seen: set[str] = set()
+    while current and current not in seen:
+        rec = blocks.get(current)
+        if not isinstance(rec, dict):
+            return False
+        seen.add(current)
+        parent = str(rec.get("prev_block_id") or "").strip()
+        if not parent:
+            return True
+        if parent == anchor:
+            return False
+        current = parent
+    return current in seen
+
+
 def _prune_pending_bft_artifacts(self) -> bool:
     changed = False
     finalized_block_id = str(self._bft.finalized_block_id or "").strip()
@@ -1163,7 +1191,9 @@ def _prune_pending_bft_artifacts(self) -> bool:
         if (
             finalized_block_id
             and sbid != finalized_block_id
-            and not is_descendant(speculative, candidate=sbid, ancestor=finalized_block_id)
+            and _known_divergence_from_finalized(
+                speculative, candidate=sbid, finalized=finalized_block_id
+            )
         ):
             self._remove_pending_missing_qc(block_id=sbid)
             changed = True
@@ -1188,8 +1218,8 @@ def _prune_pending_bft_artifacts(self) -> bool:
             self._drop_pending_candidate_artifacts(sbid)
             changed = True
             continue
-        if finalized_block_id and not self._bft_block_is_applyable_finalized_descendant(
-            blk, finalized_block_id
+        if finalized_block_id and _known_divergence_from_finalized(
+            speculative, candidate=sbid, finalized=finalized_block_id
         ):
             self._drop_pending_candidate_artifacts(sbid)
             changed = True

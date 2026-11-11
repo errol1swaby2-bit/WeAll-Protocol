@@ -140,6 +140,17 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         assert node.bft_verify_qc_json(qcj) is not None
         loop.node.broadcast_message(BftQcMsg(header=_wire_header(node, MsgType.BFT_QC), qc=qcj))
         return {"broadcast_called": True}
+    if command == "verify_qc":
+        return node.bft_verify_qc_json(request["qc"]) is not None
+    if command == "observed_qc_events":
+        block_id = str(request["block_id"])
+        return [
+            event
+            for event in node._bft_journal.read_tail(limit=512, strict=True)
+            if event.get("event") == "bft_qc_observed"
+            and isinstance(event.get("payload"), dict)
+            and str(event["payload"].get("block_id") or "") == block_id
+        ]
     if command == "fetch_descriptors":
         return node.bft_resolved_pending_fetch_request_descriptors()
     if command == "qc_observation":
@@ -1093,6 +1104,11 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             "pending": pending,
             "offline_frontier": workers[offline].send("frontier_debug"),
             "qc": {"id": certified_view5["block_id"], "view": certified_view5["view"]},
+            "verified_at_rejoin": workers[offline].send("verify_qc", qc=certified_view5),
+            "qc_observed_events": workers[offline].send(
+                "observed_qc_events", block_id=certified_view5["block_id"]
+            ),
+            "source_peers": workers[source].send("peer_status"),
         }
         # The HTTP block-fetch source is deliberately not configured in this
         # increment: a pinned missing-block *request* is not replay/finality.
