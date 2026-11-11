@@ -67,7 +67,7 @@ def _worker_command(node: Any, request: Json) -> Any:
             if entry.get("kind") == "vote"
             and isinstance(entry.get("payload"), dict)
             and str(entry["payload"].get("block_id")) == boundary
-            and int(entry["payload"].get("view") or -1) == 0
+            and int(entry["payload"].get("view", -1)) == 0
         ]
         assert len(choices) == 1
         return choices[0]
