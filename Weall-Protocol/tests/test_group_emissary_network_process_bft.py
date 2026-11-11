@@ -938,9 +938,9 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert len({snap["state_root"] for snap in post_restart}) == 1, frontier
 
         # The next three active proposer views must advance consensus without
-        # the fourth validator's participation. The controller drives only the
-        # local leader self-vote through the production signed vote path; all
-        # *remote* signed votes and quorum certificates cross authenticated TCP.
+        # the fourth validator's participation. The controller selects the
+        # views, but the production leader signs and counts its own vote;
+        # remote signed votes and quorum certificates cross authenticated TCP.
         # We skip view 7 because it belongs to the intentionally offline node.
         offline = leader_for_view(bft.VALIDATORS, 7)
         assert offline not in {leader_for_view(bft.VALIDATORS, view) for view in (5, 6, 8)}
@@ -968,11 +968,18 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             while not isinstance(proposal, dict) and time.monotonic() < deadline:
                 time.sleep(0.1)
                 proposal = workers[leader].send("try_propose", max_txs=0)
-            assert isinstance(proposal, dict), {
-                "leader": leader,
-                "view": view,
-                "frontier": workers[leader].send("frontier_debug"),
-            }
+            assert isinstance(proposal, dict), json.dumps(
+                {
+                    "leader": leader,
+                    "view": view,
+                    "frontier": workers[leader].send("frontier_debug"),
+                    "online": {
+                        validator: worker.send("frontier_debug")
+                        for validator, worker in workers.items()
+                    },
+                },
+                sort_keys=True,
+            )
             surviving_proposals[view] = proposal
             assert proposal["view"] == view
             # No RPC-supplied local vote: the production NetMeshLoop must
