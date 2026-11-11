@@ -856,6 +856,60 @@ def test_canonical_commit_preserves_live_bft_metadata_after_stale_candidate(
         assert restarted._bft.last_proposed_block_id == "previous-signed-proposal"
 
 
+def test_atomic_bft_state_survives_postcommit_housekeeping_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A committed block must already contain current local signing history.
+
+    Force a failure at the first post-commit housekeeping hook. The block is
+    durable even though the executor fails closed, and its *same transaction*
+    ledger snapshot must carry the newest view, vote, and proposal records.
+    """
+    with bft._env(bft._setup_env()):
+        executor = bft._make_executor(tmp_path, "bft-atomic-state")
+        candidate = executor.build_block_candidate(
+            max_txs=0, allow_empty=True, force_ts_ms=1000
+        )
+        block, candidate_state, applied_ids, invalid_ids, err = candidate
+        assert err == ""
+        assert isinstance(block, dict)
+        assert isinstance(candidate_state, dict)
+
+        executor._bft.bump_view(11)
+        executor._bft.last_voted_view = 10
+        executor._bft.last_voted_block_id = "atomic-vote"
+        executor._bft.last_voted_block_hash = "atomic-vote-hash"
+        executor._bft.last_proposed_view = 9
+        executor._bft.last_proposed_block_id = "atomic-proposal"
+        executor._bft.last_proposed_block_hash = "atomic-proposal-hash"
+
+        def fail_postcommit_cache(_block_id: str, _block_hash: str) -> None:
+            raise RuntimeError("injected_postcommit_failure")
+
+        monkeypatch.setattr(executor, "_cache_known_block_hash", fail_postcommit_cache)
+        result = executor.commit_block_candidate(
+            block=block,
+            new_state=candidate_state,
+            applied_ids=applied_ids,
+            invalid_ids=invalid_ids,
+        )
+        assert result.ok is True
+        assert "post_commit_housekeeping_failed:RuntimeError" in result.error
+        assert executor._validator_signing_enabled is False
+
+        # The second BFT persistence write from the previous implementation
+        # would never execute in this scenario. Recovery must rely solely on
+        # the block's atomic ledger_state transaction.
+        persisted = executor._ledger_store.read()
+        assert persisted["height"] == block["height"]
+        assert persisted["tip"] == block["block_id"]
+        assert persisted["bft"]["view"] == 11
+        assert persisted["bft"]["last_voted_view"] == 10
+        assert persisted["bft"]["last_voted_block_id"] == "atomic-vote"
+        assert persisted["bft"]["last_proposed_view"] == 9
+        assert persisted["bft"]["last_proposed_block_id"] == "atomic-proposal"
+
+
 def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
     tmp_path: Path,
 ) -> None:
