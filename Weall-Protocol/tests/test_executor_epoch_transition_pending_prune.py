@@ -54,7 +54,7 @@ def test_atomic_commit_validator_context_distinguishes_generation_and_set(
     assert before == (ex._current_validator_epoch(), ex._current_validator_set_hash())
 
     protocol_epoch_only = copy.deepcopy(ex.state)
-    protocol_epoch_only["consensus"]["epochs"]["current"] = 71
+    protocol_epoch_only["consensus"].setdefault("epochs", {})["current"] = 71
     assert _validator_context_for_state(protocol_epoch_only) == before
 
     next_generation = copy.deepcopy(ex.state)
@@ -64,7 +64,9 @@ def test_atomic_commit_validator_context_distinguishes_generation_and_set(
     next_membership = copy.deepcopy(ex.state)
     replacement = ["v2", "v3", "v4", "v5"]
     next_membership["consensus"]["validator_set"]["active_set"] = replacement
-    next_membership["consensus"]["validator_set"]["set_hash"] = validator_set_hash(replacement)
+    next_membership["consensus"]["validator_set"]["set_hash"] = validator_set_hash(
+        replacement
+    )
     assert _validator_context_for_state(next_membership) == (
         3,
         validator_set_hash(replacement),
