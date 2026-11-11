@@ -914,9 +914,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         # *remote* signed votes and quorum certificates cross authenticated TCP.
         # We skip view 7 because it belongs to the intentionally offline node.
         offline = leader_for_view(bft.VALIDATORS, 7)
-        assert offline not in {
-            leader_for_view(bft.VALIDATORS, view) for view in (5, 6, 8)
-        }
+        assert offline not in {leader_for_view(bft.VALIDATORS, view) for view in (5, 6, 8)}
         old_offline = workers.pop(offline)
         offline_before = old_offline.send("snapshot")
         assert offline_before["height"] == 3
@@ -938,9 +936,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             assert local_vote["block_id"] == proposal["block_id"]
             workers[leader].send("receive_vote", vote=local_vote)
             assert (
-                workers[leader].send("broadcast_proposal", proposal=proposal)[
-                    "broadcast_called"
-                ]
+                workers[leader].send("broadcast_proposal", proposal=proposal)["broadcast_called"]
                 is True
             )
 
@@ -949,9 +945,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             deadline = time.monotonic() + 15
             while time.monotonic() < deadline:
                 for validator in expected_remote:
-                    votes = workers[validator].send(
-                        "sent_votes", block_id=proposal["block_id"]
-                    )
+                    votes = workers[validator].send("sent_votes", block_id=proposal["block_id"])
                     if len(votes) == 1 and votes[0]["signer"] == validator:
                         sent.add(validator)
                 if sent == expected_remote:
@@ -982,17 +976,14 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         surviving = [worker.send("snapshot") for worker in workers.values()]
         while time.monotonic() < deadline:
             if all(
-                snap["height"] == 4
-                and snap["tip"] == surviving_proposals[5]["block_id"]
+                snap["height"] == 4 and snap["tip"] == surviving_proposals[5]["block_id"]
                 for snap in surviving
             ):
                 break
             time.sleep(0.1)
             surviving = [worker.send("snapshot") for worker in workers.values()]
         assert all(snap["height"] == 4 for snap in surviving), surviving
-        assert all(
-            snap["tip"] == surviving_proposals[5]["block_id"] for snap in surviving
-        )
+        assert all(snap["tip"] == surviving_proposals[5]["block_id"] for snap in surviving)
         assert len({snap["state_root"] for snap in surviving}) == 1
     finally:
         for worker in workers.values():
