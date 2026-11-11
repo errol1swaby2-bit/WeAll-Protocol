@@ -61,6 +61,22 @@
       "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
       "truth_boundary": "Returns the active ballot-profile identifier, mode, strictness, and launch-gate reason. It exposes no voter identity, ballot choice, nullifier, or sealed ballot material."
     },
+    "GET /v1/groups/{group_id}/elections": {
+      "auth": "public_read_canonical_group_emissary_election_projection",
+      "cache_policy": "no_store_dynamic_public_election_read_model",
+      "error_model": "standard_api_error_envelope_or_group_election_read_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Public, scoped, derived election read model only; no voter/ballot-map disclosure, no nominee eligibility or election activation authority. Signed ballot envelopes currently expose signer and plaintext ranking; no secret-ballot claim."
+    },
+    "GET /v1/groups/{group_id}/elections/{election_id}": {
+      "auth": "public_read_canonical_group_emissary_election_projection",
+      "cache_policy": "no_store_dynamic_public_election_read_model",
+      "error_model": "standard_api_error_envelope_or_group_election_read_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Public, scoped, derived election read model only; no voter/ballot-map disclosure, no nominee eligibility or election activation authority. Signed ballot envelopes currently expose signer and plaintext ranking; no secret-ballot claim."
+    },
     "GET /v1/groups/{group_id}/governance-contract": {
       "auth": "public_read_group_governance_contract",
       "cache_policy": "no_store_dynamic_public_group_governance_read_model",

@@ -1,0 +1,95 @@
+name: PR88 bounded generated-proof refresh
+
+on:
+  push:
+    branches:
+      - frontend/v16-group-profile-and-navigation-20261110
+    paths:
+      - .github/workflows/pr88-bounded-generated-proof-refresh.yml
+      - Weall-Protocol/specs/v2/source/stable_ids.json
+      - Weall-Protocol/specs/v2/source/manifest.json
+      - Weall-Protocol/specs/api_contracts/v1_5_route_metadata.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr88-bounded-generated-proof-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref_name == 'frontend/v16-group-profile-and-navigation-20261110'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact triggering head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+
+      - name: Regenerate canonical V1.5 and V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_api_contract_map.py
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_api_response_vectors_v1_5.py
+          python scripts/gen_public_only_protocol_audit_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/compile_v2_spec.py
+
+      - name: Validate regenerated proofs without weakening gates
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --verify-live
+          python scripts/compile_v2_spec.py --check
+          python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_generated.py
+
+      - name: Commit only generated artifacts to unchanged draft branch
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git add -A -- Weall-Protocol/generated web/src/generated/protocolStatus.ts
+          python - <<'PY'
+          from subprocess import check_output
+          paths = check_output(
+              ['git', 'diff', '--cached', '--name-only'],
+              text=True,
+          ).splitlines()
+          assert paths, 'No generated artifacts require a refresh'
+          assert all(
+              path.startswith('Weall-Protocol/generated/')
+              or path == 'web/src/generated/protocolStatus.ts'
+              for path in paths
+          ), f'Unapproved staged changes: {paths}'
+          print('Approved generated-only paths:', sorted(paths))
+          PY
+          if git diff --cached --quiet; then
+            echo 'Proofs already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(pr88): regenerate exact-source V1.5 and V2 proofs'
+          git push origin HEAD:frontend/v16-group-profile-and-navigation-20261110

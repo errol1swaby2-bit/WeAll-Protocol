@@ -16719,6 +16719,13 @@
       "status": "active"
     },
     {
+      "canonical_key": "GET /v1/groups/{group_id}/elections|src/weall/api/routes_public_parts/groups.py|v1_group_elections",
+      "kind": "route",
+      "stable_id": "ROUTE-647D04B0501AD3CF",
+      "aliases": [],
+      "status": "active"
+    },
+    {
       "aliases": [],
       "canonical_key": "GET /v1/consensus/block-production/proof|src/weall/api/routes_public_parts/consensus.py|consensus_block_production_proof",
       "kind": "route",
@@ -17122,6 +17129,13 @@
       "canonical_key": "GET /v1/tx/catalog|src/weall/api/routes_public_parts/tx.py|tx_catalog",
       "kind": "route",
       "stable_id": "ROUTE-B81383D6C92F2A06",
+      "status": "active"
+    },
+    {
+      "canonical_key": "GET /v1/groups/{group_id}/elections/{election_id}|src/weall/api/routes_public_parts/groups.py|v1_group_election_detail",
+      "kind": "route",
+      "stable_id": "ROUTE-BD4D66493B2C4FE6",
+      "aliases": [],
       "status": "active"
     },
     {
