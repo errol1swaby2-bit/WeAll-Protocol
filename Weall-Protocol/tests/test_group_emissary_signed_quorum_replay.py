@@ -163,6 +163,7 @@ def _run(turnout: int) -> dict:
             {"group_id": "g:signed", "election_id": "e:signed"},
         ),
     )
+    election = state["group_emissary_elections"]["e:signed"]
     group = state["roles"]["groups_by_id"]["g:signed"]
     treasury = state["roles"]["treasuries_by_id"][group["treasury_id"]]
     if turnout == 3:
@@ -171,13 +172,13 @@ def _run(turnout: int) -> dict:
         assert group["signers"] == original_signers
         assert treasury["signers"] == original_treasury
     else:
-        assert receipt["status"] == "finalized"
+        assert election["status"] == "finalized"
         assert group["signers"] == receipt["winners"]
         assert treasury["signers"] == receipt["winners"]
     return {
         "turnout": turnout,
         "required": election["required_votes"],
-        "status": receipt["status"],
+        "status": election["status"],
         "winners": receipt.get("winners", []),
         "signed_block_admissions": turnout + 2,
         "state_root": str(compute_state_root(state)),
