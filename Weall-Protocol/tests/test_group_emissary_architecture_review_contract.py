@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
+from pathlib import Path
+from runpy import run_path
 
-from scripts.validate_group_emissary_architecture_review import (
-    MANIFEST,
-    REQUIRED_GATES,
-    validate_review_matrix,
-)
+# The checked-in scripts/ directory is not installed with the backend wheel.
+# Load this research-only validator by exact repository path, not sys.path hacks.
+_SCRIPT_DIR = Path(__file__).resolve().parents[1] / "scripts"
+_REVIEW = run_path(str(_SCRIPT_DIR / "validate_group_emissary_architecture_review.py"))
+MANIFEST = _REVIEW["MANIFEST"]
+REQUIRED_GATES = _REVIEW["REQUIRED_GATES"]
+validate_review_matrix = _REVIEW["validate_review_matrix"]
 
 
 def _manifest() -> dict:
