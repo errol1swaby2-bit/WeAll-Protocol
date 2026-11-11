@@ -90,6 +90,21 @@ static proposal-specific error paths are currently unreachable behind the
 target allowlist. No acceptance digest or generated V2 derivative was
 refreshed or approved by this correction.
 
+## Append-only group-election state IDs (separate bounded follow-up)
+
+A strict source-registry coverage regression exposed eight unregistered
+`Groups:` state tokens in the already-implemented emissary quorum/election
+read/write projection: `electorate_source`, `eligible_voter_count`,
+`n_ballots`, `no_decision_reason`, `quorum_activation_height`,
+`quorum_met`, `quorum_policy_version` and `required_votes`.
+These are now registered as **new deterministic `STATE-` IDs** in the
+existing append-only `stable_ids.json` source registry; no existing
+entry, alias, ID or tombstone was changed. A focused test independently
+recomputes the IDs from their canonical `Groups:` names. This is registry
+coverage, **not** review or approval of quorum semantics, elected signer
+authority, ballot confidentiality, or canonical receipt correctness.
+Accepted semantic digests and V2 generated derivatives remain untouched.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
@@ -98,4 +113,4 @@ refreshed or approved by this correction.
 4. **Review record update:** only after human-maintainer semantic acceptance of the exact current contracts, run the existing *explicit per-transaction* `refresh_v2_semantic_reviews.py` procedure with an actual identified reviewer and appropriate review method. Never insert a fictitious reviewer, auto-update all 20, or claim independent authorization. Regenerate and verify all V2 derivatives from the exact clean checkout.
 5. **Release decision:** P1, Reviewer Readiness, Backend CI, privacy and constitutional/genesis gates remain **NO-GO** until the real checks pass on the exact HEAD.
 
-No `semantic_reviews.json`, stable-ID or V2 generated registry changes are authorized by this docket.
+This docket records the separately bounded append-only group state ID registration, but does not authorize changes to `semantic_reviews.json`, accepted semantic digests or generated V2 derivatives.

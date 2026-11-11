@@ -113,6 +113,18 @@ def test_all_newly_observed_state_tokens_have_stable_append_only_ids() -> None:
         "Roles:actual_milli",
         "Roles:required_milli",
     }
+    names.update(
+        {
+            "Groups:electorate_source",
+            "Groups:eligible_voter_count",
+            "Groups:n_ballots",
+            "Groups:no_decision_reason",
+            "Groups:quorum_activation_height",
+            "Groups:quorum_met",
+            "Groups:quorum_policy_version",
+            "Groups:required_votes",
+        }
+    )
     for name in sorted(names):
         expected = "STATE-" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:16].upper()
         assert ids.resolve("state", name) == expected

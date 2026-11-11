@@ -18630,6 +18630,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:quorum_activation_height",
+      "kind": "state",
+      "stable_id": "STATE-12DF8EB7E75D134C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:panel_commitment",
       "kind": "state",
       "stable_id": "STATE-13422E875F1C030D",
@@ -20422,6 +20429,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:eligible_voter_count",
+      "kind": "state",
+      "stable_id": "STATE-492932C756513165",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:security_policy",
       "kind": "state",
       "stable_id": "STATE-492E736F05BD42F0",
@@ -20754,6 +20768,13 @@
       "canonical_key": "PoH:ended_ts_ms",
       "kind": "state",
       "stable_id": "STATE-53BC9170C219E578",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:electorate_source",
+      "kind": "state",
+      "stable_id": "STATE-53E6387F578A555E",
       "status": "active"
     },
     {
@@ -21304,6 +21325,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:required_votes",
+      "kind": "state",
+      "stable_id": "STATE-6649873F8C8A69ED",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Roles:gov_executor",
       "kind": "state",
       "stable_id": "STATE-665020DB4713E6E7",
@@ -21762,6 +21790,13 @@
       "canonical_key": "Dispute:<pop:dynamic>",
       "kind": "state",
       "stable_id": "STATE-73DA9F08A7231E6A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:quorum_policy_version",
+      "kind": "state",
+      "stable_id": "STATE-73E64D02F6BCA92D",
       "status": "active"
     },
     {
@@ -23705,6 +23740,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:quorum_met",
+      "kind": "state",
+      "stable_id": "STATE-B0B37C20B129B9AC",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "PoH:challenge_id",
       "kind": "state",
       "stable_id": "STATE-B0B6016845174BEE",
@@ -24303,6 +24345,13 @@
       "canonical_key": "Groups:voter_snapshot",
       "kind": "state",
       "stable_id": "STATE-BFAFD2E9AA628E94",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:no_decision_reason",
+      "kind": "state",
+      "stable_id": "STATE-BFF3D95D7CD17E26",
       "status": "active"
     },
     {
@@ -24940,6 +24989,13 @@
       "canonical_key": "Rewards:last_nonce",
       "kind": "state",
       "stable_id": "STATE-D48B124786731887",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:n_ballots",
+      "kind": "state",
+      "stable_id": "STATE-D4963814FEFCFFAA",
       "status": "active"
     },
     {
