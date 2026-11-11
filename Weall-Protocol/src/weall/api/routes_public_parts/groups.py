@@ -562,6 +562,20 @@ def _public_election_row(
         "winners": winners,
         "outcome_recorded": status in {"finalized", "no_decision"},
         "voter_snapshot_count": len(snapshot) if snapshot is not None else None,
+        "quorum_policy_version": height("quorum_policy_version"),
+        "eligible_voter_count": height("eligible_voter_count"),
+        "required_votes": height("required_votes"),
+        "counted_ballots": height("n_ballots") if status in {"finalized", "no_decision"} else None,
+        "quorum_met": (
+            election.get("quorum_met")
+            if isinstance(election.get("quorum_met"), bool)
+            else None
+        ),
+        "no_decision_reason": (
+            _str_param(election.get("no_decision_reason")).strip() or None
+            if status == "no_decision"
+            else None
+        ),
         "viewer_in_voter_snapshot": (
             _str_param(viewer).strip() in [str(v) for v in snapshot]
             if viewer and snapshot is not None

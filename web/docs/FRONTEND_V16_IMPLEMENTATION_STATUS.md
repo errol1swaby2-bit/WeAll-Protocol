@@ -99,3 +99,9 @@
 - All vectors and the reference oracle remain **research/evidence only**; no confidential ballot submission, protocol rule, or elected authority activation was added. Exact-head focused and release-gate results pending. **DRAFT / NO-GO.**
 
 - **Correction evidence:** The design-author clarification supersedes the prior “surplus-transfer defect” and “must fix STV” framing. The research corpus now explicitly records the intended transfer rule, renames the two-seat vector, and adds a canonical five-seat A→B→C→D→E sequence. Other election, quorum, privacy and CI limitations remain open. Exact-head validation pending.
+
+## Versioned group emissary quorum v1 — explicit governance activation only (2026-11-10; CI pending)
+
+- Architect policy: emissary voting requires a participation quorum like regular governance. Exact default is `ceil(2 × eligible_members / 3)` against a frozen group voter snapshot; 20 eligible members require 14 valid unique ballots. Successful ballots are counted from canonical legacy or strict-profile aggregate ballot state; rank count never substitutes for voter turnout.
+- Implemented a **default-unset** governance-whitelisted activation-height parameter and immutable per-election `quorum_policy_version=1` metadata. Elections created before activation retain historical behavior; new activated elections produce committed `no_decision` without changing group/treasury authority when turnout is below quorum. Read API exposes only aggregate status, threshold and tally.
+- Added exact quorum math, pre/post activation, strict/legacy, one-ballot legacy compatibility, no-ballot and tampered snapshot negative regressions. **No parameter is set or election is activated in this PR**, and no constitutional authorization or confidential ballot is claimed. DRAFT / NO-GO.
