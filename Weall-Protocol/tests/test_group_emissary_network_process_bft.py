@@ -261,6 +261,7 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
                         content={"ok": False, "error": "temporary_test_transport_outage"},
                     )
             return await call_next(request_http)
+
         server = uvicorn.Server(
             uvicorn.Config(
                 app,
@@ -1623,9 +1624,9 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert raw_payload["ok"] is True
         assert raw_payload["block"]["block_id"] == certified_view5["block_id"]
 
-        assert workers[source].send(
-            "configure_block_http_outage", failed_requests=2
-        ) == {"scheduled_failures": 2}
+        assert workers[source].send("configure_block_http_outage", failed_requests=2) == {
+            "scheduled_failures": 2
+        }
         assert workers[offline].send("enable_bft_fetch", base_url=source_url) == {
             "enabled": True,
             "sources": 1,
