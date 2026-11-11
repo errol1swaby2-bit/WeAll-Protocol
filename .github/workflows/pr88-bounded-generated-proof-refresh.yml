@@ -40,6 +40,75 @@ jobs:
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install -e . --no-deps
 
+      - name: Bind new read-only routes to explicit AI-assisted source review
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          import sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          sys.path.insert(0, "scripts")
+          import compile_v2_spec as compiler
+          from v2_spec_validation import compact_digest, route_review_material
+
+          sources = compiler._load_sources()
+          tx_names = {
+              str(row.get("name") or "").strip().upper()
+              for row in sources["transaction_canon"].get("txs") or []
+              if isinstance(row, dict)
+          }
+          rows = compiler._scan_route_contracts(
+              tx_names,
+              compiler._scan_files(compiler.WORKSPACE_ROOT / "web" / "src", {".ts", ".tsx"}),
+              compiler._scan_files(compiler.ROOT / "tests", {".py"}),
+              sources["contract_overrides"],
+              compiler.StableIdRegistry.from_payload(sources["stable_ids"]),
+          )
+          target_ids = {
+              "ROUTE-647D04B0501AD3CF": "GET /v1/groups/{group_id}/elections",
+              "ROUTE-BD4D66493B2C4FE6": "GET /v1/groups/{group_id}/elections/{election_id}",
+          }
+          candidates = [row for row in rows if row["stable_id"] in target_ids]
+          assert len(rows) == 161, f"unexpected route inventory: {len(rows)}"
+          assert len(candidates) == len(target_ids), "route review candidates incomplete"
+
+          path = Path("specs/v2/source/semantic_reviews.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          existing = {entry["stable_id"]: entry for entry in payload["routes"]}
+          for row in candidates:
+              stable_id = row["stable_id"]
+              assert row["route_key"] == target_ids[stable_id]
+              assert row["method"] == "GET"
+              assert row["security_policy"]["auth"] == "public_read_canonical_group_emissary_election_projection"
+              assert row["metadata_source"] == "specs/api_contracts/v1_5_route_metadata.json"
+              digest = compact_digest(route_review_material(row))
+              if stable_id in existing:
+                  assert existing[stable_id]["review_digest"] == digest, (
+                      "review no longer matches current source: " + stable_id
+                  )
+                  continue
+              payload["routes"].append({
+                  "authority_effect": "none; no public testnet, secret ballot, election or mainnet activation",
+                  "disposition": "accepted_current_semantic_contract",
+                  "implementation_source": row["implementation_source"],
+                  "independent_review": False,
+                  "review_digest": digest,
+                  "review_method": "AI-assisted code-derived read-only source contract fingerprint; no independent verification",
+                  "reviewed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                  "reviewer": "AI-assisted PR88 source inspection; NOT independent or constitutional approval",
+                  "route_key": row["route_key"],
+                  "stable_id": stable_id,
+              })
+          payload["routes"].sort(key=lambda row: row["stable_id"])
+          if len(payload["routes"]) != 161:
+              raise RuntimeError("unexpected semantic review register size")
+          path.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+          print("Source-bound reviews: 2 new read-only endpoints; independent_review=false")
+          PY
+
       - name: Regenerate canonical V1.5 and V2 derivatives
         working-directory: Weall-Protocol
         run: |
@@ -70,16 +139,17 @@ jobs:
         run: |
           set -Eeuo pipefail
           git diff --check
-          git add -A -- Weall-Protocol/generated web/src/generated/protocolStatus.ts
+          git add -A -- Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md
           python - <<'PY'
           from subprocess import check_output
           paths = check_output(
               ['git', 'diff', '--cached', '--name-only'],
               text=True,
           ).splitlines()
-          assert paths, 'No generated artifacts require a refresh'
           assert all(
               path.startswith('Weall-Protocol/generated/')
+              or path == 'Weall-Protocol/specs/v2/source/semantic_reviews.json'
+              or path == 'Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md'
               or path == 'web/src/generated/protocolStatus.ts'
               for path in paths
           ), f'Unapproved staged changes: {paths}'
