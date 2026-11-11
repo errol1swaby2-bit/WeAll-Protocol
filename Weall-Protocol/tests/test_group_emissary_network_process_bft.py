@@ -126,6 +126,24 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     if command == "broadcast_proposal":
         loop._broadcast_bft_proposal(request["proposal"])
         return {"broadcast_called": True}
+    if command == "export_high_qc":
+        qc = node._bft.high_qc
+        block_id = str(request["block_id"])
+        if qc is None or str(qc.block_id) != block_id:
+            return None
+        exported = qc.to_json()
+        assert node.bft_verify_qc_json(exported) is not None
+        return exported
+    if command == "broadcast_signed_qc":
+        assert loop.node is not None
+        qcj = request["qc"]
+        assert node.bft_verify_qc_json(qcj) is not None
+        loop.node.broadcast_message(
+            BftQcMsg(header=_wire_header(node, MsgType.BFT_QC), qc=qcj)
+        )
+        return {"broadcast_called": True}
+    if command == "fetch_descriptors":
+        return node.bft_resolved_pending_fetch_request_descriptors()
     if command == "qc_observation":
         block_id = str(request["block_id"])
         qc = node._bft.high_qc
@@ -924,6 +942,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         online = set(workers)
         assert len(online) == 3
         surviving_proposals: dict[int, Json] = {}
+        certified_view5: Json | None = None
 
         for view in (5, 6, 8):
             for worker in workers.values():
@@ -985,6 +1004,12 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 "view": view,
                 "certified": sorted(qc_proven),
             }
+            if view == 5:
+                certified_view5 = workers[leader].send(
+                    "export_high_qc", block_id=proposal["block_id"]
+                )
+                assert isinstance(certified_view5, dict)
+                assert certified_view5["block_id"] == proposal["block_id"]
 
         # A certified three-chain formed while one validator was absent must
         # finalize a block *after* that validator's committed height.
@@ -1016,6 +1041,64 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         }
         assert all(snap["tip"] == surviving_proposals[5]["block_id"] for snap in surviving)
         assert len({snap["state_root"] for snap in surviving}) == 1
+
+        # Rejoin the process which never received views 5/6/8. Do not patch
+        # its SQLite ledger or deliver a QC directly through the controller.
+        # A verified QC from an online validator is retransmitted through the
+        # genuine authenticated BFT_QC network message path.
+        assert isinstance(certified_view5, dict)
+        workers[offline] = _NodeProcess(
+            tmp_path,
+            offline,
+            mesh_port=ports[offline],
+            mesh_peers=tuple(port for other, port in ports.items() if other != offline),
+        )
+        lagging = workers[offline].send("snapshot")
+        assert lagging["height"] == offline_before["height"] == 3
+        assert lagging["tip"] == offline_before["tip"]
+        assert lagging["state_root"] == offline_before["state_root"]
+
+        rejoin_deadline = time.monotonic() + 20
+        last_rejoin_status: Json = {}
+        while time.monotonic() < rejoin_deadline:
+            last_rejoin_status = workers[offline].send("peer_status")
+            if connected_identity_set(last_rejoin_status) >= online:
+                break
+            time.sleep(0.1)
+        assert last_rejoin_status["runtime"]["thread_alive"] is True
+        assert last_rejoin_status["runtime"]["unhealthy"] is False
+        assert connected_identity_set(last_rejoin_status) >= online, last_rejoin_status
+
+        source = leader_for_view(bft.VALIDATORS, 5)
+        assert source in online
+        broadcast = workers[source].send("broadcast_signed_qc", qc=certified_view5)
+        assert broadcast["broadcast_called"] is True
+
+        pending: list[Json] = []
+        detection_deadline = time.monotonic() + 12
+        while time.monotonic() < detection_deadline:
+            pending = workers[offline].send("fetch_descriptors")
+            if any(
+                desc.get("block_id") == certified_view5["block_id"]
+                and desc.get("block_hash") == certified_view5["block_hash"]
+                and desc.get("reason") == "missing_qc_block"
+                for desc in pending
+            ):
+                break
+            time.sleep(0.1)
+        assert any(
+            desc.get("block_id") == certified_view5["block_id"]
+            and desc.get("block_hash") == certified_view5["block_hash"]
+            and desc.get("reason") == "missing_qc_block"
+            for desc in pending
+        ), {
+            "pending": pending,
+            "offline_frontier": workers[offline].send("frontier_debug"),
+            "qc": {"id": certified_view5["block_id"], "view": certified_view5["view"]},
+        }
+        # The HTTP block-fetch source is deliberately not configured in this
+        # increment: a pinned missing-block *request* is not replay/finality.
+        assert workers[offline].send("snapshot")["height"] == 3
     finally:
         for worker in workers.values():
             worker.close()
