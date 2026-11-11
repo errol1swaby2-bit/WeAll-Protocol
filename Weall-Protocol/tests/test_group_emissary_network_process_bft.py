@@ -797,6 +797,64 @@ def _free_tcp_port() -> int:
         return int(sock.getsockname()[1])
 
 
+def test_canonical_commit_preserves_live_bft_metadata_after_stale_candidate(
+    tmp_path: Path,
+) -> None:
+    """An unchanged validator generation must not load stale BFT signing state.
+
+    Build an otherwise valid candidate first, then advance the local pacemaker
+    and signing records as a networking thread may do while the block is pending.
+    The canonical commit must preserve the newer live metadata in memory, durable
+    SQLite and a fresh restarted executor. State roots exclude local BFT state.
+    """
+    with bft._env(bft._setup_env()):
+        executor = bft._make_executor(tmp_path, "bft-commit-liveness")
+        block, candidate_state, applied_ids, invalid_ids, err = executor.build_block_candidate(
+            max_txs=0, allow_empty=True, force_ts_ms=1000
+        )
+        assert err == ""
+        assert isinstance(block, dict)
+        assert isinstance(candidate_state, dict)
+
+        executor._bft.bump_view(9)
+        executor._bft.last_voted_view = 8
+        executor._bft.last_voted_block_id = "previous-signed-vote"
+        executor._bft.last_voted_block_hash = "previous-signed-vote-hash"
+        executor._bft.last_proposed_view = 7
+        executor._bft.last_proposed_block_id = "previous-signed-proposal"
+        executor._bft.last_proposed_block_hash = "previous-signed-proposal-hash"
+        executor._persist_bft_state()
+        assert int(candidate_state.get("bft", {}).get("view") or 0) < 9
+
+        meta = executor.commit_block_candidate(
+            block=block,
+            new_state=candidate_state,
+            applied_ids=applied_ids,
+            invalid_ids=invalid_ids,
+        )
+        assert meta.ok, meta.error
+        assert meta.error == ""
+        assert executor._bft.view == 9
+        assert executor._bft.last_voted_view == 8
+        assert executor._bft.last_voted_block_id == "previous-signed-vote"
+        assert executor._bft.last_proposed_view == 7
+        assert executor._bft.last_proposed_block_id == "previous-signed-proposal"
+        persisted = executor._ledger_store.read()
+        assert persisted["bft"]["view"] == 9
+        assert persisted["bft"]["last_voted_view"] == 8
+        assert persisted["bft"]["last_voted_block_id"] == "previous-signed-vote"
+        assert persisted["bft"]["last_proposed_view"] == 7
+        assert persisted["bft"]["last_proposed_block_id"] == "previous-signed-proposal"
+
+        restarted = bft._make_executor(tmp_path, "bft-commit-liveness")
+        assert restarted.state["height"] == block["height"]
+        assert restarted._bft.view == 9
+        assert restarted._bft.last_voted_view == 8
+        assert restarted._bft.last_voted_block_id == "previous-signed-vote"
+        assert restarted._bft.last_proposed_view == 7
+        assert restarted._bft.last_proposed_block_id == "previous-signed-proposal"
+
+
 def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
     tmp_path: Path,
 ) -> None:
