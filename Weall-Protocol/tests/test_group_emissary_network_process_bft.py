@@ -1581,18 +1581,25 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 break
             last_fetch_descriptors = workers[offline].send("fetch_descriptors")
             time.sleep(0.15)
-        assert (
+        if not (
             caught_up["height"] == source_snapshot["height"]
             and caught_up["tip"] == source_snapshot["tip"]
             and caught_up["state_root"] == source_snapshot["state_root"]
-        ), {
-            "lagging": caught_up,
-            "source": source_snapshot,
-            "fetch_descriptors": last_fetch_descriptors,
-            "frontier": workers[offline].send("frontier_debug"),
-            "fetch_debug": workers[offline].send("fetch_debug"),
-            "status": workers[offline].send("peer_status"),
-        }
+        ):
+            pytest.fail(
+                "authenticated_http_catchup_mismatch:"
+                + json.dumps(
+                    {
+                        "lagging": caught_up,
+                        "source": source_snapshot,
+                        "fetch_descriptors": last_fetch_descriptors,
+                        "frontier": workers[offline].send("frontier_debug"),
+                        "fetch_debug": workers[offline].send("fetch_debug"),
+                        "status": workers[offline].send("peer_status"),
+                    },
+                    sort_keys=True,
+                )
+            )
         for height in (4, 5, 6):
             assert (
                 workers[offline].send("block", height=height)["block_id"]
