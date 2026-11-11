@@ -16,7 +16,7 @@
 4. after the election closes and sufficient independent trustees cooperate, publicly verify shuffle and decryption of the now-unlinked complete rankings;
 5. feed the deterministically encoded, decrypted rankings to the existing STV tally, independently reproduce all transfers/ties/exhaustion, then publish an auditable transcript and only then grant any elected emissary or signer authority.
 
-This is **a research hypothesis**. Neither its cryptographic privacy nor its compatibility with a post-quantum threat model has been proved. The default release decision remains **NO-GO**. No code in this increment signs, submits, admits, verifies, counts, decrypts or authorizes a confidential ballot.
+This is **a research hypothesis**. Neither its cryptographic privacy nor its compatibility with a post-quantum threat model has been proved. The default release decision remains **NO-GO**. No code in this increment signs, submits, admits, verifies, counts, decrypts or authorizes a confidential ballot. **No new consensus transaction type, cryptographic primitive, or ballot authority is introduced or authorized by this ADR.**
 
 ### Existing implementation constraint
 
