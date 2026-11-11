@@ -143,7 +143,9 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
 
         qc = node._bft_best_justify_qc_json()
         qc_id = str(qc.get("block_id") or "") if isinstance(qc, dict) else ""
-        valid = node.bft_verify_qc_json(qc) is not None if isinstance(qc, dict) else False
+        valid = False
+        if isinstance(qc, dict):
+            valid = node.bft_verify_qc_json(qc) is not None
         chain = votecheck._speculative_chain_to_parent(node, qc_id) if qc_id else None
         evidence: Json = {
             "canonical_height": int(node.state.get("height") or 0),
