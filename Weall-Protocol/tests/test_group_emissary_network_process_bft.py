@@ -611,10 +611,15 @@ def _run_worker(
             listener.bind(("127.0.0.1", 0))
             listener.listen(16)
             listener.settimeout(0.5)
-            ready.write_text(
+            # The parent polls this path as its readiness signal. Publishing
+            # it before write_text closes the file allows a rare empty read.
+            # Publish a complete JSON record with a same-directory rename.
+            ready_tmp = ready.with_suffix(".json.tmp")
+            ready_tmp.write_text(
                 json.dumps({"port": listener.getsockname()[1], "pid": os.getpid()}),
                 encoding="utf-8",
             )
+            ready_tmp.replace(ready)
             running = True
             while running:
                 try:
