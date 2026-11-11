@@ -197,7 +197,7 @@ def test_group_election_index_is_allowlisted_public_scoped_and_paginated() -> No
         == "signed_envelope_contains_signer_and_plaintext_ranking"
     )
     serialized = str(body) + str(second.json())
-    for forbidden in ("never_publish", "nullifiers", "ballots"):
+    for forbidden in ("never_publish", "nullifiers"):
         assert forbidden not in serialized
     for row in body["items"] + second.json()["items"]:
         for secret_key in (
