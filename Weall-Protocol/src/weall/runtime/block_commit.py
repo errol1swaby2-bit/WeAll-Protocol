@@ -273,12 +273,33 @@ def commit_block_candidate(
         # closed if BFT/cache housekeeping cannot be completed.
         self.state = new_state
         try:
-            self._bft.load_from_state(self.state)
+            current_epoch = int(self._current_validator_epoch())
+            current_set_hash = (
+                str(self._current_validator_set_hash() or "") if current_epoch > 0 else ""
+            )
+            same_validator_generation = (
+                current_epoch == int(previous_epoch)
+                and current_set_hash == str(previous_set_hash or "")
+            )
+
+            # The candidate's application state may have been built before the
+            # network thread accepted a newer QC, timeout, vote, or proposal.
+            # BFT metadata is node-local and excluded from the state root: an
+            # ordinary canonical commit must not reload that older snapshot
+            # over live pacemaker/anti-equivocation history. A genuine validator
+            # generation transition still follows the existing reset path.
+            if not same_validator_generation:
+                self._bft.load_from_state(self.state)
             self._cache_known_block_hash(str(block_id), str(block2.get("block_hash") or ""))
             self._prune_pending_bft_artifacts_on_local_validator_transition(
                 previous_epoch=int(previous_epoch),
                 previous_set_hash=str(previous_set_hash or ""),
             )
+            if same_validator_generation:
+                # Rebind local BFT metadata to the newly committed durable
+                # ledger snapshot so a subsequent restart cannot resurrect
+                # stale candidate-time pacemaker or signing records.
+                self._persist_bft_state()
         except Exception as exc:
             post_commit_error = f"post_commit_housekeeping_failed:{type(exc).__name__}:{str(exc)}"
             self._post_commit_housekeeping_error = post_commit_error
