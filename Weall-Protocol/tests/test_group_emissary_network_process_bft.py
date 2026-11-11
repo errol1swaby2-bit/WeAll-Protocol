@@ -136,7 +136,19 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         }
     if command == "peer_status":
         assert loop.node is not None
-        return {"runtime": loop.runtime_debug(), "peers": loop.node.peers_debug()}
+        return {
+            "runtime": loop.runtime_debug(),
+            "peers": loop.node.peers_debug(),
+            "handshake_context": {
+                "chain_id": str(loop.node.cfg.chain_id),
+                "schema_version": str(loop.node.cfg.schema_version),
+                "tx_index_hash": str(loop.node.cfg.tx_index_hash),
+                "validator_epoch": loop.node._handshake_validator_epoch(),
+                "validator_set_hash": loop.node._handshake_validator_set_hash(),
+                "bft_enabled": bool(loop.node.cfg.bft_enabled),
+                "height": int(node.state["height"]),
+            },
+        }
     if command == "enable_autonomous_bft":
         # Enable normal production tick intervals after the harness has
         # established its synthetic transition QC. No view, vote, proposal or
@@ -1164,7 +1176,40 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             time.sleep(0.1)
         assert last_rejoin_status["runtime"]["thread_alive"] is True
         assert last_rejoin_status["runtime"]["unhealthy"] is False
-        assert connected_identity_set(last_rejoin_status) >= online, last_rejoin_status
+        if connected_identity_set(last_rejoin_status) < online:
+            def peer_evidence(status: Json) -> Json:
+                return {
+                    "handshake_context": status["handshake_context"],
+                    "runtime": status["runtime"],
+                    "counts": status["peers"]["counts"],
+                    "peers": [
+                        {
+                            key: peer.get(key)
+                            for key in (
+                                "peer_id",
+                                "connected",
+                                "established",
+                                "identity_verified",
+                                "account_id",
+                                "strikes",
+                                "banned",
+                                "last_error",
+                            )
+                        }
+                        for peer in status["peers"]["peers"]
+                        if peer["connected"] or peer["strikes"] or peer["banned"]
+                    ],
+                }
+
+            evidence = {
+                "lagging": peer_evidence(last_rejoin_status),
+                "online": {
+                    validator: peer_evidence(worker.send("peer_status"))
+                    for validator, worker in workers.items()
+                    if validator != offline
+                },
+            }
+            pytest.fail(json.dumps(evidence, sort_keys=True))
 
         source = leader_for_view(bft.VALIDATORS, 5)
         assert source in online
