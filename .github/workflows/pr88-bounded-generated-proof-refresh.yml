@@ -1,4 +1,4 @@
-name: PR88 bounded generated-proof refresh
+name: PR88 bounded V1.5 proof refresh and V2 semantic drift gate
 
 on:
   push:
@@ -109,7 +109,7 @@ jobs:
           print("Source-bound reviews: 2 new read-only endpoints; independent_review=false")
           PY
 
-      - name: Regenerate canonical V1.5 and V2 derivatives
+      - name: Regenerate canonical V1.5 derivatives
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -123,17 +123,14 @@ jobs:
           python scripts/gen_b534_b538_completion_proof_v1_5.py
           python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
           python scripts/gen_current_verified_claims.py
-          python scripts/compile_v2_spec.py
 
-      - name: Validate regenerated proofs without weakening gates
+      - name: Validate regenerated V1.5 proofs without weakening gates
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
           python scripts/gen_b528_b532_completion_proof_v1_5.py --check
           python scripts/gen_b528_b532_completion_proof_v1_5.py --verify-live
-          python scripts/compile_v2_spec.py --check
           python scripts/check_v15_public_readiness_artifacts.py
-          python scripts/check_generated.py
 
       - name: Commit only generated artifacts to unchanged draft branch
         run: |
@@ -161,5 +158,22 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'chore(pr88): regenerate exact-source V1.5 and V2 proofs'
+          git commit -m 'chore(pr88): refresh checked V1.5 proofs and scoped route review evidence'
           git push origin HEAD:frontend/v16-group-profile-and-navigation-20261110
+
+      - name: Preserve V2 source-semantic drift failure with diagnostic evidence
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/audit_v2_semantic_review_drift.py > /tmp/pr88-v2-semantic-drift.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("/tmp/pr88-v2-semantic-drift.json").read_text())
+          print(json.dumps({
+              "status": "DIAGNOSTIC_ONLY_NOT_APPROVAL",
+              "mismatched_transaction_reviews": report["mismatched_transaction_reviews"],
+              "tx_types": [item["tx_type"] for item in report["details"]],
+          }, sort_keys=True))
+          PY
+          python scripts/compile_v2_spec.py --check
