@@ -190,10 +190,9 @@ def test_signed_committed_emissary_quorum_replays_and_restarts(
     original_signers = list(
         producer.state["roles"]["groups_by_id"]["g:committed"]["signers"]
     )
+    treasury_id = producer.state["roles"]["groups_by_id"]["g:committed"]["treasury_id"]
     original_treasury = list(
-        producer.state["roles"]["treasuries_by_id"]["group:g:committed:treasury"][
-            "signers"
-        ]
+        producer.state["roles"]["treasuries_by_id"][treasury_id]["signers"]
     )
 
     block_finalize = _commit_and_replay(
