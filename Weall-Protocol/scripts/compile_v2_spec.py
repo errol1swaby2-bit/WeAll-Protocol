@@ -559,6 +559,15 @@ def _extract_failures(node: ast.AST) -> list[Json]:
         if name == "HTTPException":
             code = "http_exception"
             reason = strings[-1] if strings else "route_specific_http_exception"
+        elif child.args and _literal_string(child.args[0]) is None:
+            # The first positional argument is the canonical runtime error
+            # code for typed transaction errors. It can be state-derived
+            # (for example RolesApplyError(str(decision["code"]), ...)).
+            # Never promote the exception *class name* to a reported error
+            # code, or mistake a later literal detail for the first argument.
+            # This existing registered fallback remains explicitly unresolved
+            # until source/receipt evidence receives semantic review.
+            code, reason = "runtime_apply_error", "see_handler"
         else:
             code = strings[0] if strings else name
             reason = strings[1] if len(strings) > 1 else "runtime_apply_failure"
