@@ -907,6 +907,93 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             snap["finalized_block_id"] == proposals[2]["block_id"] for snap in post_restart
         ), frontier
         assert len({snap["state_root"] for snap in post_restart}) == 1, frontier
+
+        # The next three active proposer views must advance consensus without
+        # the fourth validator's participation. The controller drives only the
+        # local leader self-vote through the production signed vote path; all
+        # *remote* signed votes and quorum certificates cross authenticated TCP.
+        # We skip view 7 because it belongs to the intentionally offline node.
+        offline = leader_for_view(bft.VALIDATORS, 7)
+        assert offline not in {
+            leader_for_view(bft.VALIDATORS, view) for view in (5, 6, 8)
+        }
+        old_offline = workers.pop(offline)
+        offline_before = old_offline.send("snapshot")
+        assert offline_before["height"] == 3
+        old_offline.close()
+        online = set(workers)
+        assert len(online) == 3
+        surviving_proposals: dict[int, Json] = {}
+
+        for view in (5, 6, 8):
+            for worker in workers.values():
+                worker.send("set_view", view=view)
+            leader = leader_for_view(bft.VALIDATORS, view)
+            assert leader in online
+            proposal = workers[leader].send("propose", max_txs=0)
+            surviving_proposals[view] = proposal
+            assert proposal["view"] == view
+            local_vote = workers[leader].send("vote_proposal", proposal=proposal)
+            assert local_vote["signer"] == leader
+            assert local_vote["block_id"] == proposal["block_id"]
+            workers[leader].send("receive_vote", vote=local_vote)
+            assert (
+                workers[leader].send("broadcast_proposal", proposal=proposal)[
+                    "broadcast_called"
+                ]
+                is True
+            )
+
+            expected_remote = online - {leader}
+            sent: set[str] = set()
+            deadline = time.monotonic() + 15
+            while time.monotonic() < deadline:
+                for validator in expected_remote:
+                    votes = workers[validator].send(
+                        "sent_votes", block_id=proposal["block_id"]
+                    )
+                    if len(votes) == 1 and votes[0]["signer"] == validator:
+                        sent.add(validator)
+                if sent == expected_remote:
+                    break
+                time.sleep(0.1)
+            assert sent == expected_remote, {"view": view, "sent": sorted(sent)}
+
+            qc_proven: set[str] = set()
+            deadline = time.monotonic() + 15
+            while time.monotonic() < deadline:
+                for validator, worker in workers.items():
+                    qc = worker.send("qc_observation", block_id=proposal["block_id"])
+                    if isinstance(qc, dict) and qc["verified"]:
+                        assert len(qc["signers"]) >= 3
+                        assert set(qc["signers"]) == online
+                        qc_proven.add(validator)
+                if qc_proven == online:
+                    break
+                time.sleep(0.1)
+            assert qc_proven == online, {
+                "view": view,
+                "certified": sorted(qc_proven),
+            }
+
+        # A certified three-chain formed while one validator was absent must
+        # finalize a block *after* that validator's committed height.
+        deadline = time.monotonic() + 10
+        surviving = [worker.send("snapshot") for worker in workers.values()]
+        while time.monotonic() < deadline:
+            if all(
+                snap["height"] == 4
+                and snap["tip"] == surviving_proposals[5]["block_id"]
+                for snap in surviving
+            ):
+                break
+            time.sleep(0.1)
+            surviving = [worker.send("snapshot") for worker in workers.values()]
+        assert all(snap["height"] == 4 for snap in surviving), surviving
+        assert all(
+            snap["tip"] == surviving_proposals[5]["block_id"] for snap in surviving
+        )
+        assert len({snap["state_root"] for snap in surviving}) == 1
     finally:
         for worker in workers.values():
             worker.close()
