@@ -27,6 +27,10 @@ on:
       - Weall-Protocol/tests/test_group_emissary_committed_block_rehearsal.py
       - Weall-Protocol/tests/test_p0_03_production_composition.py
       - Weall-Protocol/tests/test_group_emissary_network_process_bft.py
+      - Weall-Protocol/src/weall/runtime/block_commit.py
+      - Weall-Protocol/src/weall/runtime/executor.py
+      - Weall-Protocol/tests/test_executor_atomic_commit_crash_recovery.py
+      - Weall-Protocol/tests/test_executor_epoch_transition_pending_prune.py
       - Weall-Protocol/tests/test_priority1_missing_parent_fetch_budget.py
       - Weall-Protocol/src/weall/runtime/bft_pending_frontier_impl.py
       - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_QUORUM_ACTIVATION_V1.md
@@ -76,6 +80,11 @@ jobs:
             sha256sum tests/test_group_emissary_committed_block_rehearsal.py
             sha256sum tests/test_p0_03_production_composition.py
             sha256sum tests/test_group_emissary_network_process_bft.py
+            sha256sum src/weall/runtime/block_commit.py
+            sha256sum src/weall/runtime/executor.py
+            sha256sum tests/test_executor_atomic_commit_crash_recovery.py
+            sha256sum tests/test_executor_epoch_transition_pending_prune.py
+            echo "bft_commit_state_scope=SAME_GENERATION_ATOMIC_LEDGER_BFT_SNAPSHOT_AND_TRANSITION_RESET_REGRESSIONS"
             echo "bft_controller_relay_baseline=FOUR_PYTHON_PROCESSES_RPC_FORWARDING_TO_PRODUCTION_NETMESH_BFT_HANDLERS"
             echo "bft_authenticated_tcp_rehearsal=FOUR_PROCESSES_AUTHENTICATED_TCP_THREE_VIEW_QC_FINALITY_AND_DURABLE_LEADER_RESTART"
             echo "bft_authenticated_tcp_boundary=STATIC_LOOPBACK_PEERS_SYNTHETIC_BOOTSTRAP_AND_CONTROLLER_VIEWS"
@@ -106,11 +115,11 @@ jobs:
           } > "$OUT/source_and_scope.txt"
           set +e
           {
-            ruff format --check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
-            ruff check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
+            ruff format --check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py src/weall/runtime/block_commit.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
+            ruff check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py src/weall/runtime/block_commit.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
             python scripts/validate_group_emissary_architecture_review.py &&
             python scripts/validate_group_emissary_stv_t0.py &&
-            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py tests/test_group_emissary_architecture_review_contract.py tests/test_group_emissary_stv_t0_vectors.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_election_creation tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_ballots_and_treasury tests/test_group_emissary_network_process_bft.py tests/test_priority1_missing_parent_fetch_budget.py
+            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py tests/test_group_emissary_architecture_review_contract.py tests/test_group_emissary_stv_t0_vectors.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_election_creation tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_ballots_and_treasury tests/test_group_emissary_network_process_bft.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py
           } 2>&1 | tee "$OUT/targeted_pytest.log"
           RC="${PIPESTATUS[0]}"
           set -e
