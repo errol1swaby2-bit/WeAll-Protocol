@@ -959,11 +959,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert restarted_status["runtime"]["unhealthy"] is False, restarted_status
         if connected_identity_set(restarted_status) < (set(bft.VALIDATORS) - {restarted}):
             statuses = {
-                validator: status
-                for validator, status in (
-                    (validator, worker.send("peer_status"))
-                    for validator, worker in workers.items()
-                )
+                validator: worker.send("peer_status") for validator, worker in workers.items()
             }
             evidence = {
                 validator: {
