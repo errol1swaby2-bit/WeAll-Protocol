@@ -714,9 +714,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             proposals[view] = proposal
             assert int(proposal["view"]) == view
             assert (
-                workers[leader].send("broadcast_proposal", proposal=proposal)[
-                    "broadcast_called"
-                ]
+                workers[leader].send("broadcast_proposal", proposal=proposal)["broadcast_called"]
                 is True
             )
 
@@ -752,9 +750,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             deadline = time.monotonic() + 18
             while time.monotonic() < deadline:
                 for validator, worker in workers.items():
-                    observation = worker.send(
-                        "qc_observation", block_id=proposal["block_id"]
-                    )
+                    observation = worker.send("qc_observation", block_id=proposal["block_id"])
                     if isinstance(observation, dict) and observation["verified"]:
                         qc_observations[validator] = observation
                 if len(qc_observations) == 4:
@@ -776,9 +772,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         snapshots = [worker.send("snapshot") for worker in workers.values()]
         assert all(snap["height"] == 2 for snap in snapshots), snapshots
         assert all(snap["tip"] == proposals[1]["block_id"] for snap in snapshots)
-        assert all(
-            snap["finalized_block_id"] == proposals[1]["block_id"] for snap in snapshots
-        )
+        assert all(snap["finalized_block_id"] == proposals[1]["block_id"] for snap in snapshots)
         assert len({snap["state_root"] for snap in snapshots}) == 1
     finally:
         for worker in workers.values():
