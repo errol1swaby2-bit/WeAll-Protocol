@@ -147,11 +147,17 @@ def test_finalized_frontier_keeps_unknown_hash_bound_qc_and_missing_parent(
     ex._bft.finalized_block_id = "C1"
     # Simulate artifacts which have already crossed authenticated admission.
     # No unverified QC is admitted by this test; this covers pruning only.
-    ex._put_pending_missing_qc({
-        "t": "QC", "chain_id": "batch107", "view": 5,
-        "block_id": "FUTURE", "block_hash": "FUTURE-h",
-        "parent_id": "MISSING", "votes": [],
-    })
+    ex._put_pending_missing_qc(
+        {
+            "t": "QC",
+            "chain_id": "batch107",
+            "view": 5,
+            "block_id": "FUTURE",
+            "block_hash": "FUTURE-h",
+            "parent_id": "MISSING",
+            "votes": [],
+        }
+    )
     child = _pending_block(block_id="FUTURE-CHILD", parent_id="MISSING", height=6)
     ex._put_pending_remote_block(block_id="FUTURE-CHILD", block=child)
     assert ex._prune_pending_bft_artifacts() is False
@@ -164,8 +170,7 @@ def test_finalized_frontier_keeps_unknown_hash_bound_qc_and_missing_parent(
         "reason": "missing_qc_block",
     } in descriptors
     assert any(
-        item["block_id"] == "MISSING" and item["reason"] == "missing_parent"
-        for item in descriptors
+        item["block_id"] == "MISSING" and item["reason"] == "missing_parent" for item in descriptors
     )
 
 
@@ -183,11 +188,17 @@ def test_finalized_frontier_prunes_known_fork_and_ancestry_cycle(
         "C2": {"prev_block_id": "B2", "height": 3, "block_hash": "C2-h"},
     }
     ex._bft.finalized_block_id = "C1"
-    ex._put_pending_missing_qc({
-        "t": "QC", "chain_id": "batch107", "view": 5,
-        "block_id": "D2", "block_hash": "D2-h",
-        "parent_id": "C2", "votes": [],
-    })
+    ex._put_pending_missing_qc(
+        {
+            "t": "QC",
+            "chain_id": "batch107",
+            "view": 5,
+            "block_id": "D2",
+            "block_hash": "D2-h",
+            "parent_id": "C2",
+            "votes": [],
+        }
+    )
     ex._put_pending_remote_block(
         block_id="D2",
         block=_pending_block(block_id="D2", parent_id="C2", height=4),
