@@ -1455,9 +1455,7 @@ def _group_emissary_frozen_quorum(election: Json) -> tuple[int, int]:
     """Same default ceil(2n/3) participation threshold as ordinary governance."""
     snapshot = election.get("voter_snapshot")
     if not isinstance(snapshot, list) or any(not isinstance(v, str) or not v for v in snapshot):
-        raise GroupsApplyError(
-            "invalid_state", "invalid_election_voter_snapshot", {}
-        )
+        raise GroupsApplyError("invalid_state", "invalid_election_voter_snapshot", {})
     eligible = len(set(snapshot))
     required = int(quorum_threshold(eligible))
     # Bind finalization to the threshold captured at creation and fail closed
@@ -1467,9 +1465,7 @@ def _group_emissary_frozen_quorum(election: Json) -> tuple[int, int]:
         or election.get("required_votes") != required
         or isinstance(election.get("required_votes"), bool)
     ):
-        raise GroupsApplyError(
-            "invalid_state", "emissary_quorum_snapshot_mismatch", {}
-        )
+        raise GroupsApplyError("invalid_state", "emissary_quorum_snapshot_mismatch", {})
     return eligible, required
 
 
@@ -1827,9 +1823,7 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
     )
     quorum_version = _as_int(e.get("quorum_policy_version"), 0)
     if quorum_version not in (0, 1):
-        raise GroupsApplyError(
-            "invalid_state", "unsupported_group_emissary_quorum_version", {}
-        )
+        raise GroupsApplyError("invalid_state", "unsupported_group_emissary_quorum_version", {})
     if quorum_version == 1:
         eligible_count, required_votes = _group_emissary_frozen_quorum(e)
         if required_votes <= 0 or valid_ballot_count < required_votes:

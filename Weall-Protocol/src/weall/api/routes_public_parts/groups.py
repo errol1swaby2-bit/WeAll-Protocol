@@ -567,9 +567,7 @@ def _public_election_row(
         "required_votes": height("required_votes"),
         "counted_ballots": height("n_ballots") if status in {"finalized", "no_decision"} else None,
         "quorum_met": (
-            election.get("quorum_met")
-            if isinstance(election.get("quorum_met"), bool)
-            else None
+            election.get("quorum_met") if isinstance(election.get("quorum_met"), bool) else None
         ),
         "no_decision_reason": (
             _str_param(election.get("no_decision_reason")).strip() or None
