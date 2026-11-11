@@ -128,3 +128,8 @@
 
 - New parameterized P0-03 BFT production composition regression: test-only 3-of-5 and 4-of-5 turnout. Each signed create/cast/finalize stage is proposed, voted on by independent validator executors, QC-linked through a full three-chain, checked for equal final state roots, then checked after restarted follower recovery. No no-quorum treasury authority transfer is permitted.
 - Not a live network BFT test, public confidential-ballot proof, operator registration proof, or constitutional activation. PR #88 remains DRAFT / NO-GO.
+
+## Four-process localhost TCP production-BFT election lifecycle (2026-11-10; validation pending)
+
+- New scoped network-transport rehearsal starts four separately persisted validator interpreter processes and forwards production signed BFT proposal/vote/QC messages over loopback TCP. The synthetic 3-of-5 and 4-of-5 complete election outcomes must converge after each three-chain commit and match follower-durable DB state after process restart.
+- This is orchestrated localhost RPC **not autonomous production network gossip**, real PoH admission, externally approved quorum activation or ballot confidentiality. DRAFT / NO-GO.
