@@ -460,7 +460,7 @@ def test_socket_separated_production_qc_election_recovery(
                 assert result["accepted"] is True
                 delivered = workers[delayed].send("snapshot")
                 assert delivered["height"] >= before_delayed["height"]
-                for validator, worker in workers.items():
+                for worker in workers.values():
                     again = worker.send("netmesh_qc", qc=qc, from_validator=leader)
                     assert again["accepted"] is True
             else:
