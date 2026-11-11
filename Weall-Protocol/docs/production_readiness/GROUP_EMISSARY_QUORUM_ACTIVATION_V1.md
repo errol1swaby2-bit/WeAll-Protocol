@@ -41,3 +41,11 @@ Required before enabling the activation param: constitutional acceptance of the 
 `tests/test_group_emissary_signed_quorum_replay.py` creates **real deterministic test-only ML-DSA signed** election-create, ballot and finalize envelopes and checks `admit_tx(..., context="block")`. It executes accepted envelopes through the canonical bounded-rollback transaction apply wrapper, compares turnout outcomes at 3/5 and 4/5, rejects a signature-invalid altered ranking, and compares deterministic state roots from two fresh interpreter processes with different hash seeds. Accounts and group membership are seeded synthetic fixtures.
 
 **Scope is explicitly narrower than genuine independent-node replay:** no real block construction/commit, validator QC, persisted DB recovery, network transport or constitutional activation is exercised. The underlying signed ballot still exposes the signer and plaintext ranking. This gate does not replace Backend CI, P1, Reviewer Readiness or any cryptographic ballot review.
+
+## Committed-block producer/follower and durable restart rehearsal (pending CI)
+
+`tests/test_group_emissary_committed_block_rehearsal.py` seeds identical synthetic pre-first-block accounts and group membership in two separately persisted `WeAllExecutor` stores. The producer submits test-key ML-DSA signed election-create, ballot and finalize transactions through public HTTP-context admission, builds real block candidates, and commits each with `commit_block_candidate`. The follower verifies each committed block through `apply_block`; the test requires identical state roots and successful transaction receipts, then reconstructs the follower from SQLite and checks all persisted block receipts and election/treasury signer state.
+
+Cases: 3/5 after test-only activation (no decision, authority unchanged); 4/5 (finalized); and one historical ballot with activation unset (legacy behavior retained). The activation parameter is injected **only into synthetic test genesis**.
+
+**Limits:** fixture members did not perform actual PoH/registration; these are local independently persisted executor instances, not network-separated machines. A locally committed block is not a multi-validator QC or HotStuff BFT finality certificate. Neither this test nor passing CI authorizes private ballot transport, a production activation, or merging the draft.
