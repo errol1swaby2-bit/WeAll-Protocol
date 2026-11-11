@@ -97,15 +97,24 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     if command == "broadcast_proposal":
         loop._broadcast_bft_proposal(request["proposal"])
         return {"broadcast_called": True}
-    if command == "outbound_votes":
+    if command == "sent_votes":
         block_id = str(request["block_id"])
-        return [
-            item["payload"]
-            for item in node.bft_pending_outbound_messages()
-            if item.get("kind") == "vote"
-            and isinstance(item.get("payload"), dict)
-            and str(item["payload"].get("block_id")) == block_id
-        ]
+        # The production BFT outbox deletes obligations after successful send.
+        # The checksum-verified journal retains both enqueue and sent events.
+        enqueued: dict[str, Json] = {}
+        sent: set[str] = set()
+        for event in node._bft_journal.read_tail(limit=512, strict=True):
+            body = event.get("payload")
+            if not isinstance(body, dict) or body.get("kind") != "vote":
+                continue
+            key = str(body.get("key") or "")
+            if event.get("event") == "bft_outbound_enqueued":
+                vote = body.get("payload")
+                if isinstance(vote, dict) and str(vote.get("block_id")) == block_id:
+                    enqueued[key] = vote
+            elif event.get("event") == "bft_outbound_sent":
+                sent.add(key)
+        return [vote for key, vote in enqueued.items() if key in sent]
     if command == "transition_vote":
         assert node.bft_leader_propose(max_txs=0) is None
         boundary = str(request["block_id"])
@@ -694,7 +703,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             for validator, worker in workers.items():
                 if validator == leader:
                     continue
-                votes = worker.send("outbound_votes", block_id=proposal["block_id"])
+                votes = worker.send("sent_votes", block_id=proposal["block_id"])
                 if len(votes) == 1:
                     follower_votes[validator] = votes[0]
             if len(follower_votes) == 3:
