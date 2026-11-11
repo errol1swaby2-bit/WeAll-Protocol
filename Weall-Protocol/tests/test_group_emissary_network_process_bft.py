@@ -97,9 +97,7 @@ def _worker_command(node: Any, request: Json) -> Any:
             "tx_types": [receipt["tx_type"] for receipt in block["receipts"]],
             "receipt_count": len(block["receipts"]),
             "all_receipts_ok": all(receipt.get("ok") is True for receipt in block["receipts"]),
-            "receipt_signers": [
-                receipt.get("signer") for receipt in block["receipts"]
-            ],
+            "receipt_signers": [receipt.get("signer") for receipt in block["receipts"]],
         }
     if command == "stop":
         node.mark_clean_shutdown()
@@ -109,9 +107,7 @@ def _worker_command(node: Any, request: Json) -> Any:
 
 def _run_worker(root: Path, validator: str, ready: Path) -> None:
     pubs, privs = bft._key_material()
-    with bft._env(
-        bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])
-    ):
+    with bft._env(bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])):
         executor = bft._make_executor(root, validator, node_id=validator)
         assert executor._validator_signing_permitted() is True
         assert executor._active_validators() == bft.VALIDATORS
@@ -190,9 +186,7 @@ class _NodeProcess:
             raw = stream.readline()
         assert raw, f"{self.validator}: empty response for {command}"
         response = json.loads(raw)
-        assert response["ok"] is True, (
-            f"{self.validator} {command}: {response.get('error')}"
-        )
+        assert response["ok"] is True, f"{self.validator} {command}: {response.get('error')}"
         return response["result"]
 
     def close(self) -> None:
@@ -225,9 +219,7 @@ def _signed(kind: str, signer: str, nonce: int, payload: Json) -> Json:
 
 
 @pytest.mark.parametrize("turnout", [3, 4], ids=["below_quorum", "quorum_met"])
-def test_socket_separated_production_qc_election_recovery(
-    tmp_path: Path, turnout: int
-) -> None:
+def test_socket_separated_production_qc_election_recovery(tmp_path: Path, turnout: int) -> None:
     """Loopback RPC transport; real production proposer/voter/QC/commit entrypoints."""
     pubs, privs = bft._key_material()
     seeded, boundary_id, _hash = bft._install_prod_boundary(
@@ -237,9 +229,7 @@ def test_socket_separated_production_qc_election_recovery(
         seed_emissary_electorate=True,
     )
     for validator, executor in seeded.items():
-        with bft._env(
-            bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])
-        ):
+        with bft._env(bft._prod_env(validator, pub=pubs[validator], priv=privs[validator])):
             executor.mark_clean_shutdown()
     seeded.clear()
 
@@ -322,9 +312,7 @@ def test_socket_separated_production_qc_election_recovery(
                 assert isinstance(receipts, list)
                 assert all(receipt.get("ok") is True for receipt in receipts)
                 user_receipts = [
-                    receipt
-                    for receipt in receipts
-                    if receipt["tx_type"] != "BLOCK_FINALIZE"
+                    receipt for receipt in receipts if receipt["tx_type"] != "BLOCK_FINALIZE"
                 ]
                 assert len(user_receipts) == len(signed)
                 assert sorted(receipt["tx_type"] for receipt in user_receipts) == sorted(
