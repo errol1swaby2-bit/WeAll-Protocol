@@ -226,6 +226,8 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         return {"view": int(request["view"])}
     if command == "submit_tx":
         return node.submit_tx(request["tx"], ingress="http")
+    if command == "try_propose":
+        return node.bft_leader_propose(max_txs=int(request["max_txs"]))
     if command == "propose":
         proposal = node.bft_leader_propose(max_txs=int(request["max_txs"]))
         assert isinstance(proposal, dict)
@@ -928,7 +930,21 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 worker.send("set_view", view=view)
             leader = leader_for_view(bft.VALIDATORS, view)
             assert leader in online
-            proposal = workers[leader].send("propose", max_txs=0)
+            # The preceding QC/finalized replay can still be pending on the
+            # proposed leader at the instant the view changes. A temporary
+            # None means no candidate was signed; retry only within a bounded
+            # window, and fail with durable frontier evidence if it stays
+            # unavailable (exceptions remain hard failures).
+            deadline = time.monotonic() + 10
+            proposal = workers[leader].send("try_propose", max_txs=0)
+            while not isinstance(proposal, dict) and time.monotonic() < deadline:
+                time.sleep(0.1)
+                proposal = workers[leader].send("try_propose", max_txs=0)
+            assert isinstance(proposal, dict), {
+                "leader": leader,
+                "view": view,
+                "frontier": workers[leader].send("frontier_debug"),
+            }
             surviving_proposals[view] = proposal
             assert proposal["view"] == view
             local_vote = workers[leader].send("vote_proposal", proposal=proposal)
