@@ -976,7 +976,8 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         surviving = [worker.send("snapshot") for worker in workers.values()]
         while time.monotonic() < deadline:
             if all(
-                snap["height"] == 4 and snap["tip"] == surviving_proposals[5]["block_id"]
+                snap["height"] == surviving_proposals[5]["height"]
+                and snap["tip"] == surviving_proposals[5]["block_id"]
                 for snap in surviving
             ):
                 break
@@ -985,7 +986,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         frontier = {
             validator: worker.send("frontier_debug") for validator, worker in workers.items()
         }
-        assert all(snap["height"] == 4 for snap in surviving), {
+        assert all(snap["height"] == surviving_proposals[5]["height"] for snap in surviving), {
             "snapshots": surviving,
             "frontier": frontier,
             "proposed": {
