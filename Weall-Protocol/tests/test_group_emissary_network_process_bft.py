@@ -277,6 +277,25 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         exported = qc.to_json()
         assert node.bft_verify_qc_json(exported) is not None
         return exported
+    if command == "rebroadcast_stored_proposal":
+        # A survivor retransmits *its own existing signed candidate* through
+        # authenticated production TCP. The controller supplies only its ID,
+        # not a new proposal body or a replacement signature.
+        assert loop.node is not None
+        bid = str(request["block_id"])
+        proposal = node._bft_pending_block_json(bid)
+        assert isinstance(proposal, dict)
+        assert str(proposal.get("proposer") or "") == str(node.node_id)
+        loop.node.broadcast_message(
+            BftProposalMsg(
+                header=_wire_header(node, MsgType.BFT_PROPOSAL),
+                view=int(proposal["view"]),
+                proposer=str(proposal["proposer"]),
+                block=proposal,
+                justify_qc=proposal.get("justify_qc"),
+            )
+        )
+        return {"broadcast_called": True, "block_id": bid}
     if command == "broadcast_signed_qc":
         assert loop.node is not None
         qcj = request["qc"]
@@ -1331,6 +1350,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         assert len(online) == 3
         surviving_proposals: dict[int, Json] = {}
         certified_view5: Json | None = None
+        certified_view8: Json | None = None
 
         for view in (5, 6, 8):
             for worker in workers.values():
@@ -1412,12 +1432,16 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 "view": view,
                 "certified": sorted(qc_proven),
             }
-            if view == 5:
-                certified_view5 = workers[leader].send(
+            if view in (5, 8):
+                captured_qc = workers[leader].send(
                     "export_high_qc", block_id=proposal["block_id"]
                 )
-                assert isinstance(certified_view5, dict)
-                assert certified_view5["block_id"] == proposal["block_id"]
+                assert isinstance(captured_qc, dict)
+                assert captured_qc["block_id"] == proposal["block_id"]
+                if view == 5:
+                    certified_view5 = captured_qc
+                else:
+                    certified_view8 = captured_qc
 
         # A certified three-chain formed while one validator was absent must
         # finalize a block *after* that validator's committed height.
@@ -1568,6 +1592,38 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         }
         source_snapshot = workers[source].send("snapshot")
         assert source_snapshot["height"] == 6
+
+        # The original view-5 QC plus the fetched committed block at height 6
+        # should now re-observe a cached proof and finalize at least height 4.
+        # Never manufacture a QC or apply a block through the controller.
+        stage_one_deadline = time.monotonic() + 12
+        stage_one: Json = {}
+        while time.monotonic() < stage_one_deadline:
+            stage_one = workers[offline].send("snapshot")
+            if stage_one["height"] >= 4:
+                break
+            time.sleep(0.1)
+        assert stage_one["height"] >= 4, {
+            "lagging": stage_one,
+            "fetch": workers[offline].send("fetch_debug"),
+        }
+
+        # Deliver the surviving quorum's actual signed, not-yet-committed
+        # descendants through authenticated TCP. Those bodies establish the
+        # ancestry of the real view-8 QC, which can finalize height 6. They
+        # remain speculative, never canonical without verified finality.
+        assert isinstance(certified_view8, dict)
+        for later_view in (6, 8):
+            later_leader = leader_for_view(bft.VALIDATORS, later_view)
+            result = workers[later_leader].send(
+                "rebroadcast_stored_proposal",
+                block_id=surviving_proposals[later_view]["block_id"],
+            )
+            assert result["broadcast_called"] is True
+        source8 = leader_for_view(bft.VALIDATORS, 8)
+        assert workers[source8].send(
+            "broadcast_signed_qc", qc=certified_view8
+        )["broadcast_called"] is True
         catchup_deadline = time.monotonic() + 25
         caught_up: Json = {}
         last_fetch_descriptors: list[Json] = []
