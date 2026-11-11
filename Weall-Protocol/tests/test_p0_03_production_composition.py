@@ -363,7 +363,7 @@ def _install_prod_boundary(
 def _seed_emissary_fixture_in_height_zero_state(state: Json) -> None:
     """Synthetic pre-block registration only; NOT real-world PoH/approval."""
     state.setdefault("params", {})["group_emissary_quorum_activation_height"] = 2
-    actors = ["@emissary-creator", *[f"@e{i:02d}" for i in range(5)]]
+    actors = ["@emissarycreator", *[f"@e{i:02d}" for i in range(5)]]
     accounts = state.setdefault("accounts", {})
     for actor in actors:
         public, _private = deterministic_mldsa_keypair(label=f"p0-03-group:{actor}")
@@ -387,7 +387,7 @@ def _seed_emissary_fixture_in_height_zero_state(state: Json) -> None:
         state,
         TxEnvelope(
             tx_type="GROUP_CREATE",
-            signer="@emissary-creator",
+            signer="@emissarycreator",
             nonce=0,
             payload={"group_id": "g:bft-election", "charter": "synthetic QC fixture"},
         ),
@@ -755,7 +755,7 @@ def test_four_validator_qc_finalizes_signed_emissary_election_creation(
     )
     assert qc0["block_id"] == boundary_id
 
-    creator = "@emissary-creator"
+    creator = "@emissarycreator"
     _pub, private = deterministic_mldsa_keypair(label=f"p0-03-group:{creator}")
     candidates = [f"@e{i:02d}" for i in range(5)]
     create_tx = sign_tx_envelope_dict(
