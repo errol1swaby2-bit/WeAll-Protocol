@@ -35,3 +35,9 @@ Synthetic canonical-apply regressions compare default regular-governance thresho
 Required before enabling the activation param: constitutional acceptance of the eligible electorate definition and default quorum, exact protocol version/activation proposal, reviewer approval, historical replay and independent two-node state-root equality, and closure of existing Backend/P1/Reviewer release gates. The existing signed ballot still includes identifiable signer and plaintext ranking; encrypted or anonymous voting is **not implemented**.
 
 **PR #88 remains draft and NO-GO. Do not merge or set the activation parameter based on these tests alone.**
+
+## Signed block-context admission and process-isolated replay (test evidence pending)
+
+`tests/test_group_emissary_signed_quorum_replay.py` creates **real deterministic test-only ML-DSA signed** election-create, ballot and finalize envelopes and checks `admit_tx(..., context="block")`. It executes accepted envelopes through the canonical bounded-rollback transaction apply wrapper, compares turnout outcomes at 3/5 and 4/5, rejects a signature-invalid altered ranking, and compares deterministic state roots from two fresh interpreter processes with different hash seeds. Accounts and group membership are seeded synthetic fixtures.
+
+**Scope is explicitly narrower than genuine independent-node replay:** no real block construction/commit, validator QC, persisted DB recovery, network transport or constitutional activation is exercised. The underlying signed ballot still exposes the signer and plaintext ranking. This gate does not replace Backend CI, P1, Reviewer Readiness or any cryptographic ballot review.

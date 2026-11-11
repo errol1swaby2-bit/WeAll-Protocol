@@ -23,6 +23,7 @@ on:
       - Weall-Protocol/src/weall/runtime/apply/governance.py
       - Weall-Protocol/src/weall/runtime/param_policy.py
       - Weall-Protocol/tests/test_group_emissary_quorum_activation.py
+      - Weall-Protocol/tests/test_group_emissary_signed_quorum_replay.py
       - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_QUORUM_ACTIVATION_V1.md
       - web/src/pages/Group.tsx
       - web/src/api/weall.ts
@@ -66,6 +67,8 @@ jobs:
             echo "emissary_quorum_v1_electorate=SHARED_GROUP_GOVERNANCE_TIER2_AT_CREATE"
             sha256sum src/weall/runtime/param_policy.py
             sha256sum tests/test_group_emissary_quorum_activation.py
+            sha256sum tests/test_group_emissary_signed_quorum_replay.py
+            echo "signed_replay_scope=BLOCK_CONTEXT_ADMISSION_BOUNDED_APPLY_NOT_BFT_FINALITY"
             sha256sum docs/production_readiness/GROUP_EMISSARY_QUORUM_ACTIVATION_V1.md
             echo "emissary_quorum_activation=UNSET_NO_RELEASE_AUTHORIZATION"
             sha256sum tests/test_group_governance_contract.py
@@ -88,11 +91,11 @@ jobs:
           } > "$OUT/source_and_scope.txt"
           set +e
           {
-            ruff format --check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
-            ruff check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
+            ruff format --check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
+            ruff check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
             python scripts/validate_group_emissary_architecture_review.py &&
             python scripts/validate_group_emissary_stv_t0.py &&
-            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py tests/test_group_emissary_architecture_review_contract.py tests/test_group_emissary_stv_t0_vectors.py tests/test_group_emissary_quorum_activation.py
+            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py tests/test_group_emissary_architecture_review_contract.py tests/test_group_emissary_stv_t0_vectors.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py
           } 2>&1 | tee "$OUT/targeted_pytest.log"
           RC="${PIPESTATUS[0]}"
           set -e
