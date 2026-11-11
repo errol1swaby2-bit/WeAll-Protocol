@@ -11,7 +11,7 @@ from copy import deepcopy
 
 import pytest
 
-from weall.runtime.apply.governance import _electorate_required_votes
+from weall.runtime.apply.governance import _active_group_member_ids, _electorate_required_votes
 from weall.runtime.apply.groups import GroupsApplyError, apply_groups
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.param_policy import validate_param
@@ -171,6 +171,28 @@ def test_invalid_quorum_snapshot_fails_closed_before_signer_transfer() -> None:
         _finish(state)
     assert exc.value.reason == "emissary_quorum_snapshot_mismatch"
     assert group["signers"] == ["@creator"]
+
+
+def test_group_governance_eligible_electorate_differs_from_raw_member_snapshot() -> None:
+    state, _, voters = _setup(eligible=5)
+    # Ordinary group governance additionally checks active account standing and
+    # PoH Tier 2 by default. The current emissary creation snapshot is not
+    # filtered by that governance eligibility predicate.
+    state["accounts"] = {
+        voters[0]: {"poh_tier": 2},
+        voters[1]: {"poh_tier": 1},
+        voters[2]: {"poh_tier": 2, "banned": True},
+        voters[3]: {"poh_tier": 2, "locked": True},
+        voters[4]: {"poh_tier": 2, "suspended": True},
+    }
+    eligible_group_governance = _active_group_member_ids(
+        state, {"group_id": "g:quorum"}
+    )
+    assert eligible_group_governance == [voters[0]]
+    election = state["group_emissary_elections"]["e:quorum"]
+    assert election["eligible_voter_count"] == 5
+    assert election["required_votes"] == 4
+    assert len(eligible_group_governance) == 1
 
 
 def test_zero_ballots_after_activation_preserve_existing_treasury_authority() -> None:

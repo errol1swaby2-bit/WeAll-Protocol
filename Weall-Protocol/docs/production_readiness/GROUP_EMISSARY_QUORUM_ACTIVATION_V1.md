@@ -20,6 +20,12 @@ For version 1, the finalizer recomputes the required threshold from the frozen e
 - If participation reaches quorum, the existing deterministic full-weight ranked redistribution runs and existing group/treasury authority update path is unchanged.
 - Public election projections show only aggregate quorum fields and an outcome reason, not voter IDs, per-voter ballots or nullifiers. The public frontend still cannot submit confidential ballots.
 
+## Electorate eligibility parity remains an activation blocker
+
+The **quorum arithmetic** matches ordinary governance, but **eligible voter selection does not yet match**: ordinary group governance calls `_active_group_member_ids`, which filters by active membership, resolved account record, default PoH Tier 2, and banned/locked/suspended status. Existing emissary elections freeze `_group_member_snapshot` from the group's membership map. This version 1 patch intentionally preserves that electorate snapshot for historical compatibility; it does **not** claim parity with regular governance's group electorate eligibility. The new focused negative test demonstrates that five members could yield five emissary-snapshot voters but just one governance-eligible Tier 2 voter.
+
+**Do not activate** this version until the electorate definition is constitutionally confirmed and either reconciled with group governance through a separately reviewed versioned policy or expressly distinguished. A threshold calculated from the wrong denominator cannot be treated as equivalent constitutional quorum even if it uses the same fraction.
+
 ## Tests, scope and outstanding release work
 
 Synthetic canonical-apply regressions compare default regular-governance thresholds (1, 2, 3, 5, 20 eligible participants), verify strict/legacy fail-close with 13 of 20 voters, threshold success with 14 of 20, zero ballots, underfilled legacy turnout, invalid snapshot metadata, and governance whitelist bounds. They are **not** full signed transaction admission or replay proof across two production nodes.
