@@ -18,12 +18,15 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 import test_p0_03_production_composition as bft
 
 from weall.crypto.sig import sign_tx_envelope_dict
+from weall.net.messages import BftProposalMsg, BftQcMsg, BftVoteMsg, MsgType, WireHeader
+from weall.net.net_loop import NetLoopConfig, NetMeshLoop
 from weall.runtime.bft_hotstuff import leader_for_view
 from weall.runtime.state_hash import compute_state_root
 from weall.testing.sigtools import deterministic_mldsa_keypair
@@ -54,7 +57,37 @@ def _worker_snapshot(node: Any) -> Json:
     }
 
 
-def _worker_command(node: Any, request: Json) -> Any:
+class _CaptureBroadcast:
+    """Capture actual NetMeshLoop emissions for transport over test-owned TCP.
+
+    This is not a production NetNode handshake or authenticated P2P socket.
+    """
+
+    def __init__(self, node: Any, validator: str) -> None:
+        self.cfg = SimpleNamespace(
+            peer_id=validator,
+            chain_id=bft.CHAIN_ID,
+            schema_version="1",
+            tx_index_hash=node.tx_index_hash(),
+        )
+        self.messages: list[Any] = []
+
+    def broadcast_message(self, msg: Any, exclude_peer_id: str = "") -> int:
+        del exclude_peer_id
+        self.messages.append(msg)
+        return 1
+
+
+def _wire_header(node: Any, kind: MsgType) -> WireHeader:
+    return WireHeader(
+        type=kind,
+        chain_id=bft.CHAIN_ID,
+        schema_version="1",
+        tx_index_hash=node.tx_index_hash(),
+    )
+
+
+def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
     command = request["command"]
     if command == "snapshot":
         return _worker_snapshot(node)
@@ -71,6 +104,49 @@ def _worker_command(node: Any, request: Json) -> Any:
         ]
         assert len(choices) == 1
         return choices[0]
+    if command == "netmesh_proposal":
+        proposal = request["proposal"]
+        prior = len(loop.node.messages)
+        accepted = loop._on_bft_proposal(
+            request["from_validator"],
+            BftProposalMsg(
+                header=_wire_header(node, MsgType.BFT_PROPOSAL),
+                view=int(proposal["view"]),
+                proposer=str(request["from_validator"]),
+                block=proposal,
+                justify_qc=proposal.get("justify_qc"),
+            ),
+        )
+        emitted = loop.node.messages[prior:]
+        return {
+            "accepted": accepted is True,
+            "votes": [m.vote for m in emitted if isinstance(m, BftVoteMsg)],
+        }
+    if command == "netmesh_vote":
+        vote = request["vote"]
+        prior = len(loop.node.messages)
+        accepted = loop._on_bft_vote(
+            request["from_validator"],
+            BftVoteMsg(
+                header=_wire_header(node, MsgType.BFT_VOTE),
+                view=int(vote["view"]),
+                vote=vote,
+            ),
+        )
+        emitted = loop.node.messages[prior:]
+        return {
+            "accepted": accepted is True,
+            "qcs": [m.qc for m in emitted if isinstance(m, BftQcMsg)],
+        }
+    if command == "netmesh_qc":
+        accepted = loop._on_bft_qc(
+            request["from_validator"],
+            BftQcMsg(
+                header=_wire_header(node, MsgType.BFT_QC),
+                qc=request["qc"],
+            ),
+        )
+        return {"accepted": accepted is True}
     if command == "receive_vote":
         return node.bft_on_vote(request["vote"])
     if command == "receive_qc":
@@ -111,6 +187,19 @@ def _run_worker(root: Path, validator: str, ready: Path) -> None:
         executor = bft._make_executor(root, validator, node_id=validator)
         assert executor._validator_signing_permitted() is True
         assert executor._active_validators() == bft.VALIDATORS
+        loop = NetMeshLoop(
+            executor=executor,
+            mempool=object(),
+            cfg=NetLoopConfig(
+                enabled=False,
+                bind_host="127.0.0.1",
+                bind_port=30303,
+                tick_ms=25,
+                schema_version="1",
+            ),
+        )
+        loop.node = _CaptureBroadcast(executor, validator)
+        loop._bft_enabled = True
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
             listener.bind(("127.0.0.1", 0))
             listener.listen(16)
@@ -130,7 +219,7 @@ def _run_worker(root: Path, validator: str, ready: Path) -> None:
                     stream = connection.makefile("rwb")
                     try:
                         request = json.loads(stream.readline().decode())
-                        result = _worker_command(executor, request)
+                        result = _worker_command(executor, request, loop)
                         response = {"ok": True, "result": result}
                         if request["command"] == "stop":
                             running = False
@@ -219,8 +308,11 @@ def _signed(kind: str, signer: str, nonce: int, payload: Json) -> Json:
 
 
 @pytest.mark.parametrize("turnout", [3, 4], ids=["below_quorum", "quorum_met"])
-def test_socket_separated_production_qc_election_recovery(tmp_path: Path, turnout: int) -> None:
-    """Loopback RPC transport; real production proposer/voter/QC/commit entrypoints."""
+@pytest.mark.parametrize("ingress", ["executor", "netmesh"], ids=["direct", "netmesh_handlers"])
+def test_socket_separated_production_qc_election_recovery(
+    tmp_path: Path, turnout: int, ingress: str
+) -> None:
+    """Four socket-isolated executors: direct baseline and production network ingress."""
     pubs, privs = bft._key_material()
     seeded, boundary_id, _hash = bft._install_prod_boundary(
         tmp_path,
@@ -318,21 +410,79 @@ def test_socket_separated_production_qc_election_recovery(tmp_path: Path, turnou
                 assert sorted(receipt["tx_type"] for receipt in user_receipts) == sorted(
                     tx["tx_type"] for tx in signed
                 )
-            follower_votes = [
-                workers[validator].send("vote_proposal", proposal=proposal)
-                for validator in bft.VALIDATORS
-                if validator != leader
-            ]
-            assert len(follower_votes) == 3
-            qc: Json | None = None
-            for vote in follower_votes:
-                result = workers[leader].send("receive_vote", vote=vote)
-                if isinstance(result, dict):
-                    qc = result
-            assert isinstance(qc, dict)
-            assert qc["block_id"] == proposal["block_id"]
-            for worker in workers.values():
-                worker.send("receive_qc", qc=qc)
+            if ingress == "netmesh":
+                follower_votes = []
+                for validator in bft.VALIDATORS:
+                    if validator == leader:
+                        continue
+                    response = workers[validator].send(
+                        "netmesh_proposal", proposal=proposal, from_validator=leader
+                    )
+                    assert response["accepted"] is True
+                    assert len(response["votes"]) == 1
+                    follower_votes.extend(response["votes"])
+                # A retransmission cannot create a second vote for the same
+                # signed proposal. This is the real NetMeshLoop duplicate path.
+                repeat = workers[follower_votes[0]["signer"]].send(
+                    "netmesh_proposal", proposal=proposal, from_validator=leader
+                )
+                assert repeat["accepted"] is True
+                assert repeat["votes"] == []
+                qc: Json | None = None
+                for vote in follower_votes:
+                    result = workers[leader].send(
+                        "netmesh_vote", vote=vote, from_validator=vote["signer"]
+                    )
+                    assert result["accepted"] is True
+                    if result["qcs"]:
+                        assert len(result["qcs"]) == 1
+                        qc = result["qcs"][0]
+                assert isinstance(qc, dict)
+                duplicate_vote = workers[leader].send(
+                    "netmesh_vote",
+                    vote=follower_votes[-1],
+                    from_validator=follower_votes[-1]["signer"],
+                )
+                assert duplicate_vote["accepted"] is True
+                assert duplicate_vote["qcs"] == []
+                assert qc["block_id"] == proposal["block_id"]
+                delayed = next(v for v in bft.VALIDATORS if v != leader)
+                for validator, worker in workers.items():
+                    if validator == delayed:
+                        continue
+                    result = worker.send(
+                        "netmesh_qc", qc=qc, from_validator=leader
+                    )
+                    assert result["accepted"] is True
+                # Delayed delivery is observable before the withheld process
+                # receives the same certified QC; never compare roots until
+                # the withheld validator has caught up.
+                before_delayed = workers[delayed].send("snapshot")
+                result = workers[delayed].send(
+                    "netmesh_qc", qc=qc, from_validator=leader
+                )
+                assert result["accepted"] is True
+                delivered = workers[delayed].send("snapshot")
+                assert delivered["height"] >= before_delayed["height"]
+                for validator, worker in workers.items():
+                    again = worker.send("netmesh_qc", qc=qc, from_validator=leader)
+                    assert again["accepted"] is True
+            else:
+                follower_votes = [
+                    workers[validator].send("vote_proposal", proposal=proposal)
+                    for validator in bft.VALIDATORS
+                    if validator != leader
+                ]
+                assert len(follower_votes) == 3
+                qc = None
+                for vote in follower_votes:
+                    result = workers[leader].send("receive_vote", vote=vote)
+                    if isinstance(result, dict):
+                        qc = result
+                assert isinstance(qc, dict)
+                assert qc["block_id"] == proposal["block_id"]
+                for worker in workers.values():
+                    worker.send("receive_qc", qc=qc)
 
             if view in (3, 6, 9):
                 snapshots = [worker.send("snapshot") for worker in workers.values()]

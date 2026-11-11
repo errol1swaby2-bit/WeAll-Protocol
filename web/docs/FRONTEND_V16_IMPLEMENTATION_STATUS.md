@@ -133,3 +133,8 @@
 
 - New scoped network-transport rehearsal starts four separately persisted validator interpreter processes and forwards production signed BFT proposal/vote/QC messages over loopback TCP. The synthetic 3-of-5 and 4-of-5 complete election outcomes must converge after each three-chain commit and match follower-durable DB state after process restart.
 - This is orchestrated localhost RPC **not autonomous production network gossip**, real PoH admission, externally approved quorum activation or ballot confidentiality. DRAFT / NO-GO.
+
+## NetMeshLoop full lifecycle ingress over four TCP-separated validator processes (2026-11-10; CI pending)
+
+- Added a second process-isolated test mode routing actual signed production BFT proposals/votes/QCs through `NetMeshLoop` ingress handlers. It must reject duplicate execution after retransmission, process delayed QC delivery and match canonical final roots/treasury signers after restart in both 3-of-5 and 4-of-5 synthetic turnout cases.
+- The transport remains a test-controlled loopback RPC and broadcast-capture fixture, not authenticated autonomous production `NetNode` P2P sessions. No activation, live PoH, ballot secrecy, or merge authorization is claimed.

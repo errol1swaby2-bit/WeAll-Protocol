@@ -75,6 +75,7 @@ jobs:
             sha256sum tests/test_p0_03_production_composition.py
             sha256sum tests/test_group_emissary_network_process_bft.py
             echo "bft_socket_separation=FOUR_PYTHON_PROCESSES_LOOPBACK_RPC_NOT_AUTONOMOUS_NETMESH"
+            echo "netmesh_handler_scope=PRODUCTION_BFT_INGRESS_DUPLICATE_DELAY_TEST_NOT_AUTHENTICATED_NODE_SESSIONS"
             echo "qc_group_create_scope=FOUR_VALIDATOR_BFT_FINALITY_ELECTION_CREATE"
             echo "qc_group_lifecycle_scope=FOUR_VALIDATOR_BFT_FINALITY_BALLOTS_AND_FINALIZE_SYNTHETIC_STATE"
             echo "quorum_block_scope=LOCAL_COMMIT_FOLLOWER_RESTART_NOT_BFT_QC"
