@@ -962,10 +962,21 @@ def test_four_validator_qc_finalizes_signed_emissary_ballots_and_treasury(
         proposals[view] = block
         if submitted:
             receipts = block.get("receipts")
-            assert isinstance(receipts, list) and len(receipts) == len(submitted)
+            assert isinstance(receipts, list)
             assert all(receipt.get("ok") is True for receipt in receipts)
-            assert sorted(receipt["tx_type"] for receipt in receipts) == sorted(
+            signed_receipts = [
+                receipt for receipt in receipts if receipt.get("tx_type") != "BLOCK_FINALIZE"
+            ]
+            system_receipts = [
+                receipt for receipt in receipts if receipt.get("tx_type") == "BLOCK_FINALIZE"
+            ]
+            assert len(system_receipts) <= 1
+            assert len(signed_receipts) == len(submitted)
+            assert sorted(receipt["tx_type"] for receipt in signed_receipts) == sorted(
                 tx["tx_type"] for tx in submitted
+            )
+            assert sorted(receipt["signer"] for receipt in signed_receipts) == sorted(
+                tx["signer"] for tx in submitted
             )
 
         votes = _follower_votes(
