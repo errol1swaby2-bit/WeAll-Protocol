@@ -93,9 +93,7 @@ def preview_dispute_panel_recovery(state: Json, dispute_id: str) -> Json:
     inactive_ids = [
         juror for juror in panel if not reviewer_lane_active(state, juror, DISPUTE_REVIEW_LANE)
     ]
-    impacted = [
-        juror for juror in panel if juror in conflict_ids or juror in inactive_ids
-    ]
+    impacted = [juror for juror in panel if juror in conflict_ids or juror in inactive_ids]
     usable_reserves = [
         juror
         for juror in reserves
