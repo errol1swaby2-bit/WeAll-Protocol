@@ -3315,9 +3315,15 @@ def _final_receipt_resolution(dispute: Json, payload: Json) -> tuple[Json, Json]
         if isinstance(payload.get("resolution"), dict)
         else dispute.get("resolution")
     )
-    resolution: Json = dict(original) if isinstance(original, dict) else {}
+    # Detach nested rollback-journal values before they become persisted
+    # receipt content. A shallow dict(original) can retain JournaledDict
+    # children: the state-root projection reads their live keys, while raw
+    # JSON serialization may see the proxy's empty inherited storage.
+    resolution: Json = materialize_journaled(original) if isinstance(original, dict) else {}
     appeal_resolution = payload.get("appeal_resolution")
-    if not isinstance(appeal_resolution, dict):
+    if isinstance(appeal_resolution, dict):
+        appeal_resolution = materialize_journaled(appeal_resolution)
+    else:
         appeal_resolution = {}
     if not appeal_resolution:
         panel_result = dispute.get("appeal_panel_result")
@@ -3326,7 +3332,7 @@ def _final_receipt_resolution(dispute: Json, payload: Json) -> tuple[Json, Json]
             and bool(panel_result.get("reached"))
             and isinstance(panel_result.get("resolution"), dict)
         ):
-            appeal_resolution = dict(panel_result["resolution"])
+            appeal_resolution = materialize_journaled(panel_result["resolution"])
             appeal_resolution.setdefault("source", "appeal_panel")
 
     appeals = dispute.get("appeals") if isinstance(dispute.get("appeals"), list) else []

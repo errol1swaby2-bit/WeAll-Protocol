@@ -223,6 +223,30 @@ verification, juror independence, autonomous peer-to-peer HotStuff
 finality, a historically approved consensus upgrade or S4 sanction
 permission. It has no implied CI success until the exact commit is tested.
 
+## Persisted appeal-finalization JSON projection invariant (diagnosed regression)
+
+A newly extended, signed synthetic ordinary appeal fixture **failed** on the
+first actual final-receipt block: the in-memory candidate and post-commit
+state roots matched the block header, but reopening the SQLite snapshot
+failed `db_invariant_violation: snapshot state_root does not match persisted
+tip block state_root`. A read-only `_canon_json` round-trip comparison
+isolated a single difference at
+`dispute_receipts/<receipt>/resolution/tally/no`. The final-receipt helper
+used `dict(original)` (a shallow copy) on a resolution that can carry a
+nested rollback-journal proxy. Its inherited raw storage and live view
+can serialize differently, so the committed block-root preimage was not
+the persisted JSON representation.
+
+The bounded source repair makes `_final_receipt_resolution` detach nested
+journal-backed input structures with the existing
+`materialize_journaled` helper, including the copied original resolution
+and appeal-resolution fallback, before writing canonical receipt state.
+This avoids changing vote threshold, finality authority, appeal outcome or
+legacy semantics to mask the mismatch. The signed fixture retains explicit
+candidate/header, JSON-round-trip, post-commit, durable SQLite and restarted
+executor root checks. It must be validated on the exact patched head;
+**do not regard a source-only fix as a passing durability proof**.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
