@@ -233,7 +233,6 @@ def test_forged_dispute_assignment_cannot_bypass_system_queue_binding() -> None:
     (
         "DISPUTE_JUROR_ASSIGN",
         "DISPUTE_JUROR_ACCEPT",
-        "DISPUTE_JUROR_ATTENDANCE",
         "DISPUTE_VOTE_SUBMIT",
     ),
 )
@@ -263,11 +262,7 @@ def test_explicit_strict_v2_conflict_gate_rejects_before_mutating_any_state(
             tx_type=tx_type,
             signer="@juror",
             nonce=6,
-            payload=(
-                {"dispute_id": "case-1", "present": True}
-                if tx_type == "DISPUTE_JUROR_ATTENDANCE"
-                else {"dispute_id": "case-1", "vote": "no"}
-            ),
+            payload={"dispute_id": "case-1", "vote": "no"},
         )
     before = deepcopy(state)
     with pytest.raises(dispute.DisputeApplyError) as error:
@@ -317,7 +312,7 @@ def test_strict_legacy_v1_default_does_not_silently_rewrite_existing_conflict_se
 def test_legacy_strict_profile_attendance_retains_historical_implicit_acceptance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The v1 default must not reinterpret historical acceptance receipts."""
+    """Direct handler characterization only: attendance is canonical SYSTEM-only."""
     state = _state_with_conflicted_reviewer("financial_connection_ids")
     monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
     assert "dispute_material_conflict_gate_version" not in state.get("params", {})
