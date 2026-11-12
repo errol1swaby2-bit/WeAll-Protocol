@@ -200,6 +200,27 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         # Synthetic worker-only diagnostics: preserve the real strike/ban
         # policy, but expose why an honest restarted validator was rejected.
         return list(getattr(loop, "_test_strike_events", []))
+    if command == "peer_host_security":
+        # Read the genuine persistent pre-identity transport-host record.
+        # New TCP peer records share this key for 127.0.0.1, regardless
+        # of their ephemeral source ports. This cannot mutate a security
+        # store or reset a strike/ban and is available in test workers only.
+        assert loop.node is not None
+        key = loop.node._peer_security_transport_key("tcp://127.0.0.1:1")
+        store = loop.node._peer_security_store
+        saved = store.load(key) if store is not None else None
+        return {
+            "key": key,
+            "saved": (
+                {
+                    "strikes": int(saved.strikes),
+                    "banned_until_ms": int(saved.banned_until_ms),
+                    "score": float(saved.score),
+                }
+                if saved is not None
+                else None
+            ),
+        }
     if command == "peer_status":
         assert loop.node is not None
         return {
@@ -1306,6 +1327,8 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         next_view = 4
         restarted = leader_for_view(bft.VALIDATORS, next_view)
         prior = workers[restarted].send("snapshot")
+        before_initial_restart_host_security = workers[restarted].send("peer_host_security")
+        before_initial_restart_strikes = workers[restarted].send("peer_strike_debug")
         workers[restarted].close()
         workers[restarted] = _NodeProcess(
             tmp_path,
@@ -1358,9 +1381,12 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                     # failure, not only on the later offline-height-3 rejoin.
                     # No authentication, strike, or ban rule is modified.
                     "strike_trace": workers[validator].send("peer_strike_debug"),
+                    "current_host_security": workers[validator].send("peer_host_security"),
                 }
                 for validator, status in statuses.items()
             }
+            evidence["before_restart_host_security"] = before_initial_restart_host_security
+            evidence["before_restart_strikes"] = before_initial_restart_strikes
             pytest.fail(json.dumps(evidence, sort_keys=True))
 
         for worker in workers.values():
@@ -1430,6 +1456,8 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         old_offline = workers.pop(offline)
         offline_before = old_offline.send("snapshot")
         assert offline_before["height"] == 3
+        before_offline_stop_host_security = old_offline.send("peer_host_security")
+        before_offline_stop_strikes = old_offline.send("peer_strike_debug")
         old_offline.close()
         online = set(workers)
         assert len(online) == 3
@@ -1611,6 +1639,9 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             evidence = {
                 "lagging": peer_evidence(last_rejoin_status),
                 "lagging_strike_trace": workers[offline].send("peer_strike_debug"),
+                "persisted_host_after_rejoin": workers[offline].send("peer_host_security"),
+                "persisted_host_before_offline_stop": before_offline_stop_host_security,
+                "prior_worker_strike_trace": before_offline_stop_strikes,
                 "online": {
                     validator: peer_evidence(worker.send("peer_status"))
                     for validator, worker in workers.items()

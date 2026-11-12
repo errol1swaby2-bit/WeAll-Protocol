@@ -270,6 +270,37 @@ of localhost endpoints is a candidate for investigation, not an
 established cause. A captured failing run with callsites/reasons is
 required before proposing an authentication-policy correction.
 
+## Exact-source B5xx live regeneration and inherited TCP host bans (continued)
+
+The bounded [PR88 B5xx live refresh run 43139612635](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43139612635)
+executed each of the three **real** B528/B534/B567 harness generators,
+ran `--check` and `--verify-live` on all three, and checked that every
+release lock remained false. It passed and authored a generated-only commit
+[`4aeb23a`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/4aeb23aaeb10e248baee126f879fb0987f922148)
+changing only those three proof JSON files' source digests. It did **not**
+approve or touch any V2 semantic review record. Exact-head Backend CI
+must still establish the generated gate after this commit.
+
+The first diagnostic-only TCP soak [43139612689](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43139612689)
+failed at the height-3 returning validator on its **first** attempt.
+The newly restarted worker had eight localhost TCP peer entries with
+three strikes and active bans but its `lagging_strike_trace` was **empty**.
+Source `NetNode._peer_security_transport_key` derives the same
+`transport-host:127.0.0.1` persistent key for each localhost socket and
+`_ensure_peer` loads stored strikes/bans on creation. Thus the observed
+restart-side penalties are consistent with inherited pre-auth host bans;
+the causal events that originally wrote those penalties are **not** yet
+identified. Do not relax handshakes or strike enforcement without such
+evidence.
+
+The test-only worker now exposes a read-only `peer_host_security`
+query and captures its stored key/strikes/ban state **before** the old
+validator stops as well as after it restarts. The old worker's original
+`peer_strike_debug` trace is captured before shutdown, so a later
+failure can identify whether a particular callsite produced the
+host-scoped durable record. This change does not alter the production
+network transport, security key algorithm, ban policy, or node lifecycle.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
