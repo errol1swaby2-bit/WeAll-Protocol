@@ -60,6 +60,7 @@ jobs:
           } > "$OUT/scope.txt"
           set +e
           {
+            ruff format --diff tests/test_pr88_signed_post_assignment_group_conflict_replay.py || true
             ruff format --check tests/test_pr88_signed_post_assignment_group_conflict_replay.py &&
             ruff check tests/test_pr88_signed_post_assignment_group_conflict_replay.py &&
             python -m pytest -q -vv -rx tests/test_pr88_signed_post_assignment_group_conflict_replay.py
