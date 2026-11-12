@@ -145,6 +145,21 @@ V2 source registry. These identifiers do not imply that a payload key is a
 new persisted state object, validate the provenance of a SYSTEM receipt,
 or accept a changed semantic-review digest.
 
+## Synthetic account-reinstatement characterization under tightened appeal guard
+
+The existing `test_pr77_account_reinstatement_state_consistency.py` used
+`DISPUTE_FINAL_RECEIPT` with a fabricated SYSTEM marker, synthetic
+`appeal_resolution`, and a dispute still in `appealed`. The new
+constitutional-clock guard correctly rejects that direct executor input
+before account, ban-index, receipt or juror-accountability mutations.
+The characterization tests now distinguish these modes explicitly:
+**constitutional-clock execution must fail closed and roll back in both
+bounded and deepcopy atomic executors; legacy-clock execution still
+demonstrates its preexisting account-vs-ban-index inconsistency**.
+No earlier legacy behavior was quietly relabeled as a verified appeal.
+The inconsistency remains an independent historical/state-reconciliation
+review item rather than justification to relax constitutional enforcement.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
