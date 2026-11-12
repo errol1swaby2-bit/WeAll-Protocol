@@ -606,6 +606,60 @@ approval, do not claim full exact-head Backend CI or reviewer readiness
 from that generated-only push. The source tests and V1.5 proof refresh
 remain separate from all 20 unapproved V2 semantic adjudications.
 
+## Post-assignment fixed-panel integrity and read-only recovery preview (2026-11-12)
+
+The signed controlled-development-chain post-assignment reviewer conflict
+now exposes a **second, independently testable consensus-state problem**:
+after a valid strict 7-juror panel (threshold 5), the group signer
+commits a signed moderator addition making one selected juror conflicted.
+The separately signed `DISPUTE_VOTE_SUBMIT` of another unconflicted
+juror **succeeds**, but
+`_dispute_eligible_juror_ids` has recomputed the projection to **6
+eligible jurors and required_votes=4**, even while the recorded
+`assigned_jurors` still has 7 members. The source test now pins all
+five facts; it does **not** assert that a final adverse dispute verdict
+was produced. The previously demonstrated v1 conflicted juror
+ACCEPT/VOTE and the dormant v2 denial remain unchanged.
+
+The existing `repair_unassigned_dispute_panels` scheduler refuses to
+touch any dispute whose `assigned_jurors` is nonempty. It therefore
+cannot fill this post-assignment gap. The new
+`src/weall/runtime/dispute_panel_recovery_preview.py` is **read-only
+and disconnected from the production scheduler and transaction
+dispatcher**. It presents possible replacement pairs from the
+*committed original substitute order* while pinning the original
+panel/required quorum, and rejects unsupported versions, malformed
+or aliased snapshots, insufficient reserves, quorum shrink, and
+previously cast ballots. A candidate outcome is explicitly
+`candidate_requires_constitutional_review`, **never an authorized
+recusal, appointment, vote deletion, penalty waiver or finality**.
+The preview also reports a reserve-replenishment deficit.
+
+[Exact-source focused diagnostic and signed replay #43310083770](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43310083770)
+passed **23/23** scenarios, including the source-derived **5-to-4
+quorum drift** receipt, and Ruff checks. No production dispute
+handler or accepted V2 semantic-review material was edited in this
+increment.
+
+The new helper changed source-bound V1.5 evidence inputs. The existing
+[B5xx live proof refresh #43310459455](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43310459455)
+executed the real B528/B534/B567 harnesses with `--check` and
+`--verify-live`, asserted all public release locks remain false,
+and then pushed **only** the three generated proof JSONs in
+[bot commit `96d18b77`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/96d18b77af91969e31ecc4b96c13de75d3b624d1).
+That is an exact-source freshness update, **not** a semantic
+adjudication or authorization.
+
+**Still unresolved:** decide the lawful replacement/recusal process
+for 7/15/25-person strict panels, full substitute reserve requirements,
+whether votes can already be cast before repair, deterministic
+quorum anchoring, penalty-free withdrawal for newly conflicted
+accepted jurors, and exact-block authorized activation with
+returning-node replay. The read-only preview is deliberately not a
+consensus implementation of any of those decisions. The 20 stale
+V2 semantic-review entries remain **unapproved**; PR #88 is DRAFT
+/ NO-GO.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
