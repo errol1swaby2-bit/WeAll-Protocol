@@ -265,3 +265,93 @@ def test_incomplete_strict_panel_cannot_masquerade_as_full_eligible_panel(
     assert dispute._strict_v2_initial_panel_complete(panel_state, case, eligible) is True
     case["assigned_jurors"][1] = "juror-0"
     assert dispute._strict_v2_initial_panel_complete(panel_state, case, eligible) is False
+
+
+def test_conflicted_assigned_juror_has_unresolved_final_receipt_accountability_risk(
+    panel_state: dict,
+) -> None:
+    risk = _check_pure(panel_state)["currently_impacted_juror_reputation_risks"]
+    assert len(risk) == 1
+    assert risk[0]["juror"] == "@juror-0"
+    assert risk[0]["status"] == "assigned"
+    assert risk[0]["final_receipt_missed_vote_flag_exposure"] is True
+    assert risk[0]["late_withdraw_penalty_exposure"] is False
+    assert risk[0]["timeout_penalty_exposure"] is False
+    assert risk[0]["conflict_introduction_height_verified"] is False
+    assert risk[0]["actual_penalty_or_suspension_proven"] is False
+    assert risk[0]["penalty_waiver_authorized"] is False
+
+
+@pytest.mark.parametrize("height,late,timeout", ((9, False, False), (11, True, False), (21, True, True)))
+def test_conflicted_accepted_juror_deadline_penalty_exposures_are_height_bound(
+    panel_state: dict, height: int, late: bool, timeout: bool
+) -> None:
+    panel_state["height"] = height
+    panel_state["disputes_by_id"]["case"]["jurors"]["@juror-0"] = {
+        "status": "accepted",
+        "accepted_at_height": 1,
+        "safe_withdraw_until_height": 10,
+        "vote_deadline_height": 20,
+        "reputation_policy": {
+            "late_withdraw_penalty_milli": -501,
+            "timeout_penalty_milli": -1501,
+        },
+    }
+    risk = _check_pure(panel_state)["currently_impacted_juror_reputation_risks"][0]
+    assert risk["late_withdraw_penalty_exposure"] is late
+    assert risk["timeout_penalty_exposure"] is timeout
+    assert risk["late_withdraw_penalty_milli_if_applied"] == -501
+    assert risk["timeout_penalty_milli_if_applied"] == -1501
+    assert risk["current_height"] == height
+    assert risk["final_receipt_missed_vote_flag_exposure"] is True
+
+
+def test_committed_ballot_prevents_missed_vote_and_timeout_exposure(panel_state: dict) -> None:
+    panel_state["height"] = 21
+    case = panel_state["disputes_by_id"]["case"]
+    case["jurors"]["@juror-0"] = {
+        "status": "completed",
+        "safe_withdraw_until_height": 10,
+        "vote_deadline_height": 20,
+    }
+    case["voted_juror_ids"] = ["juror-0"]
+    risk = _check_pure(panel_state)["currently_impacted_juror_reputation_risks"][0]
+    assert risk["ballot_already_submitted"] is True
+    assert risk["late_withdraw_penalty_exposure"] is False
+    assert risk["timeout_penalty_exposure"] is False
+    assert risk["final_receipt_missed_vote_flag_exposure"] is False
+
+
+@pytest.mark.parametrize("terminal", ("withdrawn", "declined", "timed_out"))
+def test_existing_final_accountability_skip_status_preserved(
+    panel_state: dict, terminal: str
+) -> None:
+    panel_state["disputes_by_id"]["case"]["jurors"]["@juror-0"] = {"status": terminal}
+    risk = _check_pure(panel_state)["currently_impacted_juror_reputation_risks"][0]
+    assert risk["final_receipt_missed_vote_flag_exposure"] is False
+    assert risk["penalty_waiver_authorized"] is False
+
+
+def test_preview_does_not_infer_expiry_from_unverified_block_height(panel_state: dict) -> None:
+    case = panel_state["disputes_by_id"]["case"]
+    case["jurors"]["@juror-0"] = {
+        "status": "accepted",
+        "safe_withdraw_until_height": 10,
+        "vote_deadline_height": 20,
+    }
+    panel_state["height"] = "100"
+    risk = _check_pure(panel_state)["currently_impacted_juror_reputation_risks"][0]
+    assert risk["current_height"] is None
+    assert risk["safe_withdraw_window_expired"] is None
+    assert risk["vote_deadline_expired"] is None
+    assert risk["timeout_penalty_exposure"] is False
+
+
+def test_duplicate_juror_record_aliases_cannot_be_accepted_as_unambiguous(
+    panel_state: dict,
+) -> None:
+    case = panel_state["disputes_by_id"]["case"]
+    case["jurors"]["juror-0"] = {"status": "accepted"}
+    risk = _check_pure(panel_state)["currently_impacted_juror_reputation_risks"][0]
+    assert risk["juror_record_unambiguous"] is False
+    assert risk["actual_penalty_or_suspension_proven"] is False
