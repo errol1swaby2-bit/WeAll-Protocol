@@ -376,6 +376,7 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     final_tx_id = final_env["tx_id"]
     assert final_tx_id in final_block["header"]["tx_ids"]
     assert committed_probe["candidate_root"] == committed_probe["header_root"]
+
     def report_first_preimage_differences(before: object, after: object) -> list[str]:
         result: list[str] = []
 
