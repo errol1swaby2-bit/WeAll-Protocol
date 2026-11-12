@@ -299,8 +299,6 @@ def test_strict_legacy_v1_default_does_not_silently_rewrite_existing_conflict_se
     monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
     assert "dispute_material_conflict_gate_version" not in state.get("params", {})
     assert (
-        dispute._require_dispute_reviewer_lane(
-            state, "@juror", state["disputes_by_id"]["case-1"]
-        )
+        dispute._require_dispute_reviewer_lane(state, "@juror", state["disputes_by_id"]["case-1"])
         == "@juror"
     )
