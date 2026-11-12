@@ -510,6 +510,82 @@ production authorizer has been changed here, and no V2 digest may be
 accepted on these tests alone. CI status for this increment must be
 checked on its exact commit.
 
+## Signed post-assignment group-officer conflict and dormant versioned remediation (2026-11-12)
+
+A newly committed **signed, controlled-development-chain** test advances the
+earlier direct-applier concern to a real canonical transaction sequence:
+
+1. A dev-bootstrap Tier-2 group signer commits `GROUP_CREATE`; nine
+   independent deterministic test keypairs each commit signed
+   `ACCOUNT_REGISTER`, `POH_BOOTSTRAP_TIER2_GRANT`, and
+   `REVIEWER_LANE_OPT_IN` transactions.
+2. A signed `DISPUTE_OPEN` against the group selects a strict seven-person
+   panel plus two substitutes. At assignment, no selected reviewer appears in
+   the broad constitutional conflict set.
+3. The legitimate group signer then commits a separately signed
+   `GROUP_MODERATORS_SET` adding a selected juror to the group's moderators.
+   `_dispute_conflict_account_ids` now identifies that juror as conflicted,
+   although the original assignment remains in the persisted dispute record.
+4. Under the historical default gate, this juror's separately signed
+   `DISPUTE_JUROR_ACCEPT` and `DISPUTE_VOTE_SUBMIT` both receive **successful
+   canonical block receipts**. An SQLite restart and an independent executor
+   replay all committed blocks, including the newly established conflict and
+   counted ballot, with matching header/state roots.
+
+This proves a reachable **version-1 authorization gap under synthetic,
+signed, controlled development-chain assumptions**, not an external attacker
+on a publicly networked chain, independent PoH, independently selected jury,
+or BFT QC finality. The test deliberately uses the *actual* signed
+`GROUP_MODERATORS_SET` handler instead of editing an assigned juror's
+conflict record in memory.
+
+### Dormant strict-gate v2 candidate, not a consensus activation
+
+The shared `_require_dispute_reviewer_lane` transaction guard now recognizes
+an **explicit, chain-state integer**
+`state.params.dispute_material_conflict_gate_version=2` only on a strict
+civic-governance chain. Under v2 it rejects every member of the deterministic
+`_dispute_conflict_account_ids` set with
+`forbidden:juror_conflict_material` before assignment, acceptance or voting
+can write dispute, ballot or reputation records. An unsupported explicitly
+configured version rejects with
+`forbidden:unsupported_dispute_material_conflict_gate_version`. Existing
+target-owner and reporter-specific rejection precedence is retained.
+Missing version is **v1**, which deliberately preserves existing historical
+apply and replay semantics, even though the signed regression proves that
+old behavior is insufficient for the stricter independence objective.
+
+No governance whitelist entry, chain manifest, launch lock, spec acceptance,
+or public activation enables v2. A separate signed negative regression seeds
+v2 into **two matching synthetic development genesis snapshots only** before
+any block is produced. The same post-panel signed moderator change is
+legitimate, but signed juror ACCEPT and VOTE are both canonically included
+with **failed receipts**, no conflict-related dispute mutation, and equal
+persisted/replayed state roots across restart and independent application.
+The positive legacy signed case also continues to pass without altered
+historical receipts.
+
+The direct-source regressions additionally cover all four explicit conflict
+identity fields across each assignment/accept/vote entrypoint, enforce
+mutation-free rejection, reject malformed version choices, and preserve the
+default v1 branch. **No accepted V2 semantic review digest was regenerated.**
+The new failure reasons and read-state field are candidates for human review,
+not a release-approved transaction contract.
+
+**Review boundary:** a deliberately seeded v2 test genesis does not
+constitute a signed governance parameter activation, safe migration rule,
+production consensus upgrade, or public network rollout. The parameter is
+intentionally not whitelisted for governance. Before any v2 activation:
+establish constitutional authority, amendment and rollout procedure,
+exact-block activation timing, compatibility with earlier committed roots,
+follower catch-up and offline return, reassign/withdraw behavior when
+conflicts arise, and independent per-transaction semantic adjudication.
+
+Source-bound validation: [signed legacy/v2 replay, workflow 43286705753](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43286705753)
+passed both cases on `805803d4181054e91aacf128b6c1a1c8c5b44566`
+(2/2 tests, Ruff clean). Expanded mixed/BFT workflow status is tracked
+separately on that commit; neither test result is mainnet authorization.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
