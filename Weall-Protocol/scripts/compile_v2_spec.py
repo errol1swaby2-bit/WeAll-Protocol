@@ -1018,8 +1018,17 @@ def _tx_function_analysis(
             # Bind the local constant to its exact transaction dispatcher.
             # If dispatch changes, fail closed instead of silently excluding
             # a newly reachable role eligibility error.
+            canonical_branch = branch
+            if canonical_branch is None:
+                # The applier registry may declare the dedicated handler as
+                # its entrypoint rather than apply_roles. In either mode,
+                # prove the literal argument from the actual dispatcher in
+                # this very source module before specializing its AST.
+                dispatcher = functions.get("apply_roles")
+                if dispatcher is not None:
+                    canonical_branch = _branch_for_tx(dispatcher.node, tx_type)
             matching_false_call = bool(
-                branch is not None
+                canonical_branch is not None
                 and any(
                     isinstance(call, ast.Call)
                     and isinstance(call.func, ast.Name)
@@ -1030,7 +1039,7 @@ def _tx_function_analysis(
                         and keyword.value.value is False
                         for keyword in call.keywords
                     )
-                    for call in ast.walk(branch)
+                    for call in ast.walk(canonical_branch)
                 )
             )
             if not matching_false_call:

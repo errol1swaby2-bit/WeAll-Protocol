@@ -107,6 +107,18 @@ def test_real_review_lane_failure_contract_respects_constant_active_dispatch() -
         )
         for tx_type in sorted(tx_names)
     }
+    # Registry consumers enter the dedicated handler directly, while
+    # focused tests can traverse the shared apply_roles dispatcher.
+    # Both compiler entry modes must bind the same literal false branch.
+    dedicated = MODULE._tx_function_analysis(
+        "REVIEWER_LANE_OPT_OUT",
+        source,
+        "_apply_reviewer_lane_update",
+        tx_names=tx_names,
+        system_tx_names=set(),
+        domain_fallback=["roles"],
+    )
+    assert dedicated == inputs["REVIEWER_LANE_OPT_OUT"]
     for row in inputs.values():
         assert row["function"] == "_apply_reviewer_lane_update"
     opt_in = inputs["REVIEWER_LANE_OPT_IN"]["failure_codes"]
