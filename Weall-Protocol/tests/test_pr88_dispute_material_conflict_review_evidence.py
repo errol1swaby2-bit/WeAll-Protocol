@@ -207,11 +207,13 @@ def test_forged_dispute_assignment_cannot_bypass_system_queue_binding() -> None:
         parent="CONTENT_ESCALATE_TO_DISPUTE",
         payload={"dispute_id": "case-1", "juror": "@juror"},
     )
-    assert validate_system_tx_queue_binding(
-        state, canon, forged, next_height=13, phase="post"
-    ) == (False, "missing_system_queue_id")
+    assert validate_system_tx_queue_binding(state, canon, forged, next_height=13, phase="post") == (
+        False,
+        "missing_system_queue_id",
+    )
     forged.payload["_system_queue_id"] = "unknown-queue"
     forged.payload["_due_height"] = 13
-    assert validate_system_tx_queue_binding(
-        state, canon, forged, next_height=13, phase="post"
-    ) == (False, "unknown_system_queue_id")
+    assert validate_system_tx_queue_binding(state, canon, forged, next_height=13, phase="post") == (
+        False,
+        "unknown_system_queue_id",
+    )
