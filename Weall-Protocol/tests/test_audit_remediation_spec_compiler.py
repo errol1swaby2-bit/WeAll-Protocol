@@ -90,9 +90,7 @@ def test_review_lane_static_false_prunes_unreachable_opt_in_failures() -> None:
         if isinstance(item, ast.Call) and isinstance(item.func, ast.Name)
     ]
     assert "_require_role_activation_eligible" not in names
-    assert MODULE._extract_failures(pruned) == [
-        {"code": "not_found", "reason": "opt_out_lane"}
-    ]
+    assert MODULE._extract_failures(pruned) == [{"code": "not_found", "reason": "opt_out_lane"}]
 
 
 def test_real_review_lane_failure_contract_respects_constant_active_dispatch() -> None:
