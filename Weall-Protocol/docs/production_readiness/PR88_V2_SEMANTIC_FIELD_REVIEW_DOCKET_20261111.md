@@ -660,6 +660,50 @@ consensus implementation of any of those decisions. The 20 stale
 V2 semantic-review entries remain **unapproved**; PR #88 is DRAFT
 / NO-GO.
 
+## Strict-v2 original panel quorum is pinned; partial panel auto-resolution held (2026-11-12)
+
+The previously reproduced signed **5-to-4 threshold shrink** has a
+new **dormant version-2 candidate** in
+`src/weall/runtime/apply/dispute.py`. Under explicit, replicated
+`params.dispute_material_conflict_gate_version=2`, strict initial
+reviewer panels retain the original constitutional 7/15/25-member
+threshold despite later conflicted/inactive members. The separately
+enforced severe constitutional-clock minimum of 20 votes is retained.
+Legacy v1 and non-initial appeal behavior are unchanged.
+
+The candidate's auto-resolution path also refuses to queue a
+`DISPUTE_RESOLVE` while the original recorded panel has fewer than
+all its active, unconflicted assigned jurors. In the signed controlled
+dev test, five *other* jurors successfully accept and vote after a
+group-signing moderator addition conflicts the seventh juror;
+`assigned_jurors` remains length 7,
+`eligible_validator_count` becomes 6, `required_votes` remains
+**5**, and the dispute remains unresolved. Its committed receipts,
+root and independent SQLite replay converge. The previous v1
+historical case still reproduces its old receipts. The new guard
+does **not** make substitute appointment lawful or independently
+validate the historical panel-commitment signature/provenance.
+
+[Signed and source contract workflow #43314857271](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43314857271)
+passed **31/31** tests with Ruff clean, including explicit-v2-only
+quorum behavior, appeal separation, severe floor and incomplete-panel
+rejection. [Live B5xx proof refresh #43314846789](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43314846789)
+re-generated and live-verified the three B5xx JSON evidence files,
+with a generated-only bot commit
+[`5df06bfc`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/5df06bfc37709a7b4172032303b6707ca3cc33ac).
+All V2 semantic-review digests remain unapproved; this is
+**consensus candidate source with controlled-dev evidence, not
+activation authorization**.
+
+Remaining required work includes deterministic lawful recusal and
+substitute replenishment, existing-ballot treatment, penalty-free
+withdrawal/timeout fairness, original panel and reviewer's
+independence proofs, stale or malformed panel transitions, and
+constitutional activation at an exact height with full old-prefix
+and returning-node replay. Never override the 20-entry semantic gate,
+enable the v2 parameter through generic governance, or merge PR #88
+without accountable external review.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
