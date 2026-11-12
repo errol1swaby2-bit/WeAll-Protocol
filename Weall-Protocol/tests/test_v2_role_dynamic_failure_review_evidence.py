@@ -12,6 +12,7 @@ from copy import deepcopy
 
 import pytest
 
+from weall.ledger.roles_schema import ensure_roles_schema
 from weall.runtime import reputation_role_gate as gate
 from weall.runtime.apply import roles
 from weall.runtime.tx_admission_types import TxEnvelope
@@ -130,7 +131,7 @@ def test_role_applier_propagates_dynamic_typed_failure_and_v2_details(
 
 def _reviewer_withdrawal_state(*, gate_version: int = 1, enrolled: bool = True) -> dict:
     """A seeded role record only; no constitutional election or PoH proof."""
-    return {
+    state = {
         "height": 12,
         "params": {"reputation_role_gate_version": gate_version},
         "accounts": {
@@ -169,6 +170,8 @@ def _reviewer_withdrawal_state(*, gate_version: int = 1, enrolled: bool = True) 
             }
         },
     }
+    ensure_roles_schema(state)
+    return state
 
 
 def _reviewer_env(tx_type: str, *, signer: str = "@candidate") -> TxEnvelope:
