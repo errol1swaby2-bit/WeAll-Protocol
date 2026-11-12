@@ -200,6 +200,10 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
         # Synthetic worker-only diagnostics: preserve the real strike/ban
         # policy, but expose why an honest restarted validator was rejected.
         return list(getattr(loop, "_test_strike_events", []))
+    if command == "peer_security_writes":
+        # This trace is populated by a test-worker-only transparent wrapper
+        # around PeerSecurityStore.upsert. Never modifies the store contract.
+        return list(getattr(loop, "_test_peer_security_writes", []))
     if command == "peer_host_security":
         # Read the genuine persistent pre-identity transport-host record.
         # New TCP peer records share this key for 127.0.0.1, regardless
@@ -629,6 +633,39 @@ def _run_worker(
             loop._last_bft_vote_ms = now_ms
             loop._last_bft_timeout_ms = now_ms
             from weall.net.node import NetNode
+            from weall.net.peer_store import PeerSecurityStore
+
+            # Test-only passive instrumentation of actual durable host writes.
+            # Store writes still execute through the unchanged real method.
+            writes: list[Json] = []
+            original_upsert = PeerSecurityStore.upsert
+
+            def observed_upsert(store, *, peer_id, strikes, banned_until_ms, score):
+                value = original_upsert(
+                    store,
+                    peer_id=peer_id,
+                    strikes=strikes,
+                    banned_until_ms=banned_until_ms,
+                    score=score,
+                )
+                if str(peer_id).startswith("transport-host:"):
+                    caller = sys._getframe(1)
+                    origin = sys._getframe(2)
+                    writes.append(
+                        {
+                            "peer_security_key": str(peer_id),
+                            "strikes": int(strikes),
+                            "banned_until_ms": int(banned_until_ms),
+                            "callsite": f"{caller.f_code.co_name}:{caller.f_lineno}",
+                            "origin": f"{origin.f_code.co_name}:{origin.f_lineno}",
+                        }
+                    )
+                    if len(writes) > 64:
+                        del writes[:-64]
+                return value
+
+            PeerSecurityStore.upsert = observed_upsert
+            loop._test_peer_security_writes = writes
 
             # Only the separate test worker installs this bounded tracer.
             # It observes the existing call sites; never reduces strike
@@ -701,6 +738,19 @@ def _run_worker(
         if mesh_port:
             loop.stop()
             loop.join(timeout=3.0)
+            # Persist test-only post-stop observations, because the parent
+            # cannot query a process once its RPC listener has exited.
+            # No write is made to the node's ledger or security database.
+            shutdown_evidence = {
+                "strikes": list(getattr(loop, "_test_strike_events", [])),
+                "host_writes": list(getattr(loop, "_test_peer_security_writes", [])),
+                "host_security": _worker_command(
+                    executor, {"command": "peer_host_security"}, loop
+                ),
+            }
+            (root / f"worker-exit-security-{validator.lstrip('@')}.json").write_text(
+                json.dumps(shutdown_evidence, sort_keys=True), encoding="utf-8"
+            )
 
 
 class _NodeProcess:
@@ -1330,6 +1380,11 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         before_initial_restart_host_security = workers[restarted].send("peer_host_security")
         before_initial_restart_strikes = workers[restarted].send("peer_strike_debug")
         workers[restarted].close()
+        previous_initial_exit = json.loads(
+            (tmp_path / f"worker-exit-security-{restarted.lstrip('@')}.json").read_text(
+                encoding="utf-8"
+            )
+        )
         workers[restarted] = _NodeProcess(
             tmp_path,
             restarted,
@@ -1387,6 +1442,10 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             }
             evidence["before_restart_host_security"] = before_initial_restart_host_security
             evidence["before_restart_strikes"] = before_initial_restart_strikes
+            evidence["old_process_shutdown"] = previous_initial_exit
+            evidence["new_process_host_writes"] = workers[restarted].send(
+                "peer_security_writes"
+            )
             pytest.fail(json.dumps(evidence, sort_keys=True))
 
         for worker in workers.values():
@@ -1459,6 +1518,11 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
         before_offline_stop_host_security = old_offline.send("peer_host_security")
         before_offline_stop_strikes = old_offline.send("peer_strike_debug")
         old_offline.close()
+        previous_offline_exit = json.loads(
+            (tmp_path / f"worker-exit-security-{offline.lstrip('@')}.json").read_text(
+                encoding="utf-8"
+            )
+        )
         online = set(workers)
         assert len(online) == 3
         surviving_proposals: dict[int, Json] = {}
@@ -1642,6 +1706,8 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                 "persisted_host_after_rejoin": workers[offline].send("peer_host_security"),
                 "persisted_host_before_offline_stop": before_offline_stop_host_security,
                 "prior_worker_strike_trace": before_offline_stop_strikes,
+                "prior_worker_shutdown_security": previous_offline_exit,
+                "new_worker_host_writes": workers[offline].send("peer_security_writes"),
                 "online": {
                     validator: peer_evidence(worker.send("peer_status"))
                     for validator, worker in workers.items()

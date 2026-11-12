@@ -301,6 +301,28 @@ failure can identify whether a particular callsite produced the
 host-scoped durable record. This change does not alter the production
 network transport, security key algorithm, ban policy, or node lifecycle.
 
+## Shutdown-time source of preauth host ban (additional test-only instrumentation)
+
+The next TCP-soak failure [run 43140265034](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43140265034)
+recorded `saved=null` for the `transport-host:127.0.0.1`
+security record **immediately before the height-3 worker stopped**.
+It recorded no previous worker strikes at that moment. The newly started
+process then showed a persisted host-wide `strikes=3` ban affecting
+eight peer records while its own `_strike` trace remained empty. This
+narrows the causal window to **teardown, startup, or an early persistence
+write**, not to three observed post-start incoming-packet strikes.
+
+A test-worker-only wrapper around `PeerSecurityStore.upsert` now
+records bounded, successful `transport-host:` store writes, their
+strike count and immediate Python caller. After `NetMeshLoop.stop/join`,
+the old worker writes a local **test-only diagnostic JSON** containing
+its final original `_strike` events, host writes and durable host
+record, before the process exits. The parent retains that exit snapshot
+when the validator is restarted, and includes it in either rejoin
+failure report. The wrapper calls the original storage method with
+identical arguments and does not change policy, timing controls,
+data classification, ban thresholds or identity verification.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
