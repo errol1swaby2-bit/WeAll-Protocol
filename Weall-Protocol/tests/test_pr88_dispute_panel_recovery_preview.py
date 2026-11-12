@@ -156,9 +156,7 @@ def test_unconflicted_panel_is_left_untouched(panel_state: dict) -> None:
 
 
 @pytest.mark.parametrize("malformed", ("alias_duplicate", "panel_short", "reserve_short"))
-def test_malformed_panel_snapshots_are_never_promoted(
-    panel_state: dict, malformed: str
-) -> None:
+def test_malformed_panel_snapshots_are_never_promoted(panel_state: dict, malformed: str) -> None:
     case = panel_state["disputes_by_id"]["case"]
     if malformed == "alias_duplicate":
         case["assigned_jurors"][1] = "juror-0"
