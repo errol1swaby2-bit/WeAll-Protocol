@@ -22,6 +22,7 @@ from weall.runtime.apply.dispute import (
     _filter_active_dispute_reviewers,
 )
 from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE, ballot_profile_status
+from weall.runtime.dispute_panel_recovery_preview import preview_dispute_panel_recovery
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.replay_consistency import _deterministic_replay_fixture_keypair
 from weall.runtime.state_hash import compute_state_root
@@ -387,6 +388,18 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     pending = deepcopy(source.read_state()["disputes_by_id"][DISPUTE_ID])
     assert selected in _dispute_conflict_account_ids(source.read_state(), pending)
     assert pending["jurors"][selected]["status"] == "assigned"
+    before_preview = deepcopy(source.read_state())
+    recovery = preview_dispute_panel_recovery(before_preview, DISPUTE_ID)
+    assert recovery["status"] == "candidate_requires_constitutional_review"
+    assert recovery["authorized"] is False
+    assert recovery["conflicted_assigned_jurors"] == [selected]
+    assert recovery["original_panel"] == list(opened["assigned_jurors"])
+    assert recovery["required_panel_size"] == 7
+    assert recovery["pinned_required_votes"] == opened["required_votes"]
+    assert recovery["replacement_candidates"][0]["candidate_substitute"] == opened[
+        "substitute_juror_ids"
+    ][0]
+    assert before_preview == source.read_state()
 
     # Canonical attendance is SYSTEM-only/receipt-only and cannot be
     # submitted by a juror through signed user ingress. This is NOT an
@@ -469,6 +482,9 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert unconflicted in completed["voted_juror_ids"]
     assert selected not in completed["voted_juror_ids"]
     assert completed["votes"] == {}
+    post_ballot = preview_dispute_panel_recovery(source.read_state(), DISPUTE_ID)
+    assert post_ballot["status"] == "blocked_existing_ballots"
+    assert post_ballot["pinned_required_votes"] == opened["required_votes"]
 
     final_state = source.read_state()
     final_root = compute_state_root(final_state)
