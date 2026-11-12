@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import fnmatch
 import hashlib
 import json
@@ -895,6 +896,50 @@ def _handler_runtime_info(
     return handler, source_path, dispatch_name, mechanism_id
 
 
+def _specialize_reviewer_opt_out(node: ast.AST) -> ast.AST:
+    """Discard branches impossible for the dispatcher's literal active=False.
+
+    This is deliberately NOT a general Python evaluator. Unknown conditions
+    are retained and remain overapproximations. Only the reviewer opt-out
+    handler uses this bounded specialization; no accepted V2 review is changed.
+    """
+
+    def active_truth(value: ast.AST) -> bool | None:
+        if isinstance(value, ast.Name) and value.id == "active":
+            return False
+        if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.Not):
+            inner = active_truth(value.operand)
+            return not inner if inner is not None else None
+        if isinstance(value, ast.BoolOp):
+            results = [active_truth(item) for item in value.values]
+            if isinstance(value.op, ast.And):
+                if False in results:
+                    return False
+                return True if all(item is True for item in results) else None
+            if isinstance(value.op, ast.Or):
+                if True in results:
+                    return True
+                return False if all(item is False for item in results) else None
+        return None
+
+    class PruneInactivePath(ast.NodeTransformer):
+        def visit_If(self, statement: ast.If) -> ast.AST | list[ast.stmt] | None:
+            selected = active_truth(statement.test)
+            if selected is None:
+                return self.generic_visit(statement)
+            body = statement.body if selected else statement.orelse
+            flattened: list[ast.stmt] = []
+            for child in body:
+                visited = self.visit(child)
+                if isinstance(visited, list):
+                    flattened.extend(visited)
+                elif isinstance(visited, ast.stmt):
+                    flattened.append(visited)
+            return flattened
+
+    return PruneInactivePath().visit(copy.deepcopy(node))
+
+
 def _tx_function_analysis(
     tx_type: str,
     source_path: Path,
@@ -964,8 +1009,35 @@ def _tx_function_analysis(
             continue
         visited.add(name)
         fn = functions[name]
-        nodes.append(fn.node)
-        for called in _direct_local_calls(fn.node, set(functions)):
+        analysis_node = fn.node
+        if (
+            tx_type == "REVIEWER_LANE_OPT_OUT"
+            and target.name == "_apply_reviewer_lane_update"
+            and name == target.name
+        ):
+            # Bind the local constant to its exact transaction dispatcher.
+            # If dispatch changes, fail closed instead of silently excluding
+            # a newly reachable role eligibility error.
+            matching_false_call = bool(
+                branch is not None
+                and any(
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == "_apply_reviewer_lane_update"
+                    and any(
+                        keyword.arg == "active"
+                        and isinstance(keyword.value, ast.Constant)
+                        and keyword.value.value is False
+                        for keyword in call.keywords
+                    )
+                    for call in ast.walk(branch)
+                )
+            )
+            if not matching_false_call:
+                raise CompileError("reviewer_lane_opt_out_dispatch_not_literal_false")
+            analysis_node = _specialize_reviewer_opt_out(fn.node)
+        nodes.append(analysis_node)
+        for called in _direct_local_calls(analysis_node, set(functions)):
             if called in visited:
                 continue
             # DISPUTE_OPEN calls a source-local target-type validator before

@@ -400,6 +400,30 @@ failure-code removal or permission to change `semantic_reviews.json`.
 The rollback-journal, signed block-admission and unrelated
 withdrawal-assignment stages retain separate test obligations.
 
+## Explicit false-branch specialization for reviewer-lane V2 extraction
+
+A bounded AST refinement on `scripts/compile_v2_spec.py` now specializes
+only the actual `REVIEWER_LANE_OPT_OUT` dispatcher edge into
+`_apply_reviewer_lane_update(..., active=False)`. It prunes
+`if active` branches that cannot execute for this transaction,
+including the call to `_require_role_activation_eligible`, while
+retaining unknown conditions as conservative overapproximations.
+The extractor also verifies that the transaction dispatcher still
+passes a literal `active=False`; if this source contract changes,
+compilation fails closed rather than trusting a stale assumption.
+No other role, transaction or route is given general constant folding.
+
+Source regressions prove the opt-out extracted failures retain
+`not_found:juror_not_enrolled` and
+`forbidden:only_account_can_update_reviewer_lane`, do not
+attribute the dynamic activation failure to opt-out, and continue
+to attribute it to opt-in. The actual runtime applier tests in the
+preceding section independently check the branch behavior. This
+changes a **candidate derived V2 failure contract** for review;
+it neither edits accepted semantic digests nor removes the maintainer
+approval requirement. It remains separate from full signed-block
+replay or undiscovered conditional effects.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.

@@ -72,3 +72,52 @@ def test_real_role_gate_error_uses_unresolved_static_marker() -> None:
     failures = MODULE._extract_failures(target)
     assert {"code": "runtime_apply_error", "reason": "see_handler"} in failures
     assert {"code": "RolesApplyError", "reason": "runtime_apply_failure"} not in failures
+
+
+def test_review_lane_static_false_prunes_unreachable_opt_in_failures() -> None:
+    branch = _fn(
+        "def review(active, lanes):\n"
+        "    if active:\n"
+        "        _require_role_activation_eligible()\n"
+        "        raise RolesApplyError('forbidden', 'opt_in_only')\n"
+        "    elif not active and lanes:\n"
+        "        raise RolesApplyError('not_found', 'opt_out_lane')\n"
+    )
+    pruned = MODULE._specialize_reviewer_opt_out(branch)
+    names = [
+        item.func.id
+        for item in ast.walk(pruned)
+        if isinstance(item, ast.Call) and isinstance(item.func, ast.Name)
+    ]
+    assert "_require_role_activation_eligible" not in names
+    assert MODULE._extract_failures(pruned) == [
+        {"code": "not_found", "reason": "opt_out_lane"}
+    ]
+
+
+def test_real_review_lane_failure_contract_respects_constant_active_dispatch() -> None:
+    source = ROOT / "src" / "weall" / "runtime" / "apply" / "roles.py"
+    tx_names = {"REVIEWER_LANE_OPT_IN", "REVIEWER_LANE_OPT_OUT"}
+    inputs = {
+        tx_type: MODULE._tx_function_analysis(
+            tx_type,
+            source,
+            "apply_roles",
+            tx_names=tx_names,
+            system_tx_names=set(),
+            domain_fallback=["roles"],
+        )
+        for tx_type in sorted(tx_names)
+    }
+    for row in inputs.values():
+        assert row["function"] == "_apply_reviewer_lane_update"
+    opt_in = inputs["REVIEWER_LANE_OPT_IN"]["failure_codes"]
+    opt_out = inputs["REVIEWER_LANE_OPT_OUT"]["failure_codes"]
+    unresolved = {"code": "runtime_apply_error", "reason": "see_handler"}
+    assert unresolved in opt_in
+    assert unresolved not in opt_out
+    assert {"code": "not_found", "reason": "juror_not_enrolled"} in opt_out
+    assert {
+        "code": "forbidden",
+        "reason": "only_account_can_update_reviewer_lane",
+    } in opt_out
