@@ -205,7 +205,6 @@ def test_missing_dispute_never_materializes_state(panel_state: dict) -> None:
     assert panel_state == before
 
 
-
 @pytest.mark.parametrize(
     "gate_version, expected",
     ((1, 4), (2, 5), (3, 4), ("2", 4), (True, 4)),
@@ -217,9 +216,12 @@ def test_proposed_fixed_quorum_is_explicit_v2_only(
 
     monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
     panel_state["params"]["dispute_material_conflict_gate_version"] = gate_version
-    assert dispute._strict_v2_initial_panel_votes(
-        panel_state, panel_state["disputes_by_id"]["case"], 6
-    ) == expected
+    assert (
+        dispute._strict_v2_initial_panel_votes(
+            panel_state, panel_state["disputes_by_id"]["case"], 6
+        )
+        == expected
+    )
 
 
 def test_proposed_fixed_quorum_does_not_reinterpret_appeal_stage(
@@ -240,9 +242,7 @@ def test_explicit_severe_constitutional_panel_preserves_twenty_vote_floor(
 
     monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
     monkeypatch.setattr(dispute, "_constitutional_clock_enabled", lambda _state: True)
-    monkeypatch.setattr(
-        dispute, "is_explicit_severe_account_sanction", lambda _case: True
-    )
+    monkeypatch.setattr(dispute, "is_explicit_severe_account_sanction", lambda _case: True)
     case = panel_state["disputes_by_id"]["case"]
     assert dispute._strict_v2_initial_panel_votes(panel_state, case, 24) >= 20
 
