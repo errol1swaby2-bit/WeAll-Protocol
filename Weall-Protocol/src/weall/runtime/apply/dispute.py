@@ -852,6 +852,8 @@ def _strict_v2_initial_panel_votes(state: Json, dispute: Json, live_count: int) 
         and dispute.get("panel_status") == "assigned"
     ):
         required = max(required, int(quorum_threshold(_dispute_panel_size(dispute))))
+        if _constitutional_clock_enabled(state) and is_explicit_severe_account_sanction(dispute):
+            required = max(20, required)
     return required
 
 
