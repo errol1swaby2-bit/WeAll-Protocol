@@ -118,7 +118,20 @@ def test_real_review_lane_failure_contract_respects_constant_active_dispatch() -
         system_tx_names=set(),
         domain_fallback=["roles"],
     )
-    assert dedicated == inputs["REVIEWER_LANE_OPT_OUT"]
+    # The direct-handler and dispatcher paths have different precision
+    # metadata but must derive identical source-contract fields.
+    assert dedicated["semantic_precision"] == "function_static"
+    assert inputs["REVIEWER_LANE_OPT_OUT"]["semantic_precision"] == "tx_specific_static"
+    for key in (
+        "function",
+        "line",
+        "state_reads",
+        "state_writes",
+        "failure_codes",
+        "return_keys",
+        "system_followups",
+    ):
+        assert dedicated[key] == inputs["REVIEWER_LANE_OPT_OUT"][key]
     for row in inputs.values():
         assert row["function"] == "_apply_reviewer_lane_update"
     opt_in = inputs["REVIEWER_LANE_OPT_IN"]["failure_codes"]
