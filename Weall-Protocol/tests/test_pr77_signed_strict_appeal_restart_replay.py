@@ -375,7 +375,8 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         "post_commit_consensus_fields_changed",
         sorted(
             key
-            for key in set(committed_probe["candidate_state"]) | set(committed_probe["post_commit_state"])
+            for key in set(committed_probe["candidate_state"])
+            | set(committed_probe["post_commit_state"])
             if committed_probe["candidate_state"].get(key)
             != committed_probe["post_commit_state"].get(key)
             and key not in {"bft", "tip_hash", "tip_ts_ms", "meta"}
