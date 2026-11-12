@@ -437,7 +437,10 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
         payload={"dispute_id": DISPUTE_ID},
     )
     assert good_accept_height > vote_height
-    assert source.read_state()["disputes_by_id"][DISPUTE_ID]["jurors"][unconflicted]["status"] == "accepted"
+    assert (
+        source.read_state()["disputes_by_id"][DISPUTE_ID]["jurors"][unconflicted]["status"]
+        == "accepted"
+    )
     good_vote_height, _ = _signed_committed(
         source,
         tx_type="DISPUTE_VOTE_SUBMIT",
