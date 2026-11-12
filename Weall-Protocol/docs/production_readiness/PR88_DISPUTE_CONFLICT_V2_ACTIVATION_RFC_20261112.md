@@ -45,6 +45,41 @@ Required decisions and tests:
 - Cases with too few independent jurors must remain unassigned, paused or otherwise deterministically fail closed—never auto-approve an adverse sanction.
 - Independent PoH, control of reviewer selection, public ballot confidentiality, appeals and real-world juror independence are separate prerequisites. A signed synthetic replay cannot substitute for them.
 
+### Read-only replacement candidate preview (proposal, not executable recovery)
+
+The new `src/weall/runtime/dispute_panel_recovery_preview.py` is an isolated
+read-only diagnostic, not imported into the production scheduler, executor or
+transaction router. It reports the committed original panel, substitute order,
+pinned voting requirement, material conflicts, inactive reviewer lanes, and
+candidate pairings **without modifying state**.
+
+The existing production scheduler `repair_unassigned_dispute_panels` skips any
+dispute with a nonempty `assigned_jurors` list. The separately used
+`_dispute_eligible_juror_ids` may project fewer eligible jurors and recompute
+a smaller voting quorum from the filtered set. The preview therefore does not
+run either mutating routine or treat a newly smaller eligible set as permission
+to finalize an undersized constitutional panel.
+
+The preview fails closed rather than proposing executable appointments if the
+original snapshot or reserve size is incomplete, a quorum was already
+reduced, too many assigned jurors are ineligible for the original reserves,
+or any ballot was already recorded. It preserves committed reserve **order**
+instead of sorting it anew or silently redrawing a panel. Even when candidate
+substitutions are available, the result is
+`candidate_requires_constitutional_review` and explicitly records the reserve
+replenishment deficit. No automatic appointment, reassigning submitted votes,
+new quorum, penalty waiver, replay repair, or activation is authorized.
+All preview output is advisory; an original commitment's cryptographic
+provenance still needs independent verification.
+
+A reviewer-facing evidence set checks one, two and three conflicts, reserve
+ineligibility, corrupted/aliased snapshots, existing votes/nullifiers, missing
+commitments, old/unsupported policy versions, and nonmutation/repeatability.
+The signed controlled-development-chain reproduction additionally inspects
+the preview against its legitimately created post-assignment group conflict,
+before and after an unconflicted juror casts a ballot. This is not evidence
+of a constitutional substitute-selection procedure.
+
 ## 5. Staged review gates
 
 | Stage | Required evidence | Current disposition |
