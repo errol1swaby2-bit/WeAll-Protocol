@@ -418,9 +418,10 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     assert independent.read_state()["disputes_by_id"][CASE_ID] == appeal
     assert independent.get_block_by_height(final_height) == final_block
     assert independent.read_state()["disputes_by_id"][CASE_ID]["stage"] == "finalized"
-    assert independent.read_state()["disputes_by_id"][CASE_ID]["appeal_finalization"][
-        "decision"
-    ] == "reverse"
+    assert (
+        independent.read_state()["disputes_by_id"][CASE_ID]["appeal_finalization"]["decision"]
+        == "reverse"
+    )
     assert independent.read_state()["disputes_by_id"][CASE_ID]["appeal_panel_votes"] == {}
 
     # These are offline execution/restart observations, never a BFT QC,
