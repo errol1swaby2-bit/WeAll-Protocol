@@ -327,6 +327,27 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     # final receipt from the persisted appeal result through the normal pre
     # scheduler and mandatory SYSTEM queue. This is not a forged SYSTEM input.
     final_height = int(source.read_state()["height"]) + 1
+    # Diagnostic witness: distinguish a faulty candidate state-root from a
+    # change made after candidate construction while crossing SQLite commit.
+    # This wrapper observes the unchanged production methods and does not
+    # substitute for their execution or relax any restart invariant.
+    original_commit = source.commit_block_candidate
+    committed_probe: dict = {}
+
+    def observe_final_commit(
+        *, block: dict, new_state: dict, applied_ids: list[str], invalid_ids: list[str]
+    ):
+        committed_probe["candidate_root"] = compute_state_root(new_state)
+        committed_probe["header_root"] = block["header"]["state_root"]
+        committed_probe["candidate_state"] = deepcopy(new_state)
+        outcome = original_commit(
+            block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids
+        )
+        committed_probe["post_commit_root"] = compute_state_root(source.state)
+        committed_probe["post_commit_state"] = deepcopy(source.state)
+        return outcome
+
+    monkeypatch.setattr(source, "commit_block_candidate", observe_final_commit)
     finalized_result = source.produce_block(max_txs=0, allow_empty=True)
     assert finalized_result.ok is True, finalized_result.error
     final_block = source.get_block_by_height(final_height)
@@ -348,6 +369,20 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     assert final_env["parent"] == f"dispute:{CASE_ID}:appeal-panel-finalize:2"
     final_tx_id = final_env["tx_id"]
     assert final_tx_id in final_block["header"]["tx_ids"]
+    assert committed_probe["candidate_root"] == committed_probe["header_root"]
+    assert committed_probe["header_root"] == final_block["header"]["state_root"]
+    assert committed_probe["post_commit_root"] == committed_probe["header_root"], (
+        "post_commit_consensus_fields_changed",
+        sorted(
+            key
+            for key in set(committed_probe["candidate_state"]) | set(committed_probe["post_commit_state"])
+            if committed_probe["candidate_state"].get(key)
+            != committed_probe["post_commit_state"].get(key)
+            and key not in {"bft", "tip_hash", "tip_ts_ms", "meta"}
+        ),
+        committed_probe["candidate_root"],
+        committed_probe["post_commit_root"],
+    )
     assert any(
         receipt.get("tx_id") == final_tx_id and receipt.get("ok") is True
         for receipt in final_block["receipts"]
