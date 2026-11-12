@@ -262,3 +262,181 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     assert selected in _dispute_conflict_account_ids(
         independent.read_state(), independent.read_state()["disputes_by_id"][DISPUTE_ID]
     )
+
+
+def _seed_controlled_v2_genesis(executor: WeAllExecutor) -> str:
+    """Development-only genesis override, never an on-chain governance activation."""
+    genesis = deepcopy(executor.read_state())
+    assert genesis["height"] == 0
+    assert "dispute_material_conflict_gate_version" not in genesis["params"]
+    genesis["params"]["dispute_material_conflict_gate_version"] = 2
+    executor._ledger_store.write(genesis)
+    executor.state = executor._ledger_store.read()
+    assert executor.read_state()["params"]["dispute_material_conflict_gate_version"] == 2
+    return compute_state_root(executor.read_state())
+
+
+def _signed_rejected_block(
+    executor: WeAllExecutor, *, tx_type: str, signer: str, nonce: int, payload: dict
+) -> tuple[int, dict]:
+    _, private = _deterministic_replay_fixture_keypair(label=signer)
+    signed = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN,
+            "tx_type": tx_type,
+            "signer": signer,
+            "nonce": nonce,
+            "payload": payload,
+        },
+        privkey=private,
+        encoding="hex",
+    )
+    tx_id = compute_tx_id_from_dict(CHAIN, signed)
+    submitted = executor.submit_tx(signed)
+    assert submitted["ok"] is True, (tx_type, signer, submitted)
+    height = int(executor.read_state()["height"]) + 1
+    produced = executor.produce_block(max_txs=1)
+    assert produced.ok is True, (tx_type, signer, produced.error)
+    block = executor.get_block_by_height(height)
+    assert isinstance(block, dict)
+    assert tx_id in block["header"]["tx_ids"]
+    receipts = [entry for entry in block["receipts"] if entry.get("tx_id") == tx_id]
+    assert len(receipts) == 1
+    assert receipts[0]["ok"] is False, (tx_type, signer, receipts)
+    assert "juror_conflict_material" in str(receipts[0]), receipts[0]
+    assert compute_state_root(executor.read_state()) == block["header"]["state_root"]
+    return height, block
+
+
+def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_replays(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Opposite signed receipt outcome under explicitly precommitted v2 state.
+
+    V2 is inserted into two matching *test genesis states* before the first
+    block because governance param policy intentionally does not whitelist
+    activation. It is not a signed governance upgrade or a live-chain release.
+    """
+    _controlled_strict_environment(monkeypatch)
+    index = Path(__file__).resolve().parents[1] / "generated" / "tx_index.json"
+    source_path = tmp_path / "material-v2-source.sqlite"
+    source = WeAllExecutor(
+        db_path=str(source_path),
+        node_id="pr88-material-v2-source",
+        chain_id=CHAIN,
+        tx_index_path=str(index),
+    )
+    genesis_root = _seed_controlled_v2_genesis(source)
+
+    _signed_committed(
+        source,
+        tx_type="GROUP_CREATE",
+        signer=REPORTER,
+        nonce=1,
+        payload={"group_id": GROUP_ID, "charter": "Controlled versioned juror gate"},
+    )
+    reviewers = [f"@pr88-juror-{number:02d}" for number in range(9)]
+    for reviewer in reviewers:
+        public, _ = _deterministic_replay_fixture_keypair(label=reviewer)
+        _signed_committed(
+            source,
+            tx_type="ACCOUNT_REGISTER",
+            signer=reviewer,
+            nonce=1,
+            payload={"pubkey": public},
+        )
+        _signed_committed(
+            source,
+            tx_type="POH_BOOTSTRAP_TIER2_GRANT",
+            signer=reviewer,
+            nonce=2,
+            payload={"account_id": reviewer},
+        )
+        _signed_committed(
+            source,
+            tx_type="REVIEWER_LANE_OPT_IN",
+            signer=reviewer,
+            nonce=3,
+            payload={"account_id": reviewer, "lane": "dispute_review"},
+        )
+
+    _signed_committed(
+        source,
+        tx_type="DISPUTE_OPEN",
+        signer=REPORTER,
+        nonce=2,
+        payload={
+            "dispute_id": DISPUTE_ID,
+            "target_type": "group",
+            "target_id": GROUP_ID,
+            "reason": "Controlled v2 conflict rejection",
+        },
+    )
+    opened = source.read_state()["disputes_by_id"][DISPUTE_ID]
+    assert opened["panel_status"] == "assigned"
+    assert len(opened["assigned_jurors"]) == 7
+    selected = opened["assigned_jurors"][0]
+
+    _signed_committed(
+        source,
+        tx_type="GROUP_MODERATORS_SET",
+        signer=REPORTER,
+        nonce=3,
+        payload={"group_id": GROUP_ID, "moderators": [REPORTER, selected]},
+    )
+    pending = deepcopy(source.read_state()["disputes_by_id"][DISPUTE_ID])
+    assert selected in _dispute_conflict_account_ids(source.read_state(), pending)
+    assert pending["jurors"][selected]["status"] == "assigned"
+
+    accept_height, accept_block = _signed_rejected_block(
+        source,
+        tx_type="DISPUTE_JUROR_ACCEPT",
+        signer=selected,
+        nonce=4,
+        payload={"dispute_id": DISPUTE_ID},
+    )
+    assert accept_block["header"]["state_root"] == compute_state_root(source.read_state())
+    assert source.read_state()["disputes_by_id"][DISPUTE_ID] == pending
+
+    vote_height, vote_block = _signed_rejected_block(
+        source,
+        tx_type="DISPUTE_VOTE_SUBMIT",
+        signer=selected,
+        nonce=5,
+        payload={"dispute_id": DISPUTE_ID, "vote": "no"},
+    )
+    assert vote_height > accept_height
+    assert vote_block["header"]["state_root"] == compute_state_root(source.read_state())
+    assert source.read_state()["disputes_by_id"][DISPUTE_ID] == pending
+    assert selected not in pending.get("voted_juror_ids", [])
+    assert pending.get("vote_counts", {}).get("no", 0) == 0
+
+    final_state = source.read_state()
+    final_root = compute_state_root(final_state)
+    height = int(final_state["height"])
+    blocks = [deepcopy(source.get_block_by_height(i)) for i in range(1, height + 1)]
+    assert all(isinstance(block, dict) for block in blocks)
+
+    restarted = WeAllExecutor(
+        db_path=str(source_path),
+        node_id="pr88-material-v2-source",
+        chain_id=CHAIN,
+        tx_index_path=str(index),
+    )
+    assert restarted.read_state()["params"]["dispute_material_conflict_gate_version"] == 2
+    assert compute_state_root(restarted.read_state()) == final_root
+
+    independent = WeAllExecutor(
+        db_path=str(tmp_path / "material-v2-independent.sqlite"),
+        node_id="pr88-material-v2-independent",
+        chain_id=CHAIN,
+        tx_index_path=str(index),
+    )
+    assert _seed_controlled_v2_genesis(independent) == genesis_root
+    for number, block in enumerate(blocks, start=1):
+        applied = independent.apply_block(deepcopy(block))
+        assert applied.ok is True, (number, applied.error)
+        assert independent.get_block_by_height(number) == block
+        assert compute_state_root(independent.read_state()) == block["header"]["state_root"]
+    assert compute_state_root(independent.read_state()) == final_root
+    assert independent.read_state()["disputes_by_id"][DISPUTE_ID] == pending
