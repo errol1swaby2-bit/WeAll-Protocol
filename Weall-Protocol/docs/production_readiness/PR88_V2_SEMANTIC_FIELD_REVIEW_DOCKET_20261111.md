@@ -424,6 +424,45 @@ it neither edits accepted semantic digests nor removes the maintainer
 approval requirement. It remains separate from full signed-block
 replay or undiscovered conditional effects.
 
+## Material-conflict gate drift in dispute juror admission (2026-11-12; diagnostic)
+
+Source inspection identifies a broader constitutional conflict calculation in
+`_dispute_conflict_account_ids`, used by `_filter_active_dispute_reviewers`,
+than the *direct* transaction guard
+`_require_dispute_reviewer_lane`. Panel selection excludes the target owner,
+reporter, opener, parties, beneficiaries, declared material/financial
+connections, and relevant group officers. The direct guard currently checks
+target owner and reporter/flagger explicitly, but **does not reject** every
+other conflict identity before
+`_apply_dispute_juror_assign`, `_apply_dispute_juror_accept`, and
+`_apply_dispute_vote_submit` call it.
+
+`tests/test_pr88_dispute_material_conflict_review_evidence.py` adds
+**seven diagnostic cases**: four alias-aware conflict-source filter-versus-gate
+comparisons, a direct SYSTEM assignment of a conflicted reviewer, an
+already-assigned financially connected reviewer reaching accept (with only the
+downstream reputation event writer stubbed), and a retained explicit reporter
+rejection. These tests **characterize existing behavior** rather than affirming
+it as acceptable, and must be rewritten as fail-closed regressions when a
+versioned remediation is reviewed. The group-election focused workflow now
+includes this source and test in its exact-head hashes, Ruff checks and pytest
+selection. CI pass/fail is not claimed before the new exact commit finishes.
+
+The direct SYSTEM test does **not** establish an admitted canonical queued
+transaction, a forged signature, or finality of a conflicted vote. The legacy
+non-strict fallback in `_dispute_eligible_juror_ids` can separately return the
+fallback signer after the broad filter excluded that identity, which warrants
+historical-state replay analysis. A naive unconditional new rejection could
+change historical consensus replay; do not silently change production
+authorization, erase old state, or refresh accepted semantic-review digests.
+Next: establish strict/current clock activation and migration behavior, prove
+signed queue-origin and preexisting-assignment accept/vote routes, then design
+an explicitly reviewed fail-closed fix with replay-compatible coverage.
+
+**Review disposition: unresolved material-conflict authorization concern.
+No semantic approval, release authorization, or proof of exploit on an
+authenticated live network.**
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
