@@ -127,6 +127,52 @@ pushed only generated JSON evidence in
 [`5df06bfc`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/5df06bfc37709a7b4172032303b6707ca3cc33ac).
 No accepted v2 semantic-review digest or production release lock changed.
 
+### Conflict-triggered reputation fairness: source characterization, not a waiver
+
+The read-only `preview_dispute_panel_recovery` now includes
+`currently_impacted_juror_reputation_risks`. For each currently conflicted
+or inactive assigned reviewer it reports the persisted juror status, whether
+a ballot has already been recorded (without disclosing the ballot choice),
+block-height deadlines, potential late-withdraw/timeout penalty values,
+and exposure to the existing missed-vote final-accountability rule.
+It never writes penalties or a new recusal, verifies when a conflict arose,
+or claims an existing penalty has already occurred. Missing or non-integer
+chain height is **unknown**, not an expired deadline. Ambiguous juror-record
+aliases are reported as unverified.
+
+The existing direct appliers do **not** exempt a currently conflicted juror
+from late-withdraw or timeout penalties. A synthetic accepted reviewer
+whose safe-withdraw and vote deadlines had passed was still assigned
+`DISPUTE_JUROR_WITHDREW_LATE` (**−500 milli-units**) by the withdrawal
+applier and `DISPUTE_JUROR_TIMED_OUT` (**−1,500 milli-units**) by the
+SYSTEM-only timeout applier. A separate direct call to final-accountability
+suspended a conflicted assigned nonvoter with reason
+`assigned_dispute_vote_missed`. These observations use *separate synthetic
+fixture states*, with the reputation-event writer replaced for the
+withdrawal/timeout characterization. They **do not** establish a valid
+signed SYSTEM-queue producer, a finalized containing block, an authenticated
+material-conflict introduction height, or a constitutionally legitimate
+final receipt. The existing status skip paths for withdrawn, declined,
+timed-out and voted jurors were also characterized.
+
+The [focused exact-head fairness/replay workflow](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43322442666)
+passed **48/48** tests with Ruff clean. The new tests include cases on
+both sides of the safe-withdraw/vote deadline, existing ballots,
+nonmutation of the read-only preview and alias ambiguity; they retain
+the earlier signed v1/v2 dispute regression and controlled replay.
+
+**Approval needed before any change:** define what constitutes a
+cryptographically or consensus-authenticated *post-assignment* conflict,
+whether a juror has an affirmative obligation to report it, which
+deadline pauses are constitutional, who may trigger a recusal and under
+what vote/appeal process, how accumulated votes and reputation events
+are preserved without retroactive editing, and whether a no-penalty
+withdrawal is available to protect against conflicts imposed by other
+actors. A locally inferred conflict or arbitrary payload reason must
+never be sufficient to suppress a penalty or appoint a substitute.
+The default v1 paths, non-whitelisted v2 parameter, and constitutional
+amendment lock remain intact.
+
 ## 5. Staged review gates
 
 | Stage | Required evidence | Current disposition |
