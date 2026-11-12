@@ -484,18 +484,49 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert selected not in completed["voted_juror_ids"]
     assert completed["votes"] == {}
     post_ballot = preview_dispute_panel_recovery(source.read_state(), DISPUTE_ID)
-    # Source-level eligibility recomputation currently shrinks an initially
-    # complete seven-juror panel's quorum from five to four after the conflict.
-    # Pin this separately from the new broad-conflict admission fix. Never
-    # silently call four votes a constitutional five-vote panel.
+    # The dormant v2 candidate must retain a fixed seven-juror threshold
+    # despite losing one eligible juror. The affected panel is incomplete;
+    # do not schedule resolution even if other jurors submit five votes.
     assert len(completed["assigned_jurors"]) == 7
     assert opened["required_votes"] == 5
     assert completed["eligible_validator_count"] == 6
-    assert completed["required_votes"] == 4
-    assert post_ballot["status"] == "blocked_original_vote_threshold_drift"
+    assert completed["required_votes"] == 5
+    assert post_ballot["status"] == "blocked_existing_ballots"
     assert post_ballot["ballots_already_present"] is True
     assert post_ballot["minimum_required_votes"] == 5
-    assert post_ballot["pinned_required_votes"] == 4
+    assert post_ballot["pinned_required_votes"] == 5
+
+    other_unconflicted = [
+        juror
+        for juror in opened["assigned_jurors"]
+        if juror not in {selected, unconflicted}
+    ]
+    assert len(other_unconflicted) == 5
+    for signer in other_unconflicted[:4]:
+        _signed_committed(
+            source,
+            tx_type="DISPUTE_JUROR_ACCEPT",
+            signer=signer,
+            nonce=4,
+            payload={"dispute_id": DISPUTE_ID},
+        )
+        _signed_committed(
+            source,
+            tx_type="DISPUTE_VOTE_SUBMIT",
+            signer=signer,
+            nonce=5,
+            payload={"dispute_id": DISPUTE_ID, "vote": "yes"},
+        )
+    completed = source.read_state()["disputes_by_id"][DISPUTE_ID]
+    assert completed["vote_counts"]["yes"] == 5
+    assert completed["required_votes"] == 5
+    assert completed["eligible_validator_count"] == 6
+    assert len(completed["assigned_jurors"]) == 7
+    assert completed["resolved"] is False
+    assert completed["stage"] == "juror_review"
+    assert preview_dispute_panel_recovery(source.read_state(), DISPUTE_ID)[
+        "status"
+    ] == "blocked_existing_ballots"
 
     final_state = source.read_state()
     final_root = compute_state_root(final_state)
@@ -526,7 +557,7 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
         assert compute_state_root(independent.read_state()) == block["header"]["state_root"]
     assert compute_state_root(independent.read_state()) == final_root
     assert independent.read_state()["disputes_by_id"][DISPUTE_ID] == completed
-    assert independent.read_state()["disputes_by_id"][DISPUTE_ID]["vote_counts"]["yes"] == 1
+    assert independent.read_state()["disputes_by_id"][DISPUTE_ID]["vote_counts"]["yes"] == 5
 
 
 def test_mismatched_test_genesis_v2_cannot_replay_v1_block(
