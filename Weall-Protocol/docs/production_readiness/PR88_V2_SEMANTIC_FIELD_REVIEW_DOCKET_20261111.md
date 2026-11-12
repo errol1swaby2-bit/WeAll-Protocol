@@ -463,6 +463,53 @@ an explicitly reviewed fail-closed fix with replay-compatible coverage.
 No semantic approval, release authorization, or proof of exploit on an
 authenticated live network.**
 
+## Strict-profile selection, SYSTEM queue provenance and historical replay (2026-11-12)
+
+The prior direct-applier characterization must be separated from the
+historical selection rules. In
+`apply/dispute.py::select_dispute_panel`, **strict M3** selection excludes
+`_dispute_conflict_account_ids` (reporter/opener/target owner, parties,
+beneficiaries, declared material and financial connections, and specified
+group officers), while **legacy/non-strict** selection intentionally
+excludes only the target owner plus any explicit caller exclusions. The
+content-escalation caller supplies a reporter exclusion even in legacy.
+No claim is made that changing legacy replay to strict rules is safe.
+
+The production source does have a real queue-producing edge:
+`apply/content.py::_apply_content_escalate_to_dispute` selects reviewers,
+persists immediate assignments, then schedules next-height, post-phase,
+once-only `DISPUTE_JUROR_ASSIGN` items with parent
+`CONTENT_ESCALATE_TO_DISPUTE`. The shared block replay checks
+`system_tx_engine.validate_system_tx_queue_binding` on emitted SYSTEM
+envelopes. That check validates queue ID, canonical envelope payload,
+signer, parent, due height, phase and transaction type; it does **not**
+recalculate a juror's material conflicts. A queue record's presence
+alone does not prove that its input was created through an authorized
+signed content report.
+
+The extended
+`tests/test_pr88_dispute_material_conflict_review_evidence.py` now
+distinguishes strict from legacy selection, tests both profile conditions
+on a stale conflicted juror acceptance, demonstrates the
+difference between a synthetically created *valid* SYSTEM queue item and
+the narrower direct `DISPUTE_JUROR_ASSIGN` authorization, and verifies
+that queue-less or unknown-ID SYSTEM assignments fail the real queue
+validator. These are bounded source-path proofs, **not** a full
+end-to-end signed `CONTENT_FLAG` to escalation to final ballot chain,
+nor proof of a new externally injectable SYSTEM transaction.
+
+**Remaining before a consensus repair:** reconstruct authenticated
+report escalation and deferred assignment at exact historical heights;
+exercise a conflict that arises *after* a valid strict panel snapshot,
+including group-official changes; verify the genuinely signed
+`DISPUTE_JUROR_ACCEPT` and `DISPUTE_VOTE_SUBMIT` receipts in that
+state; check replay roots under any proposed activation/migration
+boundary. Unconditionally applying the broader conflict filter could
+change historical legacy and already-strict chain replay, so no
+production authorizer has been changed here, and no V2 digest may be
+accepted on these tests alone. CI status for this increment must be
+checked on its exact commit.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
