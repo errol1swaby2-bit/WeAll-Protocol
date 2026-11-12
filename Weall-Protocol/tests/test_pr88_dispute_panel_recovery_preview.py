@@ -282,7 +282,9 @@ def test_conflicted_assigned_juror_has_unresolved_final_receipt_accountability_r
     assert risk[0]["penalty_waiver_authorized"] is False
 
 
-@pytest.mark.parametrize("height,late,timeout", ((9, False, False), (11, True, False), (21, True, True)))
+@pytest.mark.parametrize(
+    "height,late,timeout", ((9, False, False), (11, True, False), (21, True, True))
+)
 def test_conflicted_accepted_juror_deadline_penalty_exposures_are_height_bound(
     panel_state: dict, height: int, late: bool, timeout: bool
 ) -> None:
