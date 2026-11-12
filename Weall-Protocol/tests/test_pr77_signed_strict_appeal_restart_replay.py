@@ -392,7 +392,7 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
             if isinstance(left, list) and isinstance(right, list):
                 if len(left) != len(right):
                     result.append(f"{path}:length:{len(left)}!={len(right)}")
-                for i, (item_a, item_b) in enumerate(zip(left, right)):
+                for i, (item_a, item_b) in enumerate(zip(left, right, strict=False)):
                     walk(item_a, item_b, f"{path}/{i}")
                 return
             if type(left) is not type(right) or left != right:
