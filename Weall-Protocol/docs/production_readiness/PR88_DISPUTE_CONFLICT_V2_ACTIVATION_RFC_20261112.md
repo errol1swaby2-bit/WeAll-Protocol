@@ -90,6 +90,43 @@ the preview against its legitimately created post-assignment group conflict,
 before and after an unconflicted juror casts a ballot. This is not evidence
 of a constitutional substitute-selection procedure.
 
+### Dormant v2 fixed-panel threshold and resolution hold (implemented candidate)
+
+The branch now includes an **explicit strict-v2-only** initial-review helper:
+`_strict_v2_initial_panel_votes` pins `required_votes` to at least the
+original 7/15/25-member panel threshold, rather than recomputing it from
+a smaller current eligible subset. In constitutional-clock severe
+sanctions it also retains the 20-vote floor. When no chain-state v2 gate
+is selected, historical v1 computations remain unchanged; appeal
+panels retain their separately defined semantics.
+
+A second guard, `_strict_v2_initial_panel_complete`, checks that the
+currently eligible juror set still matches the original complete,
+nonduplicated, nonconflicted, active reviewer panel before
+`_maybe_schedule_dispute_auto_resolution` can queue a result. A
+post-assignment conflict therefore **does not** give six remaining
+reviewers permission to decide a seven-person case even if five valid
+ballots arrive. This guard is a *safety hold*, not verification of
+independent humanity or constitutional panel-commitment provenance.
+
+A signed controlled-development-chain test commits a complete strict
+seven-member panel, adds a later signed moderator conflict, then
+commits **five signed unconflicted votes**. The new v2 candidate
+preserves `required_votes=5` with `eligible_validator_count=6`,
+stores the ballots, does not automatically resolve the incomplete
+panel, and replays on a separate SQLite executor with matching block
+and state roots. [Exact-source test workflow #43314857271](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43314857271)
+passed 31/31 cases including default-v1 and severe threshold
+checks. This does **not** establish a safe path to finalization: no
+substitute reassignment, counted-vote transfer, penalty-free recusal,
+appeal settlement, or approved on-chain activation was added.
+
+The [live B5xx regeneration #43314846789](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43314846789)
+executed and live-verified all three underlying proof harnesses and
+pushed only generated JSON evidence in
+[`5df06bfc`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/5df06bfc37709a7b4172032303b6707ca3cc33ac).
+No accepted v2 semantic-review digest or production release lock changed.
+
 ## 5. Staged review gates
 
 | Stage | Required evidence | Current disposition |
