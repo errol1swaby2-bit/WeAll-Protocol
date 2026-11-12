@@ -199,6 +199,30 @@ the original appeal-panel result instead of pretending that independent
 jurors, signed votes, historical blocks or BFT finality created it.
 Only successful exact-head CI constitutes a passing result for this test.
 
+## Signed ordinary appeal ballots through persisted final receipt (new exact-head test)
+
+The existing signed strict-appeal SQLite fixture is extended **without
+seeding an appealed-case resolution or editing a committed stage**. It
+creates independent synthetic reviewer accounts using the controlled
+dev-bootstrap and their deterministic test signing keys, records the
+initial verdict through signed juror votes, and commits a signed
+`DISPUTE_APPEAL`. It then requires each fresh-panel voter to issue
+a separately signed `DISPUTE_JUROR_ACCEPT` and
+`DISPUTE_VOTE_SUBMIT` with `appeal_decision=reverse` until the
+on-chain appeal threshold is reached.
+
+The next user-empty block must generate its `DISPUTE_FINAL_RECEIPT`
+through the production scheduler and SYSTEM queue rather than through a
+fixture-injected receipt. The persisted original SQLite executor must
+restart at the resulting head, and an independent SQLite executor must
+replay every committed block from the synthetic genesis, including
+the signed appeal ballots and final SYSTEM receipt, with matching
+state roots and finalized appeal state. This is an explicit
+**signed synthetic development-chain test**, not external humanity
+verification, juror independence, autonomous peer-to-peer HotStuff
+finality, a historically approved consensus upgrade or S4 sanction
+permission. It has no implied CI success until the exact commit is tested.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.

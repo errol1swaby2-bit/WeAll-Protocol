@@ -1,0 +1,78 @@
+name: PR88 signed ordinary appeal through queued final receipt (synthetic)
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/tests/test_pr77_signed_strict_appeal_restart_replay.py'
+      - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
+      - 'Weall-Protocol/src/weall/runtime/dispute_engine.py'
+      - 'Weall-Protocol/src/weall/runtime/system_tx_engine.py'
+      - 'Weall-Protocol/src/weall/runtime/block_builder.py'
+      - 'Weall-Protocol/src/weall/runtime/block_replay.py'
+      - 'Weall-Protocol/docs/production_readiness/PR88_V2_SEMANTIC_FIELD_REVIEW_DOCKET_20261111.md'
+      - '.github/workflows/pr88-signed-appeal-final-receipt.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  signed-appeal-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Assert exact HEAD and run signed appeal-to-final-receipt rehearsal
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          EXPECTED_HEAD="${{ github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          test "$ACTUAL_HEAD" = "$EXPECTED_HEAD"
+          OUT="$RUNNER_TEMP/pr88-signed-appeal-replay"
+          mkdir -p "$OUT"
+          {
+            echo "scope=SIGNED_SYNTHETIC_ORDINARY_APPEAL_FINAL_RECEIPT_NO_BFT_FINALITY"
+            echo "checkout_commit=$ACTUAL_HEAD"
+            sha256sum tests/test_pr77_signed_strict_appeal_restart_replay.py
+            sha256sum src/weall/runtime/apply/dispute.py
+            sha256sum src/weall/runtime/dispute_engine.py
+            sha256sum src/weall/runtime/system_tx_engine.py
+            sha256sum src/weall/runtime/block_builder.py
+            sha256sum src/weall/runtime/block_replay.py
+            echo "genesis_independence_verified=false"
+            echo "ballot_transport_confidentiality_verified=false"
+            echo "severe_sanction_authority=false"
+            echo "autonomous_network_finality=false"
+          } > "$OUT/source_and_scope.txt"
+          ruff check tests/test_pr77_signed_strict_appeal_restart_replay.py
+          ruff format --check tests/test_pr77_signed_strict_appeal_restart_replay.py
+          set +e
+          python -m pytest -q tests/test_pr77_signed_strict_appeal_restart_replay.py 2>&1 | tee "$OUT/test.log"
+          RC="${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=$RC" >> "$OUT/source_and_scope.txt"
+          exit "$RC"
+      - name: Upload bounded execution proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr88-signed-appeal-final-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/pr88-signed-appeal-replay/source_and_scope.txt
+            ${{ runner.temp }}/pr88-signed-appeal-replay/test.log

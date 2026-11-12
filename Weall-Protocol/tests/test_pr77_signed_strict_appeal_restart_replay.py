@@ -282,6 +282,87 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     assert not state["accounts"][TARGET].get("banned", False)
     assert not any(entry.get("tx_type") == "ACCOUNT_BAN" for entry in state.get("system_queue", []))
 
+    # Complete the fresh ordinary appeal using only separately signed and
+    # committed juror ACCEPT/VOTE transactions. Do not seed a reached panel
+    # verdict or patch a case stage into ledger state.
+    appeal_vote_quorum = int(appeal["required_votes"])
+    assert 1 <= appeal_vote_quorum <= len(fresh)
+    signed_appeal_vote_ids: list[str] = []
+    for vote_index, reviewer in enumerate(fresh[:appeal_vote_quorum], start=1):
+        _commit_signed(
+            source,
+            tx_type="DISPUTE_JUROR_ACCEPT",
+            signer=reviewer,
+            nonce=4,
+            payload={"dispute_id": CASE_ID},
+        )
+        vote_height, signed_vote_id = _commit_signed(
+            source,
+            tx_type="DISPUTE_VOTE_SUBMIT",
+            signer=reviewer,
+            nonce=5,
+            payload={"dispute_id": CASE_ID, "appeal_decision": "reverse"},
+        )
+        signed_appeal_vote_ids.append(signed_vote_id)
+        recorded = source.read_state()["disputes_by_id"][CASE_ID]
+        assert recorded["appeal_panel_votes"] == {}
+        assert recorded["appeal_vote_counts"]["reverse"] == vote_index
+        assert signed_vote_id in source.get_block_by_height(vote_height)["header"]["tx_ids"]
+        if vote_index < appeal_vote_quorum:
+            assert recorded["stage"] == "appeal_review"
+            assert recorded["appeal_panel_result"]["reached"] is False
+
+    pre_finalization = source.read_state()["disputes_by_id"][CASE_ID]
+    assert pre_finalization["stage"] == "appeal_resolved"
+    assert pre_finalization["appeal_panel_result"]["reached"] is True
+    assert pre_finalization["appeal_panel_result"]["decision"] == "reverse"
+    assert pre_finalization["appeal_panel_result"]["resolution"]["decision"] == "reverse"
+    assert pre_finalization["appeal_vote_counts"]["reverse"] == appeal_vote_quorum
+    assert len(pre_finalization["appeal_voted_juror_ids"]) == appeal_vote_quorum
+    assert pre_finalization["appeal_panel_votes"] == {}
+    assert pre_finalization["appeal_panel_juror_ids"] == fresh
+    assert pre_finalization["appeal_substitute_juror_ids"] == fresh_subs
+
+    # The next production block, with no user transactions, must derive the
+    # final receipt from the persisted appeal result through the normal pre
+    # scheduler and mandatory SYSTEM queue. This is not a forged SYSTEM input.
+    final_height = int(source.read_state()["height"]) + 1
+    finalized_result = source.produce_block(max_txs=0, allow_empty=True)
+    assert finalized_result.ok is True, finalized_result.error
+    final_block = source.get_block_by_height(final_height)
+    assert isinstance(final_block, dict)
+    final_receipts = [
+        entry
+        for entry in final_block["txs"]
+        if entry.get("tx_type") == "DISPUTE_FINAL_RECEIPT"
+        and (entry.get("payload") or {}).get("dispute_id") == CASE_ID
+    ]
+    assert len(final_receipts) == 1
+    final_env = final_receipts[0]
+    assert final_env["system"] is True
+    assert final_env["payload"]["appeal_resolution"] == {
+        "decision": "reverse",
+    }
+    assert final_env["payload"]["_due_height"] == final_height
+    assert final_env["payload"]["_system_queue_id"]
+    assert final_env["parent"] == f"dispute:{CASE_ID}:appeal-panel-finalize:2"
+    final_tx_id = final_env["tx_id"]
+    assert final_tx_id in final_block["header"]["tx_ids"]
+    assert any(
+        receipt.get("tx_id") == final_tx_id and receipt.get("ok") is True
+        for receipt in final_block["receipts"]
+    )
+
+    state = source.read_state()
+    appeal = state["disputes_by_id"][CASE_ID]
+    assert appeal["stage"] == "finalized"
+    assert appeal["appeal_panel_result"]["decision"] == "reverse"
+    assert appeal["appeal_finalization"]["decision"] == "reverse"
+    assert appeal["final_resolution"]["appeal_decision"] == "reverse"
+    assert appeal["final_resolution"]["actions"] == []
+    assert not state["accounts"][TARGET].get("banned", False)
+    assert not any(entry.get("tx_type") == "ACCOUNT_BAN" for entry in state.get("system_queue", []))
+
     source_height = int(state["height"])
     source_root = compute_state_root(state)
     source_blocks = [
@@ -290,6 +371,9 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     assert all(isinstance(block, dict) for block in source_blocks)
     assert opening_tx_id in source_blocks[opening_height - 1]["header"]["tx_ids"]
     assert appeal_tx_id in source_blocks[appeal_height - 1]["header"]["tx_ids"]
+    assert len(signed_appeal_vote_ids) == appeal_vote_quorum
+    assert len(set(signed_appeal_vote_ids)) == appeal_vote_quorum
+    assert final_tx_id in source_blocks[final_height - 1]["header"]["tx_ids"]
 
     # A new executor opens the original persisted SQLite, checks its tip and
     # snapshot bindings, then a separate fresh executor applies every block.
@@ -332,6 +416,12 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         == []
     )
     assert independent.read_state()["disputes_by_id"][CASE_ID] == appeal
+    assert independent.get_block_by_height(final_height) == final_block
+    assert independent.read_state()["disputes_by_id"][CASE_ID]["stage"] == "finalized"
+    assert independent.read_state()["disputes_by_id"][CASE_ID]["appeal_finalization"][
+        "decision"
+    ] == "reverse"
+    assert independent.read_state()["disputes_by_id"][CASE_ID]["appeal_panel_votes"] == {}
 
     # These are offline execution/restart observations, never a BFT QC,
     # independently issued PoH, severe-sanction authority or launch approval.
