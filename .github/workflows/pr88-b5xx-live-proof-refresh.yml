@@ -9,6 +9,7 @@ on:
     paths:
       - .github/workflows/pr88-b5xx-live-proof-refresh.yml
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/net/net_loop.py
 
 permissions:
   contents: write

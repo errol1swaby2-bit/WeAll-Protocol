@@ -1,0 +1,40 @@
+name: PR88 NetLoop shutdown ordering (no auth weakening)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pr88-net-loop-shutdown-order.yml
+      - Weall-Protocol/src/weall/net/net_loop.py
+      - Weall-Protocol/tests/test_net_loop_shutdown_order.py
+
+permissions:
+  contents: read
+
+jobs:
+  shutdown-order:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Enforce lifecycle and fail-closed regressions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          ruff check src/weall/net/net_loop.py tests/test_net_loop_shutdown_order.py
+          ruff format --check src/weall/net/net_loop.py tests/test_net_loop_shutdown_order.py
+          python -m pytest -q tests/test_net_loop_shutdown_order.py tests/test_net_loop_fail_closed.py
