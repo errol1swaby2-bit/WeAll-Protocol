@@ -8,11 +8,18 @@ or permission to change consensus semantics without a migration review.
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
 from weall.runtime.apply import dispute
+from weall.runtime.system_tx_engine import (
+    enqueue_system_tx,
+    system_tx_emitter,
+    validate_system_tx_queue_binding,
+)
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.tx.canon import TxIndex
 
 
 def _state_with_conflicted_reviewer(conflict_field: str = "party_ids") -> dict:
@@ -93,10 +100,12 @@ def test_direct_system_assignment_currently_overrides_material_conflict_filter()
     assert "@juror" in case["assigned_jurors"]
 
 
+@pytest.mark.parametrize("strict_profile", (False, True))
 def test_stale_materially_conflicted_assignment_currently_reaches_acceptance(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, strict_profile: bool
 ) -> None:
     state = _state_with_conflicted_reviewer("financial_connection_ids")
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: strict_profile)
     before = deepcopy(state["disputes_by_id"]["case-1"])
     assert before["jurors"]["@juror"]["status"] == "assigned"
 
@@ -132,3 +141,77 @@ def test_specific_reporter_guard_remains_fail_closed() -> None:
         "forbidden",
         "juror_conflict_reporter",
     )
+
+
+def test_strict_panel_rejects_material_conflict_while_legacy_selection_does_not(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = _state_with_conflicted_reviewer("financial_connection_ids")
+    case = state["disputes_by_id"]["case-1"]
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    strict = dispute.select_dispute_panel(state, case, ["@juror"])
+    assert "@juror" in strict["conflicted_juror_ids"]
+    assert "@juror" in strict["excluded_juror_ids"]
+    assert strict["panel"] == []
+
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: False)
+    legacy = dispute.select_dispute_panel(state, case, ["@juror"])
+    assert legacy["panel"] == ["@juror"]
+    assert legacy["status"] == "legacy_all_eligible_reviewers"
+    assert legacy["strict"] is False
+
+
+def test_canonical_system_queue_binding_is_not_dispute_conflict_authorization() -> None:
+    """A genuine queue ID binds the envelope, not its origin's legitimacy or juror eligibility."""
+    state = _state_with_conflicted_reviewer("material_connection_ids")
+    case = state["disputes_by_id"]["case-1"]
+    assert "@juror" in dispute._dispute_conflict_account_ids(state, case)
+    case["jurors"] = {}
+    case["assigned_jurors"] = []
+    case["eligible_juror_ids"] = []
+    qid = enqueue_system_tx(
+        state,
+        tx_type="DISPUTE_JUROR_ASSIGN",
+        payload={"dispute_id": "case-1", "juror": "@juror"},
+        due_height=13,
+        signer="SYSTEM",
+        once=True,
+        parent="CONTENT_ESCALATE_TO_DISPUTE",
+        phase="post",
+    )
+    canon = TxIndex.load_from_file(
+        str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    )
+    due = system_tx_emitter(state, canon, next_height=13, phase="post")
+    assert len(due) == 1
+    emitted = due[0]
+    assert emitted.payload["_system_queue_id"] == qid
+    assert emitted.payload["_due_height"] == 13
+    assert validate_system_tx_queue_binding(
+        state, canon, emitted, next_height=13, phase="post"
+    ) == (True, "")
+    # This bypass is after test-created queue insertion; no signed origin is proven.
+    assert dispute._apply_dispute_juror_assign(state, emitted)["juror"] == "@juror"
+    assert case["jurors"]["@juror"]["status"] == "assigned"
+
+
+def test_forged_dispute_assignment_cannot_bypass_system_queue_binding() -> None:
+    state = _state_with_conflicted_reviewer()
+    canon = TxIndex.load_from_file(
+        str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    )
+    forged = TxEnvelope(
+        tx_type="DISPUTE_JUROR_ASSIGN",
+        signer="SYSTEM",
+        system=True,
+        parent="CONTENT_ESCALATE_TO_DISPUTE",
+        payload={"dispute_id": "case-1", "juror": "@juror"},
+    )
+    assert validate_system_tx_queue_binding(
+        state, canon, forged, next_height=13, phase="post"
+    ) == (False, "missing_system_queue_id")
+    forged.payload["_system_queue_id"] = "unknown-queue"
+    forged.payload["_due_height"] = 13
+    assert validate_system_tx_queue_binding(
+        state, canon, forged, next_height=13, phase="post"
+    ) == (False, "unknown_system_queue_id")
