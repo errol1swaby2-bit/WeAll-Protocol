@@ -704,6 +704,47 @@ and returning-node replay. Never override the 20-entry semantic gate,
 enable the v2 parameter through generic governance, or merge PR #88
 without accountable external review.
 
+## Post-assignment recusal fairness and reputation exposure (2026-11-12)
+
+The **read-only** panel recovery preview now lists per-juror
+`currently_impacted_juror_reputation_risks` for *currently* conflicted
+or inactive assigned jurors. Source-bound metrics are persisted status,
+accepted/deadline heights, existing ballot membership (never a
+voter-to-choice mapping), default or recorded reputation penalties,
+missed-vote-accountability exposure, and whether a deadline is known
+to have passed. It refuses to assert a conflict's introduction height,
+that an actual penalty has been applied, or any authorized waiver.
+The original panel-size and threshold checks remain intact.
+
+In new **direct-handler synthetic characterization** (not signed
+end-to-end queue or finalized-receipt proof), current
+`DISPUTE_JUROR_WITHDRAW` penalized a currently materially conflicted
+accepted juror who withdrew past the persisted safe height
+(**−500 milli-units**), `DISPUTE_JUROR_TIMEOUT` penalized the same
+fixture's overdue juror (**−1,500 milli-units**) and
+`_record_dispute_juror_accountability` suspended a conflicted assigned
+nonvoter with `assigned_dispute_vote_missed`. Cases are isolated
+independent fixtures. The timeout event writer was replaced with a
+deterministic test stub; no legitimate signed source for a SYSTEM
+queue insertion or final receipt was established. Voters and existing
+terminal statuses retain their pre-existing accountability exceptions.
+
+[Exact-head fairness + signed replay #43322442666](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43322442666)
+passed **48/48** tests with Ruff clean, including existing signed v1
+legacy admission, v2 fixed-panel quorum/five-vote hold and independent
+SQLite replay, plus all new read-only exposure and direct-handler
+characterizations. No production withdrawal, timeout, final-accountability
+or reputation transition was changed.
+
+**No arbitrary penalty waiver authorized.** Reviewer decisions required
+before any versioned recusal implementation include an authenticated
+conflict-introduction proof, constitutionally fair report/recusal path,
+who may request and confirm it, the timing of already committed ballots,
+the disposition of nonvoting jurors' reputations, and a nonretroactive
+height-bound activation. The absence of this decision is an explicit
+NO-GO for enabling automatic substitute appointment or penalty
+forgiveness. The 20 V2 semantic-review digests remain unapproved.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
