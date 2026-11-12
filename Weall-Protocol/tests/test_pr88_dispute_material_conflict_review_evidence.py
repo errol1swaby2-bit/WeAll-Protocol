@@ -217,3 +217,90 @@ def test_forged_dispute_assignment_cannot_bypass_system_queue_binding() -> None:
         False,
         "unknown_system_queue_id",
     )
+
+
+@pytest.mark.parametrize(
+    "conflict_field",
+    (
+        "party_ids",
+        "beneficiary_ids",
+        "material_connection_ids",
+        "financial_connection_ids",
+    ),
+)
+@pytest.mark.parametrize(
+    "tx_type", ("DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_ACCEPT", "DISPUTE_VOTE_SUBMIT")
+)
+def test_explicit_strict_v2_conflict_gate_rejects_before_mutating_any_state(
+    monkeypatch: pytest.MonkeyPatch, tx_type: str, conflict_field: str
+) -> None:
+    state = _state_with_conflicted_reviewer(conflict_field)
+    state["params"] = {"dispute_material_conflict_gate_version": 2}
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    monkeypatch.setattr(
+        dispute,
+        "_require_active_dispute_ballot_profile",
+        lambda *_args, **_kwargs: {"strict": True, "active": True},
+    )
+    if tx_type == "DISPUTE_JUROR_ASSIGN":
+        state["disputes_by_id"]["case-1"]["jurors"] = {}
+        state["disputes_by_id"]["case-1"]["assigned_jurors"] = []
+        env = TxEnvelope(
+            tx_type=tx_type,
+            signer="SYSTEM",
+            system=True,
+            nonce=6,
+            payload={"dispute_id": "case-1", "juror": "@juror"},
+        )
+    else:
+        env = TxEnvelope(
+            tx_type=tx_type,
+            signer="@juror",
+            nonce=6,
+            payload={"dispute_id": "case-1", "vote": "no"},
+        )
+    before = deepcopy(state)
+    with pytest.raises(dispute.DisputeApplyError) as error:
+        dispute.apply_dispute(state, env)
+    assert (error.value.code, error.value.reason) == ("forbidden", "juror_conflict_material")
+    assert error.value.details["gate_version"] == 2
+    assert state == before
+
+
+@pytest.mark.parametrize("unsupported", (0, 3, True, "2", None))
+def test_strict_invalid_material_conflict_gate_version_fails_closed(
+    monkeypatch: pytest.MonkeyPatch, unsupported: object
+) -> None:
+    state = _state_with_conflicted_reviewer("financial_connection_ids")
+    state["params"] = {"dispute_material_conflict_gate_version": unsupported}
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    before = deepcopy(state)
+    with pytest.raises(dispute.DisputeApplyError) as error:
+        dispute._apply_dispute_juror_accept(
+            state,
+            TxEnvelope(
+                tx_type="DISPUTE_JUROR_ACCEPT",
+                signer="@juror",
+                nonce=6,
+                payload={"dispute_id": "case-1"},
+            ),
+        )
+    assert (error.value.code, error.value.reason) == (
+        "forbidden",
+        "unsupported_dispute_material_conflict_gate_version",
+    )
+    assert state == before
+
+
+def test_strict_legacy_v1_default_does_not_silently_rewrite_existing_conflict_semantics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = _state_with_conflicted_reviewer("financial_connection_ids")
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    assert "dispute_material_conflict_gate_version" not in state.get("params", {})
+    assert (
+        dispute._require_dispute_reviewer_lane(
+            state, "@juror", state["disputes_by_id"]["case-1"]
+        )
+        == "@juror"
+    )
