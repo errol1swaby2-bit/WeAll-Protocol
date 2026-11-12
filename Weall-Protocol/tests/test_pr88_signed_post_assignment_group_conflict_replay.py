@@ -388,26 +388,39 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert selected in _dispute_conflict_account_ids(source.read_state(), pending)
     assert pending["jurors"][selected]["status"] == "assigned"
 
-    # Attendance is a second acceptance entrypoint. It must not permit a
-    # conflicted juror to change "assigned" to "accepted" via signed ingress.
-    attendance_height, attendance_block = _signed_rejected_block(
-        source,
-        tx_type="DISPUTE_JUROR_ATTENDANCE",
-        signer=selected,
-        nonce=4,
-        payload={"dispute_id": DISPUTE_ID, "present": True},
+    # Canonical attendance is SYSTEM-only/receipt-only and cannot be
+    # submitted by a juror through signed user ingress. This is NOT an
+    # additional user-origin v2 acceptance bypass.
+    _, private = _deterministic_replay_fixture_keypair(label=selected)
+    attendance_signed = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN,
+            "tx_type": "DISPUTE_JUROR_ATTENDANCE",
+            "signer": selected,
+            "nonce": 4,
+            "payload": {"dispute_id": DISPUTE_ID, "present": True},
+        },
+        privkey=private,
+        encoding="hex",
     )
-    assert attendance_block["header"]["state_root"] == compute_state_root(source.read_state())
+    admission_height = int(source.read_state()["height"])
+    denied = source.submit_tx(attendance_signed)
+    assert denied["ok"] is False
+    assert (denied.get("error"), denied.get("reason")) == (
+        "system_tx_forbidden",
+        "system_flag_required",
+    )
+    assert int(source.read_state()["height"]) == admission_height
     assert source.read_state()["disputes_by_id"][DISPUTE_ID] == pending
 
     accept_height, accept_block = _signed_rejected_block(
         source,
         tx_type="DISPUTE_JUROR_ACCEPT",
         signer=selected,
-        nonce=5,
+        nonce=4,
         payload={"dispute_id": DISPUTE_ID},
     )
-    assert accept_height > attendance_height
+    assert accept_height > admission_height
     assert accept_block["header"]["state_root"] == compute_state_root(source.read_state())
     assert source.read_state()["disputes_by_id"][DISPUTE_ID] == pending
 
@@ -415,7 +428,7 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
         source,
         tx_type="DISPUTE_VOTE_SUBMIT",
         signer=selected,
-        nonce=6,
+        nonce=5,
         payload={"dispute_id": DISPUTE_ID, "vote": "no"},
     )
     assert vote_height > accept_height
