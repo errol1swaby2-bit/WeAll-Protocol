@@ -334,7 +334,6 @@ def test_legacy_strict_profile_attendance_retains_historical_implicit_acceptance
     )
 
 
-
 def test_v2_conflict_parameter_is_not_governance_whitelisted() -> None:
     from weall.runtime.param_policy import validate_param
 
