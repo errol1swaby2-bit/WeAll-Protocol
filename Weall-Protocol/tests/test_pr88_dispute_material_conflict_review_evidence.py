@@ -39,9 +39,7 @@ def _state_with_conflicted_reviewer(conflict_field: str = "party_ids") -> dict:
                         "enrolled": True,
                         "active": True,
                         "responsibilities": {
-                            "reviewer": {
-                                "dispute_review": {"opted_in": True, "active": True}
-                            }
+                            "reviewer": {"dispute_review": {"opted_in": True, "active": True}}
                         },
                     }
                 },
