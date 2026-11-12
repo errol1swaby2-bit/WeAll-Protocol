@@ -402,9 +402,10 @@ def test_reached_appeal_queues_exact_pre_phase_system_receipt() -> None:
     assert receipt.payload["_due_height"] == 26
     assert receipt.payload["_system_queue_id"] == queue["queue_id"]
     assert receipt.payload["appeal_resolution"] == {"decision": "reverse"}
-    assert validate_system_tx_queue_binding(
-        state, canon, receipt, next_height=26, phase="pre"
-    ) == (True, "")
+    assert validate_system_tx_queue_binding(state, canon, receipt, next_height=26, phase="pre") == (
+        True,
+        "",
+    )
     assert validate_system_tx_queue_binding(
         state,
         canon,
@@ -484,9 +485,10 @@ def test_appeal_final_receipt_rejects_forged_queue_provenance(
 
     snapshot = deepcopy(state)
     checked = TxEnvelope.from_json(block_env)
-    assert validate_system_tx_queue_binding(
-        state, canon, checked, next_height=26, phase=phase
-    ) == (False, expected_reason)
+    assert validate_system_tx_queue_binding(state, canon, checked, next_height=26, phase=phase) == (
+        False,
+        expected_reason,
+    )
     assert state == snapshot
 
 
