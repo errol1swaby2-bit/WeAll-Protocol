@@ -12,6 +12,9 @@ on:
     paths:
       - .github/workflows/pr88-b5xx-live-proof-refresh.yml
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/runtime/dispute_panel_recovery_preview.py
+      - Weall-Protocol/tests/test_pr88_dispute_panel_recovery_preview.py
+      - Weall-Protocol/tests/test_pr88_signed_post_assignment_group_conflict_replay.py
       - Weall-Protocol/src/weall/net/net_loop.py
 
 permissions:
