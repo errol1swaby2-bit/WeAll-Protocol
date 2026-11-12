@@ -34,7 +34,9 @@ from weall.runtime.replay_consistency import (
     build_replay_manifest,
     compare_replay_manifests,
 )
-from weall.runtime.state_hash import compute_state_root
+from weall.runtime.json_tools import strict_json_loads
+from weall.runtime.sqlite_db import _canon_json
+from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
 from weall.runtime.tx_id import compute_tx_id_from_dict
 
 CHAIN = "weall-controlled-devnet"
@@ -338,6 +340,9 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         *, block: dict, new_state: dict, applied_ids: list[str], invalid_ids: list[str]
     ):
         committed_probe["candidate_root"] = compute_state_root(new_state)
+        committed_probe["serialized_candidate_root"] = compute_state_root(
+            strict_json_loads(_canon_json(new_state))
+        )
         committed_probe["header_root"] = block["header"]["state_root"]
         committed_probe["candidate_state"] = deepcopy(new_state)
         outcome = original_commit(
@@ -370,6 +375,7 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     final_tx_id = final_env["tx_id"]
     assert final_tx_id in final_block["header"]["tx_ids"]
     assert committed_probe["candidate_root"] == committed_probe["header_root"]
+    assert committed_probe["serialized_candidate_root"] == committed_probe["header_root"]
     assert committed_probe["header_root"] == final_block["header"]["state_root"]
     assert committed_probe["post_commit_root"] == committed_probe["header_root"], (
         "post_commit_consensus_fields_changed",
@@ -383,6 +389,31 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         ),
         committed_probe["candidate_root"],
         committed_probe["post_commit_root"],
+    )
+    persisted = source._ledger_store.read()
+    persisted_root = compute_state_root(persisted)
+    committed_view = consensus_state_root_view(committed_probe["candidate_state"])
+    persisted_view = consensus_state_root_view(persisted)
+    changed_keys = [
+        key
+        for key in sorted(set(committed_view) | set(persisted_view))
+        if committed_view.get(key) != persisted_view.get(key)
+    ]
+    changed_subkeys = {
+        key: sorted(
+            subkey
+            for subkey in set(committed_view[key]) | set(persisted_view[key])
+            if committed_view[key].get(subkey) != persisted_view[key].get(subkey)
+        )
+        for key in changed_keys
+        if isinstance(committed_view.get(key), dict) and isinstance(persisted_view.get(key), dict)
+    }
+    assert persisted_root == committed_probe["header_root"], (
+        "durable_snapshot_root_diverged",
+        committed_probe["header_root"],
+        persisted_root,
+        changed_keys,
+        changed_subkeys,
     )
     assert any(
         receipt.get("tx_id") == final_tx_id and receipt.get("ok") is True
