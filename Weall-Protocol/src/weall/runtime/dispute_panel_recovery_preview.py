@@ -39,8 +39,7 @@ def _identities(state: Json, raw: Any) -> tuple[list[str], bool]:
         if not isinstance(item, str) or not item.strip():
             return [], False
         resolved = _resolve_account_identity(state, item)
-        variants = _identity_variants(resolved)
-        key = variants[1] if len(variants) > 1 else resolved
+        key = resolved.removeprefix("@")
         if not key or key in seen or resolved.upper() == "SYSTEM":
             return [], False
         seen.add(key)
