@@ -203,3 +203,65 @@ def test_missing_dispute_never_materializes_state(panel_state: dict) -> None:
         "authorized": False,
     }
     assert panel_state == before
+
+
+
+@pytest.mark.parametrize(
+    "gate_version, expected",
+    ((1, 4), (2, 5), (3, 4), ("2", 4), (True, 4)),
+)
+def test_proposed_fixed_quorum_is_explicit_v2_only(
+    panel_state: dict, monkeypatch: pytest.MonkeyPatch, gate_version: object, expected: int
+) -> None:
+    from weall.runtime.apply import dispute
+
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    panel_state["params"]["dispute_material_conflict_gate_version"] = gate_version
+    assert dispute._strict_v2_initial_panel_votes(
+        panel_state, panel_state["disputes_by_id"]["case"], 6
+    ) == expected
+
+
+def test_proposed_fixed_quorum_does_not_reinterpret_appeal_stage(
+    panel_state: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from weall.runtime.apply import dispute
+
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    case = panel_state["disputes_by_id"]["case"]
+    case["stage"] = "appeal_review"
+    assert dispute._strict_v2_initial_panel_votes(panel_state, case, 6) == 4
+
+
+def test_explicit_severe_constitutional_panel_preserves_twenty_vote_floor(
+    panel_state: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from weall.runtime.apply import dispute
+
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    monkeypatch.setattr(dispute, "_constitutional_clock_enabled", lambda _state: True)
+    monkeypatch.setattr(
+        dispute, "is_explicit_severe_account_sanction", lambda _case: True
+    )
+    case = panel_state["disputes_by_id"]["case"]
+    assert dispute._strict_v2_initial_panel_votes(panel_state, case, 24) >= 20
+
+
+def test_incomplete_strict_panel_cannot_masquerade_as_full_eligible_panel(
+    panel_state: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from weall.runtime.apply import dispute
+
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    monkeypatch.setattr(
+        dispute,
+        "reviewer_lane_active",
+        lambda state, account, _lane: account in state["active_reviewers"],
+    )
+    case = panel_state["disputes_by_id"]["case"]
+    eligible = list(case["assigned_jurors"])
+    assert dispute._strict_v2_initial_panel_complete(panel_state, case, eligible) is False
+    case["material_connection_ids"] = []
+    assert dispute._strict_v2_initial_panel_complete(panel_state, case, eligible) is True
+    case["assigned_jurors"][1] = "juror-0"
+    assert dispute._strict_v2_initial_panel_complete(panel_state, case, eligible) is False
