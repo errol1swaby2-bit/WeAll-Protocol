@@ -8,12 +8,21 @@ authority. Signed executor replay is covered separately.
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
 from weall.runtime.apply.dispute import DisputeApplyError, apply_dispute
 from weall.runtime.dispute_engine import tick_dispute_lifecycle
+from weall.runtime.state_hash import compute_state_root
+from weall.runtime.system_tx_engine import (
+    SystemQueueCorruptionError,
+    build_system_queue_lookup,
+    system_tx_emitter,
+    validate_system_tx_queue_binding,
+)
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.tx.canon import TxIndex
 
 
 def _state(*, jurors: int = 17) -> dict:
@@ -344,3 +353,145 @@ def test_matching_reached_panel_decision_can_finalize_synthetic_appeal() -> None
         state["dispute_receipts"]["synthetic-appeal-final"]["appeal_finalization"]["decision"]
         == "reverse"
     )
+
+
+def _appeal_resolved_state_for_queue() -> dict:
+    """Synthetic adjudication state; no independently verified ballot evidence."""
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    case = _case(state)
+    case["stage"] = "appeal_resolved"
+    case["appeal_panel_result"] = {
+        "reached": True,
+        "resolution": {"decision": "reverse"},
+    }
+    return state
+
+
+def _appeal_receipt_canon() -> TxIndex:
+    root = Path(__file__).resolve().parents[1]
+    return TxIndex.load_from_file(str(root / "generated" / "tx_index.json"))
+
+
+def _emit_appeal_receipt() -> tuple[dict, TxIndex, TxEnvelope]:
+    state = _appeal_resolved_state_for_queue()
+    canon = _appeal_receipt_canon()
+    assert tick_dispute_lifecycle(state, next_height=26) == 1
+    assert _case(state)["stage"] == "finalizing"
+    assert len(state["system_queue"]) == 1
+    envelope = system_tx_emitter(state, canon, next_height=26, phase="pre")
+    assert len(envelope) == 1
+    return state, canon, envelope[0]
+
+
+def test_reached_appeal_queues_exact_pre_phase_system_receipt() -> None:
+    state, canon, receipt = _emit_appeal_receipt()
+    case = _case(state)
+    queue = state["system_queue"][0]
+    parent = "dispute:ordinary-account-review:appeal-panel-finalize:2"
+
+    assert case["appeal_panel_result"]["resolution"] == {"decision": "reverse"}
+    assert receipt.tx_type == queue["tx_type"] == "DISPUTE_FINAL_RECEIPT"
+    assert receipt.system is True
+    assert receipt.signer == queue["signer"] == "SYSTEM"
+    assert receipt.parent == queue["parent"] == parent
+    assert queue["phase"] == "pre"
+    assert queue["due_height"] == queue["emitted_height"] == 26
+    assert receipt.payload["receipt_id"] == f"receipt:{parent}"
+    assert receipt.payload["_parent_ref"] == parent
+    assert receipt.payload["_due_height"] == 26
+    assert receipt.payload["_system_queue_id"] == queue["queue_id"]
+    assert receipt.payload["appeal_resolution"] == {"decision": "reverse"}
+    assert validate_system_tx_queue_binding(
+        state, canon, receipt, next_height=26, phase="pre"
+    ) == (True, "")
+    assert validate_system_tx_queue_binding(
+        state,
+        canon,
+        receipt,
+        next_height=26,
+        phase="pre",
+        queue_objects_by_id=build_system_queue_lookup(state),
+    ) == (True, "")
+
+
+def test_reached_appeal_pre_scheduler_and_emitter_reproduce_identical_state_root() -> None:
+    seed = _appeal_resolved_state_for_queue()
+    canon = _appeal_receipt_canon()
+    leader = deepcopy(seed)
+    follower = deepcopy(seed)
+
+    for replica in (leader, follower):
+        assert tick_dispute_lifecycle(replica, next_height=26) == 1
+        emitted = system_tx_emitter(replica, canon, next_height=26, phase="pre")
+        assert len(emitted) == 1
+
+    assert leader == follower
+    assert compute_state_root(leader) == compute_state_root(follower)
+    assert build_system_queue_lookup(leader) == build_system_queue_lookup(follower)
+
+
+def test_unreached_appeal_panel_never_queues_final_receipt() -> None:
+    state = _appeal_resolved_state_for_queue()
+    _case(state)["appeal_panel_result"]["reached"] = False
+    before = deepcopy(state)
+
+    assert tick_dispute_lifecycle(state, next_height=26) == 0
+    assert state == before
+    assert state["system_queue"] == []
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_reason"),
+    [
+        ("missing_queue_id", "missing_system_queue_id"),
+        ("unknown_queue_id", "unknown_system_queue_id"),
+        ("changed_decision", "system_queue_payload_mismatch"),
+        ("changed_receipt_id", "system_queue_payload_mismatch"),
+        ("changed_due_height", "system_payload_due_height_mismatch"),
+        ("changed_parent", "system_queue_parent_mismatch"),
+        ("changed_signer", "system_queue_signer_mismatch"),
+        ("changed_tx_type", "system_queue_tx_type_mismatch"),
+        ("changed_phase", "system_queue_phase_mismatch"),
+    ],
+)
+def test_appeal_final_receipt_rejects_forged_queue_provenance(
+    mutation: str, expected_reason: str
+) -> None:
+    state, canon, receipt = _emit_appeal_receipt()
+    block_env = receipt.to_json()
+    payload = block_env["payload"]
+    phase = "pre"
+
+    if mutation == "missing_queue_id":
+        payload.pop("_system_queue_id")
+    elif mutation == "unknown_queue_id":
+        payload["_system_queue_id"] = "unknown-appeal-queue"
+    elif mutation == "changed_decision":
+        payload["appeal_resolution"] = {"decision": "uphold"}
+    elif mutation == "changed_receipt_id":
+        payload["receipt_id"] = "receipt:forged"
+    elif mutation == "changed_due_height":
+        payload["_due_height"] = 27
+    elif mutation == "changed_parent":
+        block_env["parent"] = "forged-parent"
+    elif mutation == "changed_signer":
+        block_env["signer"] = "@forger"
+    elif mutation == "changed_tx_type":
+        block_env["tx_type"] = "DISPUTE_RESOLVE"
+    elif mutation == "changed_phase":
+        phase = "post"
+
+    snapshot = deepcopy(state)
+    checked = TxEnvelope.from_json(block_env)
+    assert validate_system_tx_queue_binding(
+        state, canon, checked, next_height=26, phase=phase
+    ) == (False, expected_reason)
+    assert state == snapshot
+
+
+def test_tampered_appeal_queue_record_is_canonical_corruption() -> None:
+    state, _, _ = _emit_appeal_receipt()
+    state["system_queue"][0]["payload"]["appeal_resolution"]["decision"] = "uphold"
+    with pytest.raises(SystemQueueCorruptionError, match="system_queue_item_queue_id_mismatch"):
+        build_system_queue_lookup(state)

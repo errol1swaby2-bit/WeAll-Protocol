@@ -160,6 +160,33 @@ No earlier legacy behavior was quietly relabeled as a verified appeal.
 The inconsistency remains an independent historical/state-reconciliation
 review item rather than justification to relax constitutional enforcement.
 
+## Appeal-finalization SYSTEM queue provenance (bounded synthetic integration)
+
+The ordinary `appeal_resolved` scheduler path emits a pre-phase
+`DISPUTE_FINAL_RECEIPT` with a deterministic parent reference,
+case-specific receipt ID, exact due height, and payload copied from the
+persisted reached panel decision. The SYSTEM queue commits these fields in
+its deterministic `queue_id`. The common
+`validate_system_tx_queue_binding` checks the emitted transaction's
+payload, signer, parent, due height, phase and TxType against that queue
+record; the canonical block replay path invokes this check before
+application and independently derives expected pre-phase SYSTEM queue IDs.
+
+The new **synthetic queue-provenance regressions** exercise a reached
+appeal through `tick_dispute_lifecycle` and the production
+`system_tx_emitter`, validate its exact queue binding, compare
+independently recomputed scheduler/emitter states and state roots,
+and reject mismatched queue IDs, parent, signer, receipt ID, decision,
+TxType, phase or due height. A mutated stored queue record also fails
+its deterministic ID validation. No receipt is scheduled if the panel
+result is not reached. These tests use synthetic adjudication state,
+do **not** replay a signed block or independently authenticate panel
+ballots, and do not establish that a fabricated scheduler state can
+arise through valid signed transactions. A queue ID proves consistency
+with the *current deterministic queue*, not constitutional authority,
+jury independence, or authentic verdict provenance. No V2 semantic
+digest has been accepted or regenerated for these results.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
