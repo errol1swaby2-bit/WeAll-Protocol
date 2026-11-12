@@ -586,6 +586,26 @@ passed both cases on `805803d4181054e91aacf128b6c1a1c8c5b44566`
 (2/2 tests, Ruff clean). Expanded mixed/BFT workflow status is tracked
 separately on that commit; neither test result is mainnet authorization.
 
+### Exact-source B5xx live refresh after dormant gate insertion
+
+The [PR88 live-proof refresh workflow 43287495227](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43287495227)
+re-executed B528, B534 and B567 proof harnesses, ran each generator's
+`--check` and `--verify-live`, and verified that release/activation locks
+remain false. It then pushed **only three generated V1.5 proof JSON files**
+in bot commit
+[`8e6459ea`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/8e6459eafd3d13af126ea87810301122597957d1).
+This is a source-bound evidence regeneration; it is neither an
+independent review nor a V2 semantic digest update.
+
+Exact-source tests before the bot-generated commit passed:
+[signed historical/v2 replay 2/2](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43286705753)
+and [focused source/role/BFT 140/140 with both authenticated TCP
+repetitions](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43286705802).
+Because bot-authored push checks can require an explicit GitHub Actions
+approval, do not claim full exact-head Backend CI or reviewer readiness
+from that generated-only push. The source tests and V1.5 proof refresh
+remain separate from all 20 unapproved V2 semantic adjudications.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
