@@ -247,6 +247,29 @@ candidate/header, JSON-round-trip, post-commit, durable SQLite and restarted
 executor root checks. It must be validated on the exact patched head;
 **do not regard a source-only fix as a passing durability proof**.
 
+## Intermittent authenticated TCP restart: captured ban failure, diagnostic-only change
+
+The dependent repeat of the 98/98 group-election/BFT primary regression
+at [run 43132035627](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43132035627)
+**failed** when the intended height-2 validator restart could not
+reauthenticate. The restarted `@v1` reported eight localhost TCP peer
+records with `banned=true`, three strikes each, no verified identity,
+and zero established sessions; three surviving validators were still
+authenticated. This disproves treating the intermittent strike/ban as a
+resolved issue, even though earlier recovery repetitions passed. The
+worker already records bounded `NetNode._strike` callsite/exception/
+message/session traces in worker-only memory, but this earlier failure
+site dumped only peer status, omitting the actual strike reasons.
+
+The bounded regression amendment adds **`peer_strike_debug` on the
+existing failure path** at the initial restart check, using the same
+worker-only trace collector already exposed for the later rejoin path.
+It does not change production peer security keys, session admission,
+strike weights, ban thresholds or cooldowns. The transport-host grouping
+of localhost endpoints is a candidate for investigation, not an
+established cause. A captured failing run with callsites/reasons is
+required before proposing an authentication-policy correction.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.

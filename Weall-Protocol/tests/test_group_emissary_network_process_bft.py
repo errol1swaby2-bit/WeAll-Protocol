@@ -1353,6 +1353,11 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
                         for peer in status["peers"]["peers"]
                         if peer["connected"] or peer["banned"] or peer["strikes"]
                     ],
+                    # The worker already traces the real production _strike
+                    # callsites. Include them on this initial height-2 restart
+                    # failure, not only on the later offline-height-3 rejoin.
+                    # No authentication, strike, or ban rule is modified.
+                    "strike_trace": workers[validator].send("peer_strike_debug"),
                 }
                 for validator, status in statuses.items()
             }
