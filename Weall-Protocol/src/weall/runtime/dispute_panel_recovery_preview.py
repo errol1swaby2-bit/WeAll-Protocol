@@ -15,7 +15,9 @@ from typing import Any
 from weall.runtime.apply.dispute import (
     _dispute_conflict_account_ids,
     _dispute_panel_size,
+    _dispute_reputation_params,
     _identity_variants,
+    _juror_has_vote,
     _resolve_account_identity,
 )
 from weall.runtime.ballot_policy import strict_civic_governance_enabled
@@ -62,6 +64,68 @@ def _has_existing_ballots(dispute: Json) -> bool:
             if type(value) is int and value > 0:
                 return True
     return False
+
+
+def _reputation_risk_preview(state: Json, dispute: Json, juror: str) -> Json:
+    """Describe *existing* penalty paths; never waive or emit reputation events.
+
+    A current conflict has no independently authenticated introduction height.
+    The caller must not infer when or why the conflict arose from this snapshot.
+    """
+
+    records = dispute.get("jurors")
+    records = records if isinstance(records, dict) else {}
+    matching = [
+        record
+        for account, record in records.items()
+        if _same_identity(str(account), juror) and isinstance(record, dict)
+    ]
+    record = matching[0] if len(matching) == 1 else {}
+    status = str(record.get("status") or "").strip().lower()
+    voted = _juror_has_vote(dispute, juror)
+    height = state.get("height")
+    now = height if type(height) is int and height >= 0 else None
+    safe_height = record.get("safe_withdraw_until_height")
+    vote_height = record.get("vote_deadline_height")
+    safe_known = type(safe_height) is int and safe_height >= 0
+    vote_known = type(vote_height) is int and vote_height > 0
+    accepted = status in {"accepted", "attended", "present"}
+    safe_expired = now > safe_height if accepted and now is not None and safe_known else None
+    vote_expired = now > vote_height if accepted and now is not None and vote_known else None
+    policy = record.get("reputation_policy")
+    policy = policy if isinstance(policy, dict) and policy else _dispute_reputation_params(
+        state, dispute
+    )
+    late_milli = policy.get("late_withdraw_penalty_milli", -500)
+    timeout_milli = policy.get("timeout_penalty_milli", -1500)
+    # This mirrors the existing final-receipt accountability skip conditions;
+    # it does NOT claim a final receipt has or can legitimately be committed.
+    missed_vote_exposure = not voted and status not in {
+        "declined", "withdrawn", "timed_out"
+    }
+    return {
+        "juror": juror,
+        "status": status or "missing",
+        "juror_record_unambiguous": len(matching) == 1,
+        "ballot_already_submitted": voted,
+        "current_height": now,
+        "safe_withdraw_until_height": safe_height if safe_known else None,
+        "vote_deadline_height": vote_height if vote_known else None,
+        "safe_withdraw_window_expired": safe_expired,
+        "vote_deadline_expired": vote_expired,
+        "late_withdraw_penalty_milli_if_applied": (
+            late_milli if type(late_milli) is int else None
+        ),
+        "timeout_penalty_milli_if_applied": (
+            timeout_milli if type(timeout_milli) is int else None
+        ),
+        "late_withdraw_penalty_exposure": accepted and safe_expired is True and not voted,
+        "timeout_penalty_exposure": accepted and vote_expired is True and not voted,
+        "final_receipt_missed_vote_flag_exposure": missed_vote_exposure,
+        "actual_penalty_or_suspension_proven": False,
+        "conflict_introduction_height_verified": False,
+        "penalty_waiver_authorized": False,
+    }
 
 
 def preview_dispute_panel_recovery(state: Json, dispute_id: str) -> Json:
@@ -125,6 +189,9 @@ def preview_dispute_panel_recovery(state: Json, dispute_id: str) -> Json:
         "minimum_required_votes": expected_quorum,
         "conflicted_assigned_jurors": conflict_ids,
         "inactive_assigned_jurors": inactive_ids,
+        "currently_impacted_juror_reputation_risks": [
+            _reputation_risk_preview(state, dispute, juror) for juror in impacted
+        ],
         "replacement_candidates": replacements,
         "unfilled_slots": max(0, len(impacted) - len(replacements)),
         "remaining_eligible_reserves": remaining,
