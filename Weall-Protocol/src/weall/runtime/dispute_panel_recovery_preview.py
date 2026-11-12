@@ -93,16 +93,16 @@ def _reputation_risk_preview(state: Json, dispute: Json, juror: str) -> Json:
     safe_expired = now > safe_height if accepted and now is not None and safe_known else None
     vote_expired = now > vote_height if accepted and now is not None and vote_known else None
     policy = record.get("reputation_policy")
-    policy = policy if isinstance(policy, dict) and policy else _dispute_reputation_params(
-        state, dispute
+    policy = (
+        policy
+        if isinstance(policy, dict) and policy
+        else _dispute_reputation_params(state, dispute)
     )
     late_milli = policy.get("late_withdraw_penalty_milli", -500)
     timeout_milli = policy.get("timeout_penalty_milli", -1500)
     # This mirrors the existing final-receipt accountability skip conditions;
     # it does NOT claim a final receipt has or can legitimately be committed.
-    missed_vote_exposure = not voted and status not in {
-        "declined", "withdrawn", "timed_out"
-    }
+    missed_vote_exposure = not voted and status not in {"declined", "withdrawn", "timed_out"}
     return {
         "juror": juror,
         "status": status or "missing",
@@ -113,12 +113,8 @@ def _reputation_risk_preview(state: Json, dispute: Json, juror: str) -> Json:
         "vote_deadline_height": vote_height if vote_known else None,
         "safe_withdraw_window_expired": safe_expired,
         "vote_deadline_expired": vote_expired,
-        "late_withdraw_penalty_milli_if_applied": (
-            late_milli if type(late_milli) is int else None
-        ),
-        "timeout_penalty_milli_if_applied": (
-            timeout_milli if type(timeout_milli) is int else None
-        ),
+        "late_withdraw_penalty_milli_if_applied": (late_milli if type(late_milli) is int else None),
+        "timeout_penalty_milli_if_applied": (timeout_milli if type(timeout_milli) is int else None),
         "late_withdraw_penalty_exposure": accepted and safe_expired is True and not voted,
         "timeout_penalty_exposure": accepted and vote_expired is True and not voted,
         "final_receipt_missed_vote_flag_exposure": missed_vote_exposure,
