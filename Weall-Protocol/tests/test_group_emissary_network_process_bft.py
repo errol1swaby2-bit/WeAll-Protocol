@@ -744,9 +744,7 @@ def _run_worker(
             shutdown_evidence = {
                 "strikes": list(getattr(loop, "_test_strike_events", [])),
                 "host_writes": list(getattr(loop, "_test_peer_security_writes", [])),
-                "host_security": _worker_command(
-                    executor, {"command": "peer_host_security"}, loop
-                ),
+                "host_security": _worker_command(executor, {"command": "peer_host_security"}, loop),
             }
             (root / f"worker-exit-security-{validator.lstrip('@')}.json").write_text(
                 json.dumps(shutdown_evidence, sort_keys=True), encoding="utf-8"
@@ -1443,9 +1441,7 @@ def test_authenticated_tcp_netmesh_delivers_signed_bft_proposal(
             evidence["before_restart_host_security"] = before_initial_restart_host_security
             evidence["before_restart_strikes"] = before_initial_restart_strikes
             evidence["old_process_shutdown"] = previous_initial_exit
-            evidence["new_process_host_writes"] = workers[restarted].send(
-                "peer_security_writes"
-            )
+            evidence["new_process_host_writes"] = workers[restarted].send("peer_security_writes")
             pytest.fail(json.dumps(evidence, sort_keys=True))
 
         for worker in workers.values():
