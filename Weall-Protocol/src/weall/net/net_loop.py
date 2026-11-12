@@ -445,6 +445,10 @@ class NetMeshLoop:
         self._stop = threading.Event()
         self._t: threading.Thread | None = None
         self._started = False
+        # A packet poll must finish before authenticated session records and
+        # transport are closed, even when the controller requests shutdown.
+        self._node_close_lock = threading.Lock()
+        self._node_closed = False
         self._runtime_unhealthy = False
         self._runtime_last_error = ""
         self._runtime_failure_count = 0
@@ -776,6 +780,8 @@ class NetMeshLoop:
 
         try:
             self.node = self._build_node()
+            with self._node_close_lock:
+                self._node_closed = False
         except Exception as e:
             try:
                 log_event(_LOG, "net_start_failed", error=str(e))
@@ -852,15 +858,36 @@ class NetMeshLoop:
                     if self._stop.wait(max(0.05, float(self._cfg.tick_ms) / 1000.0)):
                         break
         finally:
+            if self._stop.is_set():
+                # Never destroy sessions while the network thread can still
+                # process pre-authenticated BFT packets.
+                self._close_node_after_loop()
             self._started = False
+
+    def _close_node_after_loop(self) -> None:
+        with self._node_close_lock:
+            if self._node_closed:
+                return
+            self._node_closed = True
+            try:
+                if self.node is not None:
+                    self.node.close()
+            except Exception:
+                pass
 
     def stop(self) -> None:
         self._stop.set()
-        try:
-            if self.node is not None:
-                self.node.close()
-        except Exception:
-            pass
+        thread = self._t
+        if thread is not None and thread.is_alive():
+            if thread is threading.current_thread():
+                # Called from a callback: defer close to thread finalization.
+                return
+            thread.join(timeout=3.0)
+            if thread.is_alive():
+                # A slow thread must own eventual cleanup in its finalizer.
+                # Do not close transport under an active packet poll.
+                return
+        self._close_node_after_loop()
 
     def join(self, *, timeout: float | None = None) -> None:
         t = self._t
