@@ -497,9 +497,7 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert post_ballot["pinned_required_votes"] == 5
 
     other_unconflicted = [
-        juror
-        for juror in opened["assigned_jurors"]
-        if juror not in {selected, unconflicted}
+        juror for juror in opened["assigned_jurors"] if juror not in {selected, unconflicted}
     ]
     assert len(other_unconflicted) == 5
     for signer in other_unconflicted[:4]:
@@ -524,9 +522,10 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert len(completed["assigned_jurors"]) == 7
     assert completed["resolved"] is False
     assert completed["stage"] == "juror_review"
-    assert preview_dispute_panel_recovery(source.read_state(), DISPUTE_ID)[
-        "status"
-    ] == "blocked_existing_ballots"
+    assert (
+        preview_dispute_panel_recovery(source.read_state(), DISPUTE_ID)["status"]
+        == "blocked_existing_ballots"
+    )
 
     final_state = source.read_state()
     final_root = compute_state_root(final_state)
