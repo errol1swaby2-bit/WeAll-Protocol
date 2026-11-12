@@ -536,9 +536,7 @@ def test_candidate_builder_and_independent_replay_bind_appeal_receipt(
     assert isinstance(block, dict)
     assert isinstance(next_state, dict)
     assert invalid == []
-    queued_receipts = [
-        tx for tx in block["txs"] if tx.get("tx_type") == "DISPUTE_FINAL_RECEIPT"
-    ]
+    queued_receipts = [tx for tx in block["txs"] if tx.get("tx_type") == "DISPUTE_FINAL_RECEIPT"]
     assert len(queued_receipts) == 1
     receipt = queued_receipts[0]
     assert receipt["system"] is True
