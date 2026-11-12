@@ -337,3 +337,28 @@ def test_legacy_strict_profile_attendance_retains_historical_implicit_acceptance
     assert "@juror" in dispute._dispute_conflict_account_ids(
         state, state["disputes_by_id"]["case-1"]
     )
+
+
+
+def test_v2_conflict_parameter_is_not_governance_whitelisted() -> None:
+    from weall.runtime.param_policy import validate_param
+
+    with pytest.raises(ValueError, match="param_not_allowed"):
+        validate_param(("params", "dispute_material_conflict_gate_version"), 2)
+
+
+def test_strict_constitutional_amendment_action_stays_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from weall.runtime.apply import governance
+
+    monkeypatch.setattr(governance, "strict_civic_governance_enabled", lambda _state: True)
+    with pytest.raises(governance.ApplyError) as error:
+        governance._assert_governance_actions_allowed(
+            {"params": {}},
+            [{"tx_type": "CONSTITUTION_UPGRADE_ACTIVATE", "payload": {}}],
+        )
+    assert (error.value.code, error.value.reason) == (
+        "forbidden",
+        "constitutional_amendment_process_not_enabled",
+    )
