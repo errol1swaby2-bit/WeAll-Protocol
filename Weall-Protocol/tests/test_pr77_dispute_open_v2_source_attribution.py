@@ -123,6 +123,8 @@ def test_all_newly_observed_state_tokens_have_stable_append_only_ids() -> None:
             "Groups:quorum_met",
             "Groups:quorum_policy_version",
             "Groups:required_votes",
+            "Dispute:appeal_resolution",
+            "Dispute:reached",
         }
     )
     for name in sorted(names):

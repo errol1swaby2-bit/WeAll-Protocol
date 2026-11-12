@@ -3434,10 +3434,7 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
                     "appeal_original_resolution_override",
                     {"dispute_id": dispute_id},
                 )
-            if (
-                "appeal_resolution" in payload
-                and payload["appeal_resolution"] != panel_resolution
-            ):
+            if "appeal_resolution" in payload and payload["appeal_resolution"] != panel_resolution:
                 raise DisputeApplyError(
                     "forbidden",
                     "appeal_resolution_mismatch",

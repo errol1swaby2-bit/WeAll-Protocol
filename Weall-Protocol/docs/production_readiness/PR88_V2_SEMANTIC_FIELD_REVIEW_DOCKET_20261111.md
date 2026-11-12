@@ -135,6 +135,16 @@ and a matching stored reached decision. They do not prove authenticated
 SYSTEM parent lineage, historical replay, or constitutional sanction
 authority. The preexisting severe-S4 automatic-appeal NO-GO remains intact.
 
+## V2 static state-token coverage for appeal guard (source-only)
+
+The current compiler treats two literal source keys in the new receipt
+precondition, `Dispute:reached` (persisted panel-result read) and
+`Dispute:appeal_resolution` (incoming receipt-payload read), as state-index
+tokens. Both now have new deterministic append-only `STATE-` IDs in the
+V2 source registry. These identifiers do not imply that a payload key is a
+new persisted state object, validate the provenance of a SYSTEM receipt,
+or accept a changed semantic-review digest.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.

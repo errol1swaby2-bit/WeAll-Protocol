@@ -18938,6 +18938,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Dispute:reached",
+      "kind": "state",
+      "stable_id": "STATE-19B1ED58FA570B23",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:key_id",
       "kind": "state",
       "stable_id": "STATE-19E54C521E699458",
@@ -25444,6 +25451,13 @@
       "canonical_key": "PoH:poh_applications",
       "kind": "state",
       "stable_id": "STATE-E33CE907C4EBA94D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:appeal_resolution",
+      "kind": "state",
+      "stable_id": "STATE-E3829A8664FA2193",
       "status": "active"
     },
     {

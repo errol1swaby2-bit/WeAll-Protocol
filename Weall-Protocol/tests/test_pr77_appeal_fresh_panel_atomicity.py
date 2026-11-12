@@ -237,7 +237,9 @@ def test_expired_strict_appeal_window_does_not_mutate_state() -> None:
     assert state == before
 
 
-def _system_final_receipt(*, appeal_resolution: dict | None = None, resolution: dict | None = None) -> TxEnvelope:
+def _system_final_receipt(
+    *, appeal_resolution: dict | None = None, resolution: dict | None = None
+) -> TxEnvelope:
     payload = {
         "dispute_id": "ordinary-account-review",
         "receipt_id": "synthetic-appeal-final",
@@ -338,6 +340,7 @@ def test_matching_reached_panel_decision_can_finalize_synthetic_appeal() -> None
     assert result["appeal_finalization"]["decision"] == "reverse"
     assert case["stage"] == "finalized"
     assert case["final_resolution"]["actions"] == []
-    assert state["dispute_receipts"]["synthetic-appeal-final"]["appeal_finalization"][
-        "decision"
-    ] == "reverse"
+    assert (
+        state["dispute_receipts"]["synthetic-appeal-final"]["appeal_finalization"]["decision"]
+        == "reverse"
+    )
