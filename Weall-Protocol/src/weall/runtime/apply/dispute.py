@@ -3398,6 +3398,51 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
             "appeal_pending_panel",
             {"dispute_id": dispute_id, "tx_type": env.tx_type},
         )
+    # A constitutional appeal is resolved by its recorded fresh panel,
+    # not by an otherwise well-formed SYSTEM receipt carrying a claimed
+    # appeal_resolution. In particular, appeal_review is not finalizing:
+    # the scheduler only enters finalizing after a reached panel result.
+    # Keep legacy-clock behavior separate for historical compatibility.
+    if _constitutional_clock_enabled(state) and isinstance(candidate, dict):
+        appeals = candidate.get("appeals")
+        if isinstance(appeals, list) and appeals:
+            stage = _as_str(candidate.get("stage")).strip().lower()
+            if stage not in {"finalizing", "finalized"}:
+                raise DisputeApplyError(
+                    "forbidden",
+                    "appeal_panel_decision_not_finalized",
+                    {"dispute_id": dispute_id, "stage": stage},
+                )
+            panel_result = candidate.get("appeal_panel_result")
+            panel_resolution = (
+                panel_result.get("resolution") if isinstance(panel_result, dict) else None
+            )
+            if (
+                not isinstance(panel_result, dict)
+                or panel_result.get("reached") is not True
+                or not isinstance(panel_resolution, dict)
+                or not panel_resolution
+            ):
+                raise DisputeApplyError(
+                    "forbidden",
+                    "appeal_panel_decision_unverified",
+                    {"dispute_id": dispute_id},
+                )
+            if "resolution" in payload:
+                raise DisputeApplyError(
+                    "forbidden",
+                    "appeal_original_resolution_override",
+                    {"dispute_id": dispute_id},
+                )
+            if (
+                "appeal_resolution" in payload
+                and payload["appeal_resolution"] != panel_resolution
+            ):
+                raise DisputeApplyError(
+                    "forbidden",
+                    "appeal_resolution_mismatch",
+                    {"dispute_id": dispute_id},
+                )
     # Keep a light receipt surface for audits
     root = _ensure_root_dict(state, "dispute_receipts")
     rid = _mk_id("receipt", env, payload.get("receipt_id") or payload.get("id"))

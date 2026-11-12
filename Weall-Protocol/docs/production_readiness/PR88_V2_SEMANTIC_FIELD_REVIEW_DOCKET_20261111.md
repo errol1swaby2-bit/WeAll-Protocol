@@ -105,6 +105,36 @@ coverage, **not** review or approval of quorum semantics, elected signer
 authority, ballot confidentiality, or canonical receipt correctness.
 Accepted semantic digests and V2 generated derivatives remain untouched.
 
+## Constitutional-clock final receipt vs. pending appeal adjudication (bounded follow-up)
+
+Source inspection of `runtime/dispute_engine.py::tick_dispute_lifecycle`
+found that a successfully decided ordinary appeal is queued for final receipt
+only after its stored panel result reports a reached decision and the scheduler
+moves the case from `appeal_resolved` to `finalizing`. Before this increment,
+`apply/dispute.py::_apply_dispute_final_receipt` held
+`appeal_pending_panel` but did **not** hold `appealed` or `appeal_review`:
+a synthetic SYSTEM envelope containing an arbitrary
+`appeal_resolution` could bypass the panel and finalize a non-severe
+appeal in the direct applier. This does not prove that an external attacker
+can manufacture an admitted canonical SYSTEM transaction; queue-origin and
+signed-block admission must be verified separately.
+
+The constitutional-clock handler now rejects final receipts for appealed
+cases unless their state is already `finalizing` (or already `finalized`
+for historical receipt deduplication), the persisted
+`appeal_panel_result` has `reached=True` and a nonempty resolution, and
+a supplied `appeal_resolution` exactly matches the stored decision.
+A supplied base `resolution` cannot replace the source resolution for
+an appealed case. This check executes before the receipt root or juror
+accountability is written; `appeal_pending_panel` continues to produce
+its original rejection. All new reasons remain **unapproved V2 semantic
+changes** until independent review. Legacy-clock paths are unchanged.
+Synthetic direct-applier tests cover unresolved stages, forged
+`finalizing`, conflicting claimed decisions, base-resolution override,
+and a matching stored reached decision. They do not prove authenticated
+SYSTEM parent lineage, historical replay, or constitutional sanction
+authority. The preexisting severe-S4 automatic-appeal NO-GO remains intact.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.

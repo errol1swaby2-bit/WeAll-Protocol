@@ -235,3 +235,109 @@ def test_expired_strict_appeal_window_does_not_mutate_state() -> None:
         apply_dispute(state, _appeal())
     assert exc.value.reason == "appeal_window_closed"
     assert state == before
+
+
+def _system_final_receipt(*, appeal_resolution: dict | None = None, resolution: dict | None = None) -> TxEnvelope:
+    payload = {
+        "dispute_id": "ordinary-account-review",
+        "receipt_id": "synthetic-appeal-final",
+    }
+    if appeal_resolution is not None:
+        payload["appeal_resolution"] = appeal_resolution
+    if resolution is not None:
+        payload["resolution"] = resolution
+    return TxEnvelope(
+        tx_type="DISPUTE_FINAL_RECEIPT",
+        signer="SYSTEM",
+        nonce=99,
+        system=True,
+        payload=payload,
+        sig="synthetic-not-authenticated",
+    )
+
+
+@pytest.mark.parametrize("stage", ["appeal_review", "appealed"])
+def test_unresolved_fresh_appeal_cannot_be_finalized_by_claimed_system_decision(
+    stage: str,
+) -> None:
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    case = _case(state)
+    case["stage"] = stage
+    before = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as exc:
+        apply_dispute(
+            state,
+            _system_final_receipt(appeal_resolution={"decision": "reverse"}),
+        )
+    assert exc.value.reason == "appeal_panel_decision_not_finalized"
+    assert state == before
+    assert "dispute_receipts" not in state
+    assert "dispute_juror_accountability" not in state
+
+
+def test_finalizing_marker_without_reached_appeal_panel_cannot_finalize() -> None:
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    _case(state)["stage"] = "finalizing"
+    before = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as exc:
+        apply_dispute(
+            state,
+            _system_final_receipt(appeal_resolution={"decision": "reverse"}),
+        )
+    assert exc.value.reason == "appeal_panel_decision_unverified"
+    assert state == before
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_reason"),
+    [
+        (
+            {"appeal_resolution": {"decision": "uphold"}},
+            "appeal_resolution_mismatch",
+        ),
+        (
+            {"resolution": {"actions": [{"tx_type": "CONTENT_VISIBILITY_SET"}]}},
+            "appeal_original_resolution_override",
+        ),
+    ],
+)
+def test_finalizing_appeal_cannot_override_stored_panel_decision(
+    overrides: dict, expected_reason: str
+) -> None:
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    case = _case(state)
+    case["stage"] = "finalizing"
+    case["appeal_panel_result"] = {
+        "reached": True,
+        "resolution": {"decision": "reverse"},
+    }
+    before = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as exc:
+        apply_dispute(state, _system_final_receipt(**overrides))
+    assert exc.value.reason == expected_reason
+    assert state == before
+
+
+def test_matching_reached_panel_decision_can_finalize_synthetic_appeal() -> None:
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    case = _case(state)
+    case["stage"] = "finalizing"
+    case["appeal_panel_result"] = {
+        "reached": True,
+        "resolution": {"decision": "reverse"},
+    }
+    result = apply_dispute(
+        state,
+        _system_final_receipt(appeal_resolution={"decision": "reverse"}),
+    )
+    assert result["applied"] == "DISPUTE_FINAL_RECEIPT"
+    assert result["appeal_finalization"]["decision"] == "reverse"
+    assert case["stage"] == "finalized"
+    assert case["final_resolution"]["actions"] == []
+    assert state["dispute_receipts"]["synthetic-appeal-final"]["appeal_finalization"][
+        "decision"
+    ] == "reverse"
