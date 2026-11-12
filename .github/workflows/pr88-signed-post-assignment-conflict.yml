@@ -7,6 +7,7 @@ on:
       - Weall-Protocol/tests/test_pr88_signed_post_assignment_group_conflict_replay.py
       - Weall-Protocol/src/weall/runtime/dispute_panel_recovery_preview.py
       - Weall-Protocol/tests/test_pr88_dispute_panel_recovery_preview.py
+      - Weall-Protocol/tests/test_pr88_conflicted_juror_reputation_characterization.py
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
       - Weall-Protocol/src/weall/runtime/apply/groups.py
       - Weall-Protocol/src/weall/runtime/reviewer_responsibilities.py
@@ -58,17 +59,19 @@ jobs:
             sha256sum tests/test_pr88_signed_post_assignment_group_conflict_replay.py
             sha256sum src/weall/runtime/dispute_panel_recovery_preview.py
             sha256sum tests/test_pr88_dispute_panel_recovery_preview.py
+            sha256sum tests/test_pr88_conflicted_juror_reputation_characterization.py
             echo "recovery_preview_scope=READ_ONLY_NO_SCHEDULER_OR_ASSIGNMENT_AUTHORITY"
+            echo "penalty_characterization_scope=DIRECT_APPLIER_NO_SIGNED_QUEUE_OR_FINALITY_PROOF_NO_WAIVER"
             sha256sum src/weall/runtime/apply/dispute.py
             sha256sum src/weall/runtime/apply/groups.py
             sha256sum src/weall/runtime/executor.py
           } > "$OUT/scope.txt"
           set +e
           {
-            ruff format --diff src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py || true
-            ruff format --check src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py &&
-            ruff check src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py &&
-            python -m pytest -q -vv -rx tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py
+            ruff format --diff src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_conflicted_juror_reputation_characterization.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py || true
+            ruff format --check src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_conflicted_juror_reputation_characterization.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py &&
+            ruff check src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_conflicted_juror_reputation_characterization.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py &&
+            python -m pytest -q -vv -rx tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_conflicted_juror_reputation_characterization.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py
           } 2>&1 | tee "$OUT/result.log"
           RC="${PIPESTATUS[0]}"
           set -e
