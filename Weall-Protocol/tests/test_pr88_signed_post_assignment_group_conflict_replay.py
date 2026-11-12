@@ -484,8 +484,18 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert selected not in completed["voted_juror_ids"]
     assert completed["votes"] == {}
     post_ballot = preview_dispute_panel_recovery(source.read_state(), DISPUTE_ID)
-    assert post_ballot["status"] == "blocked_existing_ballots"
-    assert post_ballot["pinned_required_votes"] == opened["required_votes"]
+    # Source-level eligibility recomputation currently shrinks an initially
+    # complete seven-juror panel's quorum from five to four after the conflict.
+    # Pin this separately from the new broad-conflict admission fix. Never
+    # silently call four votes a constitutional five-vote panel.
+    assert len(completed["assigned_jurors"]) == 7
+    assert opened["required_votes"] == 5
+    assert completed["eligible_validator_count"] == 6
+    assert completed["required_votes"] == 4
+    assert post_ballot["status"] == "blocked_original_vote_threshold_drift"
+    assert post_ballot["ballots_already_present"] is True
+    assert post_ballot["minimum_required_votes"] == 5
+    assert post_ballot["pinned_required_votes"] == 4
 
     final_state = source.read_state()
     final_root = compute_state_root(final_state)
