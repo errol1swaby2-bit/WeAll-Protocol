@@ -396,9 +396,10 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert recovery["original_panel"] == list(opened["assigned_jurors"])
     assert recovery["required_panel_size"] == 7
     assert recovery["pinned_required_votes"] == opened["required_votes"]
-    assert recovery["replacement_candidates"][0]["candidate_substitute"] == opened[
-        "substitute_juror_ids"
-    ][0]
+    assert (
+        recovery["replacement_candidates"][0]["candidate_substitute"]
+        == opened["substitute_juror_ids"][0]
+    )
     assert before_preview == source.read_state()
 
     # Canonical attendance is SYSTEM-only/receipt-only and cannot be
