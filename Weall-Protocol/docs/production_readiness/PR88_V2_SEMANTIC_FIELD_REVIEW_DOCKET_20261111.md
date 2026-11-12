@@ -366,6 +366,40 @@ fix receives further **exact-head** evidence. Even a passing
 12-repetition TCP result would not prove the absence of all future
 network races or public validator autonomy.
 
+## Branch-conditioned role failure attribution — reviewer opt-out vs opt-in
+
+Source inspection at the current draft HEAD shows that
+`apply_roles` dispatches `REVIEWER_LANE_OPT_IN` and
+`REVIEWER_LANE_OPT_OUT` to the **same**
+`_apply_reviewer_lane_update` function, but passes explicit
+`active=True` versus `active=False`. Inside that handler,
+`_require_role_activation_eligible` is conditional on
+`if active`, so only **opt-in** can emit the shared dynamic
+`RolesApplyError(code, reason)` from the versioned reputation
+predicate. **Opt-out does not recheck banned status, PoH, or
+reputation**: an already enrolled reviewer may withdraw the selected
+lane even if account activation would now be forbidden or its
+chain policy version is invalid. Withdrawal still requires
+account self-signing, a recognized lane and prior enrollment;
+it does not deactivate the whole juror role. Juror reinstatement is
+different: its helper is an alias to juror activation, so it does
+reach the versioned gate.
+
+The added focused executable regressions exercise both shared-handler
+branches under v1/v2 gates, deny another signer and an unenrolled
+account, and prove that `ROLE_JUROR_REINSTATE` continues to enforce
+the gate. They ensure opt-out changes only the requested reviewer
+lane's record and preserves other lanes and whole-role active status.
+A mocked rejection is evidence of routing and branch conditions,
+not proof of every receipt or historical block. The compiler's
+static walk currently analyzes the whole shared handler without
+tracking the constant `active` argument, potentially attributing
+an **unreachable dynamic role-gate failure to OPT_OUT**.
+This is a source-review difference, **not** an approved
+failure-code removal or permission to change `semantic_reviews.json`.
+The rollback-journal, signed block-admission and unrelated
+withdrawal-assignment stages retain separate test obligations.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
