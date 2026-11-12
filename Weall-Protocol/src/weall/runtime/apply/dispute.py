@@ -2287,17 +2287,6 @@ def _apply_dispute_juror_attendance(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
-    # Attendance can implicitly change an assigned reviewer to "accepted".
-    # In explicitly versioned strict v2, it must enforce the same material
-    # conflict and active-lane gate as DISPUTE_JUROR_ACCEPT. Preserve the v1
-    # replay contract; reject unsupported explicit versions fail-closed.
-    raw_gate_version = _as_dict(state.get("params")).get(
-        "dispute_material_conflict_gate_version", 1
-    )
-    if strict_civic_governance_enabled(state) and (
-        type(raw_gate_version) is not int or raw_gate_version != 1
-    ):
-        _require_dispute_reviewer_lane(state, env.signer, d)
     juror_key = _juror_key_for_actor(d, env.signer)
     j = _require_juror_status(d, env.signer, {"assigned", "accepted"})
     jurors = d.get("jurors")
