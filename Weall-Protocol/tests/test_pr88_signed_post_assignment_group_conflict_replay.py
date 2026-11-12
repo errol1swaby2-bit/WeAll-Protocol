@@ -388,13 +388,26 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert selected in _dispute_conflict_account_ids(source.read_state(), pending)
     assert pending["jurors"][selected]["status"] == "assigned"
 
+    # Attendance is a second acceptance entrypoint. It must not permit a
+    # conflicted juror to change "assigned" to "accepted" via signed ingress.
+    attendance_height, attendance_block = _signed_rejected_block(
+        source,
+        tx_type="DISPUTE_JUROR_ATTENDANCE",
+        signer=selected,
+        nonce=4,
+        payload={"dispute_id": DISPUTE_ID, "present": True},
+    )
+    assert attendance_block["header"]["state_root"] == compute_state_root(source.read_state())
+    assert source.read_state()["disputes_by_id"][DISPUTE_ID] == pending
+
     accept_height, accept_block = _signed_rejected_block(
         source,
         tx_type="DISPUTE_JUROR_ACCEPT",
         signer=selected,
-        nonce=4,
+        nonce=5,
         payload={"dispute_id": DISPUTE_ID},
     )
+    assert accept_height > attendance_height
     assert accept_block["header"]["state_root"] == compute_state_root(source.read_state())
     assert source.read_state()["disputes_by_id"][DISPUTE_ID] == pending
 
@@ -402,7 +415,7 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
         source,
         tx_type="DISPUTE_VOTE_SUBMIT",
         signer=selected,
-        nonce=5,
+        nonce=6,
         payload={"dispute_id": DISPUTE_ID, "vote": "no"},
     )
     assert vote_height > accept_height
@@ -410,6 +423,36 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert source.read_state()["disputes_by_id"][DISPUTE_ID] == pending
     assert selected not in pending.get("voted_juror_ids", [])
     assert pending.get("vote_counts", {}).get("no", 0) == 0
+
+    # Rejection of a conflicted juror must not freeze a legitimately appointed
+    # member of the same strict panel. Exercise a different, unconflicted
+    # juror through signed acceptance and a deattributed, counted ballot.
+    unconflicted = next(j for j in opened["assigned_jurors"] if j != selected)
+    assert unconflicted not in _dispute_conflict_account_ids(source.read_state(), pending)
+    good_accept_height, _ = _signed_committed(
+        source,
+        tx_type="DISPUTE_JUROR_ACCEPT",
+        signer=unconflicted,
+        nonce=4,
+        payload={"dispute_id": DISPUTE_ID},
+    )
+    assert good_accept_height > vote_height
+    assert source.read_state()["disputes_by_id"][DISPUTE_ID]["jurors"][unconflicted]["status"] == "accepted"
+    good_vote_height, _ = _signed_committed(
+        source,
+        tx_type="DISPUTE_VOTE_SUBMIT",
+        signer=unconflicted,
+        nonce=5,
+        payload={"dispute_id": DISPUTE_ID, "vote": "yes"},
+    )
+    assert good_vote_height > good_accept_height
+    completed = source.read_state()["disputes_by_id"][DISPUTE_ID]
+    assert completed["jurors"][unconflicted]["status"] == "completed"
+    assert completed["vote_counts"]["yes"] == 1
+    assert completed.get("vote_counts", {}).get("no", 0) == 0
+    assert unconflicted in completed["voted_juror_ids"]
+    assert selected not in completed["voted_juror_ids"]
+    assert completed["votes"] == {}
 
     final_state = source.read_state()
     final_root = compute_state_root(final_state)
@@ -439,4 +482,41 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
         assert independent.get_block_by_height(number) == block
         assert compute_state_root(independent.read_state()) == block["header"]["state_root"]
     assert compute_state_root(independent.read_state()) == final_root
-    assert independent.read_state()["disputes_by_id"][DISPUTE_ID] == pending
+    assert independent.read_state()["disputes_by_id"][DISPUTE_ID] == completed
+    assert independent.read_state()["disputes_by_id"][DISPUTE_ID]["vote_counts"]["yes"] == 1
+
+
+def test_mismatched_test_genesis_v2_cannot_replay_v1_block(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Do not silently reinterpret v1 block history from a changed genesis root."""
+    _controlled_strict_environment(monkeypatch)
+    index = Path(__file__).resolve().parents[1] / "generated" / "tx_index.json"
+    legacy = WeAllExecutor(
+        db_path=str(tmp_path / "legacy-genesis.sqlite"),
+        node_id="pr88-legacy-genesis",
+        chain_id=CHAIN,
+        tx_index_path=str(index),
+    )
+    v2_follower = WeAllExecutor(
+        db_path=str(tmp_path / "v2-genesis.sqlite"),
+        node_id="pr88-v2-genesis",
+        chain_id=CHAIN,
+        tx_index_path=str(index),
+    )
+    legacy_genesis_root = compute_state_root(legacy.read_state())
+    v2_genesis_root = _seed_controlled_v2_genesis(v2_follower)
+    assert legacy_genesis_root != v2_genesis_root
+
+    _, legacy_block = _signed_committed(
+        legacy,
+        tx_type="GROUP_CREATE",
+        signer=REPORTER,
+        nonce=1,
+        payload={"group_id": GROUP_ID, "charter": "Historical genesis incompatibility probe"},
+    )
+    before = deepcopy(v2_follower.read_state())
+    applied = v2_follower.apply_block(deepcopy(legacy_block))
+    assert applied.ok is False, "cross-genesis replay must reject an incompatible state root"
+    assert compute_state_root(v2_follower.read_state()) == v2_genesis_root
+    assert v2_follower.read_state() == before
