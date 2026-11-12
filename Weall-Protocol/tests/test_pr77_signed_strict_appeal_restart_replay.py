@@ -340,8 +340,9 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         *, block: dict, new_state: dict, applied_ids: list[str], invalid_ids: list[str]
     ):
         committed_probe["candidate_root"] = compute_state_root(new_state)
+        committed_probe["serialized_candidate_state"] = strict_json_loads(_canon_json(new_state))
         committed_probe["serialized_candidate_root"] = compute_state_root(
-            strict_json_loads(_canon_json(new_state))
+            committed_probe["serialized_candidate_state"]
         )
         committed_probe["header_root"] = block["header"]["state_root"]
         committed_probe["candidate_state"] = deepcopy(new_state)
@@ -375,7 +376,38 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     final_tx_id = final_env["tx_id"]
     assert final_tx_id in final_block["header"]["tx_ids"]
     assert committed_probe["candidate_root"] == committed_probe["header_root"]
-    assert committed_probe["serialized_candidate_root"] == committed_probe["header_root"]
+    def report_first_preimage_differences(before: object, after: object) -> list[str]:
+        result: list[str] = []
+
+        def walk(left: object, right: object, path: str) -> None:
+            if len(result) >= 16:
+                return
+            if isinstance(left, dict) and isinstance(right, dict):
+                for key in sorted(set(left) | set(right), key=str):
+                    if key not in left or key not in right:
+                        result.append(f"{path}/{key}:missing")
+                    else:
+                        walk(left[key], right[key], f"{path}/{key}")
+                return
+            if isinstance(left, list) and isinstance(right, list):
+                if len(left) != len(right):
+                    result.append(f"{path}:length:{len(left)}!={len(right)}")
+                for i, (item_a, item_b) in enumerate(zip(left, right)):
+                    walk(item_a, item_b, f"{path}/{i}")
+                return
+            if type(left) is not type(right) or left != right:
+                result.append(f"{path}:{str(left)[:90]!r}!={str(right)[:90]!r}")
+
+        walk(before, after, "")
+        return result
+
+    assert committed_probe["serialized_candidate_root"] == committed_probe["header_root"], (
+        "json_roundtrip_changes_consensus_state_root",
+        report_first_preimage_differences(
+            consensus_state_root_view(committed_probe["candidate_state"]),
+            consensus_state_root_view(committed_probe["serialized_candidate_state"]),
+        ),
+    )
     assert committed_probe["header_root"] == final_block["header"]["state_root"]
     assert committed_probe["post_commit_root"] == committed_probe["header_root"], (
         "post_commit_consensus_fields_changed",
