@@ -12,8 +12,10 @@ from pathlib import Path
 
 import pytest
 
+import weall.runtime.block_builder as block_builder
 from weall.runtime.apply.dispute import DisputeApplyError, apply_dispute
 from weall.runtime.dispute_engine import tick_dispute_lifecycle
+from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.system_tx_engine import (
     SystemQueueCorruptionError,
@@ -497,3 +499,56 @@ def test_tampered_appeal_queue_record_is_canonical_corruption() -> None:
     state["system_queue"][0]["payload"]["appeal_resolution"]["decision"] = "uphold"
     with pytest.raises(SystemQueueCorruptionError, match="system_queue_item_queue_id_mismatch"):
         build_system_queue_lookup(state)
+
+
+def test_candidate_builder_and_independent_replay_bind_appeal_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Synthetic replay boundary; this fixture does not authenticate panel votes."""
+    seed = _appeal_resolved_state_for_queue()
+    # Staged synthetic state, not a valid historical sequence of signed blocks.
+    # Height zero permits this candidate and its independent replay to share
+    # the same deliberately injected opening state and parent hash.
+    seed["height"] = 0
+    chain_id = seed["chain_id"]
+    tx_index_path = str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    producer = WeAllExecutor(
+        db_path=str(tmp_path / "appeal-producer.db"),
+        node_id="@synthetic-producer",
+        chain_id=chain_id,
+        tx_index_path=tx_index_path,
+    )
+    follower = WeAllExecutor(
+        db_path=str(tmp_path / "appeal-follower.db"),
+        node_id="@synthetic-follower",
+        chain_id=chain_id,
+        tx_index_path=tx_index_path,
+    )
+    for node in (producer, follower):
+        node._ledger_store.write_state_snapshot(deepcopy(seed))
+        node.state = node._ledger_store.read()
+    monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
+
+    block, next_state, applied, invalid, error = producer.build_block_candidate(
+        max_txs=0, allow_empty=True
+    )
+    assert error == ""
+    assert isinstance(block, dict)
+    assert isinstance(next_state, dict)
+    assert invalid == []
+    queued_receipts = [
+        tx for tx in block["txs"] if tx.get("tx_type") == "DISPUTE_FINAL_RECEIPT"
+    ]
+    assert len(queued_receipts) == 1
+    receipt = queued_receipts[0]
+    assert receipt["system"] is True
+    assert receipt["payload"]["appeal_resolution"] == {"decision": "reverse"}
+    assert receipt["payload"]["_system_queue_id"]
+    assert receipt["payload"]["_due_height"] == 1
+    assert receipt["parent"] == "dispute:ordinary-account-review:appeal-panel-finalize:2"
+    assert len(applied) >= 1
+
+    replayed = follower.apply_block(block)
+    assert replayed.ok is True, replayed.error
+    assert compute_state_root(follower.read_state()) == compute_state_root(next_state)
+    assert _case(follower.read_state())["stage"] == "finalized"

@@ -187,6 +187,18 @@ with the *current deterministic queue*, not constitutional authority,
 jury independence, or authentic verdict provenance. No V2 semantic
 digest has been accepted or regenerated for these results.
 
+## Synthetic production candidate and independent follower replay attempt
+
+A follow-up integration regression stages the same synthetic reached
+`appeal_resolved` state into independent `WeAllExecutor` instances
+and exercises the production block candidate builder and `apply_block`
+replay with one due pre-phase `DISPUTE_FINAL_RECEIPT`. This is a
+candidate/replay composition check for queue scheduling, admitted SYSTEM
+envelope metadata and matching state roots; it deliberately seeds
+the original appeal-panel result instead of pretending that independent
+jurors, signed votes, historical blocks or BFT finality created it.
+Only successful exact-head CI constitutes a passing result for this test.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
