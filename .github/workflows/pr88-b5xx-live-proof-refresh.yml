@@ -1,5 +1,8 @@
 # Generate source-bound V1.5 evidence by running the real harnesses. This
 # never edits V2 semantic review decisions, production policy, or release gates.
+# PR88 post-assignment dispute-conflict change: re-execute and live-verify
+# B528/B534/B567 against the settled source HEAD; generated JSON only, fail
+# on any branch advance or change to a release/semantic authority flag.
 name: PR88 source-bound B5xx live proof refresh (no semantic approval)
 
 on:
