@@ -29,12 +29,12 @@ from weall.runtime.bft_hotstuff import (
 )
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.json_tools import strict_json_loads
 from weall.runtime.replay_consistency import (
     _deterministic_replay_fixture_keypair,
     build_replay_manifest,
     compare_replay_manifests,
 )
-from weall.runtime.json_tools import strict_json_loads
 from weall.runtime.sqlite_db import _canon_json
 from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
 from weall.runtime.tx_id import compute_tx_id_from_dict
