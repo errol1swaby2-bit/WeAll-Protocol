@@ -229,7 +229,13 @@ def test_forged_dispute_assignment_cannot_bypass_system_queue_binding() -> None:
     ),
 )
 @pytest.mark.parametrize(
-    "tx_type", ("DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_ACCEPT", "DISPUTE_VOTE_SUBMIT")
+    "tx_type",
+    (
+        "DISPUTE_JUROR_ASSIGN",
+        "DISPUTE_JUROR_ACCEPT",
+        "DISPUTE_JUROR_ATTENDANCE",
+        "DISPUTE_VOTE_SUBMIT",
+    ),
 )
 def test_explicit_strict_v2_conflict_gate_rejects_before_mutating_any_state(
     monkeypatch: pytest.MonkeyPatch, tx_type: str, conflict_field: str
@@ -257,7 +263,11 @@ def test_explicit_strict_v2_conflict_gate_rejects_before_mutating_any_state(
             tx_type=tx_type,
             signer="@juror",
             nonce=6,
-            payload={"dispute_id": "case-1", "vote": "no"},
+            payload=(
+                {"dispute_id": "case-1", "present": True}
+                if tx_type == "DISPUTE_JUROR_ATTENDANCE"
+                else {"dispute_id": "case-1", "vote": "no"}
+            ),
         )
     before = deepcopy(state)
     with pytest.raises(dispute.DisputeApplyError) as error:
@@ -301,4 +311,29 @@ def test_strict_legacy_v1_default_does_not_silently_rewrite_existing_conflict_se
     assert (
         dispute._require_dispute_reviewer_lane(state, "@juror", state["disputes_by_id"]["case-1"])
         == "@juror"
+    )
+
+
+def test_legacy_strict_profile_attendance_retains_historical_implicit_acceptance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The v1 default must not reinterpret historical acceptance receipts."""
+    state = _state_with_conflicted_reviewer("financial_connection_ids")
+    monkeypatch.setattr(dispute, "strict_civic_governance_enabled", lambda _state: True)
+    assert "dispute_material_conflict_gate_version" not in state.get("params", {})
+    result = dispute._apply_dispute_juror_attendance(
+        state,
+        TxEnvelope(
+            tx_type="DISPUTE_JUROR_ATTENDANCE",
+            signer="@juror",
+            nonce=6,
+            payload={"dispute_id": "case-1", "present": True},
+        ),
+    )
+    assert result["applied"] == "DISPUTE_JUROR_ATTENDANCE"
+    record = state["disputes_by_id"]["case-1"]["jurors"]["@juror"]
+    assert record["status"] == "accepted"
+    assert record["attendance"]["present"] is True
+    assert "@juror" in dispute._dispute_conflict_account_ids(
+        state, state["disputes_by_id"]["case-1"]
     )
