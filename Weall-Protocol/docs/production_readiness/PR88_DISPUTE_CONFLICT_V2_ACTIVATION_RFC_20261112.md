@@ -56,7 +56,17 @@ candidate pairings **without modifying state**.
 The existing production scheduler `repair_unassigned_dispute_panels` skips any
 dispute with a nonempty `assigned_jurors` list. The separately used
 `_dispute_eligible_juror_ids` may project fewer eligible jurors and recompute
-a smaller voting quorum from the filtered set. The preview therefore does not
+a smaller voting quorum from the filtered set. **The signed controlled-chain
+regression reproduced this as actual consensus-state drift:** starting from a
+strict seven-person panel whose `required_votes` was **5**, a later signed
+group-moderator conflict excluded one assigned reviewer; after an
+unconflicted juror cast a successful signed vote, the persisted
+`eligible_validator_count` became **6** and `required_votes` became **4**,
+while `assigned_jurors` still contained **7**. The new preview rejects that
+state with `blocked_original_vote_threshold_drift`, rather than treating
+four votes as adequate for the originally committed seven-person panel.
+This is proof of a consensus-reachable **quorum shrink**, not proof that
+the complete dispute finalized under that reduced threshold. The preview therefore does not
 run either mutating routine or treat a newly smaller eligible set as permission
 to finalize an undersized constitutional panel.
 
