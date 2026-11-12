@@ -128,7 +128,6 @@ def test_role_applier_propagates_dynamic_typed_failure_and_v2_details(
     }
 
 
-
 def _reviewer_withdrawal_state(*, gate_version: int = 1, enrolled: bool = True) -> dict:
     """A seeded role record only; no constitutional election or PoH proof."""
     state = {
