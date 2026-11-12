@@ -323,6 +323,49 @@ failure report. The wrapper calls the original storage method with
 identical arguments and does not change policy, timing controls,
 data classification, ban thresholds or identity verification.
 
+## Authenticated TCP rejoin failure — confirmed outgoing shutdown race
+
+The [second 12-repeat TCP-soak attempt](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43141155576)
+reproduced the offline validator failure on repetition **7**. Its
+post-stop `worker-exit-security` artifact captured the complete
+cause. **Between the last pre-stop observation and the worker exit**,
+the network thread handled three inbound `MsgType.BFT_VOTE` packets
+on three distinct localhost TCP endpoints with handshake
+`status=NEW`. The existing `_enforce_bft_identity_gate` rejected
+all three at `NetNode._handle_packet:1494` with one strike each.
+The unchanged `PeerSecurityStore.upsert` persisted a common
+`transport-host:127.0.0.1` security principal with strikes
+1, then 2, then 3 and an active host ban. The restarted validator
+loaded those three strikes into eight peer records; its own new-process
+strike trace remained empty. This is actual source-level causation,
+not an inference from shared-host addressing alone.
+
+The original `NetMeshLoop.stop` set its stop event and closed
+`NetNode` immediately, **before** the caller's later
+`NetMeshLoop.join` could ensure packet processing had stopped.
+The premature close cleared authenticated peer records while the
+network thread could still process queued votes, so honest in-flight
+BFT traffic appeared unauthenticated at the teardown boundary.
+The scoped production fix [`5427b73`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/5427b73328c3dea0efcfafe0b0ca2d0c27c7f603)
+signals stop and waits up to three seconds for the packet thread
+to exit before closing sessions and transport. If the thread is
+slower, its `finally` performs the deferred close after it ends
+instead. A self-stop avoids joining itself; the close is
+idempotent and rearmed at the next start. The actual BFT identity
+gate, host-key policy and strike/ban rules **remain unchanged**.
+
+Three deterministic shutdown-lifecycle tests were added at
+[`b8b4454`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/b8b4454af725cceaaacc51b3035d4f38ecf90a71);
+[focused PR88 shutdown CI #43260694699](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43260694699)
+**PASS** on that source head. The B528/B534/B567 harnesses were
+re-executed, live-verified and regenerated into a generated-only
+bot commit [`41efd4b`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/41efd4b3020d687345a407471a8eca0a6e50b58c).
+The refreshed group-election and 12-repeat TCP workflows now
+include this shutdown source and deterministic tests so the production
+fix receives further **exact-head** evidence. Even a passing
+12-repetition TCP result would not prove the absence of all future
+network races or public validator autonomy.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.

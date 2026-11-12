@@ -30,6 +30,8 @@ on:
       - Weall-Protocol/src/weall/runtime/block_commit.py
       - Weall-Protocol/src/weall/runtime/executor.py
       - Weall-Protocol/src/weall/net/node.py
+      - Weall-Protocol/src/weall/net/net_loop.py
+      - Weall-Protocol/tests/test_net_loop_shutdown_order.py
       - Weall-Protocol/tests/test_net_bft_preauth_broadcast_gate.py
       - Weall-Protocol/tests/test_v2_role_dynamic_failure_review_evidence.py
       - Weall-Protocol/scripts/compile_v2_spec.py
@@ -97,6 +99,9 @@ jobs:
             sha256sum src/weall/runtime/block_commit.py
             sha256sum src/weall/runtime/executor.py
             sha256sum src/weall/net/node.py
+            sha256sum src/weall/net/net_loop.py
+            sha256sum tests/test_net_loop_shutdown_order.py
+            echo "net_shutdown_order=JOIN_PACKET_THREAD_BEFORE_PEER_SESSION_CLOSE"
             sha256sum tests/test_net_bft_preauth_broadcast_gate.py
             sha256sum tests/test_v2_role_dynamic_failure_review_evidence.py
             sha256sum scripts/compile_v2_spec.py
@@ -141,11 +146,11 @@ jobs:
           {
             # This read-only diff is diagnostic; the strict check below remains mandatory.
             ruff format --diff src/weall/runtime/block_commit.py tests/test_group_emissary_network_process_bft.py || true
-            ruff format --check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_audit_remediation_spec_compiler.py scripts/compile_v2_spec.py src/weall/runtime/block_commit.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
-            ruff check src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_audit_remediation_spec_compiler.py scripts/compile_v2_spec.py src/weall/runtime/block_commit.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
+            ruff format --check src/weall/net/net_loop.py tests/test_net_loop_shutdown_order.py src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py tests/test_net_loop_shutdown_order.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_audit_remediation_spec_compiler.py scripts/compile_v2_spec.py src/weall/runtime/block_commit.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
+            ruff check src/weall/net/net_loop.py tests/test_net_loop_shutdown_order.py src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py tests/test_net_loop_shutdown_order.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_audit_remediation_spec_compiler.py scripts/compile_v2_spec.py src/weall/runtime/block_commit.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
             python scripts/validate_group_emissary_architecture_review.py &&
             python scripts/validate_group_emissary_stv_t0.py &&
-            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py tests/test_group_emissary_architecture_review_contract.py tests/test_group_emissary_stv_t0_vectors.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_election_creation tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_ballots_and_treasury tests/test_group_emissary_network_process_bft.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_audit_remediation_spec_compiler.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py
+            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py tests/test_group_emissary_architecture_review_contract.py tests/test_group_emissary_stv_t0_vectors.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_election_creation tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_ballots_and_treasury tests/test_group_emissary_network_process_bft.py tests/test_net_loop_shutdown_order.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_audit_remediation_spec_compiler.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py
           } 2>&1 | tee "$OUT/targeted_pytest.log"
           RC="${PIPESTATUS[0]}"
           set -e
@@ -206,6 +211,9 @@ jobs:
             echo "no_public_activation=true"
             sha256sum src/weall/runtime/bft_pending_frontier_impl.py
             sha256sum src/weall/net/node.py
+            sha256sum src/weall/net/net_loop.py
+            sha256sum tests/test_net_loop_shutdown_order.py
+            echo "net_shutdown_order=JOIN_PACKET_THREAD_BEFORE_PEER_SESSION_CLOSE"
             sha256sum src/weall/net/net_loop.py
             sha256sum tests/test_group_emissary_network_process_bft.py
           } > "$OUT/scope.txt"

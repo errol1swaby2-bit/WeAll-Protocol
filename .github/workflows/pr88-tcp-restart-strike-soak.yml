@@ -10,6 +10,7 @@ on:
       - .github/workflows/pr88-tcp-restart-strike-soak.yml
       - Weall-Protocol/tests/test_group_emissary_network_process_bft.py
       - Weall-Protocol/src/weall/net/node.py
+      - Weall-Protocol/src/weall/net/net_loop.py
 
 permissions:
   contents: read
@@ -49,6 +50,7 @@ jobs:
             echo "ban_rule_changes=none"
             echo "independent_genesis_or_production_authority=false"
             sha256sum src/weall/net/node.py
+            sha256sum src/weall/net/net_loop.py
             sha256sum tests/test_group_emissary_network_process_bft.py
           } > "$OUT/source.txt"
           ruff check tests/test_group_emissary_network_process_bft.py
