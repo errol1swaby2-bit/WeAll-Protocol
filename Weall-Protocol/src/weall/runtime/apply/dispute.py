@@ -801,6 +801,30 @@ def _require_dispute_reviewer_lane(
                 "juror_conflict_reporter",
                 {"juror": acct, "dispute_id": dispute.get("id") or dispute.get("dispute_id")},
             )
+    # This branch is deliberately dormant unless a chain-committed version 2
+    # is explicitly selected. The checked-in default is historical v1; do not
+    # reinterpret already-committed blocks or activate v2 by environment flag.
+    # The governance parameter whitelist does NOT yet authorize setting v2.
+    if dispute is not None and strict_civic_governance_enabled(state):
+        raw_version = _as_dict(state.get("params")).get("dispute_material_conflict_gate_version", 1)
+        if type(raw_version) is not int or raw_version not in (1, 2):
+            raise DisputeApplyError(
+                "forbidden",
+                "unsupported_dispute_material_conflict_gate_version",
+                {"version": str(raw_version), "juror": acct},
+            )
+        if raw_version == 2 and acct:
+            conflicts = _dispute_conflict_account_ids(state, dispute)
+            if any(_same_account(acct, conflict) for conflict in conflicts):
+                raise DisputeApplyError(
+                    "forbidden",
+                    "juror_conflict_material",
+                    {
+                        "dispute_id": dispute.get("id") or dispute.get("dispute_id"),
+                        "juror": acct,
+                        "gate_version": 2,
+                    },
+                )
     if not acct or not reviewer_lane_active(state, acct, DISPUTE_REVIEW_LANE):
         raise DisputeApplyError(
             "forbidden",
