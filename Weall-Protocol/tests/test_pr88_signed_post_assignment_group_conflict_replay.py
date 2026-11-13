@@ -93,8 +93,17 @@ def _signed_committed(
     return height, block
 
 
+def _group_officer_change(tx_type: str, account: str) -> dict:
+    if tx_type == "GROUP_MODERATORS_SET":
+        return {"group_id": GROUP_ID, "moderators": [REPORTER, account]}
+    if tx_type == "GROUP_SIGNERS_SET":
+        return {"group_id": GROUP_ID, "signers": [REPORTER, account], "threshold": 1}
+    raise ValueError(f"unsupported source regression transaction: {tx_type}")
+
+
+@pytest.mark.parametrize("officer_tx_type", ("GROUP_MODERATORS_SET", "GROUP_SIGNERS_SET"))
 def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, officer_tx_type: str
 ) -> None:
     _controlled_strict_environment(monkeypatch)
     root = Path(__file__).resolve().parents[1]
@@ -176,23 +185,24 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     assert set(assigned + case["substitute_juror_ids"]) == set(reviewers)
     assert not set(assigned).intersection(_dispute_conflict_account_ids(opened_state, case))
     selected = assigned[0]
-    assert selected not in group["moderators"]
+    role_field = "moderators" if officer_tx_type == "GROUP_MODERATORS_SET" else "signers"
+    assert selected not in group[role_field]
 
     # A valid, separately signed GroupSigner action now creates a new live
     # material conflict AFTER the strict panel snapshot was committed.
     before_moderator = deepcopy(source.read_state())
     moderator_height, moderator_block = _signed_committed(
         source,
-        tx_type="GROUP_MODERATORS_SET",
+        tx_type=officer_tx_type,
         signer=REPORTER,
         nonce=3,
-        payload={"group_id": GROUP_ID, "moderators": [REPORTER, selected]},
+        payload=_group_officer_change(officer_tx_type, selected),
     )
     assert moderator_height > opening_height
     assert moderator_block["receipts"][0]["ok"] is True
     conflict_state = source.read_state()
     conflicted_case = conflict_state["disputes_by_id"][DISPUTE_ID]
-    assert selected in conflict_state["roles"]["groups_by_id"][GROUP_ID]["moderators"]
+    assert selected in conflict_state["roles"]["groups_by_id"][GROUP_ID][role_field]
     assert selected in _dispute_conflict_account_ids(conflict_state, conflicted_case)
     assert selected not in _filter_active_dispute_reviewers(
         deepcopy(conflict_state), list(assigned), deepcopy(conflicted_case)
@@ -208,6 +218,7 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     )
     assert witness["status"] == "candidate_transition_requires_independent_replay"
     assert witness["observed_introduction_height"] == moderator_height
+    assert witness["transaction_type"] == officer_tx_type
     assert witness["signature_present"] is True
     assert witness["receipt_successful"] is True
     assert witness["independent_replay_verified"] is False
@@ -231,7 +242,7 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     )
     no_signature = deepcopy(moderator_block)
     for tx in no_signature["txs"]:
-        if tx.get("tx_type") == "GROUP_MODERATORS_SET":
+        if tx.get("tx_type") == officer_tx_type:
             tx["sig"] = ""
             tx.pop("signature", None)
     assert (
@@ -245,7 +256,7 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
         == "blocked_unsigned_or_ambiguous_transaction"
     )
     prior_conflict = deepcopy(before_moderator)
-    prior_conflict["roles"]["groups_by_id"][GROUP_ID]["moderators"].append(selected)
+    prior_conflict["roles"]["groups_by_id"][GROUP_ID][role_field].append(selected)
     assert (
         preview_post_assignment_group_conflict(
             prior_conflict,
@@ -382,8 +393,9 @@ def _signed_rejected_block(
     return height, block
 
 
+@pytest.mark.parametrize("officer_tx_type", ("GROUP_MODERATORS_SET", "GROUP_SIGNERS_SET"))
 def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_replays(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, officer_tx_type: str
 ) -> None:
     """Opposite signed receipt outcome under explicitly precommitted v2 state.
 
@@ -454,10 +466,10 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     v2_before_moderator = deepcopy(source.read_state())
     v2_moderator_height, v2_moderator_block = _signed_committed(
         source,
-        tx_type="GROUP_MODERATORS_SET",
+        tx_type=officer_tx_type,
         signer=REPORTER,
         nonce=3,
-        payload={"group_id": GROUP_ID, "moderators": [REPORTER, selected]},
+        payload=_group_officer_change(officer_tx_type, selected),
     )
     v2_moderator_witness = preview_post_assignment_group_conflict(
         v2_before_moderator,
@@ -468,6 +480,7 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     )
     assert v2_moderator_witness["status"] == "candidate_transition_requires_independent_replay"
     assert v2_moderator_witness["observed_introduction_height"] == v2_moderator_height
+    assert v2_moderator_witness["transaction_type"] == officer_tx_type
     assert v2_moderator_witness["recusal_authorized"] is False
     pending = deepcopy(source.read_state()["disputes_by_id"][DISPUTE_ID])
     assert selected in _dispute_conflict_account_ids(source.read_state(), pending)
