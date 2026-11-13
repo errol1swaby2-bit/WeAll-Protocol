@@ -1,4 +1,4 @@
-"""Read-only candidate evidence for a post-assignment group-officer conflict.
+"""Read-only candidate evidence for post-assignment group-officer conflicts.
 
 Input snapshots and a purported block are UNTRUSTED. The checks here can show
 that the supplied data is internally consistent, but cannot authenticate a
@@ -26,7 +26,15 @@ def _same_account(left: Any, right: Any) -> bool:
     return bool(set(_identity_variants(left)).intersection(_identity_variants(right)))
 
 
-def _group_moderators(state: Json, group_id: str) -> list[str] | None:
+_OFFICER_ACTIONS = {
+    "GROUP_MODERATORS_SET": ("moderators", "moderators"),
+    "GROUP_SIGNERS_SET": ("signers", "signers"),
+}
+
+
+def _group_officers(state: Json, group_id: str, field: str) -> list[str] | None:
+    if field not in {"moderators", "signers"}:
+        return None
     roles = state.get("roles")
     if not isinstance(roles, dict):
         return None
@@ -36,12 +44,20 @@ def _group_moderators(state: Json, group_id: str) -> list[str] | None:
     group = groups.get(group_id)
     if not isinstance(group, dict):
         return None
-    moderators = group.get("moderators")
-    if not isinstance(moderators, list) or any(
-        not isinstance(value, str) or not value.strip() for value in moderators
+    members = group.get(field)
+    if not isinstance(members, list) or any(
+        not isinstance(value, str) or not value.strip() for value in members
     ):
         return None
-    return moderators
+    return members
+
+
+def _group_signer_threshold(state: Json, group_id: str) -> int | None:
+    roles = state.get("roles")
+    groups = roles.get("groups_by_id") if isinstance(roles, dict) else None
+    group = groups.get(group_id) if isinstance(groups, dict) else None
+    threshold = group.get("threshold") if isinstance(group, dict) else None
+    return threshold if type(threshold) is int and threshold > 0 else None
 
 
 def preview_post_assignment_group_conflict(
@@ -66,7 +82,7 @@ def preview_post_assignment_group_conflict(
         "juror": juror,
         "observed_introduction_height": None,
         "transaction_id": None,
-        "transaction_type": "GROUP_MODERATORS_SET",
+        "transaction_type": None,
         "signature_present": False,
         "receipt_successful": False,
         "state_roots_match_supplied_block": False,
@@ -145,15 +161,22 @@ def preview_post_assignment_group_conflict(
     if current.get("target_type") != "group" or current.get("target_id") != group_id:
         result["status"] = "blocked_target_changed"
         return result
-    prior_moderators = _group_moderators(before, group_id)
-    current_moderators = _group_moderators(after, group_id)
-    if (
-        prior_moderators is None
-        or current_moderators is None
-        or any(_same_account(juror, member) for member in prior_moderators)
-        or not any(_same_account(juror, member) for member in current_moderators)
-    ):
-        result["status"] = "blocked_no_moderator_transition"
+    # A signed role-update transaction is a supported candidate only where
+    # the changed role is actually included in the dispute's conflict set.
+    # Both actions are user-origin; this preview never authenticates a signer.
+    changed_roles: dict[str, list[str]] = {}
+    for tx_type, (role_field, _) in _OFFICER_ACTIONS.items():
+        prior = _group_officers(before, group_id, role_field)
+        current_members = _group_officers(after, group_id, role_field)
+        if (
+            prior is not None
+            and current_members is not None
+            and not any(_same_account(juror, member) for member in prior)
+            and any(_same_account(juror, member) for member in current_members)
+        ):
+            changed_roles[tx_type] = current_members
+    if not changed_roles:
+        result["status"] = "blocked_no_group_officer_transition"
         return result
 
     txs = block.get("txs")
@@ -165,16 +188,25 @@ def preview_post_assignment_group_conflict(
 
     matching: list[Json] = []
     for tx in txs:
-        if not isinstance(tx, dict) or tx.get("tx_type") != "GROUP_MODERATORS_SET":
+        if not isinstance(tx, dict):
             continue
+        tx_type = tx.get("tx_type")
+        if tx_type not in changed_roles:
+            continue
+        role_field, payload_field = _OFFICER_ACTIONS[tx_type]
         payload = tx.get("payload")
         if (
             not isinstance(payload, dict)
             or payload.get("group_id") != group_id
-            or payload.get("moderators") != current_moderators
+            or payload.get(payload_field) != changed_roles[tx_type]
             or tx.get("system") is True
         ):
             continue
+        if tx_type == "GROUP_SIGNERS_SET":
+            # The signer update also commits its treasury threshold. Require
+            # the actual on-chain threshold to equal the declared payload.
+            if payload.get("threshold") != _group_signer_threshold(after, group_id):
+                continue
         signer = tx.get("signer")
         signature = tx.get("sig") or tx.get("signature")
         tx_id = tx.get("tx_id")
@@ -201,7 +233,7 @@ def preview_post_assignment_group_conflict(
         for entry in receipts
         if isinstance(entry, dict)
         and entry.get("tx_id") == tx_id
-        and entry.get("tx_type") == "GROUP_MODERATORS_SET"
+        and entry.get("tx_type") == tx["tx_type"]
         and entry.get("signer") == tx["signer"]
         and entry.get("ok") is True
     ]
@@ -213,6 +245,7 @@ def preview_post_assignment_group_conflict(
             "status": "candidate_transition_requires_independent_replay",
             "observed_introduction_height": later_height,
             "transaction_id": tx_id,
+            "transaction_type": tx["tx_type"],
             "signature_present": True,
             "receipt_successful": True,
         }
