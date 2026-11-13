@@ -808,6 +808,49 @@ The generated-only push must be followed by exact-head checks on a
 normal branch commit. The 20 stale V2 semantic reviews remain a
 separate intentional release blocker.
 
+## Group signer conflict provenance extension (2026-11-12)
+
+The block-linked read-only witness now distinguishes two source-bound
+post-assignment **group officer** changes:
+`GROUP_MODERATORS_SET` and `GROUP_SIGNERS_SET`.
+Both group moderators and signers enter the material conflict set
+through `_dispute_conflict_account_ids`. A signed
+`GROUP_SIGNERS_SET` mutates the group signer set and synchronizes
+the treasury signers; the advisory witness requires the signed payload
+to match the committed signer list and an **explicit** threshold equal
+to the resulting group threshold. It still verifies neither
+cryptographic signature validity nor independent BFT finality itself.
+
+[Exact-source signed evidence #43350409023](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43350409023)
+passed **50/50** tests with Ruff format/check clean. Both v1 historical
+and test-only v2 strict chains commit each source action, reproduce
+the candidate conflict-introduction block height, exercise the
+existing conflict/ballot regressions, and independently replay every
+committed block with matching state roots. Negative altered-root,
+removed-signature and pre-existing-conflict input cases also run
+under each supported transaction type. This is still only
+`candidate_transition_requires_independent_replay`, not a
+cryptographic proof produced by the preview itself, an authorized
+recusal or a reputation penalty waiver.
+
+The [live B528/B534/B567 refresh #43350403318](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43350403318)
+ran all three real harnesses with `--check` and `--verify-live`,
+and pushed generated-only
+[`0442222f`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/0442222fb453b4d1b1f659a328698ff63a71c0cc).
+All three JSON artifacts changed **only**
+`freshness.input_digest_sha256`; every public release lock remains
+false. No V2 semantic review digest was approved.
+
+**Outstanding coverage:** `GROUP_ROLE_GRANT` writes group role maps
+(creator/admin/moderator/emissary keys can be read by the conflict
+predicate) but does **not** have signed post-assignment provenance
+evidence in this increment. Nor do household, funding, beneficiary,
+election/office, external factual relationships, or self-reported
+material connections. Further work requires proving the exact
+transaction and producer authority before attempting any recusal
+rule or penalty forgiveness. The constitutional amendment gate,
+v2 param whitelist and 20 semantic-review decisions remain unchanged.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
