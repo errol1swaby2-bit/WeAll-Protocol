@@ -160,11 +160,7 @@ def preview_post_assignment_group_conflict(
     txs = block.get("txs")
     receipts = block.get("receipts")
     tx_ids = header.get("tx_ids")
-    if (
-        not isinstance(txs, list)
-        or not isinstance(receipts, list)
-        or not isinstance(tx_ids, list)
-    ):
+    if not isinstance(txs, list) or not isinstance(receipts, list) or not isinstance(tx_ids, list):
         result["status"] = "blocked_missing_block_transaction_evidence"
         return result
 
