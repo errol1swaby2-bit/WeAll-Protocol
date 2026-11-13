@@ -745,6 +745,42 @@ height-bound activation. The absence of this decision is an explicit
 NO-GO for enabling automatic substitute appointment or penalty
 forgiveness. The 20 V2 semantic-review digests remain unapproved.
 
+## Adjacent block witness for signed group-moderator conflict (2026-11-12)
+
+The earlier controlled signed fixture establishes that a signed
+`DISPUTE_OPEN` selects seven jurors before a separate signed
+`GROUP_MODERATORS_SET` adds one assigned juror to the target group's
+moderators. The new advisory
+`src/weall/runtime/dispute_conflict_provenance_preview.py` can
+describe the *candidate* conflict-introduction height from adjacent
+before/after snapshots and a matching block transaction/header/root
+and successful receipt. It refuses a missing signature, a pre-existing
+conflict, an altered state root, a changed panel/commitment or a
+nonadjacent height.
+
+The function **does not** authenticate the supplied block, validate a
+signed transaction, verify a QC or finalize anything. It explicitly
+returns `authenticated_conflict_provenance_verified=false`,
+`independent_replay_verified=false`, `bft_finality_verified=false`,
+`recusal_authorized=false`, and
+`reputation_penalty_waiver_authorized=false`. The *separate*
+production `submit_tx -> produce_block -> apply_block` controlled
+development test binds that candidate to canonical signed admission
+and an independently replayed state transition at the same block
+height from matching genesis. Neither result grants an on-chain
+versioned constitutional decision, nor a reputation waiver.
+
+The scoped witness covers only a newly added **group moderator**
+conflict. It does not establish a general height resolver for other
+material connections (beneficiaries, household/funding, other offices),
+nor does it reconstruct genuine history from arbitrary local files.
+A replay-bound witness is still not independent validator finality or
+real-world conflict validation. Required follow-up: authoritative,
+versioned provenance and appeal rules for all allowed conflict types,
+and tests covering forged-but-internally-consistent witnesses against
+trusted replay/peer finality before any penalty-free withdrawal or
+substitute appointment is implemented.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
