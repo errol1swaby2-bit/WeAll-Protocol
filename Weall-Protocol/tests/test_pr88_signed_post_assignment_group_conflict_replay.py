@@ -22,6 +22,9 @@ from weall.runtime.apply.dispute import (
     _filter_active_dispute_reviewers,
 )
 from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE, ballot_profile_status
+from weall.runtime.dispute_conflict_provenance_preview import (
+    preview_post_assignment_group_conflict,
+)
 from weall.runtime.dispute_panel_recovery_preview import preview_dispute_panel_recovery
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.replay_consistency import _deterministic_replay_fixture_keypair
@@ -177,6 +180,7 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
 
     # A valid, separately signed GroupSigner action now creates a new live
     # material conflict AFTER the strict panel snapshot was committed.
+    before_moderator = deepcopy(source.read_state())
     moderator_height, moderator_block = _signed_committed(
         source,
         tx_type="GROUP_MODERATORS_SET",
@@ -195,6 +199,42 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     )
     assert conflicted_case["jurors"][selected]["status"] == "assigned"
     assert selected in conflicted_case["assigned_jurors"]
+    witness = preview_post_assignment_group_conflict(
+        before_moderator, conflict_state, moderator_block,
+        dispute_id=DISPUTE_ID, juror=selected,
+    )
+    assert witness["status"] == "candidate_transition_requires_independent_replay"
+    assert witness["observed_introduction_height"] == moderator_height
+    assert witness["signature_present"] is True
+    assert witness["receipt_successful"] is True
+    assert witness["independent_replay_verified"] is False
+    assert witness["authenticated_conflict_provenance_verified"] is False
+    assert witness["recusal_authorized"] is False
+    assert before_moderator["height"] == opening_height
+
+    # A claimed receipt or edited block root alone must never be considered
+    # independently replayed chain evidence by this advisory observer.
+    falsified = deepcopy(moderator_block)
+    falsified["header"]["state_root"] = "0" * 64
+    assert preview_post_assignment_group_conflict(
+        before_moderator, conflict_state, falsified,
+        dispute_id=DISPUTE_ID, juror=selected,
+    )["status"] == "blocked_state_root_mismatch"
+    no_signature = deepcopy(moderator_block)
+    for tx in no_signature["txs"]:
+        if tx.get("tx_type") == "GROUP_MODERATORS_SET":
+            tx["sig"] = ""
+            tx.pop("signature", None)
+    assert preview_post_assignment_group_conflict(
+        before_moderator, conflict_state, no_signature,
+        dispute_id=DISPUTE_ID, juror=selected,
+    )["status"] == "blocked_unsigned_or_ambiguous_transaction"
+    prior_conflict = deepcopy(before_moderator)
+    prior_conflict["roles"]["groups_by_id"][GROUP_ID]["moderators"].append(selected)
+    assert preview_post_assignment_group_conflict(
+        prior_conflict, conflict_state, moderator_block,
+        dispute_id=DISPUTE_ID, juror=selected,
+    )["status"] == "blocked_preexisting_material_conflict"
 
     # Characterization of current signed block admission, NOT acceptable
     # constitutional policy. If these receipts fail closed the test pinpoints
@@ -254,10 +294,19 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     )
     assert independent.read_state()["height"] == 0
     for height, block in enumerate(blocks, start=1):
+        replay_before = deepcopy(independent.read_state())
         result = independent.apply_block(deepcopy(block))
         assert result.ok is True, (height, result.error)
         assert independent.get_block_by_height(height) == block
         assert compute_state_root(independent.read_state()) == block["header"]["state_root"]
+        if height == moderator_height:
+            replay_witness = preview_post_assignment_group_conflict(
+                replay_before, independent.read_state(), block,
+                dispute_id=DISPUTE_ID, juror=selected,
+            )
+            assert replay_witness == witness
+            assert replay_before == before_moderator
+            assert independent.read_state() == conflict_state
     assert compute_state_root(independent.read_state()) == final_root
     assert independent.read_state()["disputes_by_id"][DISPUTE_ID] == voted_case
     assert selected in _dispute_conflict_account_ids(
@@ -378,13 +427,21 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     assert len(opened["assigned_jurors"]) == 7
     selected = opened["assigned_jurors"][0]
 
-    _signed_committed(
+    v2_before_moderator = deepcopy(source.read_state())
+    v2_moderator_height, v2_moderator_block = _signed_committed(
         source,
         tx_type="GROUP_MODERATORS_SET",
         signer=REPORTER,
         nonce=3,
         payload={"group_id": GROUP_ID, "moderators": [REPORTER, selected]},
     )
+    v2_moderator_witness = preview_post_assignment_group_conflict(
+        v2_before_moderator, source.read_state(), v2_moderator_block,
+        dispute_id=DISPUTE_ID, juror=selected,
+    )
+    assert v2_moderator_witness["status"] == "candidate_transition_requires_independent_replay"
+    assert v2_moderator_witness["observed_introduction_height"] == v2_moderator_height
+    assert v2_moderator_witness["recusal_authorized"] is False
     pending = deepcopy(source.read_state()["disputes_by_id"][DISPUTE_ID])
     assert selected in _dispute_conflict_account_ids(source.read_state(), pending)
     assert pending["jurors"][selected]["status"] == "assigned"
@@ -550,10 +607,17 @@ def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_rep
     )
     assert _seed_controlled_v2_genesis(independent) == genesis_root
     for number, block in enumerate(blocks, start=1):
+        replay_before = deepcopy(independent.read_state())
         applied = independent.apply_block(deepcopy(block))
         assert applied.ok is True, (number, applied.error)
         assert independent.get_block_by_height(number) == block
         assert compute_state_root(independent.read_state()) == block["header"]["state_root"]
+        if number == v2_moderator_height:
+            assert replay_before == v2_before_moderator
+            assert preview_post_assignment_group_conflict(
+                replay_before, independent.read_state(), block,
+                dispute_id=DISPUTE_ID, juror=selected,
+            ) == v2_moderator_witness
     assert compute_state_root(independent.read_state()) == final_root
     assert independent.read_state()["disputes_by_id"][DISPUTE_ID] == completed
     assert independent.read_state()["disputes_by_id"][DISPUTE_ID]["vote_counts"]["yes"] == 5
