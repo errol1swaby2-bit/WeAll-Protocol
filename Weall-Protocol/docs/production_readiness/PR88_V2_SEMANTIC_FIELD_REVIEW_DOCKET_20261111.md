@@ -851,6 +851,48 @@ transaction and producer authority before attempting any recusal
 rule or penalty forgiveness. The constitutional amendment gate,
 v2 param whitelist and 20 semantic-review decisions remain unchanged.
 
+## Signed group role-map provenance and group-signer admission evidence (2026-11-12)
+
+The prior unresolved `GROUP_ROLE_GRANT` role-map origin has a new
+**bounded signed controlled-chain characterization**. A grant into the
+group role map's conflict-bearing `moderator` role after a strict
+seven-person dispute panel has been committed introduces a new
+material conflict. The read-only
+`dispute_conflict_provenance_preview.py` now accepts this transaction
+family only when the target juror newly appears in the matching
+role-map field and the block includes a matching user-origin signed
+`GROUP_ROLE_GRANT`, successful canonical receipt, unchanged panel,
+adjacent heights and the supplied post-root. Positive output remains
+`candidate_transition_requires_independent_replay` and all
+`independent_replay_verified`, `bft_finality_verified`,
+`authenticated_conflict_provenance_verified`,
+`recusal_authorized`, and `reputation_penalty_waiver_authorized`
+flags stay **false**; the helper itself cannot authenticate arbitrary
+supplied blocks.
+
+The [exact-source signed-role test #43355376868](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43355376868)
+passed **53/53** focused tests and Ruff clean. It exercises signed
+role grants through production block admission and independent replay
+in both historical v1 and synthetic strict v2 cases. A separate
+negative test registers a validly signed Tier-2 account **not** on the
+group's signer or moderator lists, then attempts a signed role grant.
+The admission path **rejects** this transaction
+(`gate_denied:gate:Signer`) before block inclusion; source and replay
+state remain unchanged. Therefore the lack of a visible authority
+check in the leaf `_apply_group_role_grant` function did **not**
+demonstrate an unauthorized-role assignment exploit. This
+authorization result must be retained in future static semantic
+extractions, which may otherwise inspect the leaf handler without
+accounting for the transaction's source admission gate.
+
+Remaining scope limits: no other signed conflict origin, general
+household/funding/beneficiary evidence, constitutional recusal/waiver
+authority, mixed-version returning follower, independent-validator
+BFT finality or public release was proven. The source-only helper
+continues to be advisory and never changes consensus state.
+The prior 20 V2 semantic reviews are still awaiting explicit
+accountable review. No review digest was approved by the tests.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
