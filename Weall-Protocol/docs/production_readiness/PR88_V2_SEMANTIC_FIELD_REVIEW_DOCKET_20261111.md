@@ -781,6 +781,33 @@ and tests covering forged-but-internally-consistent witnesses against
 trusted replay/peer finality before any penalty-free withdrawal or
 substitute appointment is implemented.
 
+### Exact-source signed provenance and V1.5 live-proof refresh
+
+The [PR88 signed conflict-provenance workflow #43340966876](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43340966876) passed **48/48** focused scenarios with Ruff clean on source commit
+[`ff868e9f`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/ff868e9f8677d47177decfc8d65f1e74682d92fd).
+The signed v1 and synthetic v2 controlled chains agree with independent
+production `apply_block` replay at the same moderator-change height.
+Negative witness cases reject altered roots, removed signatures and
+pre-existing conflicts. This demonstrates only the explicitly bounded
+group-moderator transition, **not** independently trusted BFT finality,
+general conflict-history reconstruction or recusal/waiver authority.
+
+The [source-bound B5xx live refresh #43340960725](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43340960725) passed all three actual B528/B534/B567
+generators, `--check` and `--verify-live`, and pushed **only** the
+three generated proof JSONs in
+[`51a0a913`](https://github.com/errol1swaby2-bit/WeAll-Protocol/commit/51a0a91335678f92faf99797f259cf0eb1749380).
+A source comparison against the previous checked-in artifacts confirms
+that each JSON changed only `freshness.input_digest_sha256`; every
+public validator, economics, helper, automatic upgrade and mainnet
+release lock remains false. No V2 semantic-review digest was approved.
+
+The source pre-refresh Backend CI failed **on B528 input-digest
+staleness** as expected; do not report that transient failure as an
+independent consensus failure or as a completed final-head green run.
+The generated-only push must be followed by exact-head checks on a
+normal branch commit. The 20 stale V2 semantic reviews remain a
+separate intentional release blocker.
+
 ## Bounded next review actions
 
 1. **Dispute lane:** walk dedicated handler calls and helper effects against actual live receipts, rejection-path atomics and severe-sanction gate tests. Confirm that the new narrower `DISPUTE_OPEN` derivation includes all consequences it claims and distinguishes external effects deliberately excluded from direct function analysis.
