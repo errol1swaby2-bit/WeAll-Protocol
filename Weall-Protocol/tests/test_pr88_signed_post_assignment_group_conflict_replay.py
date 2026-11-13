@@ -98,10 +98,15 @@ def _group_officer_change(tx_type: str, account: str) -> dict:
         return {"group_id": GROUP_ID, "moderators": [REPORTER, account]}
     if tx_type == "GROUP_SIGNERS_SET":
         return {"group_id": GROUP_ID, "signers": [REPORTER, account], "threshold": 1}
+    if tx_type == "GROUP_ROLE_GRANT":
+        return {"group_id": GROUP_ID, "role": "moderator", "account": account}
     raise ValueError(f"unsupported source regression transaction: {tx_type}")
 
 
-@pytest.mark.parametrize("officer_tx_type", ("GROUP_MODERATORS_SET", "GROUP_SIGNERS_SET"))
+@pytest.mark.parametrize(
+    "officer_tx_type",
+    ("GROUP_MODERATORS_SET", "GROUP_SIGNERS_SET", "GROUP_ROLE_GRANT"),
+)
 def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, officer_tx_type: str
 ) -> None:
@@ -185,8 +190,11 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     assert set(assigned + case["substitute_juror_ids"]) == set(reviewers)
     assert not set(assigned).intersection(_dispute_conflict_account_ids(opened_state, case))
     selected = assigned[0]
-    role_field = "moderators" if officer_tx_type == "GROUP_MODERATORS_SET" else "signers"
-    assert selected not in group[role_field]
+    if officer_tx_type == "GROUP_ROLE_GRANT":
+        assert selected not in group.get("roles", {}).get("moderator", [])
+    else:
+        role_field = "moderators" if officer_tx_type == "GROUP_MODERATORS_SET" else "signers"
+        assert selected not in group[role_field]
 
     # A valid, separately signed GroupSigner action now creates a new live
     # material conflict AFTER the strict panel snapshot was committed.
@@ -202,7 +210,11 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     assert moderator_block["receipts"][0]["ok"] is True
     conflict_state = source.read_state()
     conflicted_case = conflict_state["disputes_by_id"][DISPUTE_ID]
-    assert selected in conflict_state["roles"]["groups_by_id"][GROUP_ID][role_field]
+    changed_group = conflict_state["roles"]["groups_by_id"][GROUP_ID]
+    if officer_tx_type == "GROUP_ROLE_GRANT":
+        assert selected in changed_group["roles"]["moderator"]
+    else:
+        assert selected in changed_group[role_field]
     assert selected in _dispute_conflict_account_ids(conflict_state, conflicted_case)
     assert selected not in _filter_active_dispute_reviewers(
         deepcopy(conflict_state), list(assigned), deepcopy(conflicted_case)
@@ -256,7 +268,12 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
         == "blocked_unsigned_or_ambiguous_transaction"
     )
     prior_conflict = deepcopy(before_moderator)
-    prior_conflict["roles"]["groups_by_id"][GROUP_ID][role_field].append(selected)
+    if officer_tx_type == "GROUP_ROLE_GRANT":
+        prior_conflict["roles"]["groups_by_id"][GROUP_ID].setdefault("roles", {})[
+            "moderator"
+        ] = [selected]
+    else:
+        prior_conflict["roles"]["groups_by_id"][GROUP_ID][role_field].append(selected)
     assert (
         preview_post_assignment_group_conflict(
             prior_conflict,
@@ -393,7 +410,10 @@ def _signed_rejected_block(
     return height, block
 
 
-@pytest.mark.parametrize("officer_tx_type", ("GROUP_MODERATORS_SET", "GROUP_SIGNERS_SET"))
+@pytest.mark.parametrize(
+    "officer_tx_type",
+    ("GROUP_MODERATORS_SET", "GROUP_SIGNERS_SET", "GROUP_ROLE_GRANT"),
+)
 def test_explicit_dev_genesis_v2_rejects_signed_post_assignment_conflict_and_replays(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, officer_tx_type: str
 ) -> None:
