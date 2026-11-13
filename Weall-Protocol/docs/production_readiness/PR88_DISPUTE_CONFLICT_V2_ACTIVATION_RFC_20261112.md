@@ -173,18 +173,21 @@ never be sufficient to suppress a penalty or appoint a substitute.
 The default v1 paths, non-whitelisted v2 parameter, and constitutional
 amendment lock remain intact.
 
-### Signed group-moderator conflict transition witness — advisory provenance
+### Signed group-officer conflict transition witness — advisory provenance
 
 A new source-only helper, `src/weall/runtime/dispute_conflict_provenance_preview.py`,
-can identify an *internally consistent* post-assignment transition for a
-**group-officer conflict**. It requires adjacent state heights, an intact
-panel and original commitment, the juror's absence from the prior
-material-conflict set, their presence afterward, a new group moderator
-membership, a single signed `GROUP_MODERATORS_SET` block transaction,
-its matching successful receipt/header transaction ID, and a post-state
-root matching the supplied block header. Nonadjacent snapshots, a
-pre-existing conflict, removed signatures, or a forged post-state root
-must be rejected as evidence.
+can identify an *internally consistent* post-assignment transition for
+**two group-officer conflict types**. It requires adjacent state heights,
+an intact panel and original commitment, the juror's absence from the
+prior material-conflict set, their presence afterward, a newly added
+group **moderator** or **signer**, an included signed
+`GROUP_MODERATORS_SET` or `GROUP_SIGNERS_SET` transaction of the matching
+type, its successful receipt/header transaction ID, and a post-state
+root matching the supplied block header. Signer updates must include
+an explicit `threshold` equal to the resulting committed threshold;
+no threshold-less variant has been proven. Nonadjacent snapshots,
+pre-existing conflicts, removed signatures, or forged post-state roots
+are rejected as positive evidence.
 
 This helper is intentionally **not** an independent signature verifier,
 a trusted block-history fetcher, a BFT QC verifier, or a historical
@@ -196,19 +199,24 @@ consistent triplet could deceive the helper. It always returns
 `reputation_penalty_waiver_authorized=false`. A positive result means
 only `candidate_transition_requires_independent_replay`.
 
-The separate controlled-development-chain regression creates the panel
-using legitimately signed and locally committed transactions, observes
-the successful signed moderator change, and then replays **every** block
-through an independent production executor from matching synthetic
-genesis. At the observed moderator height it compares the exact
-before/after replay states and derives the same candidate witness.
-This establishes a stronger *controlled-chain* source provenance than
-consulting current group membership alone. It does not prove autonomous
-validator agreement, independent real-world reviewers, constitutional
-recusal authority, or a production network. It does not generalize
-automatically to conflicts introduced through funding, household
-relationships, beneficiary changes, or maliciously self-reported
-connections.
+The separate controlled-development-chain regressions create the panel
+using legitimately signed and locally committed transactions, then
+parameterize both the moderator and signer conflict changes through
+the user-signed production paths. Each scenario replays **every**
+committed block through an independent production executor from matching
+synthetic genesis. At the observed officer-change height it compares
+the exact before/after replay states and derives the same candidate
+witness. The [50/50 signed conflict provenance suite](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43350409023)
+passed with Ruff clean for both historical v1 and synthetic dormant v2
+profiles. This establishes stronger *controlled-chain* source provenance
+than consulting current group membership alone. It does not prove
+autonomous validator agreement, independent real-world reviewers,
+constitutional recusal authority, or a production network. It does
+**not** generalize to all `GROUP_ROLE_GRANT` role-map additions, election
+changes, funding, household relationships, beneficiaries, or
+self-reported connections. `GROUP_ROLE_GRANT` can populate role maps
+that the conflict filter reads, but that post-assignment signed origin
+has not been exercised in this evidence increment.
 
 Any future recusal/penalty fairness design must require a versioned
 on-chain definition of acceptable conflict evidence and its
