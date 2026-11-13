@@ -723,3 +723,72 @@ def test_mismatched_test_genesis_v2_cannot_replay_v1_block(
     assert applied.ok is False, "cross-genesis replay must reject an incompatible state root"
     assert compute_state_root(v2_follower.read_state()) == v2_genesis_root
     assert v2_follower.read_state() == before
+
+
+
+def test_signed_non_group_officer_role_grant_is_currently_admitted_and_replays(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Source behavior, not approval: authenticated outsider is not a group officer."""
+    _controlled_strict_environment(monkeypatch)
+    index = Path(__file__).resolve().parents[1] / "generated" / "tx_index.json"
+    source = WeAllExecutor(
+        db_path=str(tmp_path / "outsider-role-grant-source.sqlite"),
+        node_id="pr88-role-grant-outsider",
+        chain_id=CHAIN,
+        tx_index_path=str(index),
+    )
+    genesis = deepcopy(source.read_state())
+    _signed_committed(
+        source,
+        tx_type="GROUP_CREATE",
+        signer=REPORTER,
+        nonce=1,
+        payload={"group_id": GROUP_ID, "charter": "Role-grant signer authority characterization"},
+    )
+    outsider = "@pr88-role-outsider"
+    public, _ = _deterministic_replay_fixture_keypair(label=outsider)
+    _signed_committed(
+        source, tx_type="ACCOUNT_REGISTER", signer=outsider, nonce=1,
+        payload={"pubkey": public},
+    )
+    _signed_committed(
+        source,
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
+        signer=outsider,
+        nonce=2,
+        payload={"account_id": outsider},
+    )
+    prior = deepcopy(source.read_state())
+    group = prior["roles"]["groups_by_id"][GROUP_ID]
+    assert outsider not in group["signers"]
+    assert outsider not in group["moderators"]
+    assert outsider not in group.get("roles", {}).get("admin", [])
+    assert outsider not in group.get("roles", {}).get("moderator", [])
+    target = "@pr88-target-not-officer"
+    height, block = _signed_committed(
+        source,
+        tx_type="GROUP_ROLE_GRANT",
+        signer=outsider,
+        nonce=3,
+        payload={"group_id": GROUP_ID, "account": target, "role": "moderator"},
+    )
+    assert block["receipts"][0]["signer"] == outsider
+    assert height == prior["height"] + 1
+    after = source.read_state()
+    assert target in after["roles"]["groups_by_id"][GROUP_ID]["roles"]["moderator"]
+    assert after["roles"]["groups_by_id"][GROUP_ID]["moderators"] == [REPORTER]
+
+    independent = WeAllExecutor(
+        db_path=str(tmp_path / "outsider-role-grant-follower.sqlite"),
+        node_id="pr88-role-grant-outsider-follower",
+        chain_id=CHAIN,
+        tx_index_path=str(index),
+    )
+    assert independent.read_state() == genesis
+    for block_height in range(1, after["height"] + 1):
+        committed = source.get_block_by_height(block_height)
+        assert independent.apply_block(deepcopy(committed)).ok is True
+        assert independent.get_block_by_height(block_height) == committed
+        assert compute_state_root(independent.read_state()) == committed["header"]["state_root"]
+    assert independent.read_state() == after
