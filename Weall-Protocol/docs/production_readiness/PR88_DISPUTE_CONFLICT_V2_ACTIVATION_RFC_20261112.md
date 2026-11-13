@@ -224,6 +224,44 @@ constitutional decision/appeal procedure. A supplied witness, current
 conflict list, or arbitrary user `reason` string is **never** sufficient
 to forgive reputation penalties or replace a juror.
 
+### Group role-map grants and signer-admission separation
+
+A further read-only source path now recognizes a `GROUP_ROLE_GRANT` to
+one of the conflict-bearing group role-map fields:
+`creator`, `creators`, `admin`, `admins`, `moderator`,
+`moderators`, `emissary`, or `emissaries`. The helper requires an
+actual before/after role-map membership addition, a matching signed
+user-origin `GROUP_ROLE_GRANT` transaction, its successful receipt,
+adjacent heights, an unchanged original panel, and an internally
+consistent state root. Granting an unrelated role cannot itself
+satisfy that predicate. The role's *label* is not an independently
+verified human relationship or permission to adjudicate a conflict.
+
+The [signed role-map provenance/authorization regression](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43355376868)
+passed **53/53** tests and Ruff checks. In historical v1 and synthetic
+dormant v2, a group signer's authorized `GROUP_ROLE_GRANT` creates a
+post-assignment conflict and is reproduced through independent
+production `apply_block` replay. The separate negative authority test
+registers and grants Tier 2 to another validly signing account **not**
+present in the group's signers or moderators. Its signed
+`GROUP_ROLE_GRANT` is **rejected at admission** with
+`gate_denied:gate:Signer`. That rejected transaction is not included
+in a block, does not alter the group's role map, and leaves the prior
+canonical state reproducible on an independent executor. Thus the
+absence of a signer check in the leaf applier is *not* proof that a
+non-group signer can grant roles: admission applies the signer gate.
+
+This is evidence for one group officer role-map origin, not automatic
+authorization to recuse jurors, forgive reputation penalties, or
+accept claimed conflict-introduction heights. The preview still does
+**not** validate signatures, verify BFT QCs or prove the real-world
+legitimacy of a role assignment; its positive status remains a
+candidate requiring trusted independent replay. Other group offices,
+elections, household ties, funding/beneficiary relationships and
+externally asserted connections remain outside tested provenance
+coverage. Existing v1 receipts, unapproved v2 activation and release
+locks are unchanged.
+
 ## 5. Staged review gates
 
 | Stage | Required evidence | Current disposition |
