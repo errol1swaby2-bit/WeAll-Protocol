@@ -173,6 +173,49 @@ never be sufficient to suppress a penalty or appoint a substitute.
 The default v1 paths, non-whitelisted v2 parameter, and constitutional
 amendment lock remain intact.
 
+### Signed group-moderator conflict transition witness — advisory provenance
+
+A new source-only helper, `src/weall/runtime/dispute_conflict_provenance_preview.py`,
+can identify an *internally consistent* post-assignment transition for a
+**group-officer conflict**. It requires adjacent state heights, an intact
+panel and original commitment, the juror's absence from the prior
+material-conflict set, their presence afterward, a new group moderator
+membership, a single signed `GROUP_MODERATORS_SET` block transaction,
+its matching successful receipt/header transaction ID, and a post-state
+root matching the supplied block header. Nonadjacent snapshots, a
+pre-existing conflict, removed signatures, or a forged post-state root
+must be rejected as evidence.
+
+This helper is intentionally **not** an independent signature verifier,
+a trusted block-history fetcher, a BFT QC verifier, or a historical
+replay engine. The snapshots and block are inputs; a forged internally
+consistent triplet could deceive the helper. It always returns
+`authenticated_conflict_provenance_verified=false`,
+`independent_replay_verified=false`, `bft_finality_verified=false`,
+`recusal_authorized=false`, and
+`reputation_penalty_waiver_authorized=false`. A positive result means
+only `candidate_transition_requires_independent_replay`.
+
+The separate controlled-development-chain regression creates the panel
+using legitimately signed and locally committed transactions, observes
+the successful signed moderator change, and then replays **every** block
+through an independent production executor from matching synthetic
+genesis. At the observed moderator height it compares the exact
+before/after replay states and derives the same candidate witness.
+This establishes a stronger *controlled-chain* source provenance than
+consulting current group membership alone. It does not prove autonomous
+validator agreement, independent real-world reviewers, constitutional
+recusal authority, or a production network. It does not generalize
+automatically to conflicts introduced through funding, household
+relationships, beneficiary changes, or maliciously self-reported
+connections.
+
+Any future recusal/penalty fairness design must require a versioned
+on-chain definition of acceptable conflict evidence and its
+constitutional decision/appeal procedure. A supplied witness, current
+conflict list, or arbitrary user `reason` string is **never** sufficient
+to forgive reputation penalties or replace a juror.
+
 ## 5. Staged review gates
 
 | Stage | Required evidence | Current disposition |
