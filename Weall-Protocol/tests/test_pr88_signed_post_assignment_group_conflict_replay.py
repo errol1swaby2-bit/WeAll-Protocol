@@ -725,7 +725,7 @@ def test_mismatched_test_genesis_v2_cannot_replay_v1_block(
     assert v2_follower.read_state() == before
 
 
-def test_signed_non_group_officer_role_grant_is_currently_admitted_and_replays(
+def test_signed_non_group_officer_role_grant_denied_by_signer_gate_and_replays(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Source behavior, not approval: authenticated outsider is not a group officer."""
@@ -768,18 +768,28 @@ def test_signed_non_group_officer_role_grant_is_currently_admitted_and_replays(
     assert outsider not in group.get("roles", {}).get("admin", [])
     assert outsider not in group.get("roles", {}).get("moderator", [])
     target = "@pr88-target-not-officer"
-    height, block = _signed_committed(
-        source,
-        tx_type="GROUP_ROLE_GRANT",
-        signer=outsider,
-        nonce=3,
-        payload={"group_id": GROUP_ID, "account": target, "role": "moderator"},
+    _, private = _deterministic_replay_fixture_keypair(label=outsider)
+    signed = sign_tx_envelope_dict(
+        tx={
+            "chain_id": CHAIN,
+            "tx_type": "GROUP_ROLE_GRANT",
+            "signer": outsider,
+            "nonce": 3,
+            "payload": {"group_id": GROUP_ID, "account": target, "role": "moderator"},
+        },
+        privkey=private,
+        encoding="hex",
     )
-    assert block["receipts"][0]["signer"] == outsider
-    assert height == prior["height"] + 1
-    after = source.read_state()
-    assert target in after["roles"]["groups_by_id"][GROUP_ID]["roles"]["moderator"]
-    assert after["roles"]["groups_by_id"][GROUP_ID]["moderators"] == [REPORTER]
+    tx_id = compute_tx_id_from_dict(CHAIN, signed)
+    denial = source.submit_tx(signed)
+    assert denial["ok"] is False
+    assert (denial.get("error"), denial.get("reason")) == (
+        "gate_denied",
+        "gate:Signer",
+    )
+    assert source.read_state() == prior
+    assert source.get_block_by_height(prior["height"] + 1) is None
+    assert target not in group.get("roles", {}).get("moderator", [])
 
     independent = WeAllExecutor(
         db_path=str(tmp_path / "outsider-role-grant-follower.sqlite"),
@@ -788,9 +798,10 @@ def test_signed_non_group_officer_role_grant_is_currently_admitted_and_replays(
         tx_index_path=str(index),
     )
     assert independent.read_state() == genesis
-    for block_height in range(1, after["height"] + 1):
+    for block_height in range(1, prior["height"] + 1):
         committed = source.get_block_by_height(block_height)
+        assert tx_id not in committed["header"]["tx_ids"]
         assert independent.apply_block(deepcopy(committed)).ok is True
         assert independent.get_block_by_height(block_height) == committed
         assert compute_state_root(independent.read_state()) == committed["header"]["state_root"]
-    assert independent.read_state() == after
+    assert independent.read_state() == prior
