@@ -193,7 +193,7 @@ def preview_post_assignment_group_conflict(
         tx_type = tx.get("tx_type")
         if tx_type not in changed_roles:
             continue
-        role_field, payload_field = _OFFICER_ACTIONS[tx_type]
+        _, payload_field = _OFFICER_ACTIONS[tx_type]
         payload = tx.get("payload")
         if (
             not isinstance(payload, dict)
