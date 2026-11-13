@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import ConnectionPill from "./ConnectionPill";
 import SessionPill from "./SessionPill";
 import SidebarNav from "./SidebarNav";
+import PrimaryNavigation from "./PrimaryNavigation";
 import AppRightRail from "./AppRightRail";
 import FabActionButton from "./FabActionButton";
 import ActivityBell from "./ActivityBell";
@@ -216,7 +217,7 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
 
               {menuOpen ? (
                 <div id="app-shell-primary-menu" className="appShellMenuPopover">
-                  <SidebarNav showAdvancedMode={showAdvancedMode} onNavigate={() => setMenuOpen(false)} />
+                  <SidebarNav showAdvancedMode={showAdvancedMode} hidePrimary onNavigate={() => setMenuOpen(false)} />
                   <div className="appShellMenuFooter">
                     <ConnectionPill />
                     <SessionPill />
@@ -272,6 +273,8 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
             {writesLocked ? <div className="appShellLockPill">writes locked</div> : null}
           </div>
         </header>
+
+        <PrimaryNavigation currentPath={route.path} ready={ready && !writesLocked} />
 
         <section className="appShellRouteStrip" aria-label="Helpful page summary">
           <div className="appShellRouteStripSummary">

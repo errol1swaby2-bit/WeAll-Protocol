@@ -76,6 +76,7 @@ export type RouteMatch =
   | { path: "/groups" }
   | { path: "/groups/create" }
   | { path: "/groups/:id"; id: string }
+  | { path: "/groups/:id/decisions/new"; id: string }
   | { path: "/activity" }
   | { path: "/decisions" }
   | { path: "/decisions/create" }
@@ -352,6 +353,26 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Group",
       contextPanelData: "Group activity, membership state, and helpful actions",
       blockingDependencies: [],
+    }),
+  },
+  "/groups/:id/decisions/new": {
+    section: "Groups",
+    label: "Create Group Decision",
+    title: "Create Group Decision",
+    description: "Draft a signed governance proposal bound to the verified canonical group ID.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    minPohTier: 2,
+    mode: "action",
+    fab: "none",
+    rightRail: "decision_create",
+    normalNav: false,
+    breadcrumbs: [{ label: "Groups", href: "/groups" }],
+    dataContract: contract({
+      primaryObject: "Group-scoped governance proposal",
+      contextPanelData: "Canonical group ID, electorate scope, signer readiness and submission status",
+      blockingDependencies: ["Account session", "Trusted account state", "Canonical group governance contract"],
     }),
   },
   "/activity": {
@@ -687,7 +708,37 @@ function decodeRoutePart(value: string): string {
 export function matchRoute(path: string): RouteMatch {
   const r = path.split("?")[0];
 
+  // V1.6 compatibility aliases reuse existing canonical screen and backend gates.
+  // Aliasing is not proof that a proposed dedicated subworkspace is implemented.
+  if (r === "/start") return { path: "/login" };
+  if (r === "/me") return { path: "/profile" };
+  if (r === "/me/profile-appearance") return { path: "/profile" };
+  if (r === "/feed/new") return { path: "/create" };
+  if (r === "/groups/new") return { path: "/groups/create" };
+  if (r === "/decisions/new") return { path: "/decisions/create" };
+  if (r === "/tasks") return { path: "/reviews" };
+  if (r === "/tasks/content" || r === "/tasks/disputes" ||
+      r === "/tasks/poh-async" || r === "/tasks/poh-live") {
+    return { path: "/reviews" };
+  }
+  if (r === "/me/security/sessions") return { path: "/session" };
+  if (r === "/me/transactions") return { path: "/transactions" };
+  if (r === "/protocol/economics") return { path: "/economics" };
+  if (r === "/protocol/tools") return { path: "/advanced" };
+  if (r === "/settings/appearance" || r === "/settings/themes" ||
+      r === "/settings/layout" || r === "/settings/accessibility" ||
+      r === "/settings/connection" || r === "/settings/advanced") {
+    return { path: "/settings" };
+  }
+  if (r.startsWith("/people/")) {
+    const account = decodeRoutePart(r.slice("/people/".length));
+    if (account) return { path: "/account/:account", account };
+  }
+
   if (r === "/" || r === "/login") return { path: "/login" };
+  if (r === "/verification/async" || r === "/verification/live/request" || r === "/verification/history") {
+    return { path: "/verification" };
+  }
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };
   if (r === "/create") return { path: "/create" };
@@ -719,6 +770,21 @@ export function matchRoute(path: string): RouteMatch {
   if (r.startsWith("/reports/")) {
     const id = decodeRoutePart(r.slice("/reports/".length));
     if (id) return { path: "/reports/:id", id };
+  }
+
+  // Deep-linked group proposal creation resolves before the group-id catch-all.
+  const groupProposalRoute = /^\/groups\/([^/]+)\/decisions\/new$/.exec(r);
+  if (groupProposalRoute) {
+    const id = decodeRoutePart(groupProposalRoute[1]);
+    if (id) return { path: "/groups/:id/decisions/new", id };
+  }
+
+  // Role-specific group work must not be interpreted as part of a group ID.
+  // The group page checks canonical role state before rendering any action.
+  const groupRoleRoute = /^\/groups\/([^/]+)\/(responsibilities|reports|manage\/(?:members|moderation)|emissaries\/(?:work|elections(?:\/[^/]+)?))$/.exec(r);
+  if (groupRoleRoute) {
+    const id = decodeRoutePart(groupRoleRoute[1]);
+    if (id) return { path: "/groups/:id", id };
   }
 
   if (r.startsWith("/groups/")) {

@@ -29,6 +29,7 @@ import {
   solveAccountRegistrationWork,
 } from "../lib/accountRegistrationWork";
 import { nav } from "../lib/router";
+import { VERIFICATION_SECTIONS, verificationSectionFromHash, type VerificationSection } from "../lib/verificationSections";
 import { refreshMutationSlices } from "../lib/revalidation";
 import {
   ASYNC_VIDEO_MAX_SECONDS,
@@ -1320,6 +1321,30 @@ export default function AccountVerificationPage(): JSX.Element {
     }
   }
 
+  const [activeSection, setActiveSection] = useState<VerificationSection>(() =>
+    verificationSectionFromHash(typeof window !== "undefined" ? window.location.hash : ""),
+  );
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const requested = verificationSectionFromHash(window.location.hash);
+      // Keep live capture visible until the local camera and microphone stop.
+      if (asyncRecordingState === "recording" && requested !== "async") {
+        nav("/verification?tab=async");
+        return;
+      }
+      setActiveSection(requested);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [asyncRecordingState]);
+
+  const openVerificationSection = (section: VerificationSection) => {
+    if (asyncRecordingState === "recording" && section !== "async") return;
+    nav(`/verification?tab=${section}`);
+    setActiveSection(section);
+  };
+
   const asyncSubmitCheck = canSubmitAsyncEvidence({
     recordedBlob: asyncRecordedBlob,
     durationSeconds: asyncVideoSeconds,
@@ -1392,6 +1417,22 @@ export default function AccountVerificationPage(): JSX.Element {
         onDismiss={() => setErr(null)}
       />
 
+      <nav className="verificationSectionTabs" aria-label="Verification sections">
+        {VERIFICATION_SECTIONS.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={`verificationSectionTab ${activeSection === entry.id ? "isActive" : ""}`}
+            aria-current={activeSection === entry.id ? "page" : undefined}
+            disabled={asyncRecordingState === "recording" && activeSection === "async" && entry.id !== "async"}
+            onClick={() => openVerificationSection(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="verificationSection" hidden={activeSection !== "overview"}>
       <section className="grid2">
         <article className="card">
           <div className="cardBody formStack">
@@ -1448,14 +1489,18 @@ export default function AccountVerificationPage(): JSX.Element {
           </div>
         </article>
       </section>
+      </div>
 
       <section className="grid3">
+        <div className="verificationSection" hidden={activeSection !== "overview"}>
         <StatusCard
           eyebrow="Account"
           title={VERIFICATION_LABELS.basic}
           status={basicStatus}
           description="You can browse, set up your profile, and start account verification. Creating a basic account does not unlock posting."
         />
+        </div>
+        <div className="verificationSection" hidden={activeSection !== "async"}>
         <StatusCard
           eyebrow="Basic human review"
           title={VERIFICATION_LABELS.verified}
@@ -1560,6 +1605,8 @@ export default function AccountVerificationPage(): JSX.Element {
             </button>
           </div>
         </StatusCard>
+        </div>
+        <div className="verificationSection" hidden={activeSection !== "live"}>
         <StatusCard
           eyebrow="Live human review"
           title={VERIFICATION_LABELS.trusted}
@@ -1598,8 +1645,10 @@ export default function AccountVerificationPage(): JSX.Element {
           ) : null}
           {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
         </StatusCard>
+        </div>
       </section>
 
+      <div className="verificationSection" hidden={activeSection !== "responsibilities"}>
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1657,8 +1706,10 @@ export default function AccountVerificationPage(): JSX.Element {
           </div>
         </div>
       </section>
+      </div>
 
       <section className="grid2">
+        <div className="verificationSection" hidden={activeSection !== "history"}>
         <article className="card">
           <div className="cardBody formStack">
             <div className="sectionHead">
@@ -1713,7 +1764,9 @@ export default function AccountVerificationPage(): JSX.Element {
             {liveSessions.length ? <JsonDetails title="Advanced: live session payloads" value={liveSessions} /> : null}
           </div>
         </article>
+        </div>
 
+        <div className="verificationSection" hidden={activeSection !== "technical"}>
         <article className="card">
           <div className="cardBody formStack">
             <div className="sectionHead">
@@ -1728,6 +1781,7 @@ export default function AccountVerificationPage(): JSX.Element {
             {result ? <JsonDetails title="Advanced: last API result" value={result} /> : <div className="emptyState compactEmpty"><div className="emptyTitle">No recent action payload.</div></div>}
           </div>
         </article>
+        </div>
       </section>
 
     </div>

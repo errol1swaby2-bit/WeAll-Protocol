@@ -11,8 +11,14 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 import time
 from typing import Any
 
+from weall.runtime.bft_hotstuff import validator_set_hash
 from weall.runtime.block_commitment_validation import ensure_complete_block_commitments
 from weall.runtime.block_history import compact_bounded_block_history_in_place
+from weall.runtime.commitments import (
+    consensus_active_validator_ids,
+    consensus_validator_generation,
+    normalize_validator_ids,
+)
 from weall.runtime.executor import (
     ExecutorMeta,
     Path,
@@ -20,6 +26,7 @@ from weall.runtime.executor import (
     _consensus_fail_closed,
     _format_commit_failure,
     _now_ms,
+    _safe_int,
     maybe_trigger_failpoint,
     os,
     prune_emitted_system_queue,
@@ -27,6 +34,40 @@ from weall.runtime.executor import (
 from weall.runtime.failpoints import failpoints_enabled
 
 Json = dict[str, Any]
+
+
+def _validator_context_for_state(state: Json) -> tuple[int, str]:
+    """Resolve validator generation and authority hash without publishing state."""
+    generation = consensus_validator_generation(state)
+    consensus = state.get("consensus") if isinstance(state, dict) else None
+    if generation is None:
+        epochs = consensus.get("epochs") if isinstance(consensus, dict) else None
+        if isinstance(epochs, dict):
+            generation = max(0, _safe_int(epochs.get("current"), 0))
+        else:
+            generation = 0
+
+    explicit = consensus_active_validator_ids(state)
+    validator_set = consensus.get("validator_set") if isinstance(consensus, dict) else None
+    if explicit is not None:
+        if not isinstance(validator_set, dict) or not isinstance(
+            validator_set.get("active_set"), list
+        ):
+            return int(generation), ""
+        have = str(validator_set.get("set_hash") or "").strip()
+        if have:
+            return int(generation), have
+        return int(generation), validator_set_hash(explicit) if explicit else ""
+
+    if isinstance(validator_set, dict):
+        have = str(validator_set.get("set_hash") or "").strip()
+        if have:
+            return int(generation), have
+    roles = state.get("roles") if isinstance(state, dict) else None
+    validators = roles.get("validators") if isinstance(roles, dict) else None
+    active_set = validators.get("active_set") if isinstance(validators, dict) else None
+    normalized = normalize_validator_ids(active_set) if isinstance(active_set, list) else []
+    return int(generation), validator_set_hash(normalized) if normalized else ""
 
 
 def commit_block_candidate(
@@ -123,13 +164,17 @@ def commit_block_candidate(
 
         snap_height = int(new_state.get("height", height))
         snap_tip = str(new_state.get("tip") or block_id).strip()
-        state_json = _canon_json(new_state)
 
-        # Capture transition context before crossing the durable commit boundary.
-        # Any exception here is still a true non-commit and can safely return
-        # ``ok=False`` without creating an ambiguous durable outcome.
+        # Capture both validator generations before crossing the durable commit
+        # boundary. Do not publish the candidate state just to inspect its set.
         previous_epoch = self._current_validator_epoch()
         previous_set_hash = self._current_validator_set_hash() if int(previous_epoch) > 0 else ""
+        next_epoch, next_set_hash = _validator_context_for_state(new_state)
+        if next_epoch <= 0:
+            next_set_hash = ""
+        same_validator_generation = next_epoch == int(previous_epoch) and next_set_hash == str(
+            previous_set_hash or ""
+        )
 
         with self._db.write_tx() as con:
             # Revalidate the candidate against the *durable* canonical parent
@@ -251,6 +296,16 @@ def commit_block_candidate(
 
             maybe_trigger_failpoint("block_commit_before_ledger_state")
 
+            if same_validator_generation:
+                # Block candidates can contain stale node-local BFT metadata.
+                # Capture the live pacemaker/signing records *inside* the same
+                # SQLite transaction as this block, so a crash immediately
+                # after commit cannot resurrect the candidate-time version.
+                # The state root deliberately excludes this local BFT field.
+                self._prune_bft_liveness_caches_for_current_epoch()
+                new_state["bft"] = self._bft.export_state()
+            state_json = _canon_json(new_state)
+
             con.execute(
                 """
                 INSERT INTO ledger_state(id, height, block_id, state_json, updated_ts_ms)
@@ -273,7 +328,12 @@ def commit_block_candidate(
         # closed if BFT/cache housekeeping cannot be completed.
         self.state = new_state
         try:
-            self._bft.load_from_state(self.state)
+            # In the same generation, the durable block already contains the
+            # latest local BFT snapshot; never reload candidate-time metadata.
+            # A validator generation change continues through the existing
+            # reset path, which does not carry old-generation signing authority.
+            if not same_validator_generation:
+                self._bft.load_from_state(self.state)
             self._cache_known_block_hash(str(block_id), str(block2.get("block_hash") or ""))
             self._prune_pending_bft_artifacts_on_local_validator_transition(
                 previous_epoch=int(previous_epoch),

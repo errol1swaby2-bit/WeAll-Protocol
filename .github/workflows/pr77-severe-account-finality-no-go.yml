@@ -12,6 +12,7 @@ on:
       - 'Weall-Protocol/tooling/ban_state_contract_candidate.py'
       - 'Weall-Protocol/tests/test_pr77_ban_state_contract_candidate.py'
       - 'Weall-Protocol/tests/test_pr77_severe_account_finality_no_go.py'
+      - 'Weall-Protocol/tests/test_pr77_appeal_fresh_panel_atomicity.py'
       - 'Weall-Protocol/tests/test_pr77_account_ban_queue_provenance.py'
       - 'Weall-Protocol/tests/test_pr77_complete_severe_appeal_no_authority.py'
       - '.github/workflows/pr77-severe-account-finality-no-go.yml'
@@ -37,8 +38,9 @@ jobs:
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
-          ruff check src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/dispute.py tests/test_pr77_severe_account_finality_no_go.py
-          pytest -q tests/test_pr77_severe_account_finality_no_go.py tests/test_stage23_account_ban_severe_sanction_no_go.py tests/test_constitutional_procedure_clock.py tests/test_dispute_followups.py
+          ruff check src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/dispute.py tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_appeal_fresh_panel_atomicity.py
+          ruff format --check src/weall/runtime/apply/dispute.py tests/test_pr77_appeal_fresh_panel_atomicity.py
+          pytest -q tests/test_pr77_severe_account_finality_no_go.py tests/test_pr77_appeal_fresh_panel_atomicity.py tests/test_stage23_account_ban_severe_sanction_no_go.py tests/test_constitutional_procedure_clock.py tests/test_dispute_followups.py
           python -m py_compile src/weall/runtime/severe_sanction_boundary.py src/weall/runtime/dispute_engine.py src/weall/runtime/apply/dispute.py
       - name: Characterize reputation-floor alternate ban path (NOT constitutional approval)
         working-directory: Weall-Protocol

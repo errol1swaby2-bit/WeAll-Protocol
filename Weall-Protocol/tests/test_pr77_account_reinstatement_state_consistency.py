@@ -13,6 +13,7 @@ import pytest
 
 from weall.runtime.apply.reputation import apply_reputation
 from weall.runtime.domain_apply import apply_tx_atomic_meta, apply_tx_atomic_meta_deepcopy
+from weall.runtime.errors import ApplyError
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.tx_contracts import handler_claims_for_tx_type, handler_name_for_tx_type
@@ -95,12 +96,9 @@ def _final_receipt() -> TxEnvelope:
     )
 
 
-@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
-def test_full_final_receipt_inline_reinstate_leaves_active_ban_index(
-    clock_enabled: bool,
-) -> None:
-    """Current full-TX behavior: account restored while ban audit map stays active."""
-    original = _state(clock_enabled=clock_enabled)
+def test_legacy_final_receipt_inline_reinstate_leaves_active_ban_index() -> None:
+    """Historical legacy full-TX path leaves ban-index divergence for review."""
+    original = _state(clock_enabled=False)
     bounded = copy.deepcopy(original)
     reference = copy.deepcopy(original)
 
@@ -120,6 +118,23 @@ def test_full_final_receipt_inline_reinstate_leaves_active_ban_index(
     assert bounded["accounts"]["@target"]["restricted"] is False
     assert bounded["reputation"]["bans"]["@target"]["banned"] is True
     assert bounded["reputation"]["bans"]["@target"]["auto"] is True
+
+
+@pytest.mark.parametrize(
+    "applier",
+    [apply_tx_atomic_meta, apply_tx_atomic_meta_deepcopy],
+    ids=["bounded-atomic", "reference-deepcopy"],
+)
+def test_constitutional_unverified_appeal_receipt_rejected_atomically(applier) -> None:
+    """An unresolved synthetic appeal cannot supply its own final decision."""
+    state = _state(clock_enabled=True)
+    before = copy.deepcopy(state)
+    with pytest.raises(ApplyError) as exc:
+        applier(state, _final_receipt())
+    assert exc.value.reason == "appeal_panel_decision_not_finalized"
+    assert state == before
+    assert state["reputation"]["bans"]["@target"]["banned"] is True
+    assert state["accounts"]["@target"]["banned"] is True
 
 
 def test_canonical_reputation_reinstate_also_updates_ban_index() -> None:
@@ -148,16 +163,13 @@ def test_account_ban_canonical_handler_is_reputation_not_legacy_identity() -> No
     assert handler_name_for_tx_type("ACCOUNT_BAN") == "reputation"
 
 
-@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
-def test_synthetic_reputation_delta_can_reban_after_inline_reinstatement(
-    clock_enabled: bool,
-) -> None:
+def test_legacy_synthetic_reputation_delta_can_reban_after_inline_reinstatement() -> None:
     """A zero delta at the -100 floor revives exclusion after a remedy.
 
     This is an executor-only synthetic chain, NOT proof of an authenticated
     reputation-delta SYSTEM producer, constitutional ban, or live exploit.
     """
-    seed = _state(clock_enabled=clock_enabled)
+    seed = _state(clock_enabled=False)
     bounded = copy.deepcopy(seed)
     reference = copy.deepcopy(seed)
     apply_tx_atomic_meta(bounded, _final_receipt())

@@ -1,16 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { api, getApiBaseUrl, weall, type GroupGovernanceContract } from "../api/weall";
+import { api, getApiBaseUrl, weall, type GroupGovernanceContract, type GroupElectionRecord } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import GroupBallotPlanner from "../components/GroupBallotPlanner";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav, navWithReturn } from "../lib/router";
+import { GROUP_PROFILE_TABS, groupWorkspaceTabFromHash, groupElectionIdFromHash, type GroupProfileTab, type GroupWorkspaceTab } from "../lib/groupProfileTabs";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { reconcileMembershipDecision, reconcileMembershipPending, reconcileMembershipState } from "../lib/groupsRevalidation";
+import { groupReportSource, publicRoleAccounts } from "../lib/groupOversight";
 import { refreshMutationSlices, requestGlobalRefresh } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 
@@ -42,6 +45,16 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [detail, setDetail] = useState<any | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [groupPosts, setGroupPosts] = useState<any[]>([]);
+  const [groupDecisions, setGroupDecisions] = useState<any[]>([]);
+  const [groupReports, setGroupReports] = useState<Array<{ item: any; source: string }>>([]);
+  const [groupReportsStatus, setGroupReportsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [groupReportsBounded, setGroupReportsBounded] = useState(true);
+  const [decisionsStatus, setDecisionsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [electionRows, setElectionRows] = useState<GroupElectionRecord[]>([]);
+  const [electionDetail, setElectionDetail] = useState<GroupElectionRecord | null>(null);
+  const [electionTotal, setElectionTotal] = useState<number | null>(null);
+  const [electionNextOffset, setElectionNextOffset] = useState<number | null>(null);
+  const [electionsStatus, setElectionsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus | null>(null);
   const [governanceContract, setGovernanceContract] = useState<GroupGovernanceContract | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
@@ -49,6 +62,17 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [busy, setBusy] = useState<boolean>(false);
   const [reportBusyId, setReportBusyId] = useState<string | null>(null);
   const [reportInfo, setReportInfo] = useState<{ msg: string; details?: any } | null>(null);
+  const [activeTab, setActiveTab] = useState<GroupWorkspaceTab>(() => groupWorkspaceTabFromHash(typeof window !== "undefined" ? window.location.hash : ""));
+  const [electionDetailId, setElectionDetailId] = useState<string>(() => groupElectionIdFromHash(typeof window !== "undefined" ? window.location.hash : ""));
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setActiveTab(groupWorkspaceTabFromHash(window.location.hash));
+      setElectionDetailId(groupElectionIdFromHash(window.location.hash));
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
@@ -65,6 +89,118 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const currentGroupRoute = selected ? `/groups/${encodeURIComponent(selected)}` : "/groups";
+  const openGroupTab = (tab: GroupProfileTab) => nav(`${currentGroupRoute}?tab=${tab}`);
+
+  useEffect(() => {
+    if (!selected || (activeTab !== "elections" && activeTab !== "election_detail")) return;
+    let active = true;
+    setElectionsStatus("loading");
+    setElectionRows([]);
+    setElectionDetail(null);
+    setElectionTotal(null);
+    setElectionNextOffset(null);
+    const headers = acct ? getAuthHeaders(acct) : undefined;
+    const source = activeTab === "elections"
+      ? weall.groupElections(selected, { limit: 100, offset: 0 }, base, headers)
+      : weall.groupElection(selected, electionDetailId, base, headers);
+    void source.then(response => {
+      if (!active) return;
+      if (response.ok !== true || response.group_id !== selected || response.read_only !== true) {
+        throw new Error("Election response has invalid group provenance.");
+      }
+      if ("items" in response) {
+        if (!Array.isArray(response.items) || response.items.some(item =>
+            item.group_id !== selected || item.source !== "canonical_group_emissary_elections_snapshot")) {
+          throw new Error("Election index contains a mismatched group.");
+        }
+        setElectionRows(response.items);
+        setElectionTotal(response.total);
+        setElectionNextOffset(response.next_offset);
+      } else {
+        const item = response.election;
+        if (!item || item.group_id !== selected || item.election_id !== electionDetailId ||
+            item.source !== "canonical_group_emissary_elections_snapshot") {
+          throw new Error("Election detail does not match the requested group and election.");
+        }
+        setElectionDetail(item);
+      }
+      setElectionsStatus("ready");
+    }).catch(() => {
+      if (!active) return;
+      setElectionRows([]);
+      setElectionDetail(null);
+      setElectionTotal(null);
+      setElectionNextOffset(null);
+      setElectionsStatus("error");
+    });
+    return () => { active = false; };
+  }, [activeTab, selected, electionDetailId, base, acct]);
+
+  useEffect(() => {
+    if (activeTab !== "decisions" || !selected) return;
+    let active = true;
+    setGroupDecisions([]);
+    setDecisionsStatus("loading");
+    // Canonical group scope is taken from each returned proposal; never infer it
+    // from browser navigation or a group membership cached in this client.
+    void weall.proposals({ limit: 200, includeSummary: true }, base)
+      .then((result: any) => {
+        if (!active) return;
+        const rows = Array.isArray(result?.items) ? result.items : [];
+        const scoped = rows.filter((item: any) =>
+          String(item?.group_id || item?.raw?.group_id || "").trim() === selected,
+        );
+        setGroupDecisions(scoped);
+        setDecisionsStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setGroupDecisions([]);
+        setDecisionsStatus("error");
+      });
+    return () => { active = false; };
+  }, [activeTab, selected, base]);
+
+  useEffect(() => {
+    if (!selected || activeTab !== "reports") return;
+    let active = true;
+    setGroupReports([]);
+    setGroupReportsBounded(true);
+    setGroupReportsStatus("loading");
+    // The dispute endpoint has no exact group_id filter. Match ONLY against
+    // group-feed post IDs or the canonical target snapshot's group_id.
+    // Both lists are capped; a zero match does NOT mean zero historical reports.
+    const headers = acct ? getAuthHeaders(acct) : undefined;
+    void Promise.all([
+      weall.groupFeed(selected, { limit: 100 }, base, headers),
+      weall.disputes({ limit: 200, includeSummary: true }, base, headers),
+    ]).then(([feed, reports]: [any, any]) => {
+      if (!active) return;
+      if (String(feed?.group_id || "").trim() !== selected || !Array.isArray(feed?.items) || !Array.isArray(reports?.items)) {
+        throw new Error("Group report sources are incomplete or scoped to a different group.");
+      }
+      const postIds = new Set<string>(feed.items.map((p: any) =>
+        String(p?.post_id || p?.id || "").trim()).filter(Boolean));
+      const matched: Array<{ item: any; source: string }> = [];
+      for (const item of reports.items) {
+        const reportId = String(item?.id || item?.dispute_id || "").trim();
+        if (!reportId) continue;
+        const source = groupReportSource(item, selected, postIds);
+        if (source) matched.push({ item, source });
+      }
+      setGroupReports(matched);
+      const total = Number(reports?.summary?.total);
+      setGroupReportsBounded(Boolean(feed?.next_cursor) || feed.items.length >= 100 ||
+        reports.items.length >= 200 || !Number.isFinite(total) || total > reports.items.length);
+      setGroupReportsStatus("ready");
+    }).catch(() => {
+      if (!active) return;
+      setGroupReports([]);
+      setGroupReportsBounded(true);
+      setGroupReportsStatus("error");
+    });
+    return () => { active = false; };
+  }, [activeTab, selected, base, acct]);
 
   async function loadAccountState(): Promise<void> {
     if (!acct) {
@@ -229,6 +365,22 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
     setErr(null);
     setBusy(true);
     try {
+      // A visible role badge is not authority. Re-read current group state
+      // before signing so revoked moderators and settled requests fail closed.
+      const freshResponse: any = await api.groups.get(selected, base);
+      const freshGroup: any = freshResponse?.group || freshResponse;
+      const freshModerators = publicRoleAccounts(freshGroup?.moderators || freshGroup?.roles?.moderators);
+      if (!freshModerators.some((candidate) => candidate.toLowerCase() === acct.toLowerCase())) {
+        throw new Error("Your moderator assignment is not present in the latest group state. No decision was submitted.");
+      }
+      const freshMode = String(freshGroup?.membership_mode || freshGroup?.meta?.membership_mode || "").trim().toLowerCase();
+      const freshRequests = freshGroup?.membership_requests;
+      if (freshMode !== "approval_required" ||
+          !freshRequests || typeof freshRequests !== "object" ||
+          Array.isArray(freshRequests) ||
+          !Object.prototype.hasOwnProperty.call(freshRequests, member)) {
+        throw new Error("This membership request is not pending in the latest group state. No decision was submitted.");
+      }
       await tx.runTx({
         title: decision === "accept" ? "Approve membership" : "Reject membership",
         pendingKey: txPendingKey(["group-membership-decision", selected, member, decision, acct]),
@@ -336,8 +488,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const pendingMembershipAccounts = detail?.membership_requests && typeof detail.membership_requests === "object"
     && !Array.isArray(detail.membership_requests)
     ? Object.keys(detail.membership_requests).sort() : [];
-  const moderatorAccounts = Array.isArray(detail?.moderators)
-    ? detail.moderators : Array.isArray(detail?.roles?.moderators) ? detail.roles.moderators : [];
+  const moderatorAccounts = publicRoleAccounts(detail?.moderators || detail?.roles?.moderators);
   // The backend is authoritative: revoked moderators cannot approve even if
   // the local role cache has not refreshed.
   const canModerate = !!acct && moderatorAccounts.some((member: unknown) =>
@@ -369,7 +520,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="eyebrow">Group detail</div>
               <h1 className="heroTitle heroTitleSm">{detailName}</h1>
               <p className="heroText">
-                Read the public group charter, inspect membership and governance posture, and use signed actions only for participation changes.
+                {detailDescription || "Public community profile. Browse this group's posts, membership and governance records."}
               </p>
             </div>
 
@@ -407,6 +558,21 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </div>
       </section>
 
+      <nav className="groupProfileTabs" aria-label="Group profile sections">
+        {GROUP_PROFILE_TABS.filter((tab) => tab.id !== "responsibilities" || !!acct).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`groupProfileTab ${activeTab === tab.id ? "isActive" : ""}`}
+            aria-current={activeTab === tab.id ? "page" : undefined}
+            onClick={() => openGroupTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {activeTab === "about" ? (
       <section className="surfaceBoundaryBar" aria-label="Group detail route contract">
         <div className="surfaceBoundaryHeader">
           <div>
@@ -425,7 +591,9 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           <span className="surfaceBoundaryTag">Posting uses the create-post page</span>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "governance" ? (
       <section className="card" aria-label="Group governance contract">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -470,7 +638,344 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "decisions" ? (
+      <section className="card" aria-label="Group-specific decisions">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Group governance</div>
+              <h2 className="cardTitle">Decisions in this community</h2>
+              <p className="cardDesc">
+                Only proposals explicitly identifying this group's canonical scope appear here.
+                The bounded public index returns at most 200 proposals; this is not an exhaustive historical archive.
+              </p>
+            </div>
+            <div className="buttonRow buttonRowWide">
+              <button className="btn" onClick={() => nav("/decisions")}>Browse all decisions</button>
+              <button className="btn btnPrimary" onClick={() => nav(`${currentGroupRoute}/decisions/new`)}>Propose for this group</button>
+            </div>
+          </div>
+          {decisionsStatus === "loading" ? <div className="cardDesc">Loading group decisions…</div> : null}
+          {decisionsStatus === "error" ? <div className="calloutDanger">Group decisions could not be loaded from this node. No absence claim is made.</div> : null}
+          {decisionsStatus === "ready" && !groupDecisions.length ? (
+            <div className="emptyState compactEmpty">
+              <div className="emptyTitle">No group-scoped decisions in the returned index</div>
+              <div className="emptyText">This does not prove there have never been group decisions.</div>
+            </div>
+          ) : null}
+          {decisionsStatus === "ready" ? groupDecisions.map((item: any, index: number) => {
+            const proposalId = String(item?.proposal_id || item?.id || "").trim();
+            if (!proposalId) return null;
+            return (
+              <button
+                type="button"
+                className="quickCard quickCardMain"
+                key={proposalId || String(index)}
+                onClick={() => nav(`/decisions/${encodeURIComponent(proposalId)}`)}
+              >
+                <strong>{String(item?.title || "Group decision")}</strong>
+                <span className="miniTag">{String(item?.stage || item?.status || "status unavailable")}</span>
+              </button>
+            );
+          }) : null}
+        </div>
+      </section>
+      ) : null}
+
+      {activeTab === "treasury" ? (
+      <section className="card" aria-label="Group treasury transparency">
+        <div className="cardBody formStack">
+          <div className="eyebrow">Group treasury</div>
+          <h2 className="cardTitle">Treasury status and mandate</h2>
+          <div className="calloutInfo">
+            This integration does not expose a verified group treasury ledger or authorized payment workflow.
+            No balance, proposed spending power, or executable group payment is claimed here.
+          </div>
+          <p className="cardDesc">
+            Group-scoped spending decisions and authorization records must be reviewed under the same
+            constitutional and economic activation gates as the protocol. A ballot or elected emissary
+            is not, by itself, authority to transfer funds.
+          </p>
+          <div className="buttonRow buttonRowWide">
+            <button className="btn" onClick={() => openGroupTab("decisions")}>View group decisions</button>
+            <button className="btn" onClick={() => nav("/protocol/economics")}>Read locked economics status</button>
+          </div>
+        </div>
+      </section>
+      ) : null}
+
+      {activeTab === "responsibilities" ? (
+      <section className="card" aria-label="My group responsibilities">
+        <div className="cardBody formStack">
+          <div className="eyebrow">My work · this group only</div>
+          <h2 className="cardTitle">Group responsibilities</h2>
+          <p className="cardDesc">
+            This dashboard routes your actual membership and moderator tasks. It does not
+            assign any role, confer juror authority, or authorize treasury or emissary execution.
+          </p>
+          {!acct ? (
+            <div className="calloutInfo">
+              Sign in to inspect your group responsibilities. Public records remain available in the other tabs.
+              <div className="buttonRow"><button className="btn" onClick={() => navWithReturn("/login", currentGroupRoute + "?tab=responsibilities")}>Sign in</button></div>
+            </div>
+          ) : (
+            <>
+              <div className="surfaceBoundaryList">
+                <span className="surfaceBoundaryTag">Account: {acct}</span>
+                <span className="surfaceBoundaryTag">Membership: {isMember ? "member" : isPendingMembership ? "pending" : "not confirmed"}</span>
+                <span className="surfaceBoundaryTag">Moderator listing: {canModerate ? "present in group read model" : "not present"}</span>
+                <span className="surfaceBoundaryTag">Signing device: {canSign ? "available" : "unavailable"}</span>
+              </div>
+              <div className="detailFocusStrip actionFocusStrip">
+                <article className="detailFocusCard">
+                  <div className="detailFocusLabel">Member participation</div>
+                  <div className="detailFocusValue">{isMember ? "Membership confirmed" : isPendingMembership ? "Request awaiting decision" : "No confirmed membership"}</div>
+                  <div className="detailFocusText">Join or leave using the existing signed membership action. Posting and voting remain subject to canonical account and group rules.</div>
+                  <button className="btn" onClick={() => openGroupTab("members")}>Open membership</button>
+                </article>
+                <article className="detailFocusCard">
+                  <div className="detailFocusLabel">Membership moderator</div>
+                  <div className="detailFocusValue">{canModerate ? "Listed as moderator" : "Not assigned"}</div>
+                  <div className="detailFocusText">
+                    {canModerate
+                      ? membershipMode === "approval_required"
+                        ? "Open the dedicated request desk. Each signed decision rechecks the live group state."
+                        : "This group does not currently use an approval-required membership queue."
+                      : "No moderator action is offered without the group listing your account as a moderator."}
+                  </div>
+                  {canModerate && membershipMode === "approval_required" ? (
+                    <button className="btn" disabled={!canSign} onClick={() => nav(currentGroupRoute + "/manage/members")}>Open membership approval desk</button>
+                  ) : null}
+                </article>
+                <article className="detailFocusCard">
+                  <div className="detailFocusLabel">Public content oversight</div>
+                  <div className="detailFocusValue">Reports are not jury assignments</div>
+                  <div className="detailFocusText">
+                    Browse public reports matched to this group's canonical posts. Group moderation does not
+                    grant dispute juror authority; assigned verdict work remains in the Review Center.
+                  </div>
+                  <button className="btn" onClick={() => openGroupTab("reports")}>Inspect group reports</button>
+                  {canModerate ? (
+                    <button className="btn" onClick={() => nav(currentGroupRoute + "/manage/moderation")}>Moderator case routing</button>
+                  ) : null}
+                </article>
+                <article className="detailFocusCard">
+                  <div className="detailFocusLabel">Emissary and treasury mandates</div>
+                  <div className="detailFocusValue">Execution desk unavailable</div>
+                  <div className="detailFocusText">No verified group-scoped mandate, treasury signer, expiry or execution receipt API is connected. An election or role listing cannot substitute for one.</div>
+                  <button className="btn" onClick={() => openGroupTab("emissaries")}>Inspect public election records</button>
+                  <button className="btn" onClick={() => nav(currentGroupRoute + "/emissaries/work")}>Mandate availability</button>
+                </article>
+              </div>
+              {!canSign ? <div className="calloutInfo">Restore your local signing key before attempting any signed action.</div> : null}
+            </>
+          )}
+        </div>
+      </section>
+      ) : null}
+
+      {activeTab === "reports" ? (
+        <section className="card" aria-label="Public group report records">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Group · public oversight</div>
+                <h2 className="cardTitle">Reports on group content</h2>
+                <p className="cardDesc">
+                  Matched using the public dispute target's canonical group snapshot or a post ID from
+                  this group's returned feed. The APIs do not expose a complete group-filtered dispute index.
+                </p>
+              </div>
+              <button className="btn" onClick={() => nav("/reports")}>All public reports</button>
+            </div>
+            <div className="calloutInfo">
+              This is a bounded, public record sample, not a comprehensive moderation queue.
+              A group moderator does not automatically become a dispute juror. No verdict or removal controls are available here.
+            </div>
+            {groupReportsStatus === "loading" ? <p className="cardDesc">Loading the group's public report sample…</p> : null}
+            {groupReportsStatus === "error" ? <div className="calloutDanger">Public report sources could not be verified for this group. No absence claim is made.</div> : null}
+            {groupReportsStatus === "ready" ? (
+              <>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">{groupReports.length} matches in returned sample</span>
+                  <span className="surfaceBoundaryTag">{groupReportsBounded ? "Source window is incomplete or unverified" : "Current bounded source window inspected; history not guaranteed"}</span>
+                </div>
+                {groupReports.map(({ item, source }) => {
+                  const reportId = String(item?.id || item?.dispute_id || "").trim();
+                  return (
+                    <article className="quickCard quickCardSplit" key={reportId}>
+                      <div className="quickCardMain">
+                        <strong>Report {reportId}</strong>
+                        <span className="miniTag">{String(item?.stage || item?.status || "status unavailable")}</span>
+                        <small>Target {String(item?.target_id || "unavailable")} · {source === "canonical_target_snapshot" ? "canonical group snapshot" : "returned group post"}</small>
+                      </div>
+                      <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(reportId)}`)}>Open public record</button>
+                    </article>
+                  );
+                })}
+                {!groupReports.length ? (
+                  <div className="emptyState compactEmpty">
+                    <div className="emptyTitle">No matching reports in the returned sample</div>
+                    <div className="emptyText">Hidden content, older cases and unreturned pages may be missing. This does not establish that the group has never had reports.</div>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "moderation_review" ? (
+        <section className="card" aria-label="Group moderator case routing">
+          <div className="cardBody formStack">
+            <div className="eyebrow">My group work · content oversight</div>
+            <h2 className="cardTitle">Moderator case routing</h2>
+            <p className="cardDesc">A group moderator's membership powers do not confer content dispute voting authority. Only a separately assigned, opted-in juror can issue a review verdict.</p>
+            {!acct || !canSign ? (
+              <div className="calloutInfo">Sign in with your local signer to open group responsibility routes.</div>
+            ) : !canModerate ? (
+              <div className="calloutInfo">No moderator assignment is present in the current group read model. No group-role action is available.</div>
+            ) : (
+              <>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">Group: {selected}</span>
+                  <span className="surfaceBoundaryTag">Moderator listing: present</span>
+                  <span className="surfaceBoundaryTag">Dispute jury: independently assigned</span>
+                </div>
+                <p className="cardDesc">Open the public group reports index for oversight. The separate Review Center verifies reviewer opt-in, case assignment and conflict rules before any signed dispute action.</p>
+                <div className="buttonRow buttonRowWide">
+                  <button className="btn" onClick={() => openGroupTab("reports")}>Public group reports</button>
+                  <button className="btn" onClick={() => nav("/tasks/disputes")}>Assigned dispute reviews</button>
+                  <button className="btn" onClick={() => nav(currentGroupRoute + "/manage/members")}>Membership approval desk</button>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "emissary_work" ? (
+        <section className="card" aria-label="Group emissary mandate status">
+          <div className="cardBody formStack">
+            <div className="eyebrow">Group responsibilities · emissary</div>
+            <h2 className="cardTitle">Mandate execution unavailable</h2>
+            <p className="cardDesc">
+              The group governance endpoint exposes public active election summaries, not a verified
+              elected-seat, mandate-scope, expiry, timelock or executable receipt contract.
+              No signature or treasury action is authorized from this page.
+            </p>
+            <div className="calloutInfo">
+              A candidate listing, election, group membership or moderator badge cannot establish an
+              active executable mandate. Use the public records until the backend exposes a complete canonical authorization chain.
+            </div>
+            <div className="buttonRow buttonRowWide">
+              <button className="btn" onClick={() => openGroupTab("emissaries")}>View public elections</button>
+              <button className="btn" onClick={() => openGroupTab("decisions")}>View group decisions</button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "elections" || activeTab === "election_detail" ? (
+        <section className="card" aria-label="Canonical group emissary elections">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Canonical group elections · public read</div>
+                <h2 className="cardTitle">{activeTab === "election_detail" ? "Election record" : "Emissary election history"}</h2>
+                <p className="cardDesc">
+                  Public read-only election state. Active, finalized and no-decision outcomes are distinct.
+                  Voter snapshot membership is visible only to an authenticated viewer and never grants ballot authorization.
+                </p>
+              </div>
+              <button className="btn" onClick={() => openGroupTab("emissaries")}>Back to emissaries</button>
+            </div>
+            {electionsStatus === "loading" ? <p className="cardDesc">Reading canonical election records…</p> : null}
+            {electionsStatus === "error" ? (
+              <div className="calloutDanger">Canonical election records could not be verified for this group. No election, winner, or eligibility claim is made.</div>
+            ) : null}
+            {electionsStatus === "ready" && activeTab === "elections" ? (
+              <>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">{electionRows.length} returned · {electionTotal ?? "?"} matching current-state records</span>
+                  <span className="surfaceBoundaryTag">{electionNextOffset == null ? "This page includes all current indexed records" : "Additional pages available; this is a bounded sample"}</span>
+                </div>
+                {electionRows.map(election => (
+                  <button type="button" className="quickCard quickCardMain" key={election.election_id}
+                    onClick={() => nav(`${currentGroupRoute}/emissaries/elections/${encodeURIComponent(election.election_id)}`)}>
+                    <strong className="mono">{election.election_id}</strong>
+                    <span className="miniTag">{election.status} · {election.candidate_count ?? "unknown"} candidates · {election.seats ?? "unknown"} seats</span>
+                    <small>{election.status === "no_decision" ? "No decision recorded" : election.status === "finalized" ? "Finalized outcome recorded" : "No finalized outcome claimed"}</small>
+                  </button>
+                ))}
+                {!electionRows.length ? <p className="cardDesc">No elections are indexed in this group's current runtime snapshot; historical block archives may differ.</p> : null}
+                {electionNextOffset != null ? <div className="calloutInfo">More current-state records exist beyond this bounded page. The index API supports pagination; this UI does not yet load additional pages.</div> : null}
+              </>
+            ) : null}
+            {electionsStatus === "ready" && activeTab === "election_detail" && electionDetail ? (
+              <>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">Group: {electionDetail.group_id}</span>
+                  <span className="surfaceBoundaryTag">Status: {electionDetail.status}</span>
+                  <span className="surfaceBoundaryTag">Observed height: {electionDetail.observed_height ?? "unavailable"}</span>
+                </div>
+                <div className="detailFocusStrip">
+                  <article className="detailFocusCard">
+                    <div className="detailFocusLabel">Election ID</div>
+                    <div className="detailFocusValue mono">{electionDetail.election_id}</div>
+                    <div className="detailFocusText">Seats: {electionDetail.seats ?? "not exposed"} · Candidates: {electionDetail.candidate_count ?? "not exposed"}</div>
+                  </article>
+                  <article className="detailFocusCard">
+                    <div className="detailFocusLabel">Canonical height window</div>
+                    <div className="detailFocusValue">{electionDetail.start_height ?? "unknown"} → {electionDetail.end_height ?? "unknown"}</div>
+                    <div className="detailFocusText">Observed at height {electionDetail.observed_height ?? "unknown"}. Actual inclusion height may differ.</div>
+                  </article>
+                  <article className="detailFocusCard">
+                    <div className="detailFocusLabel">Your voter snapshot membership</div>
+                    <div className="detailFocusValue">{electionDetail.viewer_in_voter_snapshot == null ? "Not verified" : electionDetail.viewer_in_voter_snapshot ? "In snapshot" : "Not in snapshot"}</div>
+                    <div className="detailFocusText">Snapshot size: {electionDetail.voter_snapshot_count ?? "unavailable"}. Membership is not final authorization to cast a ballot.</div>
+                  </article>
+                  <article className="detailFocusCard">
+                    <div className="detailFocusLabel">Outcome</div>
+                    <div className="detailFocusValue">{electionDetail.status === "no_decision" ? "No decision" : electionDetail.status === "finalized" ? "Finalized" : "Not finalized"}</div>
+                    <div className="detailFocusText">Finalized at height: {electionDetail.finalized_at_height ?? "not recorded"}.</div>
+                  </article>
+                </div>
+                <h3 className="cardTitle">Canonical candidate accounts</h3>
+                {electionDetail.candidates === null
+                  ? <p className="cardDesc">Candidate IDs are not present in the indexed record.</p>
+                  : electionDetail.candidates.length
+                    ? <div className="surfaceBoundaryList">{electionDetail.candidates.map(candidate => <span className="surfaceBoundaryTag mono" key={candidate}>{candidate}</span>)}</div>
+                    : <p className="cardDesc">No candidates in the indexed record.</p>}
+                {electionDetail.status === "finalized" ? (
+                  <div className="formStack">
+                    <h3 className="cardTitle">Recorded winners</h3>
+                    {electionDetail.winners.length
+                      ? <div className="surfaceBoundaryList">{electionDetail.winners.map(winner => <span className="surfaceBoundaryTag mono" key={winner}>{winner}</span>)}</div>
+                      : <p className="cardDesc">The finalized record exposes no winners.</p>}
+                  </div>
+                ) : electionDetail.status === "no_decision"
+                  ? <div className="calloutInfo">No decision was recorded. No emissary authority is inferred.</div>
+                  : null}
+                <GroupBallotPlanner
+                  key={`${selected}:${electionDetail.election_id}`}
+                  groupId={selected}
+                  election={electionDetail}
+                />
+                <button className="btn" onClick={() => nav(`${currentGroupRoute}/emissaries/elections`)}>Back to election history</button>
+              </>
+            ) : null}
+            <div className="calloutInfo">
+              This election API is read-only. No ballots, finalization, emissary execution or treasury authority are
+              available here. A public candidate list or authenticated snapshot hint does not authorize a signed vote.
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "emissaries" ? (
       <section className="card" aria-label="Group emissary election records">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -482,7 +987,10 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               </div>
             </div>
             <div className="statusSummary">
-              <button className="btn" onClick={() => nav("/transactions")}>Track related transactions</button>
+              <div className="buttonRow buttonRowWide">
+                <button className="btn" onClick={() => nav(`${currentGroupRoute}/emissaries/elections`)}>Inspect active elections</button>
+                <button className="btn" onClick={() => nav("/transactions")}>Track related transactions</button>
+              </div>
             </div>
           </div>
 
@@ -506,7 +1014,9 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "members" ? (
       <section className="detailFocusStrip" aria-label="Group detail posture">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Membership state</div>
@@ -536,6 +1046,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           </div>
         </article>
       </section>
+      ) : null}
 
       {signerSubmission.busy ? (
         <div className="calloutInfo">
@@ -550,23 +1061,49 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         onDismiss={() => setErr(null)}
       />
 
-      {membershipMode === "approval_required" && canModerate ? (
+      {activeTab === "membership_review" ? (
         <section className="card" aria-label="Group membership approvals">
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Moderator responsibility</div>
-                <h2 className="cardTitle">Membership requests</h2>
-                <div className="cardDesc">Only an included, authorized moderator-signed decision can accept or reject a pending request.</div>
+                <div className="eyebrow">Moderator task · {detailName}</div>
+                <h2 className="cardTitle">Membership request decisions</h2>
+                <p className="cardDesc">
+                  Approval and rejection are separate signed transactions. Only an included
+                  backend-authorized GROUP_MEMBERSHIP_DECIDE can change the canonical membership state.
+                </p>
               </div>
+              <button className="btn" onClick={() => openGroupTab("responsibilities")}>Back to my group work</button>
             </div>
-            {pendingMembershipAccounts.length ? pendingMembershipAccounts.map((member) => (
-              <div className="buttonRow buttonRowWide" key={member}>
-                <span className="mono">{member}</span>
-                <button className="btn btnPrimary" disabled={busy || signerSubmission.busy || !canSign} onClick={() => void decideMembership(member, "accept")}>Approve</button>
-                <button className="btn" disabled={busy || signerSubmission.busy || !canSign} onClick={() => void decideMembership(member, "reject")}>Reject</button>
+            {!acct || !canSign ? (
+              <div className="calloutInfo">
+                This task requires an authenticated local signer. No membership request information is shown.
+                <button className="btn" onClick={() => navWithReturn(acct ? "/session" : "/login", currentGroupRoute + "/manage/members")}>Restore signing session</button>
               </div>
-            )) : <div className="cardDesc">No pending membership requests are visible in the current canonical group read model.</div>}
+            ) : !canModerate ? (
+              <div className="calloutInfo">
+                Moderator assignment is not present in this group's read model.
+                No approval controls or pending applicant accounts are displayed.
+              </div>
+            ) : membershipMode !== "approval_required" ? (
+              <div className="calloutInfo">This group has no approval-required membership queue. No decision can be submitted here.</div>
+            ) : (
+              <>
+                <div className="surfaceBoundaryList">
+                  <span className="surfaceBoundaryTag">Exact group: {selected}</span>
+                  <span className="surfaceBoundaryTag">Pending in returned snapshot: {pendingMembershipAccounts.length}</span>
+                  <span className="surfaceBoundaryTag">Moderator status: rechecked before every submission</span>
+                </div>
+                {pendingMembershipAccounts.length ? pendingMembershipAccounts.map((member) => (
+                  <div className="buttonRow buttonRowWide" key={member}>
+                    <span className="mono">{member}</span>
+                    <button className="btn btnPrimary" disabled={busy || signerSubmission.busy} onClick={() => void decideMembership(member, "accept")}>Approve</button>
+                    <button className="btn" disabled={busy || signerSubmission.busy} onClick={() => void decideMembership(member, "reject")}>Reject</button>
+                  </div>
+                )) : <div className="cardDesc">No pending membership requests are visible in this group snapshot. This is not a claim about prior requests.</div>}
+                <p className="cardDesc">A successful submission alone is not finality. The receipt and refreshed canonical group state must confirm the decision.</p>
+              </>
+            )}
           </div>
         </section>
       ) : null}
@@ -585,6 +1122,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </section>
       ) : null}
 
+      {activeTab === "about" || activeTab === "members" ? (
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -653,7 +1191,9 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           )}
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "posts" ? (
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -692,6 +1232,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           )}
         </div>
       </section>
+      ) : null}
     </div>
   );
 }

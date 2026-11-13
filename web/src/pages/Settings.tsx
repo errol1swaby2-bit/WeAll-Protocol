@@ -7,6 +7,8 @@ import NodeConnectionPanel from "../components/NodeConnectionPanel";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
 import { nav } from "../lib/router";
+import { SETTINGS_SECTIONS, settingsSectionFromHash, type SettingsSection } from "../lib/settingsSections";
+import { THEME_PRESETS, presetMatchesSettings, type ThemePreset } from "../lib/themePresets";
 import {
   AccentTone,
   applySettingsToDocument,
@@ -80,6 +82,31 @@ export default function Settings(): JSX.Element {
   const [saved, setSaved] = useState<string>("");
   const [networkError, setNetworkError] = useState<string>("");
   const [networkBusy, setNetworkBusy] = useState(false);
+  const [section, setSection] = useState<SettingsSection>(() =>
+    settingsSectionFromHash(typeof window === "undefined" ? "" : window.location.hash),
+  );
+
+  useEffect(() => {
+    const syncSection = () => setSection(settingsSectionFromHash(window.location.hash));
+    window.addEventListener("hashchange", syncSection);
+    syncSection();
+    return () => window.removeEventListener("hashchange", syncSection);
+  }, []);
+
+  function openSection(next: SettingsSection) {
+    const choice = SETTINGS_SECTIONS.find((candidate) => candidate.id === next);
+    if (!choice) return;
+    setSection(next);
+    nav(choice.href);
+  }
+
+  function applyPreset(preset: ThemePreset) {
+    const next = { ...settings, themeMode: preset.themeMode, accentTone: preset.accentTone };
+    setSettings(next);
+    saveSettings(next);
+    applySettingsToDocument(next);
+    flash(`${preset.name} theme applied locally.`);
+  }
 
   useEffect(() => {
     applySettingsToDocument(settings);
@@ -188,17 +215,8 @@ export default function Settings(): JSX.Element {
           </div>
 
           <div className="heroActions">
-            <button className="btn btnPrimary" onClick={() => void saveNetwork()} disabled={networkBusy}>
-              {networkBusy ? "Verifying node…" : "Save connection target"}
-            </button>
-            <button className="btn" onClick={() => nav("/session")}>
-              Open devices & sessions
-            </button>
-            {config.enableDevTools ? (
-              <button className="btn" onClick={() => nav("/advanced")}>
-                Open advanced details
-              </button>
-            ) : null}
+            <button className="btn" onClick={() => nav("/session")}>Open devices & sessions</button>
+            <button className="btn" onClick={() => openSection("connection")}>Manage connection</button>
           </div>
 
           {saved ? (
@@ -229,6 +247,42 @@ export default function Settings(): JSX.Element {
         </div>
       </section>
 
+      <nav className="settingsSectionTabs" aria-label="Settings categories">
+        {SETTINGS_SECTIONS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`settingsSectionTab ${section === item.id ? "isActive" : ""}`}
+            aria-current={section === item.id ? "page" : undefined}
+            onClick={() => openSection(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      {section === "overview" ? (
+      <section className="card" aria-label="Settings overview">
+        <div className="cardBody pageStack">
+          <h2 className="cardTitle">Choose what to customize</h2>
+          <p className="cardDesc">
+            Appearance affects only this browser. Node connection and advanced diagnostics are separate
+            settings; nothing here changes a signed protocol record or public profile appearance.
+          </p>
+          <div className="settingsCategoryGrid">
+            {SETTINGS_SECTIONS.filter((item) => item.id !== "overview").map((item) => (
+              <button key={item.id} type="button" className="settingsCategoryTile" onClick={() => openSection(item.id)}>
+                <strong>{item.label}</strong>
+                <span className="cardDesc">Open {item.label.toLowerCase()} settings</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+      ) : null}
+
+      {section === "connection" ? (
+      <>
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Connection target</div>
@@ -306,13 +360,48 @@ export default function Settings(): JSX.Element {
       </section>
 
       <NodeConnectionPanel />
+      </>
+      ) : null}
 
+      {(section === "themes" || section === "layout" || section === "accessibility") ? (
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Appearance</div>
           <h2 style={{ marginTop: 8 }}>Personalize this browser client</h2>
           <p className="cardDesc">Appearance changes are local only. They do not change session state, account standing, or protocol behavior.</p>
 
+          {section === "themes" ? (
+            <div className="pageStack">
+              <p className="cardDesc">Choose a bundled, non-executable visual theme. Preview the appearance on each tile before applying; changes stay local to this browser.</p>
+              <div className="themePresetGrid" aria-label="Theme presets">
+                {THEME_PRESETS.map((preset) => {
+                  const selected = presetMatchesSettings(preset, settings);
+                  return (
+                    <button
+                      type="button"
+                      key={preset.id}
+                      className={`themePresetTile ${selected ? "isActive" : ""}`}
+                      aria-pressed={selected}
+                      onClick={() => applyPreset(preset)}
+                    >
+                      <span className="themePresetPreview" style={{ background: preset.background, color: preset.foreground }}>
+                        <span className="themePresetMockCard" style={{ background: preset.surface }}>
+                          <span className="themePresetMockHeading">WeAll</span>
+                          <span className="themePresetMockAccent" style={{ background: preset.accent }} />
+                        </span>
+                      </span>
+                      <strong>{preset.name}</strong>
+                      <span className="cardDesc">{preset.description}</span>
+                      {selected ? <span className="miniTag">Current theme</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {section === "themes" ? (
+          <>
           <SettingSelect<ThemeMode>
             label="Theme mode"
             value={settings.themeMode}
@@ -334,7 +423,11 @@ export default function Settings(): JSX.Element {
             ]}
             onChange={(value) => update("accentTone", value)}
           />
+          </>
+          ) : null}
 
+          {section === "layout" ? (
+          <>
           <SettingSelect<FontScale>
             label="Font size"
             value={settings.fontScale}
@@ -355,7 +448,11 @@ export default function Settings(): JSX.Element {
             ]}
             onChange={(value) => update("density", value)}
           />
+          </>
+          ) : null}
 
+          {section === "accessibility" ? (
+          <>
           <SettingSelect<MotionMode>
             label="Motion"
             value={settings.motionMode}
@@ -365,6 +462,12 @@ export default function Settings(): JSX.Element {
             ]}
             onChange={(value) => update("motionMode", value)}
           />
+          <div className="calloutInfo">
+            Reduced motion affects decorative animation only. Required consent, signing, error and
+            eligibility information remains visible regardless of color theme.
+          </div>
+          </>
+          ) : null}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button className="btn" onClick={resetAppearance}>
@@ -373,8 +476,9 @@ export default function Settings(): JSX.Element {
           </div>
         </div>
       </section>
+      ) : null}
 
-
+      {section === "advanced" ? (
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Experience mode</div>
@@ -397,7 +501,9 @@ export default function Settings(): JSX.Element {
           )}
         </div>
       </section>
+      ) : null}
 
+      {section === "overview" ? (
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Local state</div>
@@ -407,6 +513,7 @@ export default function Settings(): JSX.Element {
           </p>
         </div>
       </section>
+      ) : null}
     </div>
   );
 }

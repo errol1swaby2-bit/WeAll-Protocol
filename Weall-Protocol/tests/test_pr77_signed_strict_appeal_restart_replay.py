@@ -29,12 +29,14 @@ from weall.runtime.bft_hotstuff import (
 )
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.json_tools import strict_json_loads
 from weall.runtime.replay_consistency import (
     _deterministic_replay_fixture_keypair,
     build_replay_manifest,
     compare_replay_manifests,
 )
-from weall.runtime.state_hash import compute_state_root
+from weall.runtime.sqlite_db import _canon_json
+from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
 from weall.runtime.tx_id import compute_tx_id_from_dict
 
 CHAIN = "weall-controlled-devnet"
@@ -282,6 +284,185 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     assert not state["accounts"][TARGET].get("banned", False)
     assert not any(entry.get("tx_type") == "ACCOUNT_BAN" for entry in state.get("system_queue", []))
 
+    # Complete the fresh ordinary appeal using only separately signed and
+    # committed juror ACCEPT/VOTE transactions. Do not seed a reached panel
+    # verdict or patch a case stage into ledger state.
+    appeal_vote_quorum = int(appeal["required_votes"])
+    assert 1 <= appeal_vote_quorum <= len(fresh)
+    signed_appeal_vote_ids: list[str] = []
+    for vote_index, reviewer in enumerate(fresh[:appeal_vote_quorum], start=1):
+        _commit_signed(
+            source,
+            tx_type="DISPUTE_JUROR_ACCEPT",
+            signer=reviewer,
+            nonce=4,
+            payload={"dispute_id": CASE_ID},
+        )
+        vote_height, signed_vote_id = _commit_signed(
+            source,
+            tx_type="DISPUTE_VOTE_SUBMIT",
+            signer=reviewer,
+            nonce=5,
+            payload={"dispute_id": CASE_ID, "appeal_decision": "reverse"},
+        )
+        signed_appeal_vote_ids.append(signed_vote_id)
+        recorded = source.read_state()["disputes_by_id"][CASE_ID]
+        assert recorded["appeal_panel_votes"] == {}
+        assert recorded["appeal_vote_counts"]["reverse"] == vote_index
+        assert signed_vote_id in source.get_block_by_height(vote_height)["header"]["tx_ids"]
+        if vote_index < appeal_vote_quorum:
+            assert recorded["stage"] == "appeal_review"
+            assert recorded["appeal_panel_result"]["reached"] is False
+
+    pre_finalization = source.read_state()["disputes_by_id"][CASE_ID]
+    assert pre_finalization["stage"] == "appeal_resolved"
+    assert pre_finalization["appeal_panel_result"]["reached"] is True
+    assert pre_finalization["appeal_panel_result"]["decision"] == "reverse"
+    assert pre_finalization["appeal_panel_result"]["resolution"]["decision"] == "reverse"
+    assert pre_finalization["appeal_vote_counts"]["reverse"] == appeal_vote_quorum
+    assert len(pre_finalization["appeal_voted_juror_ids"]) == appeal_vote_quorum
+    assert pre_finalization["appeal_panel_votes"] == {}
+    assert pre_finalization["appeal_panel_juror_ids"] == fresh
+    assert pre_finalization["appeal_substitute_juror_ids"] == fresh_subs
+
+    # The next production block, with no user transactions, must derive the
+    # final receipt from the persisted appeal result through the normal pre
+    # scheduler and mandatory SYSTEM queue. This is not a forged SYSTEM input.
+    final_height = int(source.read_state()["height"]) + 1
+    # Diagnostic witness: distinguish a faulty candidate state-root from a
+    # change made after candidate construction while crossing SQLite commit.
+    # This wrapper observes the unchanged production methods and does not
+    # substitute for their execution or relax any restart invariant.
+    original_commit = source.commit_block_candidate
+    committed_probe: dict = {}
+
+    def observe_final_commit(
+        *, block: dict, new_state: dict, applied_ids: list[str], invalid_ids: list[str]
+    ):
+        committed_probe["candidate_root"] = compute_state_root(new_state)
+        committed_probe["serialized_candidate_state"] = strict_json_loads(_canon_json(new_state))
+        committed_probe["serialized_candidate_root"] = compute_state_root(
+            committed_probe["serialized_candidate_state"]
+        )
+        committed_probe["header_root"] = block["header"]["state_root"]
+        committed_probe["candidate_state"] = deepcopy(new_state)
+        outcome = original_commit(
+            block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids
+        )
+        committed_probe["post_commit_root"] = compute_state_root(source.state)
+        committed_probe["post_commit_state"] = deepcopy(source.state)
+        return outcome
+
+    monkeypatch.setattr(source, "commit_block_candidate", observe_final_commit)
+    finalized_result = source.produce_block(max_txs=0, allow_empty=True)
+    assert finalized_result.ok is True, finalized_result.error
+    final_block = source.get_block_by_height(final_height)
+    assert isinstance(final_block, dict)
+    final_receipts = [
+        entry
+        for entry in final_block["txs"]
+        if entry.get("tx_type") == "DISPUTE_FINAL_RECEIPT"
+        and (entry.get("payload") or {}).get("dispute_id") == CASE_ID
+    ]
+    assert len(final_receipts) == 1
+    final_env = final_receipts[0]
+    assert final_env["system"] is True
+    assert final_env["payload"]["appeal_resolution"] == {
+        "decision": "reverse",
+    }
+    assert final_env["payload"]["_due_height"] == final_height
+    assert final_env["payload"]["_system_queue_id"]
+    assert final_env["parent"] == f"dispute:{CASE_ID}:appeal-panel-finalize:2"
+    final_tx_id = final_env["tx_id"]
+    assert final_tx_id in final_block["header"]["tx_ids"]
+    assert committed_probe["candidate_root"] == committed_probe["header_root"]
+
+    def report_first_preimage_differences(before: object, after: object) -> list[str]:
+        result: list[str] = []
+
+        def walk(left: object, right: object, path: str) -> None:
+            if len(result) >= 16:
+                return
+            if isinstance(left, dict) and isinstance(right, dict):
+                for key in sorted(set(left) | set(right), key=str):
+                    if key not in left or key not in right:
+                        result.append(f"{path}/{key}:missing")
+                    else:
+                        walk(left[key], right[key], f"{path}/{key}")
+                return
+            if isinstance(left, list) and isinstance(right, list):
+                if len(left) != len(right):
+                    result.append(f"{path}:length:{len(left)}!={len(right)}")
+                for i, (item_a, item_b) in enumerate(zip(left, right, strict=False)):
+                    walk(item_a, item_b, f"{path}/{i}")
+                return
+            if type(left) is not type(right) or left != right:
+                result.append(f"{path}:{str(left)[:90]!r}!={str(right)[:90]!r}")
+
+        walk(before, after, "")
+        return result
+
+    assert committed_probe["serialized_candidate_root"] == committed_probe["header_root"], (
+        "json_roundtrip_changes_consensus_state_root",
+        report_first_preimage_differences(
+            consensus_state_root_view(committed_probe["candidate_state"]),
+            consensus_state_root_view(committed_probe["serialized_candidate_state"]),
+        ),
+    )
+    assert committed_probe["header_root"] == final_block["header"]["state_root"]
+    assert committed_probe["post_commit_root"] == committed_probe["header_root"], (
+        "post_commit_consensus_fields_changed",
+        sorted(
+            key
+            for key in set(committed_probe["candidate_state"])
+            | set(committed_probe["post_commit_state"])
+            if committed_probe["candidate_state"].get(key)
+            != committed_probe["post_commit_state"].get(key)
+            and key not in {"bft", "tip_hash", "tip_ts_ms", "meta"}
+        ),
+        committed_probe["candidate_root"],
+        committed_probe["post_commit_root"],
+    )
+    persisted = source._ledger_store.read()
+    persisted_root = compute_state_root(persisted)
+    committed_view = consensus_state_root_view(committed_probe["candidate_state"])
+    persisted_view = consensus_state_root_view(persisted)
+    changed_keys = [
+        key
+        for key in sorted(set(committed_view) | set(persisted_view))
+        if committed_view.get(key) != persisted_view.get(key)
+    ]
+    changed_subkeys = {
+        key: sorted(
+            subkey
+            for subkey in set(committed_view[key]) | set(persisted_view[key])
+            if committed_view[key].get(subkey) != persisted_view[key].get(subkey)
+        )
+        for key in changed_keys
+        if isinstance(committed_view.get(key), dict) and isinstance(persisted_view.get(key), dict)
+    }
+    assert persisted_root == committed_probe["header_root"], (
+        "durable_snapshot_root_diverged",
+        committed_probe["header_root"],
+        persisted_root,
+        changed_keys,
+        changed_subkeys,
+    )
+    assert any(
+        receipt.get("tx_id") == final_tx_id and receipt.get("ok") is True
+        for receipt in final_block["receipts"]
+    )
+
+    state = source.read_state()
+    appeal = state["disputes_by_id"][CASE_ID]
+    assert appeal["stage"] == "finalized"
+    assert appeal["appeal_panel_result"]["decision"] == "reverse"
+    assert appeal["appeal_finalization"]["decision"] == "reverse"
+    assert appeal["final_resolution"]["appeal_decision"] == "reverse"
+    assert appeal["final_resolution"]["actions"] == []
+    assert not state["accounts"][TARGET].get("banned", False)
+    assert not any(entry.get("tx_type") == "ACCOUNT_BAN" for entry in state.get("system_queue", []))
+
     source_height = int(state["height"])
     source_root = compute_state_root(state)
     source_blocks = [
@@ -290,6 +471,9 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
     assert all(isinstance(block, dict) for block in source_blocks)
     assert opening_tx_id in source_blocks[opening_height - 1]["header"]["tx_ids"]
     assert appeal_tx_id in source_blocks[appeal_height - 1]["header"]["tx_ids"]
+    assert len(signed_appeal_vote_ids) == appeal_vote_quorum
+    assert len(set(signed_appeal_vote_ids)) == appeal_vote_quorum
+    assert final_tx_id in source_blocks[final_height - 1]["header"]["tx_ids"]
 
     # A new executor opens the original persisted SQLite, checks its tip and
     # snapshot bindings, then a separate fresh executor applies every block.
@@ -332,6 +516,13 @@ def test_signed_strict_appeal_survives_db_restart_and_independent_block_replay(
         == []
     )
     assert independent.read_state()["disputes_by_id"][CASE_ID] == appeal
+    assert independent.get_block_by_height(final_height) == final_block
+    assert independent.read_state()["disputes_by_id"][CASE_ID]["stage"] == "finalized"
+    assert (
+        independent.read_state()["disputes_by_id"][CASE_ID]["appeal_finalization"]["decision"]
+        == "reverse"
+    )
+    assert independent.read_state()["disputes_by_id"][CASE_ID]["appeal_panel_votes"] == {}
 
     # These are offline execution/restart observations, never a BFT QC,
     # independently issued PoH, severe-sanction authority or launch approval.

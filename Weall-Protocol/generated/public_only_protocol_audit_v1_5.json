@@ -45,6 +45,12 @@
     {
       "category": "frontend",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 4,
+      "path": "../web/docs/FRONTEND_V16_PRODUCT_SPEC.md"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "../web/scripts/test_dispute_review_rendered_journey_source.mjs"
     },
@@ -53,6 +59,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 3,
       "path": "../web/scripts/test_reviewer_critical_flows_source.mjs"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "../web/scripts/test_v16_navigation_source.mjs"
     },
     {
       "category": "frontend",
@@ -125,6 +137,18 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
       "path": "docs/audits/late_stage_public_testnet_gap_inventory_v1_5.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/production_readiness/GROUP_EMISSARY_CONFIDENTIAL_BALLOT_DESIGN_V0_1.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/production_readiness/GROUP_EMISSARY_CRYPTO_ARCHITECTURE_ADR_V0_2.md"
     },
     {
       "category": "docs/specs",
@@ -265,6 +289,18 @@
       "path": "scripts/demo_native_async_tier1_e2e.sh"
     },
     {
+      "category": "scripts",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "scripts/validate_group_emissary_architecture_review.py"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 2,
+      "path": "specs/research/group_emissary_ballot_architecture_v0_1.json"
+    },
+    {
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
@@ -395,6 +431,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "tests/test_frontend_poh_media_and_live_room.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_group_emissary_network_process_bft.py"
     },
     {
       "category": "tests",
@@ -534,7 +576,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 79,
+  "inventory_hit_count": 86,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

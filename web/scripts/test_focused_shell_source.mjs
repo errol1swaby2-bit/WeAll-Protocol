@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const shell = read("src/components/AppShell.tsx");
 const nav = read("src/components/SidebarNav.tsx");
+const primaryNav = read("src/components/PrimaryNavigation.tsx");
 const css = read("src/styles.css");
 
 for (const token of [
@@ -50,4 +51,18 @@ if (!headerRule || !/position:\s*relative\s*;/.test(headerRule[1]) || !/top:\s*a
   throw new Error("Focused shell header must scroll away with the page, not remain sticky");
 }
 
+for (const token of [
+  'aria-label="Main navigation"',
+  'href: "/home"',
+  'href: "/feed"',
+  'href: "/groups"',
+  'href: "/decisions"',
+  'href: "/profile"',
+  'aria-current={active ? "page" : undefined}',
+]) {
+  if (!primaryNav.includes(token)) throw new Error(`V1.6 primary navigation missing: ${token}`);
+}
+if (!shell.includes("<PrimaryNavigation currentPath={route.path}")) {
+  throw new Error("Focused shell must mount stable primary navigation");
+}
 console.log("OK: focused navigation, scroll-away header and context drawer source contract");

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import fnmatch
 import hashlib
 import json
@@ -559,6 +560,13 @@ def _extract_failures(node: ast.AST) -> list[Json]:
         if name == "HTTPException":
             code = "http_exception"
             reason = strings[-1] if strings else "route_specific_http_exception"
+        elif name == "RolesApplyError" and child.args and _literal_string(child.args[0]) is None:
+            # The role-gate predicate produces the runtime error code and
+            # reason. Do not report the exception class name as the code.
+            # Keep this correction narrowly scoped: other dynamically coded
+            # transaction families need their own source/receipt review
+            # before changing the accepted V2 extraction contract.
+            code, reason = "runtime_apply_error", "see_handler"
         else:
             code = strings[0] if strings else name
             reason = strings[1] if len(strings) > 1 else "runtime_apply_failure"
@@ -888,6 +896,50 @@ def _handler_runtime_info(
     return handler, source_path, dispatch_name, mechanism_id
 
 
+def _specialize_reviewer_opt_out(node: ast.AST) -> ast.AST:
+    """Discard branches impossible for the dispatcher's literal active=False.
+
+    This is deliberately NOT a general Python evaluator. Unknown conditions
+    are retained and remain overapproximations. Only the reviewer opt-out
+    handler uses this bounded specialization; no accepted V2 review is changed.
+    """
+
+    def active_truth(value: ast.AST) -> bool | None:
+        if isinstance(value, ast.Name) and value.id == "active":
+            return False
+        if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.Not):
+            inner = active_truth(value.operand)
+            return not inner if inner is not None else None
+        if isinstance(value, ast.BoolOp):
+            results = [active_truth(item) for item in value.values]
+            if isinstance(value.op, ast.And):
+                if False in results:
+                    return False
+                return True if all(item is True for item in results) else None
+            if isinstance(value.op, ast.Or):
+                if True in results:
+                    return True
+                return False if all(item is False for item in results) else None
+        return None
+
+    class PruneInactivePath(ast.NodeTransformer):
+        def visit_If(self, statement: ast.If) -> ast.AST | list[ast.stmt] | None:
+            selected = active_truth(statement.test)
+            if selected is None:
+                return self.generic_visit(statement)
+            body = statement.body if selected else statement.orelse
+            flattened: list[ast.stmt] = []
+            for child in body:
+                visited = self.visit(child)
+                if isinstance(visited, list):
+                    flattened.extend(visited)
+                elif isinstance(visited, ast.stmt):
+                    flattened.append(visited)
+            return flattened
+
+    return PruneInactivePath().visit(copy.deepcopy(node))
+
+
 def _tx_function_analysis(
     tx_type: str,
     source_path: Path,
@@ -957,11 +1009,59 @@ def _tx_function_analysis(
             continue
         visited.add(name)
         fn = functions[name]
-        nodes.append(fn.node)
-        for called in _direct_local_calls(fn.node, set(functions)):
+        analysis_node = fn.node
+        if (
+            tx_type == "REVIEWER_LANE_OPT_OUT"
+            and target.name == "_apply_reviewer_lane_update"
+            and name == target.name
+        ):
+            # Bind the local constant to its exact transaction dispatcher.
+            # If dispatch changes, fail closed instead of silently excluding
+            # a newly reachable role eligibility error.
+            canonical_branch = branch
+            if canonical_branch is None:
+                # The applier registry may declare the dedicated handler as
+                # its entrypoint rather than apply_roles. In either mode,
+                # prove the literal argument from the actual dispatcher in
+                # this very source module before specializing its AST.
+                dispatcher = functions.get("apply_roles")
+                if dispatcher is not None:
+                    canonical_branch = _branch_for_tx(dispatcher.node, tx_type)
+            matching_false_call = bool(
+                canonical_branch is not None
+                and any(
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == "_apply_reviewer_lane_update"
+                    and any(
+                        keyword.arg == "active"
+                        and isinstance(keyword.value, ast.Constant)
+                        and keyword.value.value is False
+                        for keyword in call.keywords
+                    )
+                    for call in ast.walk(canonical_branch)
+                )
+            )
+            if not matching_false_call:
+                raise CompileError("reviewer_lane_opt_out_dispatch_not_literal_false")
+            analysis_node = _specialize_reviewer_opt_out(fn.node)
+        nodes.append(analysis_node)
+        for called in _direct_local_calls(analysis_node, set(functions)):
             if called in visited:
                 continue
-            if called.startswith(
+            # DISPUTE_OPEN calls a source-local target-type validator before
+            # any canonical state mutation. Its rejection is part of the real
+            # transaction contract, even though generic traversal deliberately
+            # does not follow arbitrary _validate_ helpers across families.
+            # Keep this one reviewed edge bound to the exact entrypoint so
+            # unrelated V2 semantic-review digests are not silently expanded.
+            dispute_open_target_validation = (
+                tx_type == "DISPUTE_OPEN"
+                and target.name == "dispute_open"
+                and name == "dispute_open"
+                and called == "_validate_dispute_target_type"
+            )
+            should_follow_prefix = called.startswith(
                 (
                     "apply_",
                     "_apply_",
@@ -974,7 +1074,8 @@ def _tx_function_analysis(
                     "_find_",
                     "_ensure_",
                 )
-            ):
+            )
+            if should_follow_prefix or dispute_open_target_validation:
                 queue.append(called)
 
     reads: set[str] = set()

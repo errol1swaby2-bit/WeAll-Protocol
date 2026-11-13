@@ -1,0 +1,179 @@
+name: PR88 bounded V1.5 proof refresh and V2 semantic drift gate
+
+on:
+  push:
+    branches:
+      - frontend/v16-group-profile-and-navigation-20261110
+    paths:
+      - .github/workflows/pr88-bounded-generated-proof-refresh.yml
+      - Weall-Protocol/specs/v2/source/stable_ids.json
+      - Weall-Protocol/specs/v2/source/manifest.json
+      - Weall-Protocol/specs/api_contracts/v1_5_route_metadata.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr88-bounded-generated-proof-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref_name == 'frontend/v16-group-profile-and-navigation-20261110'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact triggering head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+
+      - name: Bind new read-only routes to explicit AI-assisted source review
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          import sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          sys.path.insert(0, "scripts")
+          import compile_v2_spec as compiler
+          from v2_spec_validation import compact_digest, route_review_material
+
+          sources = compiler._load_sources()
+          tx_names = {
+              str(row.get("name") or "").strip().upper()
+              for row in sources["transaction_canon"].get("txs") or []
+              if isinstance(row, dict)
+          }
+          rows = compiler._scan_route_contracts(
+              tx_names,
+              compiler._scan_files(compiler.WORKSPACE_ROOT / "web" / "src", {".ts", ".tsx"}),
+              compiler._scan_files(compiler.ROOT / "tests", {".py"}),
+              sources["contract_overrides"],
+              compiler.StableIdRegistry.from_payload(sources["stable_ids"]),
+          )
+          target_ids = {
+              "ROUTE-647D04B0501AD3CF": "GET /v1/groups/{group_id}/elections",
+              "ROUTE-BD4D66493B2C4FE6": "GET /v1/groups/{group_id}/elections/{election_id}",
+          }
+          candidates = [row for row in rows if row["stable_id"] in target_ids]
+          assert len(rows) == 161, f"unexpected route inventory: {len(rows)}"
+          assert len(candidates) == len(target_ids), "route review candidates incomplete"
+
+          path = Path("specs/v2/source/semantic_reviews.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          existing = {entry["stable_id"]: entry for entry in payload["routes"]}
+          for row in candidates:
+              stable_id = row["stable_id"]
+              assert row["route_key"] == target_ids[stable_id]
+              assert row["method"] == "GET"
+              assert row["security_policy"]["auth"] == "public_read_canonical_group_emissary_election_projection"
+              assert row["metadata_source"] == "specs/api_contracts/v1_5_route_metadata.json"
+              digest = compact_digest(route_review_material(row))
+              if stable_id in existing:
+                  assert existing[stable_id]["review_digest"] == digest, (
+                      "review no longer matches current source: " + stable_id
+                  )
+                  continue
+              payload["routes"].append({
+                  "authority_effect": "none; no public testnet, secret ballot, election or mainnet activation",
+                  "disposition": "accepted_current_semantic_contract",
+                  "implementation_source": row["implementation_source"],
+                  "independent_review": False,
+                  "review_digest": digest,
+                  "review_method": "AI-assisted code-derived read-only source contract fingerprint; no independent verification",
+                  "reviewed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                  "reviewer": "AI-assisted PR88 source inspection; NOT independent or constitutional approval",
+                  "route_key": row["route_key"],
+                  "stable_id": stable_id,
+              })
+          payload["routes"].sort(key=lambda row: row["stable_id"])
+          if len(payload["routes"]) != 161:
+              raise RuntimeError("unexpected semantic review register size")
+          path.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+          print("Source-bound reviews: 2 new read-only endpoints; independent_review=false")
+          PY
+
+      - name: Regenerate canonical V1.5 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_api_contract_map.py
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_api_response_vectors_v1_5.py
+          python scripts/gen_public_only_protocol_audit_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_current_verified_claims.py
+
+      - name: Validate regenerated V1.5 proofs without weakening gates
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --verify-live
+          python scripts/check_v15_public_readiness_artifacts.py
+
+      - name: Commit only generated artifacts to unchanged draft branch
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git add -A -- Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md
+          python - <<'PY'
+          from subprocess import check_output
+          paths = check_output(
+              ['git', 'diff', '--cached', '--name-only'],
+              text=True,
+          ).splitlines()
+          assert all(
+              path.startswith('Weall-Protocol/generated/')
+              or path == 'Weall-Protocol/specs/v2/source/semantic_reviews.json'
+              or path == 'Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md'
+              or path == 'web/src/generated/protocolStatus.ts'
+              for path in paths
+          ), f'Unapproved staged changes: {paths}'
+          print('Approved generated-only paths:', sorted(paths))
+          PY
+          if git diff --cached --quiet; then
+            echo 'Proofs already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(pr88): refresh checked V1.5 proofs and scoped route review evidence'
+          git push origin HEAD:frontend/v16-group-profile-and-navigation-20261110
+
+      - name: Preserve V2 source-semantic drift failure with diagnostic evidence
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/audit_v2_semantic_review_drift.py > /tmp/pr88-v2-semantic-drift.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("/tmp/pr88-v2-semantic-drift.json").read_text())
+          print(json.dumps({
+              "status": "DIAGNOSTIC_ONLY_NOT_APPROVAL",
+              "mismatched_transaction_reviews": report["mismatched_transaction_reviews"],
+              "tx_types": [item["tx_type"] for item in report["details"]],
+          }, sort_keys=True))
+          PY
+          python scripts/compile_v2_spec.py --check

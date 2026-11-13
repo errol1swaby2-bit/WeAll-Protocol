@@ -16719,6 +16719,13 @@
       "status": "active"
     },
     {
+      "canonical_key": "GET /v1/groups/{group_id}/elections|src/weall/api/routes_public_parts/groups.py|v1_group_elections",
+      "kind": "route",
+      "stable_id": "ROUTE-647D04B0501AD3CF",
+      "aliases": [],
+      "status": "active"
+    },
+    {
       "aliases": [],
       "canonical_key": "GET /v1/consensus/block-production/proof|src/weall/api/routes_public_parts/consensus.py|consensus_block_production_proof",
       "kind": "route",
@@ -17122,6 +17129,13 @@
       "canonical_key": "GET /v1/tx/catalog|src/weall/api/routes_public_parts/tx.py|tx_catalog",
       "kind": "route",
       "stable_id": "ROUTE-B81383D6C92F2A06",
+      "status": "active"
+    },
+    {
+      "canonical_key": "GET /v1/groups/{group_id}/elections/{election_id}|src/weall/api/routes_public_parts/groups.py|v1_group_election_detail",
+      "kind": "route",
+      "stable_id": "ROUTE-BD4D66493B2C4FE6",
+      "aliases": [],
       "status": "active"
     },
     {
@@ -18616,6 +18630,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:quorum_activation_height",
+      "kind": "state",
+      "stable_id": "STATE-12DF8EB7E75D134C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:panel_commitment",
       "kind": "state",
       "stable_id": "STATE-13422E875F1C030D",
@@ -18913,6 +18934,13 @@
       "canonical_key": "Dispute:original_panel_juror_ids",
       "kind": "state",
       "stable_id": "STATE-1980B3ABB9AFC05C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:reached",
+      "kind": "state",
+      "stable_id": "STATE-19B1ED58FA570B23",
       "status": "active"
     },
     {
@@ -20408,6 +20436,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:eligible_voter_count",
+      "kind": "state",
+      "stable_id": "STATE-492932C756513165",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Identity:security_policy",
       "kind": "state",
       "stable_id": "STATE-492E736F05BD42F0",
@@ -20740,6 +20775,13 @@
       "canonical_key": "PoH:ended_ts_ms",
       "kind": "state",
       "stable_id": "STATE-53BC9170C219E578",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:electorate_source",
+      "kind": "state",
+      "stable_id": "STATE-53E6387F578A555E",
       "status": "active"
     },
     {
@@ -21290,6 +21332,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:required_votes",
+      "kind": "state",
+      "stable_id": "STATE-6649873F8C8A69ED",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Roles:gov_executor",
       "kind": "state",
       "stable_id": "STATE-665020DB4713E6E7",
@@ -21748,6 +21797,13 @@
       "canonical_key": "Dispute:<pop:dynamic>",
       "kind": "state",
       "stable_id": "STATE-73DA9F08A7231E6A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:quorum_policy_version",
+      "kind": "state",
+      "stable_id": "STATE-73E64D02F6BCA92D",
       "status": "active"
     },
     {
@@ -23691,6 +23747,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:quorum_met",
+      "kind": "state",
+      "stable_id": "STATE-B0B37C20B129B9AC",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "PoH:challenge_id",
       "kind": "state",
       "stable_id": "STATE-B0B6016845174BEE",
@@ -24289,6 +24352,13 @@
       "canonical_key": "Groups:voter_snapshot",
       "kind": "state",
       "stable_id": "STATE-BFAFD2E9AA628E94",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:no_decision_reason",
+      "kind": "state",
+      "stable_id": "STATE-BFF3D95D7CD17E26",
       "status": "active"
     },
     {
@@ -24930,6 +25000,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "Groups:n_ballots",
+      "kind": "state",
+      "stable_id": "STATE-D4963814FEFCFFAA",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "Treasury:treasury",
       "kind": "state",
       "stable_id": "STATE-D4DB41AE03674E55",
@@ -25374,6 +25451,13 @@
       "canonical_key": "PoH:poh_applications",
       "kind": "state",
       "stable_id": "STATE-E33CE907C4EBA94D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Dispute:appeal_resolution",
+      "kind": "state",
+      "stable_id": "STATE-E3829A8664FA2193",
       "status": "active"
     },
     {

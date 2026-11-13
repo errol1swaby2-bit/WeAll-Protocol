@@ -3447,3 +3447,263 @@ summary:focus-visible {
 .appShell--focus .appShellContent :is(.infoCardText, .statValue, .mono, .cardTitle) {
   overflow-wrap: anywhere;
 }
+
+
+/* Frontend v1.6: stable primary navigation and focused public group profile. */
+.primaryNavigation {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--panel-strong);
+  border-bottom: 1px solid var(--border);
+}
+.primaryNavigationItem {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 98px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted-strong);
+  font-size: 13px;
+}
+.primaryNavigationGlyph { font-size: 18px; line-height: 1; }
+.primaryNavigationItem.isActive,
+.groupProfileTab.isActive {
+  background: var(--accent-soft);
+  color: var(--text);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+.primaryNavigationItem:focus-visible,
+.groupProfileTab:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.groupProfileTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px 2px 12px;
+}
+.groupProfileTab {
+  white-space: nowrap;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 10px 16px;
+  min-height: 44px;
+}
+@media (max-width: 640px) {
+  .primaryNavigation {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    z-index: 75;
+    gap: 2px;
+    justify-content: space-around;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.22);
+  }
+  .primaryNavigationItem {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 46px;
+    padding: 5px 2px;
+    font-size: 11px;
+  }
+  .primaryNavigationGlyph { font-size: 17px; }
+  .appShell--focus .appShellContent {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+
+/* Frontend v1.6: one verification task panel at a time. */
+.verificationSectionTabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 2px 12px;
+  max-width: 100%;
+  overflow-x: auto;
+  align-items: center;
+}
+.verificationSectionTab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+.verificationSectionTab.isActive {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+.verificationSectionTab:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.verificationSection[hidden] { display: none !important; }
+.verificationSection { min-width: 0; width: 100%; }
+.accountVerificationPage > .grid3 > .verificationSection {
+  min-width: 0;
+}
+.accountVerificationPage > .grid3 {
+  grid-template-columns: minmax(0, 1fr);
+}
+.accountVerificationPage .verificationSection > .grid2,
+.accountVerificationPage .verificationSection > .grid3 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+
+/* Frontend v1.6: focused public profile and owner workspaces. */
+.accountProfileTabs {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  overflow-x: auto;
+  align-items: center;
+  padding: 8px 2px 12px;
+}
+.accountProfileTab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+.accountProfileTab.isActive {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+.accountProfileTab:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.accountProfilePane { min-width: 0; width: 100%; }
+.accountProfilePane[hidden] { display: none !important; }
+.accountProfilePane > .summaryCardGrid { margin-bottom: 16px; }
+
+
+/* V1.6: each reviewer duty has a focused, linkable workspace. */
+.reviewerWorkspaceTabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px 2px 12px;
+}
+.reviewerWorkspaceTab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.reviewerWorkspaceTab.isActive {
+  color: var(--text);
+  font-weight: 700;
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+.reviewerWorkspaceTab:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+
+
+/* V1.6 browser-local settings categories and vetted theme previews. */
+.settingsSectionTabs {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  align-items: center;
+  overflow-x: auto;
+  padding: 8px 2px 12px;
+}
+.settingsSectionTab {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 10px 14px;
+  min-height: 44px;
+  border-radius: 999px;
+}
+.settingsSectionTab.isActive,
+.themePresetTile.isActive {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+.settingsSectionTab:focus-visible,
+.settingsCategoryTile:focus-visible,
+.themePresetTile:focus-visible {
+  outline: 3px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.settingsCategoryGrid, .themePresetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+.settingsCategoryTile, .themePresetTile {
+  min-width: 0;
+  text-align: left;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  min-height: 66px;
+}
+.themePresetPreview {
+  display: block;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+}
+.themePresetMockCard {
+  border-radius: 9px;
+  min-height: 54px;
+  padding: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.themePresetMockHeading { font-size: 12px; font-weight: 700; }
+.themePresetMockAccent { height: 8px; width: 60%; border-radius: 5px; }
+@media (max-width: 640px) {
+  .themePresetGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .themePresetTile { padding: 10px; }
+}
+
+
+/* V1.6: protocol-native public profile background, not private wallpaper. */
+.publicProfileCard { overflow: hidden; }
+.publicProfileBanner {
+  display: block;
+  width: 100%;
+  height: clamp(130px, 21vw, 230px);
+  min-height: 130px;
+  overflow: hidden;
+  background: radial-gradient(circle at 25% 40%, var(--accent-soft), transparent 55%), linear-gradient(125deg, var(--bg), var(--bg2));
+}
+.publicProfileBanner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.publicProfileBanner--draft { height: clamp(105px, 18vw, 190px); border-radius: 12px; }
+@media (max-width: 640px) {
+  .publicProfileBanner { height: 140px; min-height: 140px; }
+}

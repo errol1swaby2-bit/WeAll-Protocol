@@ -8,12 +8,23 @@ authority. Signed executor replay is covered separately.
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
+import weall.runtime.block_builder as block_builder
 from weall.runtime.apply.dispute import DisputeApplyError, apply_dispute
 from weall.runtime.dispute_engine import tick_dispute_lifecycle
+from weall.runtime.executor import WeAllExecutor
+from weall.runtime.state_hash import compute_state_root
+from weall.runtime.system_tx_engine import (
+    SystemQueueCorruptionError,
+    build_system_queue_lookup,
+    system_tx_emitter,
+    validate_system_tx_queue_binding,
+)
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.tx.canon import TxIndex
 
 
 def _state(*, jurors: int = 17) -> dict:
@@ -235,3 +246,307 @@ def test_expired_strict_appeal_window_does_not_mutate_state() -> None:
         apply_dispute(state, _appeal())
     assert exc.value.reason == "appeal_window_closed"
     assert state == before
+
+
+def _system_final_receipt(
+    *, appeal_resolution: dict | None = None, resolution: dict | None = None
+) -> TxEnvelope:
+    payload = {
+        "dispute_id": "ordinary-account-review",
+        "receipt_id": "synthetic-appeal-final",
+    }
+    if appeal_resolution is not None:
+        payload["appeal_resolution"] = appeal_resolution
+    if resolution is not None:
+        payload["resolution"] = resolution
+    return TxEnvelope(
+        tx_type="DISPUTE_FINAL_RECEIPT",
+        signer="SYSTEM",
+        nonce=99,
+        system=True,
+        payload=payload,
+        sig="synthetic-not-authenticated",
+    )
+
+
+@pytest.mark.parametrize("stage", ["appeal_review", "appealed"])
+def test_unresolved_fresh_appeal_cannot_be_finalized_by_claimed_system_decision(
+    stage: str,
+) -> None:
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    case = _case(state)
+    case["stage"] = stage
+    before = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as exc:
+        apply_dispute(
+            state,
+            _system_final_receipt(appeal_resolution={"decision": "reverse"}),
+        )
+    assert exc.value.reason == "appeal_panel_decision_not_finalized"
+    assert state == before
+    assert "dispute_receipts" not in state
+    assert "dispute_juror_accountability" not in state
+
+
+def test_finalizing_marker_without_reached_appeal_panel_cannot_finalize() -> None:
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    _case(state)["stage"] = "finalizing"
+    before = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as exc:
+        apply_dispute(
+            state,
+            _system_final_receipt(appeal_resolution={"decision": "reverse"}),
+        )
+    assert exc.value.reason == "appeal_panel_decision_unverified"
+    assert state == before
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_reason"),
+    [
+        (
+            {"appeal_resolution": {"decision": "uphold"}},
+            "appeal_resolution_mismatch",
+        ),
+        (
+            {"resolution": {"actions": [{"tx_type": "CONTENT_VISIBILITY_SET"}]}},
+            "appeal_original_resolution_override",
+        ),
+    ],
+)
+def test_finalizing_appeal_cannot_override_stored_panel_decision(
+    overrides: dict, expected_reason: str
+) -> None:
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    case = _case(state)
+    case["stage"] = "finalizing"
+    case["appeal_panel_result"] = {
+        "reached": True,
+        "resolution": {"decision": "reverse"},
+    }
+    before = deepcopy(state)
+    with pytest.raises(DisputeApplyError) as exc:
+        apply_dispute(state, _system_final_receipt(**overrides))
+    assert exc.value.reason == expected_reason
+    assert state == before
+
+
+def test_matching_reached_panel_decision_can_finalize_synthetic_appeal() -> None:
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    case = _case(state)
+    case["stage"] = "finalizing"
+    case["appeal_panel_result"] = {
+        "reached": True,
+        "resolution": {"decision": "reverse"},
+    }
+    result = apply_dispute(
+        state,
+        _system_final_receipt(appeal_resolution={"decision": "reverse"}),
+    )
+    assert result["applied"] == "DISPUTE_FINAL_RECEIPT"
+    assert result["appeal_finalization"]["decision"] == "reverse"
+    assert case["stage"] == "finalized"
+    assert case["final_resolution"]["actions"] == []
+    assert (
+        state["dispute_receipts"]["synthetic-appeal-final"]["appeal_finalization"]["decision"]
+        == "reverse"
+    )
+
+
+def _appeal_resolved_state_for_queue() -> dict:
+    """Synthetic adjudication state; no independently verified ballot evidence."""
+    state = _state(jurors=18)
+    apply_dispute(state, _appeal())
+    case = _case(state)
+    case["stage"] = "appeal_resolved"
+    case["appeal_panel_result"] = {
+        "reached": True,
+        "resolution": {"decision": "reverse"},
+    }
+    return state
+
+
+def _appeal_receipt_canon() -> TxIndex:
+    root = Path(__file__).resolve().parents[1]
+    return TxIndex.load_from_file(str(root / "generated" / "tx_index.json"))
+
+
+def _emit_appeal_receipt() -> tuple[dict, TxIndex, TxEnvelope]:
+    state = _appeal_resolved_state_for_queue()
+    canon = _appeal_receipt_canon()
+    assert tick_dispute_lifecycle(state, next_height=26) == 1
+    assert _case(state)["stage"] == "finalizing"
+    assert len(state["system_queue"]) == 1
+    envelope = system_tx_emitter(state, canon, next_height=26, phase="pre")
+    assert len(envelope) == 1
+    return state, canon, envelope[0]
+
+
+def test_reached_appeal_queues_exact_pre_phase_system_receipt() -> None:
+    state, canon, receipt = _emit_appeal_receipt()
+    case = _case(state)
+    queue = state["system_queue"][0]
+    parent = "dispute:ordinary-account-review:appeal-panel-finalize:2"
+
+    assert case["appeal_panel_result"]["resolution"] == {"decision": "reverse"}
+    assert receipt.tx_type == queue["tx_type"] == "DISPUTE_FINAL_RECEIPT"
+    assert receipt.system is True
+    assert receipt.signer == queue["signer"] == "SYSTEM"
+    assert receipt.parent == queue["parent"] == parent
+    assert queue["phase"] == "pre"
+    assert queue["due_height"] == queue["emitted_height"] == 26
+    assert receipt.payload["receipt_id"] == f"receipt:{parent}"
+    assert receipt.payload["_parent_ref"] == parent
+    assert receipt.payload["_due_height"] == 26
+    assert receipt.payload["_system_queue_id"] == queue["queue_id"]
+    assert receipt.payload["appeal_resolution"] == {"decision": "reverse"}
+    assert validate_system_tx_queue_binding(state, canon, receipt, next_height=26, phase="pre") == (
+        True,
+        "",
+    )
+    assert validate_system_tx_queue_binding(
+        state,
+        canon,
+        receipt,
+        next_height=26,
+        phase="pre",
+        queue_objects_by_id=build_system_queue_lookup(state),
+    ) == (True, "")
+
+
+def test_reached_appeal_pre_scheduler_and_emitter_reproduce_identical_state_root() -> None:
+    seed = _appeal_resolved_state_for_queue()
+    canon = _appeal_receipt_canon()
+    leader = deepcopy(seed)
+    follower = deepcopy(seed)
+
+    for replica in (leader, follower):
+        assert tick_dispute_lifecycle(replica, next_height=26) == 1
+        emitted = system_tx_emitter(replica, canon, next_height=26, phase="pre")
+        assert len(emitted) == 1
+
+    assert leader == follower
+    assert compute_state_root(leader) == compute_state_root(follower)
+    assert build_system_queue_lookup(leader) == build_system_queue_lookup(follower)
+
+
+def test_unreached_appeal_panel_never_queues_final_receipt() -> None:
+    state = _appeal_resolved_state_for_queue()
+    _case(state)["appeal_panel_result"]["reached"] = False
+    before = deepcopy(state)
+
+    assert tick_dispute_lifecycle(state, next_height=26) == 0
+    assert state == before
+    assert state["system_queue"] == []
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_reason"),
+    [
+        ("missing_queue_id", "missing_system_queue_id"),
+        ("unknown_queue_id", "unknown_system_queue_id"),
+        ("changed_decision", "system_queue_payload_mismatch"),
+        ("changed_receipt_id", "system_queue_payload_mismatch"),
+        ("changed_due_height", "system_payload_due_height_mismatch"),
+        ("changed_parent", "system_queue_parent_mismatch"),
+        ("changed_signer", "system_queue_signer_mismatch"),
+        ("changed_tx_type", "system_queue_tx_type_mismatch"),
+        ("changed_phase", "system_queue_phase_mismatch"),
+    ],
+)
+def test_appeal_final_receipt_rejects_forged_queue_provenance(
+    mutation: str, expected_reason: str
+) -> None:
+    state, canon, receipt = _emit_appeal_receipt()
+    block_env = receipt.to_json()
+    payload = block_env["payload"]
+    phase = "pre"
+
+    if mutation == "missing_queue_id":
+        payload.pop("_system_queue_id")
+    elif mutation == "unknown_queue_id":
+        payload["_system_queue_id"] = "unknown-appeal-queue"
+    elif mutation == "changed_decision":
+        payload["appeal_resolution"] = {"decision": "uphold"}
+    elif mutation == "changed_receipt_id":
+        payload["receipt_id"] = "receipt:forged"
+    elif mutation == "changed_due_height":
+        payload["_due_height"] = 27
+    elif mutation == "changed_parent":
+        block_env["parent"] = "forged-parent"
+    elif mutation == "changed_signer":
+        block_env["signer"] = "@forger"
+    elif mutation == "changed_tx_type":
+        block_env["tx_type"] = "DISPUTE_RESOLVE"
+    elif mutation == "changed_phase":
+        phase = "post"
+
+    snapshot = deepcopy(state)
+    checked = TxEnvelope.from_json(block_env)
+    assert validate_system_tx_queue_binding(state, canon, checked, next_height=26, phase=phase) == (
+        False,
+        expected_reason,
+    )
+    assert state == snapshot
+
+
+def test_tampered_appeal_queue_record_is_canonical_corruption() -> None:
+    state, _, _ = _emit_appeal_receipt()
+    state["system_queue"][0]["payload"]["appeal_resolution"]["decision"] = "uphold"
+    with pytest.raises(SystemQueueCorruptionError, match="system_queue_item_queue_id_mismatch"):
+        build_system_queue_lookup(state)
+
+
+def test_candidate_builder_and_independent_replay_bind_appeal_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Synthetic replay boundary; this fixture does not authenticate panel votes."""
+    seed = _appeal_resolved_state_for_queue()
+    # Staged synthetic state, not a valid historical sequence of signed blocks.
+    # Height zero permits this candidate and its independent replay to share
+    # the same deliberately injected opening state and parent hash.
+    seed["height"] = 0
+    chain_id = seed["chain_id"]
+    tx_index_path = str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    producer = WeAllExecutor(
+        db_path=str(tmp_path / "appeal-producer.db"),
+        node_id="@synthetic-producer",
+        chain_id=chain_id,
+        tx_index_path=tx_index_path,
+    )
+    follower = WeAllExecutor(
+        db_path=str(tmp_path / "appeal-follower.db"),
+        node_id="@synthetic-follower",
+        chain_id=chain_id,
+        tx_index_path=tx_index_path,
+    )
+    for node in (producer, follower):
+        node._ledger_store.write_state_snapshot(deepcopy(seed))
+        node.state = node._ledger_store.read()
+    monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
+
+    block, next_state, applied, invalid, error = producer.build_block_candidate(
+        max_txs=0, allow_empty=True
+    )
+    assert error == ""
+    assert isinstance(block, dict)
+    assert isinstance(next_state, dict)
+    assert invalid == []
+    queued_receipts = [tx for tx in block["txs"] if tx.get("tx_type") == "DISPUTE_FINAL_RECEIPT"]
+    assert len(queued_receipts) == 1
+    receipt = queued_receipts[0]
+    assert receipt["system"] is True
+    assert receipt["payload"]["appeal_resolution"] == {"decision": "reverse"}
+    assert receipt["payload"]["_system_queue_id"]
+    assert receipt["payload"]["_due_height"] == 1
+    assert receipt["parent"] == "dispute:ordinary-account-review:appeal-panel-finalize:2"
+    assert len(applied) >= 1
+
+    replayed = follower.apply_block(block)
+    assert replayed.ok is True, replayed.error
+    assert compute_state_root(follower.read_state()) == compute_state_root(next_state)
+    assert _case(follower.read_state())["stage"] == "finalized"

@@ -56,6 +56,24 @@ def test_dispute_open_standalone_analysis_does_not_capture_other_transactions() 
     assert analysis["semantic_precision"] == "function_static"
 
 
+def test_dispute_open_includes_transitive_target_allowlist_rejection() -> None:
+    """The dedicated DISPUTE_OPEN contract must see its live target validator."""
+    path = ROOT / "src/weall/runtime/apply/dispute.py"
+    required = {"code": "forbidden", "reason": "unsupported_dispute_target_type"}
+    for dispatch in ("dispute_open", "apply_dispute"):
+        analysis = compiler._tx_function_analysis(
+            "DISPUTE_OPEN",
+            path,
+            dispatch,
+            {"DISPUTE_OPEN", "DISPUTE_RESOLVE", "DISPUTE_APPEAL"},
+            set(),
+            ["disputes_by_id"],
+        )
+        assert required in analysis["failure_codes"]
+        assert analysis["function"] == "dispute_open"
+        assert analysis["return_keys"] == ["applied", "dispute_id"]
+
+
 def test_review_material_does_not_bind_line_number_or_fabricate_authority() -> None:
     path = ROOT / "src/weall/runtime/apply/dispute.py"
     analysis = compiler._tx_function_analysis(
@@ -95,6 +113,20 @@ def test_all_newly_observed_state_tokens_have_stable_append_only_ids() -> None:
         "Roles:actual_milli",
         "Roles:required_milli",
     }
+    names.update(
+        {
+            "Groups:electorate_source",
+            "Groups:eligible_voter_count",
+            "Groups:n_ballots",
+            "Groups:no_decision_reason",
+            "Groups:quorum_activation_height",
+            "Groups:quorum_met",
+            "Groups:quorum_policy_version",
+            "Groups:required_votes",
+            "Dispute:appeal_resolution",
+            "Dispute:reached",
+        }
+    )
     for name in sorted(names):
         expected = "STATE-" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:16].upper()
         assert ids.resolve("state", name) == expected

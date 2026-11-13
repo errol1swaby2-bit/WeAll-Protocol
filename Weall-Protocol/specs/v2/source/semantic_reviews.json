@@ -977,6 +977,22 @@
       "stable_id": "ROUTE-6427CFCDD81EEDCA"
     },
     {
+      "authority_effect": "none; no public testnet, secret ballot, election or mainnet activation",
+      "disposition": "accepted_current_semantic_contract",
+      "implementation_source": {
+        "function": "v1_group_elections",
+        "line": 616,
+        "path": "src/weall/api/routes_public_parts/groups.py"
+      },
+      "independent_review": false,
+      "review_digest": "5f329bc8b6bb1be69c8aa9ead3969b00583c450529c696fc6904c224267e0b8f",
+      "review_method": "AI-assisted code-derived read-only source contract fingerprint; no independent verification",
+      "reviewed_at": "2026-11-11T16:44:00Z",
+      "reviewer": "AI-assisted PR88 source inspection; NOT independent or constitutional approval",
+      "route_key": "GET /v1/groups/{group_id}/elections",
+      "stable_id": "ROUTE-647D04B0501AD3CF"
+    },
+    {
       "authority_effect": "none; does not activate public testnet or Mainnet",
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
@@ -1871,6 +1887,22 @@
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "GET /v1/tx/catalog",
       "stable_id": "ROUTE-B81383D6C92F2A06"
+    },
+    {
+      "authority_effect": "none; no public testnet, secret ballot, election or mainnet activation",
+      "disposition": "accepted_current_semantic_contract",
+      "implementation_source": {
+        "function": "v1_group_election_detail",
+        "line": 655,
+        "path": "src/weall/api/routes_public_parts/groups.py"
+      },
+      "independent_review": false,
+      "review_digest": "706e3c17ee6a1071655f2218151535e822de693a2be7b4af9ac504ac8f8e6714",
+      "review_method": "AI-assisted code-derived read-only source contract fingerprint; no independent verification",
+      "reviewed_at": "2026-11-11T16:44:00Z",
+      "reviewer": "AI-assisted PR88 source inspection; NOT independent or constitutional approval",
+      "route_key": "GET /v1/groups/{group_id}/elections/{election_id}",
+      "stable_id": "ROUTE-BD4D66493B2C4FE6"
     },
     {
       "authority_effect": "none; does not activate public testnet or Mainnet",
