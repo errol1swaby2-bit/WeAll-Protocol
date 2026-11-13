@@ -725,7 +725,6 @@ def test_mismatched_test_genesis_v2_cannot_replay_v1_block(
     assert v2_follower.read_state() == before
 
 
-
 def test_signed_non_group_officer_role_grant_is_currently_admitted_and_replays(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -749,7 +748,10 @@ def test_signed_non_group_officer_role_grant_is_currently_admitted_and_replays(
     outsider = "@pr88-role-outsider"
     public, _ = _deterministic_replay_fixture_keypair(label=outsider)
     _signed_committed(
-        source, tx_type="ACCOUNT_REGISTER", signer=outsider, nonce=1,
+        source,
+        tx_type="ACCOUNT_REGISTER",
+        signer=outsider,
+        nonce=1,
         payload={"pubkey": public},
     )
     _signed_committed(
