@@ -243,10 +243,7 @@ def preview_post_assignment_group_conflict(
                     continue
         elif tx_type == "GROUP_ROLE_GRANT":
             role = payload.get("role")
-            if (
-                role not in changed_role_grants
-                or not _same_account(juror, payload.get("account"))
-            ):
+            if role not in changed_role_grants or not _same_account(juror, payload.get("account")):
                 continue
         else:
             continue
