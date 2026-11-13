@@ -16,7 +16,6 @@ from typing import Any
 from weall.runtime.apply.dispute import (
     _dispute_conflict_account_ids,
     _identity_variants,
-    _resolve_account_identity,
 )
 from weall.runtime.state_hash import compute_state_root
 
