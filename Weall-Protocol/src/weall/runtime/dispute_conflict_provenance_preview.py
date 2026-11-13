@@ -30,6 +30,9 @@ _OFFICER_ACTIONS = {
     "GROUP_MODERATORS_SET": ("moderators", "moderators"),
     "GROUP_SIGNERS_SET": ("signers", "signers"),
 }
+_ROLE_GRANT_CONFLICT_ROLES = frozenset(
+    {"creator", "creators", "admin", "admins", "moderator", "moderators", "emissary", "emissaries"}
+)
 
 
 def _group_officers(state: Json, group_id: str, field: str) -> list[str] | None:
@@ -45,6 +48,29 @@ def _group_officers(state: Json, group_id: str, field: str) -> list[str] | None:
     if not isinstance(group, dict):
         return None
     members = group.get(field)
+    if not isinstance(members, list) or any(
+        not isinstance(value, str) or not value.strip() for value in members
+    ):
+        return None
+    return members
+
+
+def _group_role_members(state: Json, group_id: str, role: str) -> list[str] | None:
+    if role not in _ROLE_GRANT_CONFLICT_ROLES:
+        return None
+    roles = state.get("roles")
+    groups = roles.get("groups_by_id") if isinstance(roles, dict) else None
+    group = groups.get(group_id) if isinstance(groups, dict) else None
+    if not isinstance(group, dict):
+        return None
+    role_map = group.get("roles")
+    if role_map is None:
+        return []
+    if not isinstance(role_map, dict):
+        return None
+    members = role_map.get(role)
+    if members is None:
+        return []
     if not isinstance(members, list) or any(
         not isinstance(value, str) or not value.strip() for value in members
     ):
@@ -175,7 +201,18 @@ def preview_post_assignment_group_conflict(
             and any(_same_account(juror, member) for member in current_members)
         ):
             changed_roles[tx_type] = current_members
-    if not changed_roles:
+    changed_role_grants: set[str] = set()
+    for role in sorted(_ROLE_GRANT_CONFLICT_ROLES):
+        prior = _group_role_members(before, group_id, role)
+        current_members = _group_role_members(after, group_id, role)
+        if (
+            prior is not None
+            and current_members is not None
+            and not any(_same_account(juror, member) for member in prior)
+            and any(_same_account(juror, member) for member in current_members)
+        ):
+            changed_role_grants.add(role)
+    if not changed_roles and not changed_role_grants:
         result["status"] = "blocked_no_group_officer_transition"
         return result
 
@@ -191,22 +228,28 @@ def preview_post_assignment_group_conflict(
         if not isinstance(tx, dict):
             continue
         tx_type = tx.get("tx_type")
-        if tx_type not in changed_roles:
-            continue
-        _, payload_field = _OFFICER_ACTIONS[tx_type]
         payload = tx.get("payload")
-        if (
-            not isinstance(payload, dict)
-            or payload.get("group_id") != group_id
-            or payload.get(payload_field) != changed_roles[tx_type]
-            or tx.get("system") is True
-        ):
+        if not isinstance(payload, dict) or payload.get("group_id") != group_id:
             continue
-        if tx_type == "GROUP_SIGNERS_SET":
-            # The signer update also commits its treasury threshold. Require
-            # the actual on-chain threshold to equal the declared payload.
-            if payload.get("threshold") != _group_signer_threshold(after, group_id):
+        if tx.get("system") is True:
+            continue
+        if tx_type in changed_roles:
+            _, payload_field = _OFFICER_ACTIONS[tx_type]
+            if payload.get(payload_field) != changed_roles[tx_type]:
                 continue
+            if tx_type == "GROUP_SIGNERS_SET":
+                # The signer update also commits its treasury threshold.
+                if payload.get("threshold") != _group_signer_threshold(after, group_id):
+                    continue
+        elif tx_type == "GROUP_ROLE_GRANT":
+            role = payload.get("role")
+            if (
+                role not in changed_role_grants
+                or not _same_account(juror, payload.get("account"))
+            ):
+                continue
+        else:
+            continue
         signer = tx.get("signer")
         signature = tx.get("sig") or tx.get("signature")
         tx_id = tx.get("tx_id")
