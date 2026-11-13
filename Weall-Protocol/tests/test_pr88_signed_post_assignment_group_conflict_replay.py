@@ -269,9 +269,9 @@ def test_signed_group_officer_conflict_after_strict_panel_survives_replay(
     )
     prior_conflict = deepcopy(before_moderator)
     if officer_tx_type == "GROUP_ROLE_GRANT":
-        prior_conflict["roles"]["groups_by_id"][GROUP_ID].setdefault("roles", {})[
-            "moderator"
-        ] = [selected]
+        prior_conflict["roles"]["groups_by_id"][GROUP_ID].setdefault("roles", {})["moderator"] = [
+            selected
+        ]
     else:
         prior_conflict["roles"]["groups_by_id"][GROUP_ID][role_field].append(selected)
     assert (
