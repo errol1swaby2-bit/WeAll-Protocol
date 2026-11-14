@@ -127,6 +127,10 @@ jobs:
         run: |
           npm run test:tx-apply-receipt-truth
 
+      - name: Canonical-only reconciliation and no-ID fail-closed regression
+        run: |
+          npm run test:tx-reconciliation-truth
+
       - name: Frontend v1.6 focused navigation and safety contracts
         run: |
           npm run test:v16-navigation-source
