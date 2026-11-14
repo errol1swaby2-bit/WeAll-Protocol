@@ -138,3 +138,13 @@
 
 - Added a second process-isolated test mode routing actual signed production BFT proposals/votes/QCs through `NetMeshLoop` ingress handlers. It must reject duplicate execution after retransmission, process delayed QC delivery and match canonical final roots/treasury signers after restart in both 3-of-5 and 4-of-5 synthetic turnout cases.
 - The transport remains a test-controlled loopback RPC and broadcast-capture fixture, not authenticated autonomous production `NetNode` P2P sessions. No activation, live PoH, ballot secrecy, or merge authorization is claimed.
+
+
+## J20 bounded visual-theme portability increment — stacked draft PR #89 (2026-11-14)
+
+- Added `lib/themeTransfer.ts` with a version-1, max-8-KB, non-executable JSON exchange contract for the **five currently supported local appearance enums only**: mode, accent, font scale, density and motion preference. The parser rejects unknown versions, unknown fields, unknown enum values, remote resources, scripts, arbitrary CSS and unsanitized names. Export excludes node addresses, accounts, session material and any private/profile media.
+- Settings Themes now exposes **Export theme**, **Import theme JSON**, a rendered local preview, **Apply imported theme** and **Cancel import**. File selection or invalid import does not persist or apply appearance. Explicit Apply saves only local browser visual preferences, preserving current session, backend target and account authority.
+- `scripts/test_theme_transfer.mjs` validates roundtrip, all supported values, malformed/oversized/malicious import rejection, no privileged export fields, and preview/consent guards. It runs in Web CI.
+- `tests/e2e/theme_portability_production.spec.ts` exercises **two independent browser contexts** against a compiled production frontend: export in one, preview/cancel/apply in the other, verifies theme separation and malicious import rejection. The CI step runs after production Nginx/Chromium setup.
+- **Evidence limit:** Exact-head Web CI, rendered-browser outcome, keyboard/mobile accessibility and physical-device export/import are not asserted until passing results are recorded. Theme import/export is **manual browser-scoped portability**, not encryption, account-attached cloud sync, a user-generated palette editor, public group branding, or profile-media publication. J19 and J20 remain PARTIAL against the complete v1.6 specification.
+- All preexisting PR #81/#82/#88 release, semantics, PoH, elections, economics and public-testnet authorization gates remain intact. Draft/NO-GO.
