@@ -23,6 +23,8 @@ import v2_spec_validation as validation  # noqa: E402
 SOURCE_ACCURACY_HOLDS: dict[str, tuple[str, ...]] = {
     "DISPUTE_OPEN": ("proposal_target_rejected_before_proposal_status_branches",),
     "REVIEWER_LANE_OPT_OUT": ("withdrawal_does_not_invoke_activation_eligibility_gate",),
+    "ROLE_EMISSARY_SEAT": ("default_governance_action_allowlist_excludes_appointment",),
+    "ROLE_GOV_EXECUTOR_SET": ("default_governance_action_allowlist_excludes_appointment",),
 }
 
 KNOWN_STALE = frozenset(

@@ -488,17 +488,63 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
                 sent.add(key)
         return [vote for key, vote in enqueued.items() if key in sent]
     if command == "transition_vote":
-        assert node.bft_leader_propose(max_txs=0) is None
+        # This fixture is supposed to vote on a preseeded boundary, not make
+        # a competing proposal. Keep both requirements strict; report safe
+        # state/view/outbox evidence if a startup race violates either one.
         boundary = str(request["block_id"])
+        proposed = node.bft_leader_propose(max_txs=0)
+        if proposed is not None:
+            raise AssertionError(
+                "synthetic_transition_unexpected_proposal:"
+                + json.dumps(
+                    {
+                        "boundary": boundary,
+                        "view": int(node._bft.view),
+                        "height": int(node.state.get("height") or 0),
+                        "proposal_block_id": (
+                            str(proposed.get("block_id") or "")
+                            if isinstance(proposed, dict)
+                            else "non_dict_proposal"
+                        ),
+                    },
+                    sort_keys=True,
+                )
+            )
+        outbound = node.bft_pending_outbound_messages()
         choices = [
             entry["payload"]
-            for entry in node.bft_pending_outbound_messages()
+            for entry in outbound
             if entry.get("kind") == "vote"
             and isinstance(entry.get("payload"), dict)
             and str(entry["payload"].get("block_id")) == boundary
             and int(entry["payload"].get("view", -1)) == 0
         ]
-        assert len(choices) == 1
+        if len(choices) != 1:
+            # No signatures, private keys, or full proposal data in CI logs.
+            pending_vote_keys = [
+                {
+                    "block_id": str(payload.get("block_id") or ""),
+                    "view": payload.get("view"),
+                    "signer": str(payload.get("signer") or ""),
+                }
+                for entry in outbound
+                if entry.get("kind") == "vote"
+                and isinstance((payload := entry.get("payload")), dict)
+            ]
+            raise AssertionError(
+                "synthetic_transition_vote_count_mismatch:"
+                + json.dumps(
+                    {
+                        "boundary": boundary,
+                        "count": len(choices),
+                        "height": int(node.state.get("height") or 0),
+                        "view": int(node._bft.view),
+                        "pending_vote_keys": pending_vote_keys[:16],
+                        "pending_vote_count": len(pending_vote_keys),
+                    },
+                    sort_keys=True,
+                )
+            )
         return choices[0]
     if command == "netmesh_proposal":
         proposal = request["proposal"]

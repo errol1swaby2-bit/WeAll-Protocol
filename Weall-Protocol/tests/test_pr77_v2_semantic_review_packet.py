@@ -100,6 +100,53 @@ def test_source_accuracy_holds_require_separate_semantic_review() -> None:
     assert "source_accuracy_holds_mismatch:DISPUTE_OPEN" in packet_integrity_blockers(forged)
 
 
+def test_default_governance_appointment_authority_hold() -> None:
+    """Canonical GOV_EXECUTE lineage is not an operational default appointment path."""
+    import yaml
+
+    from weall.runtime.apply import governance
+
+    appointment_names = {"ROLE_EMISSARY_SEAT", "ROLE_GOV_EXECUTOR_SET"}
+    assert appointment_names.isdisjoint(governance.DEFAULT_GOV_ACTION_ALLOWLIST)
+    assert appointment_names.isdisjoint(governance._allowed_gov_action_types({}))
+
+    canon = yaml.safe_load((audit.ROOT / "specs/tx_canon/tx_canon.yaml").read_text())
+    entries = {
+        item["name"]: item
+        for item in canon["txs"]
+        if item["name"] in appointment_names
+    }
+    assert set(entries) == appointment_names
+    for name, entry in entries.items():
+        assert entry["origin"] == "SYSTEM"
+        assert entry["context"] == "block"
+        assert entry["gate"] == "GovExecutor"
+        assert entry["parent"] == "GOV_EXECUTE"
+        assert entry["receipt_only"] is True
+        assert entry["via_gov_execute"] is True
+
+    # A configured allowlist can differ: this is a default-route HOLD, not
+    # proof that no user-configured proposal could ever request appointments.
+    configured = {"params": {"gov_action_allowlist": sorted(appointment_names)}}
+    assert governance._allowed_gov_action_types(configured) == appointment_names
+
+    packet = build_packet()
+    rows = {row["tx_type"]: row for row in packet["transactions"]}
+    for name in sorted(appointment_names):
+        row = rows[name]
+        assert row["source_accuracy_holds"] == list(SOURCE_ACCURACY_HOLDS[name])
+        assert row["signed_off_for_current_digest"] is False
+        assert row["historical_replay_proven"] is False
+
+    forged = copy.deepcopy(packet)
+    next(
+        row for row in forged["transactions"] if row["tx_type"] == "ROLE_EMISSARY_SEAT"
+    )["source_accuracy_holds"] = []
+    assert "source_accuracy_holds_mismatch:ROLE_EMISSARY_SEAT" in packet_integrity_blockers(
+        forged
+    )
+
+
 def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None:
     packet = build_packet()
     assert packet["schema"] == "weall.pr77.v2_semantic_review_decision_packet.v2"
