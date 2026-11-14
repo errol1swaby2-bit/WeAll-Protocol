@@ -24,7 +24,8 @@
 - The controlled local producer is **one host and fixture-seeded Genesis authority**. The separate observer browser uses the same node API. It does not establish independent validators, PoH uniqueness, remote media, node restart or consensus QCs.
 - The test's protected action is a signed profile update, not an end-to-end PoH advancement. Tier-1/2 positive production authority is deliberately closed pending uniqueness and constitutional review.
 - The CI runs with `WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1`: backend absence fails rather than skipping. Any resulting boot or data mismatch must be diagnosed, not waived or downgraded to a synthetic success.
-- Additional evidence required: exact-head clean-clone operational replay, actual backend restart with persistence and no key export, cross-machine node/observer state-root verification, and Cloudflare-hosted HTTPS binding.
+- An additional scoped CI step now **actually stops and restarts the same controlled-devnet backend without resetting its database or operator keyfile**, then calls `scripts/verify_ihd1_receipts_after_restart.py` against a public-only witness from the browser. It must recover both original successful receipts at the identical heights/block IDs, the same canonical ML-DSA authority digest, Tier-0 standing, account nonce and publicly committed profile. Source inclusion alone is not pass evidence; inspect exact-head job outcome.
+- Additional evidence required: exact-head clean-clone operational replay on an independent PC, cross-machine node/observer state-root verification, Cloudflare-hosted HTTPS binding, and multi-validator BFT/finality. The same-node restart step does not establish these.
 - PR #81/#82/#88 and all semantic-review, Backend CI, P1, Reviewer Readiness, ballot privacy and locked-economic gates remain DRAFT / NO-GO.
 
 ## Reproducible safety contracts
@@ -39,3 +40,10 @@ npm run build
 ```
 
 The full real-browser test also requires a locally running and actually producing controlled-devnet backend; see the scoped GitHub Actions workflow. **Do not** run against production credentials, remove existing devnet state or publish recovery files as debugging artifacts.
+
+## First live-gate findings and remediation (2026-11-14)
+
+- Initial real controlled-devnet test ran through signed Tier-0 registration with successful canonical receipt, then revealed an outdated **test assertion**: browser ML-DSA-65 public keys are encoded as base64, while the authoritative backend normalizes the same 1,952 bytes to lowercase hex (source: `weall.crypto.account_keys.canonical_account_key_pubkey`). The E2E now compares decoded bytes and validates the single canonical authority record rather than changing consensus encoding.
+- A later full-browser run reached successful recovery on a second browser profile, then exposed an ambiguous text locator for `Edit public profile` (both tab button and summary). The E2E now targets the accessible owner-only tab explicitly; it does not weaken the signed profile action.
+- **Exact-head first complete real-browser pass:** at commit `c75845c16e4670ddb1ffb36ea3c852bd2709a4fe`, the controlled-devnet browser suite passed all 2 tests, including recovery, successful committed profile update and unauthenticated third-browser observation (run `43639637760`). Web CI and Secrets Guard passed separately at this head. Backend CI, Focused P1 and Reviewer Readiness remained failing and cannot be waived.
+- The stronger same-node restart/persistence gate was added **after** that passing run. It is not yet proven until its own exact-head run completes.
