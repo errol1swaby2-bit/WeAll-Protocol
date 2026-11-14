@@ -45,6 +45,7 @@
     "test:dispute-review-rendered-journey-source": "node scripts/test_dispute_review_rendered_journey_source.mjs",
     "test:transaction-lifecycle-rendered-evidence-source": "node scripts/test_transaction_lifecycle_rendered_evidence_source.mjs",
     "test:tx-apply-receipt-truth": "node scripts/test_tx_apply_receipt_truth.mjs",
+    "test:tx-reconciliation-truth": "node scripts/test_tx_reconciliation_truth.mjs",
     "test:node-operator-journey-incident-response-source": "node scripts/test_node_operator_journey_incident_response_source.mjs",
     "test:reviewer-critical-source": "node scripts/test_reviewer_critical_flows_source.mjs",
     "test:account-custody-e2e": "playwright test tests/e2e/account_custody_registration_restore.spec.ts",
