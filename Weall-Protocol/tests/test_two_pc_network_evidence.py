@@ -276,7 +276,9 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         a, b = packets()
         wrong = {**CHAIN, "genesis_hash": "incorrect"}
         with (
-            unittest.mock.patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
+            unittest.mock.patch.object(
+                tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]
+            ),
             unittest.mock.patch.object(tool, "repo_identity", return_value=a["repository"]),
         ):
             report = tool.capture_machine(
@@ -291,7 +293,9 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
     def test_capture_projects_only_safe_api_fields(self) -> None:
         a, b = packets()
         with (
-            unittest.mock.patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
+            unittest.mock.patch.object(
+                tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]
+            ),
             unittest.mock.patch.object(tool, "repo_identity", return_value=a["repository"]),
         ):
             report = tool.capture_machine(
