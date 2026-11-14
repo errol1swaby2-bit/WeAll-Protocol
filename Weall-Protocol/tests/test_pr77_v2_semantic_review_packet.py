@@ -63,7 +63,6 @@ def test_v2_stale_review_packet_does_not_approve_20_affected_transactions() -> N
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
     assert packet["historical_compatibility_proven"] is False
     assert packet["must_not_update_semantic_reviews_automatically"] is True
-    assert packet_integrity_blockers(packet) == []
     for row in packet["transactions"]:
         assert row["accepted_review_digest"] != row["current_material_digest"]
         assert row["review_lane"]

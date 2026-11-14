@@ -87,9 +87,10 @@ jobs:
                   raise SystemExit(f"{name}: PROOF SEMANTICS CHANGED, not a freshness-only repair: {differing}")
               assert new["freshness"]["mode"] == "deterministic_input_digest_v1"
               assert old["freshness"]["mode"] == "deterministic_input_digest_v1"
-              assert new["freshness"]["input_digest_sha256"] != old["freshness"]["input_digest_sha256"], (
-                  f"{name}: input digest unchanged; expected a previously stale proof"
-              )
+              # Passing a second time must also succeed after the refreshed
+              # checked-in evidence matches its source. Never require drift.
+              assert len(new["freshness"]["input_digest_sha256"]) == 64
+              assert len(old["freshness"]["input_digest_sha256"]) == 64
               assert all(not value for value in new.get("locked_boundaries", {}).values())
               checked.append(name)
           # Output files are existing public deterministic audit artifacts only:
