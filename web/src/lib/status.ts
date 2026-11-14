@@ -51,6 +51,17 @@ export function normalizeTxStatus(raw: any, txId?: string): NormalizedTxStatus {
   const resolvedTxId = String(raw?.tx_id || txId || "").trim() || undefined;
 
   if (status === "confirmed") {
+    // A status string does not override an explicit failed deterministic apply
+    // receipt. Older or inconsistent nodes may return contradictory fields.
+    if (raw?.apply_ok === false) {
+      return {
+        txId: resolvedTxId,
+        phase: "failed",
+        label: "Rejected apply receipt",
+        detail: "This transaction was reported as confirmed, but its apply receipt says the operation failed. Treat it as rejected and inspect the canonical receipt.",
+        terminal: true,
+      };
+    }
     if (raw?.local_state_synced === false) {
       return {
         txId: resolvedTxId,
@@ -60,11 +71,23 @@ export function normalizeTxStatus(raw: any, txId?: string): NormalizedTxStatus {
         terminal: false,
       };
     }
+    // The backend can discover an included block while its old receipts or
+    // index are missing. Inclusion without a proven successful apply is not
+    // a successful canonical action, even if an API reports "confirmed".
+    if (raw?.apply_ok !== true) {
+      return {
+        txId: resolvedTxId,
+        phase: "submitted",
+        label: "Block reported / apply result unverified",
+        detail: "The node reports block confirmation, but has not provided an explicit successful apply receipt. Check the canonical transaction record before treating this action as final.",
+        terminal: false,
+      };
+    }
     return {
       txId: resolvedTxId,
       phase: "confirmed",
       label: "Confirmed",
-      detail: "This transaction is confirmed by the backend status surface after local state sync.",
+      detail: "This transaction has an explicit successful apply receipt and the backend reports locally synchronized state.",
       terminal: true,
     };
   }
