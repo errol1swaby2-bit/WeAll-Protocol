@@ -50,7 +50,7 @@ for (const marker of [
   'Create account key',
   'Download recovery file',
   'recovery_account_mismatch',
-  'Register basic account',
+  'submit-basic-registration',
   'waitForConfirmedTx',
   'signatureValid',
   'restore-recovery-file',

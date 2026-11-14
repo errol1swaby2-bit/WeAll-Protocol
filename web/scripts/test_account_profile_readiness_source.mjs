@@ -73,6 +73,19 @@ for (const needle of [
   assertIncludes(readiness, needle, "Account/profile readiness doc");
 }
 
+// An intermittent failure reading the already-registered account must not
+// permanently disable a restored user's profile form. This is read-only
+// reconciliation, never an automatic retry of a signed transaction.
+for (const needle of [
+  "const accountExists = !!acctView?.ok && !!state;",
+  "if (!isSelf || !acct || accountExists) return;",
+  "const latest = await weall.account(acct, base);",
+  "attempts < 8",
+  'data-submit-blockers={profileSubmitBlockers.join(",")}',
+]) {
+  assertIncludes(account, needle, "Read-only canonical account reconciliation");
+}
+
 assertIncludes(first15, "Account and public profile readiness", "First 15 minutes doc must link account/profile readiness");
 assertIncludes(packageJson, "test:account-profile-readiness-source", "package script must expose account/profile readiness source check");
 

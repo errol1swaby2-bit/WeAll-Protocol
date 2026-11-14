@@ -5,6 +5,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from weall.crypto.pq_mldsa import MLDSA65_PUBLIC_KEY_BYTES
+from weall.testing.sigtools import deterministic_mldsa_keypair
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "build_production_genesis_manifest.py"
 
@@ -44,11 +47,49 @@ def test_production_genesis_manifest_builder_rejects_placeholder_pubkeys(tmp_pat
     assert "placeholder_value:founding_pubkey" in (result.stderr + result.stdout)
 
 
+def test_production_genesis_manifest_builder_refuses_short_key_fingerprint(
+    tmp_path: Path,
+) -> None:
+    """The founder must have an actual ML-DSA-65 signing key, not a 32-byte ID."""
+    tx_index = tmp_path / "tx_index.json"
+    _write_tx_index(tx_index)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--founding-account",
+            "founder",
+            "--founding-pubkey",
+            "a" * 64,
+            "--authority-pubkey",
+            "b" * 64,
+            "--tx-index",
+            str(tx_index),
+            "--genesis-out",
+            str(tmp_path / "genesis.json"),
+            "--manifest-out",
+            str(tmp_path / "manifest.json"),
+        ],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "invalid_mldsa65_founding_pubkey" in (result.stdout + result.stderr)
+    assert not (tmp_path / "genesis.json").exists()
+    assert not (tmp_path / "manifest.json").exists()
+
+
 def test_production_genesis_manifest_builder_pins_lock_and_manifest(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     _write_tx_index(tx_index)
     genesis = tmp_path / "genesis.json"
     manifest = tmp_path / "manifest.json"
+    founder_pubkey, _secret_seed = deterministic_mldsa_keypair(
+        label="production-genesis-builder-validator"
+    )
+    assert len(founder_pubkey) == 2 * MLDSA65_PUBLIC_KEY_BYTES
     result = subprocess.run(
         [
             sys.executable,
@@ -58,7 +99,7 @@ def test_production_genesis_manifest_builder_pins_lock_and_manifest(tmp_path: Pa
             "--founding-account",
             "founder",
             "--founding-pubkey",
-            "a" * 64,
+            founder_pubkey,
             "--authority-pubkey",
             "b" * 64,
             "--tx-index",
@@ -80,6 +121,8 @@ def test_production_genesis_manifest_builder_pins_lock_and_manifest(tmp_path: Pa
     g = json.loads(genesis.read_text(encoding="utf-8"))
     m = json.loads(manifest.read_text(encoding="utf-8"))
     assert g["chain_id"] == "weall-prod-test"
+    assert g["consensus"]["validators"]["registry"]["founder"]["pubkey"] == founder_pubkey
+    assert g["validators"]["registry"]["founder"]["pubkey"] == founder_pubkey
     assert g["params"]["economics_enabled"] is False
     assert g["params"]["economic_unlock_time"] == 1900000000 + 90 * 24 * 60 * 60
     assert g["params"]["poh_bootstrap_mode"] == "allowlist"

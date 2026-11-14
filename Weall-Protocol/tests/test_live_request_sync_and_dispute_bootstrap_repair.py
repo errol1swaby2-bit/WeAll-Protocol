@@ -11,21 +11,25 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_live_request_waits_for_confirmed_synced_case_before_routing() -> None:
+def test_live_request_matches_its_own_case_without_claiming_pending_as_final() -> None:
     src = _read(WEB / "src" / "pages" / "AccountVerificationPage.tsx")
+    routes = _read(WEB / "src" / "lib" / "pohGuidedRoutes.ts")
 
     live_fn = src.split("async function reconcileLiveCaseVisible", 1)[1].split(
         "async function waitForLiveCaseIdVisible", 1
     )[0]
     assert "return reconcileVerificationLevel(account, 1, base);" not in live_fn
     assert "return null;" in live_fn
-    assert (
-        "Live verification request was not confirmed on genesis and synced back to the observer yet"
-        in src
-    )
-    assert "requireLocalStateSynced: true" in src
-    assert "return { skeleton: skel, commitments, submit, case_id: visibleCaseId };" in src
-    assert 'String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible' in src
+    assert "mine?.ok === true" in live_fn
+    assert "findExpectedLivePohCaseId(mine.cases, account, expectedCaseId)" in live_fn
+    assert "record.case_id === expected && record.account_id === owner" in routes
+    assert "reconcileLiveCaseVisible(acct, submittedLiveCaseId, base, headers)" in src
+    assert "requireLocalStateSynced: false" in src
+    assert "acceptAccepted: true" in src
+    assert "pending_case_visibility: !visibleCaseId" in src
+    assert "case_id: visibleCaseId || expectedCaseId" in src
+    assert "resultCaseId && resultCaseId === expectedCaseId" in src
+    assert "return visible[visible.length - 1]" not in src
 
 
 def test_dispute_frontend_has_bootstrap_single_reviewer_fallback() -> None:

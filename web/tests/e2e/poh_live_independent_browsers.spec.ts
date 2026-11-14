@@ -7,6 +7,7 @@ import {
   waitForConfirmed,
   waitForTier,
   waitForLiveLocalMedia,
+  waitForLiveRemoteMedia,
 } from "./m2_actor_helpers";
 
 const REQUIRE_REAL = String(process.env.WEALL_REQUIRE_M2_REAL_STACK || "") === "1";
@@ -38,17 +39,29 @@ test.describe("M2 independent-browser live Tier 2", () => {
         await expect(actor.page.getByTestId("live-verification-room")).toBeVisible();
         await actor.page.getByTestId("live-room-join").click();
         await waitForLiveLocalMedia(actor.page, `reviewer ${reviewer.account}`);
-        if (String(reviewer.role || "").toLowerCase() !== "observing") {
-          const approve = actor.page.getByTestId("live-review-approve");
-          await expect(approve).toBeVisible({ timeout: 60_000 });
-          await approve.click();
-        }
       }
 
-      await expect.poll(async () => {
-        const values = await Promise.all(opened.map(({ page }) => page.getByTestId("live-p2p-status").textContent().catch(() => "")));
-        return values.some((value) => /connected|media|running|offer|answer/i.test(String(value || "")));
-      }, { timeout: 45_000 }).toBe(true);
+      // Require actual remote video and a connected WebRTC peer on both sides.
+      // A local camera preview, relay exchange or any non-empty status string
+      // is not proof that independent accounts can see each other.
+      await test.step("All independent browsers receive peer video before reviewers vote", async () => {
+        await Promise.all([
+          ...reviewerActors.map(({ reviewer }) =>
+            waitForLiveRemoteMedia(applicant.page, "applicant", reviewer.account)),
+          ...reviewerActors.map(({ actor, reviewer }) =>
+            waitForLiveRemoteMedia(actor.page, `reviewer ${reviewer.account}`, manifest.applicant.account)),
+        ]);
+      });
+
+      for (const { actor, reviewer } of reviewerActors) {
+        if (String(reviewer.role || "").toLowerCase() !== "observing") {
+          await test.step(`Reviewer submits verdict after two-way live media: ${reviewer.account}`, async () => {
+            const approve = actor.page.getByTestId("live-review-approve");
+            await expect(approve).toBeVisible({ timeout: 60_000 });
+            await approve.click();
+          });
+        }
+      }
 
       const state = await test.step("Wait for canonical Tier 2 finalization", () =>
         waitForTier(request, manifest.api_base, manifest.applicant.account, 2),

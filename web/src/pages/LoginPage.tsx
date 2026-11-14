@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 import type { FormEvent, ReactNode } from "react"
 
-import { ApiError, fetchStatus, getApiBase, setApiBase } from "../api/weall"
-import { ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
-import { generateKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
-import { generateEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto"
+import { ApiError, fetchStatus, getApiBase, setApiBase, weall } from "../api/weall"
+import { endSession, ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
+import { canonicalMldsa65PublicKeyHex, derivePublicKeyFromSecretKey, ensureRecoveryAuthorityKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
+import { ensureEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto"
 import { buildRecoveryKeyFile, downloadRecoveryKeyFile, parseRecoveryKeyFileText, readRecoveryKeyFile, recoveryFileText, verifyRecoveryKeyFileForAccount } from "../auth/recoveryFile"
 import { confirmEasySignIn, getEasySignInForAccount, listEasySignInRecords, passkeysAvailable, registerEasySignIn } from "../auth/passkeys"
 import { consumeReturnTo, nav } from "../lib/router"
@@ -176,6 +176,7 @@ export default function LoginPage() {
 
   const [restoreAccountInput, setRestoreAccountInput] = useState("")
   const [recoveryKeyInput, setRecoveryKeyInput] = useState("")
+  const [stagedRecoveryBundle, setStagedRecoveryBundle] = useState<ReturnType<typeof parseRecoveryKeyFileText> | null>(null)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
@@ -225,6 +226,19 @@ export default function LoginPage() {
     }
   }, [config, restoreAccountInput, apiBaseInput])
 
+  async function handleRetryNodeConnection() {
+    setBackendReachable(null)
+    setError("")
+    try {
+      await fetchStatus()
+      setBackendReachable(true)
+      setNotice("The selected node is reachable. You can continue the account setup.")
+    } catch {
+      setBackendReachable(false)
+      setNotice("")
+    }
+  }
+
   async function handleSaveApiBase() {
     setApiBase(apiBaseInput)
     setError("")
@@ -255,11 +269,8 @@ export default function LoginPage() {
     setBusy(true)
     try {
       const keypair = ensureKeypair(account)
-      const recoveryAuthority = generateKeypair()
-      const evidenceKem = generateEvidenceKemKeypair()
-      saveRecoveryAuthorityKeypair(account, recoveryAuthority)
-      saveEvidenceKemKeypair(account, evidenceKem)
-      issueSessionFromSecretKey({ account, secretKeyB64: keypair.secretKeyB64 })
+      const recoveryAuthority = ensureRecoveryAuthorityKeypair(account)
+      const evidenceKem = ensureEvidenceKemKeypair(account)
       setCreatedKey({
         account,
         pubkeyB64: keypair.pubkeyB64,
@@ -274,9 +285,16 @@ export default function LoginPage() {
       setRecoveryVerified(false)
       setRecoveryVerificationText("")
       setEasySignInAdded(!!getEasySignInForAccount(account))
-      setNotice("Your account key was created locally. Download your recovery file, then verify it before registering or continuing.")
+      setNotice("Step 1 complete. Save and verify your recovery file to protect your account before it is registered on the network.")
     } catch (err) {
-      setError(humanizeApiError(err, "Could not create your account key."))
+      const code = err instanceof Error ? err.message : ""
+      if (code === "existing_account_key_requires_recovery" || code === "existing_recovery_authority_requires_recovery" || code === "existing_evidence_key_requires_recovery") {
+        setMode("restore")
+        setRestoreAccountInput(account)
+        setError("This browser remembers keys for that handle, but one or more private keys are unavailable. Restore your saved recovery file. No replacement keys have been generated.")
+      } else {
+        setError(humanizeApiError(err, "Could not create your account key."))
+      }
     } finally {
       setBusy(false)
     }
@@ -351,7 +369,14 @@ export default function LoginPage() {
       setError("Verify your saved recovery file or pasted recovery JSON before continuing.")
       return
     }
-    nav(consumeReturnTo("/verification"))
+    try {
+      // A browser key alone is not a completed account: create the session
+      // only after the saved recovery file has been cryptographically checked.
+      issueSessionFromSecretKey({ account: createdKey.account, secretKeyB64: createdKey.secretKeyB64 })
+      nav("/onboarding/register")
+    } catch (reason) {
+      setError(humanizeApiError(reason, "Could not open account registration."))
+    }
   }
 
   function verifyCreatedRecoveryFile(parsed: ReturnType<typeof parseRecoveryKeyFileText>) {
@@ -412,23 +437,13 @@ export default function LoginPage() {
   async function handleRecoveryFileSelected(file: File | null) {
     setError("")
     setNotice("")
+    setStagedRecoveryBundle(null)
     if (!file) return
     try {
       const parsed = await readRecoveryKeyFile(file)
       setRestoreAccountInput(parsed.account)
       setRecoveryKeyInput(parsed.secretKeyB64)
-      if (parsed.recoveryAuthorityPublicKeyB64 && parsed.recoveryAuthoritySecretKeyB64) {
-        saveRecoveryAuthorityKeypair(parsed.account, {
-          pubkeyB64: parsed.recoveryAuthorityPublicKeyB64,
-          secretKeyB64: parsed.recoveryAuthoritySecretKeyB64,
-        })
-      }
-      if (parsed.evidenceKemPublicKeyB64 && parsed.evidenceKemSecretKeyB64) {
-        saveEvidenceKemKeypair(parsed.account, {
-          publicKeyB64: parsed.evidenceKemPublicKeyB64,
-          secretKeyB64: parsed.evidenceKemSecretKeyB64,
-        })
-      }
+      setStagedRecoveryBundle(parsed)
       setNotice("Recovery file loaded. Review the handle, then sign in.")
     } catch (err) {
       setError(humanizeApiError(err, "Could not read that recovery file."))
@@ -438,24 +453,14 @@ export default function LoginPage() {
   function handlePasteRecoveryText(value: string) {
     const text = String(value || "")
     setRecoveryKeyInput(text)
+    setStagedRecoveryBundle(null)
     const trimmed = text.trim()
     if (!trimmed.startsWith("{")) return
     try {
       const parsed = parseRecoveryKeyFileText(trimmed)
       setRestoreAccountInput(parsed.account)
       setRecoveryKeyInput(parsed.secretKeyB64)
-      if (parsed.recoveryAuthorityPublicKeyB64 && parsed.recoveryAuthoritySecretKeyB64) {
-        saveRecoveryAuthorityKeypair(parsed.account, {
-          pubkeyB64: parsed.recoveryAuthorityPublicKeyB64,
-          secretKeyB64: parsed.recoveryAuthoritySecretKeyB64,
-        })
-      }
-      if (parsed.evidenceKemPublicKeyB64 && parsed.evidenceKemSecretKeyB64) {
-        saveEvidenceKemKeypair(parsed.account, {
-          publicKeyB64: parsed.evidenceKemPublicKeyB64,
-          secretKeyB64: parsed.evidenceKemSecretKeyB64,
-        })
-      }
+      setStagedRecoveryBundle(parsed)
       setNotice("Recovery JSON detected and loaded.")
     } catch {
       // Leave text as-is so the user can finish editing/pasting.
@@ -475,15 +480,62 @@ export default function LoginPage() {
       return
     }
 
+    let restoredSessionIssued = false
     setBusy(true)
     try {
-      await restoreAccountAndLoginOnThisDevice({
+      const bundle = stagedRecoveryBundle
+      if (bundle && (bundle.account !== restoreAccount || bundle.secretKeyB64 !== recoveryKeyInput.trim())) {
+        throw new Error("The selected recovery file does not match this handle and signing key.")
+      }
+      // A recovery file must identify the actual on-chain account, not merely
+      // contain a mathematically valid signing seed. Fail closed if unavailable.
+      const view = await weall.account(restoreAccount)
+      const state = view?.account?.state ?? view?.state
+      const expectedSigner = String(state?.pubkey || "").trim()
+      if (!expectedSigner) throw new Error("Account identity could not be verified on this node.")
+      const suppliedSigner = derivePublicKeyFromSecretKey(recoveryKeyInput.trim())
+      if (canonicalMldsa65PublicKeyHex(expectedSigner) !== canonicalMldsa65PublicKeyHex(suppliedSigner) || (bundle && canonicalMldsa65PublicKeyHex(suppliedSigner) !== canonicalMldsa65PublicKeyHex(bundle.publicKeyB64))) {
+        throw new Error("The recovery key does not match the registered account key.")
+      }
+      // Validate every supplied authority against canonical state before
+      // issuing a session or writing any private material to this browser.
+      if (bundle) {
+        const expectedRecovery = String(state?.recovery?.offline_key?.pubkey || "").trim()
+        const expectedEvidence = String(state?.evidence_encryption?.public_key || "").trim()
+        if (bundle.recoveryAuthorityPublicKeyB64 && canonicalMldsa65PublicKeyHex(bundle.recoveryAuthorityPublicKeyB64) !== canonicalMldsa65PublicKeyHex(expectedRecovery)) {
+          throw new Error("Recovery authority in the file does not match the registered account.")
+        }
+        if (bundle.evidenceKemPublicKeyB64 && bundle.evidenceKemPublicKeyB64 !== expectedEvidence) {
+          throw new Error("Evidence decryption key in the file does not match the registered account.")
+        }
+      }
+      const restored = await restoreAccountAndLoginOnThisDevice({
         account: restoreAccount,
         secretKeyB64: recoveryKeyInput.trim(),
       })
+      restoredSessionIssued = true
+      if (canonicalMldsa65PublicKeyHex(restored.keypair.pubkeyB64) !== canonicalMldsa65PublicKeyHex(expectedSigner)) {
+        throw new Error("The restored signing key is not authorized for this account.")
+      }
+      if (bundle) {
+        if (bundle.recoveryAuthorityPublicKeyB64 && bundle.recoveryAuthoritySecretKeyB64) {
+          saveRecoveryAuthorityKeypair(bundle.account, {
+            pubkeyB64: bundle.recoveryAuthorityPublicKeyB64,
+            secretKeyB64: bundle.recoveryAuthoritySecretKeyB64,
+          })
+        }
+        if (bundle.evidenceKemPublicKeyB64 && bundle.evidenceKemSecretKeyB64) {
+          saveEvidenceKemKeypair(bundle.account, {
+            publicKeyB64: bundle.evidenceKemPublicKeyB64,
+            secretKeyB64: bundle.evidenceKemSecretKeyB64,
+          })
+        }
+      }
+      setStagedRecoveryBundle(null)
       setNotice("Signed in on this device.")
       nav(consumeReturnTo("/home"))
     } catch (err) {
+      if (restoredSessionIssued) endSession()
       setError(humanizeApiError(err, "Could not sign in with that recovery key."))
     } finally {
       setBusy(false)
@@ -574,14 +626,14 @@ export default function LoginPage() {
         <div className="authHeroGrid">
           <div className="authHeroCopy">
             <p className="eyebrow">Welcome</p>
-            <h1>Sign in to WeAll</h1>
+            <h1>Create or access your WeAll account</h1>
             <p className="muted">
               Create an account key, verify your recovery file, then use easy sign-in on this device for faster access later.
             </p>
             <div className="statusRowWrap">
-              <StepPill done={!!createdKey || !!session?.account}>Account key</StepPill>
+              <StepPill done={!!createdKey || !!session?.account}>1. Account key</StepPill>
               <StepPill done={recoveryDownloaded}>Recovery downloaded</StepPill>
-              <StepPill done={recoveryVerified}>Recovery verified</StepPill>
+              <StepPill done={recoveryVerified}>2. Recovery verified</StepPill>
               <StepPill done={easySignInAdded || !!savedEasySignIns.length}>Easy sign-in optional</StepPill>
             </div>
           </div>
@@ -600,6 +652,16 @@ export default function LoginPage() {
           </div>
         </div>
       </section>
+
+      {backendReachable === false ? (
+        <section className="calloutWarn" role="status" data-testid="account-node-unavailable">
+          <strong>No WeAll node is reachable from this browser.</strong>
+          <p>Account registration, sign-in against a registered account, and human verification cannot finish while the selected node is unavailable. A local key by itself is not network membership. Do not repeat a previously submitted registration to work around a connection failure.</p>
+          <button type="button" className="secondary" onClick={() => void handleRetryNodeConnection()}>
+            Retry node connection
+          </button>
+        </section>
+      ) : null}
 
       <section className="authGrid">
         <article className="panel authFlowPanel">
@@ -651,10 +713,10 @@ export default function LoginPage() {
               ) : (
                 <div className="stack-md authFormCard" data-testid="recovery-save-step">
                   <div>
-                    <p className="eyebrow">Recovery key</p>
-                    <h3>Save this before continuing</h3>
+                    <p className="eyebrow">Account setup · Step 2a of 3</p>
+                    <h3>Save your private recovery file</h3>
                     <p className="muted">
-                      This recovery key is how you sign in on another device. WeAll cannot reset it for you. You must verify the saved file before continuing.
+                      This private recovery file is the backup for your account. Keep it somewhere safe. WeAll cannot reset it for you. Verify that the saved copy works before continuing.
                     </p>
                   </div>
                   <div className="authMetaGrid">
@@ -669,13 +731,19 @@ export default function LoginPage() {
                   </div>
                   <div className="row gap-sm wrap">
                     <button type="button" onClick={() => void handleDownloadRecoveryKey()}>
-                      Download recovery file\n                  <span className="text-xs opacity-80">Do not rely on a checkbox like “I saved my recovery key somewhere private”; WeAll verifies your recovery file or recovery key before account setup can continue.</span>
+                      Download recovery file
                     </button>
                     <button type="button" className="secondary" onClick={() => void handleCopyRecoveryKey()}>
                       Copy recovery key
                     </button>
                   </div>
-                  <div className="stack-sm" data-testid="recovery-verify-step">
+                  {recoveryDownloaded ? (
+                    <div className="stack-sm" data-testid="recovery-verify-step">
+                      <div>
+                        <p className="eyebrow">Account setup · Step 2b of 3</p>
+                        <h3>Verify the copy you saved</h3>
+                        <p className="muted">Use the file you downloaded or the recovery JSON you copied. Verification happens on this device; the secret is not submitted to the node.</p>
+                      </div>
                     <label className="field">
                       <span>Verify saved recovery file</span>
                       <input
@@ -701,19 +769,28 @@ export default function LoginPage() {
                         ? "Recovery verified. You can restore this account if this browser is lost or reset."
                         : "Download or copy the recovery file, then upload or paste it here to prove you saved a working backup."}
                     </div>
-                  </div>
-                  <div className="calloutInfo">
-                    Optional: add easy sign-in so this device can use fingerprint, face unlock, or device PIN when supported. It never replaces the verified recovery file.
-                  </div>
-                  <div className="row gap-sm wrap">
-                    <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady || !recoveryVerified}>
-                      {easySignInBusy ? "Adding…" : easySignInAdded ? "Easy sign-in added" : "Add easy sign-in"}
-                    </button>
-                    <button type="button" onClick={handleContinueAfterRecovery} disabled={!recoveryVerified}>
-                      Continue to account verification
-                    </button>
-                  </div>
-                  {!passkeyReady ? <p className="muted">Easy sign-in is not available in this browser. Your recovery key still works.</p> : null}
+                    </div>
+                  ) : (
+                    <div className="calloutInfo" data-testid="recovery-save-required">
+                      First download or copy your recovery file. After that, a separate verification step will appear. Your account has not been registered on the network yet.
+                    </div>
+                  )}
+                  {recoveryVerified ? (
+                    <div className="calloutInfo">
+                      Optional: add easy sign-in so this device can use fingerprint, face unlock, or device PIN when supported. It never replaces the verified recovery file.
+                    </div>
+                  ) : null}
+                  {recoveryVerified ? (
+                    <div className="row gap-sm wrap" data-testid="recovery-verified-next-step">
+                      <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady}>
+                        {easySignInBusy ? "Adding…" : easySignInAdded ? "Easy sign-in added" : "Add easy sign-in"}
+                      </button>
+                      <button type="button" onClick={handleContinueAfterRecovery} disabled={!recoveryVerified}>
+                        Continue to network registration
+                      </button>
+                    </div>
+                  ) : null}
+                  {recoveryVerified && !passkeyReady ? <p className="muted">Easy sign-in is not available in this browser. Your recovery key still works.</p> : null}
                 </div>
               )}
             </div>

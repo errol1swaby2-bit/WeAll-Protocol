@@ -240,16 +240,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       const jid = normalizeAccount(j.juror_id);
       if (jid) out.add(jid);
     });
-    chainParticipants.forEach((p: any) => {
-      const participant = normalizeAccount(p?.account_id || p?.account || p?.juror_id);
-      if (participant) out.add(participant);
-    });
-    presence.forEach((p) => {
-      const participant = normalizeAccount(p.account_id);
-      if (participant) out.add(participant);
-    });
+    // Canonical case assignment, not mutable transport presence/sidecars,
+    // determines who may receive the subject's live video/audio.
     return Array.from(out).sort();
-  }, [liveCase?.account_id, jurors, chainParticipants, presence]);
+  }, [liveCase?.account_id, jurors]);
   const p2pRemoteAccounts = useMemo(() => {
     return p2pParticipantAccounts.filter((item) => normalizeAccount(item) && normalizeAccount(item) !== account);
   }, [p2pParticipantAccounts, account]);
@@ -376,6 +370,63 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     }, 2500);
     return () => window.clearInterval(id);
   }, [caseId, apiBase, liveCase?.case_id]);
+
+  useEffect(() => {
+    if (!caseId || !liveCase?.case_id || isFinal) return undefined;
+    let disposed = false;
+    let inFlight = false;
+    // A room may be opened before its jurors have been assigned/accepted.
+    // Only the canonical case (never presence/transport sidecars) can expand
+    // the eligible peer set; refresh without clearing active media or busy UI.
+    const refreshCanonicalCase = async (): Promise<void> => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const response = await weall.pohLiveCase(caseId, apiBase, headers);
+        const nextCase = response?.case as LiveCase | null;
+        if (!disposed && nextCase?.case_id === caseId) setLiveCase(nextCase);
+      } catch {
+        // A temporarily stale observer is not authority to alter membership.
+      } finally {
+        inFlight = false;
+      }
+    };
+    const id = window.setInterval(() => void refreshCanonicalCase(), 4000);
+    return () => {
+      disposed = true;
+      window.clearInterval(id);
+    };
+  }, [caseId, apiBase, account, liveCase?.case_id, isFinal]);
+
+  useEffect(() => {
+    // Removing an assigned peer from canonical case membership must stop
+    // transmission immediately, even if its old WebRTC connection is still
+    // technically healthy. Presence must never keep that connection alive.
+    const allowedPeers = new Set(p2pRemoteAccounts);
+    for (const peer of peerConnectionsRef.current.keys()) {
+      if (!allowedPeers.has(peer)) resetPeerConnection(peer);
+    }
+  }, [caseId, p2pRemoteAccounts.join("|")]);
+
+  useEffect(() => {
+    if (!isFinal) return;
+    // Constitutional finality does not depend on media transport. On terminal
+    // case status, stop capture and transmission instead of leaving the live
+    // camera and microphone active in a now read-only room.
+    stopWeAllMediaStream(localStreamRef.current);
+    localStreamRef.current = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    peerConnectionsRef.current.forEach((pc) => pc.close());
+    peerConnectionsRef.current.clear();
+    pendingIceCandidatesRef.current.clear();
+    processedSignalsRef.current.clear();
+    lastOfferAtRef.current.clear();
+    setLocalStream(null);
+    setRemoteStreams({});
+    setPeerStates({});
+    setP2pRunning(false);
+    setP2pStatus("Verification concluded; live media stopped");
+  }, [isFinal, caseId]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -561,8 +612,11 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function createOfferForPeer(peer: string, opts: { force?: boolean; reason?: string } = {}): Promise<void> {
+    // A stale signaling callback cannot restart local capture after the case
+    // has become terminal or the current account lost reviewer assignment.
+    if (!canJoinReview) return;
     const remote = normalizeAccount(peer);
-    if (!remote || remote === account) return;
+    if (!remote || remote === account || !p2pRemoteAccounts.includes(remote)) return;
     if (!canRetryOffer(remote, !!opts.force)) return;
     await ensureLocalP2PMedia();
     let pc = getOrCreatePeerConnection(remote);
@@ -581,7 +635,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function recoverMissingPeerMedia(reason = "missing remote media"): Promise<void> {
-    if (!p2pRunning || !account) return;
+    if (!p2pRunning || !canJoinReview || !account) return;
     for (const peer of missingRemoteAccounts) {
       const remote = normalizeAccount(peer);
       if (!remote || !shouldCreateOffer(account, remote)) continue;
@@ -596,8 +650,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function handleWebRTCSignal(signal: WeAllWebRTCSignal): Promise<void> {
+    if (!canJoinReview) return;
     const from = normalizeAccount(signal.from_account);
     if (!from || from === account) return;
+    // Signaling is transport-only. Never construct a peer connection (which
+    // automatically attaches local audio/video tracks) for a non-assigned
+    // account merely because it appears in signaling or room presence.
+    if (!p2pRemoteAccounts.includes(from)) return;
     const key = signalDedupeKey(signal);
     if (processedSignalsRef.current.has(key)) return;
     processedSignalsRef.current.add(key);
@@ -652,7 +711,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function pollWebRTCSignals(): Promise<void> {
-    if (!sessionId || !account) return;
+    if (!sessionId || !account || !canJoinReview) return;
     const res = await weall.pohLiveWebRTCSignals(sessionId, signalSeqRef.current, apiBase, headers);
     const signals = Array.isArray(res?.signals) ? res.signals as WeAllWebRTCSignal[] : [];
     const nextSeq = Number(res?.next_seq || signalSeqRef.current);
@@ -666,7 +725,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function ensureP2PRoomStarted(): Promise<void> {
-    if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the live media room.");
+    if (!canJoinReview) throw new Error("Only the subject or assigned reviewers in a non-final case can start live media.");
     setP2pError("");
     await updatePresence("joined");
     setP2pStatus("room presence recorded; starting local media");
@@ -936,7 +995,12 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                     <span>{account || "Local participant"}</span>
                   </div>
                   {remoteStreamEntries.map(([peer, stream]) => (
-                    <div className="p2pVideoTile" key={peer}>
+                    <div
+                      className="p2pVideoTile"
+                      key={peer}
+                      data-remote-account={peer}
+                      data-peer-connection-state={peerConnectionsRef.current.get(peer)?.connectionState || "unknown"}
+                    >
                       <video
                         autoPlay
                         playsInline
@@ -973,7 +1037,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                 <div className="buttonRow">
                   <button data-testid="live-room-join" className="btn btnPrimary" disabled={joinPresentation.disabled} onClick={checkIntoRoom}>{joinPresentation.buttonLabel}</button>
                   {canAcceptDecline ? <button className="btn" disabled={!!busy} onClick={declineCase}>Decline review</button> : null}
-                  {!roomUrl && !p2pRunning && p2pError ? <button className="btn" disabled={!canPresenceCheckIn || !!busy} onClick={startP2PRoom}>Retry live media</button> : null}
+                  {!roomUrl && !p2pRunning && p2pError ? <button className="btn" disabled={!canJoinReview || !!busy} onClick={startP2PRoom}>Retry live media</button> : null}
                   <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling live-media signals…", pollWebRTCSignals)}>Poll live media</button>
                   <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop live media</button>
                   <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>

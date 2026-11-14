@@ -93,7 +93,17 @@ def test_production_genesis_founder_tier2_has_bootstrap_audit_receipt() -> None:
         genesis_path=ROOT / "configs/genesis.ledger.prod.json",
         tx_index_path=ROOT / "generated/tx_index.json",
     )
-    assert report["ok"] is True, report["issues"]
+    # The legacy repository-pinned production genesis documents the historical
+    # bootstrap audit receipt, but is NOT admissible for production genesis.
+    # Its 32-byte founder signing key is not a complete ML-DSA-65 public key.
+    # Keep this negative assertion until a real independently accepted genesis
+    # with authentic signer keys and external witness evidence replaces it.
+    assert report["ok"] is False
+    issue_codes = {row["code"] for row in report["issues"]}
+    assert issue_codes == {
+        "genesis_bootstrap_allowlist_pubkey_invalid",
+        "genesis_founder_key_invalid",
+    }
 
 
 def test_prod_disables_explicit_validator_signing_override(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -63,3 +64,55 @@ def _weall_pytest_external_env_isolation(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_CRYPTO_MODE", "closed-testnet")
     monkeypatch.setenv("WEALL_API_BOOT_RUNTIME", "0")
+
+
+@pytest.fixture
+def valid_observer_genesis_artifacts(tmp_path: Path) -> dict[str, str]:
+    """Isolated public-key-only fixture; never validates pinned prod readiness.
+
+    Observer posture unit tests should exercise their shell contracts on a
+    reproducibly generated *valid* candidate manifest. The tracked production
+    genesis remains separately blocked until its authentic founder key and
+    external ceremony evidence are accepted.
+    """
+    from weall.testing.sigtools import deterministic_mldsa_keypair
+
+    founder_pubkey, _unused_test_seed = deterministic_mldsa_keypair(
+        label="observer-authority-lock-valid-fixture"
+    )
+    genesis_path = tmp_path / "genesis.ledger.prod.test.json"
+    manifest_path = tmp_path / "weall-genesis.test.json"
+    tx_index_path = ROOT / "generated" / "tx_index.json"
+    build = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "build_production_genesis_manifest.py"),
+            "--chain-id",
+            "weall-observer-posture-test",
+            "--founding-account",
+            "@observer-fixture-founder",
+            "--founding-pubkey",
+            founder_pubkey,
+            "--authority-pubkey",
+            "b" * 64,
+            "--genesis-time",
+            "1900000000",
+            "--tx-index",
+            str(tx_index_path),
+            "--genesis-out",
+            str(genesis_path),
+            "--manifest-out",
+            str(manifest_path),
+        ],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=60,
+    )
+    assert build.returncode == 0, build.stderr + build.stdout
+    return {
+        "WEALL_CHAIN_MANIFEST_PATH": str(manifest_path),
+        "WEALL_GENESIS_LEDGER_PATH": str(genesis_path),
+        "WEALL_TX_INDEX_PATH": str(tx_index_path),
+    }

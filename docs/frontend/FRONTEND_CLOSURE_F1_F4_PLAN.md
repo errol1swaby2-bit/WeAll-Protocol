@@ -1,0 +1,195 @@
+# Frontend protocol integration and guided journeys — F1–F4
+
+Status: **implementation plan / open acceptance**, November 4, 2026.
+This document is not release evidence and does not imply production readiness.
+
+## Direction
+
+The WeAll application is a public civic client, not a protocol inspector.
+A first-time user should understand a page before learning protocol vocabulary.
+Each section's landing page should show current status, the next available
+action, and recent activity. Multi-step actions should open guided pages.
+Advanced technical receipts and audit records remain inspectable on demand.
+
+Keep backend admission and consensus as the authority. Frontend steps are
+usability controls, not substitutes for signed actions, PoH adjudication,
+quorum certificates, or verified state synchronization.
+
+## F1 — Account creation, authentication, recovery
+
+**F1a — drafted in PR #82 (not merged):**
+- Generate a local signing key and distinct recovery/evidence authorities.
+- Verify the exported recovery material *before* creating the new account session.
+- Route account registration through /onboarding/register, not the dense
+  verification landing page.
+- Check real account state and its public key. The existing
+  /v1/accounts/{account}/registered endpoint measures Tier-2 eligibility,
+  **not** the existence of a basic account.
+- Submit the canonical ACCOUNT_REGISTER transaction with current work policy.
+- Track a transaction until the local node has synchronized confirmed state.
+- Block duplicate registration while pending, and do not call a mismatch or
+  unreachable node a successful registration.
+- Keep raw private material session-scoped; persist only nonsecret tx pointers.
+
+**F1b — not yet completed:**
+- Resume an interrupted creation journey across page refresh/device restarts
+  without generating new key material over an existing account.
+- End-to-end return-user sign-in, restoration, signer loss, session expiration,
+  passkey convenience, logout/revocation, and registered key mismatch messaging.
+- Device/session key registration and expiry handled through protocol-backed
+  paths, not prompts requiring nontechnical users to paste raw session keys.
+- Accessibility including keyboard-only and screen-reader flows.
+- Browser E2E with fresh account, wrong recovery file, account collision,
+  already registered account, rejected transaction, node outage, and
+  upstream accepted-but-unsynced transaction.
+
+F1a must remain DRAFT until the actual browser custody journey is green on
+the exact branch head. Unit/static checks alone are insufficient.
+
+## F2 — Guided Proof-of-Humanity journeys
+
+**2026-11-09 bounded progress (draft #82):** First-use custody and
+six-stage async / three-stage live PoH presentation are implemented and
+tested at previous exact heads. A non-secret crash/reload interlock stops
+ambiguous repeat signed requests, and canonical case history and trusted
+eligibility presentation are now independently componentized. These are
+incremental closures, not proof of multi-device live PoH or full route
+decompression. Backend signing paths remain centralized in the parent.
+
+The existing AccountVerificationPage contains multiple responsibilities,
+including account setup, async video acquisition, encrypted evidence upload,
+reviewer-access binding, live request generation, trusted roles, and case
+history. Extract the transactional operations into reusable actions/hooks;
+do not copy-paste them into independent pages.
+
+**Current bounded implementation:** `/verification` is the status-first
+landing page; `/verification/async/{explain,prepare,record,review,submit,track}`
+and `/verification/live/journey/{explain,request,track}` are protected
+URL-backed action stages. All stages share a single mounted PoH controller,
+which remains responsible for in-memory camera/video, encrypted uploads and
+signed submissions. Browser reload cannot restore recording or consent; the
+non-secret interruption journal forces a read-only track view. The existing
+`/verification/live/:caseId` room route remains separate. Route and
+browser-journey CI must pass before this work is accepted.
+
+Remaining proposed deeper components and routes:
+- /verification — status and next action only.
+- /verification/async/start — why, privacy, eligibility and overview.
+- /verification/async/prepare — camera/mic test, consent, challenge.
+- /verification/async/record — accessible prompt and 1–2 minute recording.
+- /verification/async/review — watch/redo, verify consent.
+- /verification/async/submit — encrypted evidence + sequential chain actions,
+  explicit partial success, nonce reservations and idempotency.
+- /verification/async/status — reviewability, reviewer access and decision.
+- /verification/live/* — similar staged live-room preparation, session,
+  attendance and outcome; preserve its P2P/commitment trust boundary.
+- /reviews — reviewers see only assigned, authorized cases.
+
+In the 2026-11-09 F2 follow-up, live-case reconciliation and room navigation
+must bind to the nonce-derived ID of the **newly signed request**. Existing
+case-history entries for the same account do not establish that the new case is
+visible, confirmed or reviewable. The pending room is still not a finality
+claim; exact-head CI and independent live media/reviewer acceptance remain open.
+
+The same exact-request identity rule also applies to asynchronous verification:
+a previously submitted case, an unrelated user's case, or an already-earned
+tier cannot be mistaken for success of the current upload. Reconciliation
+matches the current challenge-derived case ID and account; an observed case
+without reviewable evidence remains submitted, not confirmed. The six legacy
+backend source-contract checks have been revised to assert the pending-room
+boundary and exact case identity rather than obsolete synchronization markers.
+These changes do not claim multi-device live acceptance or production readiness.
+
+The 2026-11-09 F2 follow-up also strengthens the *mandatory external M2
+independent-browser live Tier-2 journey*. Instead of accepting a generic
+signaling or local-media status, that acceptance test now requires the
+applicant to receive a live remote WebRTC video track from every participating
+reviewer, and every reviewer to receive a live video track from the applicant.
+Reviewer verdicts occur **after** this mutual media evidence. A connected
+peer is transport evidence only: Tier 2 still requires signed attendance,
+verdicts and a canonical finalized account/case outcome. The strengthened
+journey remains **unproven** until run against an actual multi-account,
+two-process stack with available cameras or test media and appropriate relay
+configuration. A skipped test is not an acceptance pass. The 2026-11-09 media safety
+hardening narrows permissible WebRTC peers to the subject and canonically
+assigned case jurors: room presence and transport sidecars cannot expand
+media recipients. The external test now checks an individual named peer's
+connected RTCPeerConnection, an unmuted live video track, and decoded video
+frame dimensions before approving two-way media acceptance. No test run has
+yet supplied independent live media acceptance evidence. The room also polls
+the exact canonical case while active so new juror assignments can reach a
+previously opened room. A transient observer failure preserves the last
+known case rather than substituting mutable presence or a different case.
+When canonical membership removes a reviewer, the UI closes that reviewer's
+existing peer connection instead of continuing transmission. Terminal
+verification status stops local capture and closes all peer connections.
+These are transport safety boundaries, not claims that peer credentials
+or WebRTC transport prove the on-chain verdict.
+
+The follow-up addresses an additional terminal-state retry bypass: the room
+previously retained a presence-eligibility flag after finalization, allowing
+its **Retry live media** control to re-enable capture after terminal teardown.
+Media startup, offer creation, inbound signaling, recovery polling and retry
+now require the active canonical subject/assigned-reviewer gate with a
+non-final case. A legacy backend source-contract test was also corrected:
+transport presence and chain-participant sidecars may inform diagnostics but
+must not expand the media-recipient set. Exact-head CI and external M2 live
+rehearsal remain independent acceptance requirements.
+
+The flow must not persist raw video in unsecured storage, bypass account
+tier/reputation gates, mark accepted as confirmed, or claim that a media upload
+alone means reviewable/finalized. Interrupted workflows should recover status
+from chain and queued tx receipts, not resend evidence blindly.
+
+## F3 — Full frontend protocol action inventory
+
+**Statuses below are audit TODO, not claims of completed integration.**
+For each feature, record:
+(1) UI entry route,
+(2) protocol API/read model,
+(3) signed tx type where applicable,
+(4) who is eligible to act,
+(5) accepted vs committed vs synced status,
+(6) empty/error/retry paths,
+(7) reviewer-visible/auditable evidence and test references.
+
+| Capability | UI surface to audit | Validation status |
+| --- | --- | --- |
+| Identity and key custody | /login, /session, /settings, /account/:account | F1a draft; F1b open |
+| Async / live PoH | /verification, /verification/live/:caseId | F2 open |
+| PoH juror assignment/review | /reviews, /verification | F2 open |
+| Social feed, posts, replies, reactions | /feed, /create, /post/:id | F3 open |
+| Public profiles and reputation | /profile, /account/:account | F3 open |
+| Groups and membership administration | /groups, /groups/:id, /groups/create | F3 open |
+| Governance proposals and voting | /decisions, /decisions/:id, /decisions/create | F3 open |
+| Reports, disputes and appeals | /reports, /reports/:id, /reviews/:id | F3 open |
+| Economic balances and transfers | /economics, /transactions | F3 open |
+| Node joining and participation | /node, /advanced | F3 open |
+| Role/service responsibilities | /verification, /reviews, /account/:account | F3 open |
+
+A button present on a page does not count as connected. Each journey must
+complete a real authorized signed action, verify canonical finality, and
+reconcile the resulting state on both endpoints where applicable.
+
+## F4 — UI quality, accessibility and acceptance
+
+- Mobile-first layouts, limited information density, short plain-language
+  descriptions, progress indicators and one primary action at a time.
+- Clear difference between a technical error, an in-progress transaction, and
+  a genuine denial. Advanced payloads can be expanded without hiding the
+  underlying facts.
+- Color/contrast, focus visibility, keyboard navigation, error association,
+  permission alternatives and video captions/instructions where applicable.
+- Clear recoverable status across navigation, page reload and connection loss.
+- Run frontend typecheck/build, source contracts, Playwright E2E, security
+  controls, two isolated browser profiles, and preserved-state two-node
+  rehearsal *after* UI closure.
+
+## Branch discipline
+
+Backend integration work and unfinished review of PR #81 are separate.
+PR #82 branches from main and now contains bounded F1/F2 frontend
+remediation and regression changes. It remains draft. F3/F4 and the
+unreviewed integration of PR #81 remain explicit future work; frontend
+changes do not alter or supersede consensus/security truth of PR #81. Do not merge or advertise general
+testnet readiness solely because the two local devnet ledger roots match.
