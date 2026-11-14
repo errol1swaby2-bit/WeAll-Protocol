@@ -111,11 +111,7 @@ def test_default_governance_appointment_authority_hold() -> None:
     assert appointment_names.isdisjoint(governance._allowed_gov_action_types({}))
 
     canon = yaml.safe_load((audit.ROOT / "specs/tx_canon/tx_canon.yaml").read_text())
-    entries = {
-        item["name"]: item
-        for item in canon["txs"]
-        if item["name"] in appointment_names
-    }
+    entries = {item["name"]: item for item in canon["txs"] if item["name"] in appointment_names}
     assert set(entries) == appointment_names
     for entry in entries.values():
         assert entry["origin"] == "SYSTEM"
@@ -139,12 +135,10 @@ def test_default_governance_appointment_authority_hold() -> None:
         assert row["historical_replay_proven"] is False
 
     forged = copy.deepcopy(packet)
-    next(
-        row for row in forged["transactions"] if row["tx_type"] == "ROLE_EMISSARY_SEAT"
-    )["source_accuracy_holds"] = []
-    assert "source_accuracy_holds_mismatch:ROLE_EMISSARY_SEAT" in packet_integrity_blockers(
-        forged
-    )
+    next(row for row in forged["transactions"] if row["tx_type"] == "ROLE_EMISSARY_SEAT")[
+        "source_accuracy_holds"
+    ] = []
+    assert "source_accuracy_holds_mismatch:ROLE_EMISSARY_SEAT" in packet_integrity_blockers(forged)
 
 
 def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None:
