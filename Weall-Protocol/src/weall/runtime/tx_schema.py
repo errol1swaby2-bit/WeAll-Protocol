@@ -1404,6 +1404,10 @@ class GovVoteRevokePayload(_StrictModel):
 
 class GovVotingClosePayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
+    # Governance's consensus SYSTEM queue legitimately records this public,
+    # deterministic closure reason. It is consumed when closing the electorate
+    # round and cannot be discarded by strict block-context schema validation.
+    close_reason: str | None = Field(default=None, min_length=1)
 
 
 class GovTallyPublishPayload(_StrictModel):
