@@ -94,7 +94,7 @@ function lifecycleSteps(item: TxHistoryItem): Array<{ label: string; done: boole
     { label: "Included in block", done: confirmed, evidence: confirmed ? "terminal" : rejected ? "rejected" : "pending", detail: "backend tx status must report block inclusion; mempool acceptance is not enough" },
     { label: "Finalized / confirmed", done: confirmed, evidence: confirmed ? "terminal" : rejected ? "rejected" : "pending", detail: "canonical state observed by this node; local_state_synced=false is not final local confirmation" },
     { label: "Rejected", done: rejected, evidence: rejected ? "rejected" : "pending", detail: rejected ? "backend or local validation rejected the tx; inspect message before retrying" : "no rejection evidence" },
-    { label: "Removed from mempool", done: confirmed, evidence: confirmed ? "terminal" : "pending", detail: "must be proven by confirmed/removal evidence; do not infer from local acceptance" },
+    { label: "Removed from mempool", done: false, evidence: "unavailable", detail: "This history view has no per-transaction mempool-removal evidence. An included/confirmed transaction does not prove the local mempool is clear." },
     { label: "Unknown / unavailable", done: unknown, evidence: unknown ? "unavailable" : "pending", detail: unknown ? "backend cannot currently prove propagation or finality" : "not the current lifecycle state" },
   ];
 }
