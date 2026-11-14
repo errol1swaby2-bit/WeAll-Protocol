@@ -138,3 +138,12 @@
 
 - Added a second process-isolated test mode routing actual signed production BFT proposals/votes/QCs through `NetMeshLoop` ingress handlers. It must reject duplicate execution after retransmission, process delayed QC delivery and match canonical final roots/treasury signers after restart in both 3-of-5 and 4-of-5 synthetic turnout cases.
 - The transport remains a test-controlled loopback RPC and broadcast-capture fixture, not authenticated autonomous production `NetNode` P2P sessions. No activation, live PoH, ballot secrecy, or merge authorization is claimed.
+
+
+## J18 receipt/finality truth hardening — stacked draft PR #90 (2026-11-14)
+
+- Audited the actual `/v1/tx/status/{tx_id}` backend contract: `confirmed` from a canonical transaction index carries `apply_ok=true`, while a block-history fallback can return `apply_ok=null` when the receipt is unavailable. Failed deterministic apply receipts explicitly return `apply_ok=false` and `rejected`. Observer-edge `local_state_synced=false` is not final local confirmation.
+- The shared frontend `normalizeTxStatus` now **requires an explicit successful apply receipt** (`apply_ok===true`) and no false local-sync signal before reporting a state-changing action as confirmed. Inconsistent `confirmed` plus `apply_ok=false` becomes failed; missing success evidence remains nonterminal pending, not a success toast.
+- The transaction lifecycle history no longer marks `Removed from mempool` as observed merely because an action was confirmed. Without an explicit per-transaction removal proof, it is displayed as unavailable rather than invented.
+- Added `scripts/test_tx_apply_receipt_truth.mjs` and a Web CI step covering confirmed success, canonical failed-apply receipt, missing/legacy receipt, unsynced observer, duplicate/unknown statuses and the mempool-removal UI boundary.
+- **Evidence limits:** Exact-head Web CI is required; the new tests are behavior-level pure normalizer/source invariants, **not** fresh signed transactions or node-restart evidence. This closes a specific premature-success UI defect, not J18 as a whole. No backend consensus/replay change, semantic approval, Cloudflare deployment or release authorization is asserted. Existing stacked PRs and production gates remain draft/NO-GO.
