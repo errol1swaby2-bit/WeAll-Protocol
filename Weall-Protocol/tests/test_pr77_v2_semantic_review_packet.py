@@ -117,7 +117,7 @@ def test_default_governance_appointment_authority_hold() -> None:
         if item["name"] in appointment_names
     }
     assert set(entries) == appointment_names
-    for name, entry in entries.items():
+    for entry in entries.values():
         assert entry["origin"] == "SYSTEM"
         assert entry["context"] == "block"
         assert entry["gate"] == "GovExecutor"
