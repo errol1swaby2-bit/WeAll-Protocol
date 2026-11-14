@@ -55,14 +55,14 @@ function mutateB64(value: string): string {
   return `${first}${text.slice(1)}`;
 }
 
-function assertCanonicalMldsaPubkey(actual: unknown, expectedBase64: string): void {
+function assertCanonicalMldsaPubkey(actual: unknown, publicKeyB64: string): void {
   // Backend account authorities are canonically stored as lowercase hex of
   // the same 1,952 ML-DSA-65 public-key bytes that browser custody exports as
   // base64. Compare decoded bytes rather than silently treating encodings as
   // different or forcing the backend to preserve noncanonical text.
   const canonical = String(actual || "");
   expect(/^[0-9a-f]{3904}$/.test(canonical)).toBe(true);
-  expect(Buffer.from(canonical, "hex").equals(Buffer.from(expectedBase64, "base64"))).toBe(true);
+  expect(canonical).toBe(Buffer.from(publicKeyB64, "base64").toString("hex"));
 }
 
 function assertSingleCanonicalAccountKey(body: any, publicKeyB64: string): void {
@@ -220,7 +220,7 @@ test.describe("real browser account custody", () => {
       await createAccountButton.click();
       await expect(firstPage.getByTestId("recovery-save-step")).toBeVisible({ timeout: 30_000 });
 
-      const continueButton = firstPage.getByRole("button", { name: "Continue to account verification" });
+      const continueButton = firstPage.getByRole("button", { name: "Continue to network registration" });
       await expect(continueButton).toBeDisabled();
 
       const downloadPromise = firstPage.waitForEvent("download");
@@ -288,8 +288,11 @@ test.describe("real browser account custody", () => {
       expect(storageBeforeRegistration.evidenceSecretInSession).toBe(recovery.evidenceKemSecretKeyB64);
 
       await continueButton.click();
-      await firstPage.waitForURL(/#\/verification$/);
-      const registerButton = firstPage.getByRole("button", { name: "Register basic account" });
+      await firstPage.waitForURL(/#\/onboarding\/register$/);
+      await expect(firstPage.getByTestId("guided-account-registration")).toBeVisible();
+      const issuedSession = await firstPage.evaluate(() => localStorage.getItem("weall_session_v1"));
+      expect(issuedSession).toContain(account);
+      const registerButton = firstPage.getByTestId("submit-basic-registration");
       await expect(registerButton).toBeEnabled({ timeout: 30_000 });
 
       const registerTxId = await captureSubmittedTx(firstPage, () => registerButton.click());
@@ -306,12 +309,13 @@ test.describe("real browser account custody", () => {
       assertCanonicalMldsaPubkey(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey, recovery.recoveryAuthorityPublicKeyB64);
       expect(accountBeforeRestart?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
-      const refreshStatusButton = firstPage.getByRole("button", { name: "Refresh status" });
+      const refreshStatusButton = firstPage.getByRole("button", { name: "Check registration status" });
       await expect(refreshStatusButton).toBeEnabled({ timeout: 30_000 });
       await refreshStatusButton.click();
-      await expect(
-        firstPage.locator("span.statusPill.ok").filter({ hasText: /^Basic account ready$/ }),
-      ).toBeVisible({ timeout: 30_000 });
+      await expect(firstPage.getByTestId("registration-complete")).toContainText(
+        "Your basic account is ready.",
+        { timeout: 30_000 },
+      );
 
       await firstContext.close();
       firstContext = null;
