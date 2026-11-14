@@ -54,14 +54,32 @@ function mutateB64(value: string): string {
   return `${first}${text.slice(1)}`;
 }
 
+function assertCanonicalMldsaPubkey(actual: unknown, expectedBase64: string): void {
+  // Backend account authorities are canonically stored as lowercase hex of
+  // the same 1,952 ML-DSA-65 public-key bytes that browser custody exports as
+  // base64. Compare decoded bytes rather than silently treating encodings as
+  // different or forcing the backend to preserve noncanonical text.
+  const canonical = String(actual || "");
+  expect(/^[0-9a-f]{3904}$/.test(canonical)).toBe(true);
+  expect(Buffer.from(canonical, "hex").equals(Buffer.from(expectedBase64, "base64"))).toBe(true);
+}
+
 function assertSingleCanonicalAccountKey(body: any, publicKeyB64: string): void {
   const state = body?.state || {};
-  expect(state?.pubkey).toBe(publicKeyB64);
-  expect(state?.pubkeys).toEqual([publicKeyB64]);
-  expect(state?.active_keys).toEqual([publicKeyB64]);
+  assertCanonicalMldsaPubkey(state?.pubkey, publicKeyB64);
+  expect(Array.isArray(state?.pubkeys)).toBe(true);
+  expect(state.pubkeys).toHaveLength(1);
+  assertCanonicalMldsaPubkey(state.pubkeys[0], publicKeyB64);
+  expect(Array.isArray(state?.active_keys)).toBe(true);
+  expect(state.active_keys).toHaveLength(1);
+  assertCanonicalMldsaPubkey(state.active_keys[0], publicKeyB64);
   const byId = state?.keys?.by_id || {};
   expect(Object.keys(byId)).toHaveLength(1);
-  expect(JSON.stringify(byId)).toContain(publicKeyB64);
+  const key = Object.values(byId)[0] as any;
+  expect(key?.sig_profile).toBe("pq-mldsa-v1");
+  expect(key?.active).toBe(true);
+  expect(key?.revoked).toBe(false);
+  assertCanonicalMldsaPubkey(key?.pubkeys?.mldsa, publicKeyB64);
 }
 
 async function requireBackend(request: APIRequestContext): Promise<void> {
@@ -284,7 +302,7 @@ test.describe("real browser account custody", () => {
       );
       expect(accountBeforeRestart?.account).toBe(account);
       assertSingleCanonicalAccountKey(accountBeforeRestart, recovery.publicKeyB64);
-      expect(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey).toBe(recovery.recoveryAuthorityPublicKeyB64);
+      assertCanonicalMldsaPubkey(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey, recovery.recoveryAuthorityPublicKeyB64);
       expect(accountBeforeRestart?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
       const refreshStatusButton = firstPage.getByRole("button", { name: "Refresh status" });
@@ -363,7 +381,7 @@ test.describe("real browser account custody", () => {
         const accountAfterRestore = await getJson(restoredPage.request, accountPath);
         expect(accountAfterRestore?.account).toBe(account);
         assertSingleCanonicalAccountKey(accountAfterRestore, recovery.publicKeyB64);
-        expect(accountAfterRestore?.state?.recovery?.offline_key?.pubkey).toBe(recovery.recoveryAuthorityPublicKeyB64);
+        assertCanonicalMldsaPubkey(accountAfterRestore?.state?.recovery?.offline_key?.pubkey, recovery.recoveryAuthorityPublicKeyB64);
         expect(accountAfterRestore?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
         await restoredPage.goto("/#/profile");
