@@ -5,6 +5,7 @@ This complements, rather than replaces, the existing reviewer Genesis,
 external observer, cross-machine replay, and validator-operator scripts.
 It does not start nodes, sign transactions, modify state or grant authority.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -64,7 +65,9 @@ def _git(*args: str) -> str | None:
     try:
         return subprocess.check_output(
             ["git", "-C", str(ROOT), *args],
-            text=True, stderr=subprocess.DEVNULL, timeout=8,
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=8,
         ).strip()
     except (OSError, subprocess.SubprocessError):
         return None
@@ -81,7 +84,7 @@ def machine_capabilities() -> dict[str, Any]:
     except (FileNotFoundError, OSError, ValueError, IndexError):
         pass
     try:
-        free_gb = round(shutil.disk_usage(ROOT).free / (1024 ** 3), 2)
+        free_gb = round(shutil.disk_usage(ROOT).free / (1024**3), 2)
     except OSError:
         free_gb = None
     return {
@@ -89,9 +92,18 @@ def machine_capabilities() -> dict[str, Any]:
         "ram_mb": ram_mb,
         "available_storage_gb": free_gb,
         "wsl_environment_detected": "microsoft" in platform.release().lower(),
-        "command_available": {name: shutil.which(name) is not None for name in (
-            "git", "python3", "node", "npm", "docker", "ipfs", "curl",
-        )},
+        "command_available": {
+            name: shutil.which(name) is not None
+            for name in (
+                "git",
+                "python3",
+                "node",
+                "npm",
+                "docker",
+                "ipfs",
+                "curl",
+            )
+        },
         "note": "Tool availability is not proof the Docker daemon or an IPFS node is running.",
     }
 
@@ -116,7 +128,8 @@ def parse_api_base(raw: str, *, remote: bool, allow_lan: bool = False) -> str:
         or not parsed.hostname
         or parsed.username is not None
         or parsed.password is not None
-        or parsed.query or parsed.fragment
+        or parsed.query
+        or parsed.fragment
         or parsed.path not in {"", "/"}
     ):
         raise ValueError("invalid_api_base: absolute http(s) origin without credentials required")
@@ -136,7 +149,12 @@ def parse_api_base(raw: str, *, remote: bool, allow_lan: bool = False) -> str:
         ip = None
     if ip is not None:
         is_loopback = ip.is_loopback
-        if ip.is_unspecified or ip.is_link_local or ip.is_multicast or (ip.is_reserved and not is_loopback and not ip.is_private):
+        if (
+            ip.is_unspecified
+            or ip.is_link_local
+            or ip.is_multicast
+            or (ip.is_reserved and not is_loopback and not ip.is_private)
+        ):
             raise ValueError("non_dialable_or_special_api_address")
         private = ip.is_private
 
@@ -155,8 +173,9 @@ def parse_api_base(raw: str, *, remote: bool, allow_lan: bool = False) -> str:
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, request: Any, fp: Any, code: Any, msg: Any,
-                         headers: Any, newurl: Any) -> None:
+    def redirect_request(
+        self, request: Any, fp: Any, code: Any, msg: Any, headers: Any, newurl: Any
+    ) -> None:
         return None
 
 
@@ -164,9 +183,7 @@ _OPENER = urllib.request.build_opener(_NoRedirect)
 
 
 def fetch_json(base: str, path: str, *, timeout: float = 5.0) -> dict[str, Any]:
-    req = urllib.request.Request(
-        base + path, headers={"Accept": "application/json"}, method="GET"
-    )
+    req = urllib.request.Request(base + path, headers={"Accept": "application/json"}, method="GET")
     try:
         with _OPENER.open(req, timeout=timeout) as response:
             content = response.read(MAX_RESPONSE_BYTES + 1)
@@ -194,15 +211,19 @@ def _probe(base: str, path: str) -> tuple[dict[str, Any], dict[str, Any]]:
         return {}, {"ok": False, "error_code": str(exc)}
 
 
-def _chain_facts(status: dict[str, Any], readyz: dict[str, Any],
-                 identity: dict[str, Any]) -> dict[str, Any]:
+def _chain_facts(
+    status: dict[str, Any], readyz: dict[str, Any], identity: dict[str, Any]
+) -> dict[str, Any]:
     manifest = _as_dict(identity.get("chain_manifest"))
     finalized = _as_dict(identity.get("finalized"))
     return {
         "chain_id": _string(identity.get("chain_id")) or _string(status.get("chain_id")),
-        "genesis_hash": _string(manifest.get("genesis_hash")) or _string(identity.get("genesis_hash")),
-        "tx_index_hash": _string(identity.get("tx_index_hash")) or _string(status.get("tx_index_hash")),
-        "protocol_profile_hash": _string(identity.get("protocol_profile_hash")) or _string(status.get("protocol_profile_hash")),
+        "genesis_hash": _string(manifest.get("genesis_hash"))
+        or _string(identity.get("genesis_hash")),
+        "tx_index_hash": _string(identity.get("tx_index_hash"))
+        or _string(status.get("tx_index_hash")),
+        "protocol_profile_hash": _string(identity.get("protocol_profile_hash"))
+        or _string(status.get("protocol_profile_hash")),
         "status_ok": status.get("ok") is True,
         "readyz_ok": readyz.get("ok") is True,
         "chain_identity_ok": identity.get("ok") is True,
@@ -238,13 +259,15 @@ def _peer_facts(report: dict[str, Any]) -> dict[str, Any]:
             continue
         peer_id = _string(rec.get("peer_id"))
         if peer_id:
-            peers.append({
-                "peer_id": peer_id,
-                "pubkey": _string(rec.get("pubkey")),
-                "established": rec.get("established") is True,
-                "identity_verified": rec.get("identity_verified") is True,
-                "connected": rec.get("connected") is True,
-            })
+            peers.append(
+                {
+                    "peer_id": peer_id,
+                    "pubkey": _string(rec.get("pubkey")),
+                    "established": rec.get("established") is True,
+                    "identity_verified": rec.get("identity_verified") is True,
+                    "connected": rec.get("connected") is True,
+                }
+            )
     return {"available": True, "peers": peers[:500]}
 
 
@@ -262,7 +285,8 @@ def _capture_endpoint(base: str, *, peer_debug: bool = False) -> dict[str, Any]:
     return {
         "probes": probes,
         "chain": _chain_facts(
-            bodies["/v1/status"], bodies["/v1/readyz"],
+            bodies["/v1/status"],
+            bodies["/v1/readyz"],
             bodies["/v1/chain/identity"],
         ),
         "network": _network_facts(bodies["/v1/net/self"]),
@@ -274,8 +298,7 @@ COMMIT_FIELDS = ("chain_id", "genesis_hash", "tx_index_hash", "protocol_profile_
 
 
 def _compatible(a: dict[str, Any], b: dict[str, Any]) -> bool:
-    return all(_string(a.get(k)) and _string(a.get(k)) == _string(b.get(k))
-               for k in COMMIT_FIELDS)
+    return all(_string(a.get(k)) and _string(a.get(k)) == _string(b.get(k)) for k in COMMIT_FIELDS)
 
 
 def load_expected_commitments(path: str) -> dict[str, str]:
@@ -302,10 +325,15 @@ def _ready(endpoint: dict[str, Any]) -> bool:
     )
 
 
-def capture_machine(machine_id: str, local_api: str, remote_api: str, *,
-                    allow_lan: bool = False, operator_peer_debug: bool = False,
-                    expected_commitments: dict[str, str] | None = None,
-                    ) -> dict[str, Any]:
+def capture_machine(
+    machine_id: str,
+    local_api: str,
+    remote_api: str,
+    *,
+    allow_lan: bool = False,
+    operator_peer_debug: bool = False,
+    expected_commitments: dict[str, str] | None = None,
+) -> dict[str, Any]:
     if not machine_id.strip() or len(machine_id) > 100:
         raise ValueError("machine_id_required_1_to_100_characters")
     local_base = parse_api_base(local_api, remote=False)
@@ -328,16 +356,17 @@ def capture_machine(machine_id: str, local_api: str, remote_api: str, *,
         ),
     }
     if expected_commitments is not None:
-        checks["matches_operator_pinned_chain"] = (
-            _compatible(local_chain, expected_commitments)
-            and _compatible(remote_chain, expected_commitments)
-        )
+        checks["matches_operator_pinned_chain"] = _compatible(
+            local_chain, expected_commitments
+        ) and _compatible(remote_chain, expected_commitments)
     return {
         "schema": SCHEMA,
         "captured_utc": _utc_now(),
         "machine_id": machine_id.strip(),
         "capture_mode": "lan" if allow_lan else "public_https",
-        "expected_commitments_digest": _sha(expected_commitments) if expected_commitments is not None else None,
+        "expected_commitments_digest": _sha(expected_commitments)
+        if expected_commitments is not None
+        else None,
         "machine": {
             "os_family": platform.system(),
             "python_version": platform.python_version(),
@@ -403,37 +432,52 @@ def compare_packets(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
     )
     checks = {
         "distinct_machine_labels_operator_asserted": bool(
-            _string(a.get("machine_id")) and _string(b.get("machine_id"))
+            _string(a.get("machine_id"))
+            and _string(b.get("machine_id"))
             and a["machine_id"] != b["machine_id"]
         ),
         "same_exact_git_commit_and_tree": bool(
-            _string(ar.get("commit")) and ar.get("commit") == br.get("commit")
-            and _string(ar.get("tree")) and ar.get("tree") == br.get("tree")
+            _string(ar.get("commit"))
+            and ar.get("commit") == br.get("commit")
+            and _string(ar.get("tree"))
+            and ar.get("tree") == br.get("tree")
         ),
-        "both_tracked_trees_clean": ar.get("tracked_tree_clean") is True and br.get("tracked_tree_clean") is True,
+        "both_tracked_trees_clean": ar.get("tracked_tree_clean") is True
+        and br.get("tracked_tree_clean") is True,
         "local_apis_ready": _ready(al) and _ready(bl),
         "bidirectional_remote_api_ready": _ready(ax) and _ready(bx),
         "same_chain_commitments": _compatible(ac, bc),
         "same_expected_commitments_digest": bool(
-            (a.get("expected_commitments_digest") is None and b.get("expected_commitments_digest") is None)
-            or (isinstance(a.get("expected_commitments_digest"), str)
-                and a.get("expected_commitments_digest")
-                == b.get("expected_commitments_digest"))
+            (
+                a.get("expected_commitments_digest") is None
+                and b.get("expected_commitments_digest") is None
+            )
+            or (
+                isinstance(a.get("expected_commitments_digest"), str)
+                and a.get("expected_commitments_digest") == b.get("expected_commitments_digest")
+            )
         ),
         "both_match_expected_commitments_if_supplied": bool(
-            (a.get("expected_commitments_digest") is None and b.get("expected_commitments_digest") is None)
-            or (_as_dict(a.get("checks")).get("matches_operator_pinned_chain") is True
-                and _as_dict(b.get("checks")).get("matches_operator_pinned_chain") is True)
+            (
+                a.get("expected_commitments_digest") is None
+                and b.get("expected_commitments_digest") is None
+            )
+            or (
+                _as_dict(a.get("checks")).get("matches_operator_pinned_chain") is True
+                and _as_dict(b.get("checks")).get("matches_operator_pinned_chain") is True
+            )
         ),
         "distinct_node_peer_ids": bool(
             _string(_as_dict(al.get("network")).get("peer_id"))
             and _string(_as_dict(bl.get("network")).get("peer_id"))
-            and _as_dict(al.get("network")).get("peer_id") != _as_dict(bl.get("network")).get("peer_id")
+            and _as_dict(al.get("network")).get("peer_id")
+            != _as_dict(bl.get("network")).get("peer_id")
         ),
         "distinct_node_public_keys": bool(
             _string(_as_dict(al.get("network")).get("identity_pubkey"))
             and _string(_as_dict(bl.get("network")).get("identity_pubkey"))
-            and _as_dict(al.get("network")).get("identity_pubkey") != _as_dict(bl.get("network")).get("identity_pubkey")
+            and _as_dict(al.get("network")).get("identity_pubkey")
+            != _as_dict(bl.get("network")).get("identity_pubkey")
         ),
         "a_observed_b_identity": _exact_node(ax, bl),
         "b_observed_a_identity": _exact_node(bx, al),
@@ -443,11 +487,17 @@ def compare_packets(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
     }
     core = (
         "distinct_machine_labels_operator_asserted",
-        "same_exact_git_commit_and_tree", "both_tracked_trees_clean",
-        "local_apis_ready", "bidirectional_remote_api_ready",
-        "same_chain_commitments", "same_expected_commitments_digest",
-        "both_match_expected_commitments_if_supplied", "distinct_node_peer_ids",
-        "distinct_node_public_keys", "a_observed_b_identity", "b_observed_a_identity",
+        "same_exact_git_commit_and_tree",
+        "both_tracked_trees_clean",
+        "local_apis_ready",
+        "bidirectional_remote_api_ready",
+        "same_chain_commitments",
+        "same_expected_commitments_digest",
+        "both_match_expected_commitments_if_supplied",
+        "distinct_node_peer_ids",
+        "distinct_node_public_keys",
+        "a_observed_b_identity",
+        "b_observed_a_identity",
     )
     return {
         "schema": COMPARISON_SCHEMA,
@@ -494,7 +544,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
 
-    inv = sub.add_parser("inventory", help="record safe local environment metadata (no node required)")
+    inv = sub.add_parser(
+        "inventory", help="record safe local environment metadata (no node required)"
+    )
     inv.add_argument("--machine-id", required=True)
     inv.add_argument("--out", required=True)
 
@@ -502,11 +554,18 @@ def main(argv: list[str] | None = None) -> int:
     capture.add_argument("--machine-id", required=True)
     capture.add_argument("--local-api", default="http://127.0.0.1:8000")
     capture.add_argument("--remote-api", required=True)
-    capture.add_argument("--allow-lan", action="store_true", help="permit explicit private LAN HTTP address")
-    capture.add_argument("--expected-commitments",
-                         help="locally pinned chain commitments JSON (not discovered from a node)")
-    capture.add_argument("--operator-peer-debug", action="store_true",
-                         help="read local /v1/net/peers only if independently enabled and locally restricted")
+    capture.add_argument(
+        "--allow-lan", action="store_true", help="permit explicit private LAN HTTP address"
+    )
+    capture.add_argument(
+        "--expected-commitments",
+        help="locally pinned chain commitments JSON (not discovered from a node)",
+    )
+    capture.add_argument(
+        "--operator-peer-debug",
+        action="store_true",
+        help="read local /v1/net/peers only if independently enabled and locally restricted",
+    )
     capture.add_argument("--out", required=True)
 
     compare = sub.add_parser("compare", help="compare separately captured machine A and B evidence")
@@ -538,10 +597,16 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.action == "capture":
             result = capture_machine(
-                args.machine_id, args.local_api, args.remote_api,
-                allow_lan=args.allow_lan, operator_peer_debug=args.operator_peer_debug,
-                expected_commitments=(load_expected_commitments(args.expected_commitments)
-                                      if args.expected_commitments else None),
+                args.machine_id,
+                args.local_api,
+                args.remote_api,
+                allow_lan=args.allow_lan,
+                operator_peer_debug=args.operator_peer_debug,
+                expected_commitments=(
+                    load_expected_commitments(args.expected_commitments)
+                    if args.expected_commitments
+                    else None
+                ),
             )
             _write_packet(args.out, result)
             print(json.dumps({"out": args.out, "checks": result["checks"]}, sort_keys=True))

@@ -23,9 +23,15 @@ CHAIN = {
 }
 
 
-def endpoint(peer: str, other: str, *, height: int = 5,
-             root: str = "root-5", ready: bool = True,
-             verified: bool = True) -> dict:
+def endpoint(
+    peer: str,
+    other: str,
+    *,
+    height: int = 5,
+    root: str = "root-5",
+    ready: bool = True,
+    verified: bool = True,
+) -> dict:
     return {
         "probes": {path: {"ok": True} for path in tool.CORE_PATHS},
         "chain": {
@@ -39,16 +45,24 @@ def endpoint(peer: str, other: str, *, height: int = 5,
             "finalized_block_id": "final-4",
         },
         "network": {
-            "available": True, "enabled": True,
-            "peer_id": peer, "identity_pubkey": f"key-{peer}",
-            "connected_peers": 1, "established_sessions": 1,
+            "available": True,
+            "enabled": True,
+            "peer_id": peer,
+            "identity_pubkey": f"key-{peer}",
+            "connected_peers": 1,
+            "established_sessions": 1,
         },
         "peer_debug": {
             "available": True,
-            "peers": [{
-                "peer_id": other, "pubkey": f"key-{other}",
-                "established": True, "identity_verified": verified, "connected": True,
-            }],
+            "peers": [
+                {
+                    "peer_id": other,
+                    "pubkey": f"key-{other}",
+                    "established": True,
+                    "identity_verified": verified,
+                    "connected": True,
+                }
+            ],
         },
     }
 
@@ -56,13 +70,15 @@ def endpoint(peer: str, other: str, *, height: int = 5,
 def packets() -> tuple[dict, dict]:
     repo = {"commit": "a" * 40, "tree": "b" * 40, "tracked_tree_clean": True}
     a = {
-        "schema": tool.SCHEMA, "machine_id": "laptop-A",
+        "schema": tool.SCHEMA,
+        "machine_id": "laptop-A",
         "repository": dict(repo),
         "local": endpoint("peer-A", "peer-B"),
         "remote": endpoint("peer-B", "peer-A"),
     }
     b = {
-        "schema": tool.SCHEMA, "machine_id": "pc-B",
+        "schema": tool.SCHEMA,
+        "machine_id": "pc-B",
         "repository": dict(repo),
         "local": endpoint("peer-B", "peer-A"),
         "remote": endpoint("peer-A", "peer-B"),
@@ -72,8 +88,9 @@ def packets() -> tuple[dict, dict]:
 
 class TwoPcNetworkEvidenceTests(unittest.TestCase):
     def test_loopback_can_be_local_but_not_remote(self) -> None:
-        self.assertEqual(tool.parse_api_base("http://127.0.0.1:8000/", remote=False),
-                         "http://127.0.0.1:8000")
+        self.assertEqual(
+            tool.parse_api_base("http://127.0.0.1:8000/", remote=False), "http://127.0.0.1:8000"
+        )
         with self.assertRaisesRegex(ValueError, "remote_api_cannot_be_loopback"):
             tool.parse_api_base("http://127.0.0.1:8000", remote=True)
         with self.assertRaisesRegex(ValueError, "local_api_must_be_loopback"):
@@ -108,12 +125,15 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "public_remote_api_requires_https"):
             tool.parse_api_base("http://testnet.example.org", remote=True)
-        self.assertEqual(tool.parse_api_base("https://testnet.example.org", remote=True),
-                         "https://testnet.example.org")
+        self.assertEqual(
+            tool.parse_api_base("https://testnet.example.org", remote=True),
+            "https://testnet.example.org",
+        )
 
     def test_special_addresses_and_credentials_rejected(self) -> None:
         for address in (
-            "http://169.254.169.254", "https://0.0.0.0",
+            "http://169.254.169.254",
+            "https://0.0.0.0",
             "https://user:pass@testnet.example.org",
             "https://testnet.example.org/path",
             "https://testnet.example.org/?token=secret",
@@ -126,23 +146,29 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         status = {"ok": True, **CHAIN, "private_key": secret}
         ready = {"ok": True, "authorization": secret}
         chain = {
-            "ok": True, **CHAIN, "height": 2, "state_root": "root",
+            "ok": True,
+            **CHAIN,
+            "height": 2,
+            "state_root": "root",
             "chain_manifest": {"genesis_hash": CHAIN["genesis_hash"]},
             "database_secret": secret,
         }
         net = {
-            "ok": True, "enabled": True,
+            "ok": True,
+            "enabled": True,
             "net": {
-                "peer_id": "peer-A", "identity_pubkey": "key-peer-A",
-                "private_key": secret, "counts": {"established_sessions": 1},
+                "peer_id": "peer-A",
+                "identity_pubkey": "key-peer-A",
+                "private_key": secret,
+                "counts": {"established_sessions": 1},
             },
         }
         projection = {
             "chain": tool._chain_facts(status, ready, chain),
             "network": tool._network_facts(net),
-            "peer_debug": tool._peer_facts({"ok": True, "enabled": True,
-                                           "peers": [{"peer_id": "peer-B",
-                                                      "secret": secret}]}),
+            "peer_debug": tool._peer_facts(
+                {"ok": True, "enabled": True, "peers": [{"peer_id": "peer-B", "secret": secret}]}
+            ),
         }
         self.assertNotIn(secret, json.dumps(projection))
 
@@ -254,18 +280,26 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
             patch.object(tool, "repo_identity", return_value=a["repository"]),
         ):
             report = tool.capture_machine(
-                "machine-A", "http://127.0.0.1:8000", "http://192.168.1.15:8000",
-                allow_lan=True, expected_commitments=wrong,
+                "machine-A",
+                "http://127.0.0.1:8000",
+                "http://192.168.1.15:8000",
+                allow_lan=True,
+                expected_commitments=wrong,
             )
         self.assertFalse(report["checks"]["matches_operator_pinned_chain"])
 
     def test_capture_projects_only_safe_api_fields(self) -> None:
         a, b = packets()
-        with patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]), \
-             patch.object(tool, "repo_identity", return_value=a["repository"]):
+        with (
+            patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
+            patch.object(tool, "repo_identity", return_value=a["repository"]),
+        ):
             report = tool.capture_machine(
-                "machine-A", "http://127.0.0.1:8000", "http://192.168.1.15:8000",
-                allow_lan=True, operator_peer_debug=True,
+                "machine-A",
+                "http://127.0.0.1:8000",
+                "http://192.168.1.15:8000",
+                allow_lan=True,
+                operator_peer_debug=True,
             )
         self.assertTrue(all(report["checks"].values()))
         self.assertTrue(report["read_only"])
@@ -280,15 +314,38 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
             output = str(Path(tmp) / "result.json")
             tool._write_packet(left, a)
             tool._write_packet(right, b)
-            self.assertEqual(tool.main([
-                "compare", "--a", left, "--b", right, "--out", output,
-            ]), 0)
-            self.assertEqual(tool.main([
-                "compare", "--a", left, "--b", right, "--out", output,
-                "--require-state",
-            ]), 1)
-            self.assertFalse(json.loads(Path(output).read_text())[
-                "matching_state_root_snapshot_pass"])
+            self.assertEqual(
+                tool.main(
+                    [
+                        "compare",
+                        "--a",
+                        left,
+                        "--b",
+                        right,
+                        "--out",
+                        output,
+                    ]
+                ),
+                0,
+            )
+            self.assertEqual(
+                tool.main(
+                    [
+                        "compare",
+                        "--a",
+                        left,
+                        "--b",
+                        right,
+                        "--out",
+                        output,
+                        "--require-state",
+                    ]
+                ),
+                1,
+            )
+            self.assertFalse(
+                json.loads(Path(output).read_text())["matching_state_root_snapshot_pass"]
+            )
             if os.name != "nt":
                 self.assertEqual(Path(output).stat().st_mode & 0o777, 0o600)
 

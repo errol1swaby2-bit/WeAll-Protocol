@@ -60,8 +60,12 @@ def test_symlink_devnet_still_rejected_before_access_check() -> None:
 
 
 def test_launcher_preflight_before_runtime_mkdir_and_truthful_no_pid_message() -> None:
-    script = (ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(encoding="utf-8")
-    check = 'python3 scripts/devnet_safe_paths.py check-devnet-writable "\x24{DEVNET_DIR}" >/dev/null'
+    script = (ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(
+        encoding="utf-8"
+    )
+    check = (
+        'python3 scripts/devnet_safe_paths.py check-devnet-writable "\x24{DEVNET_DIR}" >/dev/null'
+    )
     mkdir = 'mkdir -p "\x24{LOG_DIR}" "\x24{GENERATED_DIR}" "\x24{DEVNET_DIR}/accounts" "\x24{WEB_ROOT}/public" "\x24{RUNTIME_DIR}"'
     assert check in script
     assert mkdir in script

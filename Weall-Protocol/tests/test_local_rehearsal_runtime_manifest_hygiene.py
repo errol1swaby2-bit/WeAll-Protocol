@@ -19,8 +19,14 @@ def test_launcher_writes_only_ignored_per_run_bootstrap_manifest_paths() -> None
     assert 'BOOTSTRAP_PUBLIC_DIR="${WEB_ROOT}/public/weall-local-rehearsal"' in src
     assert 'GENESIS_MANIFEST="${BOOTSTRAP_PUBLIC_DIR}/dev-bootstrap-genesis.json"' in src
     assert 'OBSERVER_MANIFEST="${BOOTSTRAP_PUBLIC_DIR}/dev-bootstrap-observer.json"' in src
-    assert 'VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-genesis.json"' in src
-    assert 'VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-observer.json"' in src
+    assert (
+        'VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-genesis.json"'
+        in src
+    )
+    assert (
+        'VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/weall-local-rehearsal/dev-bootstrap-observer.json"'
+        in src
+    )
     assert 'GENESIS_MANIFEST="${WEB_ROOT}/public/dev-bootstrap-genesis.json"' not in src
     assert 'OBSERVER_MANIFEST="${WEB_ROOT}/public/dev-bootstrap-observer.json"' not in src
     assert 'GENESIS_SECRET="${GENERATED_DIR}/dev-bootstrap-genesis-secret.json"' in src
@@ -50,4 +56,4 @@ def test_release_hygiene_checks_generated_manifest_directory() -> None:
     )
     assert '"web/public/weall-local-rehearsal/"' in src
     assert "git_worktree_dirty" in src
-    assert '--allow-dirty' in src  # Existing override remains explicit, not default.
+    assert "--allow-dirty" in src  # Existing override remains explicit, not default.
