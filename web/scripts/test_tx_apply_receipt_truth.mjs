@@ -70,4 +70,10 @@ check({ status: "unknown" }, "unknown", false, "No receipt evidence");
 check({ status: "accepted" }, "submitted", false, "HTTP acceptance is not finality");
 check({ status: "confirmed", apply_ok: false, local_state_synced: false }, "failed", true, "Failure receipt overrides sync ambiguity");
 
+const transactions = readFileSync(new URL("../src/pages/TransactionsPage.tsx", import.meta.url), "utf8");
+const mempoolRemovalRow = transactions.split("\\n").find((line) => line.includes('label: "Removed from mempool"'));
+assert.ok(mempoolRemovalRow, "Lifecycle timeline must show mempool-removal status explicitly");
+assert.ok(mempoolRemovalRow.includes('done: false') && mempoolRemovalRow.includes('evidence: "unavailable"'),
+  "Do not claim mempool removal from confirmation without a specific removal proof");
+
 console.log("OK: frontend transaction finality requires successful apply receipt and local sync");
