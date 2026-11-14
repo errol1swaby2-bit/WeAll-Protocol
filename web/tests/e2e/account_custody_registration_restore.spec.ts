@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type BrowserContext, type Page, type Response } from "@playwright/test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -432,6 +433,33 @@ test.describe("real browser account custody", () => {
           expect(JSON.stringify(observerProfile)).toContain(displayName);
         } finally {
           await observerContext.close();
+        }
+
+        // Optional, public-only receipt witness for a separate backend restart
+        // verifier. Never serialize recovery material, sessions or public-key
+        // bytes into CI artifacts or logs.
+        const publicEvidencePath = process.env.WEALL_IHD1_PUBLIC_EVIDENCE_PATH;
+        if (publicEvidencePath) {
+          const accountKeyHash = createHash("sha256")
+            .update(Buffer.from(recovery.publicKeyB64, "base64"))
+            .digest("hex");
+          const witness = {
+            format: "weall-ihd1-public-receipts-v1",
+            account,
+            account_pubkey_sha256: accountKeyHash,
+            account_register: {
+              tx_id: registerTxId,
+              height: Number(registerStatus.height),
+              block_id: String(registerStatus.block_id),
+            },
+            profile_update: {
+              tx_id: profileTxId,
+              height: Number(profileStatus.height),
+              block_id: String(profileStatus.block_id),
+            },
+            profile_display_name: displayName,
+          };
+          await writeFile(publicEvidencePath, JSON.stringify(witness) + "\n", { encoding: "utf8", mode: 0o600 });
         }
       } finally {
         await restoredContext.close();
