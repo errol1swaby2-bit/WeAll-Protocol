@@ -117,7 +117,9 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          export WEALL_DEVNET_DIR="${RUNNER_TEMP}/f1b-live/.weall-devnet"
+          # The guarded reset accepts the checkout-local exact .weall-devnet root.
+          # Do not weaken or bypass custom-path deletion protections.
+          export WEALL_DEVNET_DIR="${PWD}/.weall-devnet"
           export WEALL_DEVNET_LIVE_LOG_DIR="${RUNNER_TEMP}/f1b-live/logs"
           export WEALL_DEVNET_AUTO_VENV=0
           export WEALL_DEVNET_LIVE_RESET=1

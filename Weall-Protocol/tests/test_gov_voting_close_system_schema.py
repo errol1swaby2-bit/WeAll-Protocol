@@ -31,7 +31,13 @@ def test_canonical_governance_close_reason_is_schema_valid(reason: str) -> None:
 def test_governance_close_payload_remains_strict() -> None:
     with pytest.raises(ValidationError):
         GovVotingClosePayload.model_validate(
-            {"proposal_id": "signed-tier2-proposal", "close_reason": "quorum_reached", "unreviewed_override": True}
+            {
+                "proposal_id": "signed-tier2-proposal",
+                "close_reason": "quorum_reached",
+                "unreviewed_override": True,
+            }
         )
     with pytest.raises(ValidationError):
-        GovVotingClosePayload.model_validate({"proposal_id": "signed-tier2-proposal", "close_reason": ""})
+        GovVotingClosePayload.model_validate(
+            {"proposal_id": "signed-tier2-proposal", "close_reason": ""}
+        )
