@@ -9,6 +9,7 @@ import { useAppConfig } from "../lib/config";
 import { nav } from "../lib/router";
 import { SETTINGS_SECTIONS, settingsSectionFromHash, type SettingsSection } from "../lib/settingsSections";
 import { THEME_PRESETS, presetMatchesSettings, type ThemePreset } from "../lib/themePresets";
+import { createThemeTransfer, MAX_THEME_TRANSFER_BYTES, parseThemeTransfer, serializeThemeTransfer, type ThemeTransferDocument } from "../lib/themeTransfer";
 import {
   AccentTone,
   applySettingsToDocument,
@@ -82,6 +83,8 @@ export default function Settings(): JSX.Element {
   const [saved, setSaved] = useState<string>("");
   const [networkError, setNetworkError] = useState<string>("");
   const [networkBusy, setNetworkBusy] = useState(false);
+  const [pendingTheme, setPendingTheme] = useState<ThemeTransferDocument | null>(null);
+  const [themeTransferError, setThemeTransferError] = useState("");
   const [section, setSection] = useState<SettingsSection>(() =>
     settingsSectionFromHash(typeof window === "undefined" ? "" : window.location.hash),
   );
@@ -171,6 +174,52 @@ export default function Settings(): JSX.Element {
       setNetworkError(error instanceof Error ? error.message : "Could not verify the connection target.");
     } finally {
       setNetworkBusy(false);
+    }
+  }
+
+  function exportTheme() {
+    try {
+      const payload = serializeThemeTransfer(createThemeTransfer(settings));
+      const url = URL.createObjectURL(new Blob([payload], { type: "application/json;charset=utf-8" }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "weall-theme-v1.json";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      flash("Visual theme exported to a local file. No account information included.");
+    } catch {
+      setThemeTransferError("Theme export failed. Your current preferences were not changed.");
+    }
+  }
+
+  async function prepareThemeImport(file: File) {
+    setPendingTheme(null);
+    setThemeTransferError("");
+    try {
+      if (file.size > MAX_THEME_TRANSFER_BYTES) {
+        throw new Error("Theme file is too large (maximum 8 KB).");
+      }
+      const candidate = parseThemeTransfer(await file.text());
+      setPendingTheme(candidate); // Preview only; do not write local storage.
+    } catch (error: unknown) {
+      setThemeTransferError(error instanceof Error ? error.message : "Unable to read this theme file.");
+    }
+  }
+
+  function applyImportedTheme() {
+    if (!pendingTheme) return;
+    const next: ClientSettings = { ...settings, ...pendingTheme.tokens };
+    try {
+      saveSettings(next); // Only local visual settings; never network target or signer.
+      setSettings(next);
+      applySettingsToDocument(next);
+      setPendingTheme(null);
+      setThemeTransferError("");
+      flash("Imported theme applied to this browser only.");
+    } catch {
+      setThemeTransferError("Local theme storage failed; the imported theme was not applied.");
     }
   }
 
@@ -424,6 +473,64 @@ export default function Settings(): JSX.Element {
             onChange={(value) => update("accentTone", value)}
           />
           </>
+          ) : null}
+
+          {section === "themes" ? (
+            <section className="pageStack" aria-label="Portable visual theme">
+              <h3>Export or import a visual theme</h3>
+              <p className="cardDesc">
+                Export a small JSON file to transfer these visual choices between devices. This file
+                never contains an account ID, signer keys, session, network address, or public profile image.
+                Imported settings stay local to this browser and are not automatically synchronized.
+              </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" className="btn" onClick={exportTheme}>Export theme</button>
+                <label className="pageStack" style={{ gap: 6 }}>
+                  <span>Import theme JSON (preview before applying)</span>
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    aria-label="Import visual theme JSON"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      event.currentTarget.value = "";
+                      if (file) void prepareThemeImport(file);
+                    }}
+                  />
+                </label>
+              </div>
+              {themeTransferError ? (
+                <div className="calloutWarn" role="alert">
+                  <strong>Theme not imported.</strong> {themeTransferError} Your existing theme is unchanged.
+                </div>
+              ) : null}
+              {pendingTheme ? (
+                <div className="card pageStack" aria-label="Imported theme preview">
+                  <h4>Preview: {pendingTheme.name}</h4>
+                  <p className="cardDesc">Preview only. Nothing changes until you select Apply imported theme.</p>
+                  {(() => {
+                    const matchingPreset = THEME_PRESETS.find((item) => presetMatchesSettings(item, pendingTheme.tokens));
+                    return matchingPreset ? (
+                      <div className="themePresetPreview" style={{ background: matchingPreset.background, color: matchingPreset.foreground }}>
+                        <span className="themePresetMockCard" style={{ background: matchingPreset.surface }}>
+                          <span className="themePresetMockHeading">WeAll</span>
+                          <span className="themePresetMockAccent" style={{ background: matchingPreset.accent }} />
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
+                  <p className="cardDesc">
+                    {pendingTheme.tokens.themeMode} · {pendingTheme.tokens.accentTone} accent ·
+                    {pendingTheme.tokens.fontScale} text · {pendingTheme.tokens.density} layout ·
+                    {pendingTheme.tokens.motionMode} motion
+                  </p>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button className="btn btnPrimary" type="button" onClick={applyImportedTheme}>Apply imported theme</button>
+                    <button className="btn" type="button" onClick={() => { setPendingTheme(null); setThemeTransferError(""); }}>Cancel import</button>
+                  </div>
+                </div>
+              ) : null}
+            </section>
           ) : null}
 
           {section === "layout" ? (

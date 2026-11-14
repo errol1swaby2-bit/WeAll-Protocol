@@ -135,6 +135,10 @@ jobs:
         run: |
           npm run test:v16-navigation-source
 
+      - name: Portable visual theme validation and preview safety
+        run: |
+          npm run test:theme-transfer
+
       - name: Controlled-devnet secret route network isolation
         run: |
           npm run test:dev-bootstrap-loopback-guard
@@ -224,6 +228,12 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
         run: |
           npx playwright test tests/e2e/production_browser_storage_isolation.spec.ts --config=playwright.production.config.ts
+
+      - name: Compiled browser theme export/import and safe preview
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npm run test:theme-portability-production
 
       - name: Active deliberations rendered journey
         run: |
