@@ -125,8 +125,8 @@ def test_all_newly_observed_state_tokens_have_stable_append_only_ids() -> None:
             "Groups:required_votes",
             "Dispute:appeal_resolution",
             "Dispute:reached",
-        "Dispute:params",
-        "Dispute:dispute_material_conflict_gate_version",
+            "Dispute:params",
+            "Dispute:dispute_material_conflict_gate_version",
         }
     )
     for name in sorted(names):
