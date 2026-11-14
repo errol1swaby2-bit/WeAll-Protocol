@@ -704,7 +704,7 @@ async function waitForConfirmedSessionTransaction(args: {
       if (result?.apply_ok === false || ["rejected", "failed", "invalid", "expired"].includes(status)) {
         throw new Error("Session transaction was rejected: " + status);
       }
-      if (status === "confirmed" && result?.apply_ok === true && result?.local_state_synced !== false && result?.outbound_propagation?.local_state_synced !== false) {
+      if (status === "confirmed" && result?.apply_ok === true && result?.local_state_synced === true && result?.outbound_propagation?.local_state_synced !== false) {
         return true;
       }
     } catch (error) {
