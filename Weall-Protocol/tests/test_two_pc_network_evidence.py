@@ -6,7 +6,7 @@ import os
 import pathlib
 import tempfile
 import unittest
-import unittest.mock
+from unittest import mock
 
 
 MODULE = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "two_pc_network_evidence.py"
@@ -238,7 +238,7 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         self.assertFalse(result["bidirectional_api_preflight_pass"])
 
     def test_git_failure_cannot_be_reported_as_clean(self) -> None:
-        with unittest.mock.patch.object(tool, "_git", return_value=None):
+        with mock.patch.object(tool, "_git", return_value=None):
             identity = tool.repo_identity()
         self.assertEqual(identity["commit"], "")
         self.assertFalse(identity["tracked_tree_clean"])
@@ -276,10 +276,8 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         a, b = packets()
         wrong = {**CHAIN, "genesis_hash": "incorrect"}
         with (
-            unittest.mock.patch.object(
-                tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]
-            ),
-            unittest.mock.patch.object(tool, "repo_identity", return_value=a["repository"]),
+            mock.patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
+            mock.patch.object(tool, "repo_identity", return_value=a["repository"]),
         ):
             report = tool.capture_machine(
                 "machine-A",
@@ -293,10 +291,8 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
     def test_capture_projects_only_safe_api_fields(self) -> None:
         a, b = packets()
         with (
-            unittest.mock.patch.object(
-                tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]
-            ),
-            unittest.mock.patch.object(tool, "repo_identity", return_value=a["repository"]),
+            mock.patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
+            mock.patch.object(tool, "repo_identity", return_value=a["repository"]),
         ):
             report = tool.capture_machine(
                 "machine-A",
