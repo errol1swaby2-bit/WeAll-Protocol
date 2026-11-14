@@ -300,6 +300,28 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
         node.state = node._ledger_store.read()
     _assert_same_committed_state(producer, follower)
 
+    # Read-only test instrumentation: observe the exact reject metadata emitted
+    # by the production builder, without overriding or accepting any verdict.
+    from weall.runtime import block_builder
+
+    original_system_admission = block_builder.admit_tx
+    rejected_system_admissions: list[dict[str, str]] = []
+
+    def observe_system_admission(*args: object, **kwargs: object) -> object:
+        verdict = original_system_admission(*args, **kwargs)
+        envelope = args[0] if args else None
+        if bool(getattr(envelope, "system", False)) and not verdict.ok:
+            rejected_system_admissions.append(
+                {
+                    "tx_type": str(getattr(envelope, "tx_type", "")),
+                    "code": str(verdict.code or ""),
+                    "reason": str(verdict.reason or ""),
+                }
+            )
+        return verdict
+
+    monkeypatch.setattr(block_builder, "admit_tx", observe_system_admission)
+
     committed_types: list[str] = []
 
     def commit_block(*, max_txs: int = 0) -> dict:
@@ -347,7 +369,10 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
                             "diagnostic_error_class": type(exc).__name__,
                         }
                     )
-            pytest.fail(f"{built.error}; read_only_due_system_admission={observations!r}")
+            pytest.fail(
+                f"{built.error}; observed_system_admission_rejections="
+                f"{rejected_system_admissions!r}; read_only_due_system_admission={observations!r}"
+            )
         assert built.ok is True, built.error
         block = producer.get_latest_block()
         assert isinstance(block, dict)
