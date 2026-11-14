@@ -16,7 +16,11 @@ const shell = read("src/components/AppShell.tsx");
 const nav = read("src/components/PrimaryNavigation.tsx");
 const sidebar = read("src/components/SidebarNav.tsx");
 const router = read("src/lib/router.ts");
-const verification = read("src/pages/AccountVerificationPage.tsx");
+// PR #82's guided PoH controller is the active page. The v1.6 focused
+// verification screen remains preserved for UX parity review, not as a
+// second unjournaled signing path or proof of an active v1.6 journey.
+const verification = read("src/pages/AccountVerificationPageV16Preserved.tsx");
+const guidedVerification = read("src/pages/AccountVerificationPage.tsx");
 const verificationSections = read("src/lib/verificationSections.ts");
 const account = read("src/pages/Account.tsx");
 const accountTabs = read("src/lib/accountProfileTabs.ts");
@@ -177,6 +181,11 @@ for (const section of ["overview", "async", "live", "responsibilities", "history
   assert.ok(verificationSections.includes(`id: "${section}"`), `Missing verification section: ${section}`);
   assert.ok(verification.includes(`activeSection !== "${section}"`), `Verification must have focused section: ${section}`);
 }
+assert.ok(guidedVerification.includes('asyncGuideStep === "submit"'), "Active verification must use the guided submission stage");
+assert.ok(guidedVerification.includes('liveGuideStep === "track"'), "Active live verification must track case visibility separately from requests");
+assert.ok(guidedVerification.includes('requireNoUnresolvedPoh("async")'), "Guided async signing must reject unresolved journal entries");
+assert.ok(app.includes('case "/verification/async/:stage":'), "App must mount the active guided async workflow");
+assert.ok(app.includes('case "/verification/live/journey/:stage":'), "App must mount the active guided live workflow");
 assert.ok(verification.includes('asyncRecordingState === "recording" && requested !== "async"'), "Switching sections must not hide an active camera recording");
 assert.ok(verification.includes("Recording fresh verification video") || verification.includes("Record fresh verification video"), "Camera capture action must survive layout refactor");
 assert.ok(verification.includes("Assigned reviewers may view this evidence"), "Evidence consent must remain visible");
