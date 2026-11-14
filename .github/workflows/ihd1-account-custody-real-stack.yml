@@ -25,7 +25,7 @@ jobs:
       VITE_WEALL_API_BASE: /
       VITE_WEALL_DEV_PROXY_TARGET: http://127.0.0.1:8001
       WEALL_DEVNET_AUTO_VENV: "0"
-      WEALL_DEVNET_DIR: ${{ runner.temp }}/weall-ihd1-devnet
+      WEALL_DEVNET_DIR: /tmp/weall-ihd1-devnet
       WEALL_MODE: controlled_devnet
       WEALL_RUNTIME_PROFILE: controlled_devnet
       WEALL_BLOCK_INTERVAL_MS: "2000"
