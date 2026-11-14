@@ -304,6 +304,44 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
 
     def commit_block(*, max_txs: int = 0) -> dict:
         built = producer.produce_block(max_txs=max_txs, allow_empty=True)
+        if not built.ok:
+            # Fail closed with *read-only* visibility into queued system-tx
+            # admission. No signed action is repeated and no authority is
+            # granted by the diagnostic.
+            from weall.ledger.state import LedgerView
+            from weall.runtime.system_tx_engine import (
+                SystemQueueItem,
+                _materialize_system_queue_item,
+            )
+            from weall.runtime.tx_admission import admit_tx
+
+            current_state = producer.read_state()
+            observations: list[dict[str, str]] = []
+            for raw in current_state.get("system_queue", []):
+                if not isinstance(raw, dict):
+                    continue
+                try:
+                    item = SystemQueueItem.from_ledger_obj(raw)
+                    if int(item.due_height) > int(current_state.get("height") or 0) + 1:
+                        continue
+                    env = _materialize_system_queue_item(current_state, item)
+                    verdict = admit_tx(
+                        env, LedgerView.from_ledger(current_state),
+                        canon=producer.tx_index, context="block",
+                    )
+                    observations.append({
+                        "tx_type": item.tx_type,
+                        "phase": str(item.phase),
+                        "admitted_on_prestate": str(bool(verdict.ok)),
+                        "code": str(verdict.code or ""),
+                        "reason": str(verdict.reason or ""),
+                    })
+                except Exception as exc:
+                    observations.append({
+                        "tx_type": str(raw.get("tx_type") or ""),
+                        "diagnostic_error_class": type(exc).__name__,
+                    })
+            pytest.fail(f"{built.error}; read_only_due_system_admission={observations!r}")
         assert built.ok is True, built.error
         block = producer.get_latest_block()
         assert isinstance(block, dict)
