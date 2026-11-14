@@ -1413,10 +1413,27 @@ class GovVotingClosePayload(_StrictModel):
 class GovTallyPublishPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
     tally: Json | None = None
+    # Current deterministic governance executor publishes these public ballot
+    # counts/decision metadata, including the option-ballot branch. The strict
+    # schema must describe the exact fields emitted by canonical SYSTEM queue.
+    vote_window: str | None = Field(default=None, min_length=1)
+    vote_model: str | None = Field(default=None, min_length=1)
+    eligible_validator_count: int | None = Field(default=None, ge=0)
+    required_votes: int | None = Field(default=None, ge=0)
     total_votes: int | None = Field(default=None, ge=0)
     quorum_required: int | None = Field(default=None, ge=0)
     quorum_met: bool | None = None
+    yes: int | None = Field(default=None, ge=0)
+    no: int | None = Field(default=None, ge=0)
+    abstain: int | None = Field(default=None, ge=0)
     passed: bool | None = None
+    option_tallies: dict[str, int] | None = None
+    invalid_option_votes: int | None = Field(default=None, ge=0)
+    selected_option_id: str | None = None
+    tie: bool | None = None
+    tie_option_ids: list[str] | None = None
+    outcome: str | None = None
+    deterministic_tie_break: str | None = None
     electorate_round: int | None = Field(default=None, ge=0)
     no_decision_reason: str | None = None
     finalize_without_execution: bool | None = None

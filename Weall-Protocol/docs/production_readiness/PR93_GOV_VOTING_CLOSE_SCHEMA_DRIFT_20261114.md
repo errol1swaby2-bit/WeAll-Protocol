@@ -14,3 +14,7 @@ The reinstated independent F1b regression exposed a full signed Tier-2 governanc
 - Other unrelated fields remain forbidden. New tests cover both emitted `close_reason` values and unknown-field rejection.
 
 This correction is **consensus-affecting payload admission behavior**. It must receive the normal protocol compatibility/source review before any release or activation. It does not resolve the separate 20 stale V2 semantic-review digests, two unregistered dispute state tokens, real-world independence proof, PoH production gating, or genesis authorization. Source-bound B5xx rehearsal proofs require a new exact-head regeneration and substantive comparison before acceptance.
+
+## Additional queued tally payload drift detected from the same source
+
+The same `apply/governance.py` function constructs a deterministic `GOV_TALLY_PUBLISH` payload containing `vote_window`, `vote_model`, `eligible_validator_count`, `required_votes`, `yes`, `no`, `abstain` and optional multi-option selection/tie fields. Those public fields were not listed in the previous strict `GovTallyPublishPayload` model, even though the runtime emits and consumes them. The bounded candidate aligns this schema with only those explicit emitted shapes, preserves unknown-field rejection and numeric nonnegativity, and adds strict tests for binary and multi-option receipts. It does **not** relax SYSTEM origin authorization or justify an automatic governance activation. Full F1b/Backend CI and substantive protocol-change approval remain mandatory.
