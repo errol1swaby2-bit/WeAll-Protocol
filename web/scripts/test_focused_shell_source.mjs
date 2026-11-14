@@ -12,7 +12,7 @@ for (const token of [
   "onNavigate={() => setMenuOpen(false)}",
   'aria-label="Breadcrumbs"',
   'id="app-shell-content"',
-  "key={routeKey}",
+  "key={contentRouteKey}",
   'className="appShellInfoToggle"',
   'id="app-shell-context-drawer"',
   'role="dialog"',
@@ -61,6 +61,13 @@ for (const token of [
   'aria-current={active ? "page" : undefined}',
 ]) {
   if (!primaryNav.includes(token)) throw new Error(`V1.6 primary navigation missing: ${token}`);
+}
+// Guided PoH stages preserve the native capture controller; unrelated routes
+// still have a distinct routeKey so drawer/focus state cannot leak across pages.
+if (!shell.includes('route.path === "/verification/async/:stage"') ||
+    !shell.includes('route.path === "/verification/live/journey/:stage"') ||
+    !shell.includes('"verification-guided-controller" : routeKey')) {
+  throw new Error("Focused shell must isolate guided capture continuity to verification routes");
 }
 if (!shell.includes("<PrimaryNavigation currentPath={route.path}")) {
   throw new Error("Focused shell must mount stable primary navigation");
