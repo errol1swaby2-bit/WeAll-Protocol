@@ -57,6 +57,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/create":
       return readyForApp ? <Post /> : <LoginPage />;
     case "/verification":
+    case "/verification/async/:stage":
+    case "/verification/live/journey/:stage":
       return readyForApp ? <PohPage /> : <LoginPage />;
     case "/verification/live/:caseId":
       return readyForApp ? <LiveVerificationRoom caseId={route.caseId} /> : <LoginPage />;

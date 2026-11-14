@@ -109,6 +109,13 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
   const breadcrumbs = deriveBreadcrumbs(route, meta);
   const headerTitle = titleForRoute(route, meta);
   const routeKey = JSON.stringify(route);
+  // Do not remount native recorder or lose in-memory consent/evidence when only
+  // a guided verification presentation step changes.
+  const contentRouteKey = (
+    route.path === "/verification" ||
+    route.path === "/verification/async/:stage" ||
+    route.path === "/verification/live/journey/:stage"
+  ) ? "verification-guided-controller" : routeKey;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -299,7 +306,7 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
         </section>
 
         <div className="appShellBody">
-          <main key={routeKey} id="app-shell-content" className="appShellContent" tabIndex={-1}>
+          <main key={contentRouteKey} id="app-shell-content" className="appShellContent" tabIndex={-1}>
             {children}
           </main>
         </div>
