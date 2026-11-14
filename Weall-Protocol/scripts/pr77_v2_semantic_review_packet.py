@@ -21,6 +21,7 @@ import v2_spec_validation as validation  # noqa: E402
 # Source-level caveats that current V2 semantic reviewers must adjudicate.
 # These do not modify source contracts, digests, or signed approvals.
 SOURCE_ACCURACY_HOLDS: dict[str, tuple[str, ...]] = {
+    "CONTENT_FLAG": ("duplicate_flag_id_rejection_requires_height_activation",),
     "DISPUTE_OPEN": ("proposal_target_rejected_before_proposal_status_branches",),
     "REVIEWER_LANE_OPT_OUT": ("withdrawal_does_not_invoke_activation_eligibility_gate",),
     "ROLE_EMISSARY_SEAT": ("default_governance_action_allowlist_excludes_appointment",),

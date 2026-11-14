@@ -141,6 +141,31 @@ def test_default_governance_appointment_authority_hold() -> None:
     assert "source_accuracy_holds_mismatch:ROLE_EMISSARY_SEAT" in packet_integrity_blockers(forged)
 
 
+def test_content_flag_collision_guard_is_height_gated_review_input() -> None:
+    from weall.runtime.apply.content import _content_escalation_provenance_active
+
+    packet = build_packet()
+    row = next(item for item in packet["transactions"] if item["tx_type"] == "CONTENT_FLAG")
+    assert row["source_accuracy_holds"] == list(SOURCE_ACCURACY_HOLDS["CONTENT_FLAG"])
+    assert row["failure_code_deltas"] == {
+        "added": [{"code": "conflict", "reason": "duplicate_flag_id"}],
+        "removed": [],
+    }
+    assert _content_escalation_provenance_active({"height": 20, "params": {}}) is False
+    state = {"height": 20, "params": {"content_escalation_provenance_v1_activation_height": 20}}
+    assert _content_escalation_provenance_active(state) is True
+    state["height"] = 19
+    assert _content_escalation_provenance_active(state) is False
+    assert row["signed_off_for_current_digest"] is False
+    assert row["historical_replay_proven"] is False
+
+    forged = copy.deepcopy(packet)
+    next(item for item in forged["transactions"] if item["tx_type"] == "CONTENT_FLAG")[
+        "source_accuracy_holds"
+    ] = []
+    assert "source_accuracy_holds_mismatch:CONTENT_FLAG" in packet_integrity_blockers(forged)
+
+
 def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None:
     packet = build_packet()
     assert packet["schema"] == "weall.pr77.v2_semantic_review_decision_packet.v2"
