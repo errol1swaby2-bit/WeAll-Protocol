@@ -131,7 +131,9 @@ def main() -> int:
 
     print("PASS: both signed transaction receipts survived controlled-devnet backend restart")
     print("PASS: same canonical ML-DSA signing authority, Tier-0 standing, nonce and profile")
-    print("NOT_PROVED: independent node, BFT finality, live PoH, uniqueness or constitutional approval")
+    print(
+        "NOT_PROVED: independent node, BFT finality, live PoH, uniqueness or constitutional approval"
+    )
     return 0
 
 
