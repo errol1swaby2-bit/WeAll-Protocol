@@ -84,15 +84,10 @@ def test_source_accuracy_holds_require_separate_semantic_review() -> None:
     assert opt_out_row["source_accuracy_holds"] == list(
         SOURCE_ACCURACY_HOLDS["REVIEWER_LANE_OPT_OUT"]
     )
-    assert all(
-        item["signed_off_for_current_digest"] is False
-        for item in (open_row, opt_out_row)
-    )
+    assert all(item["signed_off_for_current_digest"] is False for item in (open_row, opt_out_row))
 
     current_rows, _, _ = audit._current_rows()
-    current_open = next(
-        item for item in current_rows if item["tx_type"] == "DISPUTE_OPEN"
-    )
+    current_open = next(item for item in current_rows if item["tx_type"] == "DISPUTE_OPEN")
     extracted = {(item["code"], item["reason"]) for item in current_open["failure_codes"]}
     assert ("not_found", "proposal_not_found") in extracted
     assert ("forbidden", "active_proposal_dispute_protected") in extracted
@@ -102,9 +97,7 @@ def test_source_accuracy_holds_require_separate_semantic_review() -> None:
     next(item for item in forged["transactions"] if item["tx_type"] == "DISPUTE_OPEN")[
         "source_accuracy_holds"
     ] = []
-    assert "source_accuracy_holds_mismatch:DISPUTE_OPEN" in packet_integrity_blockers(
-        forged
-    )
+    assert "source_accuracy_holds_mismatch:DISPUTE_OPEN" in packet_integrity_blockers(forged)
 
 
 def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None:
