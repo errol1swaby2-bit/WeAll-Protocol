@@ -79,6 +79,8 @@ jobs:
           # Print actionable formatting diffs before enforcing the unchanged Ruff check.
           ruff format --diff "${PY_FILES[@]}"
           ruff format --check "${PY_FILES[@]}"
+          # Display source-only Ruff import/fix suggestions, without modifying files.
+          ruff check --diff "${PY_FILES[@]}" || true
           ruff check "${PY_FILES[@]}"
 
       - name: Dependency audit
