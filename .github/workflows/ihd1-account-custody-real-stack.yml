@@ -9,6 +9,7 @@ on:
       - "web/playwright.config.ts"
       - "web/package*.json"
       - "Weall-Protocol/scripts/devnet_boot_genesis_node.sh"
+      - "Weall-Protocol/scripts/verify_ihd1_receipts_after_restart.py"
       - "Weall-Protocol/src/**"
   workflow_dispatch:
 
