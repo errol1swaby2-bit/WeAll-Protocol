@@ -221,6 +221,12 @@ jobs:
         run: |
           npx playwright test tests/e2e/production_browser_storage_isolation.spec.ts --config=playwright.production.config.ts
 
+      - name: Compiled browser theme export/import and safe preview
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npm run test:theme-portability-production
+
       - name: Active deliberations rendered journey
         run: |
           npm run test:active-deliberations-rendered
