@@ -15,6 +15,12 @@ test("production nginx deployment emits CSP and preserves app/API behavior", asy
   expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
   expect(csp).not.toContain("script-src 'self' 'unsafe-eval'");
 
+  const permissions = response.headers()["permissions-policy"] || "";
+  expect(permissions).toContain("camera=(self)");
+  expect(permissions).toContain("microphone=(self)");
+  expect(permissions).not.toContain("camera=()");
+  expect(permissions).not.toContain("microphone=()");
+
   const scriptResponses: string[] = [];
   page.on("response", (resp) => {
     const url = resp.url();
