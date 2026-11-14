@@ -33,7 +33,7 @@ def test_packet_stale_set_matches_compiler_stable_id_authority() -> None:
     packet = build_packet()
     packet_stale = {row["tx_type"] for row in packet["transactions"]}
     assert packet_stale == compiler_stale
-    assert len(compiler_stale) == 18
+    assert len(compiler_stale) == 20
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
 
 
@@ -46,10 +46,10 @@ def test_review_diff_distinguishes_absent_from_null() -> None:
     assert diff[2]["current_present"] is True
 
 
-def test_v2_stale_review_packet_does_not_approve_18_affected_transactions() -> None:
+def test_v2_stale_review_packet_does_not_approve_20_affected_transactions() -> None:
     packet = build_packet()
     assert packet["registered_transaction_count"] == 236
-    assert packet["pending_count"] == 18
+    assert packet["pending_count"] == 20
     assert {row["tx_type"] for row in packet["transactions"]} == KNOWN_STALE
     assert packet["newly_stale_not_in_known_inventory"] == []
     assert packet["known_stale_now_resolved"] == []
@@ -108,9 +108,9 @@ def test_failure_code_comparison_fails_closed_on_malformed_material(invalid: obj
         failure_code_deltas([], invalid)
 
 
-def test_all_eighteen_reviewed_archives_match_accepted_approval() -> None:
+def test_all_twenty_reviewed_archives_match_accepted_approval() -> None:
     packet = build_packet()
-    assert packet["pending_count"] == 18
+    assert packet["pending_count"] == 20
     assert all(row["archive_matches_accepted_digest"] is True for row in packet["transactions"])
     assert all(
         row["archived_compiled_material_digest"] == row["accepted_review_digest"]
@@ -173,13 +173,31 @@ def test_review_packet_shows_exact_rejection_code_delta_per_lane() -> None:
     # analyzer visibility loss does not assert that runtime rejects changed.
     role_delta = rows["ROLE_JUROR_ACTIVATE"]["failure_code_deltas"]
     assert {
-        "code": "RolesApplyError",
-        "reason": "runtime_apply_failure",
+        "code": "runtime_apply_error",
+        "reason": "see_handler",
     } in role_delta["added"]
+    assert all(item["code"] != "RolesApplyError" for item in role_delta["added"])
     assert {
         "code": "forbidden",
         "reason": "account_restricted",
     } in role_delta["removed"]
+
+
+def test_group_election_semantic_drifts_are_not_role_eligibility_approvals() -> None:
+    packet = build_packet()
+    by_type = {row["tx_type"]: row for row in packet["transactions"]}
+    for tx_type in (
+        "GROUP_EMISSARY_ELECTION_CREATE",
+        "GROUP_EMISSARY_ELECTION_FINALIZE",
+    ):
+        item = by_type[tx_type]
+        assert item["review_lane"] == "group_emissary_election_authority_and_receipt"
+        assert item["archive_matches_accepted_digest"] is True
+        assert item["changed_field_names"]
+        assert item["current_material_digest"] != item["accepted_review_digest"]
+        assert item["signed_off_for_current_digest"] is False
+        assert item["historical_replay_proven"] is False
+    assert packet["independent_human_approval_recorded_by_this_packet"] is False
 
 
 def test_review_packet_integrity_blocks_unexpected_inventory_changes() -> None:

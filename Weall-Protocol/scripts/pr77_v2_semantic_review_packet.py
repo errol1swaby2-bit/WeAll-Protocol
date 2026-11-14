@@ -29,6 +29,8 @@ KNOWN_STALE = frozenset(
         "DISPUTE_FINAL_RECEIPT",
         "CONTENT_FLAG",
         "ACCOUNT_BAN",
+        "GROUP_EMISSARY_ELECTION_CREATE",
+        "GROUP_EMISSARY_ELECTION_FINALIZE",
         "ROLE_JUROR_ENROLL",
         "ROLE_JUROR_ACTIVATE",
         "ROLE_JUROR_REINSTATE",
@@ -92,7 +94,7 @@ def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
     """Fail closed on omitted or forged review rows, never grant approval.
 
     This is a source-bound review diagnostic, not an authority ledger. In this
-    frozen candidate inventory, *all* 18 known stale rows must remain visible.
+    frozen candidate inventory, *all* 20 known stale rows must remain visible.
     A changed inventory requires an explicit, independently reviewed update,
     not silently dropping a row or accepting an empty packet.
     """
@@ -254,6 +256,8 @@ def build_packet() -> dict[str, Any]:
             review_lane = "account_sanction_authority_and_finality"
         elif tx_type.startswith("DISPUTE_"):
             review_lane = "dispute_ballot_or_appeal_semantics"
+        elif tx_type.startswith("GROUP_EMISSARY_ELECTION_"):
+            review_lane = "group_emissary_election_authority_and_receipt"
         else:
             review_lane = "versioned_role_and_reviewer_eligibility"
         pending.append(
