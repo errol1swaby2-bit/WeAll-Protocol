@@ -1,0 +1,115 @@
+name: PR93 B5xx full-harness proof freshness diagnostic (no authority)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "Weall-Protocol/src/weall/**"
+      - "Weall-Protocol/scripts/gen_b528_b532_completion_proof_v1_5.py"
+      - "Weall-Protocol/scripts/gen_b534_b538_completion_proof_v1_5.py"
+      - "Weall-Protocol/scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py"
+      - ".github/workflows/pr93-b5xx-proof-regeneration-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr93-b5xx-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proof-refresh-diagnostic:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.head.ref == 'integration/unified-baseline-all-open-prs-20261114')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+        shell: bash
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Pinned Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install hash-locked backend and test dependencies
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Preserve the already-committed proof JSON inputs
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "${RUNNER_TEMP}/b5xx-original"
+          for name in b528_b532_completion_proof_v1_5 b534_b538_completion_proof_v1_5 b567_b571_autonomous_mechanics_proof_v1_5; do
+            cp "generated/${name}.json" "${RUNNER_TEMP}/b5xx-original/${name}.json"
+          done
+      - name: Rerun complete B528 B534 and B567 source-bound execution harnesses
+        timeout-minutes: 35
+        run: |
+          set -Eeuo pipefail
+          timeout 800 python scripts/gen_b528_b532_completion_proof_v1_5.py
+          timeout 800 python scripts/gen_b534_b538_completion_proof_v1_5.py
+          timeout 800 python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+      - name: Fail closed on any changed proof semantics and emit reviewed public artifacts
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import base64
+          import json
+          import os
+          from pathlib import Path
+
+          previous = Path(os.environ["RUNNER_TEMP"]) / "b5xx-original"
+          output = Path("generated")
+          names = (
+              "b528_b532_completion_proof_v1_5",
+              "b534_b538_completion_proof_v1_5",
+              "b567_b571_autonomous_mechanics_proof_v1_5",
+          )
+          checked = []
+          for name in names:
+              old = json.loads((previous / f"{name}.json").read_text())
+              new = json.loads((output / f"{name}.json").read_text())
+              assert old.get("ok") is True and new.get("ok") is True, f"{name}: failed proof"
+              a, b = dict(old), dict(new)
+              a.pop("freshness", None)
+              b.pop("freshness", None)
+              if a != b:
+                  differing = sorted(k for k in a.keys() | b.keys() if a.get(k) != b.get(k))
+                  raise SystemExit(f"{name}: PROOF SEMANTICS CHANGED, not a freshness-only repair: {differing}")
+              assert new["freshness"]["mode"] == "deterministic_input_digest_v1"
+              assert old["freshness"]["mode"] == "deterministic_input_digest_v1"
+              assert new["freshness"]["input_digest_sha256"] != old["freshness"]["input_digest_sha256"], (
+                  f"{name}: input digest unchanged; expected a previously stale proof"
+              )
+              assert all(not value for value in new.get("locked_boundaries", {}).values())
+              checked.append(name)
+          # Output files are existing public deterministic audit artifacts only:
+          # no private operator material, environment dumps, or generated credentials.
+          for name in checked:
+              data = (output / f"{name}.json").read_bytes()
+              assert data == (json.dumps(json.loads(data), sort_keys=True, indent=2) + "\n").encode()
+              print("B5XX_REVIEWED_PUBLIC_PROOF_B64::" + name + "::" + base64.b64encode(data).decode())
+          print("B5XX_FRESHNESS_ONLY_NO_AUTHORIZATION::" + ",".join(checked))
+          PY
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+      - name: Upload exact public proof candidates (diagnostic only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr93-b5xx-regenerated-public-evidence-no-approval
+          path: |
+            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json
+            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json
+            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
+          if-no-files-found: warn
