@@ -127,6 +127,10 @@ jobs:
         run: |
           npm run test:v16-navigation-source
 
+      - name: Portable visual theme validation and preview safety
+        run: |
+          npm run test:theme-transfer
+
       - name: Controlled-devnet secret route network isolation
         run: |
           npm run test:dev-bootstrap-loopback-guard
