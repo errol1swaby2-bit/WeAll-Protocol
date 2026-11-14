@@ -53,7 +53,13 @@ def test_v2_stale_review_packet_does_not_approve_20_affected_transactions() -> N
     assert {row["tx_type"] for row in packet["transactions"]} == KNOWN_STALE
     assert packet["newly_stale_not_in_known_inventory"] == []
     assert packet["known_stale_now_resolved"] == []
-    assert packet["missing_state_stable_ids"] == []
+    assert packet["missing_state_stable_ids"] == [
+        "Dispute:dispute_material_conflict_gate_version",
+        "Dispute:params",
+    ]
+    # These unregistered read tokens are a real, separately visible mapping
+    # blocker, never grounds for silently assigning stable IDs or approval.
+    assert packet_integrity_blockers(packet) == ["missing_state_stable_ids"]
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
     assert packet["historical_compatibility_proven"] is False
     assert packet["must_not_update_semantic_reviews_automatically"] is True
@@ -116,7 +122,7 @@ def test_all_twenty_reviewed_archives_match_accepted_approval() -> None:
         row["archived_compiled_material_digest"] == row["accepted_review_digest"]
         for row in packet["transactions"]
     )
-    assert packet_integrity_blockers(packet) == []
+    assert packet_integrity_blockers(packet) == ["missing_state_stable_ids"]
 
 
 def test_unverified_archived_source_must_block_review_packet_exit() -> None:
@@ -298,11 +304,10 @@ def test_dispute_vote_submit_new_severe_appeal_guard_is_review_input_only() -> N
     assert row["archived_implementation_source"] == row["current_implementation_source"]
     assert row["failure_code_deltas"] == {
         "added": [
+            {"code": "forbidden", "reason": "juror_conflict_material"},
             {"code": "forbidden", "reason": "juror_conflict_reporter"},
-            {
-                "code": "forbidden",
-                "reason": "severe_appeal_fresh_panel_unverified",
-            },
+            {"code": "forbidden", "reason": "severe_appeal_fresh_panel_unverified"},
+            {"code": "forbidden", "reason": "unsupported_dispute_material_conflict_gate_version"},
         ],
         "removed": [],
     }
@@ -321,7 +326,11 @@ def test_reporter_recusal_drift_is_bound_to_juror_assignment_and_acceptance(
     assert row["archived_implementation_source"] == row["current_implementation_source"]
     assert row["changed_field_names"] == ["failure_codes", "state_reads"]
     assert row["failure_code_deltas"] == {
-        "added": [{"code": "forbidden", "reason": "juror_conflict_reporter"}],
+        "added": [
+            {"code": "forbidden", "reason": "juror_conflict_material"},
+            {"code": "forbidden", "reason": "juror_conflict_reporter"},
+            {"code": "forbidden", "reason": "unsupported_dispute_material_conflict_gate_version"},
+        ],
         "removed": [],
     }
     state_reads = next(
@@ -342,11 +351,12 @@ def test_severe_final_receipt_new_guard_is_bound_to_exact_v2_drift() -> None:
     assert row["changed_field_names"] == ["failure_codes", "state_reads"]
     assert row["failure_code_deltas"] == {
         "added": [
+            {"code": "forbidden", "reason": "appeal_original_resolution_override"},
+            {"code": "forbidden", "reason": "appeal_panel_decision_not_finalized"},
+            {"code": "forbidden", "reason": "appeal_panel_decision_unverified"},
             {"code": "forbidden", "reason": "appeal_pending_panel"},
-            {
-                "code": "forbidden",
-                "reason": "severe_sanction_automatic_appeal_unimplemented",
-            },
+            {"code": "forbidden", "reason": "appeal_resolution_mismatch"},
+            {"code": "forbidden", "reason": "severe_sanction_automatic_appeal_unimplemented"},
         ],
         "removed": [],
     }

@@ -119,8 +119,16 @@ def test_each_stale_role_contract_compiler_delta_is_scanner_visibility(
     assert row["archived_implementation_source"] == row["current_implementation_source"]
     assert row["current_material_digest"] != row["accepted_review_digest"]
     assert row["changed_field_names"] == ["failure_codes", "state_reads", "state_writes"]
+    # The scanner must not expose exception class names as canonical codes.
+    # Opt-out bypasses the activation predicate and has no such dynamic
+    # failure; the other eight roles reach a handler-owned dynamic code.
+    expected_added = (
+        []
+        if tx_type == "REVIEWER_LANE_OPT_OUT"
+        else [{"code": "runtime_apply_error", "reason": "see_handler"}]
+    )
     assert row["failure_code_deltas"] == {
-        "added": [{"code": "RolesApplyError", "reason": "runtime_apply_failure"}],
+        "added": expected_added,
         "removed": [
             {"code": "forbidden", "reason": "account_restricted"},
             {"code": "forbidden", "reason": "live_verification_required"},
