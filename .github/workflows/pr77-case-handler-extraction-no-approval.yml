@@ -5,6 +5,8 @@ on:
     paths:
       - Weall-Protocol/scripts/compile_v2_spec.py
       - Weall-Protocol/specs/v2/source/tx_appliers.json
+      - Weall-Protocol/specs/v2/source/stable_ids.json
+      - Weall-Protocol/tests/test_pr77_dispute_open_v2_source_attribution.py
       - Weall-Protocol/src/weall/runtime/apply/dispute.py
       - Weall-Protocol/tests/test_pr77_v2_dispute_open_dispatch_extraction.py
       - Weall-Protocol/tests/test_pr77_case_receipt_adversarial_diagnostic.py
@@ -68,16 +70,19 @@ jobs:
           python scripts/audit_v2_semantic_review_drift.py > pr77_case_handler_drift_diagnostic.json
           python - <<'PY'
           import json
+          import sys
           from pathlib import Path
+          sys.path.insert(0, "scripts")
+          from pr77_v2_semantic_review_packet import KNOWN_STALE
           obj = json.loads(Path("pr77_case_handler_drift_diagnostic.json").read_text(encoding="utf-8"))
           changed = {row["tx_type"] for row in obj["details"]}
           print("unapproved_stale_review_count:", len(changed))
           print("candidate_case_rows:", sorted(changed & {"CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"}))
           assert not (changed & {"CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE"}), "case utility misattribution persists"
-          assert len(changed) == 18, "review inventory changed, require adjudication"
+          assert changed == KNOWN_STALE, "review inventory changed, require adjudication"
           assert obj["missing_state_stable_ids"] == []
           PY
-          echo 'NO-GO: static compiler extraction corrected, 18 other semantic contracts remain unapproved.'
+          echo 'NO-GO: static compiler extraction corrected, 20 semantic contracts remain unapproved.'
       - name: Archive read-only compiler diagnostic
         if: always()
         uses: actions/upload-artifact@v4
