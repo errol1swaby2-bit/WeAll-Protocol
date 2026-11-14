@@ -386,7 +386,7 @@ test.describe("real browser account custody", () => {
 
         await restoredPage.goto("/#/profile");
         await expect(restoredPage.getByText(account).first()).toBeVisible({ timeout: 30_000 });
-        const editProfile = restoredPage.getByText("Edit public profile", { exact: true });
+        const editProfile = restoredPage.getByRole("button", { name: "Edit public profile", exact: true });
         await editProfile.click();
         await restoredPage.getByLabel("Display name").fill(displayName);
 
