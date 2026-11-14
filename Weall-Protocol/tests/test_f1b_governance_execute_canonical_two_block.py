@@ -331,18 +331,22 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
                         canon=producer.tx_index,
                         context="block",
                     )
-                    observations.append({
-                        "tx_type": item.tx_type,
-                        "phase": str(item.phase),
-                        "admitted_on_prestate": str(bool(verdict.ok)),
-                        "code": str(verdict.code or ""),
-                        "reason": str(verdict.reason or ""),
-                    })
+                    observations.append(
+                        {
+                            "tx_type": item.tx_type,
+                            "phase": str(item.phase),
+                            "admitted_on_prestate": str(bool(verdict.ok)),
+                            "code": str(verdict.code or ""),
+                            "reason": str(verdict.reason or ""),
+                        }
+                    )
                 except Exception as exc:
-                    observations.append({
-                        "tx_type": str(raw.get("tx_type") or ""),
-                        "diagnostic_error_class": type(exc).__name__,
-                    })
+                    observations.append(
+                        {
+                            "tx_type": str(raw.get("tx_type") or ""),
+                            "diagnostic_error_class": type(exc).__name__,
+                        }
+                    )
             pytest.fail(f"{built.error}; read_only_due_system_admission={observations!r}")
         assert built.ok is True, built.error
         block = producer.get_latest_block()
