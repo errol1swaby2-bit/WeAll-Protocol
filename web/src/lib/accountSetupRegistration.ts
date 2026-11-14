@@ -134,10 +134,10 @@ export async function readRegistrationFinality(txId: string, base: string): Prom
     const status = String(result?.status || "").toLowerCase();
     const outbound = result?.outbound_propagation;
     const queueSynced = outbound?.local_state_synced;
-    if (status === "confirmed" && result?.local_state_synced === true && queueSynced !== false) {
+    if (status === "confirmed" && result?.apply_ok === true && result?.local_state_synced === true && queueSynced !== false) {
       return "confirmed";
     }
-    if (["rejected", "failed", "invalid", "expired"].includes(status)) return "rejected";
+    if (result?.apply_ok === false || ["rejected", "failed", "invalid", "expired"].includes(status)) return "rejected";
     return "pending";
   } catch {
     return "unavailable";
