@@ -326,8 +326,10 @@ def test_signed_tier2_governance_proposal_votes_schedule_canonical_validator_set
                         continue
                     env = _materialize_system_queue_item(current_state, item)
                     verdict = admit_tx(
-                        env, LedgerView.from_ledger(current_state),
-                        canon=producer.tx_index, context="block",
+                        env,
+                        LedgerView.from_ledger(current_state),
+                        canon=producer.tx_index,
+                        context="block",
                     )
                     observations.append({
                         "tx_type": item.tx_type,
