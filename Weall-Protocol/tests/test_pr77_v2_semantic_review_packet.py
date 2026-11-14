@@ -53,13 +53,10 @@ def test_v2_stale_review_packet_does_not_approve_20_affected_transactions() -> N
     assert {row["tx_type"] for row in packet["transactions"]} == KNOWN_STALE
     assert packet["newly_stale_not_in_known_inventory"] == []
     assert packet["known_stale_now_resolved"] == []
-    assert packet["missing_state_stable_ids"] == [
-        "Dispute:dispute_material_conflict_gate_version",
-        "Dispute:params",
-    ]
-    # These unregistered read tokens are a real, separately visible mapping
-    # blocker, never grounds for silently assigning stable IDs or approval.
-    assert packet_integrity_blockers(packet) == ["missing_state_stable_ids"]
+    # Both discovered tokens now have append-only state IDs. Resolving
+    # scanner identity mapping does not adjudicate the 20 semantic reviews.
+    assert packet["missing_state_stable_ids"] == []
+    assert packet_integrity_blockers(packet) == []
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
     assert packet["historical_compatibility_proven"] is False
     assert packet["must_not_update_semantic_reviews_automatically"] is True
@@ -121,7 +118,7 @@ def test_all_twenty_reviewed_archives_match_accepted_approval() -> None:
         row["archived_compiled_material_digest"] == row["accepted_review_digest"]
         for row in packet["transactions"]
     )
-    assert packet_integrity_blockers(packet) == ["missing_state_stable_ids"]
+    assert packet_integrity_blockers(packet) == []
 
 
 def test_unverified_archived_source_must_block_review_packet_exit() -> None:
