@@ -3,13 +3,13 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-from pathlib import Path
+import pathlib
 import tempfile
 import unittest
-from unittest.mock import patch
+import unittest.mock
 
 
-MODULE = Path(__file__).resolve().parents[1] / "scripts" / "two_pc_network_evidence.py"
+MODULE = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "two_pc_network_evidence.py"
 spec = importlib.util.spec_from_file_location("two_pc_network_evidence", MODULE)
 assert spec and spec.loader
 tool = importlib.util.module_from_spec(spec)
@@ -238,7 +238,7 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         self.assertFalse(result["bidirectional_api_preflight_pass"])
 
     def test_git_failure_cannot_be_reported_as_clean(self) -> None:
-        with patch.object(tool, "_git", return_value=None):
+        with unittest.mock.patch.object(tool, "_git", return_value=None):
             identity = tool.repo_identity()
         self.assertEqual(identity["commit"], "")
         self.assertFalse(identity["tracked_tree_clean"])
@@ -252,7 +252,7 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
 
     def test_locally_pinned_commitments_require_complete_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "commitments.json"
+            path = pathlib.Path(tmp) / "commitments.json"
             path.write_text(json.dumps(CHAIN), encoding="utf-8")
             self.assertEqual(tool.load_expected_commitments(str(path)), CHAIN)
             path.write_text(json.dumps({"chain_id": CHAIN["chain_id"]}), encoding="utf-8")
@@ -276,8 +276,8 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         a, b = packets()
         wrong = {**CHAIN, "genesis_hash": "incorrect"}
         with (
-            patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
-            patch.object(tool, "repo_identity", return_value=a["repository"]),
+            unittest.mock.patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
+            unittest.mock.patch.object(tool, "repo_identity", return_value=a["repository"]),
         ):
             report = tool.capture_machine(
                 "machine-A",
@@ -291,8 +291,8 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
     def test_capture_projects_only_safe_api_fields(self) -> None:
         a, b = packets()
         with (
-            patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
-            patch.object(tool, "repo_identity", return_value=a["repository"]),
+            unittest.mock.patch.object(tool, "_capture_endpoint", side_effect=[a["local"], b["local"]]),
+            unittest.mock.patch.object(tool, "repo_identity", return_value=a["repository"]),
         ):
             report = tool.capture_machine(
                 "machine-A",
@@ -309,9 +309,9 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
         a, b = packets()
         b["local"]["chain"]["height"] = 8
         with tempfile.TemporaryDirectory() as tmp:
-            left = str(Path(tmp) / "A.json")
-            right = str(Path(tmp) / "B.json")
-            output = str(Path(tmp) / "result.json")
+            left = str(pathlib.Path(tmp) / "A.json")
+            right = str(pathlib.Path(tmp) / "B.json")
+            output = str(pathlib.Path(tmp) / "result.json")
             tool._write_packet(left, a)
             tool._write_packet(right, b)
             self.assertEqual(
@@ -344,10 +344,10 @@ class TwoPcNetworkEvidenceTests(unittest.TestCase):
                 1,
             )
             self.assertFalse(
-                json.loads(Path(output).read_text())["matching_state_root_snapshot_pass"]
+                json.loads(pathlib.Path(output).read_text())["matching_state_root_snapshot_pass"]
             )
             if os.name != "nt":
-                self.assertEqual(Path(output).stat().st_mode & 0o777, 0o600)
+                self.assertEqual(pathlib.Path(output).stat().st_mode & 0o777, 0o600)
 
 
 if __name__ == "__main__":
