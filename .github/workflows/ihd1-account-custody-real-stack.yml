@@ -1,0 +1,127 @@
+name: J01-J02 signed account custody / canonical receipt integration (controlled devnet)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ihd1-account-custody-real-stack.yml"
+      - "web/src/**"
+      - "web/tests/e2e/account_custody_registration_restore.spec.ts"
+      - "web/playwright.config.ts"
+      - "web/package*.json"
+      - "Weall-Protocol/scripts/devnet_boot_genesis_node.sh"
+      - "Weall-Protocol/src/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-account-custody:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E: "1"
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      VITE_WEALL_API_BASE: /
+      VITE_WEALL_DEV_PROXY_TARGET: http://127.0.0.1:8001
+      WEALL_DEVNET_AUTO_VENV: "0"
+      WEALL_DEVNET_DIR: ${{ runner.temp }}/weall-ihd1-devnet
+      WEALL_MODE: controlled_devnet
+      WEALL_RUNTIME_PROFILE: controlled_devnet
+      WEALL_BLOCK_INTERVAL_MS: "2000"
+      WEALL_PRODUCE_EMPTY_BLOCKS: "1"
+      WEALL_BLOCK_LOOP_AUTOSTART: "1"
+      WEALL_NET_ENABLED: "0"
+      WEALL_BFT_ENABLED: "0"
+      WEALL_SIGVERIFY: "1"
+      WEALL_STRICT_TX_SIG_DOMAIN: "1"
+      WEALL_ENABLE_DEMO_SEED_ROUTE: "0"
+      WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE: "0"
+      WEALL_ALLOW_DIRECT_SESSION_MUTATION: "0"
+      WEALL_ENABLE_DEV_SESSION_CREATE_ROUTE: "0"
+      WEALL_POH_BOOTSTRAP_OPEN: "0"
+
+    steps:
+      - name: Checkout exact PR candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install pinned backend runtime
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements.lock
+          pip install -e . --no-deps
+
+      - name: Install frozen frontend dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: web
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Start isolated controlled-devnet block producer and public API
+        working-directory: Weall-Protocol
+        run: |
+          set -euo pipefail
+          mkdir -p "$WEALL_DEVNET_DIR"
+          # Never use production Genesis credentials or copy runtime secrets
+          # into repository artifacts. Fixture authority is local to this job.
+          nohup bash ./scripts/devnet_boot_genesis_node.sh             > "$RUNNER_TEMP/ihd1-node.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/ihd1-node.pid"
+          python - <<'PY'
+          import json
+          import time
+          import urllib.request
+
+          root = "http://127.0.0.1:8001"
+          for _ in range(120):
+              try:
+                  with urllib.request.urlopen(root + "/v1/readyz", timeout=2) as res:
+                      ready = json.load(res)
+                  with urllib.request.urlopen(root + "/v1/chain/identity", timeout=2) as res:
+                      identity = json.load(res)
+                  if ready.get("ok") and int(identity.get("height") or 0) >= 2:
+                      print("OK: isolated controlled-devnet backend ready, signed browser workflow may start")
+                      break
+              except Exception:
+                  pass
+              time.sleep(1)
+          else:
+              raise SystemExit("Controlled-devnet API/committed block did not become ready; no browser proof claimed")
+          PY
+
+      - name: Execute real-browser create, recover, sign, receipt and independent read
+        working-directory: web
+        run: |
+          npx playwright test tests/e2e/account_custody_registration_restore.spec.ts             --project=chromium --workers=1 --retries=0
+
+      - name: Report limited evidence scope
+        if: success()
+        run: |
+          echo "PASS: browser-signed Tier-0 account registration and PROFILE_UPDATE on a local controlled-devnet block producer"
+          echo "PASS: distinct browser profile restoration and unauthenticated independent-browser receipt/read projection"
+          echo "NOT_PROVED: node restart, multi-machine nodes, production PoH/uniqueness, BFT QC, constitution, public beta"
+          echo "Candidate SHA: $GITHUB_SHA"
+
+      - name: Terminate isolated node
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/ihd1-node.pid"; then
+            kill "$(cat "$RUNNER_TEMP/ihd1-node.pid")" 2>/dev/null || true
+          fi
+          # No recovery files, node key material, raw API traces, screenshots or logs are uploaded.
