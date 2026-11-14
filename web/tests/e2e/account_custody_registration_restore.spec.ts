@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 const REQUIRE_REAL_STACK = process.env.WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E === "1";
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
-const TERMINAL_SUCCESS = new Set(["confirmed", "committed", "finalized"]);
+const TERMINAL_SUCCESS = new Set(["confirmed"]);
 const TERMINAL_FAILURE = new Set(["rejected", "failed"]);
 
 type RecoveryFileV2 = {
@@ -102,10 +102,16 @@ async function waitForConfirmedTx(request: APIRequestContext, txId: string, time
     if (response.ok()) {
       last = await response.json();
       const status = String(last?.status || last?.phase || "").trim().toLowerCase();
-      if (TERMINAL_FAILURE.has(status)) {
-        throw new Error(`transaction ${txId} reached terminal failure: ${JSON.stringify(last)}`);
+      if (TERMINAL_FAILURE.has(status) || last?.apply_ok === false) {
+        throw new Error(`transaction ${txId} reached rejected or failed-apply receipt: ${JSON.stringify(last)}`);
       }
-      if (TERMINAL_SUCCESS.has(status) && last?.local_state_synced !== false) return last;
+      if (
+        TERMINAL_SUCCESS.has(status) &&
+        last?.apply_ok === true &&
+        last?.local_state_synced !== false &&
+        Number(last?.height || 0) > 0 &&
+        String(last?.block_id || "").trim()
+      ) return last;
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
@@ -173,7 +179,7 @@ test.describe("real browser account custody", () => {
     expect(result.notice).toContain("ML-DSA-65");
   });
 
-  test("create, verify, register, restart, restore, and submit a protected signed action", async ({ browser, request }) => {
+  test("create, verify, register, close browser, restore in new browser, and submit a protected signed action", async ({ browser, request }) => {
     test.setTimeout(300_000);
     await requireBackend(request);
 
@@ -370,7 +376,7 @@ test.describe("real browser account custody", () => {
           restoredPage,
           () => restoredPage.getByRole("button", { name: "Submit public profile update" }).click(),
         );
-        await waitForConfirmedTx(restoredPage.request, profileTxId);
+        const profileStatus = await waitForConfirmedTx(restoredPage.request, profileTxId);
         const profilePath = `/v1/accounts/${encodeURIComponent(account)}/profile`;
         const profile = await pollJson(
           restoredPage.request,
@@ -379,6 +385,36 @@ test.describe("real browser account custody", () => {
         );
         expect(JSON.stringify(profile)).toContain(displayName);
         await expect(restoredPage.getByTestId("profile-tx-status-callout")).toContainText(profileTxId);
+
+        // Independent browser profile has no signing material or session. It
+        // must see the SAME canonical receipt and public profile projection.
+        // This is independent browser observation, NOT independent node finality.
+        const observerContext = await browser.newContext({ baseURL: BASE_URL });
+        try {
+          const observerPage = await observerContext.newPage();
+          await observerPage.goto("/#/login");
+          const observerState = await observerPage.evaluate((acct: string) => ({
+            session: localStorage.getItem("weall_session_v1"),
+            key: sessionStorage.getItem(`weall_secret::${acct}`),
+            recovery: sessionStorage.getItem(`weall_recovery_authority_secret::${acct}`),
+          }), account);
+          expect(observerState).toEqual({ session: null, key: null, recovery: null });
+
+          const observerReceipt = await waitForConfirmedTx(observerPage.request, profileTxId);
+          expect(observerReceipt?.tx_id).toBe(profileTxId);
+          expect(observerReceipt?.height).toBe(profileStatus?.height);
+          expect(observerReceipt?.block_id).toBe(profileStatus?.block_id);
+          expect(observerReceipt?.apply_ok).toBe(true);
+
+          const observerProfile = await pollJson(
+            observerPage.request,
+            profilePath,
+            (body) => JSON.stringify(body).includes(displayName),
+          );
+          expect(JSON.stringify(observerProfile)).toContain(displayName);
+        } finally {
+          await observerContext.close();
+        }
       } finally {
         await restoredContext.close();
       }
