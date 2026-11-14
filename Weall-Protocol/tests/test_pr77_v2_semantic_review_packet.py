@@ -7,6 +7,7 @@ import pytest
 
 from scripts.pr77_v2_semantic_review_packet import (
     KNOWN_STALE,
+    SOURCE_ACCURACY_HOLDS,
     audit,
     build_packet,
     failure_code_deltas,
@@ -66,6 +67,44 @@ def test_v2_stale_review_packet_does_not_approve_20_affected_transactions() -> N
         assert row["stable_id"]
         assert row["signed_off_for_current_digest"] is False
         assert row["classification_not_semantic_approval"] is True
+
+
+def test_source_accuracy_holds_require_separate_semantic_review() -> None:
+    """A static V2 scan must not imply unreachable proposal failures execute."""
+    from weall.runtime.apply import dispute as dispute_impl
+
+    packet = build_packet()
+    rows = {item["tx_type"]: item for item in packet["transactions"]}
+    proposal_types = {"proposal", "governance", "governance_proposal"}
+    assert proposal_types.isdisjoint(dispute_impl._ALLOWED_DISPUTE_TARGET_TYPES)
+
+    open_row = rows["DISPUTE_OPEN"]
+    opt_out_row = rows["REVIEWER_LANE_OPT_OUT"]
+    assert open_row["source_accuracy_holds"] == list(SOURCE_ACCURACY_HOLDS["DISPUTE_OPEN"])
+    assert opt_out_row["source_accuracy_holds"] == list(
+        SOURCE_ACCURACY_HOLDS["REVIEWER_LANE_OPT_OUT"]
+    )
+    assert all(
+        item["signed_off_for_current_digest"] is False
+        for item in (open_row, opt_out_row)
+    )
+
+    current_rows, _, _ = audit._current_rows()
+    current_open = next(
+        item for item in current_rows if item["tx_type"] == "DISPUTE_OPEN"
+    )
+    extracted = {(item["code"], item["reason"]) for item in current_open["failure_codes"]}
+    assert ("not_found", "proposal_not_found") in extracted
+    assert ("forbidden", "active_proposal_dispute_protected") in extracted
+    assert "key:gov_proposals_by_id" in current_open["state_reads"]
+
+    forged = copy.deepcopy(packet)
+    next(item for item in forged["transactions"] if item["tx_type"] == "DISPUTE_OPEN")[
+        "source_accuracy_holds"
+    ] = []
+    assert "source_accuracy_holds_mismatch:DISPUTE_OPEN" in packet_integrity_blockers(
+        forged
+    )
 
 
 def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None:

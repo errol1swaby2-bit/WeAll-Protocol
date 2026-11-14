@@ -18,6 +18,13 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import audit_v2_semantic_review_drift as audit  # noqa: E402
 import v2_spec_validation as validation  # noqa: E402
 
+# Source-level caveats that current V2 semantic reviewers must adjudicate.
+# These do not modify source contracts, digests, or signed approvals.
+SOURCE_ACCURACY_HOLDS: dict[str, tuple[str, ...]] = {
+    "DISPUTE_OPEN": ("proposal_target_rejected_before_proposal_status_branches",),
+    "REVIEWER_LANE_OPT_OUT": ("withdrawal_does_not_invoke_activation_eligibility_gate",),
+}
+
 KNOWN_STALE = frozenset(
     {
         "DISPUTE_OPEN",
@@ -141,6 +148,9 @@ def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
         tx_type = str(row.get("tx_type") or "")
         if not isinstance(row.get("review_lane"), str) or not row["review_lane"]:
             blockers.append(f"review_lane_missing:{tx_type}")
+        expected_holds = list(SOURCE_ACCURACY_HOLDS.get(tx_type, ()))
+        if row.get("source_accuracy_holds") != expected_holds:
+            blockers.append(f"source_accuracy_holds_mismatch:{tx_type}")
         for key in (
             "accepted_review_digest",
             "archived_compiled_material_digest",
@@ -265,6 +275,7 @@ def build_packet() -> dict[str, Any]:
                 "tx_type": tx_type,
                 "stable_id": row["stable_id"],
                 "review_lane": review_lane,
+                "source_accuracy_holds": list(SOURCE_ACCURACY_HOLDS.get(tx_type, ())),
                 "accepted_review_digest": accepted_digest,
                 "archived_compiled_material_digest": old_digest,
                 "current_material_digest": current_digest,
