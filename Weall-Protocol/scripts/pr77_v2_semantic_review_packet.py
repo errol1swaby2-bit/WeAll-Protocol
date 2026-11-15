@@ -23,9 +23,7 @@ import v2_spec_validation as validation  # noqa: E402
 SOURCE_ACCURACY_HOLDS: dict[str, tuple[str, ...]] = {
     "CONTENT_FLAG": ("duplicate_flag_id_rejection_requires_height_activation",),
     "DISPUTE_OPEN": ("proposal_target_rejected_before_proposal_status_branches",),
-    "GROUP_EMISSARY_ELECTION_CREATE": (
-        "frozen_electorate_only_at_explicit_quorum_activation",
-    ),
+    "GROUP_EMISSARY_ELECTION_CREATE": ("frozen_electorate_only_at_explicit_quorum_activation",),
     "GROUP_EMISSARY_ELECTION_FINALIZE": (
         "frozen_quorum_controls_authority_transfer_legacy_elections_remain_unversioned",
     ),
