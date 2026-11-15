@@ -846,15 +846,17 @@ def public_lobby_comments(request: Request) -> dict[str, object]:
         if cursor_nonce is not None and cursor_id is not None:
             if nonce > cursor_nonce or (nonce == cursor_nonce and comment_id >= cursor_id):
                 continue
-        visible.append({
-            "comment_id": comment_id,
-            "post_id": thread_id,
-            "surface": "public_lobby",
-            "author": _str_param(comment.get("author")),
-            "body": _str_param(comment.get("body")),
-            "created_nonce": nonce,
-            "visibility": "public",
-        })
+        visible.append(
+            {
+                "comment_id": comment_id,
+                "post_id": thread_id,
+                "surface": "public_lobby",
+                "author": _str_param(comment.get("author")),
+                "body": _str_param(comment.get("body")),
+                "created_nonce": nonce,
+                "visibility": "public",
+            }
+        )
 
     # Account nonces are independent, so comments by different users can
     # legitimately share the same nonce. The cursor uses comment_id, never
