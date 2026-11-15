@@ -894,8 +894,6 @@ def _signed(kind: str, signer: str, nonce: int, payload: Json) -> Json:
     )
 
 
-@pytest.mark.parametrize("turnout", [3, 4], ids=["below_quorum", "quorum_met"])
-@pytest.mark.parametrize("ingress", ["executor", "netmesh"], ids=["direct", "netmesh_handlers"])
 @pytest.mark.parametrize("durably_sent", [False, True])
 def test_synthetic_boundary_vote_recovers_only_sent_journal_provenance(
     durably_sent: bool,
@@ -933,6 +931,8 @@ def test_synthetic_boundary_vote_recovers_only_sent_journal_provenance(
             _worker_command(node, command, SimpleNamespace())
 
 
+@pytest.mark.parametrize("turnout", [3, 4], ids=["below_quorum", "quorum_met"])
+@pytest.mark.parametrize("ingress", ["executor", "netmesh"], ids=["direct", "netmesh_handlers"])
 def test_socket_separated_production_qc_election_recovery(
     tmp_path: Path, turnout: int, ingress: str
 ) -> None:
