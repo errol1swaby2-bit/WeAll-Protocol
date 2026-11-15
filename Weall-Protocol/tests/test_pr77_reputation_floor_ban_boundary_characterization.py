@@ -551,14 +551,16 @@ def test_persisted_origin_review_reads_real_sqlite_history_but_never_grants_auth
     """Two locally committed blocks are evidence of storage, not signed finality."""
     chain_id = "pr77-persisted-origin-review-fixture"
     state = _state(clock_enabled=False)
-    state.update({
-        "height": 0,
-        "chain_id": chain_id,
-        "tip": "",
-        "tip_hash": "",
-        "params": {},
-        "system_queue": [],
-    })
+    state.update(
+        {
+            "height": 0,
+            "chain_id": chain_id,
+            "tip": "",
+            "tip_hash": "",
+            "params": {},
+            "system_queue": [],
+        }
+    )
     root = Path(__file__).resolve().parents[1]
     executor = WeAllExecutor(
         db_path=str(tmp_path / "persisted.db"),
@@ -602,9 +604,9 @@ def test_persisted_origin_review_reads_real_sqlite_history_but_never_grants_auth
     )
     executor._ledger_store.write_state_snapshot(copy.deepcopy(prestate))
     executor.state = executor._ledger_store.read()
-    delta = system_tx_emitter(
-        prestate, load_default_tx_index(), next_height=3, phase="post"
-    )[0].to_json()
+    delta = system_tx_emitter(prestate, load_default_tx_index(), next_height=3, phase="post")[
+        0
+    ].to_json()
     before = copy.deepcopy(executor.read_state())
     report = review_persisted_reputation_delta_origin(
         executor=executor, delta=delta, tx_index=load_default_tx_index()
@@ -628,7 +630,9 @@ def test_persisted_origin_review_rejects_invalid_scan_budget(
 ) -> None:
     with pytest.raises(ValueError, match="max_history_blocks_out_of_range"):
         review_persisted_reputation_delta_origin(
-            executor=object(), delta={}, tx_index=None,
+            executor=object(),
+            delta={},
+            tx_index=None,
             max_history_blocks=max_history_blocks,
         )
 

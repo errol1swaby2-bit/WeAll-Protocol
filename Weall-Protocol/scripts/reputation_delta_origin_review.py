@@ -186,8 +186,6 @@ def review_reputation_delta_origin(
         "may_ban_account": False,
     }
 
-
-
 def review_persisted_reputation_delta_origin(
     *,
     executor: Any,
@@ -270,8 +268,7 @@ def review_persisted_reputation_delta_origin(
         ):
             if (
                 next_block.get("prev_block_id") != previous_binding.block_id
-                or _str(next_block.get("prev_block_hash"))
-                != previous_binding.block_hash
+                or _str(next_block.get("prev_block_hash")) != previous_binding.block_hash
             ):
                 adjacent_links_valid = False
                 errors.append(f"adjacent_block_link_mismatch:{next_block.get('height')}")
@@ -309,7 +306,10 @@ def review_persisted_reputation_delta_origin(
     )
     observations = {
         "local_state_readable_and_chain_id_matches": bool(
-            height_ok and chain_id and not state_error and "prestate_executor_chain_id_mismatch" not in errors
+            height_ok
+            and chain_id
+            and not state_error
+            and "prestate_executor_chain_id_mismatch" not in errors
         ),
         "bounded_local_history_available_and_self_bound": bool(
             full_window_read and (highest == 0 or len(history) == highest - first + 1)
