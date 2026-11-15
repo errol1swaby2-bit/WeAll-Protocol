@@ -187,8 +187,159 @@ def review_reputation_delta_origin(
     }
 
 
+
+def review_persisted_reputation_delta_origin(
+    *,
+    executor: Any,
+    delta: Any,
+    tx_index: Any,
+    max_history_blocks: int = 64,
+) -> Json:
+    """Read a bounded local block history; never equate SQLite with BFT finality.
+
+    Requires only the executor's read_state/get_block_by_height read interfaces.
+    The executor (or a substituted reader) and its local SQLite files are not
+    trusted network anchors, even when all stored block commitments agree.
+    """
+    if type(max_history_blocks) is not int or not 1 <= max_history_blocks <= 256:
+        raise ValueError("max_history_blocks_out_of_range")
+
+    state_error = ""
+    try:
+        observed_state = executor.read_state()
+        if not isinstance(observed_state, dict):
+            raise ValueError("read_state_not_object")
+        state = observed_state
+    except (AttributeError, OSError, TypeError, ValueError, RuntimeError) as exc:
+        state = {}
+        state_error = f"state_read_failed:{type(exc).__name__}"
+
+    chain_id = _str(state.get("chain_id"))
+    height = state.get("height")
+    height_ok = _height(height)
+    highest = height if height_ok else 0
+    first = max(1, highest - max_history_blocks + 1) if highest else 0
+    history: list[Mapping[str, Any]] = []
+    bindings: list[Any] = []
+    errors: list[str] = []
+    full_window_read = height_ok and not state_error
+
+    if not height_ok:
+        errors.append("prestate_height_invalid")
+        full_window_read = False
+    if not chain_id:
+        errors.append("prestate_chain_id_missing")
+        full_window_read = False
+    if chain_id and _str(getattr(executor, "chain_id", None)) != chain_id:
+        errors.append("prestate_executor_chain_id_mismatch")
+        full_window_read = False
+    if state_error:
+        errors.append(state_error)
+
+    if full_window_read and highest > 0:
+        for at in range(first, highest + 1):
+            try:
+                block = executor.get_block_by_height(at)
+            except (AttributeError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                errors.append(f"block_read_failed:{at}:{type(exc).__name__}")
+                full_window_read = False
+                break
+            if not isinstance(block, dict) or block.get("height") != at:
+                errors.append(f"missing_or_wrong_height_block:{at}")
+                full_window_read = False
+                break
+            try:
+                ok, reason, binding = validate_complete_block_commitments(
+                    block=block, chain_id=chain_id
+                )
+            except (TypeError, ValueError, KeyError, OverflowError) as exc:
+                errors.append(f"block_commitment_error:{at}:{type(exc).__name__}")
+                full_window_read = False
+                break
+            if not ok or binding is None:
+                errors.append(f"block_commitment_invalid:{at}:{reason}")
+                full_window_read = False
+                break
+            history.append(block)
+            bindings.append(binding)
+
+    adjacent_links_valid = bool(full_window_read and history)
+    if adjacent_links_valid:
+        for previous, next_block, previous_binding in zip(
+            history, history[1:], bindings, strict=False
+        ):
+            if (
+                next_block.get("prev_block_id") != previous_binding.block_id
+                or _str(next_block.get("prev_block_hash"))
+                != previous_binding.block_hash
+            ):
+                adjacent_links_valid = False
+                errors.append(f"adjacent_block_link_mismatch:{next_block.get('height')}")
+                break
+
+    tip_matches = bool(
+        full_window_read
+        and history
+        and _str(state.get("tip")) == bindings[-1].block_id
+        and _str(state.get("tip_hash")) == bindings[-1].block_hash
+    )
+    if highest > 0 and full_window_read and not tip_matches:
+        errors.append("persisted_tip_commitment_mismatch")
+    if highest == 0:
+        tip_matches = bool(full_window_read and not _str(state.get("tip")))
+        adjacent_links_valid = bool(full_window_read)
+
+    result = review_reputation_delta_origin(
+        pre_state=state,
+        delta=delta,
+        tx_index=tx_index,
+        supplied_history_blocks=history if full_window_read else (),
+    )
+    parent_candidates = _parent_candidates(
+        history if full_window_read else (), _str(_map(delta).get("parent"))
+    )
+    single_parent_height = (
+        _map(parent_candidates[0][0]).get("height") if len(parent_candidates) == 1 else None
+    )
+    finalized = _map(state.get("finalized"))
+    recorded_finalized_covers_parent = bool(
+        _height(single_parent_height)
+        and _height(finalized.get("height"))
+        and finalized["height"] >= single_parent_height
+    )
+    observations = {
+        "local_state_readable_and_chain_id_matches": bool(
+            height_ok and chain_id and not state_error and "prestate_executor_chain_id_mismatch" not in errors
+        ),
+        "bounded_local_history_available_and_self_bound": bool(
+            full_window_read and (highest == 0 or len(history) == highest - first + 1)
+        ),
+        "adjacent_local_history_parent_links_match": bool(adjacent_links_valid),
+        "local_state_tip_matches_last_stored_block": bool(tip_matches),
+        "local_history_scanned_from_height_one": bool(
+            full_window_read and highest > 0 and first == 1
+        ),
+        "local_finalized_height_claim_covers_alleged_parent": recorded_finalized_covers_parent,
+    }
+    result["persisted_history_observations"] = observations
+    result["persisted_history_range"] = {
+        "first_height": first,
+        "last_height": highest,
+        "blocks_examined": len(history),
+        "limit": max_history_blocks,
+    }
+    result["persisted_history_errors"] = errors
+    result["blocking_reasons"].extend(
+        ["local_executor_history_is_not_independent_network_finality"]
+        + [f"persisted_history:{name}" for name, observed in observations.items() if not observed]
+        + errors
+    )
+    return result
+
+
 __all__ = [
     "SCHEMA",
     "STATUS",
     "review_reputation_delta_origin",
+    "review_persisted_reputation_delta_origin",
 ]

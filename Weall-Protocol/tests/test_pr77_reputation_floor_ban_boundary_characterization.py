@@ -38,9 +38,11 @@ from weall.runtime.tx_contracts import load_default_tx_index
 # The review-only script is outside the installed src/weall package to preserve
 # checked-in B528 source-freshness inputs. Load by exact file path rather than
 # modifying sys.path or weakening locked CI's import configuration.
-review_reputation_delta_origin = run_path(
+review_module = run_path(
     str(Path(__file__).resolve().parents[1] / "scripts" / "reputation_delta_origin_review.py")
-)["review_reputation_delta_origin"]
+)
+review_reputation_delta_origin = review_module["review_reputation_delta_origin"]
+review_persisted_reputation_delta_origin = review_module["review_persisted_reputation_delta_origin"]
 
 
 def _state(*, clock_enabled: bool) -> dict:
@@ -541,3 +543,120 @@ def test_read_only_origin_review_rejects_ambiguous_forged_and_unbound_sources() 
     )
     assert not unbound["observations"]["receipt_queue_binding_matches_supplied_prestate"]
     assert unbound["may_enqueue_reputation_delta"] is False
+
+
+def test_persisted_origin_review_reads_real_sqlite_history_but_never_grants_authority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two locally committed blocks are evidence of storage, not signed finality."""
+    chain_id = "pr77-persisted-origin-review-fixture"
+    state = _state(clock_enabled=False)
+    state.update({
+        "height": 0,
+        "chain_id": chain_id,
+        "tip": "",
+        "tip_hash": "",
+        "params": {},
+        "system_queue": [],
+    })
+    root = Path(__file__).resolve().parents[1]
+    executor = WeAllExecutor(
+        db_path=str(tmp_path / "persisted.db"),
+        node_id="@node",
+        chain_id=chain_id,
+        tx_index_path=str(root / "generated" / "tx_index.json"),
+    )
+    executor._ledger_store.write_state_snapshot(copy.deepcopy(state))
+    executor.state = executor._ledger_store.read()
+    monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
+
+    for expected_height in (1, 2):
+        block, successor, applied, invalid, error = executor.build_block_candidate(
+            max_txs=0, allow_empty=True
+        )
+        assert error == ""
+        assert block is not None and successor is not None
+        committed = executor.commit_block_candidate(
+            block=block, new_state=successor, applied_ids=applied, invalid_ids=invalid
+        )
+        assert committed.ok is True, committed.error
+        assert executor.read_state()["height"] == expected_height
+        assert executor.get_block_by_height(expected_height)["block_id"] == block["block_id"]
+
+    # Deliberately seed the hypothetical receipt AFTER committing the two
+    # benign blocks. This queue origin has no authenticated dispute producer.
+    prestate = executor.read_state()
+    enqueue_system_tx(
+        prestate,
+        tx_type="REPUTATION_DELTA_APPLY",
+        payload={
+            "account_id": "@target",
+            "dispute_id": "d:never",
+            "delta_milli": int(REP_MIN_UNITS),
+            "delta_id": "pr77:persisted-review-synthetic-delta",
+            "reason": "synthetic_only",
+        },
+        due_height=3,
+        parent="unverified-historical-parent",
+        phase="post",
+    )
+    executor._ledger_store.write_state_snapshot(copy.deepcopy(prestate))
+    executor.state = executor._ledger_store.read()
+    delta = system_tx_emitter(
+        prestate, load_default_tx_index(), next_height=3, phase="post"
+    )[0].to_json()
+    before = copy.deepcopy(executor.read_state())
+    report = review_persisted_reputation_delta_origin(
+        executor=executor, delta=delta, tx_index=load_default_tx_index()
+    )
+    observed = report["persisted_history_observations"]
+    assert observed["local_state_readable_and_chain_id_matches"]
+    assert observed["bounded_local_history_available_and_self_bound"]
+    assert observed["adjacent_local_history_parent_links_match"]
+    assert observed["local_state_tip_matches_last_stored_block"]
+    assert observed["local_history_scanned_from_height_one"]
+    assert not observed["local_finalized_height_claim_covers_alleged_parent"]
+    assert report["persisted_history_range"]["blocks_examined"] == 2
+    assert report["parent_resolution_candidates"] == 0
+    assert report["may_ban_account"] is False
+    assert executor.read_state() == before
+
+
+@pytest.mark.parametrize("max_history_blocks", [0, -1, 257, True, "5"])
+def test_persisted_origin_review_rejects_invalid_scan_budget(
+    max_history_blocks: object,
+) -> None:
+    with pytest.raises(ValueError, match="max_history_blocks_out_of_range"):
+        review_persisted_reputation_delta_origin(
+            executor=object(), delta={}, tx_index=None,
+            max_history_blocks=max_history_blocks,
+        )
+
+
+def test_persisted_origin_review_ignores_incomplete_fake_history() -> None:
+    state, delta = _synthetic_origin_review_fixture(clock_enabled=True)
+    state["height"] = 2
+    state["tip"] = "untrusted-tip"
+    state["tip_hash"] = "untrusted-tip-hash"
+
+    class FakeHistoryReader:
+        chain_id = state["chain_id"]
+
+        def read_state(self) -> dict:
+            return copy.deepcopy(state)
+
+        def get_block_by_height(self, at: int) -> dict | None:
+            return {"height": 1, "txs": []} if at == 1 else None
+
+    report = review_persisted_reputation_delta_origin(
+        executor=FakeHistoryReader(),
+        delta=delta,
+        tx_index=load_default_tx_index(),
+    )
+    obs = report["persisted_history_observations"]
+    assert not obs["bounded_local_history_available_and_self_bound"]
+    assert not obs["local_state_tip_matches_last_stored_block"]
+    assert report["persisted_history_errors"]
+    assert report["parent_resolution_candidates"] == 0
+    assert report["may_enqueue_reputation_delta"] is False
+    assert report["may_ban_account"] is False
