@@ -3,6 +3,7 @@
 This unit fixture exercises only read-model behavior. Real ML-DSA signed
 Tier-0 submits and committed receipts are verified by M4.2 Playwright CI.
 """
+
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
@@ -115,9 +116,9 @@ def test_anonymous_lobby_comment_read_is_bounded_and_scoped() -> None:
     # Each signer has its own nonce sequence: independent accounts may
     # legitimately create different comments at the same nonce.
     client = _client()
-    first = client.get("/v1/public-lobby/comments", params={
-        "thread_id": "public-lobby:welcome", "limit": 1
-    })
+    first = client.get(
+        "/v1/public-lobby/comments", params={"thread_id": "public-lobby:welcome", "limit": 1}
+    )
     assert first.status_code == 200, first.text
     body = first.json()
     assert body["ok"] is True
@@ -125,23 +126,35 @@ def test_anonymous_lobby_comment_read_is_bounded_and_scoped() -> None:
     assert [item["comment_id"] for item in body["items"]] == ["c2"]
     assert body["items"][0]["body"] == "Hello from beta"
     assert set(body["items"][0]) == {
-        "comment_id", "post_id", "surface", "author", "body",
-        "created_nonce", "visibility",
+        "comment_id",
+        "post_id",
+        "surface",
+        "author",
+        "body",
+        "created_nonce",
+        "visibility",
     }
     assert body["next_cursor"]
 
-    second = client.get("/v1/public-lobby/comments", params={
-        "thread_id": "public-lobby:welcome", "limit": 1,
-        "cursor": body["next_cursor"],
-    })
+    second = client.get(
+        "/v1/public-lobby/comments",
+        params={
+            "thread_id": "public-lobby:welcome",
+            "limit": 1,
+            "cursor": body["next_cursor"],
+        },
+    )
     assert second.status_code == 200, second.text
     page = second.json()
     assert [item["comment_id"] for item in page["items"]] == ["c1"]
     assert page["next_cursor"] is None
 
-    other = client.get("/v1/public-lobby/comments", params={
-        "thread_id": "public-lobby:other",
-    })
+    other = client.get(
+        "/v1/public-lobby/comments",
+        params={
+            "thread_id": "public-lobby:other",
+        },
+    )
     assert other.status_code == 200
     assert [item["comment_id"] for item in other.json()["items"]] == ["c-other"]
 
@@ -160,13 +173,19 @@ def test_lobby_comment_detail_and_moderation_are_consistent() -> None:
 def test_lobby_reads_fail_closed_on_invalid_scopes_and_cursors() -> None:
     client = _client()
     for thread_id in ("", "ordinary-post", "public-lobb:y", "public-lobby:other" * 300):
-        result = client.get("/v1/public-lobby/comments", params={
-            "thread_id": thread_id,
-        })
+        result = client.get(
+            "/v1/public-lobby/comments",
+            params={
+                "thread_id": thread_id,
+            },
+        )
         assert result.status_code == 400, result.text
 
-    invalid_cursor = client.get("/v1/public-lobby/comments", params={
-        "thread_id": "public-lobby:welcome",
-        "cursor": "not-a-valid-cursor",
-    })
+    invalid_cursor = client.get(
+        "/v1/public-lobby/comments",
+        params={
+            "thread_id": "public-lobby:welcome",
+            "cursor": "not-a-valid-cursor",
+        },
+    )
     assert invalid_cursor.status_code == 400
