@@ -177,6 +177,46 @@ test("published and manual browser API URLs must be plain HTTPS origins", () => 
   }
 });
 
+test("hosted clients never borrow expected chain identity from a node or seed manifest", async () => {
+  reset();
+  // Simulates an incorrectly configured third-party Cloudflare build. The
+  // static seed manifest and connected node may still advertise a plausible
+  // chain, but neither is an independently pinned browser trust root.
+  const keys = [
+    "expectedChainId",
+    "expectedGenesisHash",
+    "expectedTxIndexHash",
+    "expectedProtocolProfileHash",
+  ];
+  const original = Object.fromEntries(keys.map((key) => [key, config[key]]));
+  selected = "https://healthy.test";
+  try {
+    for (const key of keys) config[key] = "";
+    assert.equal(await manager.loadExpectedCompatibilityBaseline(), null);
+    const unpinned = await manager.discoverNodeProbes();
+    assert.ok(unpinned.some((probe) => probe.reachable),
+      "the regression must test a reachable, self-reported healthy backend");
+    assert.ok(unpinned.every((probe) => probe.phase !== "healthy"),
+      "a reachable node must not become compatible without independent pins");
+    assert.ok(unpinned.some((probe) =>
+      probe.errors.includes("public_testnet_config_missing:pinned_commitments_required")));
+
+    // A partial build commitment must also fail rather than filling missing
+    // values from the node's own /v1/nodes/seeds response or the seed list.
+    config.expectedChainId = chain.chain_id;
+    const partial = await manager.loadExpectedCompatibilityBaseline();
+    assert.equal(partial?.source, "build");
+    assert.equal(partial?.genesisHash, undefined);
+    const partialProbes = await manager.discoverNodeProbes();
+    assert.ok(partialProbes.every((probe) => probe.phase !== "healthy"));
+    assert.ok(partialProbes.some((probe) =>
+      probe.errors.includes("public_testnet_config_missing:genesis_hash")));
+  } finally {
+    Object.assign(config, original);
+    reset();
+  }
+});
+
 test("bootstrap reads base_url and rejects non-HTTPS, wrong-chain and unready candidates", async () => {
   reset();
   const backendHints = await manager.loadBackendSeedNodes("https://seed.test");
