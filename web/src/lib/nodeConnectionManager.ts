@@ -197,7 +197,17 @@ async function loadBackendSeedCompatibilityBaseline(base = getApiBaseUrl()): Pro
 }
 
 export async function loadExpectedCompatibilityBaseline(seedsUrl = config.seedsUrl): Promise<NodeCompatibilityBaseline | null> {
-  return buildConfiguredCompatibilityBaseline() || (await loadBackendSeedCompatibilityBaseline()) || (await loadSeedCompatibilityBaseline(seedsUrl));
+  const buildPinned = buildConfiguredCompatibilityBaseline();
+  if (config.publicTestnet) {
+    // The remote node and its /v1/nodes/seeds payload cannot authenticate
+    // their own chain identity. The hosted seed manifest is discovery data,
+    // not an independently verified trust root in the browser. A public
+    // testnet build MUST pin the expected chain commitments itself.
+    // Missing or partial pins are handled fail-closed by compatibilityErrors.
+    return buildPinned;
+  }
+  // Local and controlled-devnet diagnostics retain permissive discovery.
+  return buildPinned || (await loadBackendSeedCompatibilityBaseline()) || (await loadSeedCompatibilityBaseline(seedsUrl));
 }
 
 function dedupeSeeds(seeds: SeedNode[]): SeedNode[] {
