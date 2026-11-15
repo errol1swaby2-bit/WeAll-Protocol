@@ -82,9 +82,11 @@ export default function Feed(): JSX.Element {
       ? "This device needs your saved account key before it can save actions."
       : !snapshot.registered
         ? "You can browse now. Finish account setup before posting."
-        : snapshot.tier < 2
-          ? "Complete live verification to create public posts, comment, react, or report harmful content."
-          : "Your account is ready to participate from this device.";
+        : snapshot.tier < 1
+          ? "Complete Tier 1 verification to submit content reports. Ordinary posts, replies, and reactions require Tier 2."
+          : snapshot.tier < 2
+            ? "You can report public content at Tier 1. Ordinary posts, replies, and reactions require live Tier 2 verification."
+            : "Your account is ready to participate from this device.";
 
   return (
     <div className="pageStack socialFeedPage">
