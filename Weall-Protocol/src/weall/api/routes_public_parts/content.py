@@ -297,6 +297,17 @@ def _comment_visible(st: Json, comment: Json) -> bool:
     if vis not in {"public", ""}:
         return False
     root_id = str(comment.get("post_id") or comment.get("thread_id") or "").strip()
+    if str(comment.get("surface") or "").strip().lower() == "public_lobby":
+        # Tier-0 public-lobby comments intentionally reference a synthetic
+        # public-lobby: target, not a Tier-2 post. Never generalize this
+        # exception to an arbitrary missing parent, legacy private comment,
+        # deleted comment, or a moderation-hidden target.
+        comment_id = str(comment.get("comment_id") or comment.get("id") or "").strip()
+        return bool(
+            root_id.startswith("public-lobby:")
+            and comment_id
+            and not _content_target_hidden_by_review(st, comment_id, comment)
+        )
     if not root_id:
         return True
     root = _as_dict(_posts(st).get(root_id))
@@ -786,6 +797,81 @@ def _with_reaction_counts(obj: Json, counts_by_target: dict[str, dict[str, int]]
     out["reactions"] = merged
     out["reaction_total"] = int(sum(int(v) for v in merged.values())) if merged else 0
     return out
+
+
+@router.get("/public-lobby/comments")
+def public_lobby_comments(request: Request) -> dict[str, object]:
+    """Read a single Tier-0 public-lobby thread through bounded public state.
+
+    A lobby thread is a synthetic `public-lobby:` target, not an ordinary
+    Tier-2 post. Only explicitly marked, canonical, visible lobby comments
+    are returned. No signer/session authority or private content is exposed.
+    """
+
+    qp = request.query_params
+    thread_id = _str_param(qp.get("thread_id")).strip()
+    if not thread_id.startswith("public-lobby:"):
+        raise ApiError.bad_request(
+            "invalid_public_lobby_target",
+            "thread_id must identify a public-lobby: thread",
+            {},
+        )
+    if len(thread_id.encode("utf-8")) > 2048:
+        raise ApiError.bad_request(
+            "invalid_public_lobby_target",
+            "public lobby thread identifier is too long",
+            {},
+        )
+
+    limit = max(1, min(50, _int_param(qp.get("limit"), 25)))
+    cursor_nonce, cursor_id = _cursor_unpack(qp.get("cursor"))
+    if _str_param(qp.get("cursor")).strip() and (cursor_nonce is None or cursor_id is None):
+        raise ApiError.bad_request("invalid_cursor", "invalid public lobby cursor", {})
+
+    st = _snapshot(request)
+    visible: list[Json] = []
+    for cid, raw in sorted(_comments(st).items(), key=lambda pair: str(pair[0])):
+        comment = _as_dict(raw)
+        if str(comment.get("surface") or "").strip().lower() != "public_lobby":
+            continue
+        if str(comment.get("post_id") or "").strip() != thread_id:
+            continue
+        if not _comment_visible(st, comment):
+            continue
+        comment_id = str(comment.get("comment_id") or cid).strip()
+        if comment_id != str(cid):
+            # Reject a mismatched index key rather than inventing aliases.
+            continue
+        nonce = _safe_int(comment.get("created_nonce"), 0)
+        if cursor_nonce is not None and cursor_id is not None:
+            if nonce > cursor_nonce or (nonce == cursor_nonce and comment_id >= cursor_id):
+                continue
+        visible.append({
+            "comment_id": comment_id,
+            "post_id": thread_id,
+            "surface": "public_lobby",
+            "author": _str_param(comment.get("author")),
+            "body": _str_param(comment.get("body")),
+            "created_nonce": nonce,
+            "visibility": "public",
+        })
+
+    visible = _sort_by_nonce_desc(visible, key="created_nonce")
+    page = visible[:limit]
+    next_cursor = None
+    if len(visible) > limit and page:
+        last = page[-1]
+        next_cursor = _cursor_pack(
+            created_at_nonce=_safe_int(last.get("created_nonce"), 0),
+            content_id=str(last.get("comment_id") or ""),
+        )
+
+    return {
+        "ok": True,
+        "thread_id": thread_id,
+        "items": page,
+        "next_cursor": next_cursor,
+    }
 
 
 @router.get("/feed")
