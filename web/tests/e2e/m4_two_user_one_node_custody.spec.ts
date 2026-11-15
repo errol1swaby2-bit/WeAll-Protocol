@@ -226,8 +226,11 @@ async function verifyCanonicalTier0SocialDenial(
   // A connectivity error, HTTP 500, nonce conflict or malformed payload
   // must never be mistaken for a successful negative security proof.
   expect([400, 403], txType + " must be rejected by the real backend").toContain(outcome.status);
-  expect(outcome.reason, txType + " must fail for eligibility, not an unrelated error")
-    .toMatch(/poh|tier|eligib|forbidden|permission/i);
+  // Production mempool admission reports a canonical gate_denied code
+  // (rather than putting the Tier2 expression in the top-level error code).
+  // Reject generic network errors or unrelated schema/nonce failures.
+  expect(outcome.reason, txType + " must fail at the canonical eligibility gate")
+    .toMatch(/^(?:gate_denied|insufficient_poh_tier|poh_tier_required)$/i);
 }
 
 test("two independent real users register, update public profiles and isolate keys on one node", async ({ browser, request }) => {
