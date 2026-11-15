@@ -41,9 +41,7 @@ def _configure(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv(name, value)
 
 
-def _two_committed_blocks(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> WeAllExecutor:
+def _two_committed_blocks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> WeAllExecutor:
     _configure(monkeypatch)
     executor = WeAllExecutor(
         db_path=str(tmp_path / "canonical.sqlite"),
@@ -110,9 +108,7 @@ def test_changed_reputation_snapshot_is_detected_even_with_valid_block_rows(
     assert observed["bounded_local_history_available_and_self_bound"] is True
     assert observed["adjacent_local_history_parent_links_match"] is True
     assert observed["local_state_tip_matches_last_stored_block"] is True
-    assert (
-        observed["persisted_snapshot_root_matches_committed_tip_state_root"] is False
-    )
+    assert observed["persisted_snapshot_root_matches_committed_tip_state_root"] is False
     assert "persisted_snapshot_state_root_mismatch" in report["persisted_history_errors"]
     assert report["constitutional_authorization"] == "NOT_ESTABLISHED"
     assert report["may_enqueue_reputation_delta"] is False
