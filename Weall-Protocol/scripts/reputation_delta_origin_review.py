@@ -299,12 +299,9 @@ def review_persisted_reputation_delta_origin(
             try:
                 snapshot_root_matches_tip = compute_state_root(state) == declared_root
             except (TypeError, ValueError, OverflowError) as exc:
-                errors.append(
-                    f"persisted_state_root_recompute_failed:{type(exc).__name__}"
-                )
+                errors.append(f"persisted_state_root_recompute_failed:{type(exc).__name__}")
             if not snapshot_root_matches_tip and not any(
-                name.startswith("persisted_state_root_recompute_failed:")
-                for name in errors
+                name.startswith("persisted_state_root_recompute_failed:") for name in errors
             ):
                 errors.append("persisted_snapshot_state_root_mismatch")
 
@@ -338,9 +335,7 @@ def review_persisted_reputation_delta_origin(
         ),
         "adjacent_local_history_parent_links_match": bool(adjacent_links_valid),
         "local_state_tip_matches_last_stored_block": bool(tip_matches),
-        "persisted_snapshot_root_matches_committed_tip_state_root": bool(
-            snapshot_root_matches_tip
-        ),
+        "persisted_snapshot_root_matches_committed_tip_state_root": bool(snapshot_root_matches_tip),
         "local_history_scanned_from_height_one": bool(
             full_window_read and highest > 0 and first == 1
         ),
