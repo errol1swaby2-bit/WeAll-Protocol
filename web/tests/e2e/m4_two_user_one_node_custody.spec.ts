@@ -128,8 +128,16 @@ async function profileUpdate(page: Page, account: string, name: string): Promise
   await expect(page.getByText(account).first()).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Edit public profile", exact: true }).click();
   await page.getByLabel("Display name").fill(name);
-  return submitAndCapture(page, () =>
-    page.getByRole("button", { name: "Submit public profile update" }).click());
+  const submit = page.getByTestId("profile-submit-action");
+  try {
+    await expect(submit).toBeEnabled({ timeout: 12_000 });
+  } catch {
+    // Only nonsecret readiness flags are exposed; never log typed fields,
+    // recoveries, signer seeds, signed envelopes, or session bearers.
+    const blockers = await submit.getAttribute("data-submit-blockers");
+    throw new Error("m4_profile_submit_blocked:" + (blockers || "unknown"));
+  }
+  return submitAndCapture(page, () => submit.click());
 }
 
 async function storedKeys(page: Page, self: string, other: string): Promise<{
