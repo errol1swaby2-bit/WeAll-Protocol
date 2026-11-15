@@ -166,6 +166,64 @@ def test_content_flag_collision_guard_is_height_gated_review_input() -> None:
     assert "source_accuracy_holds_mismatch:CONTENT_FLAG" in packet_integrity_blockers(forged)
 
 
+def test_versioned_group_election_authority_review_holds() -> None:
+    """A late activation must not rewrite an election's frozen creation policy."""
+    import test_group_emissary_quorum_activation as quorum
+
+    from weall.runtime.apply.groups import _group_emissary_quorum_activation_height
+
+    packet = build_packet()
+    rows = {row["tx_type"]: row for row in packet["transactions"]}
+    for tx_type in ("GROUP_EMISSARY_ELECTION_CREATE", "GROUP_EMISSARY_ELECTION_FINALIZE"):
+        row = rows[tx_type]
+        assert row["source_accuracy_holds"] == list(SOURCE_ACCURACY_HOLDS[tx_type])
+        assert row["accepted_review_digest"] != row["current_material_digest"]
+        assert row["signed_off_for_current_digest"] is False
+        assert row["historical_replay_proven"] is False
+
+    activated, group, voters = quorum._setup(eligible=5, activation=101)
+    election = activated["group_emissary_elections"]["e:quorum"]
+    assert _group_emissary_quorum_activation_height(activated) == 101
+    assert election["quorum_policy_version"] == 1
+    assert election["electorate_source"] == "group_governance_active_group_members_tier2"
+    assert election["required_votes"] == 4
+    original_group_signers = list(group["signers"])
+    original_treasury_signers = list(
+        activated["roles"]["treasuries_by_id"][group["treasury_id"]]["signers"]
+    )
+    quorum._cast(activated, voters[0], 10)
+    blocked = quorum._finish(activated)
+    assert blocked["status"] == "no_decision"
+    assert blocked["reason"] == "quorum_unmet"
+    assert blocked["required_votes"] == 4
+    assert group["signers"] == original_group_signers
+    assert (
+        activated["roles"]["treasuries_by_id"][group["treasury_id"]]["signers"]
+        == original_treasury_signers
+    )
+
+    legacy, old_group, old_voters = quorum._setup(eligible=5, activation=102)
+    old_election = legacy["group_emissary_elections"]["e:quorum"]
+    assert "quorum_policy_version" not in old_election
+    assert "required_votes" not in old_election
+    quorum._cast(legacy, old_voters[0], 10)
+    legacy_result = quorum._finish(legacy)
+    assert legacy_result["applied"] == "GROUP_EMISSARY_ELECTION_FINALIZE"
+    assert old_election["status"] == "finalized"
+    assert len(old_group["signers"]) == 5
+
+    forged = copy.deepcopy(packet)
+    next(
+        row
+        for row in forged["transactions"]
+        if row["tx_type"] == "GROUP_EMISSARY_ELECTION_FINALIZE"
+    )["source_accuracy_holds"] = []
+    assert (
+        "source_accuracy_holds_mismatch:GROUP_EMISSARY_ELECTION_FINALIZE"
+        in packet_integrity_blockers(forged)
+    )
+
+
 def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None:
     packet = build_packet()
     assert packet["schema"] == "weall.pr77.v2_semantic_review_decision_packet.v2"
