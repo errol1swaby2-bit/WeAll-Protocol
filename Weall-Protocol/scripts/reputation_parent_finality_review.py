@@ -78,9 +78,15 @@ def _pinned_authority(
 
 
 def _exact_signed_qc(
-    *, raw: Any, block: Mapping[str, Any], chain_id: str,
-    validators: list[str], pubkeys: dict[str, str], epoch: int,
-    expected_set_hash: str, prior_view: int,
+    *,
+    raw: Any,
+    block: Mapping[str, Any],
+    chain_id: str,
+    validators: list[str],
+    pubkeys: dict[str, str],
+    epoch: int,
+    expected_set_hash: str,
+    prior_view: int,
 ) -> tuple[bool, str, int]:
     """Verify exact signed QC -> stored block binding without authorizing finality."""
     if not isinstance(raw, dict) or raw.get("t") != "QC":
@@ -132,9 +138,7 @@ def _exact_signed_qc(
         if not _s(vote.get("sig")):
             return False, "qc_vote_signature_missing", prior_view
     try:
-        if not verify_qc(
-            qc=qc, validators=validators, vpub=pubkeys, require_threshold=True
-        ):
+        if not verify_qc(qc=qc, validators=validators, vpub=pubkeys, require_threshold=True):
             return False, "qc_signature_or_quorum_invalid", prior_view
     except (TypeError, ValueError, KeyError, OverflowError):
         return False, "qc_verification_failed_closed", prior_view
@@ -142,8 +146,12 @@ def _exact_signed_qc(
 
 
 def review_persisted_reputation_parent_qc_chain(
-    *, executor: Any, parent_height: Any, qc_triplet: Any,
-    pinned_validator_authority: Any, parent_queue_id: str = "",
+    *,
+    executor: Any,
+    parent_height: Any,
+    qc_triplet: Any,
+    pinned_validator_authority: Any,
+    parent_queue_id: str = "",
     expected_dispute_id: str = "",
 ) -> Json:
     """Examine exactly three persisted blocks, three signed QCs, and a parent.
@@ -243,22 +251,22 @@ def review_persisted_reputation_parent_qc_chain(
         receipts = parent.get("receipts")
         if isinstance(txs, list) and isinstance(receipts, list):
             candidates = [
-                tx for tx in txs
+                tx
+                for tx in txs
                 if isinstance(tx, dict)
                 and tx.get("tx_type") == "DISPUTE_RESOLVE"
                 and tx.get("system") is True
-                and _s(_map(tx.get("payload")).get("_system_queue_id"))
-                == parent_queue_id
+                and _s(_map(tx.get("payload")).get("_system_queue_id")) == parent_queue_id
                 and (
                     not expected_dispute_id
-                    or _s(_map(tx.get("payload")).get("dispute_id"))
-                    == expected_dispute_id
+                    or _s(_map(tx.get("payload")).get("dispute_id")) == expected_dispute_id
                 )
             ]
             if len(candidates) == 1:
                 tx_id = _s(candidates[0].get("tx_id"))
                 matches = [
-                    receipt for receipt in receipts
+                    receipt
+                    for receipt in receipts
                     if isinstance(receipt, dict)
                     and receipt.get("tx_id") == tx_id
                     and receipt.get("tx_type") == "DISPUTE_RESOLVE"
