@@ -33,7 +33,7 @@ const canonicalReport = section(applier, "def _apply_content_flag(", "def _apply
 assert.match(canonicalReport, /min_tier=1, action="content_flag"/);
 const canonicalComment = section(applier, "def _apply_comment_create(", "def _apply_comment_delete(");
 assert.match(canonicalComment, /min_tier=0 if public_lobby else 2,/);
-assert.match(canonicalComment, /parent_post.startsWith\("public-lobby:"\)/);
+assert.match(canonicalComment, /not parent_post\.startswith\("public-lobby:"\)/);
 const canonicalReaction = section(applier, "def _apply_reaction_set(", "def _apply_content_flag(");
 assert.match(canonicalReaction, /min_tier=2, action="content_tier2_action"/);
 const canonicalPost = section(applier, "def _apply_post_create(", "def _apply_post_edit(");
