@@ -135,7 +135,9 @@ async function profileUpdate(page: Page, account: string, name: string): Promise
     // Only nonsecret readiness flags are exposed; never log typed fields,
     // recoveries, signer seeds, signed envelopes, or session bearers.
     const blockers = await submit.getAttribute("data-submit-blockers");
-    throw new Error("m4_profile_submit_blocked:" + (blockers || "unknown"));
+    const accountReadOutcome = await submit.getAttribute("data-account-read-outcome");
+    throw new Error("m4_profile_submit_blocked:" + (blockers || "unknown")
+      + ":account_read=" + (accountReadOutcome || "unknown"));
   }
   return submitAndCapture(page, () => submit.click());
 }
