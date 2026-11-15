@@ -107,4 +107,10 @@ assert.ok(registration.includes('setTransactionId(predictedTxId)'), "Frontend mu
 assert.ok(e2e.includes('getItem("weall_session_v1")'), "Browser custody E2E must check that recovery cannot be bypassed");
 assert.ok(e2e.includes('getByTestId("guided-account-registration")'), "Browser custody E2E must visit the dedicated registration flow");
 
+assert.ok(registration.includes("activateRegisteredAccountSession()"), "Confirmed registration must offer canonical device-session activation");
+assert.ok(registration.includes("loginOnThisDevice({ account, base })"), "Activation must use real session issuance");
+assert.ok(registration.includes('apiGet("/v1/session/me"'), "Device session must be verified by the canonical backend");
+assert.ok(registration.includes("isWriteSessionReady(account)"), "Protected actions must stay locked until the browser may attach session headers");
+assert.ok(registration.includes('disabled={!deviceSessionReady || deviceSessionBusy}'), "Human verification navigation must wait for recognized session");
+
 console.log("F1 guided account registration source gates passed");
