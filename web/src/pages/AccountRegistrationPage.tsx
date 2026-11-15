@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getApiBaseUrl } from "../api/weall";
-import { getKeypair, getSession } from "../auth/session";
+import { apiGet, getApiBaseUrl } from "../api/weall";
+import { getKeypair, getSession, loginOnThisDevice } from "../auth/session";
 import {
   readAccountRegistrationStatus,
   readRegistrationFinality,
@@ -62,6 +62,9 @@ export default function AccountRegistrationPage(): JSX.Element {
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [deviceSessionReady, setDeviceSessionReady] = useState(false);
+  const [deviceSessionBusy, setDeviceSessionBusy] = useState(false);
+  const [deviceSessionError, setDeviceSessionError] = useState("");
 
   const refresh = useCallback(async () => {
     if (!account || !signer?.secretKeyB64) return;
@@ -112,6 +115,68 @@ export default function AccountRegistrationPage(): JSX.Element {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // A locally generated browser identity is not a recognized backend
+  // session. Validate any existing bearer through the canonical read-only
+  // session endpoint; a stored key alone must never unlock protected flows.
+  useEffect(() => {
+    const active = getSession();
+    if (!account || !active?.sessionKey || active.account !== account) {
+      setDeviceSessionReady(false);
+      return;
+    }
+    let cancelled = false;
+    void apiGet("/v1/session/me", base, {
+      "x-weall-account": account,
+      "x-weall-session-key": active.sessionKey,
+    }).then((response: any) => {
+      if (!cancelled) {
+        setDeviceSessionReady(response?.ok === true &&
+          response?.authenticated === true &&
+          response?.account === account &&
+          response?.session?.active === true &&
+          response?.session?.expired === false);
+      }
+    }).catch(() => {
+      if (!cancelled) setDeviceSessionReady(false);
+    });
+    return () => { cancelled = true; };
+  }, [account, base]);
+
+  async function activateRegisteredAccountSession(): Promise<void> {
+    if (!synced || !account || !signer?.secretKeyB64 ||
+      deviceSessionBusy || deviceSessionReady) return;
+
+    setDeviceSessionBusy(true);
+    setDeviceSessionError("");
+    try {
+      // The existing production path signs a genuine device/session issue
+      // transaction when direct backend mutation is forbidden. It checks the
+      // receipt, synchronized nonce and authenticated session before success.
+      await loginOnThisDevice({ account, base });
+      const live = getSession();
+      if (!live?.sessionKey || live.account !== account) {
+        throw new Error("Device session was not confirmed for this account.");
+      }
+      const response = await apiGet("/v1/session/me", base, {
+        "x-weall-account": account,
+        "x-weall-session-key": live.sessionKey,
+      });
+      if (response?.ok !== true || response?.authenticated !== true ||
+        response?.account !== account || response?.session?.active !== true ||
+        response?.session?.expired !== false) {
+        throw new Error("The node has not recognized an active device session. Check Transactions before retrying.");
+      }
+      setDeviceSessionReady(true);
+    } catch (reason) {
+      setDeviceSessionReady(false);
+      setDeviceSessionError(reason instanceof Error
+        ? reason.message
+        : "Device session could not be verified. Inspect Transactions before retrying.");
+    } finally {
+      setDeviceSessionBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!transactionId || synced || rejected) return;
@@ -232,14 +297,43 @@ export default function AccountRegistrationPage(): JSX.Element {
             <div className="calloutInfo">Your account key is ready. Register it on the network to continue.</div>
           )}
 
+          {synced ? (
+            <div className={deviceSessionReady ? "calloutSuccess" : "calloutInfo"}
+              data-testid="registered-account-session-status">
+              {deviceSessionReady
+                ? "This device has a node-verified account session. Protected actions can now use the canonical session."
+                : "Registration is confirmed. Activate this device's account session before submitting protected profile, verification, or civic actions. The node must confirm its authorization."}
+            </div>
+          ) : null}
+          {deviceSessionError ? (
+            <p className="error-text" role="alert" data-testid="registered-account-session-error">
+              {deviceSessionError}
+            </p>
+          ) : null}
           {message ? <p className="muted" role="status">{message}</p> : null}
           {error ? <p className="error-text" role="alert">{error}</p> : null}
 
           <div className="buttonRowWide">
             {synced ? (
-              <button className="btn btnPrimary" type="button" onClick={() => nav("/verification")}>
-                Continue to human verification
-              </button>
+              <>
+                {!deviceSessionReady ? (
+                  <button className="btn btnPrimary" type="button"
+                    data-testid="activate-registered-account-session"
+                    disabled={deviceSessionBusy || checking || busy}
+                    onClick={() => void activateRegisteredAccountSession()}>
+                    {deviceSessionBusy ? "Confirming device session…" : "Activate device sign-in"}
+                  </button>
+                ) : (
+                  <span className="statusPill ok" data-testid="registered-account-session-ready">
+                    Device session confirmed
+                  </span>
+                )}
+                <button className="btn" type="button"
+                  disabled={!deviceSessionReady || deviceSessionBusy}
+                  onClick={() => nav("/verification")}>
+                  Continue to human verification
+                </button>
+              </>
             ) : (
               <button
                 className="btn btnPrimary"
