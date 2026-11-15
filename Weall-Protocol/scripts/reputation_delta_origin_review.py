@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from weall.runtime.block_commitment_validation import validate_complete_block_commitments
+from weall.runtime.state_hash import compute_state_root
 from weall.runtime.system_tx_engine import (
     EPOCH_FINALITY_SINGLE_TX_CHILDREN,
     validate_same_block_single_tx_lineage,
@@ -285,6 +286,28 @@ def review_persisted_reputation_delta_origin(
         tip_matches = bool(full_window_read and not _str(state.get("tip")))
         adjacent_links_valid = bool(full_window_read)
 
+    # A canonical block commits to the *post-apply* state root, not merely
+    # its own hash or the stored ledger tip. Recompute against the persisted
+    # snapshot to detect changed account/reputation state behind intact block
+    # rows. This is still local consistency, never authenticated BFT finality.
+    snapshot_root_matches_tip = False
+    if full_window_read and history and adjacent_links_valid and tip_matches:
+        declared_root = _str(_map(history[-1].get("header")).get("state_root"))
+        if not declared_root:
+            errors.append("persisted_tip_state_root_missing")
+        else:
+            try:
+                snapshot_root_matches_tip = compute_state_root(state) == declared_root
+            except (TypeError, ValueError, OverflowError) as exc:
+                errors.append(
+                    f"persisted_state_root_recompute_failed:{type(exc).__name__}"
+                )
+            if not snapshot_root_matches_tip and not any(
+                name.startswith("persisted_state_root_recompute_failed:")
+                for name in errors
+            ):
+                errors.append("persisted_snapshot_state_root_mismatch")
+
     result = review_reputation_delta_origin(
         pre_state=state,
         delta=delta,
@@ -315,6 +338,9 @@ def review_persisted_reputation_delta_origin(
         ),
         "adjacent_local_history_parent_links_match": bool(adjacent_links_valid),
         "local_state_tip_matches_last_stored_block": bool(tip_matches),
+        "persisted_snapshot_root_matches_committed_tip_state_root": bool(
+            snapshot_root_matches_tip
+        ),
         "local_history_scanned_from_height_one": bool(
             full_window_read and highest > 0 and first == 1
         ),
