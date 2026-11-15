@@ -9,19 +9,23 @@ dispute authority, juror verdicts, or constitutional authorization.
 from __future__ import annotations
 
 import copy
+import importlib
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from scripts.reputation_delta_origin_review import (
-    STATUS,
-    review_persisted_reputation_delta_origin,
-)
 from weall.runtime.executor import WeAllExecutor
 
 ROOT = Path(__file__).resolve().parents[1]
+# The review script is not an installed distribution package. Resolve it
+# explicitly so both `pytest` and `python -m pytest` collect this test.
+sys.path.insert(0, str(ROOT))
+review_module = importlib.import_module("scripts.reputation_delta_origin_review")
+STATUS = review_module.STATUS
+review_persisted_reputation_delta_origin = review_module.review_persisted_reputation_delta_origin
 CHAIN_ID = "pr93-persisted-reputation-root-review"
 
 
