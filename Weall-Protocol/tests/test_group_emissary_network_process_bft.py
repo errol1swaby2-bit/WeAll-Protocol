@@ -519,6 +519,18 @@ def _worker_command(node: Any, request: Json, loop: NetMeshLoop) -> Any:
             and str(entry["payload"].get("block_id")) == boundary
             and int(entry["payload"].get("view", -1)) == 0
         ]
+        if not choices:
+            # Authenticated TCP may flush this genuinely signed bootstrap vote
+            # before the test worker reads the transient outbox. Recover ONLY
+            # a checksum-journaled vote with both enqueue and sent records.
+            # This does not inject, fabricate or admit a production BFT vote.
+            choices = [
+                vote
+                for vote in _worker_command(
+                    node, {"command": "sent_votes", "block_id": boundary}, loop
+                )
+                if isinstance(vote, dict) and int(vote.get("view", -1)) == 0
+            ]
         if len(choices) != 1:
             # No signatures, private keys, or full proposal data in CI logs.
             pending_vote_keys = [
@@ -884,6 +896,43 @@ def _signed(kind: str, signer: str, nonce: int, payload: Json) -> Json:
 
 @pytest.mark.parametrize("turnout", [3, 4], ids=["below_quorum", "quorum_met"])
 @pytest.mark.parametrize("ingress", ["executor", "netmesh"], ids=["direct", "netmesh_handlers"])
+@pytest.mark.parametrize("durably_sent", [False, True])
+def test_synthetic_boundary_vote_recovers_only_sent_journal_provenance(
+    durably_sent: bool,
+) -> None:
+    """A drained outbox is valid only if the signed vote was actually sent."""
+    boundary = "synthetic-boundary"
+    vote = {
+        "block_id": boundary,
+        "view": 0,
+        "signer": "@v3",
+        "signature": "synthetic-unit-fixture-not-an-authenticated-signature",
+    }
+    records = [
+        {
+            "event": "bft_outbound_enqueued",
+            "payload": {"kind": "vote", "key": "boundary-vote", "payload": vote},
+        }
+    ]
+    if durably_sent:
+        records.append(
+            {"event": "bft_outbound_sent", "payload": {"kind": "vote", "key": "boundary-vote"}}
+        )
+    node = SimpleNamespace(
+        state={"height": 1},
+        _bft=SimpleNamespace(view=0),
+        bft_leader_propose=lambda *, max_txs: None,
+        bft_pending_outbound_messages=lambda: [],
+        _bft_journal=SimpleNamespace(read_tail=lambda **kwargs: records),
+    )
+    command = {"command": "transition_vote", "block_id": boundary}
+    if durably_sent:
+        assert _worker_command(node, command, SimpleNamespace()) == vote
+    else:
+        with pytest.raises(AssertionError, match="synthetic_transition_vote_count_mismatch"):
+            _worker_command(node, command, SimpleNamespace())
+
+
 def test_socket_separated_production_qc_election_recovery(
     tmp_path: Path, turnout: int, ingress: str
 ) -> None:
