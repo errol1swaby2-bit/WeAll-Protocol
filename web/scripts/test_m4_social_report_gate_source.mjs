@@ -18,7 +18,7 @@ function section(text, start, end) {
   return text.slice(a, b);
 }
 
-const canonicalReport = section(applier, "def _apply_content_flag(", "def _apply_media_declare(");
+const canonicalReport = section(applier, "def _apply_content_flag(", "def _apply_content_media_declare(");
 assert.match(canonicalReport, /min_tier=1, action="content_flag"/);
 const canonicalReaction = section(applier, "def _apply_reaction_set(", "def _apply_content_flag(");
 assert.match(canonicalReaction, /min_tier=2, action="content_tier2_action"/);
