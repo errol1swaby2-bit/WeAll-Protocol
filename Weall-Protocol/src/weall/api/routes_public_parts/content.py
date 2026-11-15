@@ -856,7 +856,16 @@ def public_lobby_comments(request: Request) -> dict[str, object]:
             "visibility": "public",
         })
 
-    visible = _sort_by_nonce_desc(visible, key="created_nonce")
+    # Account nonces are independent, so comments by different users can
+    # legitimately share the same nonce. The cursor uses comment_id, never
+    # the shared synthetic post_id, as its deterministic tie breaker.
+    visible.sort(
+        key=lambda item: (
+            _safe_int(item.get("created_nonce"), 0),
+            str(item.get("comment_id") or ""),
+        ),
+        reverse=True,
+    )
     page = visible[:limit]
     next_cursor = None
     if len(visible) > limit and page:
