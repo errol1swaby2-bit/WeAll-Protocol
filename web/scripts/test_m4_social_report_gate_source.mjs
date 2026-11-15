@@ -9,6 +9,11 @@ const thread = web("src/pages/Thread.tsx");
 const contentPage = web("src/pages/Content.tsx");
 const feedPage = web("src/pages/Feed.tsx");
 const router = web("src/lib/router.ts");
+const app = web("src/App.tsx");
+const feedRender = section(app, '    case "/feed":', '    case "/activity":');
+assert.ok(feedRender.includes("return <Feed />;"), "anonymous public feed must render without a device session");
+assert.ok(!feedRender.includes("readyForApp ?"), "public feed cannot silently fall back to LoginPage");
+
 const feedRoute = section(router, '  "/feed": {', '  "/create": {');
 assert.ok(feedRoute.includes("public: true,"), "anonymous public feed route required");
 assert.ok(feedRoute.includes("authRequired: false,"), "backend public reads cannot require a browser session");
