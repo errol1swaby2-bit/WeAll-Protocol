@@ -231,7 +231,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
     setPoh(out.poh ?? null);
     setNonce(out.nonce ?? null);
-    setAcctView(out.account ?? null);
+    setAcctView((current: any) => out.account ?? (current?.account === acct ? current : null));
     const accountFailure = failures.find((item) => item.key === "account")?.error;
     const accountHttpStatus = Number(accountFailure?.status || 0);
     setAccountReadOutcome(out.account?.ok === true
@@ -287,6 +287,52 @@ export default function Account({ account }: { account: string }): JSX.Element {
   );
   const matrixAggregateScore = num(reputationMatrix?.aggregate_public_score_milli, 0);
   const accountExists = !!acctView?.ok && !!state;
+
+  // A transient failure during the account's first parallel read must not
+  // permanently lock a registered user's profile editor. This is a bounded,
+  // read-only canonical reconciliation; it never submits or retries a signed
+  // transaction, and never treats a missing response as authority.
+  useEffect(() => {
+    if (!isSelf || !acct || accountExists) return;
+    let cancelled = false;
+    let attempts = 0;
+    let timer: number | undefined;
+
+    async function reconcileCanonicalAccount(): Promise<void> {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const latest = await weall.account(acct, base);
+        if (cancelled) return;
+        if (latest?.ok === true && latest?.state &&
+          typeof latest.state === "object" && !Array.isArray(latest.state)) {
+          setAcctView(latest);
+          setAccountReadOutcome("canonical-read-ok");
+          return;
+        }
+        setAccountReadOutcome("canonical-read-unavailable");
+      } catch (reason: any) {
+        if (cancelled) return;
+        const status = Number(reason?.status || 0);
+        setAccountReadOutcome(status > 0 ? `http-${status}` : "canonical-read-unavailable");
+        // Never turn a forbidden/malformed account response into a passing
+        // profile gate. Retry only transient failure or an as-yet-initializing
+        // canonical read model.
+        if (status !== 0 && ![429, 502, 503, 504].includes(status)) return;
+      }
+      if (attempts < 8) {
+        timer = window.setTimeout(() => { void reconcileCanonicalAccount(); },
+          250 + Math.min(1750, attempts * 250));
+      }
+    }
+
+    void reconcileCanonicalAccount();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [acct, base, isSelf, accountExists]);
+
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
   const canPost = tier >= 2 && accountExists && !banned && !locked;
@@ -454,6 +500,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const nextUnlock = snapshot.next.label || "No immediate unlock action";
   const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
   const signerBusy = signerSubmission.busy;
+  const profileSubmitBlockers = [
+    busy !== null ? "account-action-busy" : "",
+    !profileDirty ? "draft-not-changed" : "",
+    !accountExists ? "account-state-unavailable" : "",
+    !localPubkey ? "signer-unavailable" : "",
+    signerBusy ? "signer-submission-busy" : "",
+    !bannerDraftValid ? "banner-cid-invalid" : "",
+  ].filter(Boolean);
 
   async function runProfileUpdate() {
     if (!isSelf) return;
@@ -1196,14 +1250,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     className="btn btnPrimary"
                     data-testid="profile-submit-action"
                     data-account-read-outcome={accountReadOutcome}
-                    data-submit-blockers={[
-                      busy !== null ? "account-action-busy" : "",
-                      !profileDirty ? "draft-not-changed" : "",
-                      !accountExists ? "account-state-unavailable" : "",
-                      !localPubkey ? "signer-unavailable" : "",
-                      signerBusy ? "signer-submission-busy" : "",
-                      !bannerDraftValid ? "banner-cid-invalid" : "",
-                    ].filter(Boolean).join(",")}
+                    data-submit-blockers={profileSubmitBlockers.join(",")}
                     disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy || !bannerDraftValid}
                     onClick={() => void runProfileUpdate()}
                   >
