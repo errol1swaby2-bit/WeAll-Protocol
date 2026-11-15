@@ -7,6 +7,8 @@ on:
       - web/tests/e2e/m4_two_user_one_node_custody.spec.ts
       - web/playwright.m4.config.ts
       - scripts/run_account_custody_real_stack_e2e.sh
+      - web/src/lib/router.ts
+      - web/src/pages/Feed.tsx
       - web/src/components/FeedView.tsx
       - web/src/pages/Thread.tsx
       - web/src/pages/Content.tsx
