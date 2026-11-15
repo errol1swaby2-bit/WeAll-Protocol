@@ -145,7 +145,7 @@ if [[ "${WEALL_M4_TWO_USER_E2E:-0}" == "1" ]]; then
   VITE_WEALL_DEV_PROXY_TARGET="${API_BASE}" \
   PLAYWRIGHT_BASE_URL="${WEB_BASE}" \
   WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1 \
-  npx playwright test tests/e2e/m4_two_user_one_node_custody.spec.ts --workers=1 --repeat-each="${CUSTODY_REPEAT_EACH}"
+  npx playwright test tests/e2e/m4_two_user_one_node_custody.spec.ts --config=playwright.m4.config.ts --workers=1 --repeat-each="${CUSTODY_REPEAT_EACH}"
 else
   VITE_WEALL_API_BASE="${API_BASE}" \
   VITE_WEALL_DEV_PROXY_TARGET="${API_BASE}" \
