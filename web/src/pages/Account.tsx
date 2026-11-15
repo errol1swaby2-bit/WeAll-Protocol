@@ -1165,6 +1165,15 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <div className="buttonRow">
                   <button
                     className="btn btnPrimary"
+                    data-testid="profile-submit-action"
+                    data-submit-blockers={[
+                      busy !== null ? "account-action-busy" : "",
+                      !profileDirty ? "draft-not-changed" : "",
+                      !accountExists ? "account-state-unavailable" : "",
+                      !localPubkey ? "signer-unavailable" : "",
+                      signerBusy ? "signer-submission-busy" : "",
+                      !bannerDraftValid ? "banner-cid-invalid" : "",
+                    ].filter(Boolean).join(",")}
                     disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy || !bannerDraftValid}
                     onClick={() => void runProfileUpdate()}
                   >
