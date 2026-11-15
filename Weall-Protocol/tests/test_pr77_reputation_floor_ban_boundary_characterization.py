@@ -11,11 +11,11 @@ from __future__ import annotations
 import ast
 import copy
 from pathlib import Path
+from runpy import run_path
 
 import pytest
 
 import weall.runtime.block_builder as block_builder
-from scripts.reputation_delta_origin_review import review_reputation_delta_origin
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.reputation import REP_MIN_UNITS, apply_reputation_delta_system
 from weall.runtime.domain_apply import (
@@ -34,6 +34,13 @@ from weall.runtime.system_tx_engine import (
 )
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
 from weall.runtime.tx_contracts import load_default_tx_index
+
+# The review-only script is outside the installed src/weall package to preserve
+# checked-in B528 source-freshness inputs. Load by exact file path rather than
+# modifying sys.path or weakening locked CI's import configuration.
+review_reputation_delta_origin = run_path(
+    str(Path(__file__).resolve().parents[1] / "scripts" / "reputation_delta_origin_review.py")
+)["review_reputation_delta_origin"]
 
 
 def _state(*, clock_enabled: bool) -> dict:

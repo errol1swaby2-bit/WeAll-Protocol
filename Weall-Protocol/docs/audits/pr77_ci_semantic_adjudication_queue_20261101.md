@@ -531,3 +531,6 @@ Important trust limitation: even an entirely self-consistent report cannot authe
 
 
 **Evidence-path correction:** The reviewer is now in the existing importable `scripts` namespace. A temporary `src/weall` placement was removed because B528 source-scope artifact freshness correctly rejects any unrefreshed production-source input digest. No production-source change or generated artifact refresh is justified for this review-only function. It is not imported by consensus, admission, scheduler or domain-apply execution.
+
+
+**Focused-CI import correction:** The severe-finality job runs `pytest` with `PYTHONPATH=src`, so its isolated test module cannot import a repository-root `scripts` namespace as an installed package. The regression now loads the exact reviewed `scripts/reputation_delta_origin_review.py` file using the standard-library `runpy.run_path`, without altering `PYTHONPATH`, test collection, or production-import scope. This preserves the unchanged B528 proof input set and existing gate strictness.
