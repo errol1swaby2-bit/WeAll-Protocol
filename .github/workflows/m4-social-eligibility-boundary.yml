@@ -12,6 +12,7 @@ on:
       - web/src/pages/Content.tsx
       - web/scripts/test_m4_social_report_gate_source.mjs
       - web/scripts/test_public_social_flow_readiness_source.mjs
+      - Weall-Protocol/generated/tx_index.json
       - Weall-Protocol/src/weall/runtime/apply/content.py
       - Weall-Protocol/src/weall/runtime/poh/eligibility.py
       - Weall-Protocol/docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md
