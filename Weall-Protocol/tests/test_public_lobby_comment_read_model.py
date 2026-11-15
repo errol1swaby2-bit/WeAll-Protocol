@@ -28,7 +28,7 @@ def _client() -> TestClient:
                     "surface": "public_lobby",
                     "author": "@alpha",
                     "body": "Hello from alpha",
-                    "created_nonce": 1,
+                    "created_nonce": 3,
                     "visibility": "public",
                     "deleted": False,
                 },
@@ -112,6 +112,8 @@ def _client() -> TestClient:
 
 
 def test_anonymous_lobby_comment_read_is_bounded_and_scoped() -> None:
+    # Each signer has its own nonce sequence: independent accounts may
+    # legitimately create different comments at the same nonce.
     client = _client()
     first = client.get("/v1/public-lobby/comments", params={
         "thread_id": "public-lobby:welcome", "limit": 1
