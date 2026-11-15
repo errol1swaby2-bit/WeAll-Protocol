@@ -69,9 +69,7 @@ class _AlteredSnapshotReader:
 
     def read_state(self) -> dict[str, Any]:
         snapshot = copy.deepcopy(self._original.read_state())
-        snapshot.setdefault("accounts", {})["@forged-penalty"] = {
-            "reputation": "-1"
-        }
+        snapshot.setdefault("accounts", {})["@forged-penalty"] = {"reputation": "-1"}
         return snapshot
 
     def get_block_by_height(self, height: int) -> dict[str, Any] | None:
@@ -112,7 +110,9 @@ def test_changed_reputation_snapshot_is_detected_even_with_valid_block_rows(
     assert observed["bounded_local_history_available_and_self_bound"] is True
     assert observed["adjacent_local_history_parent_links_match"] is True
     assert observed["local_state_tip_matches_last_stored_block"] is True
-    assert observed["persisted_snapshot_root_matches_committed_tip_state_root"] is False
+    assert (
+        observed["persisted_snapshot_root_matches_committed_tip_state_root"] is False
+    )
     assert "persisted_snapshot_state_root_mismatch" in report["persisted_history_errors"]
     assert report["constitutional_authorization"] == "NOT_ESTABLISHED"
     assert report["may_enqueue_reputation_delta"] is False
