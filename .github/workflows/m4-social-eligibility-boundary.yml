@@ -77,6 +77,11 @@ jobs:
         run: |
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install -e . --no-deps
+      - name: Public-lobby Python formatting and lint (pinned Ruff)
+        working-directory: Weall-Protocol
+        run: |
+          python -m ruff format --check src/weall/api/routes_public_parts/content.py tests/test_public_lobby_comment_read_model.py
+          python -m ruff check src/weall/api/routes_public_parts/content.py tests/test_public_lobby_comment_read_model.py
       - name: Public-lobby visibility, pagination, and moderation API regression
         working-directory: Weall-Protocol
         run: python -m pytest -q tests/test_public_lobby_comment_read_model.py
