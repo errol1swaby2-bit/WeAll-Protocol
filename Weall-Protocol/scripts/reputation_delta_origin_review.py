@@ -264,9 +264,7 @@ def review_persisted_reputation_delta_origin(
 
     adjacent_links_valid = bool(full_window_read and history)
     if adjacent_links_valid:
-        for previous, next_block, previous_binding in zip(
-            history, history[1:], bindings, strict=False
-        ):
+        for next_block, previous_binding in zip(history[1:], bindings, strict=False):
             if (
                 next_block.get("prev_block_id") != previous_binding.block_id
                 or _str(next_block.get("prev_block_hash")) != previous_binding.block_hash
