@@ -320,6 +320,56 @@ test("two independent real users register, update public profiles and isolate ke
       });
       await expect(page.getByRole("button", { name: "Continue to human verification" })).toBeEnabled();
     }
+    if (process.env.WEALL_M4_SOCIAL_PROBES === "1") {
+      // M4.2 uses the proven M4.1 two-user identity and session setup, with
+      // neither fake PoH elevation nor an independently verified BFT quorum.
+      // Tier0 users MUST NOT submit post, ordinary comment, reaction, or flag.
+      const [freshAlpha, freshBeta] = await Promise.all([
+        accountState(request, alphaId),
+        accountState(request, betaId),
+      ]);
+      expect(Number(freshAlpha.state.poh_tier)).toBe(0);
+      expect(Number(freshBeta.state.poh_tier)).toBe(0);
+
+      const feedBeforeResponse = await request.get("/v1/feed?limit=20");
+      expect(feedBeforeResponse.ok()).toBe(true);
+      const feedBefore = await feedBeforeResponse.json();
+      expect(Array.isArray(feedBefore.items)).toBe(true);
+
+      await verifyCanonicalTier0SocialDenial(
+        beta, request, betaId, "CONTENT_POST_CREATE",
+        { post_id: `m4:denied:${suffix}`, body: "Tier0 must not publish ordinary posts." },
+      );
+      await verifyCanonicalTier0SocialDenial(
+        alpha, request, alphaId, "CONTENT_REACTION_SET",
+        { target_id: `m4:nonexistent:${suffix}`, reaction: "like" },
+      );
+      await verifyCanonicalTier0SocialDenial(
+        beta, request, betaId, "CONTENT_COMMENT_CREATE",
+        { post_id: `m4:nonexistent:${suffix}`, body: "Tier0 must not reply to ordinary posts." },
+      );
+      await verifyCanonicalTier0SocialDenial(
+        alpha, request, alphaId, "CONTENT_FLAG",
+        { target_id: `m4:nonexistent:${suffix}`, reason: "Tier0 cannot report content." },
+      );
+
+      const feedAfterResponse = await request.get("/v1/feed?limit=20");
+      expect(feedAfterResponse.ok()).toBe(true);
+      const feedAfter = await feedAfterResponse.json();
+      expect(feedAfter.items).toEqual(feedBefore.items);
+
+      // Both user browsers can still view the same public social surface.
+      await Promise.all([alpha.goto("/#/feed"), beta.goto("/#/feed")]);
+      await Promise.all([
+        expect(alpha.getByTestId("public-social-boundary-callout")).toBeVisible(),
+        expect(beta.getByTestId("public-social-boundary-callout")).toBeVisible(),
+      ]);
+      // A completely anonymous third browser is allowed the same public read.
+      await observer.goto("/#/feed");
+      await expect(observer.getByTestId("public-social-boundary-callout")).toBeVisible();
+      return; // Focused M4.2: M4.1 profile/recovery stays in its own green workflow.
+    }
+
     const [alphaProfileTx, betaProfileTx] = await Promise.all([
       profileUpdate(alpha, alphaId, alphaName),
       profileUpdate(beta, betaId, betaName),
@@ -373,54 +423,6 @@ test("two independent real users register, update public profiles and isolate ke
     expect(betaAfter.otherSecret).toBeNull();
     expect(betaAfter.otherMetadata).toBeNull();
 
-    if (process.env.WEALL_M4_SOCIAL_PROBES === "1") {
-      // M4.2 uses the proven M4.1 two-user identity and session setup, with
-      // neither fake PoH elevation nor an independently verified BFT quorum.
-      // Tier0 users MUST NOT submit post, ordinary comment, reaction, or flag.
-      const [freshAlpha, freshBeta] = await Promise.all([
-        accountState(request, alphaId),
-        accountState(request, betaId),
-      ]);
-      expect(Number(freshAlpha.state.poh_tier)).toBe(0);
-      expect(Number(freshBeta.state.poh_tier)).toBe(0);
-
-      const feedBeforeResponse = await request.get("/v1/feed?limit=20");
-      expect(feedBeforeResponse.ok()).toBe(true);
-      const feedBefore = await feedBeforeResponse.json();
-      expect(Array.isArray(feedBefore.items)).toBe(true);
-
-      await verifyCanonicalTier0SocialDenial(
-        beta, request, betaId, "CONTENT_POST_CREATE",
-        { post_id: `m4:denied:${suffix}`, body: "Tier0 must not publish ordinary posts." },
-      );
-      await verifyCanonicalTier0SocialDenial(
-        alpha, request, alphaId, "CONTENT_REACTION_SET",
-        { target_id: `m4:nonexistent:${suffix}`, reaction: "like" },
-      );
-      await verifyCanonicalTier0SocialDenial(
-        beta, request, betaId, "CONTENT_COMMENT_CREATE",
-        { post_id: `m4:nonexistent:${suffix}`, body: "Tier0 must not reply to ordinary posts." },
-      );
-      await verifyCanonicalTier0SocialDenial(
-        alpha, request, alphaId, "CONTENT_FLAG",
-        { target_id: `m4:nonexistent:${suffix}`, reason: "Tier0 cannot report content." },
-      );
-
-      const feedAfterResponse = await request.get("/v1/feed?limit=20");
-      expect(feedAfterResponse.ok()).toBe(true);
-      const feedAfter = await feedAfterResponse.json();
-      expect(feedAfter.items).toEqual(feedBefore.items);
-
-      // Both user browsers can still view the same public social surface.
-      await Promise.all([alpha.goto("/#/feed"), beta.goto("/#/feed")]);
-      await Promise.all([
-        expect(alpha.getByTestId("public-social-boundary-callout")).toBeVisible(),
-        expect(beta.getByTestId("public-social-boundary-callout")).toBeVisible(),
-      ]);
-      // A completely anonymous third browser is allowed the same public read.
-      await observer.goto("/#/feed");
-      await expect(observer.getByTestId("public-social-boundary-callout")).toBeVisible();
-    }
   } finally {
     await Promise.all(contexts.map((context) => context.close().catch(() => undefined)));
   }
