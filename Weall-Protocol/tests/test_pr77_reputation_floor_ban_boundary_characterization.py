@@ -14,16 +14,21 @@ from pathlib import Path
 
 import pytest
 
+import weall.runtime.block_builder as block_builder
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.reputation import REP_MIN_UNITS, apply_reputation_delta_system
 from weall.runtime.domain_apply import (
     apply_tx_atomic_meta,
     apply_tx_atomic_meta_deepcopy,
 )
+from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.system_tx_engine import (
+    EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+    LINEAGE_WITNESS_PAYLOAD_KEY,
     enqueue_system_tx,
     system_tx_emitter,
+    validate_same_block_single_tx_lineage,
     validate_system_tx_queue_binding,
 )
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
@@ -284,3 +289,112 @@ def test_source_inventory_has_no_explicit_production_floor_delta_producer() -> N
                 explicit_queue_sites.append(f"{path.relative_to(source_root)}:{call.lineno}")
     assert explicit_queue_sites == []
     assert direct_helper_sites == []
+
+
+@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
+def test_unwitnessed_reputation_delta_parent_text_is_not_a_causal_dispute_proof(
+    clock_enabled: bool,
+) -> None:
+    """Observe receipt lineage without pretending queue data authenticates a dispute."""
+    state = _state(clock_enabled=clock_enabled)
+    state["system_queue"] = []
+    state["params"] = {}
+    canon = load_default_tx_index()
+    assert "disputes_by_id" not in state
+
+    enqueue_system_tx(
+        state,
+        tx_type="REPUTATION_DELTA_APPLY",
+        payload={
+            "account_id": "@target",
+            "delta_milli": int(REP_MIN_UNITS),
+            "delta_id": "pr77:unwitnessed-reputation-parent",
+            "reason": "synthetic_unwitnessed_penalty",
+        },
+        due_height=21,
+        parent="dispute:never-recorded",
+        phase="post",
+    )
+    emitted = system_tx_emitter(state, canon, next_height=21, phase="post")
+    assert len(emitted) == 1
+    delta = emitted[0]
+    assert LINEAGE_WITNESS_PAYLOAD_KEY not in delta.payload
+    assert delta.parent == "dispute:never-recorded"
+    assert validate_system_tx_queue_binding(
+        state, canon, delta, next_height=21, phase="post"
+    ) == (True, "")
+    assert validate_same_block_single_tx_lineage(
+        canon,
+        delta,
+        prior_txs=[],
+        required_child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+    ) == (True, "")
+    admitted = admit_tx(delta, state, canon=canon, context="block")
+    assert admitted.ok is True, (admitted.code, admitted.reason)
+
+    # Queue binding authenticates consistency with the queue's stored parent
+    # string. It does not establish that any such dispute was committed.
+    changed_parent = copy.deepcopy(delta)
+    changed_parent.parent = "dispute:another-unrecorded"
+    assert validate_system_tx_queue_binding(
+        state, canon, changed_parent, next_height=21, phase="post"
+    ) == (False, "system_queue_parent_mismatch")
+
+
+def test_production_candidate_exercises_synthetic_unwitnessed_floor_delta(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Candidate builder is NOT a signed-BFT or authenticated producer proof."""
+    state = _state(clock_enabled=True)
+    state.update(
+        {
+            "height": 0,
+            "chain_id": "pr77-synthetic-unwitnessed-floor-candidate",
+            "tip": "",
+            "tip_hash": "",
+            "params": {},
+            "system_queue": [],
+        }
+    )
+    enqueue_system_tx(
+        state,
+        tx_type="REPUTATION_DELTA_APPLY",
+        payload={
+            "account_id": "@target",
+            "delta_milli": int(REP_MIN_UNITS),
+            "delta_id": "pr77:unwitnessed-candidate-penalty",
+            "reason": "synthetic_queue_origin_not_proved",
+        },
+        due_height=1,
+        parent="dispute:never-committed",
+        phase="post",
+    )
+    root = Path(__file__).resolve().parents[1]
+    executor = WeAllExecutor(
+        db_path=str(tmp_path / "node.db"),
+        node_id="@node",
+        chain_id=state["chain_id"],
+        tx_index_path=str(root / "generated" / "tx_index.json"),
+    )
+    executor._ledger_store.write_state_snapshot(copy.deepcopy(state))
+    executor.state = executor._ledger_store.read()
+    before = copy.deepcopy(executor.state)
+    monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
+
+    block, candidate_state, applied, invalid, error = executor.build_block_candidate(
+        max_txs=0, allow_empty=True
+    )
+    assert block is not None, error
+    assert candidate_state is not None
+    assert error == ""
+    assert invalid == []
+    assert applied
+    txs = [tx for tx in block["txs"] if tx.get("tx_type") == "REPUTATION_DELTA_APPLY"]
+    assert len(txs) == 1
+    assert LINEAGE_WITNESS_PAYLOAD_KEY not in txs[0]["payload"]
+    assert txs[0]["parent"] == "dispute:never-committed"
+    assert candidate_state["accounts"]["@target"]["banned"] is True
+    assert candidate_state["reputation"]["bans"]["@target"]["auto"] is True
+    assert "disputes_by_id" not in candidate_state
+    # Merely building the proposal must not commit the synthetic candidate.
+    assert executor.state == before
