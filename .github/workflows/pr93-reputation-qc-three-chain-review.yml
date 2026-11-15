@@ -24,7 +24,7 @@ jobs:
       - name: Checkout exact PR head
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -53,7 +53,7 @@ jobs:
             ruff check scripts/reputation_parent_finality_review.py tests/test_pr93_reputation_parent_qc_three_chain_review.py &&
             python -m pytest -vv -rx tests/test_pr93_reputation_parent_qc_three_chain_review.py
           } 2>&1 | tee "$OUT/targeted_pytest.log"
-          RC="\${PIPESTATUS[0]}"
+          RC="${PIPESTATUS[0]}"
           set -e
           echo "exit_code=$RC" >> "$OUT/source_and_scope.txt"
           sha256sum "$OUT/targeted_pytest.log" >> "$OUT/source_and_scope.txt"
@@ -62,9 +62,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pr93-qc-three-chain-\${{ github.sha }}
+          name: pr93-qc-three-chain-${{ github.sha }}
           if-no-files-found: warn
           retention-days: 14
           path: |
-            \${{ runner.temp }}/pr93-qc-three-chain/source_and_scope.txt
-            \${{ runner.temp }}/pr93-qc-three-chain/targeted_pytest.log
+            ${{ runner.temp }}/pr93-qc-three-chain/source_and_scope.txt
+            ${{ runner.temp }}/pr93-qc-three-chain/targeted_pytest.log
