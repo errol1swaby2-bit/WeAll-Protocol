@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { apiGet, getApiBaseUrl } from "../api/weall";
-import { getKeypair, getSession, loginOnThisDevice } from "../auth/session";
+import { getKeypair, getSession, isWriteSessionReady, loginOnThisDevice } from "../auth/session";
 import {
   readAccountRegistrationStatus,
   readRegistrationFinality,
@@ -135,7 +135,8 @@ export default function AccountRegistrationPage(): JSX.Element {
           response?.authenticated === true &&
           response?.account === account &&
           response?.session?.active === true &&
-          response?.session?.expired === false);
+          response?.session?.expired === false &&
+          isWriteSessionReady(account));
       }
     }).catch(() => {
       if (!cancelled) setDeviceSessionReady(false);
@@ -166,6 +167,13 @@ export default function AccountRegistrationPage(): JSX.Element {
         response?.account !== account || response?.session?.active !== true ||
         response?.session?.expired !== false) {
         throw new Error("The node has not recognized an active device session. Check Transactions before retrying.");
+      }
+      // For hosted builds, backend recognition alone is insufficient: the
+      // browser must also hold this account's signer and the per-node verified
+      // approval required by getAuthHeaders. Never mark ready if write headers
+      // would still be withheld.
+      if (!isWriteSessionReady(account)) {
+        throw new Error("This browser has not finished verifying its protected device session.");
       }
       setDeviceSessionReady(true);
     } catch (reason) {
