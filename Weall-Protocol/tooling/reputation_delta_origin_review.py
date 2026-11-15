@@ -9,7 +9,7 @@ A positive source match is evidence for investigation, never a ban permit.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 from weall.runtime.block_commitment_validation import validate_complete_block_commitments

@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+from tooling.reputation_delta_origin_review import review_reputation_delta_origin
+
 import weall.runtime.block_builder as block_builder
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.reputation import REP_MIN_UNITS, apply_reputation_delta_system
@@ -33,7 +35,6 @@ from weall.runtime.system_tx_engine import (
 )
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
 from weall.runtime.tx_contracts import load_default_tx_index
-from tooling.reputation_delta_origin_review import review_reputation_delta_origin
 
 
 def _state(*, clock_enabled: bool) -> dict:
@@ -421,9 +422,9 @@ def _synthetic_origin_review_fixture(*, clock_enabled: bool) -> tuple[dict, dict
         parent="unverified-resolution-queue-id",
         phase="post",
     )
-    delta = system_tx_emitter(
-        state, load_default_tx_index(), next_height=21, phase="post"
-    )[0].to_json()
+    delta = system_tx_emitter(state, load_default_tx_index(), next_height=21, phase="post")[
+        0
+    ].to_json()
     return state, delta
 
 
@@ -466,11 +467,13 @@ def test_read_only_origin_review_matches_only_exact_parent_queue_id_and_case() -
     block = {
         "height": 20,
         "txs": [parent],
-        "receipts": [{
-            "tx_id": parent["tx_id"],
-            "tx_type": "DISPUTE_RESOLVE",
-            "ok": True,
-        }],
+        "receipts": [
+            {
+                "tx_id": parent["tx_id"],
+                "tx_type": "DISPUTE_RESOLVE",
+                "ok": True,
+            }
+        ],
     }
     report = review_reputation_delta_origin(
         pre_state=state,
@@ -502,12 +505,14 @@ def test_read_only_origin_review_rejects_ambiguous_forged_and_unbound_sources() 
     state, delta = _synthetic_origin_review_fixture(clock_enabled=True)
     forged = {
         "height": 19,
-        "txs": [{
-            "tx_type": "DISPUTE_RESOLVE",
-            "system": True,
-            "tx_id": "tx:unverified",
-            "payload": {"_system_queue_id": delta["parent"], "dispute_id": "d:unverified"},
-        }],
+        "txs": [
+            {
+                "tx_type": "DISPUTE_RESOLVE",
+                "system": True,
+                "tx_id": "tx:unverified",
+                "payload": {"_system_queue_id": delta["parent"], "dispute_id": "d:unverified"},
+            }
+        ],
         "receipts": [],
     }
     duplicated = review_reputation_delta_origin(
