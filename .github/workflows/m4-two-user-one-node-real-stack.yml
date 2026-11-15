@@ -10,6 +10,7 @@ on:
       - web/src/auth/**
       - web/src/pages/Login.tsx
       - web/src/pages/AccountRegistrationPage.tsx
+      - web/src/pages/Account.tsx
       - Weall-Protocol/src/weall/api/routes_public_parts/session.py
       - Weall-Protocol/src/weall/runtime/**
   workflow_dispatch:
@@ -49,7 +50,9 @@ jobs:
         run: npm run typecheck
       - name: Existing canonical registration and recovery safety invariants
         working-directory: web
-        run: npm run test:guided-account-registration-source
+        run: |
+          npm run test:guided-account-registration-source
+          npm run test:account-profile-readiness-source
       - name: Install Playwright Chromium
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium
