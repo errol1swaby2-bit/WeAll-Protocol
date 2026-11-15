@@ -33,6 +33,7 @@ from weall.runtime.system_tx_engine import (
 )
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
 from weall.runtime.tx_contracts import load_default_tx_index
+from tooling.reputation_delta_origin_review import review_reputation_delta_origin
 
 
 def _state(*, clock_enabled: bool) -> dict:
@@ -399,3 +400,133 @@ def test_production_candidate_exercises_synthetic_unwitnessed_floor_delta(
     assert "disputes_by_id" not in candidate_state
     # Merely building the proposal must not commit the synthetic candidate.
     assert executor.state == before
+
+
+def _synthetic_origin_review_fixture(*, clock_enabled: bool) -> tuple[dict, dict]:
+    state = _state(clock_enabled=clock_enabled)
+    state["chain_id"] = "pr77:origin-review-synthetic"
+    state["params"] = {}
+    state["system_queue"] = []
+    enqueue_system_tx(
+        state,
+        tx_type="REPUTATION_DELTA_APPLY",
+        payload={
+            "account_id": "@target",
+            "dispute_id": "d:unverified",
+            "delta_milli": int(REP_MIN_UNITS),
+            "delta_id": "pr77:synthetic-review-delta",
+            "reason": "synthetic_only",
+        },
+        due_height=21,
+        parent="unverified-resolution-queue-id",
+        phase="post",
+    )
+    delta = system_tx_emitter(
+        state, load_default_tx_index(), next_height=21, phase="post"
+    )[0].to_json()
+    return state, delta
+
+
+@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
+def test_read_only_origin_review_queue_bound_without_history_is_never_authority(
+    clock_enabled: bool,
+) -> None:
+    state, delta = _synthetic_origin_review_fixture(clock_enabled=clock_enabled)
+    before = copy.deepcopy(state)
+    report = review_reputation_delta_origin(
+        pre_state=state,
+        delta=delta,
+        tx_index=load_default_tx_index(),
+        supplied_history_blocks=[],
+    )
+    assert state == before
+    assert report["observations"]["receipt_queue_binding_matches_supplied_prestate"]
+    assert report["observations"]["receipt_same_block_lineage_shape_valid"]
+    assert report["observations"]["parent_queue_reference_present"]
+    assert not report["observations"]["exactly_one_parent_resolution_in_supplied_history"]
+    assert report["parent_resolution_candidates"] == 0
+    assert report["constitutional_authorization"] == "NOT_ESTABLISHED"
+    assert report["may_enqueue_reputation_delta"] is False
+    assert report["may_ban_account"] is False
+
+
+def test_read_only_origin_review_matches_only_exact_parent_queue_id_and_case() -> None:
+    state, delta = _synthetic_origin_review_fixture(clock_enabled=True)
+    parent = {
+        "tx_type": "DISPUTE_RESOLVE",
+        "system": True,
+        "signer": "SYSTEM",
+        "nonce": 0,
+        "tx_id": "tx:unverified-structural-parent",
+        "payload": {
+            "_system_queue_id": delta["parent"],
+            "dispute_id": "d:unverified",
+        },
+    }
+    block = {
+        "height": 20,
+        "txs": [parent],
+        "receipts": [{
+            "tx_id": parent["tx_id"],
+            "tx_type": "DISPUTE_RESOLVE",
+            "ok": True,
+        }],
+    }
+    report = review_reputation_delta_origin(
+        pre_state=state,
+        delta=delta,
+        tx_index=load_default_tx_index(),
+        supplied_history_blocks=[block],
+    )
+    assert report["parent_resolution_candidates"] == 1
+    assert report["observations"]["exactly_one_parent_resolution_in_supplied_history"]
+    assert report["observations"]["alleged_parent_resolution_precedes_receipt"]
+    assert report["observations"]["alleged_parent_success_receipt_unique"]
+    assert report["observations"]["alleged_dispute_id_bound_to_parent"]
+    assert not report["observations"]["alleged_parent_block_self_commitments_valid"]
+    assert report["may_ban_account"] is False
+
+    mismatch = copy.deepcopy(block)
+    mismatch["txs"][0]["payload"]["dispute_id"] = "d:other"
+    changed = review_reputation_delta_origin(
+        pre_state=state,
+        delta=delta,
+        tx_index=load_default_tx_index(),
+        supplied_history_blocks=[mismatch],
+    )
+    assert not changed["observations"]["alleged_dispute_id_bound_to_parent"]
+    assert changed["may_ban_account"] is False
+
+
+def test_read_only_origin_review_rejects_ambiguous_forged_and_unbound_sources() -> None:
+    state, delta = _synthetic_origin_review_fixture(clock_enabled=True)
+    forged = {
+        "height": 19,
+        "txs": [{
+            "tx_type": "DISPUTE_RESOLVE",
+            "system": True,
+            "tx_id": "tx:unverified",
+            "payload": {"_system_queue_id": delta["parent"], "dispute_id": "d:unverified"},
+        }],
+        "receipts": [],
+    }
+    duplicated = review_reputation_delta_origin(
+        pre_state=state,
+        delta=delta,
+        tx_index=load_default_tx_index(),
+        supplied_history_blocks=[forged, forged],
+    )
+    assert duplicated["parent_resolution_candidates"] == 2
+    assert not duplicated["observations"]["exactly_one_parent_resolution_in_supplied_history"]
+    assert duplicated["may_ban_account"] is False
+
+    altered = copy.deepcopy(delta)
+    altered["payload"]["_system_queue_id"] = "forged-queue-id"
+    unbound = review_reputation_delta_origin(
+        pre_state=state,
+        delta=altered,
+        tx_index=load_default_tx_index(),
+        supplied_history_blocks=[forged],
+    )
+    assert not unbound["observations"]["receipt_queue_binding_matches_supplied_prestate"]
+    assert unbound["may_enqueue_reputation_delta"] is False
