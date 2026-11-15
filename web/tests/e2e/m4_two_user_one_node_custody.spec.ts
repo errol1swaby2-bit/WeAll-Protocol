@@ -42,7 +42,8 @@ async function submitAndCapture(page: Page, click: () => Promise<void>): Promise
   expect(response.ok(), "canonical signed submission must be accepted by the real API").toBe(true);
   const result = await response.json();
   const txId = String(result?.tx_id || result?.result?.tx_id || result?.submit?.tx_id || "");
-  expect(txId).toMatch(/^[0-9a-f]{64}$/i);
+  // WeAll canonical transaction IDs include the `tx:` domain prefix.
+  expect(txId).toMatch(/^tx:[0-9a-f]{64}$/i);
   return txId;
 }
 
