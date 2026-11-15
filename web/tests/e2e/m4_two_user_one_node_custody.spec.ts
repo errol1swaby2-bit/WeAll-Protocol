@@ -163,6 +163,7 @@ async function storedKeys(page: Page, self: string, other: string): Promise<{
  */
 async function verifyCanonicalTier0SocialDenial(
   page: Page,
+  request: APIRequestContext,
   account: string,
   txType: "CONTENT_POST_CREATE" | "CONTENT_COMMENT_CREATE" | "CONTENT_REACTION_SET" | "CONTENT_FLAG",
   payload: Record<string, string>,
@@ -194,9 +195,36 @@ async function verifyCanonicalTier0SocialDenial(
     }
   }, { account, txType, payload });
 
-  // Only an explicit permission/tier rejection is valid evidence. A frontend
-  // connectivity error, HTTP 500, nonce conflict or bad payload MUST fail.
-  expect(outcome.accepted, txType + " must not be accepted from a Tier0 account").toBe(false);
+  // The generated admission index intentionally permits Tier0 comments so
+  // the public lobby can work. For an ordinary comment, the real apply layer
+  // MUST reject Tier0; mempool acceptance cannot count as a permission pass.
+  if (outcome.accepted) {
+    expect(txType, "only the Tier0-admissible comment transaction may reach apply")
+      .toBe("CONTENT_COMMENT_CREATE");
+    expect(outcome.id).toMatch(/^tx:[0-9a-f]{64}$/i);
+    const deadline = Date.now() + 45_000;
+    while (Date.now() < deadline) {
+      const r = await request.get(`/v1/tx/status/${encodeURIComponent(outcome.id)}`);
+      if (r.ok()) {
+        const status = await r.json();
+        const terminal = String(status?.status || "").toLowerCase();
+        if (["rejected", "failed"].includes(terminal)) {
+          expect(status.apply_ok, "ordinary Tier0 comment must not apply").toBe(false);
+          return;
+        }
+        if (["confirmed", "committed", "finalized"].includes(terminal)
+          && status?.apply_ok === true) {
+          throw new Error("m4_tier0_ordinary_comment_illegally_applied");
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+    throw new Error("m4_tier0_ordinary_comment_not_terminally_rejected");
+  }
+
+  // Admission denials are valid only when explicitly caused by eligibility.
+  // A connectivity error, HTTP 500, nonce conflict or malformed payload
+  // must never be mistaken for a successful negative security proof.
   expect([400, 403], txType + " must be rejected by the real backend").toContain(outcome.status);
   expect(outcome.reason, txType + " must fail for eligibility, not an unrelated error")
     .toMatch(/poh|tier|eligib|forbidden|permission/i);
@@ -359,19 +387,19 @@ test("two independent real users register, update public profiles and isolate ke
       expect(Array.isArray(feedBefore.items)).toBe(true);
 
       await verifyCanonicalTier0SocialDenial(
-        beta, betaId, "CONTENT_POST_CREATE",
+        beta, request, betaId, "CONTENT_POST_CREATE",
         { post_id: `m4:denied:${suffix}`, body: "Tier0 must not publish ordinary posts." },
       );
       await verifyCanonicalTier0SocialDenial(
-        alpha, alphaId, "CONTENT_REACTION_SET",
+        alpha, request, alphaId, "CONTENT_REACTION_SET",
         { target_id: `m4:nonexistent:${suffix}`, reaction: "like" },
       );
       await verifyCanonicalTier0SocialDenial(
-        beta, betaId, "CONTENT_COMMENT_CREATE",
+        beta, request, betaId, "CONTENT_COMMENT_CREATE",
         { post_id: `m4:nonexistent:${suffix}`, body: "Tier0 must not reply to ordinary posts." },
       );
       await verifyCanonicalTier0SocialDenial(
-        alpha, alphaId, "CONTENT_FLAG",
+        alpha, request, alphaId, "CONTENT_FLAG",
         { target_id: `m4:nonexistent:${suffix}`, reason: "Tier0 cannot report content." },
       );
 
