@@ -320,9 +320,10 @@ def test_unwitnessed_reputation_delta_parent_text_is_not_a_causal_dispute_proof(
     delta = emitted[0]
     assert LINEAGE_WITNESS_PAYLOAD_KEY not in delta.payload
     assert delta.parent == "dispute:never-recorded"
-    assert validate_system_tx_queue_binding(
-        state, canon, delta, next_height=21, phase="post"
-    ) == (True, "")
+    assert validate_system_tx_queue_binding(state, canon, delta, next_height=21, phase="post") == (
+        True,
+        "",
+    )
     assert validate_same_block_single_tx_lineage(
         canon,
         delta,
