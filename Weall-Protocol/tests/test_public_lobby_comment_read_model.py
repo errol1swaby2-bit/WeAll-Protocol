@@ -7,6 +7,7 @@ Tier-0 submits and committed receipts are verified by M4.2 Playwright CI.
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+
 from weall.api.app import create_app
 
 
