@@ -18,7 +18,13 @@ from weall.runtime.domain_apply import (
     apply_tx_atomic_meta_deepcopy,
 )
 from weall.runtime.state_hash import compute_state_root
+from weall.runtime.system_tx_engine import (
+    enqueue_system_tx,
+    system_tx_emitter,
+    validate_system_tx_queue_binding,
+)
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.tx_contracts import load_default_tx_index
 
 
 def _state(*, clock_enabled: bool) -> dict:
@@ -98,3 +104,61 @@ def test_exported_system_delta_helper_has_same_independent_ban_path(
     assert state["accounts"]["@target"]["reputation_milli"] == int(REP_MIN_UNITS)
     assert state["accounts"]["@target"]["banned"] is True
     assert state["reputation"]["bans"]["@target"]["auto"] is True
+
+
+@pytest.mark.parametrize("clock_enabled", [False, True], ids=["legacy", "constitutional-clock"])
+def test_queue_bound_reputation_floor_ban_remains_distinct_from_account_ban(
+    clock_enabled: bool,
+) -> None:
+    """A valid queue binding is distinct from constitutional source authorization."""
+    state = _state(clock_enabled=clock_enabled)
+    state["system_queue"] = []
+    state["params"] = {}
+    canon = load_default_tx_index()
+
+    enqueue_system_tx(
+        state,
+        tx_type="REPUTATION_DELTA_APPLY",
+        payload={
+            "account_id": "@target",
+            "delta_milli": int(REP_MIN_UNITS),
+            "delta_id": "pr77:queue-bound-reputation-floor-characterization",
+            "reason": "synthetic_unverified_reputation_source",
+        },
+        due_height=21,
+        signer="SYSTEM",
+        once=True,
+        parent="dispute:synthetic-unverified-resolution",
+        phase="post",
+    )
+    emitted = system_tx_emitter(state, canon, next_height=21, phase="post")
+    assert len(emitted) == 1
+    delta = emitted[0]
+    assert delta.tx_type == "REPUTATION_DELTA_APPLY"
+    assert delta.system is True
+    assert delta.parent == "dispute:synthetic-unverified-resolution"
+    assert validate_system_tx_queue_binding(
+        state, canon, delta, next_height=21, phase="post"
+    ) == (True, "")
+
+    # An invalid queue reference cannot pass the follower's binding check.
+    unbound = copy.deepcopy(delta)
+    unbound.payload["_system_queue_id"] = "unrecognized-queue-id"
+    assert validate_system_tx_queue_binding(
+        state, canon, unbound, next_height=21, phase="post"
+    ) == (False, "unknown_system_queue_id")
+
+    bounded = copy.deepcopy(state)
+    reference = copy.deepcopy(state)
+    bounded_result = apply_tx_atomic_meta(bounded, copy.deepcopy(delta))
+    reference_result = apply_tx_atomic_meta_deepcopy(reference, copy.deepcopy(delta))
+    assert bounded_result == reference_result
+    assert bounded_result["applied"] == "REPUTATION_DELTA_APPLY"
+    assert bounded_result["newly_banned"] is True
+    assert bounded["accounts"]["@target"]["banned"] is True
+    assert bounded["reputation"]["bans"]["@target"]["auto"] is True
+    assert bounded == reference
+    assert compute_state_root(bounded) == compute_state_root(reference)
+
+    # Synthetic queue origin and parent text do NOT prove an authenticated
+    # dispute-resolution producer, an allowed severity, or finalized appeal.
