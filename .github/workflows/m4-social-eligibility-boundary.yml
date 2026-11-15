@@ -1,0 +1,53 @@
+name: M4.2 social read and eligibility boundaries
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/m4-social-eligibility-boundary.yml
+      - web/src/components/FeedView.tsx
+      - web/src/pages/Thread.tsx
+      - web/src/pages/Content.tsx
+      - web/scripts/test_m4_social_report_gate_source.mjs
+      - web/scripts/test_public_social_flow_readiness_source.mjs
+      - Weall-Protocol/src/weall/runtime/apply/content.py
+      - Weall-Protocol/src/weall/runtime/poh/eligibility.py
+      - Weall-Protocol/docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  social-eligibility-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install frozen frontend dependencies
+        run: npm ci
+      - name: Check TypeScript social surfaces
+        run: npm run typecheck
+      - name: Match social report and interaction eligibility to canonical runtime
+        run: node scripts/test_m4_social_report_gate_source.mjs
+      - name: Preserve public-only social flow and submission finality truth
+        run: npm run test:public-social-flow-readiness-source
+      - name: Record bounded proof scope
+        run: |
+          echo 'proof=M4.2_SOCIAL_UI_SOURCE_AND_BACKEND_TIER_GATE_ALIGNMENT'
+          echo 'tier0_social_write=NOT_PROVEN'
+          echo 'tier2_posting=NOT_PROVEN'
+          echo 'remote_cloudflare_multi_user=NOT_PROVEN'
+          echo 'genesis_authorization=NOT_ESTABLISHED'
+          git rev-parse HEAD
