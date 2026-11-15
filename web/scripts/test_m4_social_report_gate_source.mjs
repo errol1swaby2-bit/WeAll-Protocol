@@ -7,6 +7,13 @@ const backend = (path) => readFileSync(resolve(process.cwd(), "..", path), "utf8
 const feed = web("src/components/FeedView.tsx");
 const thread = web("src/pages/Thread.tsx");
 const contentPage = web("src/pages/Content.tsx");
+const feedPage = web("src/pages/Feed.tsx");
+const router = web("src/lib/router.ts");
+const feedRoute = section(router, '  "/feed": {', '  "/create": {');
+assert.ok(feedRoute.includes("public: true,"), "anonymous public feed route required");
+assert.ok(feedRoute.includes("authRequired: false,"), "backend public reads cannot require a browser session");
+assert.ok(feedPage.includes("You can report public content at Tier 1."), "Tier1 report eligibility must not be misrepresented on Feed");
+
 const applier = backend("Weall-Protocol/src/weall/runtime/apply/content.py");
 const admission = JSON.parse(backend("Weall-Protocol/generated/tx_index.json"));
 const admissionTier = (name) => {
