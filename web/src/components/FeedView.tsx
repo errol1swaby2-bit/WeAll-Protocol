@@ -164,7 +164,8 @@ function summarizeFeedScope(scope: FeedScope, count: number): string {
 
 function summarizeInteractionState(args: {
   viewer: string | null;
-  gateOk: boolean;
+  canReact: boolean;
+  canReport: boolean;
   viewerSummary: string;
 }): { tone: string; title: string; text: string } {
   if (!args.viewer) {
@@ -174,17 +175,24 @@ function summarizeInteractionState(args: {
       text: "You can read public posts now. Sign in or restore this device before reacting or reporting.",
     };
   }
-  if (!args.gateOk) {
+  if (args.canReact) {
     return {
-      tone: "",
-      title: "More participation locked",
-      text: `Complete live verification before reacting or reporting harmful content.`,
+      tone: "ok",
+      title: "Public reply actions available",
+      text: "You can submit public reactions and reports. Submission is not final until Transactions or backend tx status shows confirmation.",
+    };
+  }
+  if (args.canReport) {
+    return {
+      tone: "ok",
+      title: "Content reporting available",
+      text: "Tier 1 allows signed content reports. Reactions and replies still require Tier 2. Submission is not final until Transactions or backend tx status shows confirmation.",
     };
   }
   return {
-    tone: "ok",
-    title: "Public reply actions available",
-    text: `You can submit public reactions and reports. Submission is not final until Transactions or backend tx status shows confirmation.`,
+    tone: "",
+    title: "More participation locked",
+    text: "Complete account verification before reporting (Tier 1) or reacting (Tier 2).",
   };
 }
 
@@ -248,13 +256,20 @@ export default function FeedView({
     accountState: viewerState,
     requireTier: 2,
   });
+  const reportGateTier1 = checkGates({
+    loggedIn: !!viewer,
+    canSign,
+    accountState: viewerState,
+    requireTier: 1,
+  });
 
   const viewerSummary = viewerState ? summarizeAccountState(viewerState) : "(state unknown)";
   const signerSubmission = useSignerSubmissionBusy(viewer);
   const signerBusy = signerSubmission.busy;
   const interactionSummary = summarizeInteractionState({
     viewer,
-    gateOk: gateTier2.ok,
+    canReact: gateTier2.ok,
+    canReport: reportGateTier1.ok,
     viewerSummary,
   });
   const rankingModeLabel = String(rankingInfo?.mode || (sort === "top" ? "production" : sort === "hot" ? "balanced" : "recency"));
@@ -453,7 +468,7 @@ export default function FeedView({
     setReportErr(null);
     setReportInfo(null);
     if (!viewer) return setReportErr("Sign in before reporting content.");
-    if (!gateTier2.ok) return setReportErr(gateTier2.reason || `Complete account verification before reacting. ${viewerSummary}`);
+    if (!reportGateTier1.ok) return setReportErr(reportGateTier1.reason || `Complete Tier 1 verification before reporting. ${viewerSummary}`);
 
     const reasonRaw = window.prompt("Why are you reporting this post? (optional)", "");
     if (reasonRaw === null) return;
@@ -688,10 +703,10 @@ export default function FeedView({
                   <button className="btn btnPrimary" onClick={() => nav(`/thread/${encodeURIComponent(id)}`)} disabled={!id}>
                     Open thread
                   </button>
-                  <button className="btn" onClick={() => void doLike(id)} disabled={!id || likeBusyId === id || signerBusy}>
+                  <button className="btn" onClick={() => void doLike(id)} disabled={!id || !gateTier2.ok || likeBusyId === id || signerBusy}>
                     {likeBusyId === id ? "Submitting reaction…" : signerBusy ? "Waiting…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
                   </button>
-                  <button className="btn" onClick={() => void doReport(id)} disabled={!id || flagBusyId === id || signerBusy}>
+                  <button className="btn" onClick={() => void doReport(id)} disabled={!id || !reportGateTier1.ok || flagBusyId === id || signerBusy}>
                     {flagBusyId === id ? "Submitting report…" : signerBusy ? "Waiting…" : "Report"}
                   </button>
                 </div>
