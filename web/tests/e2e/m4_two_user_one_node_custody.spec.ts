@@ -233,6 +233,186 @@ async function verifyCanonicalTier0SocialDenial(
     .toMatch(/^(?:gate_denied|insufficient_poh_tier|poh_tier_required)$/i);
 }
 
+async function submitRealPublicLobbyComment(
+  page: Page,
+  account: string,
+  threadId: string,
+  body: string,
+): Promise<{ txId: string; commentId: string; nonce: number }> {
+  // Production signing / canonical nonce reservation / actual HTTP submission.
+  // No test identity injection, direct state mutation, or bypassed authority.
+  const result = await page.evaluate(async ({ account, threadId, body }) => {
+    // @ts-ignore - Vite's development-only module URL
+    const { submitSignedTxWithNonce } = await import("/src/auth/session.ts");
+    const signed = await submitSignedTxWithNonce({
+      account,
+      tx_type: "CONTENT_COMMENT_CREATE",
+      payloadFactory: (nonce: number) => ({
+        comment_id: `comment:${account}:${nonce}`,
+        post_id: threadId,
+        surface: "public_lobby",
+        body,
+      }),
+      parent: null,
+    });
+    return {
+      txId: String(signed?.result?.tx_id || ""),
+      commentId: `comment:${account}:${signed.env.nonce}`,
+      nonce: Number(signed.env.nonce),
+    };
+  }, { account, threadId, body });
+  expect(result.txId).toMatch(/^tx:[0-9a-f]{64}$/i);
+  expect(result.commentId).toMatch(/^comment:@m4[a-b]_[0-9a-f]+:[1-9][0-9]*$/);
+  expect(result.nonce).toBeGreaterThan(0);
+  return result;
+}
+
+async function readPublicLobbyFromBrowser(page: Page, threadId: string): Promise<any> {
+  return page.evaluate(async (thread) => {
+    // Same-origin API through the Vite node proxy. No bearer is attached.
+    const response = await fetch(
+      `/v1/public-lobby/comments?thread_id=${encodeURIComponent(thread)}&limit=20`,
+      { method: "GET", credentials: "omit" },
+    );
+    return { status: response.status, json: await response.json() };
+  }, threadId);
+}
+
+async function verifyRealTier0PublicLobbyConversation(args: {
+  alpha: Page;
+  beta: Page;
+  observer: Page;
+  request: APIRequestContext;
+  alphaId: string;
+  betaId: string;
+  suffix: string;
+}): Promise<void> {
+  const { alpha, beta, observer, request, alphaId, betaId, suffix } = args;
+  const threadId = `public-lobby:m4-${suffix}`;
+  const alphaBody = `Welcome from independent Tier 0 account alpha ${suffix}`;
+  const betaBody = `Reply from independent Tier 0 account beta ${suffix}`;
+
+  const [a, b] = await Promise.all([
+    submitRealPublicLobbyComment(alpha, alphaId, threadId, alphaBody),
+    submitRealPublicLobbyComment(beta, betaId, threadId, betaBody),
+  ]);
+  expect(a.txId).not.toBe(b.txId);
+  expect(a.commentId).not.toBe(b.commentId);
+
+  const [aReceipt, bReceipt] = await Promise.all([
+    confirmed(request, a.txId),
+    confirmed(request, b.txId),
+  ]);
+  for (const receipt of [aReceipt, bReceipt]) {
+    expect(receipt.status).toBe("confirmed");
+    expect(receipt.apply_ok).toBe(true);
+    expect(Number(receipt.height)).toBeGreaterThan(0);
+    expect(String(receipt.block_id)).toBeTruthy();
+  }
+
+  // The public-lobby root is synthetic; no Tier-2 parent post was injected.
+  const parent = await request.get(`/v1/content/${encodeURIComponent(threadId)}`);
+  expect(parent.status()).toBe(404);
+
+  const ids = [a.commentId, b.commentId].sort();
+  for (const [id, author, expectedBody] of [
+    [a.commentId, alphaId, alphaBody],
+    [b.commentId, betaId, betaBody],
+  ] as const) {
+    const r = await request.get(`/v1/content/${encodeURIComponent(id)}`);
+    expect(r.ok()).toBe(true);
+    const json = await r.json();
+    expect(json.type).toBe("comment");
+    expect(json.content?.comment_id).toBe(id);
+    expect(json.content?.author).toBe(author);
+    expect(json.content?.body).toBe(expectedBody);
+    expect(json.content?.surface).toBe("public_lobby");
+    expect(json.content?.post_id).toBe(threadId);
+  }
+
+  // The list is bounded and deterministic, with no authenticated session.
+  const list = await request.get("/v1/public-lobby/comments", {
+    params: { thread_id: threadId, limit: 20 },
+  });
+  expect(list.ok()).toBe(true);
+  const data = await list.json();
+  expect(data.ok).toBe(true);
+  expect(data.thread_id).toBe(threadId);
+  expect(data.next_cursor).toBeNull();
+  expect(data.items).toHaveLength(2);
+  expect(data.items.map((x: any) => String(x.comment_id)).sort()).toEqual(ids);
+  expect(data.items.map((x: any) => String(x.author)).sort()).toEqual([alphaId, betaId].sort());
+
+  const first = await request.get("/v1/public-lobby/comments", {
+    params: { thread_id: threadId, limit: 1 },
+  });
+  expect(first.ok()).toBe(true);
+  const firstJson = await first.json();
+  expect(firstJson.items).toHaveLength(1);
+  expect(firstJson.next_cursor).toBeTruthy();
+  const second = await request.get("/v1/public-lobby/comments", {
+    params: { thread_id: threadId, limit: 1, cursor: firstJson.next_cursor },
+  });
+  expect(second.ok()).toBe(true);
+  const secondJson = await second.json();
+  expect(secondJson.items).toHaveLength(1);
+  expect(secondJson.next_cursor).toBeNull();
+  expect([firstJson.items[0].comment_id, secondJson.items[0].comment_id].sort()).toEqual(ids);
+
+  for (const page of [alpha, beta, observer]) {
+    await page.goto("/#/feed");
+    await expect(page.getByTestId("public-social-boundary-callout")).toBeVisible();
+    const publicRead = await readPublicLobbyFromBrowser(page, threadId);
+    expect(publicRead.status).toBe(200);
+    expect(publicRead.json.items.map((x: any) => String(x.comment_id)).sort()).toEqual(ids);
+  }
+
+  // Reject a malicious attempt to label an ordinary target as the Tier-0
+  // lobby. A submitted transaction is not proof of apply; the canonical
+  // terminal receipt must reject it, as the previous M4.2 negative test does.
+  const invalid = await beta.evaluate(async ({ account }) => {
+    // @ts-ignore - Vite development-only module URL
+    const { submitSignedTxWithNonce } = await import("/src/auth/session.ts");
+    const submitted = await submitSignedTxWithNonce({
+      account,
+      tx_type: "CONTENT_COMMENT_CREATE",
+      payloadFactory: (nonce: number) => ({
+        comment_id: `invalid-lobby:${account}:${nonce}`,
+        post_id: "ordinary-post",
+        surface: "public_lobby",
+        body: "Must fail synthetic-target validation",
+      }),
+      parent: null,
+    });
+    return String(submitted?.result?.tx_id || "");
+  }, { account: betaId });
+  expect(invalid).toMatch(/^tx:[0-9a-f]{64}$/i);
+  const invalidDeadline = Date.now() + 45_000;
+  let rejected = false;
+  while (Date.now() < invalidDeadline) {
+    const r = await request.get(`/v1/tx/status/${encodeURIComponent(invalid)}`);
+    if (r.ok()) {
+      const status = await r.json();
+      if (status?.status === "rejected" && status.apply_ok === false) {
+        expect(String(status.reason || "")).toMatch(/invalid_public_lobby_target/);
+        rejected = true;
+        break;
+      }
+      if (status?.status === "confirmed" && status.apply_ok === true) {
+        throw new Error("m4_invalid_lobby_target_illegally_applied");
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  expect(rejected, "wrong-target lobby bypass must terminate as an apply rejection").toBe(true);
+
+  const after = await request.get("/v1/public-lobby/comments", {
+    params: { thread_id: threadId, limit: 20 },
+  });
+  expect(after.ok()).toBe(true);
+  expect((await after.json()).items).toEqual(data.items);
+}
+
 test("two independent real users register, update public profiles and isolate keys on one node", async ({ browser, request }) => {
   test.setTimeout(420_000);
   await backendRequired(request);
@@ -319,6 +499,18 @@ test("two independent real users register, update public profiles and isolate ke
         timeout: 90_000,
       });
       await expect(page.getByRole("button", { name: "Continue to human verification" })).toBeEnabled();
+    }
+    if (process.env.WEALL_M4_LOBBY_POSITIVE === "1") {
+      const [a, b] = await Promise.all([
+        accountState(request, alphaId), accountState(request, betaId),
+      ]);
+      expect(Number(a.state.poh_tier)).toBe(0);
+      expect(Number(b.state.poh_tier)).toBe(0);
+      const observer = await (await makeContext()).newPage();
+      await verifyRealTier0PublicLobbyConversation({
+        alpha, beta, observer, request, alphaId, betaId, suffix,
+      });
+      return;
     }
     if (process.env.WEALL_M4_SOCIAL_PROBES === "1") {
       // M4.2 uses the proven M4.1 two-user identity and session setup, with
