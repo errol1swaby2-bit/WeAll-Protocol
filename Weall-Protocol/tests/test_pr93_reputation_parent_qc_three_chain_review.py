@@ -25,9 +25,7 @@ from weall.runtime.executor import WeAllExecutor
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 review = importlib.import_module("scripts.reputation_parent_finality_review")
-review_persisted_reputation_parent_qc_chain = (
-    review.review_persisted_reputation_parent_qc_chain
-)
+review_persisted_reputation_parent_qc_chain = review.review_persisted_reputation_parent_qc_chain
 VALIDATORS = ("@review-v1", "@review-v2", "@review-v3", "@review-v4")
 EPOCH = 9
 CHAIN = "pr93-signed-qc-history-review"
@@ -65,8 +63,7 @@ def _bundle(
 
     private_keys = {signer: MLDSA65PrivateKey.generate() for signer in VALIDATORS}
     pubkeys = {
-        signer: private_keys[signer].public_key().public_bytes_raw().hex()
-        for signer in VALIDATORS
+        signer: private_keys[signer].public_key().public_bytes_raw().hex() for signer in VALIDATORS
     }
     set_hash = validator_set_hash(list(VALIDATORS))
     authority = {
