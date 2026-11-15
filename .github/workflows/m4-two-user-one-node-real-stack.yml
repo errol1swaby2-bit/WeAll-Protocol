@@ -9,7 +9,7 @@ on:
       - scripts/run_account_custody_real_stack_e2e.sh
       - web/src/auth/**
       - web/src/pages/Login.tsx
-      - web/src/pages/GuidedAccountRegistration.tsx
+      - web/src/pages/AccountRegistrationPage.tsx
       - Weall-Protocol/src/weall/api/routes_public_parts/session.py
       - Weall-Protocol/src/weall/runtime/**
   workflow_dispatch:
@@ -47,6 +47,9 @@ jobs:
       - name: Typecheck independent-browser custody regression
         working-directory: web
         run: npm run typecheck
+      - name: Existing canonical registration and recovery safety invariants
+        working-directory: web
+        run: npm run test:guided-account-registration-source
       - name: Install Playwright Chromium
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium
