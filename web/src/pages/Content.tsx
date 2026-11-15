@@ -45,6 +45,7 @@ async function waitForDisputeForTarget(base: string, targetId: string, attempts 
 function summarizeActionReadiness(args: {
   viewer: string | null;
   gateOk: boolean;
+  reportGateOk: boolean;
   isOwner: boolean;
   viewerSummary: string;
 }): { title: string; detail: string } {
@@ -55,10 +56,15 @@ function summarizeActionReadiness(args: {
     };
   }
   if (!args.gateOk) {
-    return {
-      title: "More actions locked",
-      detail: `The current viewer is ${args.viewerSummary}. Complete live verification before higher-trust actions are available.`,
-    };
+    return args.reportGateOk
+      ? {
+        title: "Content reporting available",
+        detail: "This Tier 1 account may submit reports for community review. Editing and other Tier 2 social actions remain restricted.",
+      }
+      : {
+        title: "More actions locked",
+        detail: `The current viewer is ${args.viewerSummary}. Tier 1 is required to report content; Tier 2 is required for editing and other higher-trust social actions.`,
+      };
   }
   if (args.isOwner) {
     return {
@@ -184,12 +190,14 @@ export default function Content({ id }: { id: string }): JSX.Element {
   const isOwner = Boolean(viewer && isPost && normalizeAccount(viewer) === author);
 
   const gate = checkGates({ loggedIn: !!viewer, canSign, accountState: viewerState, requireTier: 2 });
+  const reportGate = checkGates({ loggedIn: !!viewer, canSign, accountState: viewerState, requireTier: 1 });
   const viewerSummary = viewerState ? summarizeAccountState(viewerState) : "(state unknown)";
   const signerSubmission = useSignerSubmissionBusy(viewer);
   const signerBusy = signerSubmission.busy;
   const actionReadiness = summarizeActionReadiness({
     viewer,
     gateOk: gate.ok,
+    reportGateOk: reportGate.ok,
     isOwner,
     viewerSummary,
   });
@@ -273,7 +281,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
     setTxErr(null);
     setTxInfo(null);
     if (!viewer) return setTxErr({ msg: "not_logged_in", details: null });
-    if (!gate.ok) return setTxErr({ msg: gate.reason || "gated", details: viewerState });
+    if (!reportGate.ok) return setTxErr({ msg: reportGate.reason || "gated", details: viewerState });
 
     const reason = (flagReason || "").trim();
 
@@ -523,7 +531,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
                   </div>
                   <div className="surfaceSummaryCard">
                     <span className="surfaceSummaryLabel">Report</span>
-                    <strong className="surfaceSummaryValue">{isOwner ? "Usually unnecessary" : gate.ok ? "Available" : "Blocked"}</strong>
+                    <strong className="surfaceSummaryValue">{isOwner ? "Usually unnecessary" : reportGate.ok ? "Available" : "Blocked"}</strong>
                     <span className="surfaceSummaryHint">Reports start community review. They are not immediate moderation outcomes.</span>
                   </div>
                 </div>
@@ -535,7 +543,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
                       <button className="btn btnDanger" onClick={doDelete} disabled={!gate.ok || txBusy}>{txBusy ? "Working…" : "Delete"}</button>
                     </>
                   ) : (
-                    <button className="btn" onClick={() => setReportOpen((v) => !v)} disabled={!gate.ok}>{flagOpen ? "Close flag" : "Report"}</button>
+                    <button className="btn" onClick={() => setReportOpen((v) => !v)} disabled={!reportGate.ok}>{flagOpen ? "Close flag" : "Report"}</button>
                   )}
                 </div>
 
@@ -567,7 +575,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
                       placeholder="Reason (e.g., spam, harassment, illegal content)"
                     />
                     <div className="buttonRow buttonRowWide">
-                      <button className="btn btnPrimary" onClick={doReport} disabled={!gate.ok || txBusy}>{txBusy ? "Submitting…" : "Send report"}</button>
+                      <button className="btn btnPrimary" onClick={doReport} disabled={!reportGate.ok || txBusy}>{txBusy ? "Submitting…" : "Send report"}</button>
                       <button className="btn" onClick={() => setReportOpen(false)} disabled={txBusy}>Cancel</button>
                     </div>
                     <div className="actionStateRow">
