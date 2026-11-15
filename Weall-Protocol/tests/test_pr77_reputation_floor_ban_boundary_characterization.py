@@ -561,6 +561,21 @@ def test_persisted_origin_review_reads_real_sqlite_history_but_never_grants_auth
             "system_queue": [],
         }
     )
+    # Unauthenticated queue is seeded ONLY before the first local commit.
+    enqueue_system_tx(
+        state,
+        tx_type="REPUTATION_DELTA_APPLY",
+        payload={
+            "account_id": "@target",
+            "dispute_id": "d:never",
+            "delta_milli": int(REP_MIN_UNITS),
+            "delta_id": "pr77:persisted-review-synthetic-delta",
+            "reason": "synthetic_only",
+        },
+        due_height=3,
+        parent="unverified-historical-parent",
+        phase="post",
+    )
     root = Path(__file__).resolve().parents[1]
     executor = WeAllExecutor(
         db_path=str(tmp_path / "persisted.db"),
@@ -585,28 +600,11 @@ def test_persisted_origin_review_reads_real_sqlite_history_but_never_grants_auth
         assert executor.read_state()["height"] == expected_height
         assert executor.get_block_by_height(expected_height)["block_id"] == block["block_id"]
 
-    # Deliberately seed the hypothetical receipt AFTER committing the two
-    # benign blocks. This queue origin has no authenticated dispute producer.
+    # Read the pending receipt from a copy; never rewrite committed state.
     prestate = executor.read_state()
-    enqueue_system_tx(
-        prestate,
-        tx_type="REPUTATION_DELTA_APPLY",
-        payload={
-            "account_id": "@target",
-            "dispute_id": "d:never",
-            "delta_milli": int(REP_MIN_UNITS),
-            "delta_id": "pr77:persisted-review-synthetic-delta",
-            "reason": "synthetic_only",
-        },
-        due_height=3,
-        parent="unverified-historical-parent",
-        phase="post",
-    )
-    executor._ledger_store.write_state_snapshot(copy.deepcopy(prestate))
-    executor.state = executor._ledger_store.read()
-    delta = system_tx_emitter(prestate, load_default_tx_index(), next_height=3, phase="post")[
-        0
-    ].to_json()
+    delta = system_tx_emitter(
+        copy.deepcopy(prestate), load_default_tx_index(), next_height=3, phase="post"
+    )[0].to_json()
     before = copy.deepcopy(executor.read_state())
     report = review_persisted_reputation_delta_origin(
         executor=executor, delta=delta, tx_index=load_default_tx_index()

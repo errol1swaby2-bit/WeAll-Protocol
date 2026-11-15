@@ -186,6 +186,7 @@ def review_reputation_delta_origin(
         "may_ban_account": False,
     }
 
+
 def review_persisted_reputation_delta_origin(
     *,
     executor: Any,
