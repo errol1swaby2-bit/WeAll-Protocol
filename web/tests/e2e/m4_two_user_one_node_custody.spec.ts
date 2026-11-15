@@ -365,6 +365,7 @@ test("two independent real users register, update public profiles and isolate ke
         expect(beta.getByTestId("public-social-boundary-callout")).toBeVisible(),
       ]);
       // A completely anonymous third browser is allowed the same public read.
+      const observer = await (await makeContext()).newPage();
       await observer.goto("/#/feed");
       await expect(observer.getByTestId("public-social-boundary-callout")).toBeVisible();
       return; // Focused M4.2: M4.1 profile/recovery stays in its own green workflow.
