@@ -224,6 +224,57 @@ def test_versioned_group_election_authority_review_holds() -> None:
     )
 
 
+def test_severe_sanction_hold_does_not_imply_all_ban_paths_are_disabled() -> None:
+    """Separate constitutional ACCOUNT_BAN rejection from reputation auto-ban."""
+    import test_pr77_reputation_floor_ban_boundary_characterization as floor
+    import test_pr77_severe_account_finality_no_go as finality
+
+    from weall.runtime.apply import dispute, reputation
+    from weall.runtime.tx_admission_types import TxEnvelope
+
+    packet = build_packet()
+    rows = {row["tx_type"]: row for row in packet["transactions"]}
+    for tx_type in ("ACCOUNT_BAN", "DISPUTE_FINAL_RECEIPT"):
+        row = rows[tx_type]
+        assert row["source_accuracy_holds"] == list(SOURCE_ACCURACY_HOLDS[tx_type])
+        assert row["signed_off_for_current_digest"] is False
+        assert row["historical_replay_proven"] is False
+
+    blocked_ban = floor._state(clock_enabled=True)
+    before_ban = copy.deepcopy(blocked_ban)
+    ban_receipt = TxEnvelope(
+        tx_type="ACCOUNT_BAN",
+        signer="SYSTEM",
+        nonce=21,
+        system=True,
+        payload={"account_id": "@target"},
+    )
+    with pytest.raises(reputation.ReputationApplyError) as rejection:
+        reputation.apply_reputation(blocked_ban, ban_receipt)
+    assert rejection.value.reason == "severe_sanction_authorization_unimplemented"
+    assert blocked_ban == before_ban
+
+    severe = finality._state(enabled=True)
+    before_severe = copy.deepcopy(severe)
+    with pytest.raises(dispute.DisputeApplyError) as receipt_rejection:
+        dispute.apply_dispute(severe, finality._receipt())
+    assert receipt_rejection.value.reason == "severe_sanction_automatic_appeal_unimplemented"
+    assert severe == before_severe
+
+    alternate = floor._state(clock_enabled=True)
+    delta = reputation.apply_reputation(alternate, floor._delta_env())
+    assert delta["newly_banned"] is True
+    assert alternate["accounts"]["@target"]["banned"] is True
+    assert alternate["reputation"]["bans"]["@target"]["auto"] is True
+    # A synthetic SYSTEM envelope is not an authenticated production producer.
+
+    forged = copy.deepcopy(packet)
+    next(row for row in forged["transactions"] if row["tx_type"] == "ACCOUNT_BAN")[
+        "source_accuracy_holds"
+    ] = []
+    assert "source_accuracy_holds_mismatch:ACCOUNT_BAN" in packet_integrity_blockers(forged)
+
+
 def test_content_flag_source_change_is_pending_and_never_auto_accepted() -> None:
     packet = build_packet()
     assert packet["schema"] == "weall.pr77.v2_semantic_review_decision_packet.v2"

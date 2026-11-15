@@ -21,7 +21,11 @@ import v2_spec_validation as validation  # noqa: E402
 # Source-level caveats that current V2 semantic reviewers must adjudicate.
 # These do not modify source contracts, digests, or signed approvals.
 SOURCE_ACCURACY_HOLDS: dict[str, tuple[str, ...]] = {
+    "ACCOUNT_BAN": (
+        "constitutional_clock_ban_transaction_blocked_but_reputation_floor_auto_ban_remains",
+    ),
     "CONTENT_FLAG": ("duplicate_flag_id_rejection_requires_height_activation",),
+    "DISPUTE_FINAL_RECEIPT": ("severe_final_receipt_held_only_under_constitutional_clock",),
     "DISPUTE_OPEN": ("proposal_target_rejected_before_proposal_status_branches",),
     "GROUP_EMISSARY_ELECTION_CREATE": ("frozen_electorate_only_at_explicit_quorum_activation",),
     "GROUP_EMISSARY_ELECTION_FINALIZE": (
