@@ -150,6 +150,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [profileErr, setProfileErr] = useState<{ msg: string; details: any } | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>(() => emptyProfileForm());
   const [profileDirty, setProfileDirty] = useState<boolean>(false);
+  const [accountReadOutcome, setAccountReadOutcome] = useState<string>("not-read");
   const [showPublicBanner, setShowPublicBanner] = useState(true);
   const [busy, setBusy] = useState<"profile" | "register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "jurorResume" | "validatorPause" | "nodePause" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
@@ -176,6 +177,29 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setActiveProfileTab(tab);
   };
 
+  async function readCanonicalAccountWithBoundedRetry(): Promise<any> {
+    // Two active browsers can briefly exhaust the per-IP read token bucket.
+    // Only retry known transient HTTP failures, never an authorization denial,
+    // invalid canonical response, or non-2xx success assumed from UI state.
+    const transientHttpStatuses = new Set([429, 502, 503, 504]);
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      try {
+        const response = await weall.account(acct, base);
+        if (response?.ok !== true || !response?.state ||
+          typeof response.state !== "object" || Array.isArray(response.state)) {
+          throw new Error("canonical_account_read_model_unavailable");
+        }
+        return response;
+      } catch (reason: any) {
+        const status = Number(reason?.status || 0);
+        if (!transientHttpStatuses.has(status) || attempt === 3) throw reason;
+        await new Promise<void>((resolve) =>
+          window.setTimeout(resolve, 250 * (attempt + 1)));
+      }
+    }
+    throw new Error("canonical_account_read_model_unavailable");
+  }
+
   async function load(): Promise<void> {
     setErr(null);
     const headers = isSelf ? getAuthHeaders(acct) : undefined;
@@ -183,7 +207,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     const calls: Record<string, Promise<any>> = {
       poh: weall.pohState(acct, base),
       nonce: weall.accountNonce(acct, base),
-      account: weall.account(acct, base),
+      account: readCanonicalAccountWithBoundedRetry(),
       profile: weall.accountProfile(acct, base, headers),
       operatorStatus: weall.accountOperatorStatus(acct, base, headers),
       reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
@@ -208,6 +232,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setPoh(out.poh ?? null);
     setNonce(out.nonce ?? null);
     setAcctView(out.account ?? null);
+    const accountFailure = failures.find((item) => item.key === "account")?.error;
+    const accountHttpStatus = Number(accountFailure?.status || 0);
+    setAccountReadOutcome(out.account?.ok === true
+      ? "canonical-read-ok"
+      : accountHttpStatus > 0 ? `http-${accountHttpStatus}` : "canonical-read-unavailable");
     setProfileView(out.profile ?? null);
     if (!profileDirty) {
       setProfileForm(profileFormFromPublicProfile(asRecord(out.profile?.profile), acct));
@@ -1166,6 +1195,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   <button
                     className="btn btnPrimary"
                     data-testid="profile-submit-action"
+                    data-account-read-outcome={accountReadOutcome}
                     data-submit-blockers={[
                       busy !== null ? "account-action-busy" : "",
                       !profileDirty ? "draft-not-changed" : "",
