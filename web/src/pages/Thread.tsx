@@ -125,6 +125,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
   const postVisibility = String(post?.visibility || "public");
 
   const gate = checkGates({ loggedIn: !!viewer, canSign, accountState: viewerState, requireTier: 2 });
+  const reportGate = checkGates({ loggedIn: !!viewer, canSign, accountState: viewerState, requireTier: 1 });
   const viewerSummary = viewerState ? summarizeAccountState(viewerState) : "(state unknown)";
   const signerSubmission = useSignerSubmissionBusy(viewer);
   const signerBusy = signerSubmission.busy;
@@ -254,7 +255,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
     setTxErr(null);
     setTxInfo(null);
     if (!viewer) return setTxErr({ msg: "not_logged_in", details: null });
-    if (!gate.ok) return setTxErr({ msg: gate.reason || "gated", details: viewerState });
+    if (!reportGate.ok) return setTxErr({ msg: reportGate.reason || "gated", details: viewerState });
 
     const reason = flagReason.trim();
 
@@ -432,7 +433,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                   setFlagReason("");
                   setTxInfo(null);
                 }}
-                disabled={!gate.ok || signerBusy}
+                disabled={!reportGate.ok || signerBusy}
               >
                 {signerBusy ? "Waiting…" : "Flag"}
               </button>
@@ -451,7 +452,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
               </label>
 
               <div className="buttonRow">
-                <button className="btn btnPrimary" onClick={() => void flagTarget(postId)} disabled={busy || signerBusy}>
+                <button className="btn btnPrimary" onClick={() => void flagTarget(postId)} disabled={!reportGate.ok || busy || signerBusy}>
                   {busy ? "Submitting report…" : "Submit flag"}
                 </button>
                 <button className="btn" onClick={() => setFlagTargetId(null)} disabled={busy || signerBusy}>
@@ -542,7 +543,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                               setFlagReason("");
                               setTxInfo(null);
                             }}
-                            disabled={!gate.ok || busy || signerBusy}
+                            disabled={!reportGate.ok || busy || signerBusy}
                           >
                             {signerBusy ? "Waiting…" : "Flag"}
                           </button>
@@ -563,7 +564,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                           />
                         </label>
                         <div className="buttonRow">
-                          <button className="btn btnPrimary" onClick={() => void flagTarget(cid)} disabled={busy || signerBusy}>
+                          <button className="btn btnPrimary" onClick={() => void flagTarget(cid)} disabled={!reportGate.ok || busy || signerBusy}>
                             {busy ? "Submitting report…" : "Submit flag"}
                           </button>
                           <button className="btn" onClick={() => setFlagTargetId(null)} disabled={busy || signerBusy}>
