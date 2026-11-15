@@ -1,0 +1,70 @@
+name: PR93 signed reputation parent QC three-chain (review-only)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pr93-reputation-qc-three-chain-review.yml
+      - Weall-Protocol/scripts/reputation_parent_finality_review.py
+      - Weall-Protocol/tests/test_pr93_reputation_parent_qc_three_chain_review.py
+      - Weall-Protocol/src/weall/runtime/bft_hotstuff.py
+      - Weall-Protocol/src/weall/runtime/block_commitment_validation.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-qc-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Verify read-only signatures and history at triggering head
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          OUT="$RUNNER_TEMP/pr93-qc-three-chain"
+          mkdir -p "$OUT"
+          {
+            echo "scope=SIGNED_QC_TRIPLET_LOCAL_HISTORY_NO_INDEPENDENT_AUTHORITY"
+            echo "checkout_commit=$(git rev-parse HEAD)"
+            echo "constitutional_authorization=NOT_ESTABLISHED"
+            echo "ban_authorization=NO"
+            sha256sum scripts/reputation_parent_finality_review.py
+            sha256sum tests/test_pr93_reputation_parent_qc_three_chain_review.py
+          } > "$OUT/source_and_scope.txt"
+          set +e
+          {
+            ruff format --check scripts/reputation_parent_finality_review.py tests/test_pr93_reputation_parent_qc_three_chain_review.py &&
+            ruff check scripts/reputation_parent_finality_review.py tests/test_pr93_reputation_parent_qc_three_chain_review.py &&
+            python -m pytest -vv -rx tests/test_pr93_reputation_parent_qc_three_chain_review.py
+          } 2>&1 | tee "$OUT/targeted_pytest.log"
+          RC="\${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=$RC" >> "$OUT/source_and_scope.txt"
+          sha256sum "$OUT/targeted_pytest.log" >> "$OUT/source_and_scope.txt"
+          exit "$RC"
+      - name: Upload bounded read-only review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr93-qc-three-chain-\${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            \${{ runner.temp }}/pr93-qc-three-chain/source_and_scope.txt
+            \${{ runner.temp }}/pr93-qc-three-chain/targeted_pytest.log
