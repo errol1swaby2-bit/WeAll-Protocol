@@ -13,9 +13,9 @@ import copy
 from pathlib import Path
 
 import pytest
-from tooling.reputation_delta_origin_review import review_reputation_delta_origin
 
 import weall.runtime.block_builder as block_builder
+from tooling.reputation_delta_origin_review import review_reputation_delta_origin
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.reputation import REP_MIN_UNITS, apply_reputation_delta_system
 from weall.runtime.domain_apply import (
