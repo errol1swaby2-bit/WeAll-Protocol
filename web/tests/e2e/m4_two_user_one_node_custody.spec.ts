@@ -171,7 +171,7 @@ test("two independent real users register, update public profiles and isolate ke
       newAccount(beta, betaId),
     ]);
     expect(alphaRecovery.publicKeyB64).not.toBe(betaRecovery.publicKeyB64);
-    expect(alphaRecovery.secretKeyB64).not.toBe(betaRecovery.secretKeyB64);
+    expect(alphaRecovery.secretKeyB64 !== betaRecovery.secretKeyB64).toBe(true);
 
     const [alphaBefore, betaBefore] = await Promise.all([
       storedKeys(alpha, alphaId, betaId),
@@ -182,7 +182,7 @@ test("two independent real users register, update public profiles and isolate ke
       [betaBefore, betaRecovery, betaId],
     ] as const) {
       expect(own.selfSession).toContain(identity);
-      expect(own.selfSecret).toBe(recovery.secretKeyB64);
+      expect(own.selfSecret === recovery.secretKeyB64).toBe(true);
       expect(own.otherSecret).toBeNull();
       expect(own.otherMetadata).toBeNull();
       expect(own.selfSecretPersisted).toBeNull();
@@ -216,10 +216,21 @@ test("two independent real users register, update public profiles and isolate ke
       Buffer.from(betaRecovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"),
     );
 
-    // Reconcile both UI registration states before signed profile changes.
+    // The post-registration local session has no canonical backend bearer.
+    // Activate each device through the real signed, receipt-checked session
+    // issuance flow before protected profile actions (not a test-only login).
     for (const page of [alpha, beta]) {
       await page.getByRole("button", { name: "Check registration status" }).click();
-      await expect(page.getByTestId("registration-complete")).toContainText("Your basic account is ready.", { timeout: 30_000 });
+      await expect(page.getByTestId("registration-complete")).toContainText(
+        "Your basic account is ready.", { timeout: 30_000 },
+      );
+      const activate = page.getByTestId("activate-registered-account-session");
+      await expect(activate).toBeEnabled();
+      await activate.click();
+      await expect(page.getByTestId("registered-account-session-ready")).toBeVisible({
+        timeout: 90_000,
+      });
+      await expect(page.getByRole("button", { name: "Continue to human verification" })).toBeEnabled();
     }
     const [alphaProfileTx, betaProfileTx] = await Promise.all([
       profileUpdate(alpha, alphaId, alphaName),
@@ -264,16 +275,16 @@ test("two independent real users register, update public profiles and isolate ke
     await restored.waitForURL(/#\/home$/, { timeout: 120_000 });
     const restoredKeys = await storedKeys(restored, alphaId, betaId);
     expect(restoredKeys.selfSession).toContain(alphaId);
-    expect(restoredKeys.selfSecret).toBe(alphaRecovery.secretKeyB64);
+    expect(restoredKeys.selfSecret === alphaRecovery.secretKeyB64).toBe(true);
     expect(restoredKeys.otherSecret).toBeNull();
     expect(restoredKeys.otherMetadata).toBeNull();
 
     const betaAfter = await storedKeys(beta, betaId, alphaId);
     expect(betaAfter.selfSession).toContain(betaId);
-    expect(betaAfter.selfSecret).toBe(betaRecovery.secretKeyB64);
+    expect(betaAfter.selfSecret === betaRecovery.secretKeyB64).toBe(true);
     expect(betaAfter.otherSecret).toBeNull();
     expect(betaAfter.otherMetadata).toBeNull();
   } finally {
-    await Promise.all(contexts.map((context) => context.close()));
+    await Promise.all(contexts.map((context) => context.close().catch(() => undefined)));
   }
 });
