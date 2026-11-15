@@ -17,6 +17,7 @@ type Recovery = {
   account: string;
   publicKeyB64: string;
   secretKeyB64: string;
+  recoveryAuthorityPublicKeyB64: string;
 };
 
 async function backendRequired(request: APIRequestContext): Promise<void> {
@@ -208,9 +209,10 @@ test("two independent real users register, update public profiles and isolate ke
     expect(betaState.state.active_keys).toEqual([expectedKey(betaRecovery)]);
     expect(alphaState.state.active_keys).not.toEqual(betaState.state.active_keys);
     expect(alphaState.state.recovery.offline_key.pubkey).toBe(
-      Buffer.from(alphaRecovery.publicKeyB64 === betaRecovery.publicKeyB64
-        ? "" : (alphaState.state.recovery.offline_key.pubkey && ""), "utf8").length > 0
-        ? "impossible" : alphaState.state.recovery.offline_key.pubkey
+      Buffer.from(alphaRecovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"),
+    );
+    expect(betaState.state.recovery.offline_key.pubkey).toBe(
+      Buffer.from(betaRecovery.recoveryAuthorityPublicKeyB64, "base64").toString("hex"),
     );
 
     // Reconcile both UI registration states before signed profile changes.
