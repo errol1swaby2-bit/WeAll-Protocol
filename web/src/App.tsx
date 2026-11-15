@@ -49,7 +49,9 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/home":
       return readyForApp ? <HomeDashboard /> : <LoginPage />;
     case "/feed":
-      return readyForApp ? <Feed /> : <LoginPage />;
+      // Public feed is readable by unsigned visitors; write actions inside
+      // Feed remain constrained by local signer, session and PoH eligibility.
+      return <Feed />;
     case "/activity":
       return readyForApp ? <Activity /> : <LoginPage />;
     case "/profile":
