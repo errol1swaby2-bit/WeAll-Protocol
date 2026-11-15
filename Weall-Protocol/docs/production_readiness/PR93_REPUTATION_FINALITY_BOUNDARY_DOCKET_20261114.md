@@ -6,8 +6,8 @@ This docket distinguishes three different claims that must never be conflated.
 
 1. **Local canonical-history consistency:** durable blocks rebind to canonical header,
    body, and receipt commitments; consecutive hashes link; local snapshot
-   \`compute_state_root\` matches the stored tip header's committed post-apply
-   \`state_root\`. This is local evidence only. A copied or fabricated SQLite
+   `compute_state_root` matches the stored tip header's committed post-apply
+   `state_root`. This is local evidence only. A copied or fabricated SQLite
    database can remain perfectly self-consistent.
 2. **Caller-supplied signed BFT evidence:** three consecutive durable blocks each
    have a full QC whose ML-DSA vote signatures verify against an explicit,
@@ -26,25 +26,25 @@ This docket distinguishes three different claims that must never be conflated.
 
 ## Source-bound evidence surfaces
 
-- \`scripts/reputation_delta_origin_review.py\` reads production executor
-  \`read_state\` and \`get_block_by_height\`, checks bounded canonical history,
+- `scripts/reputation_delta_origin_review.py` reads production executor
+  `read_state` and `get_block_by_height`, checks bounded canonical history,
   exact queue and claimed parent, and now compares recomputed persisted snapshot
   root against the canonical tip header state root.
-- \`scripts/reputation_parent_finality_review.py\` performs a **separate** bounded
+- `scripts/reputation_parent_finality_review.py` performs a **separate** bounded
   three-block read and verifies a strictly explicit signed QC triplet against
-  caller-supplied validator keys. No node-local \`state["finalized"]\` claim or
+  caller-supplied validator keys. No node-local `state["finalized"]` claim or
   QC supplied by that same node is independently authoritative.
-- \`src/weall/runtime/bft_hotstuff.py::verify_qc\` checks signed votes against
+- `src/weall/runtime/bft_hotstuff.py::verify_qc` checks signed votes against
   registered keys and the quorum threshold; the review requires exact vote
   metadata rather than relying on permissive legacy inheritance.
-- \`src/weall/runtime/bft_finality_bridge.py::finalized_target_from_justify_qc\`
+- `src/weall/runtime/bft_finality_bridge.py::finalized_target_from_justify_qc`
   is deliberately **structural**; cryptographic proof and admission have to be
   established separately before its three-chain projection can be treated as
   production evidence. The strict three-QC review triplet is not substituted
   into that production path.
-- \`tests/test_pr93_persisted_reputation_root_review.py\` uses real local SQLite
+- `tests/test_pr93_persisted_reputation_root_review.py` uses real local SQLite
   block commits and a tampered snapshot reader.
-- \`tests/test_pr93_reputation_parent_qc_three_chain_review.py\` uses real local
+- `tests/test_pr93_reputation_parent_qc_three_chain_review.py` uses real local
   block commits and real ML-DSA signatures, including adversarial QC and
   block-history substitutions.
 - Dedicated PR93 exact-head workflows provide scoped, non-authoritative test
@@ -62,10 +62,10 @@ This docket distinguishes three different claims that must never be conflated.
 | Release | Exact-final-head Backend, Web, reviewer and constitutional gates, independent operator witnesses and replay |
 
 A complete synthetic three-QC triplet may legitimately return
-\`cryptographic_three_chain_candidate=true\` while
-\`independent_bft_finality_verified=false\` and
-\`constitutional_authorization=NOT_ESTABLISHED\`.
+`cryptographic_three_chain_candidate=true` while
+`independent_bft_finality_verified=false` and
+`constitutional_authorization=NOT_ESTABLISHED`.
 
-**Never infer \`may_enqueue_reputation_delta=true\` or
-\`may_ban_account=true\` from either review. No production consensus or state
+**Never infer `may_enqueue_reputation_delta=true` or
+`may_ban_account=true` from either review. No production consensus or state
 applier has been changed by these review-only increments. PR #93 stays draft.**
