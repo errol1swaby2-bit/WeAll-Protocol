@@ -18,6 +18,11 @@ const headers = readWeb("public/_headers");
 // Regression: public backend seed registry advertises base_url, not only
 // the legacy static manifest's api_base.
 assert.ok(manager.includes("rec.base_url"), "backend base_url seed field must be supported");
+assert.ok(manager.includes("if (config.publicTestnet) {") && manager.includes("return buildPinned;"),
+  "public browser expected identity must come from immutable build-pinned commitments");
+assert.ok(manager.includes("buildPinned || (await loadBackendSeedCompatibilityBaseline())"),
+  "backend-provided compatibility hints must be limited to local/devnet diagnostics");
+
 assert.ok(manager.includes("loadBackendSeedNodes(current)"), "backend discovery must remain supported");
 assert.ok(manager.includes("loadSeedNodes()"), "static bootstrap manifest must remain supported");
 
@@ -43,6 +48,10 @@ assert.ok(originPolicy.includes("export function isPublicApiOrigin("), "shared H
 assert.ok(!recognition.includes("function isSecureApiOrigin("), "duplicated session origin validator must stay removed");
 const panel = readWeb("src/components/NodeConnectionPanel.tsx");
 const settings = readWeb("src/pages/Settings.tsx");
+const connectionPill = readWeb("src/components/ConnectionPill.tsx");
+assert.ok(connectionPill.includes('nav("/settings/connection")'),
+  "hosted connection pill must open the accessible production connection settings, not disabled /advanced");
+
 assert.ok(session.includes("SS_SESSION_BEARER"), "bearer must remain in tab-scoped storage");
 assert.ok(session.includes("sessionStorage.setItem("), "session key custody cannot regress to persistent localStorage");
 assert.ok(session.includes("isBrowserSessionApproved(getApiBaseUrl()"), "protected auth headers must require per-node session recognition");
