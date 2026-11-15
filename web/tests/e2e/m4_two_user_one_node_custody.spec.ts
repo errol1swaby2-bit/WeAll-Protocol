@@ -155,6 +155,53 @@ async function storedKeys(page: Page, self: string, other: string): Promise<{
   }), { self, other });
 }
 
+/**
+ * Deliberately invoke WeAll's real browser signing and /v1/tx/submit path,
+ * bypassing only the frontend button to verify that the BACKEND rejects
+ * ineligible Tier-0 social writes. No test authority or mutated state.
+ * A network failure, malformed payload, or missing auth is NOT a valid pass.
+ */
+async function verifyCanonicalTier0SocialDenial(
+  page: Page,
+  account: string,
+  txType: "CONTENT_POST_CREATE" | "CONTENT_COMMENT_CREATE" | "CONTENT_REACTION_SET" | "CONTENT_FLAG",
+  payload: Record<string, string>,
+): Promise<void> {
+  const outcome = await page.evaluate(async ({ account, txType, payload }) => {
+    // Resolved by the dev server's Vite module endpoint; intentionally not
+    // bundled into the production frontend.
+    // @ts-ignore - Vite dev-only absolute module specifier
+    const { submitSignedTx } = await import("/src/auth/session.ts");
+    try {
+      const result = await submitSignedTx({
+        account, tx_type: txType, payload, parent: null,
+      });
+      return {
+        accepted: true,
+        id: String(result?.tx_id || result?.result?.tx_id || ""),
+        status: 200,
+        reason: "",
+      };
+    } catch (e: any) {
+      const payloadError = e?.payload?.error || e?.payload?.detail || {};
+      const detail = typeof payloadError === "object" && payloadError !== null ? payloadError : {};
+      return {
+        accepted: false,
+        id: "",
+        status: Number(e?.status || 0),
+        reason: String(detail?.code || detail?.message || e?.message || "").slice(0, 160),
+      };
+    }
+  }, { account, txType, payload });
+
+  // Only an explicit permission/tier rejection is valid evidence. A frontend
+  // connectivity error, HTTP 500, nonce conflict or bad payload MUST fail.
+  expect(outcome.accepted, txType + " must not be accepted from a Tier0 account").toBe(false);
+  expect([400, 403], txType + " must be rejected by the real backend").toContain(outcome.status);
+  expect(outcome.reason, txType + " must fail for eligibility, not an unrelated error")
+    .toMatch(/poh|tier|eligib|forbidden|permission/i);
+}
+
 test("two independent real users register, update public profiles and isolate keys on one node", async ({ browser, request }) => {
   test.setTimeout(420_000);
   await backendRequired(request);
@@ -294,6 +341,55 @@ test("two independent real users register, update public profiles and isolate ke
     expect(betaAfter.selfSecret === betaRecovery.secretKeyB64).toBe(true);
     expect(betaAfter.otherSecret).toBeNull();
     expect(betaAfter.otherMetadata).toBeNull();
+
+    if (process.env.WEALL_M4_SOCIAL_PROBES === "1") {
+      // M4.2 uses the proven M4.1 two-user identity and session setup, with
+      // neither fake PoH elevation nor an independently verified BFT quorum.
+      // Tier0 users MUST NOT submit post, ordinary comment, reaction, or flag.
+      const [freshAlpha, freshBeta] = await Promise.all([
+        accountState(request, alphaId),
+        accountState(request, betaId),
+      ]);
+      expect(Number(freshAlpha.state.poh_tier)).toBe(0);
+      expect(Number(freshBeta.state.poh_tier)).toBe(0);
+
+      const feedBeforeResponse = await request.get("/v1/feed?limit=20");
+      expect(feedBeforeResponse.ok()).toBe(true);
+      const feedBefore = await feedBeforeResponse.json();
+      expect(Array.isArray(feedBefore.items)).toBe(true);
+
+      await verifyCanonicalTier0SocialDenial(
+        beta, betaId, "CONTENT_POST_CREATE",
+        { post_id: `m4:denied:${suffix}`, body: "Tier0 must not publish ordinary posts." },
+      );
+      await verifyCanonicalTier0SocialDenial(
+        alpha, alphaId, "CONTENT_REACTION_SET",
+        { target_id: `m4:nonexistent:${suffix}`, reaction: "like" },
+      );
+      await verifyCanonicalTier0SocialDenial(
+        beta, betaId, "CONTENT_COMMENT_CREATE",
+        { post_id: `m4:nonexistent:${suffix}`, body: "Tier0 must not reply to ordinary posts." },
+      );
+      await verifyCanonicalTier0SocialDenial(
+        alpha, alphaId, "CONTENT_FLAG",
+        { target_id: `m4:nonexistent:${suffix}`, reason: "Tier0 cannot report content." },
+      );
+
+      const feedAfterResponse = await request.get("/v1/feed?limit=20");
+      expect(feedAfterResponse.ok()).toBe(true);
+      const feedAfter = await feedAfterResponse.json();
+      expect(feedAfter.items).toEqual(feedBefore.items);
+
+      // Both user browsers can still view the same public social surface.
+      await Promise.all([alpha.goto("/#/feed"), beta.goto("/#/feed")]);
+      await Promise.all([
+        expect(alpha.getByTestId("public-social-boundary-callout")).toBeVisible(),
+        expect(beta.getByTestId("public-social-boundary-callout")).toBeVisible(),
+      ]);
+      // A completely anonymous third browser is allowed the same public read.
+      await observer.goto("/#/feed");
+      await expect(observer.getByTestId("public-social-boundary-callout")).toBeVisible();
+    }
   } finally {
     await Promise.all(contexts.map((context) => context.close().catch(() => undefined)));
   }
