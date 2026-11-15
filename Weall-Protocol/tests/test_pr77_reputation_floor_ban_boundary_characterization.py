@@ -137,9 +137,10 @@ def test_queue_bound_reputation_floor_ban_remains_distinct_from_account_ban(
     assert delta.tx_type == "REPUTATION_DELTA_APPLY"
     assert delta.system is True
     assert delta.parent == "dispute:synthetic-unverified-resolution"
-    assert validate_system_tx_queue_binding(
-        state, canon, delta, next_height=21, phase="post"
-    ) == (True, "")
+    assert validate_system_tx_queue_binding(state, canon, delta, next_height=21, phase="post") == (
+        True,
+        "",
+    )
 
     # An invalid queue reference cannot pass the follower's binding check.
     unbound = copy.deepcopy(delta)
