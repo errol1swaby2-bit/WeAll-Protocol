@@ -137,8 +137,19 @@ if ! [[ "${CUSTODY_REPEAT_EACH}" =~ ^[1-9]$ ]]; then
   exit 1
 fi
 echo "Running ${CUSTODY_REPEAT_EACH} independent no-retry custody journeys"
-VITE_WEALL_API_BASE="${API_BASE}" \
-VITE_WEALL_DEV_PROXY_TARGET="${API_BASE}" \
-PLAYWRIGHT_BASE_URL="${WEB_BASE}" \
-WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1 \
-npm run test:account-custody-real-stack -- --workers=1 --repeat-each="${CUSTODY_REPEAT_EACH}"
+if [[ "${WEALL_M4_TWO_USER_E2E:-0}" == "1" ]]; then
+  # Exact file allowlist: never use caller-supplied glob or executable command.
+  # This gate uses the SAME real one-node backend as the existing M2 custody
+  # journey. No state seeding, mocked API, or unsigned account registration.
+  VITE_WEALL_API_BASE="${API_BASE}" \
+  VITE_WEALL_DEV_PROXY_TARGET="${API_BASE}" \
+  PLAYWRIGHT_BASE_URL="${WEB_BASE}" \
+  WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1 \
+  npx playwright test tests/e2e/m4_two_user_one_node_custody.spec.ts --workers=1 --repeat-each="${CUSTODY_REPEAT_EACH}"
+else
+  VITE_WEALL_API_BASE="${API_BASE}" \
+  VITE_WEALL_DEV_PROXY_TARGET="${API_BASE}" \
+  PLAYWRIGHT_BASE_URL="${WEB_BASE}" \
+  WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E=1 \
+  npm run test:account-custody-real-stack -- --workers=1 --repeat-each="${CUSTODY_REPEAT_EACH}"
+fi
