@@ -376,9 +376,7 @@ def test_public_lobby_dispute_scan_and_cursor_bytes_have_bounded_limits() -> Non
 
     client = _client()
     state = client.app.state.executor.state
-    state["disputes_by_id"] = {
-        f"d-{n}": {} for n in range(routes._PUBLIC_LOBBY_MAX_DISPUTES + 1)
-    }
+    state["disputes_by_id"] = {f"d-{n}": {} for n in range(routes._PUBLIC_LOBBY_MAX_DISPUTES + 1)}
     res = client.get(
         "/v1/public-lobby/comments",
         params={"thread_id": "public-lobby:welcome"},
