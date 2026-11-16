@@ -273,13 +273,12 @@ def test_shadow_pagination_can_read_large_thread_without_route_scan(tmp_path) ->
         "bulk-01196",
     ]
 
+
 def test_shadow_handles_beyond_route_global_and_hidden_prefix_budgets(tmp_path) -> None:
     """Offline projection demonstrates what the route's interim 503 caps forbid."""
     state = _state()
     for n in range(10001):
-        state["content"]["comments"][f"unrelated-{n:05d}"] = {
-            "surface": "ordinary"
-        }
+        state["content"]["comments"][f"unrelated-{n:05d}"] = {"surface": "ordinary"}
     for n in range(520):
         cid = f"private-{n:05d}"
         state["content"]["comments"][cid] = {
