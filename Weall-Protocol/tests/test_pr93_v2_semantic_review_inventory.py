@@ -85,9 +85,7 @@ def test_live_pr93_public_lobby_route_remains_unreviewed_without_source_mutation
     assert report["accepted_reviews_modified"] is False
     assert report["historical_replay_proven"] is False
     assert report["constitutional_or_release_authority_granted"] is False
-    assert report["pending_transaction_review_count"] == len(
-        report["pending_transaction_types"]
-    )
+    assert report["pending_transaction_review_count"] == len(report["pending_transaction_types"])
     route_rows = report["route_review_inventory"]["pending_routes"]
     lobby = [row for row in route_rows if row["route_key"] == "GET /v1/public-lobby/comments"]
     assert len(lobby) == 1

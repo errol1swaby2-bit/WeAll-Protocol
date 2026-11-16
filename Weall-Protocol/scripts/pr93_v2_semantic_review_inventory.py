@@ -35,9 +35,7 @@ def _route_rows(stable_ids: Any, sources: Json) -> list[Json]:
         for row in sources["transaction_canon"]["txs"]
         if isinstance(row, dict)
     }
-    frontend = compiler._scan_files(
-        compiler.WORKSPACE_ROOT / "web" / "src", {".ts", ".tsx"}
-    )
+    frontend = compiler._scan_files(compiler.WORKSPACE_ROOT / "web" / "src", {".ts", ".tsx"})
     tests = compiler._scan_files(compiler.ROOT / "tests", {".py"})
     return compiler._scan_route_contracts(
         tx_types, frontend, tests, sources["contract_overrides"], stable_ids
