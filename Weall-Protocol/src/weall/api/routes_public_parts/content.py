@@ -1172,9 +1172,8 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     comments = _comments(st)
     if pid in comments:
         com = _with_reaction_counts(_as_dict(comments.get(pid)), reaction_counts)
-        if (
-            not _canonical_lobby_comment_index_matches(com, pid)
-            or not _viewer_can_read_comment(st, com, viewer)
+        if not _canonical_lobby_comment_index_matches(com, pid) or not _viewer_can_read_comment(
+            st, com, viewer
         ):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
