@@ -65,3 +65,9 @@ The targeted tests use the real executor and follower `apply_block` over two loc
 ### Restart invalidation discovered by exact-head CI
 
 The first two-node regression passed commit/replay and one-step reconciliation but correctly failed its original expectation that the index remains readable immediately after restarting the follower. Executor startup performs same-height ledger_state writes for local runtime/BFT persistence, so the installed SQLite triggers invalidate the projection even when the canonical content has not changed. The corrected regression requires fail-closed unavailability after restart, followed by verified full rebuild and re-arming before parity can be claimed. This is a safety-preserving limitation and underscores why efficient restart catchup is still open.
+
+### Exact-head incremental diagnostic at ad5a90cb41c877f2c18702a99c41f0e1e23bc7d6
+
+- [Focused A03 run 43979318724](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43979318724): **26 passing focused tests** with pinned Ruff. This exercises full shadow-read tests, the new pure changed-row selector, two actual local production executor instances replaying the same canonical blocks, a real ACCOUNT_REGISTER then CONTENT_COMMENT_CREATE Tier-0 public-lobby transaction, and fail-closed restart/rebuild behavior. This is **not** independently authenticated BFT finality or real network transport.
+- [B528/B534/B567 full-harness run 43979319235](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43979319235): passed; proof regeneration is **freshness-only** with unchanged outcomes and locked activation boundaries.
+- An exact-head Backend CI result still needs review on the **evidence-only commit**. All V2 semantic-review gaps remain unapproved. A public-lobby indexed-route cutover is NOT authorized.
