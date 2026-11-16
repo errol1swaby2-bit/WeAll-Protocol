@@ -177,6 +177,16 @@ def test_real_producer_follower_replay_delta_restart_parity(
 
     restarted = _executor(tmp_path, "follower", monkeypatch)
     persisted = PublicLobbyIndexCandidate(restarted._db)
+    # Startup's legitimate same-height local BFT/metadata persistence also
+    # changes ledger_state; the durable trigger MUST invalidate the index.
+    with pytest.raises(PublicLobbyIndexUnavailable, match="stale"):
+        persisted.page_from_local_ledger(
+            thread_id="public-lobby:welcome", chain_id=restarted.chain_id
+        )
+    persisted.rebuild_from_local_ledger(chain_id=restarted.chain_id)
+    PublicLobbyIncrementalCandidate(persisted).arm_after_verified_rebuild(
+        chain_id=restarted.chain_id
+    )
     restored_page = persisted.page_from_local_ledger(
         thread_id="public-lobby:welcome", chain_id=restarted.chain_id
     )

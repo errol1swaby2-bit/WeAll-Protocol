@@ -61,3 +61,7 @@ A new companion component, `public_lobby_incremental_candidate.py`, introduces a
 This is **not** constant-time commit mutation tracking: identifying changed comments currently compares both full in-memory comment maps, and the proof also parses durable full state_json during post-commit reconciliation. The real production API remains unchanged and its temporary 503 limits still apply. Production-wide automatic hooks, proof-complete change journaling, asynchronous catchup, multi-commit replay, state-sync checkpoint recovery, and BFT finality are NOT established.
 
 The targeted tests use the real executor and follower `apply_block` over two local SQLite databases, proving the empty-block one-step reconciliation and follower restart metadata parity, but not physically isolated operators or authenticated P2P transport.
+
+### Restart invalidation discovered by exact-head CI
+
+The first two-node regression passed commit/replay and one-step reconciliation but correctly failed its original expectation that the index remains readable immediately after restarting the follower. Executor startup performs same-height ledger_state writes for local runtime/BFT persistence, so the installed SQLite triggers invalidate the projection even when the canonical content has not changed. The corrected regression requires fail-closed unavailability after restart, followed by verified full rebuild and re-arming before parity can be claimed. This is a safety-preserving limitation and underscores why efficient restart catchup is still open.
