@@ -21,7 +21,9 @@ def test_public_lobby_route_identity_is_unique_and_not_tombstoned() -> None:
     registry = json.loads(
         (ROOT / "specs/v2/source/stable_ids.json").read_text(encoding="utf-8")
     )
-    expected = "ROUTE-" + hashlib.sha256(CANONICAL_KEY.encode("utf-8")).hexdigest()[:16].upper()
+    expected = (
+        "ROUTE-" + hashlib.sha256(CANONICAL_KEY.encode("utf-8")).hexdigest()[:16].upper()
+    )
     matches = [
         row for row in registry["entries"]
         if row.get("kind") == "route" and row.get("canonical_key") == CANONICAL_KEY
@@ -31,12 +33,18 @@ def test_public_lobby_route_identity_is_unique_and_not_tombstoned() -> None:
     assert matches[0]["status"] == "active"
     assert matches[0]["aliases"] == []
     assert sum(row.get("stable_id") == expected for row in registry["entries"]) == 1
-    assert not any(row.get("stable_id") == expected for row in registry.get("tombstones", []))
+    assert not any(
+        row.get("stable_id") == expected for row in registry.get("tombstones", [])
+    )
 
 
 def test_public_lobby_route_identity_matches_real_read_handler() -> None:
     tree = ast.parse((ROOT / IMPLEMENTATION).read_text(encoding="utf-8"))
-    funcs = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == FUNCTION]
+    funcs = [
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == FUNCTION
+    ]
     assert len(funcs) == 1
     handler = funcs[0]
     decorators = [
