@@ -237,3 +237,45 @@ def test_malformed_lobby_index_aliases_never_escape_public_list_or_detail() -> N
     ):
         detail = client.get("/v1/content/" + indexed_id)
         assert detail.status_code == 404, (indexed_id, detail.text)
+
+
+def test_public_lobby_state_unavailable_is_not_a_false_empty_success() -> None:
+    """A temporarily missing, malformed or failing chain snapshot must be 503."""
+    client = _client()
+    original = client.app.state.executor
+
+    class _ReadFailure:
+        def read_state(self) -> dict:
+            raise RuntimeError("sensitive backend error")
+
+    class _MalformedState:
+        def read_state(self) -> list:
+            return []
+
+    for unavailable in (None, object(), _ReadFailure(), _MalformedState()):
+        client.app.state.executor = unavailable
+        response = client.get(
+            "/v1/public-lobby/comments",
+            params={"thread_id": "public-lobby:welcome"},
+        )
+        assert response.status_code == 503, response.text
+        error = response.json()
+        assert error["ok"] is False
+        assert error["error"]["code"] == "public_lobby_state_unavailable"
+        assert "sensitive backend error" not in response.text
+
+    client.app.state.executor = original
+    healthy = client.get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:welcome"},
+    )
+    assert healthy.status_code == 200
+    assert {row["comment_id"] for row in healthy.json()["items"]} == {"c1", "c2"}
+
+    original.state["content"]["comments"] = {}
+    genuinely_empty = client.get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:welcome"},
+    )
+    assert genuinely_empty.status_code == 200
+    assert genuinely_empty.json()["items"] == []
