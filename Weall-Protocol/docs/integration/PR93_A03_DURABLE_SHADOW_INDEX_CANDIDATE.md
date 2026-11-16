@@ -45,3 +45,11 @@ Implement an independently authenticated committed-head read binding that does n
 ## Negative verification hardening after evidence refresh
 
 An attached local-ledger index now refuses the bare caller-supplied rebuild path. Only the verified local committed-tip rebuild may publish rows once durable ledger invalidation triggers are present. Added fault injection changes canonical state_json directly while preserving its old tip height and block ID. The next rebuild must detect that the persisted tip block's state-root commitment no longer matches and must refuse to publish the forged content. Trigger invalidation also prevents serving the previously published rows. This is storage-integrity testing, not independent historical finality.
+
+## Latest exact-source A03 checks (ee10cdcd470ac1b7f8ecd4cdae3df20ef5f44051)
+
+- [A03 shadow-index parity run 43976622579](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43976622579): **passed**, pinned Ruff and **21** focused regression cases. Includes the attached-index unverified-rebuild denial and direct SQLite snapshot-tampering test.
+- [B528/B534/B567 full-harness run 43976622371](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43976622371): **passed**; resulting checked-in proof JSON differs solely in source-freshness inputs, not execution claims, test outcomes, or locked authorization boundaries.
+- The regeneration is bound to this exact implementation source, not a human V2 semantic approval or production authorization. The subsequent evidence-only commit requires a fresh exact-head CI run.
+- Automatic incremental maintenance, production read-route cutover, fork recovery, externally authenticated finality, 20 remaining transaction semantic adjudications, and public Genesis remain unresolved.
+
