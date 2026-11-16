@@ -100,9 +100,7 @@ class PublicLobbyIndexCandidate:
         if not chain_id or not block_id or not state_root or height < 0:
             raise PublicLobbyIndexUnavailable("invalid_source_binding")
         declared_chain = str(
-            state.get("chain_id")
-            or _as_dict(state.get("meta")).get("chain_id")
-            or ""
+            state.get("chain_id") or _as_dict(state.get("meta")).get("chain_id") or ""
         ).strip()
         if declared_chain and declared_chain != chain_id:
             raise PublicLobbyIndexUnavailable("chain_id_mismatch")
@@ -210,10 +208,7 @@ class PublicLobbyIndexCandidate:
         commit/head reader. Callers cannot use the index's own metadata as
         evidence of finality or currentness.
         """
-        if (
-            not thread_id.startswith("public-lobby:")
-            or len(thread_id.encode("utf-8")) > 2048
-        ):
+        if not thread_id.startswith("public-lobby:") or len(thread_id.encode("utf-8")) > 2048:
             raise ValueError("invalid_public_lobby_target")
         if len(cursor) > 4096:
             raise ValueError("invalid_cursor")

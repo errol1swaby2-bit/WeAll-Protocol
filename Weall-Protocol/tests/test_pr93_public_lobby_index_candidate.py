@@ -191,9 +191,9 @@ def test_shadow_rejects_stale_forged_or_same_height_conflicting_binding(tmp_path
     }
     with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="same_height_binding_conflict"):
         index.rebuild(state=altered, **_binding(altered))
-    assert [x["comment_id"] for x in index.page(
-        thread_id="public-lobby:welcome", **binding
-    )["items"]] == ["b", "a"]
+    assert [
+        x["comment_id"] for x in index.page(thread_id="public-lobby:welcome", **binding)["items"]
+    ] == ["b", "a"]
 
 
 def test_shadow_failure_during_projection_does_not_publish_partial_rows(
