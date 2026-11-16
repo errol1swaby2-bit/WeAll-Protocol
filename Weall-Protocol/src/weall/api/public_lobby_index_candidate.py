@@ -8,6 +8,7 @@ snapshot. Its binding is an input assertion, not independent BFT finality.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from typing import Any
 
@@ -20,13 +21,18 @@ from weall.api.routes_public_parts.content import (
     _safe_int,
     _str_param,
 )
-from weall.runtime.sqlite_db import SqliteDB
+from weall.runtime.sqlite_db import SqliteDB, SqliteLedgerStore
 from weall.runtime.state_hash import compute_state_root
 
 Json = dict[str, Any]
 
 _SCHEMA_VERSION = 1
 _MAX_BUILD_COMMENTS = 50_000
+_INVALIDATION_TRIGGERS = (
+    "trg_public_lobby_shadow_ledger_insert",
+    "trg_public_lobby_shadow_ledger_update",
+    "trg_public_lobby_shadow_ledger_delete",
+)
 
 
 class PublicLobbyIndexUnavailable(RuntimeError):
@@ -80,6 +86,104 @@ class PublicLobbyIndexCandidate:
                 """
             )
 
+    def attach_commit_invalidation(self) -> None:
+        """Opt-in durable ledger triggers; no global runtime or route registration.
+
+        Every ledger_state INSERT, UPDATE or DELETE invalidates published shadow
+        metadata in the same SQLite transaction, including block commits,
+        checkpoint imports, same-height runtime writes, and a crash rollback.
+        This method requires the SAME database as the canonical ledger.
+        """
+        with self.db.write_tx() as con:
+            present = con.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='ledger_state';"
+            ).fetchone()
+            if present is None:
+                raise PublicLobbyIndexUnavailable("local_ledger_table_required")
+
+            existing = {
+                str(row["name"])
+                for row in con.execute(
+                    """
+                    SELECT name FROM sqlite_master
+                    WHERE type='trigger' AND name IN (?, ?, ?);
+                    """,
+                    _INVALIDATION_TRIGGERS,
+                ).fetchall()
+            }
+            for operation, name in zip(
+                ("INSERT", "UPDATE", "DELETE"), _INVALIDATION_TRIGGERS, strict=True
+            ):
+                con.execute(
+                    f"""
+                    CREATE TRIGGER IF NOT EXISTS {name}
+                    AFTER {operation} ON ledger_state
+                    BEGIN
+                        DELETE FROM public_lobby_shadow_meta WHERE id=1;
+                    END;
+                    """
+                )
+            # A previously-built unbound or partially installed projection can
+            # never become trusted just because triggers are installed later.
+            if existing != set(_INVALIDATION_TRIGGERS):
+                con.execute("DELETE FROM public_lobby_shadow_meta WHERE id=1;")
+
+    def rebuild_from_local_ledger(self, *, chain_id: str) -> int:
+        """Reconstruct from persisted local canonical history; not BFT finality.
+
+        Full state_json parsing is deliberately confined to the offline rebuild.
+        The exact tip block must carry the recomputed state root, with a complete
+        canonical block commitment. The final writer lock checks that the head
+        has not changed since the input snapshot was read.
+        """
+        if not chain_id:
+            raise PublicLobbyIndexUnavailable("chain_id_required")
+        state = SqliteLedgerStore(db=self.db).read()
+        height = int(state.get("height") or 0)
+        block_id = str(state.get("tip") or "").strip()
+        if height < 1 or not block_id:
+            raise PublicLobbyIndexUnavailable("committed_tip_required")
+        state_root = compute_state_root(state)
+
+        with self.db.connection() as con:
+            persisted = con.execute(
+                """
+                SELECT block_json FROM blocks
+                WHERE height=? AND block_id=? LIMIT 1;
+                """,
+                (height, block_id),
+            ).fetchone()
+        if persisted is None:
+            raise PublicLobbyIndexUnavailable("committed_tip_block_missing")
+        try:
+            from weall.runtime.block_commitment_validation import ensure_complete_block_commitments
+
+            stored = json.loads(str(persisted["block_json"]))
+            if not isinstance(stored, dict):
+                raise PublicLobbyIndexUnavailable("committed_tip_block_malformed")
+            canonical, _binding = ensure_complete_block_commitments(
+                block=stored, chain_id=chain_id
+            )
+            header = canonical.get("header")
+            committed_root = str(
+                header.get("state_root") if isinstance(header, dict) else ""
+            ).strip()
+            if committed_root != state_root:
+                raise PublicLobbyIndexUnavailable("committed_tip_state_root_mismatch")
+        except PublicLobbyIndexUnavailable:
+            raise
+        except Exception as exc:
+            raise PublicLobbyIndexUnavailable("committed_tip_block_invalid") from exc
+
+        return self.rebuild(
+            state=state,
+            chain_id=chain_id,
+            height=height,
+            block_id=block_id,
+            state_root=state_root,
+            require_local_head=True,
+        )
+
     def rebuild(
         self,
         *,
@@ -88,6 +192,7 @@ class PublicLobbyIndexCandidate:
         height: int,
         block_id: str,
         state_root: str,
+        require_local_head: bool = False,
     ) -> int:
         """Replace the entire shadow index atomically from an explicit snapshot.
 
@@ -148,6 +253,28 @@ class PublicLobbyIndexCandidate:
             raise PublicLobbyIndexUnavailable("snapshot_changed_during_build")
 
         with self.db.write_tx() as con:
+            if require_local_head:
+                installed = {
+                    str(row["name"])
+                    for row in con.execute(
+                        """
+                        SELECT name FROM sqlite_master
+                        WHERE type='trigger' AND name IN (?, ?, ?);
+                        """,
+                        _INVALIDATION_TRIGGERS,
+                    ).fetchall()
+                }
+                if installed != set(_INVALIDATION_TRIGGERS):
+                    raise PublicLobbyIndexUnavailable("commit_invalidation_not_attached")
+                actual = con.execute(
+                    "SELECT height, block_id FROM ledger_state WHERE id=1;"
+                ).fetchone()
+                if (
+                    actual is None
+                    or int(actual["height"]) != height
+                    or str(actual["block_id"]) != block_id
+                ):
+                    raise PublicLobbyIndexUnavailable("local_ledger_head_advanced")
             previous = con.execute(
                 """
                 SELECT chain_id, height, block_id, state_root
@@ -198,9 +325,10 @@ class PublicLobbyIndexCandidate:
         chain_id: str,
         height: int,
         block_id: str,
-        state_root: str,
+        state_root: str | None = None,
         limit: int = 25,
         cursor: str = "",
+        require_local_head: bool = False,
     ) -> Json:
         """Read one page without deserializing global ledger state.
 
@@ -232,6 +360,35 @@ class PublicLobbyIndexCandidate:
                     meta is None
                     or meta["version"] != _SCHEMA_VERSION
                     or meta["chain_id"] != chain_id
+                    or not str(meta["state_root"] or "").strip()
+                ):
+                    raise PublicLobbyIndexUnavailable("index_source_stale_or_unverified")
+                if require_local_head:
+                    installed = {
+                        str(row["name"])
+                        for row in con.execute(
+                            """
+                            SELECT name FROM sqlite_master
+                            WHERE type='trigger' AND name IN (?, ?, ?);
+                            """,
+                            _INVALIDATION_TRIGGERS,
+                        ).fetchall()
+                    }
+                    if installed != set(_INVALIDATION_TRIGGERS):
+                        raise PublicLobbyIndexUnavailable("commit_invalidation_not_attached")
+                    actual = con.execute(
+                        "SELECT height, block_id FROM ledger_state WHERE id=1;"
+                    ).fetchone()
+                    if (
+                        actual is None
+                        or int(meta["height"]) != int(actual["height"])
+                        or str(meta["block_id"]) != str(actual["block_id"])
+                    ):
+                        raise PublicLobbyIndexUnavailable("local_ledger_head_stale")
+                elif (
+                    height is None
+                    or not block_id
+                    or not state_root
                     or int(meta["height"]) != height
                     or meta["block_id"] != block_id
                     or meta["state_root"] != state_root
@@ -286,3 +443,19 @@ class PublicLobbyIndexCandidate:
                 content_id=last["comment_id"],
             )
         return {"ok": True, "thread_id": thread_id, "items": items, "next_cursor": next_cursor}
+
+    def page_from_local_ledger(
+        self, *, thread_id: str, chain_id: str, limit: int = 25, cursor: str = ""
+    ) -> Json:
+        """One SQLite snapshot for committed head AND indexed rows.
+
+        This prototype method is NOT an HTTP route and NOT finality evidence.
+        No global state_json read occurs in the request path.
+        """
+        return self.page(
+            thread_id=thread_id,
+            chain_id=chain_id,
+            limit=limit,
+            cursor=cursor,
+            require_local_head=True,
+        )

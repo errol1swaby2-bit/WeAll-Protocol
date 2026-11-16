@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from weall.api import public_lobby_index_candidate as candidate
 from weall.api.app import create_app
+from weall.runtime.executor import WeAllExecutor
 from weall.runtime.sqlite_db import SqliteDB
 from weall.runtime.state_hash import compute_state_root
 
@@ -308,3 +310,131 @@ def test_shadow_handles_beyond_route_global_and_hidden_prefix_budgets(tmp_path) 
     shadow = index.page(thread_id="public-lobby:deep", limit=1, **binding)
     assert [row["comment_id"] for row in shadow["items"]] == ["deep-visible"]
     assert shadow["next_cursor"] is None
+
+
+def _real_executor(db_path: Path, monkeypatch: pytest.MonkeyPatch) -> WeAllExecutor:
+    # Explicit non-BFT, non-genesis rehearsal only. Never disable a production
+    # authority check to obtain the shadow-index proof.
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_BFT_ENABLED", "0")
+    monkeypatch.setenv("WEALL_NET_ENABLED", "0")
+    return WeAllExecutor(
+        db_path=str(db_path),
+        node_id="shadow-operator",
+        chain_id="a03-shadow-ledger-test",
+        tx_index_path=str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json"),
+    )
+
+
+def test_commit_invalidation_production_block_path_and_restart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db_path = tmp_path / "real-ledger.sqlite"
+    executor = _real_executor(db_path, monkeypatch)
+    first = executor.produce_block(max_txs=0, allow_empty=True)
+    assert first.ok, first.error
+
+    index = candidate.PublicLobbyIndexCandidate(executor._db)
+    index.initialize()
+    index.attach_commit_invalidation()
+    index.rebuild_from_local_ledger(chain_id=executor.chain_id)
+    assert index.page_from_local_ledger(
+        thread_id="public-lobby:welcome", chain_id=executor.chain_id
+    )["items"] == []
+
+    committed = executor.produce_block(max_txs=0, allow_empty=True)
+    assert committed.ok, committed.error
+    with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="stale"):
+        index.page_from_local_ledger(
+            thread_id="public-lobby:welcome", chain_id=executor.chain_id
+        )
+
+    # Index tables and invalidation triggers survive reopening the real ledger.
+    restarted = _real_executor(db_path, monkeypatch)
+    after_restart = candidate.PublicLobbyIndexCandidate(restarted._db)
+    with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="stale"):
+        after_restart.page_from_local_ledger(
+            thread_id="public-lobby:welcome", chain_id=restarted.chain_id
+        )
+    after_restart.rebuild_from_local_ledger(chain_id=restarted.chain_id)
+    assert after_restart.page_from_local_ledger(
+        thread_id="public-lobby:welcome", chain_id=restarted.chain_id
+    )["items"] == []
+    assert restarted.read_state()["height"] == 2
+
+
+def test_commit_trigger_rollback_keeps_prior_index_usable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    executor = _real_executor(tmp_path / "rollback.sqlite", monkeypatch)
+    assert executor.produce_block(max_txs=0, allow_empty=True).ok
+    index = candidate.PublicLobbyIndexCandidate(executor._db)
+    index.initialize()
+    index.attach_commit_invalidation()
+    index.rebuild_from_local_ledger(chain_id=executor.chain_id)
+    block, state, applied, invalid, error = executor.build_block_candidate(
+        max_txs=0, allow_empty=True
+    )
+    assert error == ""
+    assert block is not None
+    assert state is not None
+    # Fail after block insertion while the ledger writer transaction remains
+    # pending. No trigger-invalidation metadata should commit.
+    monkeypatch.setenv("WEALL_MODE", "test")
+    monkeypatch.setenv("WEALL_TEST_FAIL_AFTER_BLOCK_INSERT", "1")
+    failed = executor.commit_block_candidate(
+        block=block, new_state=state, applied_ids=applied, invalid_ids=invalid
+    )
+    assert not failed.ok
+    assert index.page_from_local_ledger(
+        thread_id="public-lobby:welcome", chain_id=executor.chain_id
+    )["items"] == []
+    assert executor.read_state()["height"] == 1
+
+
+def test_checkpoint_import_invalidates_in_same_transaction(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = _real_executor(tmp_path / "source.sqlite", monkeypatch)
+    for _ in range(3):
+        assert source.produce_block(max_txs=0, allow_empty=True).ok
+    checkpoint = source.get_block_by_height(3)
+    assert checkpoint is not None
+
+    target = _real_executor(tmp_path / "target.sqlite", monkeypatch)
+    assert target.produce_block(max_txs=0, allow_empty=True).ok
+    index = candidate.PublicLobbyIndexCandidate(target._db)
+    index.initialize()
+    index.attach_commit_invalidation()
+    index.rebuild_from_local_ledger(chain_id=target.chain_id)
+    assert index.page_from_local_ledger(
+        thread_id="public-lobby:welcome", chain_id=target.chain_id
+    )["items"] == []
+
+    # Storage-layer checkpoint primitive is real; the caller's authenticated
+    # state-sync verification, independent finality, and network are NOT tested.
+    target._ledger_store.install_state_sync_checkpoint(
+        state=source.read_state(), checkpoint_block=checkpoint
+    )
+    with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="stale"):
+        index.page_from_local_ledger(
+            thread_id="public-lobby:welcome", chain_id=target.chain_id
+        )
+    index.rebuild_from_local_ledger(chain_id=target.chain_id)
+    assert index.page_from_local_ledger(
+        thread_id="public-lobby:welcome", chain_id=target.chain_id
+    )["items"] == []
+
+
+def test_shadow_cannot_claim_local_committed_binding_without_attached_triggers(
+    tmp_path: Path,
+) -> None:
+    index = _index(tmp_path)
+    state = _state()
+    index.rebuild(state=state, **_binding(state))
+    with pytest.raises(candidate.PublicLobbyIndexUnavailable):
+        index.page_from_local_ledger(
+            thread_id="public-lobby:welcome", chain_id="shadow-test-chain"
+        )
+    with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="local_ledger_table"):
+        index.attach_commit_invalidation()
