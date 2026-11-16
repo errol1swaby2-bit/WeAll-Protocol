@@ -288,6 +288,19 @@ def _post_visible(st: Json, post: Json, post_id: str = "") -> bool:
     return vis in {"public", ""} or (bool(gid) and vis == "group")
 
 
+def _canonical_lobby_comment_index_matches(comment: Json, index_id: str) -> bool:
+    """Require an explicit canonical index identity for synthetic public-lobby comments.
+
+    A legacy "id" alias cannot substitute for comment_id: otherwise list and
+    detail reads can disagree about which moderation target was evaluated.
+    Other historical comment surfaces retain their existing compatibility.
+    """
+    if str(comment.get("surface") or "").strip().lower() != "public_lobby":
+        return True
+    canonical = comment.get("comment_id")
+    return isinstance(canonical, str) and bool(canonical) and canonical == str(index_id)
+
+
 def _comment_visible(st: Json, comment: Json) -> bool:
     if not isinstance(comment, dict):
         return False
@@ -836,12 +849,12 @@ def public_lobby_comments(request: Request) -> dict[str, object]:
             continue
         if str(comment.get("post_id") or "").strip() != thread_id:
             continue
+        if not _canonical_lobby_comment_index_matches(comment, str(cid)):
+            # A legacy alias must not bypass canonical-key moderation checks.
+            continue
         if not _comment_visible(st, comment):
             continue
-        comment_id = str(comment.get("comment_id") or cid).strip()
-        if comment_id != str(cid):
-            # Reject a mismatched index key rather than inventing aliases.
-            continue
+        comment_id = str(cid)
         nonce = _safe_int(comment.get("created_nonce"), 0)
         if cursor_nonce is not None and cursor_id is not None:
             if nonce > cursor_nonce or (nonce == cursor_nonce and comment_id >= cursor_id):
@@ -1095,7 +1108,11 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
     comments = _comments(st)
     if pid in comments:
         com = _with_reaction_counts(_as_dict(comments.get(pid)), _reaction_counts_by_target(st))
-        if bool(com.get("deleted", False)) or not _comment_visible(st, com):
+        if (
+            not _canonical_lobby_comment_index_matches(com, pid)
+            or bool(com.get("deleted", False))
+            or not _comment_visible(st, com)
+        ):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
@@ -1155,7 +1172,10 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     comments = _comments(st)
     if pid in comments:
         com = _with_reaction_counts(_as_dict(comments.get(pid)), reaction_counts)
-        if not _viewer_can_read_comment(st, com, viewer):
+        if (
+            not _canonical_lobby_comment_index_matches(com, pid)
+            or not _viewer_can_read_comment(st, com, viewer)
+        ):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )

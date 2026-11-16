@@ -270,11 +270,19 @@ async function submitRealPublicLobbyComment(
 async function readPublicLobbyFromBrowser(page: Page, threadId: string): Promise<any> {
   return page.evaluate(async (thread) => {
     // Same-origin API through the Vite node proxy. No bearer is attached.
-    const response = await fetch(
-      `/v1/public-lobby/comments?thread_id=${encodeURIComponent(thread)}&limit=20`,
-      { method: "GET", credentials: "omit" },
-    );
-    return { status: response.status, json: await response.json() };
+    // Independent browser contexts share a localhost/IP token bucket. Retry
+    // ONLY the safe anonymous GET when the server explicitly returns its 429
+    // rate_limited envelope; do not retry signed writes or weaken the limiter.
+    const url = `/v1/public-lobby/comments?thread_id=${encodeURIComponent(thread)}&limit=20`;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const response = await fetch(url, { method: "GET", credentials: "omit" });
+      const json = await response.json();
+      if (response.status !== 429 || json?.error?.code !== "rate_limited" || attempt === 7) {
+        return { status: response.status, json, rateLimitRetries: attempt };
+      }
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 1_250));
+    }
+    throw new Error("public-lobby read exhausted a bounded retry without a response");
   }, threadId);
 }
 
@@ -364,6 +372,7 @@ async function verifyRealTier0PublicLobbyConversation(args: {
     await expect(page.getByTestId("public-social-boundary-callout")).toBeVisible();
     const publicRead = await readPublicLobbyFromBrowser(page, threadId);
     expect(publicRead.status).toBe(200);
+    expect(publicRead.rateLimitRetries).toBeLessThanOrEqual(7);
     expect(publicRead.json.items.map((x: any) => String(x.comment_id)).sort()).toEqual(ids);
   }
 

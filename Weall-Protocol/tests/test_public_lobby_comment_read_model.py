@@ -190,3 +190,50 @@ def test_lobby_reads_fail_closed_on_invalid_scopes_and_cursors() -> None:
         },
     )
     assert invalid_cursor.status_code == 400
+
+
+def test_malformed_lobby_index_aliases_never_escape_public_list_or_detail() -> None:
+    """Legacy aliases must not supply a synthetic public-lobby identity.
+
+    In particular, a moderation entry indexed by the map key must not be
+    bypassable by an unbound legacy "id" field on that comment record.
+    """
+    client = _client()
+    content = client.app.state.executor.state["content"]
+    comments = content["comments"]
+    template = {
+        "post_id": "public-lobby:welcome",
+        "surface": "public_lobby",
+        "author": "@spoof",
+        "body": "Should not be returned",
+        "created_nonce": 100,
+        "visibility": "public",
+        "deleted": False,
+    }
+    comments["c-missing-canonical"] = {
+        **template,
+        "id": "legacy-alias-not-index",
+    }
+    comments["c-mismatched-canonical"] = {
+        **template,
+        "comment_id": "different-index",
+    }
+    comments["c-hidden-at-index"] = {
+        **template,
+        "id": "unrelated-legacy-target",
+    }
+    content["moderation"]["targets"]["c-hidden-at-index"] = {"last_action": "hide"}
+
+    read = client.get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:welcome", "limit": 50},
+    )
+    assert read.status_code == 200, read.text
+    assert {row["comment_id"] for row in read.json()["items"]} == {"c1", "c2"}
+    for indexed_id in (
+        "c-missing-canonical",
+        "c-mismatched-canonical",
+        "c-hidden-at-index",
+    ):
+        detail = client.get("/v1/content/" + indexed_id)
+        assert detail.status_code == 404, (indexed_id, detail.text)
