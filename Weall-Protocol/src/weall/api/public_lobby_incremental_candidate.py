@@ -9,7 +9,6 @@ A missing/moderation-changing/gapped head remains unavailable until rebuilding.
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from typing import Any
 
@@ -48,10 +47,9 @@ def prepare_comment_delta(
     """
     if not isinstance(before, dict) or not isinstance(after, dict):
         raise PublicLobbyIndexUnavailable("invalid_delta_state")
-    if (
-        before.get("disputes_by_id") != after.get("disputes_by_id")
-        or before.get("disputes_by_target") != after.get("disputes_by_target")
-    ):
+    if before.get("disputes_by_id") != after.get("disputes_by_id") or before.get(
+        "disputes_by_target"
+    ) != after.get("disputes_by_target"):
         raise PublicLobbyIndexUnavailable("dispute_change_requires_full_rebuild")
     before_content = _as_dict(before.get("content"))
     after_content = _as_dict(after.get("content"))
@@ -207,9 +205,7 @@ class PublicLobbyIncrementalCandidate:
                 (chain_id, height, block_id, root),
             )
 
-    def advance_one_committed_block(
-        self, *, previous_state: Json, chain_id: str
-    ) -> int:
+    def advance_one_committed_block(self, *, previous_state: Json, chain_id: str) -> int:
         """Apply only changed comment rows after ONE locally committed block.
 
         Current state is read from durable local SQLite. The previous explicit
@@ -252,9 +248,10 @@ class PublicLobbyIncrementalCandidate:
                 raise PublicLobbyIndexUnavailable("parent_shadow_anchor_mismatch")
             # If the invalidation trigger was bypassed, do not publish a
             # purported delta on an index that still claims to be current.
-            if con.execute(
-                "SELECT 1 FROM public_lobby_shadow_meta WHERE id=1;"
-            ).fetchone() is not None:
+            if (
+                con.execute("SELECT 1 FROM public_lobby_shadow_meta WHERE id=1;").fetchone()
+                is not None
+            ):
                 raise PublicLobbyIndexUnavailable("ledger_invalidation_missing")
 
             durable = con.execute(
@@ -268,19 +265,18 @@ class PublicLobbyIncrementalCandidate:
                 raise PublicLobbyIndexUnavailable("local_head_changed_during_delta")
             try:
                 durable_state = strict_json_loads(durable["state_json"])
-                if not isinstance(durable_state, dict) or compute_state_root(durable_state) != new_root:
+                if (
+                    not isinstance(durable_state, dict)
+                    or compute_state_root(durable_state) != new_root
+                ):
                     raise PublicLobbyIndexUnavailable("local_state_changed_during_delta")
             except PublicLobbyIndexUnavailable:
                 raise
             except Exception as exc:
                 raise PublicLobbyIndexUnavailable("local_state_corrupt") from exc
 
-            parent = _committed_block(
-                con, chain_id=chain_id, height=old_height, block_id=old_id
-            )
-            child = _committed_block(
-                con, chain_id=chain_id, height=new_height, block_id=new_id
-            )
+            parent = _committed_block(con, chain_id=chain_id, height=old_height, block_id=old_id)
+            child = _committed_block(con, chain_id=chain_id, height=new_height, block_id=new_id)
             _verify_block_root(parent, state_root=old_root)
             _verify_block_root(child, state_root=new_root)
             if str(child.get("prev_block_id") or "") != old_id:

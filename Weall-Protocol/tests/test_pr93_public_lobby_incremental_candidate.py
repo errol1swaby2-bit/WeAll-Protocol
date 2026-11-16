@@ -82,12 +82,18 @@ def test_incremental_row_delta_correctly_changes_and_drops_visibility() -> None:
 def test_incremental_delta_refuses_moderation_dispute_and_too_many_changes() -> None:
     old = _state()
     for mutation, error in (
-        (lambda s: s["content"]["moderation"]["targets"].update({"c1": {"deleted": True}}),
-         "content_policy_change_requires_full_rebuild"),
-        (lambda s: s["disputes_by_id"].update({"d1": {"target_id": "c1"}}),
-         "dispute_change_requires_full_rebuild"),
-        (lambda s: s["disputes_by_target"].update({"content:c1": "d1"}),
-         "dispute_change_requires_full_rebuild"),
+        (
+            lambda s: s["content"]["moderation"]["targets"].update({"c1": {"deleted": True}}),
+            "content_policy_change_requires_full_rebuild",
+        ),
+        (
+            lambda s: s["disputes_by_id"].update({"d1": {"target_id": "c1"}}),
+            "dispute_change_requires_full_rebuild",
+        ),
+        (
+            lambda s: s["disputes_by_target"].update({"content:c1": "d1"}),
+            "dispute_change_requires_full_rebuild",
+        ),
     ):
         new = deepcopy(old)
         mutation(new)
@@ -118,7 +124,9 @@ def _executor(tmp_path: Path, name: str, monkeypatch: pytest.MonkeyPatch) -> WeA
     )
 
 
-def _arm(executor: WeAllExecutor) -> tuple[PublicLobbyIndexCandidate, PublicLobbyIncrementalCandidate]:
+def _arm(
+    executor: WeAllExecutor,
+) -> tuple[PublicLobbyIndexCandidate, PublicLobbyIncrementalCandidate]:
     index = PublicLobbyIndexCandidate(executor._db)
     index.initialize()
     index.attach_commit_invalidation()
@@ -150,15 +158,14 @@ def test_real_producer_follower_replay_delta_restart_parity(
     assert m2.ok, m2.error
     for idx, ex in ((producer_index, producer), (follower_index, follower)):
         with pytest.raises(PublicLobbyIndexUnavailable, match="stale"):
-            idx.page_from_local_ledger(
-                thread_id="public-lobby:welcome", chain_id=ex.chain_id
-            )
-    assert producer_delta.advance_one_committed_block(
+            idx.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id=ex.chain_id)
+    updated_p = producer_delta.advance_one_committed_block(
         previous_state=before_p, chain_id=producer.chain_id
-    ) == 0
-    assert follower_delta.advance_one_committed_block(
+    )
+    updated_f = follower_delta.advance_one_committed_block(
         previous_state=before_f, chain_id=follower.chain_id
-    ) == 0
+    )
+    assert updated_p == updated_f == 0
     first_page = producer_index.page_from_local_ledger(
         thread_id="public-lobby:welcome", chain_id=producer.chain_id
     )
@@ -170,9 +177,10 @@ def test_real_producer_follower_replay_delta_restart_parity(
 
     restarted = _executor(tmp_path, "follower", monkeypatch)
     persisted = PublicLobbyIndexCandidate(restarted._db)
-    assert persisted.page_from_local_ledger(
+    restored_page = persisted.page_from_local_ledger(
         thread_id="public-lobby:welcome", chain_id=restarted.chain_id
-    ) == first_page
+    )
+    assert restored_page == first_page
     assert restarted.read_state()["height"] == 2
 
 
@@ -184,19 +192,13 @@ def test_real_chain_gap_and_wrong_parent_state_cannot_publish_delta(
     index, incremental = _arm(producer)
     before = deepcopy(producer.read_state())
     altered = deepcopy(before)
-    altered["content"] = {"comments": {"forged": {"visibility": "public"}}}
+    altered["forged_noncontent"] = {"not_in_previous_committed_root": True}
     assert producer.produce_block(max_txs=0, allow_empty=True).ok
 
     with pytest.raises(PublicLobbyIndexUnavailable, match="parent_shadow_anchor_mismatch"):
-        incremental.advance_one_committed_block(
-            previous_state=altered, chain_id=producer.chain_id
-        )
+        incremental.advance_one_committed_block(previous_state=altered, chain_id=producer.chain_id)
     with pytest.raises(PublicLobbyIndexUnavailable, match="stale"):
-        index.page_from_local_ledger(
-            thread_id="public-lobby:welcome", chain_id=producer.chain_id
-        )
+        index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id=producer.chain_id)
     assert producer.produce_block(max_txs=0, allow_empty=True).ok
     with pytest.raises(PublicLobbyIndexUnavailable, match="single_block_delta_required"):
-        incremental.advance_one_committed_block(
-            previous_state=before, chain_id=producer.chain_id
-        )
+        incremental.advance_one_committed_block(previous_state=before, chain_id=producer.chain_id)
