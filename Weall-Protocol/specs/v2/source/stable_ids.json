@@ -16713,6 +16713,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "GET /v1/public-lobby/comments|src/weall/api/routes_public_parts/content.py|public_lobby_comments",
+      "kind": "route",
+      "stable_id": "ROUTE-63E26182B51EAFCB",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "GET /v1/poh/tier2/case/{case_id}|src/weall/api/routes_public_parts/poh.py|poh_tier2_case",
       "kind": "route",
       "stable_id": "ROUTE-6427CFCDD81EEDCA",
