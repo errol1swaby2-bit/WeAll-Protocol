@@ -16,6 +16,7 @@ on:
       - web/scripts/test_m4_social_report_gate_source.mjs
       - web/scripts/test_public_social_flow_readiness_source.mjs
       - Weall-Protocol/tests/test_public_lobby_comment_read_model.py
+      - Weall-Protocol/tests/test_scoped_content_media_providers.py
       - Weall-Protocol/src/weall/api/routes_public_parts/content.py
       - Weall-Protocol/generated/tx_index.json
       - Weall-Protocol/src/weall/runtime/apply/content.py
@@ -77,14 +78,14 @@ jobs:
         run: |
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install -e . --no-deps
-      - name: Public-lobby Python formatting and lint (pinned Ruff)
+      - name: Public content read Python formatting and lint (pinned Ruff)
         working-directory: Weall-Protocol
         run: |
-          python -m ruff format --check src/weall/api/routes_public_parts/content.py tests/test_public_lobby_comment_read_model.py
-          python -m ruff check src/weall/api/routes_public_parts/content.py tests/test_public_lobby_comment_read_model.py
-      - name: Public-lobby visibility, pagination, and moderation API regression
+          python -m ruff format --check src/weall/api/routes_public_parts/content.py tests/test_public_lobby_comment_read_model.py tests/test_scoped_content_media_providers.py
+          python -m ruff check src/weall/api/routes_public_parts/content.py tests/test_public_lobby_comment_read_model.py tests/test_scoped_content_media_providers.py
+      - name: Public-lobby availability, moderation and scoped visibility regressions
         working-directory: Weall-Protocol
-        run: python -m pytest -q tests/test_public_lobby_comment_read_model.py
+        run: python -m pytest -q tests/test_public_lobby_comment_read_model.py tests/test_scoped_content_media_providers.py
       - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
