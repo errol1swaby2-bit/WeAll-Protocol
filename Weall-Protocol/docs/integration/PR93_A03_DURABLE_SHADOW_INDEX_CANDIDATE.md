@@ -41,3 +41,7 @@ Implement an independently authenticated committed-head read binding that does n
 - Reviewer Readiness and A01–A20 remain non-green. Passing A03 and B5xx diagnostics is neither a semantic-review signature nor approval of this candidate for public API, BFT finality, production network, Genesis or beta.
 - All generated evidence files in the next commit are strictly source-bound to the **implementation input commit**, not an automatic assertion that the evidence-only follow-up commit's CI passed.
 
+
+## Negative verification hardening after evidence refresh
+
+An attached local-ledger index now refuses the bare caller-supplied rebuild path. Only the verified local committed-tip rebuild may publish rows once durable ledger invalidation triggers are present. Added fault injection changes canonical state_json directly while preserving its old tip height and block ID. The next rebuild must detect that the persisted tip block's state-root commitment no longer matches and must refuse to publish the forged content. Trigger invalidation also prevents serving the previously published rows. This is storage-integrity testing, not independent historical finality.

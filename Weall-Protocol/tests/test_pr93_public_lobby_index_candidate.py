@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from weall.api import public_lobby_index_candidate as candidate
 from weall.api.app import create_app
 from weall.runtime.executor import WeAllExecutor
-from weall.runtime.sqlite_db import SqliteDB
+from weall.runtime.sqlite_db import SqliteDB, _canon_json
 from weall.runtime.state_hash import compute_state_root
 
 
@@ -433,3 +433,54 @@ def test_shadow_cannot_claim_local_committed_binding_without_attached_triggers(
         index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id="shadow-test-chain")
     with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="local_ledger_table"):
         index.attach_commit_invalidation()
+
+
+def test_attached_index_rejects_unverified_rebuild_and_forged_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    executor = _real_executor(tmp_path / "forged.sqlite", monkeypatch)
+    assert executor.produce_block(max_txs=0, allow_empty=True).ok
+    index = candidate.PublicLobbyIndexCandidate(executor._db)
+    index.initialize()
+    index.attach_commit_invalidation()
+    state = executor.read_state()
+    with pytest.raises(
+        candidate.PublicLobbyIndexUnavailable, match="attached_index_requires_verified_rebuild"
+    ):
+        index.rebuild(
+            state=state,
+            chain_id=executor.chain_id,
+            height=int(state["height"]),
+            block_id=str(state["tip"]),
+            state_root=compute_state_root(state),
+        )
+    index.rebuild_from_local_ledger(chain_id=executor.chain_id)
+    page = index.page_from_local_ledger(
+        thread_id="public-lobby:welcome", chain_id=executor.chain_id
+    )
+    assert page["items"] == []
+
+    # Simulate direct local storage corruption (not a legal state transition).
+    # The ledger row can retain its old height and block ID; the committed
+    # tip block's cryptographic state-root commitment must still reject it.
+    forged = deepcopy(state)
+    forged.setdefault("content", {}).setdefault("comments", {})["forged"] = {
+        "comment_id": "forged",
+        "post_id": "public-lobby:welcome",
+        "surface": "public_lobby",
+        "created_nonce": 100,
+        "body": "not in committed state",
+    }
+    with executor._db.write_tx() as con:
+        con.execute(
+            "UPDATE ledger_state SET state_json=? WHERE id=1;",
+            (_canon_json(forged),),
+        )
+    with pytest.raises(
+        candidate.PublicLobbyIndexUnavailable, match="committed_tip_state_root_mismatch"
+    ):
+        index.rebuild_from_local_ledger(chain_id=executor.chain_id)
+    with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="stale"):
+        index.page_from_local_ledger(
+            thread_id="public-lobby:welcome", chain_id=executor.chain_id
+        )

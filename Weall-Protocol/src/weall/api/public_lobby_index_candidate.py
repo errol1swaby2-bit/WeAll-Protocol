@@ -251,17 +251,21 @@ class PublicLobbyIndexCandidate:
             raise PublicLobbyIndexUnavailable("snapshot_changed_during_build")
 
         with self.db.write_tx() as con:
+            installed = {
+                str(row["name"])
+                for row in con.execute(
+                    """
+                    SELECT name FROM sqlite_master
+                    WHERE type='trigger' AND name IN (?, ?, ?);
+                    """,
+                    _INVALIDATION_TRIGGERS,
+                ).fetchall()
+            }
+            # An attached index must never accept arbitrary caller-asserted
+            # roots as though they were authenticated persisted state.
+            if installed and not require_local_head:
+                raise PublicLobbyIndexUnavailable("attached_index_requires_verified_rebuild")
             if require_local_head:
-                installed = {
-                    str(row["name"])
-                    for row in con.execute(
-                        """
-                        SELECT name FROM sqlite_master
-                        WHERE type='trigger' AND name IN (?, ?, ?);
-                        """,
-                        _INVALIDATION_TRIGGERS,
-                    ).fetchall()
-                }
                 if installed != set(_INVALIDATION_TRIGGERS):
                     raise PublicLobbyIndexUnavailable("commit_invalidation_not_attached")
                 actual = con.execute(
