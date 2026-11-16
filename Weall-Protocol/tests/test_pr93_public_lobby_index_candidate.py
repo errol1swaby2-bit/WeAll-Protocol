@@ -481,6 +481,4 @@ def test_attached_index_rejects_unverified_rebuild_and_forged_snapshot(
     ):
         index.rebuild_from_local_ledger(chain_id=executor.chain_id)
     with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="stale"):
-        index.page_from_local_ledger(
-            thread_id="public-lobby:welcome", chain_id=executor.chain_id
-        )
+        index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id=executor.chain_id)
