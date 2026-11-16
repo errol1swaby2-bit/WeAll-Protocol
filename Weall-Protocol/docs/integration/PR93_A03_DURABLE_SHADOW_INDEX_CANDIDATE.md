@@ -53,3 +53,11 @@ An attached local-ledger index now refuses the bare caller-supplied rebuild path
 - The regeneration is bound to this exact implementation source, not a human V2 semantic approval or production authorization. The subsequent evidence-only commit requires a fresh exact-head CI run.
 - Automatic incremental maintenance, production read-route cutover, fork recovery, externally authenticated finality, 20 remaining transaction semantic adjudications, and public Genesis remain unresolved.
 
+
+## One-block incremental shadow reconciliation — diagnostic only
+
+A new companion component, `public_lobby_incremental_candidate.py`, introduces an **opt-in, post-commit** row-delta experiment. The existing durable ledger_state triggers continue invalidating served metadata as part of each block or checkpoint transaction. The experimental reconciler records a prior verified local block/height/root anchor, checks one locally stored canonical parent→child block link and both source-state root commitments, compares an explicit prior state against the next durable state, and atomically updates only changed lobby-comment rows before publishing the new matching index binding. Every unrecognized moderation/dispute/content policy change, missing anchor, source mismatch, gap, or excessive comment delta fails closed and requires a full verified rebuild.
+
+This is **not** constant-time commit mutation tracking: identifying changed comments currently compares both full in-memory comment maps, and the proof also parses durable full state_json during post-commit reconciliation. The real production API remains unchanged and its temporary 503 limits still apply. Production-wide automatic hooks, proof-complete change journaling, asynchronous catchup, multi-commit replay, state-sync checkpoint recovery, and BFT finality are NOT established.
+
+The targeted tests use the real executor and follower `apply_block` over two local SQLite databases, proving the empty-block one-step reconciliation and follower restart metadata parity, but not physically isolated operators or authenticated P2P transport.
