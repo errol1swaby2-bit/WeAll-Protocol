@@ -23,3 +23,13 @@
 ## Next acceptance increment
 
 Implement an independently authenticated committed-head read binding that does not deserialize state_json; define fail-closed projection invalidation on every state transition path (block commits, checkpoint installation, rollback/reorg, restart, and state-sync); then test each transition with durable SQLite history. Only after exact-head source and CI verification, adversarial parity/replay tests, and explicit semantic approval should the live route be considered for cutover. PR #93 remains DRAFT / NO-GO.
+
+## Follow-up candidate: opt-in commit-bound invalidation (2026-11-16)
+
+- attach_commit_invalidation() creates three durable SQLite triggers on the **same main ledger database** (ledger_state INSERT/UPDATE/DELETE) only when explicitly invoked. It invalidates shadow metadata atomically inside every transaction that changes the ledger snapshot. Production does **not** invoke this opt-in function.
+- rebuild_from_local_ledger() reads persisted snapshot JSON offline, recomputes its root, verifies the complete stored tip block and state-root commitment, and checks the same ledger height/block ID again under the final writer lock before publishing derived rows. This is self-consistent **local** persisted history, not independently verified BFT finality.
+- page_from_local_ledger() reads the durable ledger head and matching shadow metadata within the **same SQLite read transaction** as the page rows. If the index is absent or invalidated, it fails closed; it does not parse global state_json.
+- The tests exercise real WeAllExecutor SQLite block commits and restart, an injected uncommitted block-write rollback, and the real storage-layer checkpoint replacement. Checkpoint installation is invoked directly for storage-layer evidence, **not** as proof that production state-sync authenticated a remote checkpoint.
+- The index remains a full-snapshot, 50,000-comment capped **offline** rebuild. No automatic reindex worker, catchup, fork reconciliation, production API switch, or measured production-scale throughput is claimed. A node can still return HTTP 503 on the existing live route.
+
+**Safety boundary:** SQLite trigger installation is opt-in diagnostic instrumentation and is not a reviewed activation mechanism. It is not a constitutional authorization and cannot be used to infer production runtime or validator signing readiness.

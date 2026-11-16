@@ -338,16 +338,15 @@ def test_commit_invalidation_production_block_path_and_restart(
     index.initialize()
     index.attach_commit_invalidation()
     index.rebuild_from_local_ledger(chain_id=executor.chain_id)
-    assert index.page_from_local_ledger(
+    page = index.page_from_local_ledger(
         thread_id="public-lobby:welcome", chain_id=executor.chain_id
-    )["items"] == []
+    )
+    assert page["items"] == []
 
     committed = executor.produce_block(max_txs=0, allow_empty=True)
     assert committed.ok, committed.error
     with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="stale"):
-        index.page_from_local_ledger(
-            thread_id="public-lobby:welcome", chain_id=executor.chain_id
-        )
+        index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id=executor.chain_id)
 
     # Index tables and invalidation triggers survive reopening the real ledger.
     restarted = _real_executor(db_path, monkeypatch)
@@ -357,9 +356,10 @@ def test_commit_invalidation_production_block_path_and_restart(
             thread_id="public-lobby:welcome", chain_id=restarted.chain_id
         )
     after_restart.rebuild_from_local_ledger(chain_id=restarted.chain_id)
-    assert after_restart.page_from_local_ledger(
+    page = after_restart.page_from_local_ledger(
         thread_id="public-lobby:welcome", chain_id=restarted.chain_id
-    )["items"] == []
+    )
+    assert page["items"] == []
     assert restarted.read_state()["height"] == 2
 
 
@@ -386,9 +386,10 @@ def test_commit_trigger_rollback_keeps_prior_index_usable(
         block=block, new_state=state, applied_ids=applied, invalid_ids=invalid
     )
     assert not failed.ok
-    assert index.page_from_local_ledger(
+    page = index.page_from_local_ledger(
         thread_id="public-lobby:welcome", chain_id=executor.chain_id
-    )["items"] == []
+    )
+    assert page["items"] == []
     assert executor.read_state()["height"] == 1
 
 
@@ -407,9 +408,10 @@ def test_checkpoint_import_invalidates_in_same_transaction(
     index.initialize()
     index.attach_commit_invalidation()
     index.rebuild_from_local_ledger(chain_id=target.chain_id)
-    assert index.page_from_local_ledger(
+    page = index.page_from_local_ledger(
         thread_id="public-lobby:welcome", chain_id=target.chain_id
-    )["items"] == []
+    )
+    assert page["items"] == []
 
     # Storage-layer checkpoint primitive is real; the caller's authenticated
     # state-sync verification, independent finality, and network are NOT tested.
@@ -417,13 +419,12 @@ def test_checkpoint_import_invalidates_in_same_transaction(
         state=source.read_state(), checkpoint_block=checkpoint
     )
     with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="stale"):
-        index.page_from_local_ledger(
-            thread_id="public-lobby:welcome", chain_id=target.chain_id
-        )
+        index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id=target.chain_id)
     index.rebuild_from_local_ledger(chain_id=target.chain_id)
-    assert index.page_from_local_ledger(
+    page = index.page_from_local_ledger(
         thread_id="public-lobby:welcome", chain_id=target.chain_id
-    )["items"] == []
+    )
+    assert page["items"] == []
 
 
 def test_shadow_cannot_claim_local_committed_binding_without_attached_triggers(
@@ -433,8 +434,6 @@ def test_shadow_cannot_claim_local_committed_binding_without_attached_triggers(
     state = _state()
     index.rebuild(state=state, **_binding(state))
     with pytest.raises(candidate.PublicLobbyIndexUnavailable):
-        index.page_from_local_ledger(
-            thread_id="public-lobby:welcome", chain_id="shadow-test-chain"
-        )
+        index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id="shadow-test-chain")
     with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="local_ledger_table"):
         index.attach_commit_invalidation()

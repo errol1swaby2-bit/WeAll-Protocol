@@ -161,9 +161,7 @@ class PublicLobbyIndexCandidate:
             stored = json.loads(str(persisted["block_json"]))
             if not isinstance(stored, dict):
                 raise PublicLobbyIndexUnavailable("committed_tip_block_malformed")
-            canonical, _binding = ensure_complete_block_commitments(
-                block=stored, chain_id=chain_id
-            )
+            canonical, _binding = ensure_complete_block_commitments(block=stored, chain_id=chain_id)
             header = canonical.get("header")
             committed_root = str(
                 header.get("state_root") if isinstance(header, dict) else ""
