@@ -93,6 +93,18 @@ jobs:
           (root / "changed_fields.json").write_text(json.dumps(output, indent=2, sort_keys=True) + "\n")
           print(json.dumps(summary, indent=2, sort_keys=True))
           PY
+      - name: PR93 read-only route/transaction review inventory regression
+        run: |
+          set -Eeuo pipefail
+          ruff check scripts/pr93_v2_semantic_review_inventory.py tests/test_pr93_v2_semantic_review_inventory.py
+          ruff format --check scripts/pr93_v2_semantic_review_inventory.py tests/test_pr93_v2_semantic_review_inventory.py
+          PYTHONPATH=src:scripts python -m pytest -q tests/test_pr93_v2_semantic_review_inventory.py
+      - name: Preserve PR93 read-only semantic inventory, never approvals
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          mkdir -p artifacts/pr77-v2-semantic-fields
+          PYTHONPATH=src:scripts python scripts/pr93_v2_semantic_review_inventory.py > artifacts/pr77-v2-semantic-fields/pr93_route_tx_inventory_no_approval.json
       - name: Upload inspectable diagnostic, never approvals
         if: always()
         uses: actions/upload-artifact@v4
