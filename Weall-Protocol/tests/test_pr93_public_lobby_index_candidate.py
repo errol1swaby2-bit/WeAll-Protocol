@@ -7,8 +7,8 @@ from copy import deepcopy
 import pytest
 from fastapi.testclient import TestClient
 
-from weall.api.app import create_app
 from weall.api import public_lobby_index_candidate as candidate
+from weall.api.app import create_app
 from weall.runtime.sqlite_db import SqliteDB
 from weall.runtime.state_hash import compute_state_root
 
@@ -245,7 +245,7 @@ def test_shadow_rejects_invalid_cursors_and_never_uses_legacy_identity(tmp_path)
 def test_shadow_pagination_can_read_large_thread_without_route_scan(tmp_path) -> None:
     state = _state()
     for n in range(1200):
-        cid = "bulk-%05d" % n
+        cid = f"bulk-{n:05d}"
         state["content"]["comments"][cid] = {
             "comment_id": cid,
             "post_id": "public-lobby:bulk",
@@ -272,3 +272,40 @@ def test_shadow_pagination_can_read_large_thread_without_route_scan(tmp_path) ->
         "bulk-01197",
         "bulk-01196",
     ]
+
+def test_shadow_handles_beyond_route_global_and_hidden_prefix_budgets(tmp_path) -> None:
+    """Offline projection demonstrates what the route's interim 503 caps forbid."""
+    state = _state()
+    for n in range(10001):
+        state["content"]["comments"][f"unrelated-{n:05d}"] = {
+            "surface": "ordinary"
+        }
+    for n in range(520):
+        cid = f"private-{n:05d}"
+        state["content"]["comments"][cid] = {
+            "comment_id": cid,
+            "post_id": "public-lobby:deep",
+            "surface": "public_lobby",
+            "visibility": "private",
+            "created_nonce": n + 2,
+        }
+    state["content"]["comments"]["deep-visible"] = {
+        "comment_id": "deep-visible",
+        "post_id": "public-lobby:deep",
+        "surface": "public_lobby",
+        "created_nonce": 1,
+        "body": "deeply paginated visible",
+    }
+    direct = _client(state).get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:deep", "limit": 1},
+    )
+    assert direct.status_code == 503
+    assert direct.json()["error"]["code"] == "public_lobby_read_budget_exceeded"
+
+    index = _index(tmp_path)
+    binding = _binding(state)
+    index.rebuild(state=state, **binding)
+    shadow = index.page(thread_id="public-lobby:deep", limit=1, **binding)
+    assert [row["comment_id"] for row in shadow["items"]] == ["deep-visible"]
+    assert shadow["next_cursor"] is None
