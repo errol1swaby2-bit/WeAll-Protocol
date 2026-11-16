@@ -212,3 +212,71 @@ def test_real_chain_gap_and_wrong_parent_state_cannot_publish_delta(
     assert producer.produce_block(max_txs=0, allow_empty=True).ok
     with pytest.raises(PublicLobbyIndexUnavailable, match="single_block_delta_required"):
         incremental.advance_one_committed_block(previous_state=before, chain_id=producer.chain_id)
+
+
+def test_real_canonical_public_lobby_comment_is_incrementally_visible_on_follower(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two local executors apply the same on-chain Tier-0 comment transaction.
+
+    Transport and independent BFT consensus are deliberately not claimed.
+    """
+    producer = _executor(tmp_path, "lobby-producer", monkeypatch)
+    follower = _executor(tmp_path, "lobby-follower", monkeypatch)
+    registration = producer.submit_tx(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@lobby-test-user",
+            "nonce": 1,
+            "payload": {"pubkey": "k:lobby-test-user"},
+        }
+    )
+    assert registration["ok"] is True, registration
+    first = producer.produce_block(max_txs=1)
+    assert first.ok, first.error
+    imported = follower.apply_block(producer.get_block_by_height(1))
+    assert imported.ok, imported.error
+
+    producer_index, producer_delta = _arm(producer)
+    follower_index, follower_delta = _arm(follower)
+    before_p = deepcopy(producer.read_state())
+    before_f = deepcopy(follower.read_state())
+
+    submitted = producer.submit_tx(
+        {
+            "tx_type": "CONTENT_COMMENT_CREATE",
+            "signer": "@lobby-test-user",
+            "nonce": 2,
+            "payload": {
+                "post_id": "public-lobby:welcome",
+                "surface": "public_lobby",
+                "body": "Canonical incremental lobby message",
+            },
+        }
+    )
+    assert submitted["ok"] is True, submitted
+    second = producer.produce_block(max_txs=1)
+    assert second.ok, second.error
+    block = producer.get_block_by_height(2)
+    assert block is not None
+    imported = follower.apply_block(block)
+    assert imported.ok, imported.error
+
+    changed_p = producer_delta.advance_one_committed_block(
+        previous_state=before_p, chain_id=producer.chain_id
+    )
+    changed_f = follower_delta.advance_one_committed_block(
+        previous_state=before_f, chain_id=follower.chain_id
+    )
+    assert changed_p == changed_f == 1
+    expected = producer_index.page_from_local_ledger(
+        thread_id="public-lobby:welcome", chain_id=producer.chain_id
+    )
+    actual = follower_index.page_from_local_ledger(
+        thread_id="public-lobby:welcome", chain_id=follower.chain_id
+    )
+    assert expected == actual
+    assert len(actual["items"]) == 1
+    assert actual["items"][0]["body"] == "Canonical incremental lobby message"
+    assert actual["items"][0]["author"] == "@lobby-test-user"
+    assert actual["next_cursor"] is None
