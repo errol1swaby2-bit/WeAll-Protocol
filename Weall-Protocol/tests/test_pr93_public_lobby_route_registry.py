@@ -3,6 +3,7 @@
 The registered public-lobby projection has a stable code-bound identity.
 This test deliberately does not accept/refresh the route semantic-review digest.
 """
+
 from __future__ import annotations
 
 import ast
@@ -18,14 +19,11 @@ CANONICAL_KEY = f"{ROUTE_PATH}|{IMPLEMENTATION}|{FUNCTION}"
 
 
 def test_public_lobby_route_identity_is_unique_and_not_tombstoned() -> None:
-    registry = json.loads(
-        (ROOT / "specs/v2/source/stable_ids.json").read_text(encoding="utf-8")
-    )
-    expected = (
-        "ROUTE-" + hashlib.sha256(CANONICAL_KEY.encode("utf-8")).hexdigest()[:16].upper()
-    )
+    registry = json.loads((ROOT / "specs/v2/source/stable_ids.json").read_text(encoding="utf-8"))
+    expected = "ROUTE-" + hashlib.sha256(CANONICAL_KEY.encode("utf-8")).hexdigest()[:16].upper()
     matches = [
-        row for row in registry["entries"]
+        row
+        for row in registry["entries"]
         if row.get("kind") == "route" and row.get("canonical_key") == CANONICAL_KEY
     ]
     assert len(matches) == 1
@@ -33,9 +31,7 @@ def test_public_lobby_route_identity_is_unique_and_not_tombstoned() -> None:
     assert matches[0]["status"] == "active"
     assert matches[0]["aliases"] == []
     assert sum(row.get("stable_id") == expected for row in registry["entries"]) == 1
-    assert not any(
-        row.get("stable_id") == expected for row in registry.get("tombstones", [])
-    )
+    assert not any(row.get("stable_id") == expected for row in registry.get("tombstones", []))
 
 
 def test_public_lobby_route_identity_matches_real_read_handler() -> None:
@@ -48,7 +44,8 @@ def test_public_lobby_route_identity_matches_real_read_handler() -> None:
     assert len(funcs) == 1
     handler = funcs[0]
     decorators = [
-        node for node in handler.decorator_list
+        node
+        for node in handler.decorator_list
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and isinstance(node.func.value, ast.Name)
@@ -63,6 +60,12 @@ def test_public_lobby_route_identity_matches_real_read_handler() -> None:
         for node in ast.walk(handler)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
     }
-    assert {"_snapshot", "_comments", "_comment_visible", "_cursor_unpack", "_cursor_pack"} <= called
+    assert {
+        "_snapshot",
+        "_comments",
+        "_comment_visible",
+        "_cursor_unpack",
+        "_cursor_pack",
+    } <= called
     # Structural read-contract check only: API runtime, redaction and auth still need review.
     assert "require_account_session" not in called
