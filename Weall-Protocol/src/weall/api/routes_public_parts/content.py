@@ -341,9 +341,7 @@ def _comment_visible(st: Json, comment: Json, comment_id: str = "") -> bool:
     if vis not in {"public", ""}:
         return False
     root_id = str(comment.get("post_id") or comment.get("thread_id") or "").strip()
-    canonical_id = str(
-        comment_id or comment.get("comment_id") or comment.get("id") or ""
-    ).strip()
+    canonical_id = str(comment_id or comment.get("comment_id") or comment.get("id") or "").strip()
     if str(comment.get("surface") or "").strip().lower() == "public_lobby":
         # Tier-0 public-lobby comments intentionally reference a synthetic
         # public-lobby: target, not a Tier-2 post. Never generalize this
