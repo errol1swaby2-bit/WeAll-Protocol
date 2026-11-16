@@ -33,3 +33,11 @@ Implement an independently authenticated committed-head read binding that does n
 - The index remains a full-snapshot, 50,000-comment capped **offline** rebuild. No automatic reindex worker, catchup, fork reconciliation, production API switch, or measured production-scale throughput is claimed. A node can still return HTTP 503 on the existing live route.
 
 **Safety boundary:** SQLite trigger installation is opt-in diagnostic instrumentation and is not a reviewed activation mechanism. It is not a constitutional authorization and cannot be used to infer production runtime or validator signing readiness.
+
+## Exact-source validation evidence for commit 4d61498eb101
+
+- Source commit: 4d61498eb101c5f23f24a30a5db3b41f25ec5194; focused A03 shadow-index [workflow run 43975717692](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43975717692) **passed** with pinned Ruff and **20 total tests** (new shadow-index candidates plus original public-lobby regressions).
+- The three full B528/B534/B567 diagnostic regeneration harnesses [run 43975718647](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43975718647) **passed**. The output proved semantically unchanged compared with the previous JSON; only deterministic input fingerprints changed.
+- Reviewer Readiness and A01–A20 remain non-green. Passing A03 and B5xx diagnostics is neither a semantic-review signature nor approval of this candidate for public API, BFT finality, production network, Genesis or beta.
+- All generated evidence files in the next commit are strictly source-bound to the **implementation input commit**, not an automatic assertion that the evidence-only follow-up commit's CI passed.
+
