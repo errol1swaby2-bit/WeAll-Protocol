@@ -22,6 +22,14 @@ router = APIRouter()
 
 Json = dict[str, Any]
 
+# Temporary deterministic safety budgets. The compatibility snapshot is
+# already materialized by the executor before these checks run; these limits
+# bound route-level work, not whole-state deserialization or node storage.
+_PUBLIC_LOBBY_MAX_GLOBAL_COMMENTS = 10_000
+_PUBLIC_LOBBY_MAX_DISPUTES = 2_048
+_PUBLIC_LOBBY_MAX_DISPUTE_INDEX = 4_096
+_PUBLIC_LOBBY_MAX_VISIBILITY_EVALUATIONS = 512
+
 
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
@@ -864,28 +872,63 @@ def public_lobby_comments(request: Request) -> dict[str, object]:
         )
 
     limit = max(1, min(50, _int_param(qp.get("limit"), 25)))
-    cursor_nonce, cursor_id = _cursor_unpack(qp.get("cursor"))
-    if _str_param(qp.get("cursor")).strip() and (cursor_nonce is None or cursor_id is None):
+    raw_cursor = _str_param(qp.get("cursor")).strip()
+    if len(raw_cursor) > 4096:
+        raise ApiError.bad_request("invalid_cursor", "invalid public lobby cursor", {})
+    cursor_nonce, cursor_id = _cursor_unpack(raw_cursor or None)
+    if raw_cursor and (cursor_nonce is None or cursor_id is None):
         raise ApiError.bad_request("invalid_cursor", "invalid public lobby cursor", {})
 
     st = _required_public_lobby_snapshot(request)
-    visible: list[Json] = []
-    for cid, raw in sorted(_comments(st).items(), key=lambda pair: str(pair[0])):
+    comments = _comments(st)
+    # This is a bounded compatibility scan, NOT a production-scale index.
+    # Refuse unavailable workloads rather than return a false empty or partial
+    # page, and keep legacy immutable consensus state unchanged.
+    if (
+        len(comments) > _PUBLIC_LOBBY_MAX_GLOBAL_COMMENTS
+        or len(_as_dict(st.get("disputes_by_id"))) > _PUBLIC_LOBBY_MAX_DISPUTES
+        or len(_as_dict(st.get("disputes_by_target"))) > _PUBLIC_LOBBY_MAX_DISPUTE_INDEX
+    ):
+        raise ApiError.service_unavailable(
+            "public_lobby_read_budget_exceeded",
+            "public lobby read budget exceeded; indexed read model required",
+            {},
+        )
+
+    # Filter once and order by the same canonical cursor tuple as before.
+    # We defer expensive dispute/moderation checks until the candidates have
+    # been sorted, then stop as soon as one additional visible record proves
+    # whether the next page exists.
+    candidates: list[tuple[int, str, Json]] = []
+    for cid, raw in comments.items():
         comment = _as_dict(raw)
         if str(comment.get("surface") or "").strip().lower() != "public_lobby":
             continue
         if str(comment.get("post_id") or "").strip() != thread_id:
             continue
-        if not _canonical_lobby_comment_index_matches(comment, str(cid)):
-            # A legacy alias must not bypass canonical-key moderation checks.
-            continue
-        if not _comment_visible(st, comment, str(cid)):
-            continue
         comment_id = str(cid)
+        if not _canonical_lobby_comment_index_matches(comment, comment_id):
+            continue
         nonce = _safe_int(comment.get("created_nonce"), 0)
         if cursor_nonce is not None and cursor_id is not None:
             if nonce > cursor_nonce or (nonce == cursor_nonce and comment_id >= cursor_id):
                 continue
+        candidates.append((nonce, comment_id, comment))
+    candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+
+    visible: list[Json] = []
+    inspected = 0
+    for nonce, comment_id, comment in candidates:
+        if inspected >= _PUBLIC_LOBBY_MAX_VISIBILITY_EVALUATIONS:
+            # Hiding a large prefix must never silently truncate results.
+            raise ApiError.service_unavailable(
+                "public_lobby_read_budget_exceeded",
+                "public lobby read budget exceeded; indexed read model required",
+                {},
+            )
+        inspected += 1
+        if not _comment_visible(st, comment, comment_id):
+            continue
         visible.append(
             {
                 "comment_id": comment_id,
@@ -897,17 +940,9 @@ def public_lobby_comments(request: Request) -> dict[str, object]:
                 "visibility": "public",
             }
         )
+        if len(visible) > limit:
+            break
 
-    # Account nonces are independent, so comments by different users can
-    # legitimately share the same nonce. The cursor uses comment_id, never
-    # the shared synthetic post_id, as its deterministic tie breaker.
-    visible.sort(
-        key=lambda item: (
-            _safe_int(item.get("created_nonce"), 0),
-            str(item.get("comment_id") or ""),
-        ),
-        reverse=True,
-    )
     page = visible[:limit]
     next_cursor = None
     if len(visible) > limit and page:

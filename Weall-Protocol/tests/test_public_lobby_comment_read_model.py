@@ -279,3 +279,117 @@ def test_public_lobby_state_unavailable_is_not_a_false_empty_success() -> None:
     )
     assert genuinely_empty.status_code == 200
     assert genuinely_empty.json()["items"] == []
+
+
+def test_public_lobby_large_eligible_thread_only_evaluates_the_requested_window(
+    monkeypatch,
+) -> None:
+    """Apply expensive moderation checks only through the next visible page."""
+    from weall.api.routes_public_parts import content as routes
+
+    client = _client()
+    comments = client.app.state.executor.state["content"]["comments"]
+    for n in range(1800):
+        key = f"sample-{n:05d}"
+        comments[key] = {
+            "comment_id": key,
+            "post_id": "public-lobby:bulk",
+            "surface": "public_lobby",
+            "author": "@bulk",
+            "body": "same body",
+            "created_nonce": n + 1,
+            "visibility": "public",
+        }
+
+    evaluations = []
+    original = routes._comment_visible
+
+    def instrumented(state, comment, comment_id=""):
+        evaluations.append(comment_id)
+        return original(state, comment, comment_id)
+
+    monkeypatch.setattr(routes, "_comment_visible", instrumented)
+    result = client.get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:bulk", "limit": 2},
+    )
+    assert result.status_code == 200, result.text
+    assert [row["comment_id"] for row in result.json()["items"]] == [
+        "sample-01799",
+        "sample-01798",
+    ]
+    assert evaluations == ["sample-01799", "sample-01798", "sample-01797"]
+    assert result.json()["next_cursor"]
+
+
+def test_public_lobby_rejects_global_scan_over_budget_instead_of_lying() -> None:
+    from weall.api.routes_public_parts import content as routes
+
+    client = _client()
+    comments = client.app.state.executor.state["content"]["comments"]
+    for n in range(routes._PUBLIC_LOBBY_MAX_GLOBAL_COMMENTS + 1):
+        comments[f"unrelated-{n}"] = {}
+    res = client.get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:welcome"},
+    )
+    assert res.status_code == 503, res.text
+    assert res.json()["error"]["code"] == "public_lobby_read_budget_exceeded"
+
+
+def test_public_lobby_hiding_many_prefix_records_fails_closed_not_partial() -> None:
+    from weall.api.routes_public_parts import content as routes
+
+    client = _client()
+    state = client.app.state.executor.state
+    comments = state["content"]["comments"]
+    for n in range(routes._PUBLIC_LOBBY_MAX_VISIBILITY_EVALUATIONS + 1):
+        key = f"hidden-{n:05d}"
+        comments[key] = {
+            "comment_id": key,
+            "post_id": "public-lobby:blocked",
+            "surface": "public_lobby",
+            "author": "@bulk",
+            "body": "hidden",
+            "created_nonce": n + 2,
+            "visibility": "private",
+        }
+    comments["last-visible"] = {
+        "comment_id": "last-visible",
+        "post_id": "public-lobby:blocked",
+        "surface": "public_lobby",
+        "author": "@bulk",
+        "body": "visible after hidden prefix",
+        "created_nonce": 1,
+        "visibility": "public",
+    }
+    res = client.get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:blocked", "limit": 1},
+    )
+    assert res.status_code == 503, res.text
+    assert res.json()["error"]["code"] == "public_lobby_read_budget_exceeded"
+
+
+def test_public_lobby_dispute_scan_and_cursor_bytes_have_bounded_limits() -> None:
+    from weall.api.routes_public_parts import content as routes
+
+    client = _client()
+    state = client.app.state.executor.state
+    state["disputes_by_id"] = {
+        f"d-{n}": {} for n in range(routes._PUBLIC_LOBBY_MAX_DISPUTES + 1)
+    }
+    res = client.get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:welcome"},
+    )
+    assert res.status_code == 503
+    assert res.json()["error"]["code"] == "public_lobby_read_budget_exceeded"
+
+    # Reject oversized cursors before attempting to decode or read any state.
+    cursor = client.get(
+        "/v1/public-lobby/comments",
+        params={"thread_id": "public-lobby:welcome", "cursor": "a" * 4097},
+    )
+    assert cursor.status_code == 400
+    assert cursor.json()["error"]["code"] == "invalid_cursor"
