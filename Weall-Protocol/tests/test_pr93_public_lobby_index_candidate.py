@@ -408,9 +408,7 @@ def test_checkpoint_import_invalidates_in_same_transaction(
     index.initialize()
     index.attach_commit_invalidation()
     index.rebuild_from_local_ledger(chain_id=target.chain_id)
-    page = index.page_from_local_ledger(
-        thread_id="public-lobby:welcome", chain_id=target.chain_id
-    )
+    page = index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id=target.chain_id)
     assert page["items"] == []
 
     # Storage-layer checkpoint primitive is real; the caller's authenticated
@@ -421,9 +419,7 @@ def test_checkpoint_import_invalidates_in_same_transaction(
     with pytest.raises(candidate.PublicLobbyIndexUnavailable, match="stale"):
         index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id=target.chain_id)
     index.rebuild_from_local_ledger(chain_id=target.chain_id)
-    page = index.page_from_local_ledger(
-        thread_id="public-lobby:welcome", chain_id=target.chain_id
-    )
+    page = index.page_from_local_ledger(thread_id="public-lobby:welcome", chain_id=target.chain_id)
     assert page["items"] == []
 
 
