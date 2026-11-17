@@ -1011,6 +1011,102 @@ def _reviewed_role_gate_failures(tx_type: str, nodes: list[ast.AST], bridge: ast
     return [{"code": code, "reason": reason} for code, reason in sorted(pairs)]
 
 
+def _specialize_dispute_open_target_guard(
+    tree: ast.AST, handler: ast.AST, validator: ast.AST
+) -> ast.AST:
+    """Prune only the proposal branch excluded by a proven earlier validator.
+
+    If source changes invalidate this narrow proof, stop compilation rather
+    than hide potentially reachable errors. The runtime remains untouched.
+    """
+    allowlist_name = "_ALLOWED_DISPUTE_TARGET_TYPES"
+    assignments = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Name)
+        and node.id == allowlist_name
+        and isinstance(node.ctx, (ast.Store, ast.Del))
+    ]
+    declarations = [
+        node
+        for node in getattr(tree, "body", [])
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == allowlist_name
+    ]
+    if len(assignments) != 1 or len(declarations) != 1:
+        raise CompileError("dispute_open_target_allowlist_binding_changed")
+    value = declarations[0].value
+    if not (
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id == "frozenset"
+        and len(value.args) == 1
+        and not value.keywords
+        and isinstance(value.args[0], ast.Set)
+        and all(
+            isinstance(item, ast.Constant) and isinstance(item.value, str)
+            for item in value.args[0].elts
+        )
+    ):
+        raise CompileError("dispute_open_target_allowlist_not_literal")
+
+    # Bind the reviewed normalizer and rejection, not merely its name.
+    expected_validator = ast.parse(
+        """def _validate_dispute_target_type(target_type: str) -> str:
+    t = _as_str(target_type).strip().lower()
+    if not t or t not in _ALLOWED_DISPUTE_TARGET_TYPES:
+        raise DisputeApplyError(
+            "forbidden",
+            "unsupported_dispute_target_type",
+            {"target_type": target_type, "allowed": sorted(_ALLOWED_DISPUTE_TARGET_TYPES)},
+        )
+    return t
+"""
+    ).body[0]
+    if ast.dump(validator) != ast.dump(expected_validator):
+        raise CompileError("dispute_open_target_validator_changed_requires_review")
+
+    expected_binding = ast.parse(
+        "target_type = _validate_dispute_target_type(target_type)"
+    ).body[0]
+    expected_test = ast.parse(
+        'target_type in {"proposal", "governance", "governance_proposal"}', mode="eval"
+    ).body
+    clone = copy.deepcopy(handler)
+    if not isinstance(clone, ast.FunctionDef):
+        raise CompileError("dispute_open_target_handler_binding_changed")
+    guards = [
+        index
+        for index, node in enumerate(clone.body)
+        if isinstance(node, ast.If) and ast.dump(node.test) == ast.dump(expected_test)
+    ]
+    bindings = [
+        index
+        for index, node in enumerate(clone.body)
+        if ast.dump(node) == ast.dump(expected_binding)
+    ]
+    if len(guards) != 1 or len(bindings) != 1 or bindings[0] >= guards[0]:
+        raise CompileError("dispute_open_target_guard_order_changed")
+    if any(
+        isinstance(node, ast.Name)
+        and node.id == "target_type"
+        and isinstance(node.ctx, (ast.Store, ast.Del))
+        for statement in clone.body[bindings[0] + 1 : guards[0]]
+        for node in ast.walk(statement)
+    ):
+        raise CompileError("dispute_open_target_guard_value_changed")
+    allowed = {item.value for item in value.args[0].elts}
+    if allowed & {"proposal", "governance", "governance_proposal"}:
+        raise CompileError("dispute_open_proposal_support_requires_review")
+    guard = clone.body[guards[0]]
+    if not isinstance(guard, ast.If) or guard.orelse:
+        raise CompileError("dispute_open_proposal_guard_shape_changed")
+    del clone.body[guards[0]]
+    return clone
+
+
 def _tx_function_analysis(
     tx_type: str,
     source_path: Path,
@@ -1081,6 +1177,11 @@ def _tx_function_analysis(
         visited.add(name)
         fn = functions[name]
         analysis_node = fn.node
+        if tx_type == "DISPUTE_OPEN" and name == target.name and name == "dispute_open":
+            validator = functions.get("_validate_dispute_target_type")
+            if validator is None:
+                raise CompileError("dispute_open_target_validator_missing")
+            analysis_node = _specialize_dispute_open_target_guard(tree, fn.node, validator.node)
         if (
             tx_type in {"REVIEWER_LANE_OPT_IN", "REVIEWER_LANE_OPT_OUT"}
             and target.name == "_apply_reviewer_lane_update"

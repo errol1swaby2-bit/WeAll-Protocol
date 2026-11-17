@@ -27,6 +27,9 @@ SOURCE_ACCURACY_HOLDS: dict[str, tuple[str, ...]] = {
     "CONTENT_FLAG": ("duplicate_flag_id_rejection_requires_height_activation",),
     "DISPUTE_FINAL_RECEIPT": ("severe_final_receipt_held_only_under_constitutional_clock",),
     "DISPUTE_OPEN": ("proposal_target_rejected_before_proposal_status_branches",),
+    "DISPUTE_JUROR_ASSIGN": ("material_conflict_rejection_requires_strict_explicit_v2",),
+    "DISPUTE_JUROR_ACCEPT": ("material_conflict_rejection_requires_strict_explicit_v2",),
+    "DISPUTE_VOTE_SUBMIT": ("material_conflict_rejection_requires_strict_explicit_v2",),
     "GROUP_EMISSARY_ELECTION_CREATE": ("frozen_electorate_only_at_explicit_quorum_activation",),
     "GROUP_EMISSARY_ELECTION_FINALIZE": (
         "frozen_quorum_controls_authority_transfer_legacy_elections_remain_unversioned",

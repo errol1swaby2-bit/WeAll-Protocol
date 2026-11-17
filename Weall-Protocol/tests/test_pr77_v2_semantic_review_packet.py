@@ -89,9 +89,10 @@ def test_source_accuracy_holds_require_separate_semantic_review() -> None:
     current_rows, _, _ = audit._current_rows()
     current_open = next(item for item in current_rows if item["tx_type"] == "DISPUTE_OPEN")
     extracted = {(item["code"], item["reason"]) for item in current_open["failure_codes"]}
-    assert ("not_found", "proposal_not_found") in extracted
-    assert ("forbidden", "active_proposal_dispute_protected") in extracted
-    assert "key:gov_proposals_by_id" in current_open["state_reads"]
+    assert ("forbidden", "unsupported_dispute_target_type") in extracted
+    assert ("not_found", "proposal_not_found") not in extracted
+    assert ("forbidden", "active_proposal_dispute_protected") not in extracted
+    assert "key:gov_proposals_by_id" not in current_open["state_reads"]
 
     forged = copy.deepcopy(packet)
     next(item for item in forged["transactions"] if item["tx_type"] == "DISPUTE_OPEN")[

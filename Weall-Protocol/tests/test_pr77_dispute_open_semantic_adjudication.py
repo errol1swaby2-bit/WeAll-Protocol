@@ -92,10 +92,11 @@ def test_dispute_open_review_binds_verified_archived_and_current_material() -> N
     assert {
         ("invalid_payload", "missing_target"),
         ("forbidden", "tier1_required_for_dispute"),
-        ("not_found", "proposal_not_found"),
-        ("forbidden", "active_proposal_dispute_protected"),
+        ("forbidden", "unsupported_dispute_target_type"),
         ("duplicate", "dispute_id_exists"),
     }.issubset(added)
+    assert ("not_found", "proposal_not_found") not in added
+    assert ("forbidden", "active_proposal_dispute_protected") not in added
     removed = {(entry["code"], entry["reason"]) for entry in row["failure_code_deltas"]["removed"]}
     assert ("conflict", "appeal_already_filed") in removed
     assert row["signed_off_for_current_digest"] is False
@@ -139,8 +140,8 @@ def test_dispute_open_direct_and_dispatcher_identical_success(
     [
         ("content", "", "alice", False, ("invalid_payload", "missing_target")),
         ("content", "post-1", "unverified", False, ("forbidden", "tier1_required_for_dispute")),
-        # The static analyzer sees proposal error codes inside an unreachable
-        # branch: all three proposal aliases are rejected by the allowlist first.
+        # All three proposal aliases are rejected by the allowlist first.
+        # The narrowed extraction must reflect this runtime ordering.
         (
             "proposal",
             "p-missing",
