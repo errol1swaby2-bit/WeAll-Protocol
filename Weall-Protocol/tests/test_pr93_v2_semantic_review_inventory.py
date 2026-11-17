@@ -129,3 +129,18 @@ def test_pending_lobby_review_still_blocks_compiler_after_hypothetical_tx_digest
             copy.deepcopy(tx_rows), copy.deepcopy(current_routes), reviews
         )
     assert source.read_bytes() == original
+
+
+def test_v2_declared_route_count_matches_real_ast_without_accepting_pending_reviews() -> None:
+    """Route inventory counts must be exact even while a semantic decision is pending."""
+    source = inventory.ROOT / "specs/v2/source/manifest.json"
+    before = source.read_bytes()
+    declared = json.loads(before)["expected_counts"]["routes"]
+    report = inventory.build_inventory()
+    routes = report["route_review_inventory"]
+    assert declared == routes["current_route_count"] == routes["recorded_route_review_count"]
+    assert routes["duplicate_current_route_stable_ids"] == []
+    assert routes["duplicate_review_route_stable_ids"] == []
+    assert routes["orphaned_route_review_stable_ids"] == []
+    assert routes["unreviewed_routes_authorized"] is False
+    assert source.read_bytes() == before
