@@ -378,18 +378,19 @@ def test_review_packet_shows_exact_rejection_code_delta_per_lane() -> None:
     } in open_delta["added"]
     assert {"code": "forbidden", "reason": "system_only"} in open_delta["removed"]
 
-    # The role helper now produces dynamic error code/reason pairs: this
-    # analyzer visibility loss does not assert that runtime rejects changed.
+    # The source-reviewed predicate table restores the old actual rejections
+    # and represents the two policy-version denials without an exception label.
     role_delta = rows["ROLE_JUROR_ACTIVATE"]["failure_code_deltas"]
-    assert {
-        "code": "runtime_apply_error",
-        "reason": "see_handler",
-    } in role_delta["added"]
-    assert all(item["code"] != "RolesApplyError" for item in role_delta["added"])
+    assert {"code": "forbidden", "reason": "policy_unknown"} in role_delta["added"]
     assert {
         "code": "forbidden",
-        "reason": "account_restricted",
-    } in role_delta["removed"]
+        "reason": "canonical_role_reputation_ineligible",
+    } in role_delta["added"]
+    assert {"code": "forbidden", "reason": "account_restricted"} not in role_delta["removed"]
+    assert all(
+        item["code"] not in {"RolesApplyError", "runtime_apply_error"}
+        for item in role_delta["added"]
+    )
 
 
 def test_group_election_semantic_drifts_are_not_role_eligibility_approvals() -> None:

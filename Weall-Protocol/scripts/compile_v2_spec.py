@@ -896,17 +896,22 @@ def _handler_runtime_info(
     return handler, source_path, dispatch_name, mechanism_id
 
 
-def _specialize_reviewer_opt_out(node: ast.AST) -> ast.AST:
-    """Discard branches impossible for the dispatcher's literal active=False.
+def _specialize_reviewer_lane(node: ast.AST, *, active: bool) -> ast.AST:
+    """Discard branches impossible for a proven literal dispatcher argument.
 
-    This is deliberately NOT a general Python evaluator. Unknown conditions
-    are retained and remain overapproximations. Only the reviewer opt-out
-    handler uses this bounded specialization; no accepted V2 review is changed.
+    Unknown conditions remain overapproximations. This bounded analysis does
+    not execute runtime code or change any accepted review.
     """
+
+    for child in ast.walk(node):
+        if isinstance(child, ast.Name) and child.id == "active" and not isinstance(
+            child.ctx, ast.Load
+        ):
+            raise CompileError("reviewer_lane_active_parameter_reassigned")
 
     def active_truth(value: ast.AST) -> bool | None:
         if isinstance(value, ast.Name) and value.id == "active":
-            return False
+            return active
         if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.Not):
             inner = active_truth(value.operand)
             return not inner if inner is not None else None
@@ -938,6 +943,72 @@ def _specialize_reviewer_opt_out(node: ast.AST) -> ast.AST:
             return flattened
 
     return PruneInactivePath().visit(copy.deepcopy(node))
+
+
+# This finite, source-reviewed denial table is deliberately scoped to the
+# shared role predicate. It is not an attempt to infer arbitrary Python data
+# flow or to approve a transaction's complete semantic contract.
+_ROLE_GATE_SOURCE_SHA256 = "6ea5d6453218ef0f9f43cd26c06522f775fa5d6aefa9502e54ce74588435a7ff"
+_ROLE_GATE_TX_ROLES = {
+    "ROLE_JUROR_ENROLL": "juror",
+    "ROLE_JUROR_ACTIVATE": "juror",
+    "ROLE_JUROR_REINSTATE": "juror",
+    "ROLE_VALIDATOR_ACTIVATE": "validator",
+    "ROLE_NODE_OPERATOR_ACTIVATE": "node_operator",
+    "ROLE_EMISSARY_SEAT": "emissary",
+    "ROLE_GOV_EXECUTOR_SET": "gov_executor",
+    "REVIEWER_LANE_OPT_IN": "juror",
+}
+
+
+def _reviewed_role_gate_failures(
+    tx_type: str, nodes: list[ast.AST], bridge: ast.AST
+) -> list[Json]:
+    source = ROOT / "src/weall/runtime/reputation_role_gate.py"
+    # Read text with universal newline conversion, so a Windows checkout
+    # cannot change the binding solely by using CRLF.
+    if _sha256_bytes(source.read_text(encoding="utf-8").encode("utf-8")) != (
+        _ROLE_GATE_SOURCE_SHA256
+    ):
+        raise CompileError("role_gate_failure_source_changed_requires_review")
+
+    roles = [
+        _literal_string(keyword.value)
+        for node in nodes
+        for child in ast.walk(node)
+        if isinstance(child, ast.Call)
+        and isinstance(child.func, ast.Name)
+        and child.func.id == "_require_role_activation_eligible"
+        for keyword in child.keywords
+        if keyword.arg == "role"
+    ]
+    role = _ROLE_GATE_TX_ROLES.get(tx_type)
+    if role is None or roles != [role]:
+        raise CompileError(f"role_gate_failure_call_binding_mismatch:{tx_type}")
+
+    expected_raise = ast.parse(
+        'raise RolesApplyError(str(decision["code"]), str(decision["reason"]), details)'
+    ).body[0]
+    if not any(
+        isinstance(node, ast.Raise) and ast.dump(node) == ast.dump(expected_raise)
+        for node in ast.walk(bridge)
+    ):
+        raise CompileError("role_gate_failure_bridge_changed_requires_review")
+
+    pairs = {
+        ("not_found", "account_not_found"),
+        ("forbidden", "account_restricted"),
+        ("forbidden", "live_verification_required"),
+        ("forbidden", "role_eligibility_revoked"),
+        ("forbidden", "reputation_insufficient"),
+        ("forbidden", "policy_unknown"),
+    }
+    # Canonical event enforcement occurs only under explicitly selected v2
+    # for these mapped operative roles; the other roles cannot emit this
+    # particular typed denial from the reviewed predicate.
+    if role in {"juror", "validator"}:
+        pairs.add(("forbidden", "canonical_role_reputation_ineligible"))
+    return [{"code": code, "reason": reason} for code, reason in sorted(pairs)]
 
 
 def _tx_function_analysis(
@@ -1011,40 +1082,34 @@ def _tx_function_analysis(
         fn = functions[name]
         analysis_node = fn.node
         if (
-            tx_type == "REVIEWER_LANE_OPT_OUT"
+            tx_type in {"REVIEWER_LANE_OPT_IN", "REVIEWER_LANE_OPT_OUT"}
             and target.name == "_apply_reviewer_lane_update"
             and name == target.name
         ):
-            # Bind the local constant to its exact transaction dispatcher.
-            # If dispatch changes, fail closed instead of silently excluding
-            # a newly reachable role eligibility error.
-            canonical_branch = branch
-            if canonical_branch is None:
-                # The applier registry may declare the dedicated handler as
-                # its entrypoint rather than apply_roles. In either mode,
-                # prove the literal argument from the actual dispatcher in
-                # this very source module before specializing its AST.
-                dispatcher = functions.get("apply_roles")
-                if dispatcher is not None:
-                    canonical_branch = _branch_for_tx(dispatcher.node, tx_type)
-            matching_false_call = bool(
-                canonical_branch is not None
-                and any(
-                    isinstance(call, ast.Call)
-                    and isinstance(call.func, ast.Name)
-                    and call.func.id == "_apply_reviewer_lane_update"
-                    and any(
-                        keyword.arg == "active"
-                        and isinstance(keyword.value, ast.Constant)
-                        and keyword.value.value is False
-                        for keyword in call.keywords
-                    )
-                    for call in ast.walk(canonical_branch)
-                )
+            # Require the actual dispatcher to return this exact handler with
+            # one literal bool. An incidental nested call is not a binding.
+            dispatcher = functions.get("apply_roles")
+            canonical_branch = (
+                _branch_for_tx(dispatcher.node, tx_type) if dispatcher is not None else None
             )
-            if not matching_false_call:
-                raise CompileError("reviewer_lane_opt_out_dispatch_not_literal_false")
-            analysis_node = _specialize_reviewer_opt_out(fn.node)
+            active = tx_type == "REVIEWER_LANE_OPT_IN"
+            statement = (
+                canonical_branch.body[0]
+                if canonical_branch is not None and len(canonical_branch.body) == 1
+                else None
+            )
+            call = statement.value if isinstance(statement, ast.Return) else None
+            if not (
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id == "_apply_reviewer_lane_update"
+                and len(call.keywords) == 1
+                and call.keywords[0].arg == "active"
+                and isinstance(call.keywords[0].value, ast.Constant)
+                and call.keywords[0].value.value is active
+            ):
+                raise CompileError(f"reviewer_lane_dispatch_literal_mismatch:{tx_type}")
+            analysis_node = _specialize_reviewer_lane(fn.node, active=active)
         nodes.append(analysis_node)
         for called in _direct_local_calls(analysis_node, set(functions)):
             if called in visited:
@@ -1083,11 +1148,27 @@ def _tx_function_analysis(
     failures: dict[tuple[str, str], Json] = {}
     return_keys: set[str] = set()
     referenced_txs: set[str] = set()
+    role_gate_bridge = (
+        functions["_require_role_activation_eligible"].node
+        if "_require_role_activation_eligible" in visited
+        else None
+    )
+    if tx_type in _ROLE_GATE_TX_ROLES and role_gate_bridge is None:
+        raise CompileError(f"role_gate_failure_bridge_missing:{tx_type}")
     for node in nodes:
         node_reads, node_writes = _extract_key_tokens(node)
         reads.update(node_reads)
         writes.update(node_writes)
-        for failure in _extract_failures(node):
+        node_failures = _extract_failures(node)
+        if node is role_gate_bridge:
+            # Replace only this bridge's generic dynamic-error marker.
+            # Other unknown dynamic failures are not silently accepted.
+            node_failures = [
+                failure
+                for failure in node_failures
+                if failure != {"code": "runtime_apply_error", "reason": "see_handler"}
+            ] + _reviewed_role_gate_failures(tx_type, nodes, node)
+        for failure in node_failures:
             failures[(str(failure["code"]), str(failure["reason"]))] = failure
         return_keys.update(_extract_return_keys(node))
         referenced_txs.update(tx_names.intersection(_all_string_constants(node)))

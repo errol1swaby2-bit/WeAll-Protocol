@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.pr77_v2_semantic_review_packet import build_packet
+from scripts.pr77_v2_semantic_review_packet import audit, build_packet
 from weall.ledger.state import LedgerView
 from weall.runtime.apply.roles import RolesApplyError, apply_roles
 from weall.runtime.bounded_rollback import run_with_bounded_rollback
@@ -110,7 +110,7 @@ def _apply_atomically(state: dict, tx_type: str) -> dict:
 
 
 @pytest.mark.parametrize("tx_type", ALL_REVIEWED_TX_TYPES)
-def test_each_stale_role_contract_compiler_delta_is_scanner_visibility(
+def test_each_stale_role_contract_binds_actual_typed_denials(
     tx_type: str,
 ) -> None:
     packet = build_packet()
@@ -118,24 +118,30 @@ def test_each_stale_role_contract_compiler_delta_is_scanner_visibility(
     assert row["archive_matches_accepted_digest"] is True
     assert row["archived_implementation_source"] == row["current_implementation_source"]
     assert row["current_material_digest"] != row["accepted_review_digest"]
-    assert row["changed_field_names"] == ["failure_codes", "state_reads", "state_writes"]
-    # The scanner must not expose exception class names as canonical codes.
-    # Opt-out bypasses the activation predicate and has no such dynamic
-    # failure; the other eight roles reach a handler-owned dynamic code.
-    expected_added = (
-        []
-        if tx_type == "REVIEWER_LANE_OPT_OUT"
-        else [{"code": "runtime_apply_error", "reason": "see_handler"}]
-    )
-    assert row["failure_code_deltas"] == {
-        "added": expected_added,
-        "removed": [
-            {"code": "forbidden", "reason": "account_restricted"},
-            {"code": "forbidden", "reason": "live_verification_required"},
-            {"code": "forbidden", "reason": "reputation_insufficient"},
-            {"code": "forbidden", "reason": "role_eligibility_revoked"},
-        ],
+    assert {"failure_codes", "state_reads", "state_writes"} <= set(row["changed_field_names"])
+    # The source-bound table now restores the actual typed predicate denials
+    # instead of publishing the exception class or a generic placeholder.
+    rows, _, _ = audit._current_rows()
+    current = next(item for item in rows if item["tx_type"] == tx_type)
+    pairs = {(item["code"], item["reason"]) for item in current["failure_codes"]}
+    base_gate = {
+        ("not_found", "account_not_found"),
+        ("forbidden", "account_restricted"),
+        ("forbidden", "live_verification_required"),
+        ("forbidden", "role_eligibility_revoked"),
+        ("forbidden", "reputation_insufficient"),
+        ("forbidden", "policy_unknown"),
     }
+    if tx_type == "REVIEWER_LANE_OPT_OUT":
+        assert pairs.isdisjoint(base_gate - {("not_found", "account_not_found")})
+        assert ("not_found", "juror_not_enrolled") in pairs
+    else:
+        assert base_gate <= pairs
+        mapped = dict(GATED_TX_ROLES)[tx_type] in {"juror", "validator"}
+        assert (("forbidden", "canonical_role_reputation_ineligible") in pairs) is mapped
+        if tx_type == "REVIEWER_LANE_OPT_IN":
+            assert ("not_found", "juror_not_enrolled") not in pairs
+    assert ("runtime_apply_error", "see_handler") not in pairs
     assert row["signed_off_for_current_digest"] is False
     assert row["historical_replay_proven"] is False
     assert packet["must_not_update_semantic_reviews_automatically"] is True
@@ -321,3 +327,31 @@ def test_public_reviewer_opt_out_reaches_admission_restriction_before_applier(
     assert verdict.code == "gate_denied"
     assert verdict.reason == reason
     assert state == before
+
+
+@pytest.mark.parametrize("tx_type,role", GATED_TX_ROLES)
+def test_missing_account_rejection_retains_legacy_exact_details(tx_type: str, role: str) -> None:
+    state = _state(gate_version=1)
+    state["accounts"].clear()
+    predicted = role_activation_reputation_decision(
+        state, "@alice", role=role, minimum_reputation_milli=5000
+    )
+    assert (predicted["code"], predicted["reason"]) == ("not_found", "account_not_found")
+    before = copy.deepcopy(state)
+    with pytest.raises(RolesApplyError) as raised:
+        _apply_atomically(state, tx_type)
+    assert (raised.value.code, raised.value.reason) == ("not_found", "account_not_found")
+    assert raised.value.details == {"account_id": "@alice"}
+    assert state == before
+
+
+def test_reviewer_opt_in_enrolls_fresh_eligible_account_without_existing_juror() -> None:
+    state = _state(gate_version=1)
+    state["roles"]["jurors"] = {"by_id": {}, "active_set": []}
+    result = _apply_atomically(state, "REVIEWER_LANE_OPT_IN")
+    assert result["applied"] == "REVIEWER_LANE_OPT_IN"
+    record = state["roles"]["jurors"]["by_id"]["@alice"]
+    assert record["enrolled"] is True
+    assert record["active"] is True
+    assert record["responsibilities"]["reviewer"]["dispute_review"]["opted_in"] is True
+    assert state["roles"]["jurors"]["active_set"] == ["@alice"]
