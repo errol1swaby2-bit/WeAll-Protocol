@@ -202,8 +202,14 @@ def test_legacy_repair_keeps_original_pending_fields(monkeypatch) -> None:
     assert queued[0]["payload"]["flagged_by"] == "legacy-reporter"
 
 
-def test_not_due_repair_does_not_mutate_pending_state(monkeypatch) -> None:
+@pytest.mark.parametrize("strict_provenance", [False, True])
+@pytest.mark.parametrize("normalized", [False, True], ids=["partial-schema", "canonical-schema"])
+def test_not_due_repair_does_not_mutate_pending_state(
+    monkeypatch, strict_provenance: bool, normalized: bool
+) -> None:
     state = _state()
+    if not strict_provenance:
+        state["height"] = 19
     state["content"]["pending_escalations"] = {
         "flag:alice:1": {
             "status": "pending",
@@ -212,14 +218,42 @@ def test_not_due_repair_does_not_mutate_pending_state(monkeypatch) -> None:
             "flagged_by": "stale-reporter",
         }
     }
+    # Pin the additive initialization contract explicitly. A partial fixture is
+    # not canonical state: the scheduler historically fills these empty roots.
+    empty_roots = {
+        "posts": {},
+        "comments": {},
+        "reactions": {},
+        "history": {"posts": {}, "comments": {}},
+        "media": {},
+        "media_bindings": {},
+        "moderation": {"receipts": [], "targets": {}},
+    }
+    if normalized:
+        state["content"].update(copy.deepcopy(empty_roots))
     original = copy.deepcopy(state)
+    attempted = []
 
     def unexpected_enqueue(_state, **kwargs):
+        attempted.append(kwargs)
         raise AssertionError("not-due escalation must not be enqueued")
 
     monkeypatch.setattr("weall.runtime.apply.content.enqueue_system_tx", unexpected_enqueue)
     assert repair_pending_content_escalations(state, next_height=20) == 0
-    assert state == original
+    assert attempted == []
+    # Already normalized canonical state must be byte-for-byte equivalent as
+    # data; the partial fixture may acquire only the historical empty roots.
+    expected = copy.deepcopy(original)
+    if not normalized:
+        expected["content"].update(empty_roots)
+    assert state == expected
+    assert state["content"]["pending_escalations"] == original["content"]["pending_escalations"]
+    assert state["content"]["flags"] == original["content"]["flags"]
+    # Initialization is idempotent, and the pending record must remain intact.
+    after = copy.deepcopy(state)
+    assert repair_pending_content_escalations(state, next_height=21) == 0
+    assert state == after
+    assert attempted == []
 
 
 def test_activated_duplicate_flag_id_cannot_replace_provenance() -> None:
