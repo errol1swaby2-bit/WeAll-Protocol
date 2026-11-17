@@ -86,12 +86,19 @@ jobs:
           exit 1
 
       - name: Install
+        id: install_web_dependencies
         run: |
           npm ci
 
       - name: Dependency audit
         run: |
           npm run dependency-audit
+
+      - name: Isolated Picomatch vulnerability regression (GHSA-fc5q-39xc-vjpf)
+        # Run even if the advisory audit fails, to provide separate behavioral
+        # evidence. Neither step is optional and neither substitutes for the other.
+        if: ${{ !cancelled() && steps.install_web_dependencies.outcome == 'success' }}
+        run: node scripts/test_picomatch_security_regression.mjs
 
       - name: Typecheck
         run: |
