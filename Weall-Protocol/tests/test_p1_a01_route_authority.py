@@ -74,11 +74,31 @@ def test_a01_f003_generated_route_inventory_has_no_shadow_implementations() -> N
     payload = _generated_route_map()
     rows = payload["routes"]
 
-    assert payload["route_count"] == 159
-    assert payload["unique_method_path_count"] == 159
+    source_root = ROOT / "specs" / "v2" / "source"
+    manifest = json.loads((source_root / "manifest.json").read_text(encoding="utf-8"))
+    reviews = json.loads((source_root / "semantic_reviews.json").read_text(encoding="utf-8"))
+    expected_count = manifest["expected_counts"]["routes"]
+    reviewed_routes = reviews["routes"]
+
+    assert payload["route_count"] == expected_count
+    assert payload["unique_method_path_count"] == expected_count
     assert payload["duplicate_route_implementation_count"] == 0
-    assert len(rows) == 159
+    assert len(rows) == expected_count
+    assert len(reviewed_routes) == expected_count
     assert not [row for row in rows if row.get("duplicate_route_key")]
+
+    # Check actual route identities and stable IDs against the reviewed source
+    # rather than accepting an arbitrary generated inventory of the right size.
+    generated_keys = Counter(f"{row['method']} {row['path']}" for row in rows)
+    reviewed_keys = Counter(row["route_key"] for row in reviewed_routes)
+    assert len(generated_keys) == len(reviewed_keys) == expected_count
+    assert generated_keys == reviewed_keys
+    assert Counter(
+        (f"{row['method']} {row['path']}", row["stable_id"]) for row in rows
+    ) == Counter((row["route_key"], row["stable_id"]) for row in reviewed_routes)
+    assert all(
+        row["disposition"] == "accepted_current_semantic_contract" for row in reviewed_routes
+    )
 
     # The retired helper module must not appear as a decorated V2 route source.
     assert not [
