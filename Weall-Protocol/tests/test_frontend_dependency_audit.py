@@ -111,6 +111,7 @@ def test_frontend_package_lock_uses_public_registry_urls_only() -> None:
     assert "artifactory/api/npm/npm-public" not in lock_text
     assert "registry.npmjs.org" in lock_text
 
+
 def test_pr93_regeneration_has_one_generated_only_writer_and_keeps_web_audit() -> None:
     workflows = ROOT / ".github" / "workflows"
     branch = "integration/unified-baseline-all-open-prs-20261114"
@@ -125,6 +126,8 @@ def test_pr93_regeneration_has_one_generated_only_writer_and_keeps_web_audit() -
     assert "web/package.json web/package-lock.json" in strict
     assert "git push origin HEAD:" in strict
     assert "npm install --package-lock-only" not in strict
-    assert "npm run dependency-audit" in web
-    assert "node scripts/test_picomatch_security_regression.mjs" in web
-    assert "continue-on-error:" not in web
+    gate_steps = web.split("      - name: Dependency audit\n", 1)[1]
+    gate_steps = gate_steps.split("      - name: Typecheck\n", 1)[0]
+    assert "npm run dependency-audit" in gate_steps
+    assert "node scripts/test_picomatch_security_regression.mjs" in gate_steps
+    assert "continue-on-error:" not in gate_steps
