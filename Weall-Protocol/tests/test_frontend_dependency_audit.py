@@ -110,3 +110,21 @@ def test_frontend_package_lock_uses_public_registry_urls_only() -> None:
     assert "packages.applied-caas" not in lock_text
     assert "artifactory/api/npm/npm-public" not in lock_text
     assert "registry.npmjs.org" in lock_text
+
+def test_pr93_regeneration_has_one_generated_only_writer_and_keeps_web_audit() -> None:
+    workflows = ROOT / ".github" / "workflows"
+    branch = "integration/unified-baseline-all-open-prs-20261114"
+    legacy = (workflows / "v2-spec-refresh.yml").read_text(encoding="utf-8")
+    strict = (workflows / "pr93-approved-derivative-refresh.yml").read_text(encoding="utf-8")
+    web = (workflows / "web-ci.yml").read_text(encoding="utf-8")
+
+    assert f"branches-ignore:\n      - {branch}" in legacy
+    assert f"if: github.ref_name != '{branch}'" in legacy
+    assert f"github.ref_name == '{branch}'" in strict
+    assert "git diff --exit-code" in strict
+    assert "web/package.json web/package-lock.json" in strict
+    assert "git push origin HEAD:" in strict
+    assert "npm install --package-lock-only" not in strict
+    assert "npm run dependency-audit" in web
+    assert "node scripts/test_picomatch_security_regression.mjs" in web
+    assert "continue-on-error:" not in web

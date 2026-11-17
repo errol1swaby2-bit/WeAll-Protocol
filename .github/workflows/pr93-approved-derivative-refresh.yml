@@ -6,6 +6,8 @@ on:
       - integration/unified-baseline-all-open-prs-20261114
     paths:
       - .github/workflows/pr93-approved-derivative-refresh.yml
+      - .github/workflows/v2-spec-refresh.yml
+      - Weall-Protocol/tests/test_frontend_dependency_audit.py
       - Weall-Protocol/specs/v2/source/stable_ids.json
       - Weall-Protocol/specs/v2/source/source_mappings.json
       - Weall-Protocol/tests/test_p1_a01_route_authority.py
@@ -141,10 +143,18 @@ jobs:
         run: |
           set -Eeuo pipefail
           python scripts/check_v2_spec_clean_checkout.py
+          python scripts/gen_tx_semantic_assurance_v1_5.py --check
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
           python -m pytest -q tests/test_pr93_v2_semantic_review_inventory.py tests/test_pr77_v2_semantic_review_packet.py
           ruff check tests/test_p1_a01_route_authority.py
           ruff format --check tests/test_p1_a01_route_authority.py
           python -m pytest -q tests/test_p1_a01_route_authority.py
+          ruff check tests/test_frontend_dependency_audit.py
+          ruff format --check tests/test_frontend_dependency_audit.py
+          python -m pytest -q tests/test_frontend_dependency_audit.py tests/test_p1_a17_reviewer_repro_contract.py
           python scripts/pr93_v2_semantic_review_inventory.py
           echo 'No new approvals, no security audit exemption, no independent launch authorization.'
       - name: Push verified generated evidence only

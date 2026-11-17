@@ -9,6 +9,8 @@ name: Reviewer Artifact Refresh
 on:
   workflow_dispatch:
   push:
+    branches-ignore:
+      - integration/unified-baseline-all-open-prs-20261114
     paths:
       - .github/workflows/v2-spec-refresh.yml
       - Weall-Protocol/tests/test_frontend_dependency_audit.py
@@ -23,6 +25,9 @@ concurrency:
 
 jobs:
   refresh-reviewer-artifacts:
+    # PR93 has a dedicated generated-only writer. Never rewrite its audited
+    # locks or race its strict archive validation, including manual dispatch.
+    if: github.ref_name != 'integration/unified-baseline-all-open-prs-20261114'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout triggering ref
