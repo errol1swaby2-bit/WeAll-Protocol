@@ -104,13 +104,18 @@ jobs:
           python scripts/gen_release_evidence_manifest_v1_5.py
           python scripts/gen_current_verified_claims.py
           python scripts/check_public_claim_freshness.py
-          # Require the complete derivative graph to be current before any write.
+          # V2 also hashes the non-V2 evidence and current claim documents.
+          # Rebind those inputs after generating them, without changing source or reviews.
+          python scripts/compile_v2_spec.py
+          # A bounded two-pass regeneration must now satisfy both read-only gates.
+          # Do not retry into a green result or push if this graph cannot stabilize.
           python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/gen_current_verified_claims.py --check
+          python scripts/compile_v2_spec.py --check
           python -m tooling.canon_lint
-      - name: Commit regenerated evidence only
+      - name: Prepare generated-only commit locally
         run: |
           set -Eeuo pipefail
           git diff --check
@@ -120,7 +125,6 @@ jobs:
           git add -A -- Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md
           if ! git diff --cached --quiet; then
             git commit -m 'chore(v2): regenerate exact approved development reviewer evidence'
-            git push origin HEAD:"${GITHUB_REF_NAME}"
           fi
       - name: Verify clean archived tree and current review regressions
         working-directory: Weall-Protocol
@@ -130,3 +134,12 @@ jobs:
           python -m pytest -q tests/test_pr93_v2_semantic_review_inventory.py tests/test_pr77_v2_semantic_review_packet.py
           python scripts/pr93_v2_semantic_review_inventory.py
           echo 'No new approvals, no security audit exemption, no independent launch authorization.'
+      - name: Push verified generated evidence only
+        run: |
+          set -Eeuo pipefail
+          git diff --exit-code
+          git diff --cached --exit-code
+          git diff --exit-code "${GITHUB_SHA}" HEAD -- . ':(exclude)Weall-Protocol/generated/**' ':(exclude)web/src/generated/protocolStatus.ts' ':(exclude)Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md'
+          if test "$(git rev-parse HEAD)" != "${GITHUB_SHA}"; then
+            git push origin HEAD:"${GITHUB_REF_NAME}"
+          fi
