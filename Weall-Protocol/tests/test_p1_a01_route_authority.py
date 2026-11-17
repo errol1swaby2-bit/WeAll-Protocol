@@ -93,12 +93,10 @@ def test_a01_f003_generated_route_inventory_has_no_shadow_implementations() -> N
     reviewed_keys = Counter(row["route_key"] for row in reviewed_routes)
     assert len(generated_keys) == len(reviewed_keys) == expected_count
     assert generated_keys == reviewed_keys
-    assert Counter(
-        (f"{row['method']} {row['path']}", row["stable_id"]) for row in rows
-    ) == Counter((row["route_key"], row["stable_id"]) for row in reviewed_routes)
-    assert all(
-        row["disposition"] == "accepted_current_semantic_contract" for row in reviewed_routes
-    )
+    generated_ids = Counter((f"{row['method']} {row['path']}", row["stable_id"]) for row in rows)
+    reviewed_ids = Counter((row["route_key"], row["stable_id"]) for row in reviewed_routes)
+    assert generated_ids == reviewed_ids
+    assert {row["disposition"] for row in reviewed_routes} == {"accepted_current_semantic_contract"}
 
     # The retired helper module must not appear as a decorated V2 route source.
     assert not [
