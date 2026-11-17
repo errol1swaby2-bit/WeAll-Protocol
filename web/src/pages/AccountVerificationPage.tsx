@@ -474,6 +474,9 @@ export default function AccountVerificationPage(): JSX.Element {
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
   const recordingTimerRef = useRef<number | null>(null);
+  const recordingAttemptRef = useRef(0);
+  const cameraRequestPendingRef = useRef(false);
+  const recordingUrlRef = useRef("");
 
   const [acctView, setAcctView] = useState<any | null>(null);
   const [registration, setRegistration] = useState<any | null>(null);
@@ -493,6 +496,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
   const [asyncChallenge, setAsyncChallenge] = useState<AsyncVerificationChallenge | null>(null);
   const [asyncRecordingState, setAsyncRecordingState] = useState<"idle" | "recording" | "ready">("idle");
+  const [asyncCameraPending, setAsyncCameraPending] = useState(false);
   const [asyncRecordedBlob, setAsyncRecordedBlob] = useState<Blob | null>(null);
   const [asyncRecordedUrl, setAsyncRecordedUrl] = useState("");
   const [asyncVideoSeconds, setAsyncVideoSeconds] = useState(0);
@@ -657,6 +661,12 @@ export default function AccountVerificationPage(): JSX.Element {
   useEffect(() => {
     const onGuidedRouteChange = () => {
       const path = currentHashPath();
+      // Permission can settle after the user leaves the record stage. Cancel
+      // that attempt now, even if the user returns before permission resolves.
+      if (cameraRequestPendingRef.current && parseAsyncPohRoute(path) !== "record") {
+        cleanupAsyncRecording();
+        setAsyncCameraPending(false);
+      }
       // Keep native stop/preview controls visible during an active recording.
       // A browser-back change within the verification guide may not silently
       // hide a still-running camera stream.
@@ -824,11 +834,17 @@ export default function AccountVerificationPage(): JSX.Element {
   }
 
   function cleanupAsyncRecording(): void {
+    recordingAttemptRef.current += 1;
+    cameraRequestPendingRef.current = false;
     if (recordingTimerRef.current !== null) {
       window.clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
     }
     const recorder = recorderRef.current;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+    }
     if (recorder && recorder.state !== "inactive") {
       try {
         recorder.stop();
@@ -842,6 +858,8 @@ export default function AccountVerificationPage(): JSX.Element {
       for (const track of stream.getTracks()) track.stop();
     }
     recordingStreamRef.current = null;
+    if (recordingUrlRef.current) URL.revokeObjectURL(recordingUrlRef.current);
+    recordingUrlRef.current = "";
   }
 
   function ensureAsyncChallenge(): AsyncVerificationChallenge {
@@ -855,7 +873,7 @@ export default function AccountVerificationPage(): JSX.Element {
   function resetAsyncRecording(): void {
     cleanupAsyncRecording();
     recordingChunksRef.current = [];
-    if (asyncRecordedUrl) URL.revokeObjectURL(asyncRecordedUrl);
+    setAsyncCameraPending(false);
     setAsyncRecordedBlob(null);
     setAsyncRecordedUrl("");
     setAsyncVideoSeconds(0);
@@ -865,6 +883,7 @@ export default function AccountVerificationPage(): JSX.Element {
   }
 
   async function startAsyncRecording(): Promise<void> {
+    if (cameraRequestPendingRef.current || recorderRef.current?.state === "recording") return;
     if (!acct) {
       setErr({ msg: "Sign in before starting account verification.", details: null });
       return;
@@ -879,20 +898,35 @@ export default function AccountVerificationPage(): JSX.Element {
     }
 
     resetAsyncRecording();
+    const attempt = recordingAttemptRef.current;
+    cameraRequestPendingRef.current = true;
+    setAsyncCameraPending(true);
     const challenge = ensureAsyncChallenge();
     setResult({ ok: true, challenge, message: "Read the challenge phrase in your video before saying something about yourself and why you are joining." });
     setErr(null);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      if (recordingAttemptRef.current !== attempt || parseAsyncPohRoute(currentHashPath()) !== "record") {
+        for (const track of stream.getTracks()) track.stop();
+        if (recordingAttemptRef.current === attempt) {
+          cameraRequestPendingRef.current = false;
+          setAsyncCameraPending(false);
+        }
+        return;
+      }
+      cameraRequestPendingRef.current = false;
+      setAsyncCameraPending(false);
       recordingStreamRef.current = stream;
       recordingChunksRef.current = [];
       const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("video/webm") ? "video/webm" : undefined });
       recorderRef.current = recorder;
       recorder.ondataavailable = (event: BlobEvent) => {
-        if (event.data && event.data.size > 0) recordingChunksRef.current.push(event.data);
+        if (recordingAttemptRef.current === attempt && event.data && event.data.size > 0) recordingChunksRef.current.push(event.data);
       };
       recorder.onstop = () => {
+        if (recordingAttemptRef.current !== attempt || recorderRef.current !== recorder) return;
+        recorderRef.current = null;
         if (recordingTimerRef.current !== null) {
           window.clearInterval(recordingTimerRef.current);
           recordingTimerRef.current = null;
@@ -900,6 +934,7 @@ export default function AccountVerificationPage(): JSX.Element {
         const duration = Math.round((Date.now() - recordingStartedAtRef.current) / 1000);
         const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || "video/webm" });
         const url = URL.createObjectURL(blob);
+        recordingUrlRef.current = url;
         setAsyncVideoSeconds(duration);
         setAsyncRecordedBlob(blob);
         setAsyncRecordedUrl(url);
@@ -922,7 +957,9 @@ export default function AccountVerificationPage(): JSX.Element {
       }, 500);
       recorder.start(1000);
     } catch (e: any) {
+      if (recordingAttemptRef.current !== attempt) return;
       cleanupAsyncRecording();
+      setAsyncCameraPending(false);
       setAsyncRecordingState("idle");
       setErr({ msg: friendlyActionError(e?.message || "Camera or microphone permission was not granted."), details: e });
     }
@@ -1772,9 +1809,9 @@ export default function AccountVerificationPage(): JSX.Element {
                       type="button"
                       className="btn btnPrimary"
                       onClick={() => void startAsyncRecording()}
-                      disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
+                      disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncCameraPending || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
                     >
-                      {asyncRecordingState === "recording" ? "Recording…" : "Record fresh verification video"}
+                      {asyncCameraPending ? "Waiting for camera permission…" : asyncRecordingState === "recording" ? "Recording…" : "Record fresh verification video"}
                     </button>
                     <button type="button" className="btn" onClick={() => stopAsyncRecording()} disabled={asyncRecordingState !== "recording"}>
                       Stop recording

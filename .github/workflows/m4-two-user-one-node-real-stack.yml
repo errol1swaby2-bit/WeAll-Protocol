@@ -60,6 +60,7 @@ jobs:
           npm run test:pr93-poh-merge-parity
           npm run test:poh-guided-routes
           npm run test:verification-history-panel
+          npm run test:async-evidence-preview
       - name: Install Playwright Chromium
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium

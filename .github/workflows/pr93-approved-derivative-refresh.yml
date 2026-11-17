@@ -12,6 +12,7 @@ on:
       - web/src/pages/AccountVerificationPage.tsx
       - web/src/components/VerificationHistoryPanel.tsx
       - web/scripts/test_pr93_poh_merge_parity_source.mjs
+      - web/scripts/test_async_evidence_preview.mjs
       - web/tests/e2e/verification_human_first.spec.ts
       - web/tests/e2e/m4_two_user_one_node_custody.spec.ts
       - .github/workflows/m4-two-user-one-node-real-stack.yml

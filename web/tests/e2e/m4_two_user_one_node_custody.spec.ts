@@ -670,6 +670,40 @@ test("two independent real users register, update public profiles and isolate ke
     await expect(alpha.getByTestId("poh-technical-records")).toBeHidden();
     expect(Number((await accountState(request, alphaId)).state.poh_tier)).toBe(0);
 
+    // A delayed permission result must be discarded after leaving the record
+    // stage. A synthetic local video track makes this deterministic without
+    // requesting the runner's real camera or uploading evidence.
+    await alpha.goto("/#/verification/async/prepare");
+    await alpha.getByLabel("Something about yourself").fill("Local synthetic media lifecycle test.");
+    await alpha.getByLabel("Why are you joining WeAll?").fill("Test cancellation without submitting evidence.");
+    await alpha.getByRole("button", { name: "Continue to recording" }).click();
+    await expect(alpha.getByTestId("async-step-record")).toBeVisible();
+    await alpha.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 32;
+      canvas.height = 32;
+      canvas.getContext("2d")?.fillRect(0, 0, 32, 32);
+      const stream = canvas.captureStream(10);
+      const testWindow = window as any;
+      testWindow.__weallMediaProbe = { stream, resolve: null };
+      Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+        configurable: true,
+        value: () => new Promise<MediaStream>((resolve) => {
+          testWindow.__weallMediaProbe.resolve = () => resolve(stream);
+        }),
+      });
+    });
+    await alpha.getByRole("button", { name: "Record fresh verification video" }).click();
+    await expect(alpha.getByRole("button", { name: "Waiting for camera permission…" })).toBeDisabled();
+    await section("Case history").click();
+    await expect(section("Case history")).toHaveAttribute("aria-current", "page");
+    await alpha.evaluate(() => (window as any).__weallMediaProbe.resolve());
+    await expect.poll(() => alpha.evaluate(() =>
+      (window as any).__weallMediaProbe.stream.getTracks().map((track: MediaStreamTrack) => track.readyState),
+    )).toEqual(["ended"]);
+    await expect(alpha.getByTestId("async-evidence-live-preview")).toBeHidden();
+    expect(Number((await accountState(request, alphaId)).state.poh_tier)).toBe(0);
+
   } finally {
     await Promise.all(contexts.map((context) => context.close().catch(() => undefined)));
   }
