@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2366,
+  "file_count": 2367,
   "files": [
     {
       "affected_registers": [
@@ -758,7 +758,7 @@
       ],
       "path": "../.github/workflows/pr93-approved-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "b1ce7227c38b9de4ba0e0b6e9f3ab3d761f4d74f1745f7d5f9fbbcf23248a2c3",
+      "sha256": "2daa62a227a52bf78fb990e18c2b5cb549146b664e3251ded5fa26adcbe54821",
       "source_id": "SRC-AF812EB04A5D3741"
     },
     {
@@ -888,7 +888,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "da4a5dc6fd60f055e32d88c131c79c6fb998836e4721b093ec6a0917e6fbab10",
+      "sha256": "0c9f224bf45b6691fcc01538e4f2ec07fa03126a20b500a46cb754180bef13a6",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -34902,6 +34902,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "2ea1ceceecfc7b923df6ef7a849460d1b295e11de92e37bde249f1b704d58f5c",
       "source_id": "SRC-FA17C74C3E8FAF7A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_picomatch_security_regression.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "df92b192cbbda431d918c3aaa1abe04fa9ed11ada249f41fe88f0d22d570d014",
+      "source_id": "SRC-6B7B367A04AB5A3A"
     },
     {
       "affected_registers": [
