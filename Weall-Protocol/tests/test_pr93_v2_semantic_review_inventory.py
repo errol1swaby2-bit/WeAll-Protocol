@@ -130,9 +130,9 @@ def test_pending_lobby_review_still_blocks_compiler_after_hypothetical_tx_digest
 
     # Deliberately remove only this route's acceptance in memory. The real
     # manifest must not be changed, regardless of its present disposition.
-    next(
-        row for row in reviews["routes"] if row["stable_id"] == "ROUTE-63E26182B51EAFCB"
-    )["disposition"] = "review_required"
+    next(row for row in reviews["routes"] if row["stable_id"] == "ROUTE-63E26182B51EAFCB")[
+        "disposition"
+    ] = "review_required"
     with pytest.raises(
         ValueError, match=r"route semantic review not accepted: GET /v1/public-lobby/comments"
     ):

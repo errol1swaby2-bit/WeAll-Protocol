@@ -305,6 +305,11 @@
     },
     {
       "claim_scan": false,
+      "classification": "AUDIT_EVIDENCE",
+      "path": "Weall-Protocol/docs/testnet/IHD1_TWO_PROCESS_OBSERVER_RECEIPT_REPLAY.md"
+    },
+    {
+      "claim_scan": false,
       "classification": "CURRENT",
       "path": "Weall-Protocol/docs/testnet/INDEPENDENT_CONTROLLED_VALIDATOR_OPERATOR_TRANSCRIPT.md"
     },
@@ -332,6 +337,11 @@
       "claim_scan": false,
       "classification": "HISTORICAL",
       "path": "Weall-Protocol/docs/testnet/M2_MEDIA_INTERRUPTION_REPLACEMENT_REHEARSAL.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/testnet/M4_SINGLE_NODE_MULTI_USER_INTEGRATION.md"
     },
     {
       "claim_scan": true,
@@ -382,6 +392,11 @@
       "claim_scan": true,
       "classification": "CURRENT",
       "path": "Weall-Protocol/docs/testnet/TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/testnet/TWO_PC_NETWORK_REHEARSAL_PREPARATION.md"
     },
     {
       "claim_scan": false,

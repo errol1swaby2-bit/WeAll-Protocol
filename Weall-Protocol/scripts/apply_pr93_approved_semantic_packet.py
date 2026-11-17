@@ -121,9 +121,7 @@ def main() -> None:
             )
 
     # This is the original strict validator, not a discovery-mode substitution.
-    result = validation.apply_semantic_reviews(
-        copy.deepcopy(tx_rows), copy.deepcopy(routes), after
-    )
+    result = validation.apply_semantic_reviews(copy.deepcopy(tx_rows), copy.deepcopy(routes), after)
     require(
         result["validation_result"] == "PASS_COMPLETE_MAINTAINER_SEMANTIC_REVIEW_BINDINGS"
         and result["independent_review_complete"] is False

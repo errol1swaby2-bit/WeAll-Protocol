@@ -1,0 +1,92 @@
+name: PR93 approved derivative refresh (no new approvals)
+
+on:
+  push:
+    branches:
+      - integration/unified-baseline-all-open-prs-20261114
+    paths:
+      - .github/workflows/pr93-approved-derivative-refresh.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr93-approved-derivative-refresh
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref_name == 'integration/unified-baseline-all-open-prs-20261114'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Confirm approval record and strict live inventory
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check scripts/apply_pr93_approved_semantic_packet.py scripts/pr77_v2_semantic_review_packet.py tests/test_pr77_v2_semantic_review_packet.py tests/test_pr93_v2_semantic_review_inventory.py
+          ruff format --check scripts/apply_pr93_approved_semantic_packet.py scripts/pr77_v2_semantic_review_packet.py tests/test_pr77_v2_semantic_review_packet.py tests/test_pr93_v2_semantic_review_inventory.py
+          python - <<'PY'
+          from scripts.pr77_v2_semantic_review_packet import ARCHIVED_PACKET, build_packet
+          from scripts.pr93_v2_semantic_review_inventory import build_inventory
+          if not ARCHIVED_PACKET.is_file() or build_packet()["pending_count"] != 20:
+              raise SystemExit("approved historical packet missing")
+          live = build_inventory()
+          if live["pending_transaction_review_count"] or live["route_review_inventory"]["pending_route_review_count"] or live["missing_state_stable_ids"]:
+              raise SystemExit("live semantic review drift")
+          print("Live pending: zero transactions and zero routes; historical comparison preserved.")
+          PY
+      - name: Verify current-claim document classification
+        working-directory: Weall-Protocol
+        run: python scripts/check_public_claim_freshness.py
+      - name: Regenerate reviewer evidence without changing dependencies or review decisions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_api_contract_map.py
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_api_response_vectors_v1_5.py
+          python scripts/gen_public_only_protocol_audit_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/compile_v2_spec.py
+          python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
+          python -m tooling.canon_lint
+      - name: Commit regenerated evidence only
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git diff --exit-code -- Weall-Protocol/src Weall-Protocol/specs web/package.json web/package-lock.json Weall-Protocol/requirements.lock Weall-Protocol/requirements-dev.lock docs/integration/PR93_PRE_ACCEPTANCE_SEMANTIC_REVIEW_PACKET.json docs/integration/PR93_DEVELOPMENT_SEMANTIC_ACCEPTANCE_DECISION.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore(v2): regenerate exact approved development reviewer evidence'
+            git push origin HEAD:"${GITHUB_REF_NAME}"
+          fi
+      - name: Verify clean archived tree and current review regressions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_v2_spec_clean_checkout.py
+          python -m pytest -q tests/test_pr93_v2_semantic_review_inventory.py tests/test_pr77_v2_semantic_review_packet.py
+          python scripts/pr93_v2_semantic_review_inventory.py
+          echo 'No new approvals, no security audit exemption, no independent launch authorization.'
