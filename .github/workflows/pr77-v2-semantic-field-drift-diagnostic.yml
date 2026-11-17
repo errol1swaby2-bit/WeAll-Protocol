@@ -105,6 +105,51 @@ jobs:
           set -Eeuo pipefail
           mkdir -p artifacts/pr77-v2-semantic-fields
           PYTHONPATH=src:scripts python scripts/pr93_v2_semantic_review_inventory.py > artifacts/pr77-v2-semantic-fields/pr93_route_tx_inventory_no_approval.json
+      - name: Show precise PR93 merge-blocking semantic inventory (read-only)
+        if: always()
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("artifacts/pr77-v2-semantic-fields/pr93_route_tx_inventory_no_approval.json")
+          if not path.is_file():
+              raise SystemExit("PR93 diagnostic inventory missing: cannot report review blockers")
+          report = json.loads(path.read_text(encoding="utf-8"))
+          routes = report["route_review_inventory"]
+          print(f"PR93 pending transaction reviews: {report['pending_transaction_review_count']}")
+          print(f"PR93 pending route reviews: {routes['pending_route_review_count']}")
+          print(f"PR93 current routes: {routes['current_route_count']}")
+          print(f"PR93 historical generated routes: {routes['historical_generated_route_count']}")
+          print(f"PR93 recorded route reviews: {routes['recorded_route_review_count']}")
+          print("PR93 unapproved pending routes:")
+          for row in routes["pending_routes"]:
+              print(f"  {row['stable_id']} {row['route_key']}: {','.join(row['reasons'])}")
+          print("PR93 orphaned accepted-review IDs:")
+          for item in routes["orphaned_route_review_stable_ids"]:
+              print(f"  {item}")
+          print("PR93 pending transactions:")
+          for tx_type in report["pending_transaction_types"]:
+              print(f"  {tx_type}")
+          print("semantic_review_approval_by_diagnostic=False")
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as summary:
+                  summary.write("### PR #93 source review blockers (read-only)\n\n")
+                  summary.write(
+                      f"**{report['pending_transaction_review_count']} transaction** and "
+                      f"**{routes['pending_route_review_count']} route** reviews pending. "
+                      "No accepted hashes or approval records changed.\n\n"
+                  )
+                  summary.write("| Route | Stable ID | Required review |\n|---|---|---|\n")
+                  for row in routes["pending_routes"]:
+                      summary.write(
+                          f"| `{row['route_key']}` | `{row['stable_id']}` | "
+                          f"{', '.join(row['reasons'])} |\n"
+                      )
+          PY
       - name: Upload inspectable diagnostic, never approvals
         if: always()
         uses: actions/upload-artifact@v4
