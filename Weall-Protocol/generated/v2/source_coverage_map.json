@@ -758,7 +758,7 @@
       ],
       "path": "../.github/workflows/pr93-approved-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "2daa62a227a52bf78fb990e18c2b5cb549146b664e3251ded5fa26adcbe54821",
+      "sha256": "78859721c52711e7db42f668fb4aff20ac7017c6efc535d777b16a7fa5062874",
       "source_id": "SRC-AF812EB04A5D3741"
     },
     {
@@ -862,7 +862,7 @@
       ],
       "path": "../.github/workflows/v2-spec-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "97b8256c0dee1e84c789072da2e682f28783ef31c0551f2cf078f5a0d7538b75",
+      "sha256": "e895cebc1f5ec17c749673f8461abddf4e3a81ab72778f4c0e76e9d044d888ee",
       "source_id": "SRC-4DF17321F27735E9"
     },
     {
@@ -19564,7 +19564,7 @@
       ],
       "path": "tests/test_frontend_dependency_audit.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "857a0630116c1ac19efaaa37be7a0ea27666082286912fcbfc1924bf814d69cb",
+      "sha256": "039740365a89a4a3852c4a973dba9a1ed5fd3a881e702976d032ebb8b632e5ed",
       "source_id": "SRC-8A077776FA8B7BDC"
     },
     {
