@@ -904,8 +904,10 @@ def _specialize_reviewer_lane(node: ast.AST, *, active: bool) -> ast.AST:
     """
 
     for child in ast.walk(node):
-        if isinstance(child, ast.Name) and child.id == "active" and not isinstance(
-            child.ctx, ast.Load
+        if (
+            isinstance(child, ast.Name)
+            and child.id == "active"
+            and not isinstance(child.ctx, ast.Load)
         ):
             raise CompileError("reviewer_lane_active_parameter_reassigned")
 
@@ -961,9 +963,7 @@ _ROLE_GATE_TX_ROLES = {
 }
 
 
-def _reviewed_role_gate_failures(
-    tx_type: str, nodes: list[ast.AST], bridge: ast.AST
-) -> list[Json]:
+def _reviewed_role_gate_failures(tx_type: str, nodes: list[ast.AST], bridge: ast.AST) -> list[Json]:
     source = ROOT / "src/weall/runtime/reputation_role_gate.py"
     # Read text with universal newline conversion, so a Windows checkout
     # cannot change the binding solely by using CRLF.

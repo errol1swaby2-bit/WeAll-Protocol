@@ -83,7 +83,7 @@ def test_review_lane_static_false_prunes_unreachable_opt_in_failures() -> None:
         "    elif not active and lanes:\n"
         "        raise RolesApplyError('not_found', 'opt_out_lane')\n"
     )
-    pruned = MODULE._specialize_reviewer_opt_out(branch)
+    pruned = MODULE._specialize_reviewer_lane(branch, active=False)
     names = [
         item.func.id
         for item in ast.walk(pruned)
@@ -137,8 +137,12 @@ def test_real_review_lane_failure_contract_respects_constant_active_dispatch() -
     opt_in = inputs["REVIEWER_LANE_OPT_IN"]["failure_codes"]
     opt_out = inputs["REVIEWER_LANE_OPT_OUT"]["failure_codes"]
     unresolved = {"code": "runtime_apply_error", "reason": "see_handler"}
-    assert unresolved in opt_in
+    assert unresolved not in opt_in
     assert unresolved not in opt_out
+    assert {"code": "forbidden", "reason": "policy_unknown"} in opt_in
+    assert {"code": "forbidden", "reason": "canonical_role_reputation_ineligible"} in opt_in
+    assert {"code": "forbidden", "reason": "policy_unknown"} not in opt_out
+    assert {"code": "not_found", "reason": "juror_not_enrolled"} not in opt_in
     assert {"code": "not_found", "reason": "juror_not_enrolled"} in opt_out
     assert {
         "code": "forbidden",

@@ -21,6 +21,17 @@ on:
       - Weall-Protocol/src/weall/runtime/apply/**
       - Weall-Protocol/scripts/compile_v2_spec.py
       - .github/workflows/pr77-v2-semantic-review-packet.yml
+  pull_request:
+    paths:
+      - Weall-Protocol/scripts/compile_v2_spec.py
+      - Weall-Protocol/scripts/pr77_v2_semantic_review_packet.py
+      - Weall-Protocol/tests/test_pr77_roles_reviewer_semantic_adjudication.py
+      - Weall-Protocol/tests/test_pr93_role_gate_compiler_binding.py
+      - Weall-Protocol/tests/test_pr77_v2_semantic_review_packet.py
+      - Weall-Protocol/specs/v2/source/stable_ids.json
+      - Weall-Protocol/specs/v2/source/semantic_reviews.json
+      - Weall-Protocol/src/weall/runtime/reputation_role_gate.py
+      - .github/workflows/pr77-v2-semantic-review-packet.yml
   workflow_dispatch:
 
 permissions:
