@@ -243,7 +243,7 @@
     {
       "category": "generated",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
-      "match_count": 1,
+      "match_count": 2,
       "path": "generated/v2/current_tx_canon.json"
     },
     {
@@ -255,7 +255,7 @@
     {
       "category": "generated",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
-      "match_count": 1,
+      "match_count": 2,
       "path": "generated/v2/route_contract_map.json"
     },
     {
@@ -303,7 +303,7 @@
     {
       "category": "generated",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
-      "match_count": 1,
+      "match_count": 2,
       "path": "generated/v2/tx_contract_matrix.json"
     },
     {
