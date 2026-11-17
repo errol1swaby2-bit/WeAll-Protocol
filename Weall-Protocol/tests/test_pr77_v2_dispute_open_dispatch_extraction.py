@@ -138,12 +138,14 @@ def test_dispute_proposal_pruning_fails_closed_on_source_drift(mutation: str) ->
     source = path.read_text(encoding="utf-8")
     if mutation == "allowlist":
         source = source.replace(
-            '_ALLOWED_DISPUTE_TARGET_TYPES = frozenset(\n    {',
+            "_ALLOWED_DISPUTE_TARGET_TYPES = frozenset(\n    {",
             '_ALLOWED_DISPUTE_TARGET_TYPES = frozenset(\n    {"proposal",',
             1,
         )
     elif mutation == "validator":
-        source = source.replace("if not t or t not in _ALLOWED_DISPUTE_TARGET_TYPES:", "if not t:", 1)
+        source = source.replace(
+            "if not t or t not in _ALLOWED_DISPUTE_TARGET_TYPES:", "if not t:", 1
+        )
     elif mutation == "reassignment":
         source = source.replace(
             '    if target_type in {"proposal", "governance", "governance_proposal"}:',
@@ -156,9 +158,7 @@ def test_dispute_proposal_pruning_fails_closed_on_source_drift(mutation: str) ->
             "    target_type = _validate_dispute_target_type(target_type)\n", "", 1
         )
     tree = ast.parse(source)
-    handlers = {
-        node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)
-    }
+    handlers = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
     with pytest.raises(compiler.CompileError, match="dispute_open_"):
         compiler._specialize_dispute_open_target_guard(
             tree, handlers["dispute_open"], handlers["_validate_dispute_target_type"]

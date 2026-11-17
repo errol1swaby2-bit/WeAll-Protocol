@@ -1068,9 +1068,7 @@ def _specialize_dispute_open_target_guard(
     if ast.dump(validator) != ast.dump(expected_validator):
         raise CompileError("dispute_open_target_validator_changed_requires_review")
 
-    expected_binding = ast.parse(
-        "target_type = _validate_dispute_target_type(target_type)"
-    ).body[0]
+    expected_binding = ast.parse("target_type = _validate_dispute_target_type(target_type)").body[0]
     expected_test = ast.parse(
         'target_type in {"proposal", "governance", "governance_proposal"}', mode="eval"
     ).body
