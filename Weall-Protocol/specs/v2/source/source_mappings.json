@@ -6950,6 +6950,89 @@
       "path": "src/weall/runtime/severe_appeal_candidate.py",
       "primary_mechanism_id": "M-055",
       "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "state",
+        "activation",
+        "schedulers"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/severe_juror_replenishment.py",
+      "primary_mechanism_id": "M-055",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "transactions",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/severe_sanction_boundary.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "src/weall/runtime/solo_finality_witness.py",
+      "primary_mechanism_id": "M-002",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/ban_state_contract_candidate.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/case_binding_policy_candidate.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/severe_case_origin_candidate.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/severe_case_signed_opening_review.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "tooling/severe_sanction_candidate_review.py",
+      "primary_mechanism_id": "M-055",
+      "review_status": "mapped_reference_only"
     }
   ],
   "schema": "weall.v2.source_mapping_registry",
