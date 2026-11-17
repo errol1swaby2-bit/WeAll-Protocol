@@ -1,0 +1,4006 @@
+{
+  "historical_compatibility_proven": false,
+  "independent_human_approval_recorded_by_this_packet": false,
+  "kind": "read_only_implementation_comparison",
+  "known_stale_now_resolved": [],
+  "missing_state_stable_ids": [],
+  "must_not_update_semantic_reviews_automatically": true,
+  "newly_stale_not_in_known_inventory": [],
+  "pending_count": 20,
+  "previous_generated_shape": "rows",
+  "production_or_testnet_authority": false,
+  "registered_transaction_count": 236,
+  "schema": "weall.pr77.v2_semantic_review_decision_packet.v2",
+  "transactions": [
+    {
+      "accepted_review_digest": "4c7e5f70744904058a006f14840fd155f545ecabe45f1220e05ed039ce81c246",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "4c7e5f70744904058a006f14840fd155f545ecabe45f1220e05ed039ce81c246",
+      "archived_implementation_source": {
+        "function": "_apply_account_ban",
+        "handler": "reputation",
+        "path": "src/weall/runtime/apply/reputation.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "conflicting_receipt",
+              "reason": "duplicate_ban_receipt_conflict"
+            },
+            {
+              "code": "forbidden",
+              "reason": "severe_sanction_authorization_unimplemented"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "invalid_state",
+              "reason": "state_invariant_violation"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "invalid_state",
+              "reason": "state_invariant_violation"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:account_id",
+            "key:accounts",
+            "key:auto",
+            "key:banned",
+            "key:bans",
+            "key:payload",
+            "key:reason",
+            "key:reputation",
+            "key:role_eligibility",
+            "key:set_at_nonce"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:accounts",
+            "key:banned",
+            "key:bans",
+            "key:reason",
+            "key:reputation",
+            "key:role_eligibility",
+            "key:set_at_nonce"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_account_ban",
+        "handler": "reputation",
+        "path": "src/weall/runtime/apply/reputation.py"
+      },
+      "current_material_digest": "1822caa7a62773642cfc45c08c5878def0a2cfc06d0334f1fe2c08cd84ba9d19",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "conflicting_receipt",
+            "reason": "duplicate_ban_receipt_conflict"
+          },
+          {
+            "code": "forbidden",
+            "reason": "severe_sanction_authorization_unimplemented"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "account_sanction_authority_and_finality",
+      "reviewed_at_on_record": "2026-07-22T00:00:00Z",
+      "reviewer_on_record": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "constitutional_clock_ban_transaction_blocked_but_reputation_floor_auto_ban_remains"
+      ],
+      "stable_id": "TX-0904",
+      "tx_type": "ACCOUNT_BAN"
+    },
+    {
+      "accepted_review_digest": "9e536944083750715e60d89aaf541b5bd2bd09e53b171efc8f2aba043f3dec96",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "9e536944083750715e60d89aaf541b5bd2bd09e53b171efc8f2aba043f3dec96",
+      "archived_implementation_source": {
+        "function": "_apply_content_flag",
+        "handler": "content",
+        "path": "src/weall/runtime/apply/content.py"
+      },
+      "changed_field_names": [
+        "failure_codes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "conflict",
+              "reason": "duplicate_flag_id"
+            },
+            {
+              "code": "forbidden",
+              "reason": "account_banned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "account_locked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "account_not_registered"
+            },
+            {
+              "code": "forbidden",
+              "reason": "insufficient_poh_tier"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_target_id"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_banned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "account_locked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "account_not_registered"
+            },
+            {
+              "code": "forbidden",
+              "reason": "insufficient_poh_tier"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_target_id"
+            }
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_content_flag",
+        "handler": "content",
+        "path": "src/weall/runtime/apply/content.py"
+      },
+      "current_material_digest": "d9765db3074e0df6c7eb880a2298b19f43ab8e579226e42cbdaef70648f0fb3e",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "conflict",
+            "reason": "duplicate_flag_id"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "content_flag_duplicate_identity_guard",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "duplicate_flag_id_rejection_requires_height_activation"
+      ],
+      "stable_id": "TX-0306",
+      "tx_type": "CONTENT_FLAG"
+    },
+    {
+      "accepted_review_digest": "25c32baad81399a0cca77c9c40a4f118fb814aca2b96c9549c0b2797079149a7",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "25c32baad81399a0cca77c9c40a4f118fb814aca2b96c9549c0b2797079149a7",
+      "archived_implementation_source": {
+        "function": "_apply_dispute_appeal",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "conflict",
+              "reason": "appeal_already_filed"
+            },
+            {
+              "code": "conflict",
+              "reason": "automatic_severe_appeal_already_assigned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_actor_unresolved"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_not_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_window_closed"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_window_not_open"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "conflict",
+              "reason": "appeal_already_filed"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_actor_unresolved"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_not_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_window_closed"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_window_not_open"
+            },
+            {
+              "code": "forbidden",
+              "reason": "insufficient_fresh_appeal_panel"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:appeal_deadline_height",
+            "key:appeal_panel_round",
+            "key:appeals",
+            "key:assigned_jurors",
+            "key:automatic_appeal_record",
+            "key:available_candidate_count",
+            "key:by",
+            "key:conflicted_juror_ids",
+            "key:dispute_id",
+            "key:height",
+            "key:id",
+            "key:panel_commitment",
+            "key:required_panel_size",
+            "key:required_substitute_count",
+            "key:stage",
+            "key:status",
+            "key:strict",
+            "key:substitute_juror_ids",
+            "key:target_id",
+            "key:target_type"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:appeal_deadline_height",
+            "key:appeal_panel_round",
+            "key:appeals",
+            "key:assigned_jurors",
+            "key:available_candidate_count",
+            "key:by",
+            "key:conflicted_juror_ids",
+            "key:dispute_id",
+            "key:height",
+            "key:id",
+            "key:panel",
+            "key:panel_commitment",
+            "key:required_panel_size",
+            "key:required_substitute_count",
+            "key:stage",
+            "key:status",
+            "key:strict",
+            "key:substitute_juror_ids",
+            "key:substitutes",
+            "key:target_id",
+            "key:target_type"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<add:dynamic>",
+            "key:<append:dynamic>",
+            "key:appeal_conflicted_juror_ids",
+            "key:appeal_panel_available_candidate_count",
+            "key:appeal_panel_blocked_reason",
+            "key:appeal_panel_commitment",
+            "key:appeal_panel_juror_ids",
+            "key:appeal_panel_required_size",
+            "key:appeal_panel_round",
+            "key:appeal_panel_status",
+            "key:appeal_pending_since_height",
+            "key:appeal_substitute_juror_ids",
+            "key:appeal_substitute_required_count",
+            "key:appeals",
+            "key:assigned_jurors",
+            "key:eligible_juror_ids",
+            "key:eligible_validator_count",
+            "key:jurors",
+            "key:original_panel_juror_ids",
+            "key:original_substitute_juror_ids",
+            "key:required_votes",
+            "key:stage",
+            "key:stage_set_at_height"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:<add:dynamic>",
+            "key:<append:dynamic>",
+            "key:appeal_ballot_nullifiers",
+            "key:appeal_conflicted_juror_ids",
+            "key:appeal_panel_commitment",
+            "key:appeal_panel_juror_ids",
+            "key:appeal_panel_round",
+            "key:appeal_panel_status",
+            "key:appeal_panel_votes",
+            "key:appeal_resolution_options",
+            "key:appeal_substitute_juror_ids",
+            "key:appeal_vote_counts",
+            "key:appeal_voted_juror_ids",
+            "key:appeals",
+            "key:assigned_jurors",
+            "key:eligible_juror_ids",
+            "key:eligible_validator_count",
+            "key:jurors",
+            "key:original_panel_juror_ids",
+            "key:original_substitute_juror_ids",
+            "key:required_votes",
+            "key:stage",
+            "key:stage_set_at_height"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_dispute_appeal",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "current_material_digest": "6ed47557f2ba0b0b3217f0c847375c6609d998097913f3716e5561d5a872a739",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "conflict",
+            "reason": "automatic_severe_appeal_already_assigned"
+          }
+        ],
+        "removed": [
+          {
+            "code": "forbidden",
+            "reason": "insufficient_fresh_appeal_panel"
+          }
+        ]
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "dispute_ballot_or_appeal_semantics",
+      "reviewed_at_on_record": "2026-09-27T20:14:39Z",
+      "reviewer_on_record": "WeAll Protocol P2 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [],
+      "stable_id": "TX-0210",
+      "tx_type": "DISPUTE_APPEAL"
+    },
+    {
+      "accepted_review_digest": "3188f1c9fd27e317957643eb3652df6e3c1a9792f640fa570bcda08203a18e72",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "3188f1c9fd27e317957643eb3652df6e3c1a9792f640fa570bcda08203a18e72",
+      "archived_implementation_source": {
+        "function": "_apply_dispute_final_receipt",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "appeal_original_resolution_override"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_panel_decision_not_finalized"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_panel_decision_unverified"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_pending_panel"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_resolution_mismatch"
+            },
+            {
+              "code": "forbidden",
+              "reason": "severe_sanction_automatic_appeal_unimplemented"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:_parent_ref",
+            "key:account_id",
+            "key:accounts",
+            "key:actions",
+            "key:appeal_finalization",
+            "key:appeal_panel_result",
+            "key:appeal_resolution",
+            "key:appeals",
+            "key:banned",
+            "key:by_id",
+            "key:decision",
+            "key:dispute_id",
+            "key:disputes_by_id",
+            "key:eligible",
+            "key:enforcement_applied",
+            "key:group_id",
+            "key:groups",
+            "key:height",
+            "key:id",
+            "key:juror_id",
+            "key:latest_restriction",
+            "key:locked",
+            "key:member",
+            "key:payload",
+            "key:reached",
+            "key:reason",
+            "key:receipt_id",
+            "key:remedies",
+            "key:resolution",
+            "key:restricted",
+            "key:restricted_members",
+            "key:restriction",
+            "key:restrictions",
+            "key:role",
+            "key:role_eligibility",
+            "key:stage",
+            "key:status",
+            "key:target_account",
+            "key:target_id",
+            "key:tx_type"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:_parent_ref",
+            "key:account_id",
+            "key:accounts",
+            "key:actions",
+            "key:appeal_finalization",
+            "key:banned",
+            "key:by_id",
+            "key:decision",
+            "key:dispute_id",
+            "key:eligible",
+            "key:enforcement_applied",
+            "key:group_id",
+            "key:groups",
+            "key:height",
+            "key:id",
+            "key:juror_id",
+            "key:latest_restriction",
+            "key:locked",
+            "key:member",
+            "key:payload",
+            "key:reason",
+            "key:receipt_id",
+            "key:remedies",
+            "key:resolution",
+            "key:restricted",
+            "key:restricted_members",
+            "key:restriction",
+            "key:restrictions",
+            "key:role",
+            "key:role_eligibility",
+            "key:status",
+            "key:target_account",
+            "key:target_id",
+            "key:tx_type"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_dispute_final_receipt",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "current_material_digest": "5623af70bbce816b9a28fe68a30ba96988266f379878feaf70b97193eefb972e",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "appeal_original_resolution_override"
+          },
+          {
+            "code": "forbidden",
+            "reason": "appeal_panel_decision_not_finalized"
+          },
+          {
+            "code": "forbidden",
+            "reason": "appeal_panel_decision_unverified"
+          },
+          {
+            "code": "forbidden",
+            "reason": "appeal_pending_panel"
+          },
+          {
+            "code": "forbidden",
+            "reason": "appeal_resolution_mismatch"
+          },
+          {
+            "code": "forbidden",
+            "reason": "severe_sanction_automatic_appeal_unimplemented"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "dispute_ballot_or_appeal_semantics",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "severe_final_receipt_held_only_under_constitutional_clock"
+      ],
+      "stable_id": "TX-0211",
+      "tx_type": "DISPUTE_FINAL_RECEIPT"
+    },
+    {
+      "accepted_review_digest": "b728f7046c6a52afaf1043d82f528fea8b9286532a62a4496e52a678bb79a629",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "b728f7046c6a52afaf1043d82f528fea8b9286532a62a4496e52a678bb79a629",
+      "archived_implementation_source": {
+        "function": "_apply_dispute_juror_accept",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_material"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_reporter"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_not_assigned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_wrong_status"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reviewer_responsibility_not_active"
+            },
+            {
+              "code": "forbidden",
+              "reason": "unsupported_dispute_material_conflict_gate_version"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_not_assigned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_wrong_status"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reviewer_responsibility_not_active"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:accepted_at_block_height",
+            "key:accepted_at_height",
+            "key:canonical_reputation_event_id",
+            "key:dispute_id",
+            "key:dispute_material_conflict_gate_version",
+            "key:event_id",
+            "key:flagged_by",
+            "key:id",
+            "key:jurors",
+            "key:late_withdraw_penalty_milli",
+            "key:params",
+            "key:reported_by",
+            "key:reporter",
+            "key:safe_withdraw_blocks",
+            "key:safe_withdraw_until_height",
+            "key:status",
+            "key:timeout_penalty_milli",
+            "key:vote_deadline_height",
+            "key:vote_window_blocks"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:accepted_at_block_height",
+            "key:accepted_at_height",
+            "key:canonical_reputation_event_id",
+            "key:dispute_id",
+            "key:event_id",
+            "key:id",
+            "key:jurors",
+            "key:late_withdraw_penalty_milli",
+            "key:safe_withdraw_blocks",
+            "key:safe_withdraw_until_height",
+            "key:status",
+            "key:timeout_penalty_milli",
+            "key:vote_deadline_height",
+            "key:vote_window_blocks"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_dispute_juror_accept",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "current_material_digest": "2527cf01ac7e4e887648df1b1b0c4f4571314510d2a15f5c2ebc06f4b3ad18e9",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "juror_conflict_material"
+          },
+          {
+            "code": "forbidden",
+            "reason": "juror_conflict_reporter"
+          },
+          {
+            "code": "forbidden",
+            "reason": "unsupported_dispute_material_conflict_gate_version"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "dispute_ballot_or_appeal_semantics",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "material_conflict_rejection_requires_strict_explicit_v2"
+      ],
+      "stable_id": "TX-0205",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "accepted_review_digest": "151dd15939f954ec63935e30d6fbbd988b3e722bfc9e9d364d3d5efc7bb059d1",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "151dd15939f954ec63935e30d6fbbd988b3e722bfc9e9d364d3d5efc7bb059d1",
+      "archived_implementation_source": {
+        "function": "_apply_dispute_juror_assign",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_material"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_reporter"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reviewer_responsibility_not_active"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            },
+            {
+              "code": "forbidden",
+              "reason": "unsupported_dispute_material_conflict_gate_version"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_or_juror"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reviewer_responsibility_not_active"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_or_juror"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:dispute_id",
+            "key:dispute_material_conflict_gate_version",
+            "key:eligible_juror_ids",
+            "key:flagged_by",
+            "key:id",
+            "key:juror",
+            "key:juror_id",
+            "key:jurors",
+            "key:params",
+            "key:reported_by",
+            "key:reporter",
+            "key:stage"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:dispute_id",
+            "key:eligible_juror_ids",
+            "key:juror",
+            "key:juror_id",
+            "key:jurors",
+            "key:stage"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_dispute_juror_assign",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "current_material_digest": "80526806a5e94bfd7a3535cb04c546c04c7295f7ea1d8776c24d5a7894517d8a",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "juror_conflict_material"
+          },
+          {
+            "code": "forbidden",
+            "reason": "juror_conflict_reporter"
+          },
+          {
+            "code": "forbidden",
+            "reason": "unsupported_dispute_material_conflict_gate_version"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "dispute_ballot_or_appeal_semantics",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "material_conflict_rejection_requires_strict_explicit_v2"
+      ],
+      "stable_id": "TX-0204",
+      "tx_type": "DISPUTE_JUROR_ASSIGN"
+    },
+    {
+      "accepted_review_digest": "e959c9e1520a21ff84edc9924be3a4d8b3f83431fc54ea96e36ff788aebcd9be",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "e959c9e1520a21ff84edc9924be3a4d8b3f83431fc54ea96e36ff788aebcd9be",
+      "archived_implementation_source": {
+        "function": "apply_dispute",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "implementation_source",
+        "receipt_contract",
+        "state_reads",
+        "state_writes",
+        "system_followups"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "duplicate",
+              "reason": "dispute_id_exists"
+            },
+            {
+              "code": "forbidden",
+              "reason": "tier1_required_for_dispute"
+            },
+            {
+              "code": "forbidden",
+              "reason": "unsupported_dispute_target_type"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_target"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "conflict",
+              "reason": "appeal_already_filed"
+            },
+            {
+              "code": "conflict",
+              "reason": "dispute_ballot_already_final"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_window_closed"
+            },
+            {
+              "code": "forbidden",
+              "reason": "appeal_window_not_open"
+            },
+            {
+              "code": "forbidden",
+              "reason": "ballot_profile_inactive"
+            },
+            {
+              "code": "forbidden",
+              "reason": "dispute_timeout_after_vote_forbidden"
+            },
+            {
+              "code": "forbidden",
+              "reason": "dispute_vote_deadline_not_passed"
+            },
+            {
+              "code": "forbidden",
+              "reason": "dispute_vote_deadline_passed"
+            },
+            {
+              "code": "forbidden",
+              "reason": "dispute_withdraw_after_vote_forbidden"
+            },
+            {
+              "code": "forbidden",
+              "reason": "insufficient_fresh_appeal_panel"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_not_assigned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_not_present"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_wrong_status"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reviewer_responsibility_not_active"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "invalid_dispute_vote_choice"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "invalid_public_cid"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_case_type"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_or_evidence_id"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_or_juror"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_or_stage"
+            },
+            {
+              "code": "not_found",
+              "reason": "evidence_not_found"
+            },
+            {
+              "code": "tx_unimplemented",
+              "reason": "case_tx_not_implemented"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": {
+            "function": "dispute_open",
+            "handler": "dispute",
+            "path": "src/weall/runtime/apply/dispute.py"
+          },
+          "current_present": true,
+          "field": "implementation_source",
+          "previous": {
+            "function": "apply_dispute",
+            "handler": "dispute",
+            "path": "src/weall/runtime/apply/dispute.py"
+          },
+          "previous_present": true
+        },
+        {
+          "current": {
+            "kind": "user_transaction_apply_result",
+            "parent": null,
+            "return_fields": [
+              "applied",
+              "dispute_id"
+            ],
+            "stable_id": "RCP-B785EC5A1905DD27"
+          },
+          "current_present": true,
+          "field": "receipt_contract",
+          "previous": {
+            "kind": "user_transaction_apply_result",
+            "parent": null,
+            "return_fields": [
+              "appeal_finalization",
+              "appeal_panel_commitment",
+              "appeal_panel_status",
+              "applied",
+              "canonical_reputation_event_id",
+              "case_id",
+              "case_type",
+              "deduped",
+              "delta_milli",
+              "dispute_id",
+              "enforcement_applied",
+              "enforcement_queued",
+              "event_id",
+              "evidence_id",
+              "idempotent",
+              "juror",
+              "present",
+              "receipt",
+              "receipt_id",
+              "safe",
+              "safe_withdraw_until_height",
+              "stage",
+              "status",
+              "vote_deadline_height"
+            ],
+            "stable_id": "RCP-B785EC5A1905DD27"
+          },
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:conflicted_juror_ids",
+            "key:dispute_id",
+            "key:flagged_by",
+            "key:jurors",
+            "key:panel",
+            "key:panel_commitment",
+            "key:reason",
+            "key:reported_by",
+            "key:reporter",
+            "key:required_panel_size",
+            "key:required_substitute_count",
+            "key:status",
+            "key:substitutes",
+            "key:target_id",
+            "key:target_type"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:_due_height",
+            "key:_parent_ref",
+            "key:_system_queue_id",
+            "key:accepted_at_block_height",
+            "key:accepted_at_height",
+            "key:accepted_at_nonce",
+            "key:account_id",
+            "key:accounts",
+            "key:actions",
+            "key:active",
+            "key:appeal_deadline_height",
+            "key:appeal_finalization",
+            "key:appeal_panel_round",
+            "key:appeals",
+            "key:assigned_jurors",
+            "key:attendance",
+            "key:available_candidate_count",
+            "key:banned",
+            "key:bindings",
+            "key:by",
+            "key:by_id",
+            "key:canonical_reputation_event_id",
+            "key:case_id",
+            "key:case_type",
+            "key:choice",
+            "key:cid",
+            "key:conflicted_juror_ids",
+            "key:deadline_height",
+            "key:decision",
+            "key:dispute_id",
+            "key:eligible",
+            "key:eligible_juror_ids",
+            "key:enforcement_applied",
+            "key:event_id",
+            "key:evidence",
+            "key:evidence_id",
+            "key:group_id",
+            "key:groups",
+            "key:height",
+            "key:id",
+            "key:juror",
+            "key:juror_id",
+            "key:jurors",
+            "key:kind",
+            "key:late_withdraw_penalty_milli",
+            "key:latest_restriction",
+            "key:locked",
+            "key:member",
+            "key:meta",
+            "key:name",
+            "key:outcomes",
+            "key:panel",
+            "key:panel_commitment",
+            "key:panel_round",
+            "key:payload",
+            "key:present",
+            "key:profile_id",
+            "key:reason",
+            "key:receipt_id",
+            "key:remedies",
+            "key:reputation_policy",
+            "key:required_panel_size",
+            "key:required_substitute_count",
+            "key:resolution",
+            "key:restricted",
+            "key:restricted_members",
+            "key:restriction",
+            "key:restrictions",
+            "key:role",
+            "key:role_eligibility",
+            "key:safe_withdraw_blocks",
+            "key:safe_withdraw_until_height",
+            "key:stage",
+            "key:status",
+            "key:strict",
+            "key:substitute_juror_ids",
+            "key:substitutes",
+            "key:summary",
+            "key:target_account",
+            "key:target_id",
+            "key:timeout_penalty_milli",
+            "key:tx_type",
+            "key:type",
+            "key:types",
+            "key:vote",
+            "key:vote_deadline_height",
+            "key:vote_window_blocks"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<add:dynamic>",
+            "key:<append:dynamic>",
+            "key:assigned_jurors",
+            "key:assignment_blocked_reason",
+            "key:conflicted_juror_ids",
+            "key:eligible_juror_ids",
+            "key:eligible_validator_count",
+            "key:jurors",
+            "key:panel_commitment",
+            "key:panel_required_size",
+            "key:panel_round",
+            "key:panel_status",
+            "key:required_votes",
+            "key:stage",
+            "key:substitute_juror_ids",
+            "key:substitute_required_count"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:<add:dynamic>",
+            "key:<append:dynamic>",
+            "key:<clear:dynamic>",
+            "key:<pop:dynamic>",
+            "key:<setdefault:dynamic>",
+            "key:accepted_at_block_height",
+            "key:accepted_at_height",
+            "key:accepted_at_nonce",
+            "key:accounts",
+            "key:appeal_ballot_nullifiers",
+            "key:appeal_conflicted_juror_ids",
+            "key:appeal_deadline_height",
+            "key:appeal_finalization",
+            "key:appeal_panel_commitment",
+            "key:appeal_panel_juror_ids",
+            "key:appeal_panel_result",
+            "key:appeal_panel_round",
+            "key:appeal_panel_status",
+            "key:appeal_panel_votes",
+            "key:appeal_resolution_options",
+            "key:appeal_substitute_juror_ids",
+            "key:appeal_vote_counts",
+            "key:appeal_voted_juror_ids",
+            "key:appeal_window_blocks",
+            "key:appeals",
+            "key:assigned_jurors",
+            "key:attendance",
+            "key:banned",
+            "key:bound",
+            "key:bound_at_nonce",
+            "key:bound_by",
+            "key:by_id",
+            "key:completed_at_height",
+            "key:completed_at_nonce",
+            "key:completion",
+            "key:declined_at_nonce",
+            "key:dispute_juror_eligible",
+            "key:dispute_juror_suspended_reason",
+            "key:eligible_juror_ids",
+            "key:eligible_validator_count",
+            "key:evidence",
+            "key:final_enforcement_applied",
+            "key:final_resolution",
+            "key:finalized_at_nonce",
+            "key:groups",
+            "key:juror_accountability",
+            "key:jurors",
+            "key:latest_restriction",
+            "key:locked",
+            "key:original_panel_juror_ids",
+            "key:original_substitute_juror_ids",
+            "key:poh_reviewer_eligible",
+            "key:poh_reviewer_suspended_reason",
+            "key:remedies",
+            "key:reputation_policy",
+            "key:required_votes",
+            "key:resolution",
+            "key:resolved",
+            "key:resolved_at_height",
+            "key:resolved_at_nonce",
+            "key:restricted",
+            "key:restricted_members",
+            "key:restrictions",
+            "key:role_eligibility",
+            "key:safe_withdraw_until_height",
+            "key:stage",
+            "key:stage_set_at_height",
+            "key:stage_set_at_nonce",
+            "key:status",
+            "key:timed_out_at_height",
+            "key:timed_out_at_nonce",
+            "key:timeout",
+            "key:verdict_at_height",
+            "key:vote_deadline_height",
+            "key:votes",
+            "key:withdrawal",
+            "key:withdrawn_at_height",
+            "key:withdrawn_at_nonce"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "CASE_BIND_TO_DISPUTE",
+            "DISPUTE_JUROR_ASSIGN",
+            "DISPUTE_STAGE_SET"
+          ],
+          "current_present": true,
+          "field": "system_followups",
+          "previous": [
+            "ACCOUNT_REINSTATE",
+            "CASE_BIND_TO_DISPUTE",
+            "CASE_OUTCOME_RECEIPT",
+            "CASE_TYPE_REGISTER",
+            "CONTENT_LABEL_SET",
+            "CONTENT_THREAD_LOCK_SET",
+            "CONTENT_VISIBILITY_SET",
+            "DISPUTE_FINAL_RECEIPT",
+            "DISPUTE_JUROR_ASSIGN",
+            "DISPUTE_JUROR_ATTENDANCE",
+            "DISPUTE_JUROR_TIMEOUT",
+            "DISPUTE_RESOLVE",
+            "DISPUTE_STAGE_SET",
+            "ROLE_ELIGIBILITY_SET",
+            "ROLE_JUROR_REINSTATE"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "dispute_open",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "current_material_digest": "61cbfdf215d0407d8e549f6d2c7fed366dead956e234eefc2d8c3eb91a3e5851",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "duplicate",
+            "reason": "dispute_id_exists"
+          },
+          {
+            "code": "forbidden",
+            "reason": "tier1_required_for_dispute"
+          },
+          {
+            "code": "forbidden",
+            "reason": "unsupported_dispute_target_type"
+          },
+          {
+            "code": "invalid_payload",
+            "reason": "missing_target"
+          }
+        ],
+        "removed": [
+          {
+            "code": "conflict",
+            "reason": "appeal_already_filed"
+          },
+          {
+            "code": "conflict",
+            "reason": "dispute_ballot_already_final"
+          },
+          {
+            "code": "forbidden",
+            "reason": "appeal_window_closed"
+          },
+          {
+            "code": "forbidden",
+            "reason": "appeal_window_not_open"
+          },
+          {
+            "code": "forbidden",
+            "reason": "ballot_profile_inactive"
+          },
+          {
+            "code": "forbidden",
+            "reason": "dispute_timeout_after_vote_forbidden"
+          },
+          {
+            "code": "forbidden",
+            "reason": "dispute_vote_deadline_not_passed"
+          },
+          {
+            "code": "forbidden",
+            "reason": "dispute_vote_deadline_passed"
+          },
+          {
+            "code": "forbidden",
+            "reason": "dispute_withdraw_after_vote_forbidden"
+          },
+          {
+            "code": "forbidden",
+            "reason": "insufficient_fresh_appeal_panel"
+          },
+          {
+            "code": "forbidden",
+            "reason": "juror_conflict_target_owner"
+          },
+          {
+            "code": "forbidden",
+            "reason": "juror_not_assigned"
+          },
+          {
+            "code": "forbidden",
+            "reason": "juror_not_present"
+          },
+          {
+            "code": "forbidden",
+            "reason": "juror_wrong_status"
+          },
+          {
+            "code": "forbidden",
+            "reason": "reviewer_responsibility_not_active"
+          },
+          {
+            "code": "forbidden",
+            "reason": "system_only"
+          },
+          {
+            "code": "invalid_payload",
+            "reason": "invalid_dispute_vote_choice"
+          },
+          {
+            "code": "invalid_payload",
+            "reason": "invalid_public_cid"
+          },
+          {
+            "code": "invalid_payload",
+            "reason": "missing_case_type"
+          },
+          {
+            "code": "invalid_payload",
+            "reason": "missing_dispute_id"
+          },
+          {
+            "code": "invalid_payload",
+            "reason": "missing_dispute_or_evidence_id"
+          },
+          {
+            "code": "invalid_payload",
+            "reason": "missing_dispute_or_juror"
+          },
+          {
+            "code": "invalid_payload",
+            "reason": "missing_dispute_or_stage"
+          },
+          {
+            "code": "not_found",
+            "reason": "evidence_not_found"
+          },
+          {
+            "code": "tx_unimplemented",
+            "reason": "case_tx_not_implemented"
+          }
+        ]
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "handler_source_attribution_and_derived_contract",
+      "reviewed_at_on_record": "2026-09-27T20:14:39Z",
+      "reviewer_on_record": "WeAll Protocol P2 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "proposal_target_rejected_before_proposal_status_branches"
+      ],
+      "stable_id": "TX-0200",
+      "tx_type": "DISPUTE_OPEN"
+    },
+    {
+      "accepted_review_digest": "9e2108954707b7daf3d543713e2b74014fa97e802417bb533c0910b4accd5cb3",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "9e2108954707b7daf3d543713e2b74014fa97e802417bb533c0910b4accd5cb3",
+      "archived_implementation_source": {
+        "function": "_apply_dispute_resolve",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "conflict",
+              "reason": "automatic_severe_appeal_already_assigned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "severe_sanction_initial_outcome_mismatch"
+            },
+            {
+              "code": "forbidden",
+              "reason": "severe_sanction_initial_twenty_votes_unverified"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "system_only"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:_due_height",
+            "key:_system_queue_id",
+            "key:account_id",
+            "key:accounts",
+            "key:actions",
+            "key:automatic_appeal_record",
+            "key:banned",
+            "key:by_id",
+            "key:dispute_id",
+            "key:eligible",
+            "key:group_id",
+            "key:groups",
+            "key:height",
+            "key:id",
+            "key:juror_id",
+            "key:latest_restriction",
+            "key:locked",
+            "key:member",
+            "key:outcome",
+            "key:payload",
+            "key:reason",
+            "key:remedies",
+            "key:resolution",
+            "key:restricted",
+            "key:restricted_members",
+            "key:restriction",
+            "key:restrictions",
+            "key:role",
+            "key:role_eligibility",
+            "key:status",
+            "key:target_account",
+            "key:target_id",
+            "key:tx_type"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:_due_height",
+            "key:_system_queue_id",
+            "key:account_id",
+            "key:accounts",
+            "key:actions",
+            "key:banned",
+            "key:by_id",
+            "key:dispute_id",
+            "key:eligible",
+            "key:group_id",
+            "key:groups",
+            "key:height",
+            "key:id",
+            "key:juror_id",
+            "key:latest_restriction",
+            "key:locked",
+            "key:member",
+            "key:payload",
+            "key:reason",
+            "key:remedies",
+            "key:resolution",
+            "key:restricted",
+            "key:restricted_members",
+            "key:restriction",
+            "key:restrictions",
+            "key:role",
+            "key:role_eligibility",
+            "key:status",
+            "key:target_account",
+            "key:target_id",
+            "key:tx_type"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_dispute_resolve",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "current_material_digest": "e732b22432b88d0128b5fcbcb14d04b4bdd789a646164233fd7b64e5a44d52c9",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "conflict",
+            "reason": "automatic_severe_appeal_already_assigned"
+          },
+          {
+            "code": "forbidden",
+            "reason": "severe_sanction_initial_outcome_mismatch"
+          },
+          {
+            "code": "forbidden",
+            "reason": "severe_sanction_initial_twenty_votes_unverified"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "dispute_ballot_or_appeal_semantics",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [],
+      "stable_id": "TX-0209",
+      "tx_type": "DISPUTE_RESOLVE"
+    },
+    {
+      "accepted_review_digest": "055dbcb4cc8aadc6a01c51e8caa7803509ea7445490f8b03314c29d48d8ac930",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "055dbcb4cc8aadc6a01c51e8caa7803509ea7445490f8b03314c29d48d8ac930",
+      "archived_implementation_source": {
+        "function": "_apply_dispute_vote_submit",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "conflict",
+              "reason": "dispute_ballot_already_final"
+            },
+            {
+              "code": "forbidden",
+              "reason": "ballot_profile_inactive"
+            },
+            {
+              "code": "forbidden",
+              "reason": "dispute_vote_deadline_passed"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_material"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_reporter"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_not_assigned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_not_present"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_wrong_status"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reviewer_responsibility_not_active"
+            },
+            {
+              "code": "forbidden",
+              "reason": "severe_appeal_fresh_panel_unverified"
+            },
+            {
+              "code": "forbidden",
+              "reason": "unsupported_dispute_material_conflict_gate_version"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "invalid_dispute_vote_choice"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "conflict",
+              "reason": "dispute_ballot_already_final"
+            },
+            {
+              "code": "forbidden",
+              "reason": "ballot_profile_inactive"
+            },
+            {
+              "code": "forbidden",
+              "reason": "dispute_vote_deadline_passed"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_conflict_target_owner"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_not_assigned"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_not_present"
+            },
+            {
+              "code": "forbidden",
+              "reason": "juror_wrong_status"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reviewer_responsibility_not_active"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "invalid_dispute_vote_choice"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_dispute_id"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:_parent_ref",
+            "key:accepted_at_block_height",
+            "key:active",
+            "key:appeal_panel_round",
+            "key:attendance",
+            "key:canonical_reputation_event_id",
+            "key:choice",
+            "key:decision",
+            "key:dispute_id",
+            "key:dispute_material_conflict_gate_version",
+            "key:event_id",
+            "key:flagged_by",
+            "key:height",
+            "key:id",
+            "key:jurors",
+            "key:late_withdraw_penalty_milli",
+            "key:panel_round",
+            "key:params",
+            "key:present",
+            "key:profile_id",
+            "key:reason",
+            "key:reported_by",
+            "key:reporter",
+            "key:resolution",
+            "key:safe_withdraw_blocks",
+            "key:stage",
+            "key:status",
+            "key:strict",
+            "key:summary",
+            "key:timeout_penalty_milli",
+            "key:vote",
+            "key:vote_deadline_height",
+            "key:vote_window_blocks"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:_parent_ref",
+            "key:accepted_at_block_height",
+            "key:active",
+            "key:appeal_panel_round",
+            "key:attendance",
+            "key:canonical_reputation_event_id",
+            "key:choice",
+            "key:decision",
+            "key:dispute_id",
+            "key:event_id",
+            "key:height",
+            "key:id",
+            "key:jurors",
+            "key:late_withdraw_penalty_milli",
+            "key:panel_round",
+            "key:present",
+            "key:profile_id",
+            "key:reason",
+            "key:resolution",
+            "key:safe_withdraw_blocks",
+            "key:stage",
+            "key:status",
+            "key:strict",
+            "key:summary",
+            "key:timeout_penalty_milli",
+            "key:vote",
+            "key:vote_deadline_height",
+            "key:vote_window_blocks"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_dispute_vote_submit",
+        "handler": "dispute",
+        "path": "src/weall/runtime/apply/dispute.py"
+      },
+      "current_material_digest": "66d5a5259d3c6d88fea547dcaf2daa4ed5de66387534a97b37ad8c6aec86da85",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "juror_conflict_material"
+          },
+          {
+            "code": "forbidden",
+            "reason": "juror_conflict_reporter"
+          },
+          {
+            "code": "forbidden",
+            "reason": "severe_appeal_fresh_panel_unverified"
+          },
+          {
+            "code": "forbidden",
+            "reason": "unsupported_dispute_material_conflict_gate_version"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "dispute_ballot_or_appeal_semantics",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "material_conflict_rejection_requires_strict_explicit_v2"
+      ],
+      "stable_id": "TX-0208",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "accepted_review_digest": "3a54a47ca0ffb7bf9ce4bb4c2d1117754f3081851d10a2a9b219031b42530f02",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "3a54a47ca0ffb7bf9ce4bb4c2d1117754f3081851d10a2a9b219031b42530f02",
+      "archived_implementation_source": {
+        "function": "_apply_group_emissary_election_create",
+        "handler": "groups",
+        "path": "src/weall/runtime/apply/groups.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "already_exists",
+              "reason": "election_exists"
+            },
+            {
+              "code": "forbidden",
+              "reason": "no_eligible_group_electorate"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_candidates"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_election_id"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_group_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "group_not_found"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "already_exists",
+              "reason": "election_exists"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_candidates"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_election_id"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_group_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "group_not_found"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:electorate_source",
+            "key:eligible_voter_count",
+            "key:group_emissary_ballot_boxes",
+            "key:group_emissary_ballot_nullifiers",
+            "key:group_emissary_ballots",
+            "key:group_emissary_elections",
+            "key:quorum_activation_height",
+            "key:quorum_policy_version",
+            "key:required_votes",
+            "key:roles"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:group_emissary_ballot_boxes",
+            "key:group_emissary_ballot_nullifiers",
+            "key:group_emissary_ballots",
+            "key:group_emissary_elections",
+            "key:roles"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_group_emissary_election_create",
+        "handler": "groups",
+        "path": "src/weall/runtime/apply/groups.py"
+      },
+      "current_material_digest": "678c8d7777aee9a6d41d5462a9d02c3814b77855b193fb145564a22f0fb3cdc6",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "no_eligible_group_electorate"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "group_emissary_election_authority_and_receipt",
+      "reviewed_at_on_record": "2026-09-26T19:00:00Z",
+      "reviewer_on_record": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "frozen_electorate_only_at_explicit_quorum_activation"
+      ],
+      "stable_id": "TX-1715",
+      "tx_type": "GROUP_EMISSARY_ELECTION_CREATE"
+    },
+    {
+      "accepted_review_digest": "9906cf362f9494bd52b6068374f281101736fbe396c07c1ccf5008db483079a2",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "9906cf362f9494bd52b6068374f281101736fbe396c07c1ccf5008db483079a2",
+      "archived_implementation_source": {
+        "function": "_apply_group_emissary_election_finalize",
+        "handler": "groups",
+        "path": "src/weall/runtime/apply/groups.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "receipt_contract",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "election_not_open"
+            },
+            {
+              "code": "forbidden",
+              "reason": "election_still_open"
+            },
+            {
+              "code": "forbidden",
+              "reason": "group_scope_mismatch"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_group_or_election_id"
+            },
+            {
+              "code": "invalid_state",
+              "reason": "unsupported_group_emissary_quorum_version"
+            },
+            {
+              "code": "not_found",
+              "reason": "election_not_found"
+            },
+            {
+              "code": "not_found",
+              "reason": "group_not_found"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "election_not_open"
+            },
+            {
+              "code": "forbidden",
+              "reason": "election_still_open"
+            },
+            {
+              "code": "forbidden",
+              "reason": "group_scope_mismatch"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_group_or_election_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "election_not_found"
+            },
+            {
+              "code": "not_found",
+              "reason": "group_not_found"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": {
+            "kind": "user_transaction_apply_result",
+            "parent": null,
+            "return_fields": [
+              "applied",
+              "deduped",
+              "election_id",
+              "eligible_voter_count",
+              "group_id",
+              "n_ballots",
+              "n_candidates",
+              "quorum_met",
+              "reason",
+              "required_votes",
+              "seats",
+              "status",
+              "treasury_id",
+              "winners"
+            ],
+            "stable_id": "RCP-9F44A2AA61702458"
+          },
+          "current_present": true,
+          "field": "receipt_contract",
+          "previous": {
+            "kind": "user_transaction_apply_result",
+            "parent": null,
+            "return_fields": [
+              "applied",
+              "deduped",
+              "election_id",
+              "group_id",
+              "n_ballots",
+              "n_candidates",
+              "reason",
+              "seats",
+              "status",
+              "treasury_id",
+              "winners"
+            ],
+            "stable_id": "RCP-9F44A2AA61702458"
+          },
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:candidates",
+            "key:count",
+            "key:election_id",
+            "key:end_height",
+            "key:group_emissary_ballot_boxes",
+            "key:group_emissary_ballots",
+            "key:group_emissary_elections",
+            "key:group_id",
+            "key:groups_by_id",
+            "key:id",
+            "key:no_decision_reason",
+            "key:quorum_policy_version",
+            "key:ranking",
+            "key:roles",
+            "key:seats",
+            "key:status",
+            "key:treasuries_by_id",
+            "key:treasury_id",
+            "key:winners"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:candidates",
+            "key:count",
+            "key:election_id",
+            "key:end_height",
+            "key:group_emissary_ballot_boxes",
+            "key:group_emissary_ballots",
+            "key:group_emissary_elections",
+            "key:group_id",
+            "key:groups_by_id",
+            "key:id",
+            "key:ranking",
+            "key:roles",
+            "key:seats",
+            "key:status",
+            "key:treasuries_by_id",
+            "key:treasury_id",
+            "key:winners"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<append:dynamic>",
+            "key:emissaries",
+            "key:emissaries_set_at_height",
+            "key:emissaries_set_at_nonce",
+            "key:finalized_at_height",
+            "key:finalized_at_nonce",
+            "key:finalized_by",
+            "key:group_emissary_ballot_boxes",
+            "key:group_emissary_ballots",
+            "key:group_emissary_elections",
+            "key:n_ballots",
+            "key:no_decision_reason",
+            "key:quorum_met",
+            "key:require_emissary_signers",
+            "key:roles",
+            "key:signers",
+            "key:status",
+            "key:threshold",
+            "key:treasuries_by_id",
+            "key:winners"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:<append:dynamic>",
+            "key:emissaries",
+            "key:emissaries_set_at_height",
+            "key:emissaries_set_at_nonce",
+            "key:finalized_at_height",
+            "key:finalized_at_nonce",
+            "key:finalized_by",
+            "key:group_emissary_ballot_boxes",
+            "key:group_emissary_ballots",
+            "key:group_emissary_elections",
+            "key:require_emissary_signers",
+            "key:roles",
+            "key:signers",
+            "key:status",
+            "key:threshold",
+            "key:treasuries_by_id",
+            "key:winners"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_group_emissary_election_finalize",
+        "handler": "groups",
+        "path": "src/weall/runtime/apply/groups.py"
+      },
+      "current_material_digest": "1010023edd428932994fd10904a6087b0f12d5005d6b0b59cd4fac95c534cc3c",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "invalid_state",
+            "reason": "unsupported_group_emissary_quorum_version"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "group_emissary_election_authority_and_receipt",
+      "reviewed_at_on_record": "2026-10-23T21:38:00Z",
+      "reviewer_on_record": "AI-assisted scoped governance code review; independent review pending",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "frozen_quorum_controls_authority_transfer_legacy_elections_remain_unversioned"
+      ],
+      "stable_id": "TX-1717",
+      "tx_type": "GROUP_EMISSARY_ELECTION_FINALIZE"
+    },
+    {
+      "accepted_review_digest": "2102af9d0c4257b3ed952da3a08af1f7350d317d49ccfec88f32227c79646701",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "2102af9d0c4257b3ed952da3a08af1f7350d317d49ccfec88f32227c79646701",
+      "archived_implementation_source": {
+        "function": "_apply_reviewer_lane_update",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "canonical_role_reputation_ineligible"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "only_account_can_update_reviewer_lane"
+            },
+            {
+              "code": "forbidden",
+              "reason": "policy_unknown"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "reviewer_lane_required"
+            },
+            {
+              "code": "not_found",
+              "reason": "account_not_found"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "only_account_can_update_reviewer_lane"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "reviewer_lane_required"
+            },
+            {
+              "code": "not_found",
+              "reason": "juror_not_enrolled"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active_set",
+            "key:actual_milli",
+            "key:by_id",
+            "key:canonical_reasons",
+            "key:canonical_role",
+            "key:code",
+            "key:eligible",
+            "key:enrolled_at_nonce",
+            "key:gate_version",
+            "key:jurors",
+            "key:reason",
+            "key:required_milli",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active_set",
+            "key:banned",
+            "key:by_id",
+            "key:enrolled",
+            "key:enrolled_at_nonce",
+            "key:jurors",
+            "key:locked",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<update:dynamic>",
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:enrolled",
+            "key:enrolled_at_nonce",
+            "key:gate_version",
+            "key:jurors",
+            "key:opted_in",
+            "key:opted_in_at_nonce",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:status",
+            "key:updated_at_nonce"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:enrolled",
+            "key:enrolled_at_nonce",
+            "key:jurors",
+            "key:opted_in",
+            "key:opted_in_at_nonce",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:status",
+            "key:updated_at_nonce",
+            "key:withdrawn_at_nonce"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_reviewer_lane_update",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "a74b438bf88af93c8f6d498ba4b6072d4eb9a158401ebae99cc094b248ea5d7e",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "canonical_role_reputation_ineligible"
+          },
+          {
+            "code": "forbidden",
+            "reason": "policy_unknown"
+          },
+          {
+            "code": "not_found",
+            "reason": "account_not_found"
+          }
+        ],
+        "removed": [
+          {
+            "code": "not_found",
+            "reason": "juror_not_enrolled"
+          }
+        ]
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [],
+      "stable_id": "TX-2624",
+      "tx_type": "REVIEWER_LANE_OPT_IN"
+    },
+    {
+      "accepted_review_digest": "c53e049b178c519490a20feeae27b732cd6c7b66489b53d5d3b4126e83fe1619",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "c53e049b178c519490a20feeae27b732cd6c7b66489b53d5d3b4126e83fe1619",
+      "archived_implementation_source": {
+        "function": "_apply_reviewer_lane_update",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "only_account_can_update_reviewer_lane"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "reviewer_lane_required"
+            },
+            {
+              "code": "not_found",
+              "reason": "juror_not_enrolled"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "only_account_can_update_reviewer_lane"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "reviewer_lane_required"
+            },
+            {
+              "code": "not_found",
+              "reason": "juror_not_enrolled"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active_set",
+            "key:by_id",
+            "key:enrolled",
+            "key:jurors",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active_set",
+            "key:banned",
+            "key:by_id",
+            "key:enrolled",
+            "key:enrolled_at_nonce",
+            "key:jurors",
+            "key:locked",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:jurors",
+            "key:opted_in",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:updated_at_nonce",
+            "key:withdrawn_at_nonce"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:enrolled",
+            "key:enrolled_at_nonce",
+            "key:jurors",
+            "key:opted_in",
+            "key:opted_in_at_nonce",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:status",
+            "key:updated_at_nonce",
+            "key:withdrawn_at_nonce"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_reviewer_lane_update",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "e63b5f748e8bb6ccbb85dbf1bd5ef0a1d8f2942212c9e63441dc853be31b97bc",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [],
+        "removed": [
+          {
+            "code": "forbidden",
+            "reason": "account_restricted"
+          },
+          {
+            "code": "forbidden",
+            "reason": "live_verification_required"
+          },
+          {
+            "code": "forbidden",
+            "reason": "reputation_insufficient"
+          },
+          {
+            "code": "forbidden",
+            "reason": "role_eligibility_revoked"
+          }
+        ]
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "withdrawal_does_not_invoke_activation_eligibility_gate"
+      ],
+      "stable_id": "TX-2625",
+      "tx_type": "REVIEWER_LANE_OPT_OUT"
+    },
+    {
+      "accepted_review_digest": "5fac7ab2ada1107b86940a80f8e3d83b5bfb7410f5cb19741aba54b0397cec7c",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "5fac7ab2ada1107b86940a80f8e3d83b5bfb7410f5cb19741aba54b0397cec7c",
+      "archived_implementation_source": {
+        "function": "_apply_role_emissary_seat",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "policy_unknown"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_tx_required"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "account_not_found"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_tx_required"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active",
+            "key:actual_milli",
+            "key:by_id",
+            "key:canonical_reasons",
+            "key:canonical_role",
+            "key:code",
+            "key:eligible",
+            "key:emissaries",
+            "key:gate_version",
+            "key:reason",
+            "key:required_milli",
+            "key:roles",
+            "key:seated"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active",
+            "key:banned",
+            "key:by_id",
+            "key:emissaries",
+            "key:locked",
+            "key:roles",
+            "key:seated"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<update:dynamic>",
+            "key:active",
+            "key:by_id",
+            "key:emissaries",
+            "key:gate_version",
+            "key:seated",
+            "key:seated_at_nonce"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:active",
+            "key:by_id",
+            "key:emissaries",
+            "key:seated",
+            "key:seated_at_nonce"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_role_emissary_seat",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "036b9b8671c3b541773ccad86f8db42f924ecbad80b1b0a96e7022e7a2cc7e4d",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "policy_unknown"
+          },
+          {
+            "code": "not_found",
+            "reason": "account_not_found"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "default_governance_action_allowlist_excludes_appointment"
+      ],
+      "stable_id": "TX-1111",
+      "tx_type": "ROLE_EMISSARY_SEAT"
+    },
+    {
+      "accepted_review_digest": "aed1ad10012208f8090130ad328aea9f6f82244aea94482da50c7795dfbfcf2b",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "aed1ad10012208f8090130ad328aea9f6f82244aea94482da50c7795dfbfcf2b",
+      "archived_implementation_source": {
+        "function": "_apply_role_gov_executor_set",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "policy_unknown"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_tx_required"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "account_not_found"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_tx_required"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active",
+            "key:actual_milli",
+            "key:canonical_reasons",
+            "key:canonical_role",
+            "key:code",
+            "key:current",
+            "key:eligible",
+            "key:gate_version",
+            "key:gov_executor",
+            "key:note",
+            "key:reason",
+            "key:required_milli",
+            "key:roles"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active",
+            "key:banned",
+            "key:current",
+            "key:gov_executor",
+            "key:locked",
+            "key:note",
+            "key:roles"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<update:dynamic>",
+            "key:active",
+            "key:current",
+            "key:gate_version",
+            "key:gov_executor",
+            "key:note",
+            "key:set_at_nonce"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:active",
+            "key:current",
+            "key:gov_executor",
+            "key:note",
+            "key:set_at_nonce"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_role_gov_executor_set",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "67f96b18e3e5fe6d0c9d60c329fdfff56a74fb9a255dab5d5908f75e9e3ce544",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "policy_unknown"
+          },
+          {
+            "code": "not_found",
+            "reason": "account_not_found"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [
+        "default_governance_action_allowlist_excludes_appointment"
+      ],
+      "stable_id": "TX-1113",
+      "tx_type": "ROLE_GOV_EXECUTOR_SET"
+    },
+    {
+      "accepted_review_digest": "a1b3bf4fb1438f6d969498dfa89301ba40cfb940a7753e307c95673f9df0eafe",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "a1b3bf4fb1438f6d969498dfa89301ba40cfb940a7753e307c95673f9df0eafe",
+      "archived_implementation_source": {
+        "function": "_apply_role_juror_activate",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "canonical_role_reputation_ineligible"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "policy_unknown"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "runtime_apply_failure"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "account_not_found"
+            },
+            {
+              "code": "not_found",
+              "reason": "juror_not_enrolled"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "runtime_apply_failure"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "juror_not_enrolled"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active_set",
+            "key:actual_milli",
+            "key:by_id",
+            "key:canonical_reasons",
+            "key:canonical_role",
+            "key:code",
+            "key:eligible",
+            "key:enrolled",
+            "key:gate_version",
+            "key:jurors",
+            "key:reason",
+            "key:required_milli",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active_set",
+            "key:banned",
+            "key:by_id",
+            "key:enrolled",
+            "key:jurors",
+            "key:locked",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<update:dynamic>",
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:gate_version",
+            "key:jurors",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:reviewer_lane_policy",
+            "key:status"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:jurors",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:reviewer_lane_policy",
+            "key:status"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_role_juror_activate",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "86dfa0345dd87a7059956031afffb1caee6e8843b7d275862bd336ea1045f2ce",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "canonical_role_reputation_ineligible"
+          },
+          {
+            "code": "forbidden",
+            "reason": "policy_unknown"
+          },
+          {
+            "code": "not_found",
+            "reason": "account_not_found"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [],
+      "stable_id": "TX-1101",
+      "tx_type": "ROLE_JUROR_ACTIVATE"
+    },
+    {
+      "accepted_review_digest": "a9e6314bbf541fe827a643f39bf6c8dc9f9f35d2510dfa1524bd48ec80488c1e",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "a9e6314bbf541fe827a643f39bf6c8dc9f9f35d2510dfa1524bd48ec80488c1e",
+      "archived_implementation_source": {
+        "function": "_apply_role_juror_enroll",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "canonical_role_reputation_ineligible"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "only_account_can_enroll_juror"
+            },
+            {
+              "code": "forbidden",
+              "reason": "policy_unknown"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "account_not_found"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "only_account_can_enroll_juror"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active",
+            "key:active_set",
+            "key:actual_milli",
+            "key:by_id",
+            "key:canonical_reasons",
+            "key:canonical_role",
+            "key:code",
+            "key:eligible",
+            "key:enrolled",
+            "key:gate_version",
+            "key:jurors",
+            "key:reason",
+            "key:required_milli",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active",
+            "key:active_set",
+            "key:banned",
+            "key:by_id",
+            "key:enrolled",
+            "key:jurors",
+            "key:locked",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<update:dynamic>",
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:enrolled",
+            "key:enrolled_at_nonce",
+            "key:gate_version",
+            "key:jurors",
+            "key:opted_in",
+            "key:opted_in_at_nonce",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:reviewer_lane_policy",
+            "key:status",
+            "key:updated_at_nonce"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:enrolled",
+            "key:enrolled_at_nonce",
+            "key:jurors",
+            "key:opted_in",
+            "key:opted_in_at_nonce",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:reviewer_lane_policy",
+            "key:status",
+            "key:updated_at_nonce"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_role_juror_enroll",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "24d5504a1e6f2099c4129d06b4a35786365d56178b484a4907bb4ca24c5e0949",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "canonical_role_reputation_ineligible"
+          },
+          {
+            "code": "forbidden",
+            "reason": "policy_unknown"
+          },
+          {
+            "code": "not_found",
+            "reason": "account_not_found"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [],
+      "stable_id": "TX-1100",
+      "tx_type": "ROLE_JUROR_ENROLL"
+    },
+    {
+      "accepted_review_digest": "406cee36b386ad3e925975683876ee5b252e08977183664d79b56edd80d6f953",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "406cee36b386ad3e925975683876ee5b252e08977183664d79b56edd80d6f953",
+      "archived_implementation_source": {
+        "function": "_apply_role_juror_reinstate",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "canonical_role_reputation_ineligible"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "policy_unknown"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "runtime_apply_failure"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "account_not_found"
+            },
+            {
+              "code": "not_found",
+              "reason": "juror_not_enrolled"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "runtime_apply_failure"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "juror_not_enrolled"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active_set",
+            "key:actual_milli",
+            "key:by_id",
+            "key:canonical_reasons",
+            "key:canonical_role",
+            "key:code",
+            "key:eligible",
+            "key:enrolled",
+            "key:gate_version",
+            "key:jurors",
+            "key:reason",
+            "key:required_milli",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active_set",
+            "key:banned",
+            "key:by_id",
+            "key:enrolled",
+            "key:jurors",
+            "key:locked",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:roles"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<update:dynamic>",
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:gate_version",
+            "key:jurors",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:reviewer_lane_policy",
+            "key:status"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:jurors",
+            "key:responsibilities",
+            "key:reviewer",
+            "key:reviewer_lane_policy",
+            "key:status"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_role_juror_reinstate",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "f0987551f52696f530b4934eb05d2b7a38191d62e767242fc34c97ef7f018c96",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "canonical_role_reputation_ineligible"
+          },
+          {
+            "code": "forbidden",
+            "reason": "policy_unknown"
+          },
+          {
+            "code": "not_found",
+            "reason": "account_not_found"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-26T22:30:00Z",
+      "reviewer_on_record": "WeAll Protocol P1 audit remediation; independent launch review deferred",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [],
+      "stable_id": "TX-1103",
+      "tx_type": "ROLE_JUROR_REINSTATE"
+    },
+    {
+      "accepted_review_digest": "b88824f667e247700e774d8361d333671145fcf98f99478330439dc58fc84f78",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "b88824f667e247700e774d8361d333671145fcf98f99478330439dc58fc84f78",
+      "archived_implementation_source": {
+        "function": "_apply_role_node_operator_activate",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "node_operator_suspended"
+            },
+            {
+              "code": "forbidden",
+              "reason": "policy_unknown"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_tx_required"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "account_not_found"
+            },
+            {
+              "code": "not_found",
+              "reason": "node_operator_not_enrolled"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "node_operator_suspended"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_tx_required"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "node_operator_not_enrolled"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active",
+            "key:active_set",
+            "key:actual_milli",
+            "key:allocated_capacity_bytes",
+            "key:by_id",
+            "key:canonical_reasons",
+            "key:canonical_role",
+            "key:code",
+            "key:declared_capacity_bytes",
+            "key:eligible",
+            "key:enrolled",
+            "key:gate_version",
+            "key:helper",
+            "key:helper_capacity_units",
+            "key:node_operators",
+            "key:opted_in",
+            "key:proof_status",
+            "key:proven_capacity_bytes",
+            "key:readiness_status",
+            "key:reason",
+            "key:reputation_required_milli",
+            "key:required_milli",
+            "key:responsibilities",
+            "key:roles",
+            "key:storage",
+            "key:suspended",
+            "key:validator"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active",
+            "key:active_set",
+            "key:allocated_capacity_bytes",
+            "key:banned",
+            "key:by_id",
+            "key:declared_capacity_bytes",
+            "key:enrolled",
+            "key:helper",
+            "key:helper_capacity_units",
+            "key:locked",
+            "key:node_operators",
+            "key:opted_in",
+            "key:proof_status",
+            "key:proven_capacity_bytes",
+            "key:readiness_status",
+            "key:reputation_required_milli",
+            "key:responsibilities",
+            "key:roles",
+            "key:storage",
+            "key:suspended",
+            "key:validator"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<update:dynamic>",
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:allocated_capacity_bytes",
+            "key:by_id",
+            "key:declared_capacity_bytes",
+            "key:gate_version",
+            "key:helper",
+            "key:helper_capacity_units",
+            "key:node_operators",
+            "key:opted_in",
+            "key:proof_status",
+            "key:proven_capacity_bytes",
+            "key:readiness_status",
+            "key:reinstated_at_nonce",
+            "key:reinstatement_parent",
+            "key:reputation_required_milli",
+            "key:responsibilities",
+            "key:status",
+            "key:storage",
+            "key:suspended",
+            "key:validator"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:allocated_capacity_bytes",
+            "key:by_id",
+            "key:declared_capacity_bytes",
+            "key:helper",
+            "key:helper_capacity_units",
+            "key:node_operators",
+            "key:opted_in",
+            "key:proof_status",
+            "key:proven_capacity_bytes",
+            "key:readiness_status",
+            "key:reinstated_at_nonce",
+            "key:reinstatement_parent",
+            "key:reputation_required_milli",
+            "key:responsibilities",
+            "key:status",
+            "key:storage",
+            "key:suspended",
+            "key:validator"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_role_node_operator_activate",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "4848ccae3e3a90f9294870c95dfc3143348ee37612e0ce110c3d2cb8bc2d495c",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "policy_unknown"
+          },
+          {
+            "code": "not_found",
+            "reason": "account_not_found"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-29T22:53:56Z",
+      "reviewer_on_record": "AI-assisted audit remediation requested by repository maintainer; not independent review",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [],
+      "stable_id": "TX-1107",
+      "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE"
+    },
+    {
+      "accepted_review_digest": "f64112945d92ef91e3fbcc3ffe14b949929e95e79b5e53e6f409da9ba215a7ba",
+      "archive_matches_accepted_digest": true,
+      "archived_compiled_material_digest": "f64112945d92ef91e3fbcc3ffe14b949929e95e79b5e53e6f409da9ba215a7ba",
+      "archived_implementation_source": {
+        "function": "_apply_role_validator_activate",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "changed_field_names": [
+        "failure_codes",
+        "state_reads",
+        "state_writes"
+      ],
+      "changed_fields": [
+        {
+          "current": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "canonical_role_reputation_ineligible"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "node_key_not_registered"
+            },
+            {
+              "code": "forbidden",
+              "reason": "node_operator_status_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "policy_unknown"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_tx_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "validator_readiness_expired"
+            },
+            {
+              "code": "forbidden",
+              "reason": "validator_readiness_required"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            },
+            {
+              "code": "not_found",
+              "reason": "account_not_found"
+            }
+          ],
+          "current_present": true,
+          "field": "failure_codes",
+          "previous": [
+            {
+              "code": "forbidden",
+              "reason": "account_restricted"
+            },
+            {
+              "code": "forbidden",
+              "reason": "live_verification_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "node_key_not_registered"
+            },
+            {
+              "code": "forbidden",
+              "reason": "node_operator_status_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "reputation_insufficient"
+            },
+            {
+              "code": "forbidden",
+              "reason": "role_eligibility_revoked"
+            },
+            {
+              "code": "forbidden",
+              "reason": "system_tx_required"
+            },
+            {
+              "code": "forbidden",
+              "reason": "validator_readiness_expired"
+            },
+            {
+              "code": "forbidden",
+              "reason": "validator_readiness_required"
+            },
+            {
+              "code": "invalid_payload",
+              "reason": "missing_account_id"
+            }
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:active",
+            "key:active_set",
+            "key:actual_milli",
+            "key:by_id",
+            "key:canonical_reasons",
+            "key:canonical_role",
+            "key:code",
+            "key:eligible",
+            "key:gate_version",
+            "key:height",
+            "key:node_operators",
+            "key:node_pubkey",
+            "key:node_public_key",
+            "key:readiness_expires_height",
+            "key:readiness_receipt_hash",
+            "key:readiness_status",
+            "key:reason",
+            "key:required_milli",
+            "key:responsibilities",
+            "key:roles",
+            "key:validator",
+            "key:validators"
+          ],
+          "current_present": true,
+          "field": "state_reads",
+          "previous": [
+            "key:active",
+            "key:active_set",
+            "key:banned",
+            "key:by_id",
+            "key:height",
+            "key:locked",
+            "key:node_operators",
+            "key:node_pubkey",
+            "key:node_public_key",
+            "key:readiness_expires_height",
+            "key:readiness_receipt_hash",
+            "key:readiness_status",
+            "key:responsibilities",
+            "key:roles",
+            "key:validator",
+            "key:validators"
+          ],
+          "previous_present": true
+        },
+        {
+          "current": [
+            "key:<update:dynamic>",
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:gate_version",
+            "key:node_pubkey",
+            "key:readiness_receipt_hash",
+            "key:validators"
+          ],
+          "current_present": true,
+          "field": "state_writes",
+          "previous": [
+            "key:activated_at_nonce",
+            "key:active",
+            "key:active_set",
+            "key:by_id",
+            "key:node_pubkey",
+            "key:readiness_receipt_hash",
+            "key:validators"
+          ],
+          "previous_present": true
+        }
+      ],
+      "classification_not_semantic_approval": true,
+      "current_implementation_source": {
+        "function": "_apply_role_validator_activate",
+        "handler": "roles",
+        "path": "src/weall/runtime/apply/roles.py"
+      },
+      "current_material_digest": "96760f26bc8b33c30609c6780b1ac7737598cadf22c3dfa615b38985237f8414",
+      "current_material_has_unexplained_delta": false,
+      "failure_code_deltas": {
+        "added": [
+          {
+            "code": "forbidden",
+            "reason": "canonical_role_reputation_ineligible"
+          },
+          {
+            "code": "forbidden",
+            "reason": "policy_unknown"
+          },
+          {
+            "code": "not_found",
+            "reason": "account_not_found"
+          }
+        ],
+        "removed": []
+      },
+      "historical_replay_proven": false,
+      "independent_review_on_record": false,
+      "review_lane": "versioned_role_and_reviewer_eligibility",
+      "reviewed_at_on_record": "2026-09-29T22:53:56Z",
+      "reviewer_on_record": "AI-assisted audit remediation requested by repository maintainer; not independent review",
+      "signed_off_for_current_digest": false,
+      "source_accuracy_holds": [],
+      "stable_id": "TX-1104",
+      "tx_type": "ROLE_VALIDATOR_ACTIVATE"
+    }
+  ]
+}
