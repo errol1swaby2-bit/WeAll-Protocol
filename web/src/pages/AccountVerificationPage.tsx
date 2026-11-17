@@ -28,6 +28,7 @@ import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { currentHashPath, nav } from "../lib/router";
+import { VERIFICATION_SECTIONS, verificationSectionFromHash, type VerificationSection } from "../lib/verificationSections";
 import {
   allowedAsyncPohStep,
   allowedLivePohStep,
@@ -513,6 +514,19 @@ export default function AccountVerificationPage(): JSX.Element {
   const asyncJournalBlocked = asyncJournal.status !== "none";
   const isAsyncJourneyRoute = parseAsyncPohRoute(guidedRoutePath) !== null;
   const isLiveJourneyRoute = parseLivePohJourneyRoute(guidedRoutePath) !== null;
+  // Guided stages outrank a conflicting tab query. While recording, keep
+  // native stop controls in the active section even during a hash transition.
+  const activeSection: VerificationSection = asyncRecordingState === "recording" || isAsyncJourneyRoute
+    ? "async"
+    : isLiveJourneyRoute ? "live" : verificationSectionFromHash(guidedRoutePath);
+  const showCaseHistory = activeSection === "history"
+    || (activeSection === "async" && isAsyncJourneyRoute && asyncGuideStep === "track")
+    || (activeSection === "live" && isLiveJourneyRoute && liveGuideStep === "track");
+
+  function openVerificationSection(section: VerificationSection): void {
+    if (asyncRecordingState === "recording" || section === activeSection) return;
+    nav(`/verification?tab=${section}`);
+  }
 
   function goAsyncStep(stage: AsyncPohGuideStep): void {
     setAsyncGuideStep(stage);
@@ -1567,7 +1581,22 @@ export default function AccountVerificationPage(): JSX.Element {
         onDismiss={() => setErr(null)}
       />
 
-      <section className="grid2">
+      <nav className="verificationSectionTabs" aria-label="Verification sections">
+        {VERIFICATION_SECTIONS.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={`verificationSectionTab ${activeSection === entry.id ? "isActive" : ""}`}
+            aria-current={activeSection === entry.id ? "page" : undefined}
+            disabled={asyncRecordingState === "recording" && entry.id !== "async"}
+            onClick={() => openVerificationSection(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
+      <section className="grid2 verificationSection" hidden={activeSection !== "overview"}>
         <article className="card">
           <div className="cardBody formStack">
             <div className="sectionHead">
@@ -1624,21 +1653,24 @@ export default function AccountVerificationPage(): JSX.Element {
         </article>
       </section>
 
-      <section className="grid3">
+      <section className="grid3 verificationSection" hidden={activeSection !== "overview" && activeSection !== "async" && activeSection !== "live"}>
+        <div className="verificationSection" hidden={activeSection !== "overview"}>
         <StatusCard
           eyebrow="Account"
           title={VERIFICATION_LABELS.basic}
           status={basicStatus}
           description="You can browse, set up your profile, and start account verification. Creating a basic account does not unlock posting."
         />
-        {accountLevel < 1 ? (
+        </div>
+        <div className="verificationSection" hidden={activeSection !== "overview" && activeSection !== "async"}>
+        {accountLevel < 1 || asyncRecordingState === "recording" ? (
           <StatusCard
             eyebrow="Basic human review"
             title={VERIFICATION_LABELS.verified}
             status={verifiedStatus}
             description="Complete your first human review through six separate stages. Every upload, signed case, reviewer decision and account tier is verified separately."
           >
-            {isAsyncJourneyRoute ? (
+            {isAsyncJourneyRoute || asyncRecordingState === "recording" ? (
             <div className="formStack" data-testid="async-guided-journey">
               <PohStepProgress
                 label="Async verification steps"
@@ -1899,6 +1931,8 @@ export default function AccountVerificationPage(): JSX.Element {
             description="The current canonical account view indicates basic verification. Continue to live verification if you need trusted participation."
           />
         )}
+        </div>
+        <div className="verificationSection" hidden={activeSection !== "overview" && activeSection !== "live"}>
         {accountLevel >= 1 ? (
           <StatusCard
             eyebrow="Live human review"
@@ -2036,9 +2070,18 @@ export default function AccountVerificationPage(): JSX.Element {
               )
             )}
         </StatusCard>
-        ) : null}
+        ) : (
+          <StatusCard
+            eyebrow="Live human review"
+            title={VERIFICATION_LABELS.trusted}
+            status="locked"
+            description="Complete basic human review before requesting live verification. Viewing this section does not unlock participation."
+          />
+        )}
+        </div>
       </section>
 
+      <div className="verificationSection" hidden={activeSection !== "responsibilities"}>
       <TrustedResponsibilitiesPanel
         account={acct}
         accountLevel={accountLevel}
@@ -2050,8 +2093,11 @@ export default function AccountVerificationPage(): JSX.Element {
         hasLocalKeypair={hasLocalKeypair}
         onUpdateContentReviewLane={(active) => void updateContentReviewLane(active)}
       />
+      </div>
 
       <VerificationHistoryPanel
+        showHistory={showCaseHistory}
+        showTechnical={activeSection === "technical"}
         asyncCases={asyncCases}
         liveCases={liveCases}
         liveSessions={liveSessions}

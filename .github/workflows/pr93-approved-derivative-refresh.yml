@@ -9,6 +9,12 @@ on:
       - Weall-Protocol/specs/v2/source/stable_ids.json
       - Weall-Protocol/specs/v2/source/source_mappings.json
       - Weall-Protocol/tests/test_p1_a01_route_authority.py
+      - web/src/pages/AccountVerificationPage.tsx
+      - web/src/components/VerificationHistoryPanel.tsx
+      - web/scripts/test_pr93_poh_merge_parity_source.mjs
+      - web/tests/e2e/verification_human_first.spec.ts
+      - web/tests/e2e/m4_two_user_one_node_custody.spec.ts
+      - .github/workflows/m4-two-user-one-node-real-stack.yml
   workflow_dispatch:
 
 permissions:

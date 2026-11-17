@@ -11,6 +11,10 @@ on:
       - web/src/pages/Login.tsx
       - web/src/pages/AccountRegistrationPage.tsx
       - web/src/pages/Account.tsx
+      - web/src/pages/AccountVerificationPage.tsx
+      - web/src/components/VerificationHistoryPanel.tsx
+      - web/src/lib/verificationSections.ts
+      - web/scripts/test_pr93_poh_merge_parity_source.mjs
       - Weall-Protocol/src/weall/api/routes_public_parts/session.py
       - Weall-Protocol/src/weall/runtime/**
   workflow_dispatch:
@@ -53,6 +57,9 @@ jobs:
         run: |
           npm run test:guided-account-registration-source
           npm run test:account-profile-readiness-source
+          npm run test:pr93-poh-merge-parity
+          npm run test:poh-guided-routes
+          npm run test:verification-history-panel
       - name: Install Playwright Chromium
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium

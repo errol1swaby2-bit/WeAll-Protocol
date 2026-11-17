@@ -1,6 +1,8 @@
 import React from "react";
 
 type Props = {
+  showHistory: boolean;
+  showTechnical: boolean;
   asyncCases: any[];
   liveCases: any[];
   liveSessions: any[];
@@ -32,6 +34,8 @@ function JsonDetails({ title, value }: { title: string; value: unknown }): JSX.E
  * corresponding histories are unavailable.
  */
 export default function VerificationHistoryPanel({
+  showHistory,
+  showTechnical,
   asyncCases,
   liveCases,
   liveSessions,
@@ -49,8 +53,8 @@ export default function VerificationHistoryPanel({
   const allReady = asyncHistoryReady && liveHistoryReady;
   const visibleCount = asyncCases.length + liveCases.length;
   return (
-    <section className="grid2" data-testid="poh-verification-history-panel">
-      <article className="card">
+    <section className="pageStack verificationSection" hidden={!showHistory && !showTechnical} data-testid="poh-verification-history-panel">
+      <article className="card verificationSection" hidden={!showHistory}>
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
@@ -110,7 +114,7 @@ export default function VerificationHistoryPanel({
         </div>
       </article>
 
-      <article className="card">
+      <article className="card verificationSection" hidden={!showTechnical}>
         <div className="cardBody formStack">
           <details className="advancedDisclosure" data-testid="poh-technical-records">
             <summary>Advanced: technical verification records</summary>

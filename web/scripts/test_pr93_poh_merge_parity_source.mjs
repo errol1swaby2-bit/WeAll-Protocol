@@ -73,6 +73,24 @@ assert.match(guided, /if \(readiness\.pendingJournal\) return "track"/);
 assert.match(guided, /if \(pendingJournal \|\| requestBusy\) return "track"/);
 assert.doesNotMatch(active, /reconcileAsyncCompatibilityCase/);
 
+// Section navigation is a presentation layer on the sole active controller.
+assert.ok(active.includes('aria-label="Verification sections"'));
+assert.ok(active.includes("VERIFICATION_SECTIONS.map"));
+assert.ok(active.includes('asyncRecordingState === "recording" || isAsyncJourneyRoute'));
+assert.ok(active.includes('isLiveJourneyRoute ? "live" : verificationSectionFromHash(guidedRoutePath)'));
+assert.ok(active.includes('if (asyncRecordingState === "recording" || section === activeSection) return;'));
+assert.ok(active.includes('disabled={asyncRecordingState === "recording" && entry.id !== "async"}'));
+assert.ok(active.includes('if (asyncRecordingState === "recording" && parseAsyncPohRoute(path) !== "record")'));
+assert.ok(active.includes('isAsyncJourneyRoute || asyncRecordingState === "recording" ? ('));
+assert.ok(active.includes('activeSection !== "responsibilities"'));
+assert.ok(active.includes('showHistory={showCaseHistory}'));
+assert.ok(active.includes('showTechnical={activeSection === "technical"}'));
+assert.ok(active.includes('isAsyncJourneyRoute && asyncGuideStep === "track"'));
+assert.ok(active.includes('isLiveJourneyRoute && liveGuideStep === "track"'));
+assert.ok(historyPanel.includes('hidden={!showHistory}'));
+assert.ok(historyPanel.includes('hidden={!showTechnical}'));
+assert.ok(historyPanel.includes('hidden={!showHistory && !showTechnical}'));
+
 console.log(
-  "PASS: PR93 active guided PoH retains the extracted v1.6 responsibility/history features; archived page is not live"
+  "PASS: PR93 active guided PoH retains focused v1.6 sections, recording and journal safeguards; archived page is not live"
 );

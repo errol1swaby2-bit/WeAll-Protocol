@@ -634,6 +634,42 @@ test("two independent real users register, update public profiles and isolate ke
     expect(betaAfter.otherSecret).toBeNull();
     expect(betaAfter.otherMetadata).toBeNull();
 
+    // Real Tier-0 session, not a fixture elevation: focused PoH navigation
+    // must retain the guided controller and grant no authority.
+    await alpha.goto("/#/verification?tab=async");
+    const verificationNav = alpha.getByRole("navigation", { name: "Verification sections" });
+    const section = (name: string) => verificationNav.getByRole("button", { name, exact: true });
+    await expect(verificationNav.getByRole("button")).toHaveCount(6);
+    await expect(section("Record evidence")).toHaveAttribute("aria-current", "page");
+    await expect(alpha.getByTestId("async-verification-landing")).toBeVisible();
+    await expect(alpha.getByTestId("poh-verification-history-panel")).toBeHidden();
+
+    await section("Live verification").click();
+    await expect(section("Live verification")).toHaveAttribute("aria-current", "page");
+    await expect(alpha.getByText("Complete basic human review before requesting live verification.", { exact: false })).toBeVisible();
+    await expect(alpha.getByTestId("live-verification-landing")).toBeHidden();
+
+    await section("Responsibilities").click();
+    await expect(alpha.getByTestId("trusted-responsibilities-locked")).toBeVisible();
+    await expect(alpha.getByTestId("trusted-responsibilities-eligible")).toBeHidden();
+    await section("Case history").click();
+    await expect(alpha.getByRole("heading", { name: "Requests, reviews, and live sessions" })).toBeVisible();
+    await expect(alpha.getByTestId("poh-technical-records")).toBeHidden();
+    await section("Technical records").click();
+    await expect(alpha.getByTestId("poh-technical-records")).toBeVisible();
+    await expect(alpha.getByRole("heading", { name: "Requests, reviews, and live sessions" })).toBeHidden();
+    await alpha.goBack();
+    await expect(section("Case history")).toHaveAttribute("aria-current", "page");
+
+    // A direct submit deep link cannot override the in-memory evidence and
+    // consent prerequisites, even when a conflicting presentation tab is set.
+    await alpha.goto("/#/verification/async/submit?tab=technical");
+    await expect(alpha).toHaveURL(/#\/verification\/async\/(?:explain|prepare|record)(?:\?.*)?$/);
+    await expect(section("Record evidence")).toHaveAttribute("aria-current", "page");
+    await expect(alpha.getByTestId("async-step-submit")).toBeHidden();
+    await expect(alpha.getByTestId("poh-technical-records")).toBeHidden();
+    expect(Number((await accountState(request, alphaId)).state.poh_tier)).toBe(0);
+
   } finally {
     await Promise.all(contexts.map((context) => context.close().catch(() => undefined)));
   }
