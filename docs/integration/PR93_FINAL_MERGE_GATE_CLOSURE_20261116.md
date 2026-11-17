@@ -70,3 +70,11 @@ The V2 source route registry now contains a **pending review record** for `ROUTE
 - The source-vs-frontend authority and dispute policy need explicit maintainer review before `review_required` can change to `accepted_current_semantic_contract`. A candidate digest or test pass is not signoff.
 
 **Outcome of this increment:** the strict review inventory's missing-route-ID failure is resolved by registering the actual route *as pending*. The compiler is still expected to fail closed, now on the **20 stale transaction semantic digests**, and then on this route's unaccepted disposition if those drift reviews are resolved. No merge readiness is implied.
+
+## PR #82/#88/#92 PoH frontend source-level integration review (candidate)
+
+A bounded conflict-parity regression now pins the actual route and component split. In `App.tsx`, `/verification` and the guided async/live stage routes render `PohPage`, which wraps the **active** `AccountVerificationPage` imported from PR #82's guided flow. The preserved v1.6 `AccountVerificationPageV16Preserved` is not routed.
+
+The preserved v1.6 page's local `registerAccount` method was intentionally replaced by navigation to `/onboarding/register`, with separate signed registration intent persistence. Content review opt-in/out and Tier-2 visibility moved into `TrustedResponsibilitiesPanel` and remain bound to the active parent's signed `REVIEWER_LANE_OPT_IN/OUT` action. Verification cases, live sessions and technical records moved to the read-only `VerificationHistoryPanel`, which refuses to call an unavailable history a confirmed zero-case state. The active page retains the new URL-stage guard, unresolved-submission journal, exact-case identity matching, and reviewer evidence-access repair.
+
+A new **source-level regression** (`web/scripts/test_pr93_poh_merge_parity_source.mjs`) is included in Web CI. Its source checks are evidence of intended wiring, **not** proof of every rendered or network-driven user journey. Full human visual parity acceptance, controlled-devnet interrupted-retry verification, and active source review remain additional merge conditions.

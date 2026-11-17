@@ -175,6 +175,10 @@ jobs:
         run: |
           npm run test:poh-guided-routes
 
+      - name: PR93 PoH source conflict parity (guided + preserved v1.6)
+        run: |
+          npm run test:pr93-poh-merge-parity
+
       - name: Flag reporter review and target lookup regression
         run: |
           npm run test:content-flag-report-truth
