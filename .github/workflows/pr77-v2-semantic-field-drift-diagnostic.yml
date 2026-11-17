@@ -127,6 +127,8 @@ jobs:
           print("PR93 unapproved pending routes:")
           for row in routes["pending_routes"]:
               print(f"  {row['stable_id']} {row['route_key']}: {','.join(row['reasons'])}")
+              print(f"    candidate_digest_NOT_APPROVED={row['candidate_digest_not_approved']}")
+              print(f"    implementation_source={row['implementation_source']}")
           print("PR93 orphaned accepted-review IDs:")
           for item in routes["orphaned_route_review_stable_ids"]:
               print(f"  {item}")
