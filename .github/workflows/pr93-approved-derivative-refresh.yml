@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/pr93-approved-derivative-refresh.yml
       - Weall-Protocol/specs/v2/source/stable_ids.json
+      - Weall-Protocol/specs/v2/source/source_mappings.json
   workflow_dispatch:
 
 permissions:

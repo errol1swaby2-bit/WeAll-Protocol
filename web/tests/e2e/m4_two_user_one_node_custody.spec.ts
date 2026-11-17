@@ -611,6 +611,15 @@ test("two independent real users register, update public profiles and isolate ke
       mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify(alphaRecovery)),
     });
+    // Wait for async parsing, not merely the browser's file selection event.
+    // Compare recovery material as a boolean so failures do not print keys.
+    await expect(restored.locator(".notice-text")).toContainText("Recovery file loaded.");
+    await expect(form.getByLabel("Handle")).toHaveValue(alphaId);
+    const restoredKeyReady = await form.getByLabel("Recovery key").evaluate(
+      (element, expected) => (element as HTMLTextAreaElement).value === expected,
+      alphaRecovery.secretKeyB64,
+    );
+    expect(restoredKeyReady, "recovery file parsed the expected signing key").toBe(true);
     await form.getByRole("button", { name: "Sign in", exact: true }).click();
     await restored.waitForURL(/#\/home$/, { timeout: 120_000 });
     const restoredKeys = await storedKeys(restored, alphaId, betaId);

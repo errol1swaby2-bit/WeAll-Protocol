@@ -6420,6 +6420,536 @@
       "classification": "authoritative_or_launch_critical",
       "primary_mechanism_id": "M-054",
       "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/GroupBallotPlanner.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/PohStepProgress.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/PohSubmissionStatusNotice.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/PrimaryNavigation.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/TrustedResponsibilitiesPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/VerificationHistoryPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/accountProfileTabs.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/accountSetupRegistration.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/browserNodeSession.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/browserNodeTransition.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/connectPublicTestnetBrowser.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/groupBallotPlanning.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/groupDecisionScope.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/groupOversight.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/groupProfileTabs.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/pohGuidedRoutes.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/pohSubmissionJournal.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/publicApiOrigin.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/reviewerWorkspaces.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/settingsSections.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/themePresets.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/themeTransfer.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/txReconciliation.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/verificationSections.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/AccountRegistrationPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "presentation",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "../web/src/pages/AccountVerificationPageV16Preserved.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "routes",
+        "evidence"
+      ],
+      "classification": "authoritative_spec_maintenance_tooling",
+      "path": "scripts/apply_pr93_approved_semantic_packet.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/audit_v2_semantic_review_drift.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/f1b_four_executor_qc_ingress.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/f1b_four_process_signed_qc_preflight.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/pr77_legacy_role_parity_adjudication.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/pr77_legacy_role_parity_probe.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/pr77_lifecycle_drift_audit.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/pr77_retained_history_replay.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/pr77_v2_semantic_review_packet.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/pr93_v2_semantic_review_inventory.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/preflight_genesis_witness_bundle.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/reputation_delta_origin_review.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/reputation_parent_finality_review.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/two_pc_network_evidence.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/validate_group_emissary_architecture_review.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/validate_group_emissary_stv_t0.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "scripts/verify_ihd1_receipts_after_restart.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "state",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "src/weall/api/public_lobby_incremental_candidate.py",
+      "primary_mechanism_id": "M-048",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "state",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "src/weall/api/public_lobby_index_candidate.py",
+      "primary_mechanism_id": "M-048",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "src/weall/runtime/dispute_conflict_provenance_preview.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "src/weall/runtime/dispute_panel_recovery_preview.py",
+      "primary_mechanism_id": "M-055",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "src/weall/runtime/genesis_acceptance_witness.py",
+      "primary_mechanism_id": "M-002",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "src/weall/runtime/genesis_independence_review.py",
+      "primary_mechanism_id": "M-002",
+      "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "reference_or_test_only",
+      "path": "src/weall/runtime/severe_appeal_candidate.py",
+      "primary_mechanism_id": "M-055",
+      "review_status": "mapped_reference_only"
     }
   ],
   "schema": "weall.v2.source_mapping_registry",
