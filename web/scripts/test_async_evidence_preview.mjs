@@ -8,6 +8,10 @@ const source = readFileSync(resolve(dir, "../src/pages/AccountVerificationPage.t
 const responsibilities = readFileSync(resolve(dir, "../src/components/TrustedResponsibilitiesPanel.tsx"), "utf8");
 const progress = readFileSync(resolve(dir, "../src/components/PohStepProgress.tsx"), "utf8");
 assert.match(source, /recordingPreviewRef/);
+assert.match(source, /data-prepare-blockers=/);
+assert.match(source, /data-history-read-outcome=\{asyncHistoryReadOutcome\}/);
+assert.match(source, /data-testid="async-prepare-refresh"/);
+assert.match(source, /refresh the reads before continuing/);
 assert.match(source, /cameraRequestPendingRef\.current \|\| recorderRef\.current\?\.state === "recording"/);
 assert.match(source, /recordingAttemptRef\.current \+= 1/);
 assert.match(source, /cameraRequestPendingRef\.current && parseAsyncPohRoute\(path\) !== "record"/);

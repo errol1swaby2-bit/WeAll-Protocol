@@ -31,7 +31,7 @@ async function backendRequired(request: APIRequestContext): Promise<void> {
   test.skip(true, "real backend is not running");
 }
 
-async function submitAndCapture(page: Page, click: () => Promise<void>): Promise<string> {
+async function submitAndCapture(page: Page, click: () => Promise<void>, expectedProfile?: { account: string; displayName: string }): Promise<string> {
   const seen = page.waitForResponse(
     (response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === "/v1/tx/submit",
@@ -40,6 +40,13 @@ async function submitAndCapture(page: Page, click: () => Promise<void>): Promise
   await click();
   const response = await seen;
   expect(response.ok(), "canonical signed submission must be accepted by the real API").toBe(true);
+  if (expectedProfile) {
+    const envelope = response.request().postDataJSON();
+    // Compare only booleans; never print the signed envelope, bearer, or draft.
+    expect(envelope?.tx_type === "PROFILE_UPDATE" && envelope?.signer === expectedProfile.account
+      && envelope?.payload?.display_name === expectedProfile.displayName,
+      "signed profile submission must bind the exact intended public display name and signer").toBe(true);
+  }
   const result = await response.json();
   const txId = String(result?.tx_id || result?.result?.tx_id || result?.submit?.tx_id || "");
   // WeAll canonical transaction IDs include the `tx:` domain prefix.
@@ -84,15 +91,19 @@ async function accountState(request: APIRequestContext, account: string): Promis
 async function profileState(request: APIRequestContext, account: string, displayName: string): Promise<any> {
   const path = `/v1/accounts/${encodeURIComponent(account)}/profile`;
   const deadline = Date.now() + 60_000;
+  const outcomes: Record<string, number> = {};
   while (Date.now() < deadline) {
     const r = await request.get(path, { timeout: 10_000 });
+    let outcome = `http-${r.status()}`;
     if (r.ok()) {
       const body = await r.json();
       if (body?.account === account && body?.profile?.display_name === displayName) return body;
+      outcome = body?.account !== account ? "wrong-account" : body?.profile ? "display-name-mismatch" : "missing-profile";
     }
+    outcomes[outcome] = (outcomes[outcome] || 0) + 1;
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  throw new Error("m4_profile_read_model_missing:" + account);
+  throw new Error("m4_profile_read_model_missing:" + account + ":outcomes=" + JSON.stringify(outcomes));
 }
 
 async function newAccount(page: Page, account: string): Promise<Recovery> {
@@ -139,7 +150,7 @@ async function profileUpdate(page: Page, account: string, name: string): Promise
     throw new Error("m4_profile_submit_blocked:" + (blockers || "unknown")
       + ":account_read=" + (accountReadOutcome || "unknown"));
   }
-  return submitAndCapture(page, () => submit.click());
+  return submitAndCapture(page, () => submit.click(), { account, displayName: name });
 }
 
 async function storedKeys(page: Page, self: string, other: string): Promise<{
@@ -676,7 +687,27 @@ test("two independent real users register, update public profiles and isolate ke
     await alpha.goto("/#/verification/async/prepare");
     await alpha.getByLabel("Something about yourself").fill("Local synthetic media lifecycle test.");
     await alpha.getByLabel("Why are you joining WeAll?").fill("Test cancellation without submitting evidence.");
-    await alpha.getByRole("button", { name: "Continue to recording" }).click();
+    const continueRecording = alpha.getByTestId("async-continue-recording");
+    try {
+      await expect(continueRecording).toBeEnabled({ timeout: 15_000 });
+    } catch {
+      // One explicit read-only refresh is permitted. Never force an inactive
+      // action or modify canonical readiness, history or journal state.
+      const refresh = alpha.getByTestId("async-prepare-refresh");
+      if (await refresh.isVisible()) {
+        await expect(refresh).toBeEnabled({ timeout: 10_000 });
+        await refresh.click();
+      }
+      try {
+        await expect(continueRecording).toBeEnabled({ timeout: 15_000 });
+      } catch {
+        const blockers = await continueRecording.getAttribute("data-prepare-blockers");
+        const outcome = await continueRecording.getAttribute("data-history-read-outcome");
+        throw new Error("m4_poh_recording_blocked:" + (blockers || "unknown")
+          + ":history_read=" + (outcome || "unknown"));
+      }
+    }
+    await continueRecording.click({ timeout: 5_000 });
     await expect(alpha.getByTestId("async-step-record")).toBeVisible();
     await alpha.evaluate(() => {
       const canvas = document.createElement("canvas");

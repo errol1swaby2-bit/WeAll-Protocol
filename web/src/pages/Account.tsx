@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
@@ -150,6 +150,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [profileErr, setProfileErr] = useState<{ msg: string; details: any } | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>(() => emptyProfileForm());
   const [profileDirty, setProfileDirty] = useState<boolean>(false);
+  const profileDirtyRef = useRef(false);
+  const profileDraftRevisionRef = useRef(0);
+  const profileLoadSequenceRef = useRef(0);
   const [accountReadOutcome, setAccountReadOutcome] = useState<string>("not-read");
   const [showPublicBanner, setShowPublicBanner] = useState(true);
   const [busy, setBusy] = useState<"profile" | "register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "jurorResume" | "validatorPause" | "nodePause" | null>(null);
@@ -201,6 +204,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
   }
 
   async function load(): Promise<void> {
+    const loadSequence = ++profileLoadSequenceRef.current;
+    const draftRevision = profileDraftRevisionRef.current;
     setErr(null);
     const headers = isSelf ? getAuthHeaders(acct) : undefined;
 
@@ -220,6 +225,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
     const entries = Object.entries(calls);
     const settled = await Promise.allSettled(entries.map(([, p]) => p));
+    if (loadSequence !== profileLoadSequenceRef.current) return;
     const out: Record<string, any> = {};
     const failures: Array<{ key: string; error: any }> = [];
 
@@ -237,9 +243,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setAccountReadOutcome(out.account?.ok === true
       ? "canonical-read-ok"
       : accountHttpStatus > 0 ? `http-${accountHttpStatus}` : "canonical-read-unavailable");
-    setProfileView(out.profile ?? null);
-    if (!profileDirty) {
-      setProfileForm(profileFormFromPublicProfile(asRecord(out.profile?.profile), acct));
+    const profileReadValid = out.profile?.ok === true && out.profile?.account === acct
+      && out.profile?.exists === true && out.profile?.profile?.account_id === acct
+      && typeof out.profile?.profile?.display_name === "string";
+    setProfileView(profileReadValid ? out.profile : null);
+    // A load started before an edit must not overwrite that edit on completion.
+    // A failed read is not a blank canonical profile.
+    if (profileReadValid && !profileDirtyRef.current && draftRevision === profileDraftRevisionRef.current) {
+      setProfileForm(profileFormFromPublicProfile(asRecord(out.profile.profile), acct));
     }
     setOperatorStatus(out.operatorStatus ?? null);
     setReviewerStatus(out.reviewerStatus ?? null);
@@ -259,10 +270,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
   }
 
   useEffect(() => {
+    profileDraftRevisionRef.current += 1;
+    profileDirtyRef.current = false;
     setProfileDirty(false);
     setProfileResult(null);
+    setProfileView(null);
     setProfileForm(emptyProfileForm());
     void load();
+    return () => { profileLoadSequenceRef.current += 1; };
   }, [acct, isSelf]);
 
   useEffect(() => {
@@ -338,6 +353,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const canPost = tier >= 2 && accountExists && !banned && !locked;
   const canServe = tier >= 2 && accountExists && !banned && !locked;
 
+  const canonicalProfileReady = profileView?.ok === true && profileView?.account === acct && profileView?.exists === true;
   const publicProfile = asRecord(profileView?.profile);
   const publicActivity = asRecord(profileView?.public_activity);
   const publicProfileName = String(publicProfile.display_name || acct);
@@ -481,6 +497,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const requirements = summarizeNextRequirements(snapshot);
 
   function updateProfileForm<K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]): void {
+    profileDirtyRef.current = true;
+    profileDraftRevisionRef.current += 1;
     setProfileDirty(true);
     setProfileForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -504,6 +522,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     busy !== null ? "account-action-busy" : "",
     !profileDirty ? "draft-not-changed" : "",
     !accountExists ? "account-state-unavailable" : "",
+    !canonicalProfileReady ? "canonical-profile-unavailable" : "",
     !localPubkey ? "signer-unavailable" : "",
     signerBusy ? "signer-submission-busy" : "",
     !bannerDraftValid ? "banner-cid-invalid" : "",
@@ -511,6 +530,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   async function runProfileUpdate() {
     if (!isSelf) return;
+    const submittedDraftRevision = profileDraftRevisionRef.current;
 
     setBusy("profile");
     setProfileErr(null);
@@ -520,6 +540,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (!accountExists) throw new Error("register_the_account_first");
       if (signerBusy) throw new Error("signer_submission_busy");
       if (!localPubkey) throw new Error("missing_account_signer");
+      if (!canonicalProfileReady) throw new Error("Refresh the canonical public profile before editing or signing.");
       if (!bannerDraftValid) throw new Error("Public banner must be a plain IPFS CID (not a URL or markup).");
 
       const skeleton = await weall.profileUpdateTx({
@@ -562,7 +583,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
       });
 
       setProfileResult(result);
-      setProfileDirty(false);
+      if (submittedDraftRevision === profileDraftRevisionRef.current) {
+        profileDirtyRef.current = false;
+        setProfileDirty(false);
+      }
       await load();
       await refreshAccountContext();
     } catch (e: any) {
@@ -1161,6 +1185,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   onRetry={() => void runProfileUpdate()}
                   onDismiss={() => setProfileErr(null)}
                 />
+                {!canonicalProfileReady ? (
+                  <div className="calloutDanger" role="status" data-testid="profile-canonical-unavailable">
+                    The canonical public profile is unavailable. Refresh before editing or signing; an unavailable profile is not an empty profile.
+                    <button type="button" className="btn" disabled={busy !== null} onClick={() => void load()}>Refresh public profile</button>
+                  </div>
+                ) : null}
+                <fieldset className="formStack" disabled={!canonicalProfileReady || busy === "profile"} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                 <label>
                   <div className="eyebrow">Display name</div>
                   <input
@@ -1245,21 +1276,24 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     />
                   </label>
                 </div>
+                </fieldset>
                 <div className="buttonRow">
                   <button
                     className="btn btnPrimary"
                     data-testid="profile-submit-action"
                     data-account-read-outcome={accountReadOutcome}
                     data-submit-blockers={profileSubmitBlockers.join(",")}
-                    disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy || !bannerDraftValid}
+                    disabled={busy !== null || !profileDirty || !accountExists || !canonicalProfileReady || !localPubkey || signerBusy || !bannerDraftValid}
                     onClick={() => void runProfileUpdate()}
                   >
                     {busy === "profile" ? "Submitting profile update…" : "Submit public profile update"}
                   </button>
                   <button
                     className="btn"
-                    disabled={busy !== null}
+                    disabled={busy !== null || !canonicalProfileReady}
                     onClick={() => {
+                      profileDraftRevisionRef.current += 1;
+                      profileDirtyRef.current = false;
                       setProfileDirty(false);
                       setProfileErr(null);
                       setProfileForm(profileFormFromPublicProfile(publicProfile, acct));

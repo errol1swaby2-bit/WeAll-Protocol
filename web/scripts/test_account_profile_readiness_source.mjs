@@ -106,4 +106,17 @@ for (const forbidden of [
   assertNotIncludes(checked, forbidden, "Account/profile surfaces must not overclaim");
 }
 
+for (const needle of [
+  "const loadSequence = ++profileLoadSequenceRef.current",
+  "if (loadSequence !== profileLoadSequenceRef.current) return",
+  "profileReadValid && !profileDirtyRef.current && draftRevision === profileDraftRevisionRef.current",
+  "profileDirtyRef.current = true",
+  "profileDraftRevisionRef.current += 1",
+  "submittedDraftRevision === profileDraftRevisionRef.current",
+  '!canonicalProfileReady ? "canonical-profile-unavailable"',
+  'disabled={!canonicalProfileReady || busy === "profile"}',
+]) {
+  assertIncludes(account, needle, "Canonical profile draft race protection");
+}
+
 console.log("OK: account/profile readiness source checks passed");

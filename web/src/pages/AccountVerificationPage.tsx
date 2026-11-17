@@ -513,6 +513,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   // Preserve last-seen cases, but never treat a failed history lookup as an empty history.
   const [verificationHistoryReady, setVerificationHistoryReady] = useState({ async: false, live: false });
+  const [asyncHistoryReadOutcome, setAsyncHistoryReadOutcome] = useState("not-read");
   const [asyncJournal, setAsyncJournal] = useState<PohJournalRead>(() => acct ? readPohSubmissionJournal(acct, "async") : { status: "unavailable" });
   const [liveJournal, setLiveJournal] = useState<PohJournalRead>(() => acct ? readPohSubmissionJournal(acct, "live") : { status: "unavailable" });
   const asyncJournalBlocked = asyncJournal.status !== "none";
@@ -607,6 +608,7 @@ export default function AccountVerificationPage(): JSX.Element {
       return;
     }
     setCasesBusy(true);
+    setAsyncHistoryReadOutcome("checking");
     setVerificationHistoryReady({ async: false, live: false });
     try {
       const headers = getAuthHeaders(acct);
@@ -617,6 +619,8 @@ export default function AccountVerificationPage(): JSX.Element {
       ]);
       const asyncReady = asyncResponse.status === "fulfilled" && asyncResponse.value?.ok === true && Array.isArray(asyncResponse.value?.cases);
       const liveReady = live.status === "fulfilled" && live.value?.ok === true && Array.isArray(live.value?.cases);
+      const asyncHttpStatus = asyncResponse.status === "rejected" ? Number(asyncResponse.reason?.status || 0) : 0;
+      setAsyncHistoryReadOutcome(asyncReady ? "canonical-read-ok" : asyncHttpStatus > 0 ? `http-${asyncHttpStatus}` : "canonical-read-unavailable");
       // Stale data may remain visible for inspection, but never re-enable new
       // signed actions until the selected node confirms the actual history.
       if (asyncReady && asyncResponse.status === "fulfilled") {
@@ -647,6 +651,7 @@ export default function AccountVerificationPage(): JSX.Element {
       }
       setVerificationHistoryReady({ async: asyncReady, live: liveReady });
     } catch (e: any) {
+      setAsyncHistoryReadOutcome("canonical-read-unavailable");
       setVerificationHistoryReady({ async: false, live: false });
       setErr(prettyErr(e));
     } finally {
@@ -1782,6 +1787,17 @@ export default function AccountVerificationPage(): JSX.Element {
                     <button
                       type="button"
                       className="btn btnPrimary"
+                      data-testid="async-continue-recording"
+                      data-history-read-outcome={asyncHistoryReadOutcome}
+                      data-prepare-blockers={[
+                        !asyncPreparationReady ? "descriptions-required" : "",
+                        !registered ? "account-not-registered" : "",
+                        !verificationHistoryReady.async ? "history-unavailable" : "",
+                        asyncJournalBlocked ? "journal-unresolved" : "",
+                        casesBusy ? "history-busy" : "",
+                        asyncEvidenceBusy ? "evidence-busy" : "",
+                        signerSubmission.busy ? "signer-busy" : "",
+                      ].filter(Boolean).join(",")}
                       disabled={!asyncPreparationReady || !registered || !verificationHistoryReady.async || asyncJournalBlocked || casesBusy || asyncEvidenceBusy || signerSubmission.busy}
                       onClick={() => {
                         ensureAsyncChallenge();
@@ -1791,6 +1807,14 @@ export default function AccountVerificationPage(): JSX.Element {
                       Continue to recording
                     </button>
                   </div>
+                  {!verificationHistoryReady.async || !registered ? (
+                    <div className="calloutDanger" role="status">
+                      The selected node has not confirmed your account or earlier case history. Your local descriptions remain on this page; refresh the reads before continuing.
+                      <button type="button" className="btn" data-testid="async-prepare-refresh" disabled={loading || casesBusy || asyncEvidenceBusy} onClick={() => void refreshVerificationSurface()}>
+                        Refresh verification status
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
