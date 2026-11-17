@@ -1,6 +1,6 @@
 {
   "by_domain": {
-    "api": 108,
+    "api": 112,
     "launch_readiness": 32,
     "runtime": 8,
     "runtime_apply": 77
@@ -580,7 +580,7 @@
       "http_status": null,
       "sample_reason": "dispute_ballot_already_final",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 2328
+      "source_lineno": 2424
     },
     {
       "code": "conflict",
@@ -679,7 +679,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1763
+      "source_lineno": 1859
     },
     {
       "code": "duplicate",
@@ -787,7 +787,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 183
+      "source_lineno": 184
     },
     {
       "code": "forbidden",
@@ -967,7 +967,16 @@
       "http_status": null,
       "sample_reason": "bad_proposer",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 1406
+      "source_lineno": 1391
+    },
+    {
+      "code": "invalid_cursor",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "invalid public lobby cursor",
+      "source": "src/weall/api/routes_public_parts/content.py",
+      "source_lineno": 877
     },
     {
       "code": "invalid_payload",
@@ -1021,7 +1030,7 @@
       "http_status": null,
       "sample_reason": "validator_lifecycle_epoch_must_be_future",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 170
+      "source_lineno": 171
     },
     {
       "code": "invalid_payload",
@@ -1150,6 +1159,15 @@
       "source_lineno": 208
     },
     {
+      "code": "invalid_public_lobby_target",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "thread_id must identify a public-lobby: thread",
+      "source": "src/weall/api/routes_public_parts/content.py",
+      "source_lineno": 862
+    },
+    {
       "code": "invalid_signer",
       "domain": "api",
       "family": "ApiError.bad_request",
@@ -1210,7 +1228,7 @@
       "http_status": null,
       "sample_reason": "state_invariant_violation",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 60
+      "source_lineno": 61
     },
     {
       "code": "invalid_state",
@@ -1669,7 +1687,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1722
+      "source_lineno": 1818
     },
     {
       "code": "not_found",
@@ -1888,6 +1906,24 @@
       "source_lineno": 281
     },
     {
+      "code": "public_lobby_read_budget_exceeded",
+      "domain": "api",
+      "family": "ApiError.service_unavailable",
+      "http_status": 503,
+      "sample_reason": "public lobby read budget exceeded; indexed read model required",
+      "source": "src/weall/api/routes_public_parts/content.py",
+      "source_lineno": 892
+    },
+    {
+      "code": "public_lobby_state_unavailable",
+      "domain": "api",
+      "family": "ApiError.service_unavailable",
+      "http_status": 503,
+      "sample_reason": "public lobby state unavailable",
+      "source": "src/weall/api/routes_public_parts/content.py",
+      "source_lineno": 69
+    },
+    {
       "code": "receipt_submission_forbidden",
       "domain": "api",
       "family": "ApiError.forbidden",
@@ -2020,7 +2056,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 3578
+      "source_lineno": 3680
     },
     {
       "code": "validator_mismatch",
@@ -2032,7 +2068,7 @@
       "source_lineno": 128
     }
   ],
-  "entry_count": 225,
+  "entry_count": 229,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
@@ -2044,6 +2080,7 @@
       "ApiError.not_found",
       "ApiError.payload_too_large",
       "ApiError.server_error",
+      "ApiError.service_unavailable",
       "ApiError.too_many",
       "ApplyError",
       "ConsensusApplyError",
@@ -2070,6 +2107,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 108,
+  "unique_code_count": 112,
   "version": "2026-06-batch10a"
 }

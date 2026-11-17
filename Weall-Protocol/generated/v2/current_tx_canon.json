@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f47a0673ac34c86e20b9b8158b89ceccddb58bebad87ee7aa65720392a5a0913"
+    "source_tree_digest": "94a807131a457c0ba28bd49a9d2d98d2110acbe90a5e1b2d9443a9aca0056163"
   },
   "rows": [
     {
@@ -81,8 +81,9 @@
         }
       ],
       "frontend_surfaces": [
+        "../web/src/lib/accountSetupRegistration.ts",
         "../web/src/lib/devBootstrap.ts",
-        "../web/src/pages/AccountVerificationPage.tsx"
+        "../web/src/pages/AccountVerificationPageV16Preserved.tsx"
       ],
       "implementation_source": {
         "function": "_apply_account_register",
@@ -247,7 +248,12 @@
         "tests/test_pb001bo_canonical_block_hash_persistence.py",
         "tests/test_pending_block_identity_surface.py",
         "tests/test_pending_tx_survives_failed_commit.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
         "tests/test_post31_closure_pack.py",
+        "tests/test_pr77_signed_opening_synthetic_replay.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
+        "tests/test_pr93_public_lobby_incremental_candidate.py",
         "tests/test_priority0_account_key_normalization.py",
         "tests/test_priority0_block_signature_enforcement.py",
         "tests/test_priority0_chainid_and_schema_safety.py",
@@ -283,6 +289,7 @@
         "tests/test_public_payload_key_policy.py",
         "tests/test_readyz_empty_chain_and_restored_chain.py",
         "tests/test_recursive_production_readiness_closure.py",
+        "tests/test_rehearsal_tx_status_isolation.py",
         "tests/test_restart_api_and_producer_recovery.py",
         "tests/test_restart_feed_persistence.py",
         "tests/test_restart_no_double_finalize.py",
@@ -829,7 +836,8 @@
       ],
       "frontend_surfaces": [
         "../web/src/auth/session.ts",
-        "../web/src/pages/AccountVerificationPage.tsx"
+        "../web/src/pages/AccountVerificationPage.tsx",
+        "../web/src/pages/AccountVerificationPageV16Preserved.tsx"
       ],
       "implementation_source": {
         "function": "_apply_account_session_key_issue",
@@ -1003,6 +1011,8 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_devnet_cross_node_convergence.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_session_auth_safety.py"
       ],
@@ -1205,7 +1215,8 @@
       "tests": [
         "tests/test_dispute_followups.py",
         "tests/test_domain_apply_nonce_convergence.py",
-        "tests/test_p2_a02_success_lifecycle_baseline.py"
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_severe_account_finality_no_go.py"
       ],
       "tx_type": "ACCOUNT_LOCK",
       "vector_ids": [
@@ -5919,9 +5930,12 @@
         "tests/test_p0_06_production_scope_closure.py",
         "tests/test_p0_observer_and_bootstrap_sunset.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
         "tests/test_poh_bootstrap_genesis_allowlist_metadata.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_two_tier_hard_invariant.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_priority0_account_key_normalization.py",
         "tests/test_priority0_poh_bootstrap_onchain.py",
         "tests/test_priority0_poh_bootstrap_policy.py",
@@ -6116,111 +6130,27 @@
       "domain": "Dispute",
       "failure_codes": [
         {
-          "code": "conflict",
-          "reason": "appeal_already_filed"
-        },
-        {
-          "code": "conflict",
-          "reason": "dispute_ballot_already_final"
+          "code": "duplicate",
+          "reason": "dispute_id_exists"
         },
         {
           "code": "forbidden",
-          "reason": "appeal_window_closed"
+          "reason": "tier1_required_for_dispute"
         },
         {
           "code": "forbidden",
-          "reason": "appeal_window_not_open"
-        },
-        {
-          "code": "forbidden",
-          "reason": "ballot_profile_inactive"
-        },
-        {
-          "code": "forbidden",
-          "reason": "dispute_timeout_after_vote_forbidden"
-        },
-        {
-          "code": "forbidden",
-          "reason": "dispute_vote_deadline_not_passed"
-        },
-        {
-          "code": "forbidden",
-          "reason": "dispute_vote_deadline_passed"
-        },
-        {
-          "code": "forbidden",
-          "reason": "dispute_withdraw_after_vote_forbidden"
-        },
-        {
-          "code": "forbidden",
-          "reason": "insufficient_fresh_appeal_panel"
-        },
-        {
-          "code": "forbidden",
-          "reason": "juror_conflict_target_owner"
-        },
-        {
-          "code": "forbidden",
-          "reason": "juror_not_assigned"
-        },
-        {
-          "code": "forbidden",
-          "reason": "juror_not_present"
-        },
-        {
-          "code": "forbidden",
-          "reason": "juror_wrong_status"
-        },
-        {
-          "code": "forbidden",
-          "reason": "reviewer_responsibility_not_active"
-        },
-        {
-          "code": "forbidden",
-          "reason": "system_only"
+          "reason": "unsupported_dispute_target_type"
         },
         {
           "code": "invalid_payload",
-          "reason": "invalid_dispute_vote_choice"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "invalid_public_cid"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_case_type"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_dispute_id"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_dispute_or_evidence_id"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_dispute_or_juror"
-        },
-        {
-          "code": "invalid_payload",
-          "reason": "missing_dispute_or_stage"
-        },
-        {
-          "code": "not_found",
-          "reason": "evidence_not_found"
-        },
-        {
-          "code": "tx_unimplemented",
-          "reason": "case_tx_not_implemented"
+          "reason": "missing_target"
         }
       ],
       "frontend_surfaces": [],
       "implementation_source": {
-        "function": "apply_dispute",
+        "function": "dispute_open",
         "handler": "dispute",
-        "line": 3120,
+        "line": 1822,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6232,30 +6162,8 @@
         "kind": "user_transaction_apply_result",
         "parent": null,
         "return_fields": [
-          "appeal_finalization",
-          "appeal_panel_commitment",
-          "appeal_panel_status",
           "applied",
-          "canonical_reputation_event_id",
-          "case_id",
-          "case_type",
-          "deduped",
-          "delta_milli",
-          "dispute_id",
-          "enforcement_applied",
-          "enforcement_queued",
-          "event_id",
-          "evidence_id",
-          "idempotent",
-          "juror",
-          "present",
-          "receipt",
-          "receipt_id",
-          "safe",
-          "safe_withdraw_until_height",
-          "stage",
-          "status",
-          "vote_deadline_height"
+          "dispute_id"
         ],
         "stable_id": "RCP-B785EC5A1905DD27"
       },
@@ -6265,200 +6173,54 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "e959c9e1520a21ff84edc9924be3a4d8b3f83431fc54ea96e36ff788aebcd9be",
-        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T20:14:39Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "review_digest": "61cbfdf215d0407d8e549f6d2c7fed366dead956e234eefc2d8c3eb91a3e5851",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0200",
       "state_reads": [
-        "key:_due_height",
-        "key:_parent_ref",
-        "key:_system_queue_id",
-        "key:accepted_at_block_height",
-        "key:accepted_at_height",
-        "key:accepted_at_nonce",
-        "key:account_id",
-        "key:accounts",
-        "key:actions",
-        "key:active",
-        "key:appeal_deadline_height",
-        "key:appeal_finalization",
-        "key:appeal_panel_round",
-        "key:appeals",
-        "key:assigned_jurors",
-        "key:attendance",
-        "key:available_candidate_count",
-        "key:banned",
-        "key:bindings",
-        "key:by",
-        "key:by_id",
-        "key:canonical_reputation_event_id",
-        "key:case_id",
-        "key:case_type",
-        "key:choice",
-        "key:cid",
         "key:conflicted_juror_ids",
-        "key:deadline_height",
-        "key:decision",
         "key:dispute_id",
-        "key:eligible",
-        "key:eligible_juror_ids",
-        "key:enforcement_applied",
-        "key:event_id",
-        "key:evidence",
-        "key:evidence_id",
-        "key:group_id",
-        "key:groups",
-        "key:height",
-        "key:id",
-        "key:juror",
-        "key:juror_id",
+        "key:flagged_by",
         "key:jurors",
-        "key:kind",
-        "key:late_withdraw_penalty_milli",
-        "key:latest_restriction",
-        "key:locked",
-        "key:member",
-        "key:meta",
-        "key:name",
-        "key:outcomes",
         "key:panel",
         "key:panel_commitment",
-        "key:panel_round",
-        "key:payload",
-        "key:present",
-        "key:profile_id",
         "key:reason",
-        "key:receipt_id",
-        "key:remedies",
-        "key:reputation_policy",
+        "key:reported_by",
+        "key:reporter",
         "key:required_panel_size",
         "key:required_substitute_count",
-        "key:resolution",
-        "key:restricted",
-        "key:restricted_members",
-        "key:restriction",
-        "key:restrictions",
-        "key:role",
-        "key:role_eligibility",
-        "key:safe_withdraw_blocks",
-        "key:safe_withdraw_until_height",
-        "key:stage",
         "key:status",
-        "key:strict",
-        "key:substitute_juror_ids",
         "key:substitutes",
-        "key:summary",
-        "key:target_account",
         "key:target_id",
-        "key:timeout_penalty_milli",
-        "key:tx_type",
-        "key:type",
-        "key:types",
-        "key:vote",
-        "key:vote_deadline_height",
-        "key:vote_window_blocks"
+        "key:target_type"
       ],
       "state_writes": [
         "key:<add:dynamic>",
         "key:<append:dynamic>",
-        "key:<clear:dynamic>",
-        "key:<pop:dynamic>",
-        "key:<setdefault:dynamic>",
-        "key:accepted_at_block_height",
-        "key:accepted_at_height",
-        "key:accepted_at_nonce",
-        "key:accounts",
-        "key:appeal_ballot_nullifiers",
-        "key:appeal_conflicted_juror_ids",
-        "key:appeal_deadline_height",
-        "key:appeal_finalization",
-        "key:appeal_panel_commitment",
-        "key:appeal_panel_juror_ids",
-        "key:appeal_panel_result",
-        "key:appeal_panel_round",
-        "key:appeal_panel_status",
-        "key:appeal_panel_votes",
-        "key:appeal_resolution_options",
-        "key:appeal_substitute_juror_ids",
-        "key:appeal_vote_counts",
-        "key:appeal_voted_juror_ids",
-        "key:appeal_window_blocks",
-        "key:appeals",
         "key:assigned_jurors",
-        "key:attendance",
-        "key:banned",
-        "key:bound",
-        "key:bound_at_nonce",
-        "key:bound_by",
-        "key:by_id",
-        "key:completed_at_height",
-        "key:completed_at_nonce",
-        "key:completion",
-        "key:declined_at_nonce",
-        "key:dispute_juror_eligible",
-        "key:dispute_juror_suspended_reason",
+        "key:assignment_blocked_reason",
+        "key:conflicted_juror_ids",
         "key:eligible_juror_ids",
         "key:eligible_validator_count",
-        "key:evidence",
-        "key:final_enforcement_applied",
-        "key:final_resolution",
-        "key:finalized_at_nonce",
-        "key:groups",
-        "key:juror_accountability",
         "key:jurors",
-        "key:latest_restriction",
-        "key:locked",
-        "key:original_panel_juror_ids",
-        "key:original_substitute_juror_ids",
-        "key:poh_reviewer_eligible",
-        "key:poh_reviewer_suspended_reason",
-        "key:remedies",
-        "key:reputation_policy",
+        "key:panel_commitment",
+        "key:panel_required_size",
+        "key:panel_round",
+        "key:panel_status",
         "key:required_votes",
-        "key:resolution",
-        "key:resolved",
-        "key:resolved_at_height",
-        "key:resolved_at_nonce",
-        "key:restricted",
-        "key:restricted_members",
-        "key:restrictions",
-        "key:role_eligibility",
-        "key:safe_withdraw_until_height",
         "key:stage",
-        "key:stage_set_at_height",
-        "key:stage_set_at_nonce",
-        "key:status",
-        "key:timed_out_at_height",
-        "key:timed_out_at_nonce",
-        "key:timeout",
-        "key:verdict_at_height",
-        "key:vote_deadline_height",
-        "key:votes",
-        "key:withdrawal",
-        "key:withdrawn_at_height",
-        "key:withdrawn_at_nonce"
+        "key:substitute_juror_ids",
+        "key:substitute_required_count"
       ],
       "system_followups": [
-        "ACCOUNT_REINSTATE",
         "CASE_BIND_TO_DISPUTE",
-        "CASE_OUTCOME_RECEIPT",
-        "CASE_TYPE_REGISTER",
-        "CONTENT_LABEL_SET",
-        "CONTENT_THREAD_LOCK_SET",
-        "CONTENT_VISIBILITY_SET",
-        "DISPUTE_FINAL_RECEIPT",
         "DISPUTE_JUROR_ASSIGN",
-        "DISPUTE_JUROR_ATTENDANCE",
-        "DISPUTE_JUROR_TIMEOUT",
-        "DISPUTE_RESOLVE",
-        "DISPUTE_STAGE_SET",
-        "ROLE_ELIGIBILITY_SET",
-        "ROLE_JUROR_REINSTATE"
+        "DISPUTE_STAGE_SET"
       ],
       "tests": [
         "tests/test_content_review_conflict_enforcement.py",
@@ -6473,6 +6235,16 @@
         "tests/test_multi_causal_receipt_contract_truthfulness.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_dispute_appeal_actor.py",
+        "tests/test_pr77_complete_severe_appeal_no_authority.py",
+        "tests/test_pr77_dispute_open_semantic_adjudication.py",
+        "tests/test_pr77_dispute_open_v2_source_attribution.py",
+        "tests/test_pr77_severe_case_origin_candidate.py",
+        "tests/test_pr77_severe_case_signed_opening_review.py",
+        "tests/test_pr77_signed_opening_synthetic_replay.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr77_v2_dispute_open_dispatch_extraction.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -6519,7 +6291,7 @@
       "implementation_source": {
         "function": "_apply_dispute_stage_set",
         "handler": "dispute",
-        "line": 1755,
+        "line": 1969,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6606,7 +6378,7 @@
       "implementation_source": {
         "function": "_apply_dispute_evidence_declare",
         "handler": "dispute",
-        "line": 1771,
+        "line": 1985,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6697,7 +6469,7 @@
       "implementation_source": {
         "function": "_apply_dispute_evidence_bind",
         "handler": "dispute",
-        "line": 1796,
+        "line": 2010,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6776,6 +6548,14 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "juror_conflict_material"
+        },
+        {
+          "code": "forbidden",
+          "reason": "juror_conflict_reporter"
+        },
+        {
+          "code": "forbidden",
           "reason": "juror_conflict_target_owner"
         },
         {
@@ -6787,6 +6567,10 @@
           "reason": "system_only"
         },
         {
+          "code": "forbidden",
+          "reason": "unsupported_dispute_material_conflict_gate_version"
+        },
+        {
           "code": "invalid_payload",
           "reason": "missing_dispute_or_juror"
         }
@@ -6795,7 +6579,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_assign",
         "handler": "dispute",
-        "line": 1824,
+        "line": 2038,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6824,21 +6608,27 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "151dd15939f954ec63935e30d6fbbd988b3e722bfc9e9d364d3d5efc7bb059d1",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "80526806a5e94bfd7a3535cb04c546c04c7295f7ea1d8776c24d5a7894517d8a",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0204",
       "state_reads": [
         "key:dispute_id",
+        "key:dispute_material_conflict_gate_version",
         "key:eligible_juror_ids",
+        "key:flagged_by",
+        "key:id",
         "key:juror",
         "key:juror_id",
         "key:jurors",
+        "key:params",
+        "key:reported_by",
+        "key:reporter",
         "key:stage"
       ],
       "state_writes": [
@@ -6863,6 +6653,8 @@
         "tests/test_dispute_review_outcome_semantics.py",
         "tests/test_multi_causal_receipt_contract_truthfulness.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
+        "tests/test_pr88_dispute_material_conflict_review_evidence.py",
         "tests/test_responsibility_opt_in_safety.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -6899,6 +6691,14 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "juror_conflict_material"
+        },
+        {
+          "code": "forbidden",
+          "reason": "juror_conflict_reporter"
+        },
+        {
+          "code": "forbidden",
           "reason": "juror_conflict_target_owner"
         },
         {
@@ -6914,6 +6714,10 @@
           "reason": "reviewer_responsibility_not_active"
         },
         {
+          "code": "forbidden",
+          "reason": "unsupported_dispute_material_conflict_gate_version"
+        },
+        {
           "code": "invalid_payload",
           "reason": "missing_dispute_id"
         }
@@ -6926,7 +6730,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_accept",
         "handler": "dispute",
-        "line": 1872,
+        "line": 2086,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6956,12 +6760,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "b728f7046c6a52afaf1043d82f528fea8b9286532a62a4496e52a678bb79a629",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "2527cf01ac7e4e887648df1b1b0c4f4571314510d2a15f5c2ebc06f4b3ad18e9",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0205",
@@ -6970,10 +6774,15 @@
         "key:accepted_at_height",
         "key:canonical_reputation_event_id",
         "key:dispute_id",
+        "key:dispute_material_conflict_gate_version",
         "key:event_id",
+        "key:flagged_by",
         "key:id",
         "key:jurors",
         "key:late_withdraw_penalty_milli",
+        "key:params",
+        "key:reported_by",
+        "key:reporter",
         "key:safe_withdraw_blocks",
         "key:safe_withdraw_until_height",
         "key:status",
@@ -7008,6 +6817,13 @@
         "tests/test_m3_closure_integrity.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
+        "tests/test_pr77_complete_severe_appeal_no_authority.py",
+        "tests/test_pr77_severe_appeal_twenty_vote_guard.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
+        "tests/test_pr88_dispute_material_conflict_review_evidence.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_public_activity_dispute_flow.py",
         "tests/test_reputation_matrix_completion_v1_5.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -7057,7 +6873,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_decline",
         "handler": "dispute",
-        "line": 1977,
+        "line": 2191,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7150,7 +6966,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_attendance",
         "handler": "dispute",
-        "line": 2140,
+        "line": 2354,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7210,6 +7026,8 @@
       "system_followups": [],
       "tests": [
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr88_dispute_material_conflict_review_evidence.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "DISPUTE_JUROR_ATTENDANCE",
@@ -7255,6 +7073,14 @@
         },
         {
           "code": "forbidden",
+          "reason": "juror_conflict_material"
+        },
+        {
+          "code": "forbidden",
+          "reason": "juror_conflict_reporter"
+        },
+        {
+          "code": "forbidden",
           "reason": "juror_conflict_target_owner"
         },
         {
@@ -7274,6 +7100,14 @@
           "reason": "reviewer_responsibility_not_active"
         },
         {
+          "code": "forbidden",
+          "reason": "severe_appeal_fresh_panel_unverified"
+        },
+        {
+          "code": "forbidden",
+          "reason": "unsupported_dispute_material_conflict_gate_version"
+        },
+        {
           "code": "invalid_payload",
           "reason": "invalid_dispute_vote_choice"
         },
@@ -7290,7 +7124,7 @@
       "implementation_source": {
         "function": "_apply_dispute_vote_submit",
         "handler": "dispute",
-        "line": 2167,
+        "line": 2381,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7310,12 +7144,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "055dbcb4cc8aadc6a01c51e8caa7803509ea7445490f8b03314c29d48d8ac930",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "66d5a5259d3c6d88fea547dcaf2daa4ed5de66387534a97b37ad8c6aec86da85",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0208",
@@ -7329,15 +7163,20 @@
         "key:choice",
         "key:decision",
         "key:dispute_id",
+        "key:dispute_material_conflict_gate_version",
         "key:event_id",
+        "key:flagged_by",
         "key:height",
         "key:id",
         "key:jurors",
         "key:late_withdraw_penalty_milli",
         "key:panel_round",
+        "key:params",
         "key:present",
         "key:profile_id",
         "key:reason",
+        "key:reported_by",
+        "key:reporter",
         "key:resolution",
         "key:safe_withdraw_blocks",
         "key:stage",
@@ -7382,6 +7221,14 @@
         "tests/test_m3_closure_integrity.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
+        "tests/test_pr77_complete_severe_appeal_no_authority.py",
+        "tests/test_pr77_full_dispute_legacy_ballot_oracle.py",
+        "tests/test_pr77_severe_appeal_twenty_vote_guard.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
+        "tests/test_pr88_dispute_material_conflict_review_evidence.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_reputation_matrix_completion_v1_5.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
@@ -7415,6 +7262,18 @@
       "domain": "Dispute",
       "failure_codes": [
         {
+          "code": "conflict",
+          "reason": "automatic_severe_appeal_already_assigned"
+        },
+        {
+          "code": "forbidden",
+          "reason": "severe_sanction_initial_outcome_mismatch"
+        },
+        {
+          "code": "forbidden",
+          "reason": "severe_sanction_initial_twenty_votes_unverified"
+        },
+        {
           "code": "forbidden",
           "reason": "system_only"
         },
@@ -7427,7 +7286,7 @@
       "implementation_source": {
         "function": "_apply_dispute_resolve",
         "handler": "dispute",
-        "line": 2589,
+        "line": 2947,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7452,12 +7311,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "9e2108954707b7daf3d543713e2b74014fa97e802417bb533c0910b4accd5cb3",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "e732b22432b88d0128b5fcbcb14d04b4bdd789a646164233fd7b64e5a44d52c9",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0209",
@@ -7467,6 +7326,7 @@
         "key:account_id",
         "key:accounts",
         "key:actions",
+        "key:automatic_appeal_record",
         "key:banned",
         "key:by_id",
         "key:dispute_id",
@@ -7479,6 +7339,7 @@
         "key:latest_restriction",
         "key:locked",
         "key:member",
+        "key:outcome",
         "key:payload",
         "key:reason",
         "key:remedies",
@@ -7543,6 +7404,15 @@
         "tests/test_local_rehearsal_qol_regressions.py",
         "tests/test_m3_closure_integrity.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_appeal_fresh_panel_atomicity.py",
+        "tests/test_pr77_complete_severe_appeal_no_authority.py",
+        "tests/test_pr77_dispute_open_v2_source_attribution.py",
+        "tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py",
+        "tests/test_pr77_experimental_automatic_severe_appeal.py",
+        "tests/test_pr77_reputation_floor_ban_boundary_characterization.py",
+        "tests/test_pr77_severe_initial_20_vote_guard.py",
+        "tests/test_pr77_v2_dispute_open_dispatch_extraction.py",
+        "tests/test_stage23_account_ban_severe_sanction_no_go.py",
         "tests/test_tx_contract_coverage.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
@@ -7578,6 +7448,10 @@
           "reason": "appeal_already_filed"
         },
         {
+          "code": "conflict",
+          "reason": "automatic_severe_appeal_already_assigned"
+        },
+        {
           "code": "forbidden",
           "reason": "appeal_actor_unresolved"
         },
@@ -7594,10 +7468,6 @@
           "reason": "appeal_window_not_open"
         },
         {
-          "code": "forbidden",
-          "reason": "insufficient_fresh_appeal_panel"
-        },
-        {
           "code": "invalid_payload",
           "reason": "missing_dispute_id"
         }
@@ -7609,7 +7479,7 @@
       "implementation_source": {
         "function": "_apply_dispute_appeal",
         "handler": "dispute",
-        "line": 2725,
+        "line": 3232,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7634,12 +7504,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "25c32baad81399a0cca77c9c40a4f118fb814aca2b96c9549c0b2797079149a7",
-        "review_method": "maintainer_reviewed_semantic_change_with_regression_evidence",
-        "reviewed_at": "2026-09-27T20:14:39Z",
-        "reviewer": "WeAll Protocol P2 audit remediation; independent launch review deferred"
+        "review_digest": "6ed47557f2ba0b0b3217f0c847375c6609d998097913f3716e5561d5a872a739",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0210",
@@ -7648,13 +7518,13 @@
         "key:appeal_panel_round",
         "key:appeals",
         "key:assigned_jurors",
+        "key:automatic_appeal_record",
         "key:available_candidate_count",
         "key:by",
         "key:conflicted_juror_ids",
         "key:dispute_id",
         "key:height",
         "key:id",
-        "key:panel",
         "key:panel_commitment",
         "key:required_panel_size",
         "key:required_substitute_count",
@@ -7662,24 +7532,23 @@
         "key:status",
         "key:strict",
         "key:substitute_juror_ids",
-        "key:substitutes",
         "key:target_id",
         "key:target_type"
       ],
       "state_writes": [
         "key:<add:dynamic>",
         "key:<append:dynamic>",
-        "key:appeal_ballot_nullifiers",
         "key:appeal_conflicted_juror_ids",
+        "key:appeal_panel_available_candidate_count",
+        "key:appeal_panel_blocked_reason",
         "key:appeal_panel_commitment",
         "key:appeal_panel_juror_ids",
+        "key:appeal_panel_required_size",
         "key:appeal_panel_round",
         "key:appeal_panel_status",
-        "key:appeal_panel_votes",
-        "key:appeal_resolution_options",
+        "key:appeal_pending_since_height",
         "key:appeal_substitute_juror_ids",
-        "key:appeal_vote_counts",
-        "key:appeal_voted_juror_ids",
+        "key:appeal_substitute_required_count",
         "key:appeals",
         "key:assigned_jurors",
         "key:eligible_juror_ids",
@@ -7697,6 +7566,14 @@
         "tests/test_local_rehearsal_qol_regressions.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
+        "tests/test_pr77_appeal_fresh_panel_atomicity.py",
+        "tests/test_pr77_dispute_open_v2_source_attribution.py",
+        "tests/test_pr77_dispute_resolve_appeal_semantic_adjudication.py",
+        "tests/test_pr77_experimental_automatic_severe_appeal.py",
+        "tests/test_pr77_severe_appeal_twenty_vote_guard.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr77_v2_dispute_open_dispatch_extraction.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "DISPUTE_APPEAL",
@@ -7728,6 +7605,30 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "appeal_original_resolution_override"
+        },
+        {
+          "code": "forbidden",
+          "reason": "appeal_panel_decision_not_finalized"
+        },
+        {
+          "code": "forbidden",
+          "reason": "appeal_panel_decision_unverified"
+        },
+        {
+          "code": "forbidden",
+          "reason": "appeal_pending_panel"
+        },
+        {
+          "code": "forbidden",
+          "reason": "appeal_resolution_mismatch"
+        },
+        {
+          "code": "forbidden",
+          "reason": "severe_sanction_automatic_appeal_unimplemented"
+        },
+        {
+          "code": "forbidden",
           "reason": "system_only"
         }
       ],
@@ -7735,7 +7636,7 @@
       "implementation_source": {
         "function": "_apply_dispute_final_receipt",
         "handler": "dispute",
-        "line": 2957,
+        "line": 3474,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7762,12 +7663,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "3188f1c9fd27e317957643eb3652df6e3c1a9792f640fa570bcda08203a18e72",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "5623af70bbce816b9a28fe68a30ba96988266f379878feaf70b97193eefb972e",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0211",
@@ -7777,10 +7678,14 @@
         "key:accounts",
         "key:actions",
         "key:appeal_finalization",
+        "key:appeal_panel_result",
+        "key:appeal_resolution",
+        "key:appeals",
         "key:banned",
         "key:by_id",
         "key:decision",
         "key:dispute_id",
+        "key:disputes_by_id",
         "key:eligible",
         "key:enforcement_applied",
         "key:group_id",
@@ -7792,6 +7697,7 @@
         "key:locked",
         "key:member",
         "key:payload",
+        "key:reached",
         "key:reason",
         "key:receipt_id",
         "key:remedies",
@@ -7802,6 +7708,7 @@
         "key:restrictions",
         "key:role",
         "key:role_eligibility",
+        "key:stage",
         "key:status",
         "key:target_account",
         "key:target_id",
@@ -7848,8 +7755,18 @@
         "tests/test_full_node_db_api_dispute_storage_coverage.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
+        "tests/test_pr77_account_reinstatement_state_consistency.py",
+        "tests/test_pr77_appeal_fresh_panel_atomicity.py",
+        "tests/test_pr77_complete_severe_appeal_no_authority.py",
+        "tests/test_pr77_severe_account_finality_no_go.py",
+        "tests/test_pr77_severe_appeal_twenty_vote_guard.py",
+        "tests/test_pr77_severe_initial_20_vote_guard.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_protocol_blocker_safety.py",
         "tests/test_rem_w1a_r06_f001_canonical_scheduler_order.py",
+        "tests/test_stage23_account_ban_severe_sanction_no_go.py",
         "tests/test_tx_schema_governance_dispute_receipts.py",
         "tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py",
         "tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py"
@@ -7928,7 +7845,7 @@
       "implementation_source": {
         "function": "_apply_post_create",
         "handler": "content",
-        "line": 822,
+        "line": 847,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8039,6 +7956,7 @@
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_parallel_execution_conflict_lanes.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
@@ -8137,7 +8055,7 @@
       "implementation_source": {
         "function": "_apply_post_edit",
         "handler": "content",
-        "line": 881,
+        "line": 906,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8284,7 +8202,7 @@
       "implementation_source": {
         "function": "_apply_post_delete",
         "handler": "content",
-        "line": 938,
+        "line": 963,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8445,7 +8363,7 @@
       "implementation_source": {
         "function": "_apply_comment_create",
         "handler": "content",
-        "line": 975,
+        "line": 1000,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8528,6 +8446,7 @@
         "tests/test_operator_ingress_signature_required_prod.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
+        "tests/test_pr93_public_lobby_incremental_candidate.py",
         "tests/test_public_only_protocol_redesign.py"
       ],
       "tx_type": "CONTENT_COMMENT_CREATE",
@@ -8588,7 +8507,7 @@
       "implementation_source": {
         "function": "_apply_comment_delete",
         "handler": "content",
-        "line": 1070,
+        "line": 1095,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8715,7 +8634,7 @@
       "implementation_source": {
         "function": "_apply_reaction_set",
         "handler": "content",
-        "line": 1107,
+        "line": 1132,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8818,6 +8737,10 @@
       "domain": "Content",
       "failure_codes": [
         {
+          "code": "conflict",
+          "reason": "duplicate_flag_id"
+        },
+        {
           "code": "forbidden",
           "reason": "account_banned"
         },
@@ -8847,7 +8770,7 @@
       "implementation_source": {
         "function": "_apply_content_flag",
         "handler": "content",
-        "line": 1132,
+        "line": 1157,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8871,12 +8794,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "9e536944083750715e60d89aaf541b5bd2bd09e53b171efc8f2aba043f3dec96",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "d9765db3074e0df6c7eb880a2298b19f43ab8e579226e42cbdaef70648f0fb3e",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-0306",
@@ -8931,6 +8854,9 @@
         "tests/test_dispute_auto_juror_assignment.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
+        "tests/test_pr77_content_escalation_flag_provenance.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_reputation_accrual_policy.py"
       ],
       "tx_type": "CONTENT_FLAG",
@@ -8971,7 +8897,7 @@
       "implementation_source": {
         "function": "_apply_content_label_set",
         "handler": "content",
-        "line": 1453,
+        "line": 1482,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9105,7 +9031,7 @@
       "implementation_source": {
         "function": "_apply_content_visibility_set",
         "handler": "content",
-        "line": 1473,
+        "line": 1502,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9186,6 +9112,7 @@
         "tests/test_dispute_review_outcome_semantics.py",
         "tests/test_local_rehearsal_qol_regressions.py",
         "tests/test_local_rehearsal_read_model_and_layout.py",
+        "tests/test_pr77_appeal_fresh_panel_atomicity.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "CONTENT_VISIBILITY_SET",
@@ -9254,7 +9181,7 @@
       "implementation_source": {
         "function": "_apply_content_thread_lock_set",
         "handler": "content",
-        "line": 1494,
+        "line": 1523,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9374,7 +9301,7 @@
       "implementation_source": {
         "function": "_apply_content_escalate_to_dispute",
         "handler": "content",
-        "line": 1582,
+        "line": 1656,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9500,6 +9427,9 @@
         "tests/test_dispute_auto_juror_assignment.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_multi_causal_receipt_contract_truthfulness.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
+        "tests/test_pr77_content_escalation_flag_provenance.py",
+        "tests/test_pr88_dispute_material_conflict_review_evidence.py",
         "tests/test_trusted_responsibility_opt_in.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
@@ -9563,7 +9493,7 @@
       "implementation_source": {
         "function": "_apply_content_media_declare",
         "handler": "content",
-        "line": 1247,
+        "line": 1276,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9711,7 +9641,7 @@
       "implementation_source": {
         "function": "_apply_content_media_bind",
         "handler": "content",
-        "line": 1298,
+        "line": 1327,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9852,7 +9782,7 @@
       "implementation_source": {
         "function": "_apply_content_media_replace",
         "handler": "content",
-        "line": 1421,
+        "line": 1450,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9989,7 +9919,7 @@
       "implementation_source": {
         "function": "_apply_content_media_unbind",
         "handler": "content",
-        "line": 1354,
+        "line": 1383,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10109,7 +10039,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10163,6 +10093,7 @@
         "tests/test_devnet_permission_probe.py",
         "tests/test_economics_activation_requires_hardened_governance_electorate.py",
         "tests/test_execution_lane.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_four_gate_safety.py",
         "tests/test_gov_rejects_econ_actions_during_lock.py",
         "tests/test_governance_due_height_trust_boundary.py",
@@ -10233,7 +10164,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10327,7 +10258,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10415,7 +10346,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10463,6 +10394,7 @@
         "tests/p0/test_p0_apply_determinism.py",
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_constitutional_procedure_clock.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_due_height_trust_boundary.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_lineage_witness_contract.py",
@@ -10515,7 +10447,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10565,6 +10497,7 @@
         "tests/p0/test_p0_mempool_and_admission_invariants.py",
         "tests/test_combined_journey_gates.py",
         "tests/test_economics_activation_requires_hardened_governance_electorate.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_governance_due_height_trust_boundary.py",
         "tests/test_governance_multi_option_voting.py",
         "tests/test_governance_stale_state_safety.py",
@@ -10623,7 +10556,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10713,7 +10646,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10814,7 +10747,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10907,7 +10840,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10995,6 +10928,7 @@
         "tests/test_combined_journey_gates.py",
         "tests/test_constitution_upgrade_height_scheduled_lifecycle.py",
         "tests/test_coverage_behavior.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_four_gate_safety.py",
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_governance_followups.py",
@@ -11007,6 +10941,7 @@
         "tests/test_p0_group_treasury_governance_binding.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_policy_enforcement.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_protocol_blocker_safety.py",
         "tests/test_protocol_upgrade_height_scheduled_lifecycle.py",
@@ -11055,7 +10990,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -11643,7 +11578,8 @@
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_constitution_upgrade_height_scheduled_lifecycle.py",
         "tests/test_p0_07_constitutional_scope_closure.py",
-        "tests/test_p2_a02_success_lifecycle_baseline.py"
+        "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr88_dispute_material_conflict_review_evidence.py"
       ],
       "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
       "vector_ids": [
@@ -13145,7 +13081,7 @@
       "implementation_source": {
         "function": "_apply_validator_register",
         "handler": "consensus",
-        "line": 490,
+        "line": 491,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13286,7 +13222,7 @@
       "implementation_source": {
         "function": "_apply_validator_candidate_register",
         "handler": "consensus",
-        "line": 618,
+        "line": 619,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13447,7 +13383,7 @@
       "implementation_source": {
         "function": "_apply_validator_candidate_approve",
         "handler": "consensus",
-        "line": 688,
+        "line": 689,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13533,7 +13469,8 @@
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_epoch_convergence.py",
         "tests/test_validator_governance_activation.py",
-        "tests/test_validator_lifecycle_multinode.py"
+        "tests/test_validator_lifecycle_multinode.py",
+        "tests/test_validator_pending_composition_guard.py"
       ],
       "tx_type": "VALIDATOR_CANDIDATE_APPROVE",
       "vector_ids": [
@@ -13587,7 +13524,7 @@
       "implementation_source": {
         "function": "_apply_validator_deregister",
         "handler": "consensus",
-        "line": 872,
+        "line": 873,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13723,7 +13660,7 @@
       "implementation_source": {
         "function": "_apply_validator_heartbeat",
         "handler": "consensus",
-        "line": 1262,
+        "line": 1247,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13839,7 +13776,7 @@
       "implementation_source": {
         "function": "_apply_validator_set_update",
         "handler": "consensus",
-        "line": 1167,
+        "line": 1152,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -13911,6 +13848,8 @@
         "tests/test_consensus_phase_bootstrap.py",
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
+        "tests/test_f1b_validator_set_canonical_bootstrap_block.py",
         "tests/test_four_gate_safety.py",
         "tests/test_governance_execution_vectors_v1.py",
         "tests/test_governance_followups.py",
@@ -13926,6 +13865,7 @@
         "tests/test_validator_generation_network_authority.py",
         "tests/test_validator_governance_activation.py",
         "tests/test_validator_lifecycle_multinode.py",
+        "tests/test_validator_pending_composition_guard.py",
         "tests/test_validator_set_activation_boundary.py",
         "tests/test_validator_set_canonicalization.py",
         "tests/test_validator_set_pending_conflict.py"
@@ -13986,7 +13926,7 @@
       "implementation_source": {
         "function": "_apply_block_propose",
         "handler": "consensus",
-        "line": 1379,
+        "line": 1364,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14122,7 +14062,7 @@
       "implementation_source": {
         "function": "_apply_block_attest",
         "handler": "consensus",
-        "line": 1454,
+        "line": 1439,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14208,6 +14148,7 @@
         "tests/test_block_attest_canonical_path.py",
         "tests/test_consensus_attestation_safety.py",
         "tests/test_consensus_equivocation_slash_execute.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_state_sync_aux_branch_reset.py",
@@ -14302,7 +14243,7 @@
       "implementation_source": {
         "function": "_apply_block_finalize",
         "handler": "consensus",
-        "line": 1606,
+        "line": 1591,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14392,7 +14333,11 @@
         "tests/p0/test_p0_system_receipts_and_invariants.py",
         "tests/test_bft_canonical_finality_bridge.py",
         "tests/test_epoch_blocks_per_epoch.py",
+        "tests/test_f1b_genesis_acceptance_witness_preflight.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
+        "tests/test_group_emissary_network_process_bft.py",
         "tests/test_lineage_witness_contract.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_p2_final_source_closure.py",
         "tests/test_post_r03_ai_exhaustion_objective_closure.py",
@@ -14463,7 +14408,7 @@
       "implementation_source": {
         "function": "_apply_epoch_open",
         "handler": "consensus",
-        "line": 1780,
+        "line": 1765,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14527,6 +14472,7 @@
         "tests/test_epoch_blocks_per_epoch.py",
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_lineage_witness_contract.py",
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_post31_closure_pack.py",
@@ -14599,7 +14545,7 @@
       "implementation_source": {
         "function": "_apply_epoch_close",
         "handler": "consensus",
-        "line": 1850,
+        "line": 1835,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14664,6 +14610,7 @@
         "tests/test_epoch_blocks_per_epoch.py",
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py",
         "tests/test_validator_epoch_convergence.py",
@@ -14711,7 +14658,7 @@
       "implementation_source": {
         "function": "_apply_slash_propose",
         "handler": "consensus",
-        "line": 1895,
+        "line": 1880,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14816,7 +14763,7 @@
       "implementation_source": {
         "function": "_apply_slash_vote",
         "handler": "consensus",
-        "line": 1917,
+        "line": 1902,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -14929,7 +14876,7 @@
       "implementation_source": {
         "function": "_apply_slash_execute",
         "handler": "consensus",
-        "line": 2064,
+        "line": 2049,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17425,7 +17372,7 @@
       "implementation_source": {
         "function": "_apply_reputation_delta_apply",
         "handler": "reputation",
-        "line": 364,
+        "line": 416,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17502,9 +17449,12 @@
       ],
       "tests": [
         "tests/test_four_gate_safety.py",
+        "tests/test_issue63_reputation_state_replay.py",
         "tests/test_local_rehearsal_rate_limit_and_reviewer_status.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_pr62_account_field_runtime_evidence.py",
+        "tests/test_pr77_account_reinstatement_state_consistency.py",
+        "tests/test_pr77_reputation_floor_ban_boundary_characterization.py",
         "tests/test_reputation_accrual_policy.py",
         "tests/test_reputation_delta_replay_safety.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
@@ -17557,7 +17507,7 @@
       "implementation_source": {
         "function": "_apply_reputation_threshold_cross",
         "handler": "reputation",
-        "line": 458,
+        "line": 518,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17663,7 +17613,7 @@
       "implementation_source": {
         "function": "_apply_role_eligibility_set",
         "handler": "reputation",
-        "line": 499,
+        "line": 559,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17767,7 +17717,7 @@
       "implementation_source": {
         "function": "_apply_role_eligibility_revoke",
         "handler": "reputation",
-        "line": 540,
+        "line": 600,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17850,6 +17800,14 @@
       "domain": "Reputation",
       "failure_codes": [
         {
+          "code": "conflicting_receipt",
+          "reason": "duplicate_ban_receipt_conflict"
+        },
+        {
+          "code": "forbidden",
+          "reason": "severe_sanction_authorization_unimplemented"
+        },
+        {
           "code": "forbidden",
           "reason": "system_only"
         },
@@ -17866,7 +17824,7 @@
       "implementation_source": {
         "function": "_apply_account_ban",
         "handler": "reputation",
-        "line": 581,
+        "line": 641,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17890,19 +17848,22 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "4c7e5f70744904058a006f14840fd155f545ecabe45f1220e05ed039ce81c246",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "1822caa7a62773642cfc45c08c5878def0a2cfc06d0334f1fe2c08cd84ba9d19",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-0904",
       "state_reads": [
+        "key:account_id",
         "key:accounts",
+        "key:auto",
         "key:banned",
         "key:bans",
+        "key:payload",
         "key:reason",
         "key:reputation",
         "key:role_eligibility",
@@ -17921,7 +17882,23 @@
       "tests": [
         "tests/test_four_gate_safety.py",
         "tests/test_helper_execution_lane_alignment.py",
+        "tests/test_issue63_reputation_state_replay.py",
         "tests/test_pr62_account_field_runtime_evidence.py",
+        "tests/test_pr73_account_ban_atomic_duplicate.py",
+        "tests/test_pr77_account_ban_queue_provenance.py",
+        "tests/test_pr77_account_reinstatement_state_consistency.py",
+        "tests/test_pr77_ban_state_contract_candidate.py",
+        "tests/test_pr77_complete_severe_appeal_no_authority.py",
+        "tests/test_pr77_dispute_open_v2_source_attribution.py",
+        "tests/test_pr77_experimental_automatic_severe_appeal.py",
+        "tests/test_pr77_reputation_floor_ban_boundary_characterization.py",
+        "tests/test_pr77_severe_account_finality_no_go.py",
+        "tests/test_pr77_severe_appeal_twenty_vote_guard.py",
+        "tests/test_pr77_severe_initial_20_vote_guard.py",
+        "tests/test_pr77_severe_sanction_clock_no_go.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
+        "tests/test_stage23_account_ban_severe_sanction_no_go.py",
         "tests/test_tx_contract_coverage.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -17969,7 +17946,7 @@
       "implementation_source": {
         "function": "_apply_account_reinstate",
         "handler": "reputation",
-        "line": 618,
+        "line": 709,
         "path": "src/weall/runtime/apply/reputation.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18025,6 +18002,8 @@
         "tests/test_full_node_db_api_dispute_storage_coverage.py",
         "tests/test_helper_execution_lane_alignment.py",
         "tests/test_pr62_account_field_runtime_evidence.py",
+        "tests/test_pr77_account_ban_queue_provenance.py",
+        "tests/test_pr77_account_reinstatement_state_consistency.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
       "tx_type": "ACCOUNT_REINSTATE",
@@ -18603,11 +18582,19 @@
         },
         {
           "code": "forbidden",
+          "reason": "canonical_role_reputation_ineligible"
+        },
+        {
+          "code": "forbidden",
           "reason": "live_verification_required"
         },
         {
           "code": "forbidden",
           "reason": "only_account_can_enroll_juror"
+        },
+        {
+          "code": "forbidden",
+          "reason": "policy_unknown"
         },
         {
           "code": "forbidden",
@@ -18620,13 +18607,17 @@
         {
           "code": "invalid_payload",
           "reason": "missing_account_id"
+        },
+        {
+          "code": "not_found",
+          "reason": "account_not_found"
         }
       ],
       "frontend_surfaces": [],
       "implementation_source": {
         "function": "_apply_role_juror_enroll",
         "handler": "roles",
-        "line": 1086,
+        "line": 1201,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18653,34 +18644,42 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "a9e6314bbf541fe827a643f39bf6c8dc9f9f35d2510dfa1524bd48ec80488c1e",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "24d5504a1e6f2099c4129d06b4a35786365d56178b484a4907bb4ca24c5e0949",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1100",
       "state_reads": [
         "key:active",
         "key:active_set",
-        "key:banned",
+        "key:actual_milli",
         "key:by_id",
+        "key:canonical_reasons",
+        "key:canonical_role",
+        "key:code",
+        "key:eligible",
         "key:enrolled",
+        "key:gate_version",
         "key:jurors",
-        "key:locked",
+        "key:reason",
+        "key:required_milli",
         "key:responsibilities",
         "key:reviewer",
         "key:roles"
       ],
       "state_writes": [
+        "key:<update:dynamic>",
         "key:activated_at_nonce",
         "key:active",
         "key:active_set",
         "key:by_id",
         "key:enrolled",
         "key:enrolled_at_nonce",
+        "key:gate_version",
         "key:jurors",
         "key:opted_in",
         "key:opted_in_at_nonce",
@@ -18696,9 +18695,12 @@
         "tests/test_content_reviewer_selection_and_surface.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_exact_responsibility_lane_consent.py",
+        "tests/test_issue72_versioned_role_gate.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
+        "tests/test_pr93_role_gate_compiler_binding.py",
         "tests/test_responsibility_opt_in_safety.py",
         "tests/test_role_self_target_safety.py",
         "tests/test_trusted_responsibility_opt_in.py",
@@ -18738,7 +18740,15 @@
         },
         {
           "code": "forbidden",
+          "reason": "canonical_role_reputation_ineligible"
+        },
+        {
+          "code": "forbidden",
           "reason": "live_verification_required"
+        },
+        {
+          "code": "forbidden",
+          "reason": "policy_unknown"
         },
         {
           "code": "forbidden",
@@ -18758,6 +18768,10 @@
         },
         {
           "code": "not_found",
+          "reason": "account_not_found"
+        },
+        {
+          "code": "not_found",
           "reason": "juror_not_enrolled"
         }
       ],
@@ -18765,7 +18779,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_activate",
         "handler": "roles",
-        "line": 1161,
+        "line": 1276,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18791,31 +18805,39 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "a1b3bf4fb1438f6d969498dfa89301ba40cfb940a7753e307c95673f9df0eafe",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "86dfa0345dd87a7059956031afffb1caee6e8843b7d275862bd336ea1045f2ce",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1101",
       "state_reads": [
         "key:active_set",
-        "key:banned",
+        "key:actual_milli",
         "key:by_id",
+        "key:canonical_reasons",
+        "key:canonical_role",
+        "key:code",
+        "key:eligible",
         "key:enrolled",
+        "key:gate_version",
         "key:jurors",
-        "key:locked",
+        "key:reason",
+        "key:required_milli",
         "key:responsibilities",
         "key:reviewer",
         "key:roles"
       ],
       "state_writes": [
+        "key:<update:dynamic>",
         "key:activated_at_nonce",
         "key:active",
         "key:active_set",
         "key:by_id",
+        "key:gate_version",
         "key:jurors",
         "key:responsibilities",
         "key:reviewer",
@@ -18825,9 +18847,14 @@
       "system_followups": [],
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
+        "tests/test_bounded_rollback_equivalence.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_issue72_versioned_role_gate.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_legacy_role_parity_adjudication.py",
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_read_write_scope_guards.py",
         "tests/test_read_write_scope_guards_correction.py",
         "tests/test_tx_conflict_matrix.py",
@@ -18880,7 +18907,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_suspend",
         "handler": "roles",
-        "line": 1220,
+        "line": 1335,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -18934,6 +18961,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_bounded_rollback_equivalence.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_conflict_matrix.py",
@@ -18972,7 +19000,15 @@
         },
         {
           "code": "forbidden",
+          "reason": "canonical_role_reputation_ineligible"
+        },
+        {
+          "code": "forbidden",
           "reason": "live_verification_required"
+        },
+        {
+          "code": "forbidden",
+          "reason": "policy_unknown"
         },
         {
           "code": "forbidden",
@@ -18992,6 +19028,10 @@
         },
         {
           "code": "not_found",
+          "reason": "account_not_found"
+        },
+        {
+          "code": "not_found",
           "reason": "juror_not_enrolled"
         }
       ],
@@ -19001,7 +19041,7 @@
       "implementation_source": {
         "function": "_apply_role_juror_reinstate",
         "handler": "roles",
-        "line": 1266,
+        "line": 1381,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19027,31 +19067,39 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "406cee36b386ad3e925975683876ee5b252e08977183664d79b56edd80d6f953",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "f0987551f52696f530b4934eb05d2b7a38191d62e767242fc34c97ef7f018c96",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1103",
       "state_reads": [
         "key:active_set",
-        "key:banned",
+        "key:actual_milli",
         "key:by_id",
+        "key:canonical_reasons",
+        "key:canonical_role",
+        "key:code",
+        "key:eligible",
         "key:enrolled",
+        "key:gate_version",
         "key:jurors",
-        "key:locked",
+        "key:reason",
+        "key:required_milli",
         "key:responsibilities",
         "key:reviewer",
         "key:roles"
       ],
       "state_writes": [
+        "key:<update:dynamic>",
         "key:activated_at_nonce",
         "key:active",
         "key:active_set",
         "key:by_id",
+        "key:gate_version",
         "key:jurors",
         "key:responsibilities",
         "key:reviewer",
@@ -19062,10 +19110,15 @@
         "ROLE_JUROR_ACTIVATE"
       ],
       "tests": [
+        "tests/test_bounded_rollback_equivalence.py",
         "tests/test_cross_tx_role_identity_safety.py",
+        "tests/test_issue72_versioned_role_gate.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_legacy_role_parity_adjudication.py",
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
         "tests/test_tx_conflict_matrix.py",
-        "tests/test_tx_schema_remaining_canon_cleanup.py"
+        "tests/test_tx_schema_remaining_canon_cleanup.py",
+        "tests/test_v2_role_dynamic_failure_review_evidence.py"
       ],
       "tx_type": "ROLE_JUROR_REINSTATE",
       "vector_ids": [
@@ -19100,6 +19153,10 @@
         },
         {
           "code": "forbidden",
+          "reason": "canonical_role_reputation_ineligible"
+        },
+        {
+          "code": "forbidden",
           "reason": "live_verification_required"
         },
         {
@@ -19109,6 +19166,10 @@
         {
           "code": "forbidden",
           "reason": "node_operator_status_required"
+        },
+        {
+          "code": "forbidden",
+          "reason": "policy_unknown"
         },
         {
           "code": "forbidden",
@@ -19133,13 +19194,17 @@
         {
           "code": "invalid_payload",
           "reason": "missing_account_id"
+        },
+        {
+          "code": "not_found",
+          "reason": "account_not_found"
         }
       ],
       "frontend_surfaces": [],
       "implementation_source": {
         "function": "_apply_role_validator_activate",
         "handler": "roles",
-        "line": 1276,
+        "line": 1391,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19163,38 +19228,46 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "f64112945d92ef91e3fbcc3ffe14b949929e95e79b5e53e6f409da9ba215a7ba",
-        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
-        "reviewed_at": "2026-09-29T22:53:56Z",
-        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
+        "review_digest": "96760f26bc8b33c30609c6780b1ac7737598cadf22c3dfa615b38985237f8414",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1104",
       "state_reads": [
         "key:active",
         "key:active_set",
-        "key:banned",
+        "key:actual_milli",
         "key:by_id",
+        "key:canonical_reasons",
+        "key:canonical_role",
+        "key:code",
+        "key:eligible",
+        "key:gate_version",
         "key:height",
-        "key:locked",
         "key:node_operators",
         "key:node_pubkey",
         "key:node_public_key",
         "key:readiness_expires_height",
         "key:readiness_receipt_hash",
         "key:readiness_status",
+        "key:reason",
+        "key:required_milli",
         "key:responsibilities",
         "key:roles",
         "key:validator",
         "key:validators"
       ],
       "state_writes": [
+        "key:<update:dynamic>",
         "key:activated_at_nonce",
         "key:active",
         "key:active_set",
         "key:by_id",
+        "key:gate_version",
         "key:node_pubkey",
         "key:readiness_receipt_hash",
         "key:validators"
@@ -19204,8 +19277,11 @@
         "tests/test_audit_remediation_validator_transitions.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_four_gate_safety.py",
+        "tests/test_issue72_versioned_role_gate.py",
         "tests/test_observer_to_validator_authority_path.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_batch_c_authority_and_rollback.py",
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
         "tests/test_promoted_validator_reboot_gate.py",
         "tests/test_role_system_applier_defense_in_depth.py",
         "tests/test_tx_conflict_matrix.py",
@@ -19253,7 +19329,7 @@
       "implementation_source": {
         "function": "_apply_role_validator_suspend",
         "handler": "roles",
-        "line": 1351,
+        "line": 1466,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19380,7 +19456,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_enroll",
         "handler": "roles",
-        "line": 1380,
+        "line": 1495,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19533,6 +19609,10 @@
         },
         {
           "code": "forbidden",
+          "reason": "policy_unknown"
+        },
+        {
+          "code": "forbidden",
           "reason": "reputation_insufficient"
         },
         {
@@ -19549,6 +19629,10 @@
         },
         {
           "code": "not_found",
+          "reason": "account_not_found"
+        },
+        {
+          "code": "not_found",
           "reason": "node_operator_not_enrolled"
         }
       ],
@@ -19556,7 +19640,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_activate",
         "handler": "roles",
-        "line": 1453,
+        "line": 1568,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19580,32 +19664,38 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "b88824f667e247700e774d8361d333671145fcf98f99478330439dc58fc84f78",
-        "review_method": "AI-assisted source review of authority/canonical-emission and validator-readiness repair with targeted regression evidence",
-        "reviewed_at": "2026-09-29T22:53:56Z",
-        "reviewer": "AI-assisted audit remediation requested by repository maintainer; not independent review"
+        "review_digest": "4848ccae3e3a90f9294870c95dfc3143348ee37612e0ce110c3d2cb8bc2d495c",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1107",
       "state_reads": [
         "key:active",
         "key:active_set",
+        "key:actual_milli",
         "key:allocated_capacity_bytes",
-        "key:banned",
         "key:by_id",
+        "key:canonical_reasons",
+        "key:canonical_role",
+        "key:code",
         "key:declared_capacity_bytes",
+        "key:eligible",
         "key:enrolled",
+        "key:gate_version",
         "key:helper",
         "key:helper_capacity_units",
-        "key:locked",
         "key:node_operators",
         "key:opted_in",
         "key:proof_status",
         "key:proven_capacity_bytes",
         "key:readiness_status",
+        "key:reason",
         "key:reputation_required_milli",
+        "key:required_milli",
         "key:responsibilities",
         "key:roles",
         "key:storage",
@@ -19613,12 +19703,14 @@
         "key:validator"
       ],
       "state_writes": [
+        "key:<update:dynamic>",
         "key:activated_at_nonce",
         "key:active",
         "key:active_set",
         "key:allocated_capacity_bytes",
         "key:by_id",
         "key:declared_capacity_bytes",
+        "key:gate_version",
         "key:helper",
         "key:helper_capacity_units",
         "key:node_operators",
@@ -19643,6 +19735,7 @@
         "tests/test_four_gate_safety.py",
         "tests/test_fresh_node_operator_candidate_demo.py",
         "tests/test_fresh_node_to_service_e2e.py",
+        "tests/test_issue72_versioned_role_gate.py",
         "tests/test_new_node_operator_quickstart.py",
         "tests/test_node_operator_auto_activation_and_responsibilities.py",
         "tests/test_node_operator_onboarding_ux.py",
@@ -19650,6 +19743,9 @@
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_post31_closure_pack.py",
+        "tests/test_pr77_batch_c_authority_and_rollback.py",
+        "tests/test_pr77_legacy_role_parity_adjudication.py",
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
         "tests/test_promoted_validator_reboot_gate.py",
         "tests/test_responsibility_opt_in_safety.py",
         "tests/test_tx_conflict_matrix.py",
@@ -19698,7 +19794,7 @@
       "implementation_source": {
         "function": "_apply_role_node_operator_suspend",
         "handler": "roles",
-        "line": 1507,
+        "line": 1622,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19750,6 +19846,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_bounded_rollback_equivalence.py",
         "tests/test_cross_tx_role_identity_safety.py",
         "tests/test_p1_remaining_complete_remediation.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
@@ -19792,7 +19889,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_nominate",
         "handler": "roles",
-        "line": 1550,
+        "line": 1665,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19888,7 +19985,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_vote",
         "handler": "roles",
-        "line": 1583,
+        "line": 1698,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -19978,6 +20075,10 @@
         },
         {
           "code": "forbidden",
+          "reason": "policy_unknown"
+        },
+        {
+          "code": "forbidden",
           "reason": "reputation_insufficient"
         },
         {
@@ -19991,13 +20092,17 @@
         {
           "code": "invalid_payload",
           "reason": "missing_account_id"
+        },
+        {
+          "code": "not_found",
+          "reason": "account_not_found"
         }
       ],
       "frontend_surfaces": [],
       "implementation_source": {
         "function": "_apply_role_emissary_seat",
         "handler": "roles",
-        "line": 1616,
+        "line": 1731,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20021,28 +20126,36 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "5fac7ab2ada1107b86940a80f8e3d83b5bfb7410f5cb19741aba54b0397cec7c",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "036b9b8671c3b541773ccad86f8db42f924ecbad80b1b0a96e7022e7a2cc7e4d",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1111",
       "state_reads": [
         "key:active",
-        "key:banned",
+        "key:actual_milli",
         "key:by_id",
+        "key:canonical_reasons",
+        "key:canonical_role",
+        "key:code",
+        "key:eligible",
         "key:emissaries",
-        "key:locked",
+        "key:gate_version",
+        "key:reason",
+        "key:required_milli",
         "key:roles",
         "key:seated"
       ],
       "state_writes": [
+        "key:<update:dynamic>",
         "key:active",
         "key:by_id",
         "key:emissaries",
+        "key:gate_version",
         "key:seated",
         "key:seated_at_nonce"
       ],
@@ -20050,6 +20163,10 @@
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_cross_domain_group_treasury_serial_execution_safety.py",
+        "tests/test_issue72_versioned_role_gate.py",
+        "tests/test_pr77_batch_c_authority_and_rollback.py",
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_role_system_applier_defense_in_depth.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
@@ -20094,7 +20211,7 @@
       "implementation_source": {
         "function": "_apply_role_emissary_remove",
         "handler": "roles",
-        "line": 1656,
+        "line": 1771,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20189,6 +20306,10 @@
         },
         {
           "code": "forbidden",
+          "reason": "policy_unknown"
+        },
+        {
+          "code": "forbidden",
           "reason": "reputation_insufficient"
         },
         {
@@ -20202,13 +20323,17 @@
         {
           "code": "invalid_payload",
           "reason": "missing_account_id"
+        },
+        {
+          "code": "not_found",
+          "reason": "account_not_found"
         }
       ],
       "frontend_surfaces": [],
       "implementation_source": {
         "function": "_apply_role_gov_executor_set",
         "handler": "roles",
-        "line": 1698,
+        "line": 1813,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20232,27 +20357,35 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "aed1ad10012208f8090130ad328aea9f6f82244aea94482da50c7795dfbfcf2b",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "67f96b18e3e5fe6d0c9d60c329fdfff56a74fb9a255dab5d5908f75e9e3ce544",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1113",
       "state_reads": [
         "key:active",
-        "key:banned",
+        "key:actual_milli",
+        "key:canonical_reasons",
+        "key:canonical_role",
+        "key:code",
         "key:current",
+        "key:eligible",
+        "key:gate_version",
         "key:gov_executor",
-        "key:locked",
         "key:note",
+        "key:reason",
+        "key:required_milli",
         "key:roles"
       ],
       "state_writes": [
+        "key:<update:dynamic>",
         "key:active",
         "key:current",
+        "key:gate_version",
         "key:gov_executor",
         "key:note",
         "key:set_at_nonce"
@@ -20260,6 +20393,10 @@
       "system_followups": [],
       "tests": [
         "tests/test_cross_tx_role_identity_safety.py",
+        "tests/test_issue72_versioned_role_gate.py",
+        "tests/test_pr77_batch_c_authority_and_rollback.py",
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_remaining_canon_cleanup.py"
       ],
@@ -21380,7 +21517,7 @@
       "implementation_source": {
         "function": "_apply_mod_action_receipt",
         "handler": "content",
-        "line": 1838,
+        "line": 1918,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21493,7 +21630,7 @@
       "implementation_source": {
         "function": "_apply_flag_escalation_receipt",
         "handler": "content",
-        "line": 1816,
+        "line": 1896,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21569,6 +21706,7 @@
       "tests": [
         "tests/test_content_escalation_followup_restart_admission.py",
         "tests/test_dispute_auto_juror_assignment.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "FLAG_ESCALATION_RECEIPT",
@@ -21613,7 +21751,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21702,7 +21840,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21749,6 +21887,8 @@
       "tests": [
         "tests/p0/conftest.py",
         "tests/test_combined_journey_gates.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
+        "tests/test_gov_voting_close_system_schema.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
@@ -21797,7 +21937,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21845,6 +21985,8 @@
         "tests/p0/conftest.py",
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_combined_journey_gates.py",
+        "tests/test_f1b_governance_execute_canonical_two_block.py",
+        "tests/test_gov_tally_publish_system_schema.py",
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/test_m3_closure_regressions.py",
@@ -21893,7 +22035,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21986,7 +22128,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 3009,
+        "line": 3011,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22076,7 +22218,7 @@
       "implementation_source": {
         "function": "_apply_group_create",
         "handler": "groups",
-        "line": 521,
+        "line": 524,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22135,17 +22277,23 @@
       "tests": [
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_devnet_permission_probe.py",
+        "tests/test_group_emissary_committed_block_rehearsal.py",
         "tests/test_group_emissary_election_windows.py",
         "tests/test_group_emissary_elections_stv.py",
+        "tests/test_group_emissary_quorum_activation.py",
+        "tests/test_group_emissary_signed_quorum_replay.py",
+        "tests/test_group_emissary_stv_t0_vectors.py",
         "tests/test_group_governance_scope_authority.py",
         "tests/test_group_membership_approval_contract.py",
         "tests/test_group_policy_transition_safety.py",
         "tests/test_group_treasury_transition_safety.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_poh_eligibility_rules.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -22189,7 +22337,7 @@
       "implementation_source": {
         "function": "_apply_group_update",
         "handler": "groups",
-        "line": 613,
+        "line": 616,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22280,7 +22428,7 @@
       "implementation_source": {
         "function": "_apply_group_role_grant",
         "handler": "groups",
-        "line": 638,
+        "line": 641,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22328,6 +22476,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_public_only_protocol_redesign.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -22371,7 +22520,7 @@
       "implementation_source": {
         "function": "_apply_group_role_revoke",
         "handler": "groups",
-        "line": 665,
+        "line": 668,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22464,7 +22613,7 @@
       "implementation_source": {
         "function": "_apply_group_membership_request",
         "handler": "groups",
-        "line": 691,
+        "line": 694,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22588,7 +22737,7 @@
       "implementation_source": {
         "function": "_apply_group_membership_decide",
         "handler": "groups",
-        "line": 794,
+        "line": 797,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22689,7 +22838,7 @@
       "implementation_source": {
         "function": "_apply_group_membership_remove",
         "handler": "groups",
-        "line": 853,
+        "line": 856,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22783,7 +22932,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_create",
         "handler": "groups",
-        "line": 983,
+        "line": 986,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22880,7 +23029,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_policy_set",
         "handler": "groups",
-        "line": 1369,
+        "line": 1372,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23012,7 +23161,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_propose",
         "handler": "groups",
-        "line": 1017,
+        "line": 1020,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23141,7 +23290,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_sign",
         "handler": "groups",
-        "line": 1121,
+        "line": 1124,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23253,7 +23402,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_cancel",
         "handler": "groups",
-        "line": 1187,
+        "line": 1190,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23348,7 +23497,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_expire",
         "handler": "groups",
-        "line": 1407,
+        "line": 1410,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23505,7 +23654,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_execute",
         "handler": "groups",
-        "line": 1224,
+        "line": 1227,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23637,7 +23786,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_audit_anchor_set",
         "handler": "groups",
-        "line": 1854,
+        "line": 1950,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23721,6 +23870,10 @@
           "reason": "election_exists"
         },
         {
+          "code": "forbidden",
+          "reason": "no_eligible_group_electorate"
+        },
+        {
           "code": "invalid_payload",
           "reason": "missing_candidates"
         },
@@ -23741,7 +23894,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_election_create",
         "handler": "groups",
-        "line": 1438,
+        "line": 1478,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23770,12 +23923,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "3a54a47ca0ffb7bf9ce4bb4c2d1117754f3081851d10a2a9b219031b42530f02",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T19:00:00Z",
-        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
+        "review_digest": "678c8d7777aee9a6d41d5462a9d02c3814b77855b193fb145564a22f0fb3cdc6",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1715",
@@ -23796,20 +23949,32 @@
         "key:start_height"
       ],
       "state_writes": [
+        "key:electorate_source",
+        "key:eligible_voter_count",
         "key:group_emissary_ballot_boxes",
         "key:group_emissary_ballot_nullifiers",
         "key:group_emissary_ballots",
         "key:group_emissary_elections",
+        "key:quorum_activation_height",
+        "key:quorum_policy_version",
+        "key:required_votes",
         "key:roles"
       ],
       "system_followups": [],
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
+        "tests/test_group_emissary_committed_block_rehearsal.py",
         "tests/test_group_emissary_election_windows.py",
         "tests/test_group_emissary_elections_stv.py",
+        "tests/test_group_emissary_network_process_bft.py",
+        "tests/test_group_emissary_quorum_activation.py",
+        "tests/test_group_emissary_signed_quorum_replay.py",
+        "tests/test_group_emissary_stv_t0_vectors.py",
         "tests/test_group_policy_transition_safety.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_EMISSARY_ELECTION_CREATE",
@@ -23884,7 +24049,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_ballot_cast",
         "handler": "groups",
-        "line": 1515,
+        "line": 1581,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23953,10 +24118,17 @@
       "system_followups": [],
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
+        "tests/test_group_emissary_ballot_transport_boundary.py",
+        "tests/test_group_emissary_committed_block_rehearsal.py",
         "tests/test_group_emissary_election_windows.py",
         "tests/test_group_emissary_elections_stv.py",
+        "tests/test_group_emissary_network_process_bft.py",
+        "tests/test_group_emissary_quorum_activation.py",
+        "tests/test_group_emissary_signed_quorum_replay.py",
+        "tests/test_group_emissary_stv_t0_vectors.py",
         "tests/test_group_governance_contract.py",
         "tests/test_m3_closure_regressions.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -24004,6 +24176,10 @@
           "reason": "missing_group_or_election_id"
         },
         {
+          "code": "invalid_state",
+          "reason": "unsupported_group_emissary_quorum_version"
+        },
+        {
           "code": "not_found",
           "reason": "election_not_found"
         },
@@ -24016,7 +24192,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_election_finalize",
         "handler": "groups",
-        "line": 1689,
+        "line": 1755,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24031,10 +24207,13 @@
           "applied",
           "deduped",
           "election_id",
+          "eligible_voter_count",
           "group_id",
           "n_ballots",
           "n_candidates",
+          "quorum_met",
           "reason",
+          "required_votes",
           "seats",
           "status",
           "treasury_id",
@@ -24048,12 +24227,12 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "9906cf362f9494bd52b6068374f281101736fbe396c07c1ccf5008db483079a2",
-        "review_method": "provisional_ai_assisted_contract_review_pr56_independent_review_pending",
-        "reviewed_at": "2026-10-23T21:38:00Z",
-        "reviewer": "AI-assisted scoped governance code review; independent review pending"
+        "review_digest": "1010023edd428932994fd10904a6087b0f12d5005d6b0b59cd4fac95c534cc3c",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1717",
@@ -24068,6 +24247,8 @@
         "key:group_id",
         "key:groups_by_id",
         "key:id",
+        "key:no_decision_reason",
+        "key:quorum_policy_version",
         "key:ranking",
         "key:roles",
         "key:seats",
@@ -24087,6 +24268,9 @@
         "key:group_emissary_ballot_boxes",
         "key:group_emissary_ballots",
         "key:group_emissary_elections",
+        "key:n_ballots",
+        "key:no_decision_reason",
+        "key:quorum_met",
         "key:require_emissary_signers",
         "key:roles",
         "key:signers",
@@ -24099,11 +24283,18 @@
       "tests": [
         "tests/test_bootstrap_economics_emissary_treasury_safety.py",
         "tests/test_cross_domain_group_treasury_serial_execution_safety.py",
+        "tests/test_group_emissary_committed_block_rehearsal.py",
         "tests/test_group_emissary_election_windows.py",
         "tests/test_group_emissary_elections_stv.py",
+        "tests/test_group_emissary_network_process_bft.py",
+        "tests/test_group_emissary_quorum_activation.py",
+        "tests/test_group_emissary_signed_quorum_replay.py",
+        "tests/test_group_emissary_stv_t0_vectors.py",
         "tests/test_group_policy_transition_safety.py",
+        "tests/test_p0_03_production_composition.py",
         "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -24151,7 +24342,7 @@
       "implementation_source": {
         "function": "_apply_validator_performance_report",
         "handler": "consensus",
-        "line": 1313,
+        "line": 1298,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27060,7 +27251,7 @@
       "implementation_source": {
         "function": "_apply_case_receipt",
         "handler": "dispute",
-        "line": 3051,
+        "line": 3636,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27119,6 +27310,10 @@
         "CASE_OUTCOME_RECEIPT"
       ],
       "tests": [
+        "tests/test_pr77_case_canonical_rollback_admission.py",
+        "tests/test_pr77_case_receipt_adversarial_diagnostic.py",
+        "tests/test_pr77_v2_dispute_open_dispatch_extraction.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "CASE_TYPE_REGISTER",
@@ -27169,7 +27364,7 @@
       "implementation_source": {
         "function": "_apply_case_receipt",
         "handler": "dispute",
-        "line": 3051,
+        "line": 3636,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27228,6 +27423,12 @@
         "CASE_TYPE_REGISTER"
       ],
       "tests": [
+        "tests/test_pr77_case_binding_policy_candidate.py",
+        "tests/test_pr77_case_canonical_rollback_admission.py",
+        "tests/test_pr77_case_receipt_adversarial_diagnostic.py",
+        "tests/test_pr77_case_synthetic_executor_replay.py",
+        "tests/test_pr77_v2_dispute_open_dispatch_extraction.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "CASE_BIND_TO_DISPUTE",
@@ -27278,7 +27479,7 @@
       "implementation_source": {
         "function": "_apply_case_receipt",
         "handler": "dispute",
-        "line": 3051,
+        "line": 3636,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27337,6 +27538,7 @@
         "CASE_TYPE_REGISTER"
       ],
       "tests": [
+        "tests/test_pr77_v2_dispute_open_dispatch_extraction.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],
       "tx_type": "CASE_OUTCOME_RECEIPT",
@@ -27640,7 +27842,7 @@
       "implementation_source": {
         "function": "_apply_treasury_create",
         "handler": "roles",
-        "line": 1737,
+        "line": 1852,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27749,7 +27951,7 @@
       "implementation_source": {
         "function": "_apply_treasury_signers_set",
         "handler": "roles",
-        "line": 1772,
+        "line": 1887,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27872,7 +28074,7 @@
       "implementation_source": {
         "function": "_apply_group_signers_set",
         "handler": "groups",
-        "line": 874,
+        "line": 877,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27931,6 +28133,7 @@
         "tests/test_group_policy_transition_safety.py",
         "tests/test_group_treasury_transition_safety.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_status_consensus_diagnostics.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
@@ -27979,7 +28182,7 @@
       "implementation_source": {
         "function": "_apply_group_moderators_set",
         "handler": "groups",
-        "line": 952,
+        "line": 955,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28028,6 +28231,7 @@
         "tests/test_admission_roles_mvp_gates.py",
         "tests/test_group_policy_transition_safety.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_MODERATORS_SET",
@@ -28092,7 +28296,7 @@
       "implementation_source": {
         "function": "_apply_validator_suspend",
         "handler": "consensus",
-        "line": 752,
+        "line": 753,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28220,7 +28424,7 @@
       "implementation_source": {
         "function": "_apply_validator_remove",
         "handler": "consensus",
-        "line": 812,
+        "line": 813,
         "path": "src/weall/runtime/apply/consensus.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -28439,7 +28643,8 @@
         }
       ],
       "frontend_surfaces": [
-        "../web/src/pages/AccountVerificationPage.tsx"
+        "../web/src/pages/AccountVerificationPage.tsx",
+        "../web/src/pages/AccountVerificationPageV16Preserved.tsx"
       ],
       "implementation_source": {
         "function": "apply_poh_async_request_open",
@@ -28600,7 +28805,8 @@
         }
       ],
       "frontend_surfaces": [
-        "../web/src/pages/AccountVerificationPage.tsx"
+        "../web/src/pages/AccountVerificationPage.tsx",
+        "../web/src/pages/AccountVerificationPageV16Preserved.tsx"
       ],
       "implementation_source": {
         "function": "apply_poh_async_evidence_declare",
@@ -28752,7 +28958,8 @@
         }
       ],
       "frontend_surfaces": [
-        "../web/src/pages/AccountVerificationPage.tsx"
+        "../web/src/pages/AccountVerificationPage.tsx",
+        "../web/src/pages/AccountVerificationPageV16Preserved.tsx"
       ],
       "implementation_source": {
         "function": "apply_poh_async_evidence_bind",
@@ -29762,7 +29969,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_storage_opt_in_tx",
         "handler": "roles",
-        "line": 675,
+        "line": 709,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29912,7 +30119,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_validator_opt_in_tx",
         "handler": "roles",
-        "line": 692,
+        "line": 726,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30080,7 +30287,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_responsibility_update",
         "handler": "roles",
-        "line": 726,
+        "line": 760,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30402,7 +30609,7 @@
       "implementation_source": {
         "function": "_apply_validator_readiness_verify",
         "handler": "roles",
-        "line": 764,
+        "line": 798,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30544,7 +30751,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_withdraw",
         "handler": "dispute",
-        "line": 1996,
+        "line": 2210,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30611,6 +30818,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr88_conflicted_juror_reputation_characterization.py",
         "tests/test_reputation_matrix_completion_v1_5.py"
       ],
       "tx_type": "DISPUTE_JUROR_WITHDRAW",
@@ -30669,7 +30877,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_timeout",
         "handler": "dispute",
-        "line": 2056,
+        "line": 2270,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30727,6 +30935,8 @@
       "system_followups": [],
       "tests": [
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_pr77_experimental_juror_timeout_replenishment.py",
+        "tests/test_pr88_conflicted_juror_reputation_characterization.py",
         "tests/test_reputation_matrix_completion_v1_5.py"
       ],
       "tx_type": "DISPUTE_JUROR_TIMEOUT",
@@ -30762,11 +30972,19 @@
         },
         {
           "code": "forbidden",
+          "reason": "canonical_role_reputation_ineligible"
+        },
+        {
+          "code": "forbidden",
           "reason": "live_verification_required"
         },
         {
           "code": "forbidden",
           "reason": "only_account_can_update_reviewer_lane"
+        },
+        {
+          "code": "forbidden",
+          "reason": "policy_unknown"
         },
         {
           "code": "forbidden",
@@ -30786,17 +31004,18 @@
         },
         {
           "code": "not_found",
-          "reason": "juror_not_enrolled"
+          "reason": "account_not_found"
         }
       ],
       "frontend_surfaces": [
         "../web/src/pages/Account.tsx",
-        "../web/src/pages/AccountVerificationPage.tsx"
+        "../web/src/pages/AccountVerificationPage.tsx",
+        "../web/src/pages/AccountVerificationPageV16Preserved.tsx"
       ],
       "implementation_source": {
         "function": "_apply_reviewer_lane_update",
         "handler": "roles",
-        "line": 996,
+        "line": 1101,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30821,53 +31040,66 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "2102af9d0c4257b3ed952da3a08af1f7350d317d49ccfec88f32227c79646701",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "a74b438bf88af93c8f6d498ba4b6072d4eb9a158401ebae99cc094b248ea5d7e",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2624",
       "state_reads": [
         "key:active_set",
-        "key:banned",
+        "key:actual_milli",
         "key:by_id",
-        "key:enrolled",
+        "key:canonical_reasons",
+        "key:canonical_role",
+        "key:code",
+        "key:eligible",
         "key:enrolled_at_nonce",
+        "key:gate_version",
         "key:jurors",
-        "key:locked",
+        "key:reason",
+        "key:required_milli",
         "key:responsibilities",
         "key:reviewer",
         "key:roles"
       ],
       "state_writes": [
+        "key:<update:dynamic>",
         "key:activated_at_nonce",
         "key:active",
         "key:active_set",
         "key:by_id",
         "key:enrolled",
         "key:enrolled_at_nonce",
+        "key:gate_version",
         "key:jurors",
         "key:opted_in",
         "key:opted_in_at_nonce",
         "key:responsibilities",
         "key:reviewer",
         "key:status",
-        "key:updated_at_nonce",
-        "key:withdrawn_at_nonce"
+        "key:updated_at_nonce"
       ],
       "system_followups": [],
       "tests": [
         "tests/prod/test_reviewer_lane_schema_and_frontend_coherence.py",
+        "tests/test_audit_remediation_spec_compiler.py",
         "tests/test_content_reviewer_selection_and_surface.py",
         "tests/test_exact_responsibility_lane_consent.py",
+        "tests/test_issue72_versioned_role_gate.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
+        "tests/test_phase1_content_flag_dispute_executor_integration.py",
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
+        "tests/test_pr77_signed_strict_appeal_restart_replay.py",
+        "tests/test_pr88_signed_post_assignment_group_conflict_replay.py",
         "tests/test_responsibility_opt_in_safety.py",
         "tests/test_reviewer_opt_in_reassigns_unassigned_content_reviews.py",
         "tests/test_trusted_responsibility_opt_in.py",
-        "tests/test_tx_conflict_matrix.py"
+        "tests/test_tx_conflict_matrix.py",
+        "tests/test_v2_role_dynamic_failure_review_evidence.py"
       ],
       "tx_type": "REVIEWER_LANE_OPT_IN",
       "vector_ids": [
@@ -30898,23 +31130,7 @@
       "failure_codes": [
         {
           "code": "forbidden",
-          "reason": "account_restricted"
-        },
-        {
-          "code": "forbidden",
-          "reason": "live_verification_required"
-        },
-        {
-          "code": "forbidden",
           "reason": "only_account_can_update_reviewer_lane"
-        },
-        {
-          "code": "forbidden",
-          "reason": "reputation_insufficient"
-        },
-        {
-          "code": "forbidden",
-          "reason": "role_eligibility_revoked"
         },
         {
           "code": "invalid_payload",
@@ -30931,12 +31147,13 @@
       ],
       "frontend_surfaces": [
         "../web/src/pages/Account.tsx",
-        "../web/src/pages/AccountVerificationPage.tsx"
+        "../web/src/pages/AccountVerificationPage.tsx",
+        "../web/src/pages/AccountVerificationPageV16Preserved.tsx"
       ],
       "implementation_source": {
         "function": "_apply_reviewer_lane_update",
         "handler": "roles",
-        "line": 996,
+        "line": 1101,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -30961,50 +31178,47 @@
       "semantic_derivation": "function_static",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "semantic_review": {
-        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
         "independent_review": false,
-        "review_digest": "c53e049b178c519490a20feeae27b732cd6c7b66489b53d5d3b4126e83fe1619",
-        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
-        "reviewed_at": "2026-09-26T22:30:00Z",
-        "reviewer": "WeAll Protocol P1 audit remediation; independent launch review deferred"
+        "review_digest": "e63b5f748e8bb6ccbb85dbf1bd5ef0a1d8f2942212c9e63441dc853be31b97bc",
+        "review_method": "exact_pr93_development_candidate_maintainer_acceptance_with_regression_evidence",
+        "reviewed_at": "2026-11-17T19:10:25Z",
+        "reviewer": "Repository maintainer; explicit project-conversation acceptance (AI-assisted)"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2625",
       "state_reads": [
         "key:active_set",
-        "key:banned",
         "key:by_id",
         "key:enrolled",
-        "key:enrolled_at_nonce",
         "key:jurors",
-        "key:locked",
         "key:responsibilities",
         "key:reviewer",
         "key:roles"
       ],
       "state_writes": [
-        "key:activated_at_nonce",
         "key:active",
         "key:active_set",
         "key:by_id",
-        "key:enrolled",
-        "key:enrolled_at_nonce",
         "key:jurors",
         "key:opted_in",
-        "key:opted_in_at_nonce",
         "key:responsibilities",
         "key:reviewer",
-        "key:status",
         "key:updated_at_nonce",
         "key:withdrawn_at_nonce"
       ],
       "system_followups": [],
       "tests": [
         "tests/prod/test_reviewer_lane_schema_and_frontend_coherence.py",
+        "tests/test_audit_remediation_spec_compiler.py",
         "tests/test_content_reviewer_selection_and_surface.py",
         "tests/test_exact_responsibility_lane_consent.py",
+        "tests/test_issue72_versioned_role_gate.py",
         "tests/test_p2_a02_success_lifecycle_baseline.py",
-        "tests/test_tx_conflict_matrix.py"
+        "tests/test_pr77_roles_reviewer_semantic_adjudication.py",
+        "tests/test_pr77_v2_semantic_review_packet.py",
+        "tests/test_tx_conflict_matrix.py",
+        "tests/test_v2_role_dynamic_failure_review_evidence.py"
       ],
       "tx_type": "REVIEWER_LANE_OPT_OUT",
       "vector_ids": [
@@ -31080,7 +31294,7 @@
       "implementation_source": {
         "function": "_apply_node_operator_helper_opt_in_tx",
         "handler": "roles",
-        "line": 709,
+        "line": 743,
         "path": "src/weall/runtime/apply/roles.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

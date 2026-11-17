@@ -57,6 +57,12 @@
     {
       "category": "frontend",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "../web/scripts/test_poh_submission_journal.mjs"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 3,
       "path": "../web/scripts/test_reviewer_critical_flows_source.mjs"
     },
@@ -94,7 +100,19 @@
       "category": "frontend",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "../web/src/lib/pohSubmissionJournal.ts"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "../web/src/pages/AccountVerificationPage.tsx"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "../web/src/pages/AccountVerificationPageV16Preserved.tsx"
     },
     {
       "category": "frontend",
@@ -137,6 +155,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
       "path": "docs/audits/late_stage_public_testnet_gap_inventory_v1_5.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/audits/pr77_ci_semantic_adjudication_queue_20261101.md"
     },
     {
       "category": "docs/specs",
@@ -286,7 +310,19 @@
       "category": "scripts",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "scripts/apply_pr93_approved_semantic_packet.py"
+    },
+    {
+      "category": "scripts",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "scripts/demo_native_async_tier1_e2e.sh"
+    },
+    {
+      "category": "scripts",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 2,
+      "path": "scripts/f1b_four_process_signed_qc_preflight.py"
     },
     {
       "category": "scripts",
@@ -305,6 +341,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
       "path": "specs/v2/source/requirements.json"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "specs/v2/source/semantic_reviews.json"
     },
     {
       "category": "docs/specs",
@@ -576,7 +618,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 86,
+  "inventory_hit_count": 93,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

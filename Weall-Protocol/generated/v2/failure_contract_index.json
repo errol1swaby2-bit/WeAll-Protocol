@@ -1,5 +1,5 @@
 {
-  "count": 567,
+  "count": 590,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "f47a0673ac34c86e20b9b8158b89ceccddb58bebad87ee7aa65720392a5a0913"
+    "source_tree_digest": "94a807131a457c0ba28bd49a9d2d98d2110acbe90a5e1b2d9443a9aca0056163"
   },
   "rows": [
     {
@@ -625,6 +625,26 @@
       "code": "api_failure_contract",
       "http_mapping": "route_specific",
       "primary_mechanism_id": "M-012",
+      "reason_or_contract": "standard_api_error_envelope_or_group_election_read_payload",
+      "retryable": false,
+      "routes": [
+        "ROUTE-647D04B0501AD3CF",
+        "ROUTE-BD4D66493B2C4FE6"
+      ],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-08C3C8C7A3DD9167",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "api",
+      "code": "api_failure_contract",
+      "http_mapping": "route_specific",
+      "primary_mechanism_id": "M-012",
       "reason_or_contract": "standard_api_error_envelope_or_group_governance_contract_payload",
       "retryable": false,
       "routes": [
@@ -741,6 +761,7 @@
         "ROUTE-5EB9A15D6B3A5602",
         "ROUTE-5FF596B56CAC93CE",
         "ROUTE-638693CFF92199D1",
+        "ROUTE-63E26182B51EAFCB",
         "ROUTE-664FF24420F380C8",
         "ROUTE-6A893502420D6173",
         "ROUTE-6C7CD5B42D9690D0",
@@ -904,7 +925,26 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
+        "TX-0210"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "conflict",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "automatic_severe_appeal_already_assigned",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-7A6F7EB790D700E7",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0209",
         "TX-0210"
       ],
       "vector_ids": [
@@ -1079,8 +1119,26 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0208"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "conflict",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "duplicate_flag_id",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-EB29F7F859032FD9",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0306"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -1221,6 +1279,25 @@
     },
     {
       "category": "canonical_transaction",
+      "code": "conflicting_receipt",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "duplicate_ban_receipt_conflict",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-2EB462FEADD238B3",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0904"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
       "code": "domain_error",
       "http_mapping": null,
       "primary_mechanism_id": "M-012",
@@ -1233,6 +1310,25 @@
       "status": "current_partial",
       "transactions": [
         "TX-0310"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "duplicate",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "dispute_id_exists",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-110127788A8C99BC",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0200"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -1466,7 +1562,6 @@
         "TX-2618",
         "TX-2619",
         "TX-2624",
-        "TX-2625",
         "TX-2626"
       ],
       "vector_ids": [
@@ -1576,6 +1671,101 @@
       "code": "forbidden",
       "http_mapping": null,
       "primary_mechanism_id": "M-012",
+      "reason_or_contract": "appeal_original_resolution_override",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-1621A5141B6A9F3D",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0211"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "appeal_panel_decision_not_finalized",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-18ECAADD5F0A0932",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0211"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "appeal_panel_decision_unverified",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-4541180F208969AD",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0211"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "appeal_pending_panel",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-1F4B618C9C1448E4",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0211"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "appeal_resolution_mismatch",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-089BB285E5FABF1A",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0211"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
       "reason_or_contract": "appeal_window_closed",
       "retryable": false,
       "routes": [],
@@ -1584,7 +1774,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0210"
       ],
       "vector_ids": [
@@ -1604,7 +1793,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0210"
       ],
       "vector_ids": [
@@ -1663,7 +1851,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0208",
         "TX-1716"
       ],
@@ -1824,6 +2011,29 @@
       "code": "forbidden",
       "http_mapping": null,
       "primary_mechanism_id": "M-012",
+      "reason_or_contract": "canonical_role_reputation_ineligible",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-788A50F6CBFDD629",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-2624"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
       "reason_or_contract": "capacity_probe_response_required",
       "retryable": false,
       "routes": [],
@@ -1896,7 +2106,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-2623"
       ],
       "vector_ids": [
@@ -1916,7 +2125,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-2623"
       ],
       "vector_ids": [
@@ -1936,7 +2144,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0208"
       ],
       "vector_ids": [
@@ -1956,7 +2163,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-2622"
       ],
       "vector_ids": [
@@ -2419,26 +2625,6 @@
       "code": "forbidden",
       "http_mapping": null,
       "primary_mechanism_id": "M-012",
-      "reason_or_contract": "insufficient_fresh_appeal_panel",
-      "retryable": false,
-      "routes": [],
-      "severity": "request_or_transaction_rejection",
-      "stable_id": "FAIL-CAF18207BDB146BF",
-      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
-      "status": "current_partial",
-      "transactions": [
-        "TX-0200",
-        "TX-0210"
-      ],
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ]
-    },
-    {
-      "category": "canonical_transaction",
-      "code": "forbidden",
-      "http_mapping": null,
-      "primary_mechanism_id": "M-012",
       "reason_or_contract": "insufficient_funds",
       "retryable": false,
       "routes": [],
@@ -2656,6 +2842,48 @@
       "code": "forbidden",
       "http_mapping": null,
       "primary_mechanism_id": "M-012",
+      "reason_or_contract": "juror_conflict_material",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-A14E9082181B9C1F",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0204",
+        "TX-0205",
+        "TX-0208"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "juror_conflict_reporter",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-1F57A9983D01F331",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0204",
+        "TX-0205",
+        "TX-0208"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
       "reason_or_contract": "juror_conflict_target_owner",
       "retryable": false,
       "routes": [],
@@ -2664,7 +2892,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0204",
         "TX-0205",
         "TX-0208"
@@ -2734,7 +2961,6 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-0200",
         "TX-0205",
         "TX-0206",
         "TX-0207",
@@ -2762,7 +2988,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0208"
       ],
       "vector_ids": [
@@ -2854,7 +3079,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -2949,7 +3173,6 @@
         "TX-2618",
         "TX-2619",
         "TX-2624",
-        "TX-2625",
         "TX-2626"
       ],
       "vector_ids": [
@@ -3008,6 +3231,25 @@
       "status": "current_partial",
       "transactions": [
         "TX-1709"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "no_eligible_group_electorate",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-4FAF41B5C3DF14AB",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1715"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -3668,6 +3910,32 @@
       "code": "forbidden",
       "http_mapping": null,
       "primary_mechanism_id": "M-012",
+      "reason_or_contract": "policy_unknown",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-8A4BB8ED0389AC46",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
       "reason_or_contract": "post_deleted",
       "retryable": false,
       "routes": [],
@@ -3883,8 +4151,7 @@
         "TX-1107",
         "TX-1111",
         "TX-1113",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -3944,7 +4211,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0204",
         "TX-0205",
         "TX-0208"
@@ -3973,8 +4239,7 @@
         "TX-1107",
         "TX-1111",
         "TX-1113",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -4005,6 +4270,101 @@
         "TX-2608",
         "TX-2609",
         "TX-2610"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "severe_appeal_fresh_panel_unverified",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-FC73E7B0544CA82A",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0208"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "severe_sanction_authorization_unimplemented",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-F4C50B8CD5596C61",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0904"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "severe_sanction_automatic_appeal_unimplemented",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-8AD37E17962F1899",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0211"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "severe_sanction_initial_outcome_mismatch",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-C271460D98BC852B",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0209"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "severe_sanction_initial_twenty_votes_unverified",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-945BA28998737683",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0209"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -4364,7 +4724,6 @@
         "TX-0126",
         "TX-0127",
         "TX-0129",
-        "TX-0200",
         "TX-0201",
         "TX-0204",
         "TX-0209",
@@ -4551,6 +4910,25 @@
       "code": "forbidden",
       "http_mapping": null,
       "primary_mechanism_id": "M-012",
+      "reason_or_contract": "tier1_required_for_dispute",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-3AFBF1B4E642E104",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0200"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
       "reason_or_contract": "timelock_not_expired",
       "retryable": false,
       "routes": [],
@@ -4621,6 +4999,46 @@
       "transactions": [
         "TX-0503",
         "TX-2504"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "unsupported_dispute_material_conflict_gate_version",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-AE865E120FFBEBDC",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0204",
+        "TX-0205",
+        "TX-0208"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "unsupported_dispute_target_type",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-51D417B904F3F39C",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0200"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -5627,7 +6045,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0208"
       ],
       "vector_ids": [
@@ -5666,7 +6083,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0202",
         "TX-0320",
         "TX-0322"
@@ -5901,7 +6317,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-2400",
         "TX-2401",
         "TX-2402"
@@ -6001,7 +6416,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0202",
         "TX-0205",
         "TX-0206",
@@ -6031,7 +6445,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0203"
       ],
       "vector_ids": [
@@ -6051,7 +6464,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0204",
         "TX-2623"
       ],
@@ -6072,7 +6484,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0201"
       ],
       "vector_ids": [
@@ -6777,6 +7188,7 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
+        "TX-0200",
         "TX-1201",
         "TX-1202",
         "TX-1203",
@@ -8212,6 +8624,25 @@
       "status": "current_partial",
       "transactions": [
         "TX-0502"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "invalid_state",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "unsupported_group_emissary_quorum_version",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-D59C1DC485565BF3",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1717"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -11260,10 +11691,18 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
         "TX-1106",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
         "TX-2617",
         "TX-2618",
         "TX-2619",
+        "TX-2624",
         "TX-2626"
       ],
       "vector_ids": [
@@ -11422,7 +11861,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-0203"
       ],
       "vector_ids": [
@@ -11498,7 +11936,6 @@
         "TX-1101",
         "TX-1102",
         "TX-1103",
-        "TX-2624",
         "TX-2625"
       ],
       "vector_ids": [
@@ -11958,7 +12395,6 @@
       "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
       "status": "current_partial",
       "transactions": [
-        "TX-0200",
         "TX-2400",
         "TX-2401",
         "TX-2402"
