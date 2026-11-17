@@ -90,10 +90,17 @@ def test_live_pr93_public_lobby_route_remains_unreviewed_without_source_mutation
     lobby = [row for row in route_rows if row["route_key"] == "GET /v1/public-lobby/comments"]
     assert len(lobby) == 1
     assert lobby[0]["stable_id"] == "ROUTE-63E26182B51EAFCB"
-    assert "missing_semantic_review" in lobby[0]["reasons"]
+    assert lobby[0]["reasons"] == ["review_not_accepted"]
     assert lobby[0]["present_in_generated_baseline"] is False
     assert lobby[0]["approved_by_diagnostic"] is False
+    assert lobby[0]["candidate_digest_not_approved"] == lobby[0]["recorded_review_digest"]
     assert report["route_review_inventory"]["unreviewed_routes_authorized"] is False
 
-    accepted = json.loads(before)["routes"]
-    assert not any(row["stable_id"] == lobby[0]["stable_id"] for row in accepted)
+    records = json.loads(before)["routes"]
+    staged = [row for row in records if row["stable_id"] == lobby[0]["stable_id"]]
+    assert len(staged) == 1
+    assert staged[0]["disposition"] == "review_required"
+    assert staged[0]["independent_review"] is False
+    assert staged[0]["reviewer"] is None
+    assert staged[0]["reviewed_at"] is None
+    assert staged[0]["review_digest"] == lobby[0]["candidate_digest_not_approved"]

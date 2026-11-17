@@ -55,3 +55,18 @@ The existing diagnostic reports **20 drifted transaction reviews** (from 236 reg
 6. Obtain source review and required branch protection approvals. Only then remove draft status, merge PR #93 into `main` using the repository's permitted merge strategy, verify the merge commit's required checks, and declare that exact `main` commit as the new **development baseline**.
 
 **Do not** activate Genesis, switch off constitutional safety gates or mutate production secrets/keys to make this merge pass.
+
+## 2026-11-16 exact route inventory registered, **not accepted**
+
+The V2 source route registry now contains a **pending review record** for `ROUTE-63E26182B51EAFCB` (`GET /v1/public-lobby/comments`). Its SHA-256 candidate material digest, `8f04ac4404952d23ca7a0cf8d03bd547f337e228155fb17b041752584a3e3a7f`, was extracted from the untouched compiler's live route AST by [run 43989991600](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/43989991600). It is **not an approved digest**. The record has `disposition=review_required`, `reviewer=null`, `reviewed_at=null`, and `independent_review=false`. No signer, maintainer approval, or historical replay authority is claimed.
+
+### Observed source-contract boundary requiring reviewer adjudication
+
+- Anonymous GET, no account session; request `thread_id` must start `public-lobby:`, max UTF-8 length 2048; optional `limit` clamped to 1–50 and optional cursor bounded to 4096 bytes of string length and validated before state access. Invalid requests raise the standard 400 error envelope.
+- The live handler invokes `_required_public_lobby_snapshot()`: executor absence, exception, or malformed snapshot yields 503 rather than an apparently empty page.
+- The current **compatibility** implementation examines all global comments, rejects >10,000; rejects >2048 dispute records or >4096 dispute target index entries; stops after 512 visibility evaluations and returns explicit 503 instead of silently truncating.
+- Filters requested synthetic thread ID, exact `comment_id` map-key identity, `surface=public_lobby`, deleted/nonpublic state, canonical moderation and dispute visibility. It orders eligible comments by descending (created_nonce, comment_id), emits up to limit records with one-record lookahead for a next cursor, and exposes only public comment fields.
+- The SQLite A03 candidate and incremental shadow prototype are **not active on this production route**. The source remains an O(global comment records) compatibility scan and can be unavailable at larger loads.
+- The source-vs-frontend authority and dispute policy need explicit maintainer review before `review_required` can change to `accepted_current_semantic_contract`. A candidate digest or test pass is not signoff.
+
+**Outcome of this increment:** the strict review inventory's missing-route-ID failure is resolved by registering the actual route *as pending*. The compiler is still expected to fail closed, now on the **20 stale transaction semantic digests**, and then on this route's unaccepted disposition if those drift reviews are resolved. No merge readiness is implied.

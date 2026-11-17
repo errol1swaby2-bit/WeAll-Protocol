@@ -961,6 +961,22 @@
       "stable_id": "ROUTE-638693CFF92199D1"
     },
     {
+      "authority_effect": "none; diagnostic record only; no semantic, production, validator, Genesis, or constitutional activation",
+      "disposition": "review_required",
+      "implementation_source": {
+        "function": "public_lobby_comments",
+        "line": 851,
+        "path": "src/weall/api/routes_public_parts/content.py"
+      },
+      "independent_review": false,
+      "review_digest": "8f04ac4404952d23ca7a0cf8d03bd547f337e228155fb17b041752584a3e3a7f",
+      "review_method": "source_extracted_candidate_fingerprint_ONLY; pending substantive maintainer review",
+      "reviewed_at": null,
+      "reviewer": null,
+      "route_key": "GET /v1/public-lobby/comments",
+      "stable_id": "ROUTE-63E26182B51EAFCB"
+    },
+    {
       "authority_effect": "none; does not activate public testnet or Mainnet",
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
