@@ -10355,6 +10355,13 @@
     },
     {
       "aliases": [],
+      "canonical_key": "src/weall/runtime/apply/dispute.py:_strict_v2_initial_panel_votes:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-475F53186746AAB4",
+      "status": "active"
+    },
+    {
+      "aliases": [],
       "canonical_key": "src/weall/runtime/helper_proposal_orchestrator.py:ingest_certificate:message_builder_or_handler",
       "kind": "message",
       "stable_id": "MSG-498239D99788B028",

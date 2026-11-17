@@ -48,6 +48,39 @@ jobs:
               raise SystemExit("live semantic review drift")
           print("Live pending: zero transactions and zero routes; historical comparison preserved.")
           PY
+      - name: Inventory unresolved stable IDs across source scan lanes
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from scripts import audit_v2_semantic_review_drift as audit
+          from scripts.pr93_v2_semantic_review_inventory import _route_rows
+
+          compiler = audit.compiler
+          tx_rows, stable_ids, sources = audit._current_rows()
+          route_rows = _route_rows(stable_ids, sources)
+          missing = set()
+
+          class DiagnosticCollector:
+              def resolve(self, kind, key):
+                  try:
+                      return stable_ids.resolve(kind, key)
+                  except compiler.CompileError:
+                      missing.add((kind, key))
+                      # Ephemeral placeholder for the discarded diagnostic rows.
+                      # Never provide this resolver to the strict compiler.
+                      return "DIAGNOSTIC_ONLY_UNREGISTERED:" + kind + ":" + key
+
+          collector = DiagnosticCollector()
+          compiler._message_index(sources["protocol_registry"], collector, sources["source_mappings"])
+          compiler._scheduler_index(sources["protocol_registry"], tx_rows, collector, sources["source_mappings"])
+          compiler._failure_index(tx_rows, route_rows, collector)
+          for kind, key in sorted(missing):
+              print("UNREGISTERED_STABLE_ID", kind, key)
+          print("Missing message/scheduler/failure stable IDs:", len(missing))
+          if missing:
+              raise SystemExit("source identities require explicit registration before strict regeneration")
+          PY
       - name: Verify current-claim document classification
         working-directory: Weall-Protocol
         run: python scripts/check_public_claim_freshness.py
