@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { retryTransientCanonicalRead } from "../src/lib/revalidation.ts";
 import {
   allowedAsyncPohStep,
   allowedLivePohStep,
@@ -89,4 +90,46 @@ assert.match(shell, /setMenuOpen\(false\)/);
 assert.match(app, /case "\/verification\/async\/:stage":/);
 assert.match(app, /case "\/verification\/live\/journey\/:stage":/);
 assert.ok(router.includes('"/verification/live/:caseId"'), "do not shadow existing case-room route");
+// Exercise the exact shared read-only helper, with deterministic fake delays.
+for (const status of [429, 502, 503, 504]) {
+  let calls = 0;
+  const delays = [];
+  const actual = await retryTransientCanonicalRead(async () => {
+    if (++calls < 3) throw { status };
+    return { ok: true, cases: [] };
+  }, () => true, async (ms) => { delays.push(ms); });
+  assert.deepEqual(actual, { ok: true, cases: [] });
+  assert.equal(calls, 3);
+  assert.deepEqual(delays, [500, 1500]);
+}
+for (const status of [0, 400, 401, 403, 404, 409, 422, 500]) {
+  let calls = 0;
+  const failure = { status };
+  await assert.rejects(retryTransientCanonicalRead(async () => {
+    calls += 1;
+    throw failure;
+  }, () => true, async () => { assert.fail("nontransient read retried"); }), (error) => error === failure);
+  assert.equal(calls, 1);
+}
+let attempts = 0;
+const exhausted = { status: 429 };
+await assert.rejects(retryTransientCanonicalRead(async () => {
+  attempts += 1;
+  throw exhausted;
+}, () => true, async () => {}), (error) => error === exhausted);
+assert.equal(attempts, 3);
+let current = true;
+let cancelledAttempts = 0;
+await assert.rejects(retryTransientCanonicalRead(async () => {
+  cancelledAttempts += 1;
+  throw exhausted;
+}, () => current, async () => { current = false; }), (error) => error === exhausted);
+assert.equal(cancelledAttempts, 1);
+// The helper must not coerce malformed successes, or grant readiness.
+assert.equal(await retryTransientCanonicalRead(async () => null), null);
+assert.match(livePage, /retryTransientCanonicalRead\(\(\) => weall\.pohAsyncMyCases\(acct, base, headers\), isCurrent\)/);
+assert.match(livePage, /retryTransientCanonicalRead\(\(\) => weall\.pohLiveMyCases\(acct, base, headers\), isCurrent\)/);
+assert.match(livePage, /if \(!isCurrent\(\)\) return;/);
+assert.match(livePage, /historyReadSequenceRef\.current \+= 1/);
+console.log("PASS: bounded canonical read retries preserve denial, exhaustion, cancellation and malformed-response boundaries");
 console.log("PASS: URL-backed PoH routes cannot revive video, skip consent, or repeat uncertain signing");

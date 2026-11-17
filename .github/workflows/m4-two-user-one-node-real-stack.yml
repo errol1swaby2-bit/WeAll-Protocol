@@ -12,6 +12,8 @@ on:
       - web/src/pages/AccountRegistrationPage.tsx
       - web/src/pages/Account.tsx
       - web/src/pages/AccountVerificationPage.tsx
+      - web/src/lib/revalidation.ts
+      - web/scripts/test_poh_guided_routes.mjs
       - web/src/components/VerificationHistoryPanel.tsx
       - web/src/lib/verificationSections.ts
       - web/scripts/test_pr93_poh_merge_parity_source.mjs

@@ -41,7 +41,7 @@ import {
   type AsyncPohGuideStep,
   type LivePohGuideStep,
 } from "../lib/pohGuidedRoutes";
-import { refreshMutationSlices } from "../lib/revalidation";
+import { refreshMutationSlices, retryTransientCanonicalRead } from "../lib/revalidation";
 import {
   ASYNC_VIDEO_MAX_SECONDS,
   ASYNC_VIDEO_MIN_SECONDS,
@@ -477,6 +477,8 @@ export default function AccountVerificationPage(): JSX.Element {
   const recordingAttemptRef = useRef(0);
   const cameraRequestPendingRef = useRef(false);
   const recordingUrlRef = useRef("");
+  const accountReadSequenceRef = useRef(0);
+  const historyReadSequenceRef = useRef(0);
 
   const [acctView, setAcctView] = useState<any | null>(null);
   const [registration, setRegistration] = useState<any | null>(null);
@@ -572,6 +574,8 @@ export default function AccountVerificationPage(): JSX.Element {
   const sessionKeyPresent = !!session?.sessionKey;
 
   async function refresh(): Promise<void> {
+    const sequence = ++accountReadSequenceRef.current;
+    const isCurrent = () => sequence === accountReadSequenceRef.current;
     setLoading(true);
     setErr(null);
     try {
@@ -584,27 +588,38 @@ export default function AccountVerificationPage(): JSX.Element {
       }
       const headers = getAuthHeaders(acct);
       const [accountView, registrationView, reviewerStatusView] = await Promise.all([
-        weall.account(acct, base),
-        weall.accountRegistered(acct, base).catch(() => ({ registered: false })),
+        retryTransientCanonicalRead(() => weall.account(acct, base), isCurrent),
+        retryTransientCanonicalRead(() => weall.accountRegistered(acct, base), isCurrent).catch(() => ({ registered: false })),
         weall.accountReviewerStatus(acct, base, headers).catch(() => ({ reviewer: null })),
       ]);
+      if (!isCurrent()) return;
       setAcctView(accountView);
       setAcctState(accountView?.state ?? null);
       setRegistration(registrationView);
       setReviewerStatus(reviewerStatusView);
     } catch (e: any) {
-      setErr(prettyErr(e));
+      if (isCurrent()) {
+        setAcctView(null);
+        setAcctState(null);
+        setRegistration(null);
+        setReviewerStatus(null);
+        setErr(prettyErr(e));
+      }
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }
 
   async function loadVerificationData(): Promise<void> {
+    const sequence = ++historyReadSequenceRef.current;
+    const isCurrent = () => sequence === historyReadSequenceRef.current;
     if (!acct) {
       setAsyncCases([]);
       setLiveCases([]);
       setLiveSessions([]);
+      setAsyncHistoryReadOutcome("not-read");
       setVerificationHistoryReady({ async: false, live: false });
+      setCasesBusy(false);
       return;
     }
     setCasesBusy(true);
@@ -613,10 +628,11 @@ export default function AccountVerificationPage(): JSX.Element {
     try {
       const headers = getAuthHeaders(acct);
       const [asyncResponse, live, sessions] = await Promise.allSettled([
-        weall.pohAsyncMyCases(acct, base, headers),
-        weall.pohLiveMyCases(acct, base, headers),
+        retryTransientCanonicalRead(() => weall.pohAsyncMyCases(acct, base, headers), isCurrent),
+        retryTransientCanonicalRead(() => weall.pohLiveMyCases(acct, base, headers), isCurrent),
         weall.pohLiveSessions(base, headers),
       ]);
+      if (!isCurrent()) return;
       const asyncReady = asyncResponse.status === "fulfilled" && asyncResponse.value?.ok === true && Array.isArray(asyncResponse.value?.cases);
       const liveReady = live.status === "fulfilled" && live.value?.ok === true && Array.isArray(live.value?.cases);
       const asyncHttpStatus = asyncResponse.status === "rejected" ? Number(asyncResponse.reason?.status || 0) : 0;
@@ -651,11 +667,13 @@ export default function AccountVerificationPage(): JSX.Element {
       }
       setVerificationHistoryReady({ async: asyncReady, live: liveReady });
     } catch (e: any) {
-      setAsyncHistoryReadOutcome("canonical-read-unavailable");
-      setVerificationHistoryReady({ async: false, live: false });
-      setErr(prettyErr(e));
+      if (isCurrent()) {
+        setAsyncHistoryReadOutcome("canonical-read-unavailable");
+        setVerificationHistoryReady({ async: false, live: false });
+        setErr(prettyErr(e));
+      }
     } finally {
-      setCasesBusy(false);
+      if (isCurrent()) setCasesBusy(false);
     }
   }
 
@@ -699,7 +717,11 @@ export default function AccountVerificationPage(): JSX.Element {
       if (event.key === null || event.key.startsWith("weall.poh_submission_pending_v1::")) rereadPohJournals();
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () => {
+      accountReadSequenceRef.current += 1;
+      historyReadSequenceRef.current += 1;
+      window.removeEventListener("storage", onStorage);
+    };
   }, [acct, base]);
 
   useEffect(() => {

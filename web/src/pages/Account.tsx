@@ -8,7 +8,7 @@ import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/
 import { normalizeAccount } from "../auth/keys";
 import { createNodeKeyFile, downloadNodeKeyFile, type NodeKeyFile } from "../auth/nodeKeys";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
-import { refreshMutationSlices } from "../lib/revalidation";
+import { refreshMutationSlices, retryTransientCanonicalRead } from "../lib/revalidation";
 import { nav } from "../lib/router";
 import { ACCOUNT_PROFILE_TABS, accountProfileTabFromHash, type AccountProfileTab } from "../lib/accountProfileTabs";
 import { useAccount } from "../context/AccountContext";
@@ -213,7 +213,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
       poh: weall.pohState(acct, base),
       nonce: weall.accountNonce(acct, base),
       account: readCanonicalAccountWithBoundedRetry(),
-      profile: weall.accountProfile(acct, base, headers),
+      profile: retryTransientCanonicalRead(() => weall.accountProfile(acct, base, headers),
+        () => loadSequence === profileLoadSequenceRef.current),
       operatorStatus: weall.accountOperatorStatus(acct, base, headers),
       reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
       reputationMatrix: weall.reputationSummary(acct, base, headers),

@@ -12,6 +12,8 @@ on:
       - Weall-Protocol/specs/v2/source/source_mappings.json
       - Weall-Protocol/tests/test_p1_a01_route_authority.py
       - web/src/pages/AccountVerificationPage.tsx
+      - web/src/lib/revalidation.ts
+      - web/scripts/test_poh_guided_routes.mjs
       - web/src/pages/Account.tsx
       - web/scripts/test_account_profile_readiness_source.mjs
       - web/src/components/VerificationHistoryPanel.tsx
