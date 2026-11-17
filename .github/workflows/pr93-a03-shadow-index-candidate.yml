@@ -11,6 +11,7 @@ on:
       - Weall-Protocol/src/weall/api/routes_public_parts/content.py
       - Weall-Protocol/src/weall/runtime/state_hash.py
       - Weall-Protocol/src/weall/runtime/sqlite_db.py
+      - Weall-Protocol/tests/test_pr93_public_lobby_route_registry.py
       - Weall-Protocol/tests/test_public_lobby_comment_read_model.py
   workflow_dispatch:
 
@@ -39,11 +40,11 @@ jobs:
           python -m pip install -e . --no-deps
       - name: Ruff format and lint for A03 candidate and canonical route regressions
         run: |
-          python -m ruff format --check src/weall/api/public_lobby_incremental_candidate.py src/weall/api/public_lobby_index_candidate.py tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py
-          python -m ruff check src/weall/api/public_lobby_incremental_candidate.py src/weall/api/public_lobby_index_candidate.py tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py
+          python -m ruff format --check src/weall/api/public_lobby_incremental_candidate.py src/weall/api/public_lobby_index_candidate.py tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py tests/test_pr93_public_lobby_route_registry.py
+          python -m ruff check src/weall/api/public_lobby_incremental_candidate.py src/weall/api/public_lobby_index_candidate.py tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py tests/test_pr93_public_lobby_route_registry.py
       - name: Offline SQLite shadow index and existing anonymous route parity
         run: |
-          python -m pytest -q tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py
+          python -m pytest -q tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py tests/test_pr93_public_lobby_route_registry.py
       - name: Record narrow proof boundary
         run: |
           echo 'proof=OFFLINE_PUBLIC_LOBBY_INDEX_SHADOW_PARITY_ONLY'

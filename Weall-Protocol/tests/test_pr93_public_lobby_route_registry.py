@@ -61,11 +61,15 @@ def test_public_lobby_route_identity_matches_real_read_handler() -> None:
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
     }
     assert {
-        "_snapshot",
+        "_required_public_lobby_snapshot",
         "_comments",
         "_comment_visible",
         "_cursor_unpack",
         "_cursor_pack",
     } <= called
+    # The live route must NOT silently downgrade unavailable backend state
+    # to an empty success by using the legacy compatibility _snapshot helper.
+    assert "_snapshot" not in called
+    assert "_required_public_lobby_snapshot" in called
     # Structural read-contract check only: API runtime, redaction and auth still need review.
     assert "require_account_session" not in called
