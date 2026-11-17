@@ -5,6 +5,8 @@ from __future__ import annotations
 import copy
 import json
 
+import pytest
+
 from scripts import pr93_v2_semantic_review_inventory as inventory
 
 
@@ -104,3 +106,26 @@ def test_live_pr93_public_lobby_route_remains_unreviewed_without_source_mutation
     assert staged[0]["reviewer"] is None
     assert staged[0]["reviewed_at"] is None
     assert staged[0]["review_digest"] == lobby[0]["candidate_digest_not_approved"]
+
+
+def test_pending_lobby_review_still_blocks_compiler_after_hypothetical_tx_digest_repairs() -> None:
+    """All 20 stale hashes fixed *only in memory* must not approve the new route."""
+    source = inventory.ROOT / "specs/v2/source/semantic_reviews.json"
+    original = source.read_bytes()
+    reviews = copy.deepcopy(json.loads(original))
+    tx_rows, stable_ids, sources = inventory.audit._current_rows()
+    current_routes = inventory._route_rows(stable_ids, sources)
+    by_id = {row["stable_id"]: row for row in reviews["transactions"]}
+    assert len(tx_rows) == len(by_id) == 236
+    for row in tx_rows:
+        by_id[row["stable_id"]]["review_digest"] = inventory.validation.compact_digest(
+            inventory.validation.tx_review_material(row)
+        )
+
+    with pytest.raises(
+        ValueError, match=r"route semantic review not accepted: GET /v1/public-lobby/comments"
+    ):
+        inventory.validation.apply_semantic_reviews(
+            copy.deepcopy(tx_rows), copy.deepcopy(current_routes), reviews
+        )
+    assert source.read_bytes() == original
