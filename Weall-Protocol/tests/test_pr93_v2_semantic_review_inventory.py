@@ -78,7 +78,7 @@ def test_inventory_does_not_hide_orphaned_or_duplicate_identity() -> None:
     assert result["orphaned_route_review_stable_ids"] == ["ROUTE-OLD"]
 
 
-def test_live_pr93_public_lobby_route_remains_unreviewed_without_source_mutation() -> None:
+def test_live_pr93_public_lobby_route_review_is_read_only_and_exact() -> None:
     source = inventory.ROOT / "specs/v2/source/semantic_reviews.json"
     before = source.read_bytes()
     report = inventory.build_inventory()
@@ -90,22 +90,28 @@ def test_live_pr93_public_lobby_route_remains_unreviewed_without_source_mutation
     assert report["pending_transaction_review_count"] == len(report["pending_transaction_types"])
     route_rows = report["route_review_inventory"]["pending_routes"]
     lobby = [row for row in route_rows if row["route_key"] == "GET /v1/public-lobby/comments"]
-    assert len(lobby) == 1
-    assert lobby[0]["stable_id"] == "ROUTE-63E26182B51EAFCB"
-    assert lobby[0]["reasons"] == ["review_not_accepted"]
-    assert lobby[0]["present_in_generated_baseline"] is False
-    assert lobby[0]["approved_by_diagnostic"] is False
-    assert lobby[0]["candidate_digest_not_approved"] == lobby[0]["recorded_review_digest"]
-    assert report["route_review_inventory"]["unreviewed_routes_authorized"] is False
-
     records = json.loads(before)["routes"]
-    staged = [row for row in records if row["stable_id"] == lobby[0]["stable_id"]]
+    staged = [row for row in records if row["stable_id"] == "ROUTE-63E26182B51EAFCB"]
     assert len(staged) == 1
-    assert staged[0]["disposition"] == "review_required"
-    assert staged[0]["independent_review"] is False
-    assert staged[0]["reviewer"] is None
-    assert staged[0]["reviewed_at"] is None
-    assert staged[0]["review_digest"] == lobby[0]["candidate_digest_not_approved"]
+    review = staged[0]
+    assert review["independent_review"] is False
+    assert review["review_digest"] == (
+        "8f04ac4404952d23ca7a0cf8d03bd547f337e228155fb17b041752584a3e3a7f"
+    )
+    if review["disposition"] == "review_required":
+        assert len(lobby) == 1
+        assert lobby[0]["reasons"] == ["review_not_accepted"]
+        assert lobby[0]["present_in_generated_baseline"] is False
+        assert lobby[0]["approved_by_diagnostic"] is False
+        assert lobby[0]["candidate_digest_not_approved"] == review["review_digest"]
+        assert review["reviewer"] is None
+        assert review["reviewed_at"] is None
+    else:
+        assert review["disposition"] == "accepted_current_semantic_contract"
+        assert not lobby
+        assert review["reviewer"]
+        assert review["reviewed_at"]
+    assert report["route_review_inventory"]["unreviewed_routes_authorized"] is False
 
 
 def test_pending_lobby_review_still_blocks_compiler_after_hypothetical_tx_digest_repairs() -> None:
@@ -122,6 +128,11 @@ def test_pending_lobby_review_still_blocks_compiler_after_hypothetical_tx_digest
             inventory.validation.tx_review_material(row)
         )
 
+    # Deliberately remove only this route's acceptance in memory. The real
+    # manifest must not be changed, regardless of its present disposition.
+    next(
+        row for row in reviews["routes"] if row["stable_id"] == "ROUTE-63E26182B51EAFCB"
+    )["disposition"] = "review_required"
     with pytest.raises(
         ValueError, match=r"route semantic review not accepted: GET /v1/public-lobby/comments"
     ):

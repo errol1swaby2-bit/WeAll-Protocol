@@ -218,7 +218,7 @@ def packet_integrity_blockers(packet: dict[str, Any]) -> list[str]:
     return blockers
 
 
-def build_packet() -> dict[str, Any]:
+def build_live_packet() -> dict[str, Any]:
     current_rows, stable_ids, sources = audit._current_rows()
     prior_rows, prior_shape = audit._prior_rows()
     review_source = json.loads(
@@ -326,6 +326,26 @@ def build_packet() -> dict[str, Any]:
     }
 
 
+ARCHIVED_PACKET = ROOT.parent / "docs/integration/PR93_PRE_ACCEPTANCE_SEMANTIC_REVIEW_PACKET.json"
+ARCHIVED_PACKET_DIGEST = "4d756f82534f2f3a8a002d4b982459e50181fa52a2786d7775eb9cccc5b75b5f"
+
+
+def build_packet() -> dict[str, Any]:
+    """Return the frozen pre-acceptance comparison when present.
+
+    This is historical evidence, not the live pending inventory. The
+    independent live inventory and strict compiler still reject new drift.
+    """
+    if not ARCHIVED_PACKET.is_file():
+        return build_live_packet()
+    archived = json.loads(ARCHIVED_PACKET.read_text(encoding="utf-8"))
+    if validation.compact_digest(archived) != ARCHIVED_PACKET_DIGEST:
+        raise ValueError("pr93_pre_acceptance_packet_digest_mismatch")
+    if packet_integrity_blockers(archived):
+        raise ValueError("pr93_pre_acceptance_packet_integrity_failure")
+    return archived
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", required=True, type=Path)
@@ -335,6 +355,20 @@ def main() -> int:
         raise SystemExit("report_destination_must_be_new_regular_file")
     packet = build_packet()
     integrity_blockers = packet_integrity_blockers(packet)
+    if ARCHIVED_PACKET.is_file():
+        from pr93_v2_semantic_review_inventory import build_inventory
+
+        live = build_inventory()
+        live_routes = live["route_review_inventory"]
+        if live["pending_transaction_review_count"] or live_routes["pending_route_review_count"]:
+            integrity_blockers.append("new_live_semantic_review_drift")
+        if live["missing_state_stable_ids"]:
+            integrity_blockers.append("new_live_missing_state_stable_ids")
+        print("Historical pre-acceptance packet; live inventory checked independently.")
+        print(
+            f"Live pending: {live['pending_transaction_review_count']} transactions, "
+            f"{live_routes['pending_route_review_count']} routes."
+        )
     packet["packet_integrity_blockers"] = integrity_blockers
     with path.open("x", encoding="utf-8") as output:
         json.dump(packet, output, sort_keys=True, indent=2)

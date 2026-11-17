@@ -6,6 +6,7 @@ import json
 import pytest
 
 from scripts.pr77_v2_semantic_review_packet import (
+    ARCHIVED_PACKET,
     KNOWN_STALE,
     SOURCE_ACCURACY_HOLDS,
     audit,
@@ -33,8 +34,20 @@ def test_packet_stale_set_matches_compiler_stable_id_authority() -> None:
     }
     packet = build_packet()
     packet_stale = {row["tx_type"] for row in packet["transactions"]}
-    assert packet_stale == compiler_stale
-    assert len(compiler_stale) == 20
+    assert packet_stale == KNOWN_STALE
+    if ARCHIVED_PACKET.is_file():
+        assert not compiler_stale
+        by_type = {row["tx_type"]: row for row in rows}
+        for item in packet["transactions"]:
+            current = by_type[item["tx_type"]]
+            actual = validation.compact_digest(validation.tx_review_material(current))
+            accepted = by_id[item["stable_id"]]
+            assert item["current_material_digest"] == actual == accepted["review_digest"]
+            assert accepted["disposition"] == "accepted_current_semantic_contract"
+            assert accepted["independent_review"] is False
+    else:
+        assert packet_stale == compiler_stale
+        assert len(compiler_stale) == 20
     assert packet["independent_human_approval_recorded_by_this_packet"] is False
 
 
