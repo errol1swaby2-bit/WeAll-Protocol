@@ -7,13 +7,18 @@ from pathlib import Path
 
 import pytest
 
-# Ensure local "src/" takes precedence over any globally-installed "weall" package.
+# Both pytest entry points must resolve the same checkout-local modules.
+# The console entry point does not automatically put the current working
+# directory on sys.path, unlike python -m pytest. Review tests import the
+# repository's scripts and tooling namespaces as well as the runtime.
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 
-src_str = str(SRC)
-if src_str not in sys.path:
-    sys.path.insert(0, src_str)
+# Prefer the exact checkout's src/ over its root and installed packages.
+for _path in (str(ROOT), str(SRC)):
+    if _path in sys.path:
+        sys.path.remove(_path)
+    sys.path.insert(0, _path)
 
 
 # Pytest must be hermetic. Operator/rehearsal shells often export WEALL_*

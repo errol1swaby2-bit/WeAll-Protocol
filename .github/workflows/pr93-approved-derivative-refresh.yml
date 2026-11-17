@@ -6,6 +6,8 @@ on:
       - integration/unified-baseline-all-open-prs-20261114
     paths:
       - .github/workflows/pr93-approved-derivative-refresh.yml
+      - .github/workflows/backend-ci.yml
+      - Weall-Protocol/tests/conftest.py
       - .github/workflows/v2-spec-refresh.yml
       - Weall-Protocol/tests/test_frontend_dependency_audit.py
       - Weall-Protocol/specs/v2/source/stable_ids.json
@@ -147,6 +149,13 @@ jobs:
         run: |
           set -Eeuo pipefail
           python scripts/check_v2_spec_clean_checkout.py
+          # Exercise the console entry point that previously failed collection.
+          # The full Backend CI suite still runs separately; collection is not
+          # a substitute for executing those tests.
+          ruff check tests/conftest.py
+          ruff format --check tests/conftest.py
+          pytest --collect-only -q > /tmp/weall-pr93-pytest-collection.log || { cat /tmp/weall-pr93-pytest-collection.log; exit 1; }
+          tail -n 3 /tmp/weall-pr93-pytest-collection.log
           python scripts/gen_tx_semantic_assurance_v1_5.py --check
           python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
           python scripts/gen_b528_b532_completion_proof_v1_5.py --check

@@ -148,7 +148,7 @@ jobs:
 
       - name: Pytest
         run: |
-          pytest -q
+          python -m pytest -q
 
       - name: Generate Tx coverage report
         if: always()
