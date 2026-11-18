@@ -56,9 +56,7 @@ def test_docker_partition_preflight_does_not_modify_container_owned_internals(tm
         "set -euo pipefail\n"
         'DEVNET_DIR="$1"; IPFS_PARTITION_PATH="$1/ipfs_partition"; IPFS_COMPOSE_FILE="$2"\n'
         # Simulate the Docker branch without running Docker or touching a real repo.
-        "docker() { return 0; }\n"
-        + src[start:end]
-        + "\n_prepare_local_ipfs_repo_dirs\n"
+        "docker() { return 0; }\n" + src[start:end] + "\n_prepare_local_ipfs_repo_dirs\n"
     )
     result = subprocess.run(
         ["bash", "-c", command, "fixture", str(devnet), str(compose)],
@@ -85,4 +83,4 @@ def test_docker_batch_repair_is_unprivileged_and_requires_failed_real_add() -> N
     assert "test -w /data/ipfs/blocks/temp" in repair
     assert "rm -rf" not in repair
     assert "chmod " not in repair.replace("recursive chmod/chown", "")
-    assert '! _repair_docker_ipfs_batch_dir || ! _ipfs_add_healthcheck' in src
+    assert "! _repair_docker_ipfs_batch_dir || ! _ipfs_add_healthcheck" in src
