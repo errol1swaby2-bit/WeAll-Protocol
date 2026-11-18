@@ -94,12 +94,16 @@ function sortedFlatJson(value: Record<string, unknown>): string {
 export async function canonicalLoginTxId(attempt: CanonicalLoginAttempt, step: "deviceTx" | "sessionTx", envelope: TxEnvelope): Promise<string> {
   const txType = step === "deviceTx" ? "ACCOUNT_DEVICE_REGISTER" : "ACCOUNT_SESSION_KEY_ISSUE";
   const expected = canonicalLoginPayload(attempt, step);
-  if (envelope.chain_id !== attempt.chainId || envelope.signer !== attempt.scope.account ||
-      envelope.tx_type !== txType || envelope.parent != null ||
-      !Number.isSafeInteger(envelope.nonce) || envelope.nonce <= 0 ||
-      !envelope.payload || sortedFlatJson(envelope.payload) !== sortedFlatJson(expected)) {
-    throw new Error("pending_canonical_login_envelope_mismatch");
-  }
+  // Fixed diagnostic suffixes identify the failing field without exposing
+  // account keys, bearer, signature, nonce value or other signed contents.
+  const mismatch = envelope.chain_id !== attempt.chainId ? "chain"
+    : envelope.signer !== attempt.scope.account ? "signer"
+    : envelope.tx_type !== txType ? "type"
+    : envelope.parent != null ? "parent"
+    : !Number.isSafeInteger(envelope.nonce) || envelope.nonce <= 0 ? "nonce"
+    : !envelope.payload || sortedFlatJson(envelope.payload) !== sortedFlatJson(expected) ? "payload"
+    : "";
+  if (mismatch) throw new Error("pending_canonical_login_envelope_mismatch:" + mismatch);
   const payload: Record<string, unknown> = {};
   for (const key of Object.keys(expected).sort()) payload[key] = expected[key];
   const canonical = sortedFlatJson({

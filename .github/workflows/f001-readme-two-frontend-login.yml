@@ -68,6 +68,7 @@ jobs:
           export WEALL_DEVNET_DIR="$RUNNER_TEMP/f001-devnet/.weall-devnet"
           python scripts/devnet_safe_paths.py check-devnet "$WEALL_DEVNET_DIR"
           python scripts/devnet_safe_paths.py check-devnet-writable "$WEALL_DEVNET_DIR"
+          python -m pytest -q tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py
           export WEALL_LOCAL_REHEARSAL_KEEP_RUNNING=1
           # Preserve the documented 20s block cadence and real IPFS startup.
           # No direct-session, signature, receipt or reconciliation bypass.

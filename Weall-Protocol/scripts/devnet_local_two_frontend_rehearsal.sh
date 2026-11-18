@@ -220,6 +220,14 @@ _prepare_local_ipfs_repo_dirs() {
   mkdir -p "${IPFS_PARTITION_PATH}"
   chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" 2>/dev/null || true
 
+  # Do not create or chmod container-owned blockstore internals as the host
+  # user. Native Linux runners and WSL can have different host/container UIDs.
+  # The Docker path below checks real uploads and, only if necessary, repairs
+  # the transient directory in the service's own unprivileged user context.
+  if command -v docker >/dev/null 2>&1 && [[ -f "${IPFS_COMPOSE_FILE}" ]]; then
+    return 0
+  fi
+
   # Batch 388 compatibility/safety: after Kubo has initialized a valid
   # sharded blockstore, make sure its transient batch directory exists and is
   # writable for local rehearsal uploads.  This is intentionally after the
@@ -232,6 +240,30 @@ _prepare_local_ipfs_repo_dirs() {
     }
     chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}/blocks/temp" 2>/dev/null || true
   fi
+}
+
+_repair_docker_ipfs_batch_dir() {
+  # Retain the host path/SHARDING checks before touching the mounted repo.
+  python3 scripts/devnet_safe_paths.py check-ipfs "${DEVNET_DIR}" "${IPFS_PARTITION_PATH}" >/dev/null || return 2
+  (
+    export WEALL_IPFS_PARTITION_PATH="${IPFS_PARTITION_PATH}"
+    export WEALL_IPFS_API_PORT="$(_url_port "${IPFS_API_BASE}")"
+    export WEALL_IPFS_GATEWAY_PORT="$(_url_port "${IPFS_GATEWAY_BASE}")"
+    # The pinned Kubo image's ipfs user owns the initialized repository.
+    # Never use root, recursive chmod/chown, deletion, or create blocks/ before init.
+    docker compose -f "${IPFS_COMPOSE_FILE}" exec -T --user ipfs "${IPFS_SERVICE}" sh -ec '
+      test "$(id -u)" != 0
+      for path in /data/ipfs /data/ipfs/blocks /data/ipfs/blocks/SHARDING /data/ipfs/blocks/temp; do
+        test ! -L "$path"
+      done
+      test -d /data/ipfs/blocks
+      test -f /data/ipfs/blocks/SHARDING
+      umask 077
+      mkdir -p /data/ipfs/blocks/temp
+      test -d /data/ipfs/blocks/temp
+      test -w /data/ipfs/blocks/temp
+    '
+  )
 }
 
 _ipfs_add_healthcheck() {
@@ -471,9 +503,12 @@ _start_local_ipfs_daemon() {
     fi
     _prepare_local_ipfs_repo_dirs
     if ! _ipfs_add_healthcheck "${IPFS_API_BASE}"; then
-      echo "ERROR: IPFS daemon is reachable but /api/v0/add failed at ${IPFS_API_BASE}" >&2
-      docker compose -f "${IPFS_COMPOSE_FILE}" logs "${IPFS_SERVICE}" --tail 160 >&2 || true
-      exit 2
+      echo "==> Docker IPFS add unhealthy; checking transient batch directory as the ipfs user"
+      if ! _repair_docker_ipfs_batch_dir || ! _ipfs_add_healthcheck "${IPFS_API_BASE}"; then
+        echo "ERROR: IPFS daemon is reachable but /api/v0/add failed at ${IPFS_API_BASE}" >&2
+        docker compose -f "${IPFS_COMPOSE_FILE}" logs "${IPFS_SERVICE}" --tail 160 >&2 || true
+        exit 2
+      fi
     fi
     echo "==> IPFS daemon ready and add-healthy at ${IPFS_API_BASE}"
     return 0

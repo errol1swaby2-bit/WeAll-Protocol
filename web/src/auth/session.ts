@@ -1133,6 +1133,8 @@ export async function submitSignedTxWithNonce(args: {
   parent?: string | null;
   base?: string;
   headers?: HeadersInit;
+  /** A journal-bound action must sign for a freshly verified selected chain, never a cached/default one. */
+  expectedChainId?: string;
   /** Called with the fully signed envelope before dispatch; may abort if durable tracking fails. */
   onBeforeSubmit?: (envelope: TxEnvelope) => Promise<void> | void;
 }): Promise<{ env: TxEnvelope; result: any }> {
@@ -1143,7 +1145,15 @@ export async function submitSignedTxWithNonce(args: {
     const kp = loadKeypair(signer);
     if (!kp) throw new Error("missing_local_keypair");
 
-    const chain_id = await resolveChainId();
+    let chain_id: string;
+    if (args.expectedChainId !== undefined) {
+      const status = await weall.status(args.base);
+      const actual = String(status?.chain_id || "").trim();
+      if (!actual || actual !== args.expectedChainId) throw new Error("pending_canonical_login_chain_mismatch");
+      chain_id = actual;
+    } else {
+      chain_id = await resolveChainId();
+    }
 
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const claim = await claimNextNonce(signer, args.base);
@@ -1165,7 +1175,7 @@ export async function submitSignedTxWithNonce(args: {
         return { env: signed, result };
       } catch (error) {
         rollbackNonceClaim(claim);
-        if (attempt < 3 && isNonceReservationConflictError(error)) {
+        if (args.expectedChainId === undefined && attempt < 3 && isNonceReservationConflictError(error)) {
           await syncNonceReservation(signer, args.base);
           await sleep(250 * (attempt + 1));
           continue;
@@ -1328,6 +1338,7 @@ async function finishCanonicalDeviceLogin(args: DeviceLoginArgs, attempt: Canoni
           account: acct, tx_type: txType,
           payloadFactory: () => canonicalLoginPayload(attempt, step),
           parent: null, base: args.base,
+          expectedChainId: attempt.chainId,
           onBeforeSubmit: async (signed) => {
             await trackCanonicalLoginTx(attempt, step, signed);
           },

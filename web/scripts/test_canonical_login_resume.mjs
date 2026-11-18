@@ -49,6 +49,7 @@ function fixture() {
       isDirectSessionMutationForbidden: error => error.message.startsWith("direct_session_mutation_forbidden"),
       weall: { status: async () => ({ chain_id: f.chainId }) },
       submitSignedTxWithNonce: async a => {
+        assert.equal(a.expectedChainId, f.chainId, "journal must bind the actual selected chain at signing");
         const nonce = ++f.nonce;
         const env = { chain_id: f.chainId, tx_type: a.tx_type, signer: a.account, nonce, parent: null, payload: a.payloadFactory(nonce) };
         await a.onBeforeSubmit(env);
@@ -167,5 +168,48 @@ const u = unavailable.boot();
 await assert.rejects(u.loginOnThisDevice(args), /storage unavailable/);
 assert.equal(unavailable.writes.length, 0);
 assert.equal(unavailable.active, null);
+
+// Compile the real shared signing entrypoint as well as the orchestration
+// above. The generic chain resolver represents a stale cache or fallback.
+const signStart = sessionSource.indexOf("export async function submitSignedTxWithNonce(");
+const signEnd = sessionSource.indexOf("export async function restoreAccountAndLoginOnThisDevice(", signStart);
+assert.ok(signStart >= 0 && signEnd > signStart);
+const signingCode = ts.transpileModule(sessionSource.slice(signStart, signEnd).replace("export async function", "async function"), {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+}).outputText;
+let selectedChain = chainId;
+let cachedCalls = 0;
+let dispatches = 0;
+let intentCalls = 0;
+const signApi = vm.runInNewContext(signingCode + "\nsubmitSignedTxWithNonce", {
+  runSignerSerialized: async (_account, fn) => fn(),
+  normalizeAccount: value => value,
+  loadKeypair: () => keypair,
+  resolveChainId: async () => { cachedCalls++; return "stale-default"; },
+  weall: {
+    status: async base => { assert.equal(base, "/"); return { chain_id: selectedChain }; },
+    txSubmit: async env => { dispatches++; assert.equal(env.chain_id, chainId); return { ok: true }; },
+  },
+  claimNextNonce: async () => ({nonce: 10}),
+  buildUnsignedEnvelope: env => env,
+  signEnvelope: env => env,
+  BROWSER_PQ_SIG_PROFILE: "pq-mldsa-v1",
+});
+const bound = {
+  account, base: "/", tx_type: deviceType, expectedChainId: chainId,
+  payloadFactory: () => ({ device_id: "fixture-device" }),
+  onBeforeSubmit: env => { intentCalls++; assert.equal(env.chain_id, chainId); },
+};
+await signApi(bound);
+assert.equal(cachedCalls, 0);
+assert.equal(dispatches, 1);
+assert.equal(intentCalls, 1);
+for (const invalidChain of ["", "wrong-chain"]) {
+  selectedChain = invalidChain;
+  await assert.rejects(signApi(bound), /pending_canonical_login_chain_mismatch/);
+}
+assert.equal(cachedCalls, 0);
+assert.equal(dispatches, 1);
+assert.equal(intentCalls, 1);
 
 console.log("F-001 canonical login interruption, receipt/auth gates, custody and duplicate prevention passed");

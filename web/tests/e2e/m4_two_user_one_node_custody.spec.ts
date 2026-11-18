@@ -677,6 +677,8 @@ test("two independent real users register, update public profiles and isolate ke
           ["key_mismatch", "does not match the registered account"],
           ["storage_failure", "pending_canonical_login_storage_failed"],
           ["ack_mismatch", "acknowledgement does not match"],
+          ...["chain", "signer", "type", "parent", "nonce", "payload"].map(field =>
+            ["envelope_mismatch_" + field, "pending_canonical_login_envelope_mismatch:" + field]),
           ["envelope_mismatch", "pending_canonical_login_envelope_mismatch"],
           ["nonce_conflict", "Another signed action"],
           ["chain_mismatch", "pending_canonical_login_chain_mismatch"],
