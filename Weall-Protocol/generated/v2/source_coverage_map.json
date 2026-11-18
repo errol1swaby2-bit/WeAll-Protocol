@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2367,
+  "file_count": 2370,
   "files": [
     {
       "affected_registers": [
@@ -238,7 +238,7 @@
       ],
       "path": "../.github/workflows/m4-two-user-one-node-real-stack.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "46061cc73072ddb452222d073e20a69c0abce6190924020287e03966bf4e437d",
+      "sha256": "6013faeb0c616f12d57fce8d90a0f0dd960b9def1592b1baaf073f79673161ca",
       "source_id": "SRC-C3BCD68772270A6B"
     },
     {
@@ -19566,7 +19566,7 @@
       ],
       "path": "tests/test_frontend_dependency_audit.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "facfe1e8cd4dc82d963963b534b59f123ec94d9ce2242859e3594ae87d57e48a",
+      "sha256": "3b22e16e855cefe1d04fa6d213e9fdaffece93978da12bb866e9f3c383f32b23",
       "source_id": "SRC-8A077776FA8B7BDC"
     },
     {
@@ -34330,7 +34330,7 @@
       ],
       "path": "../web/scripts/buildCloudflareTestnet.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "c1ca42e5ad737e1197ceabcfbf36b256e84f05fb440117c4ec44179ce5f74107",
+      "sha256": "3b3a42bd9efaeb4c322c061724c64495c5b8f18fe62e7d1ee0ae3ac677b6e0d1",
       "source_id": "SRC-012A93D4B30C6546"
     },
     {
@@ -34371,6 +34371,45 @@
       "primary_mechanism_id": "M-076",
       "sha256": "430bb4fd0b7f085b626fc3815c0acbfddb079b374088bf9d0a47b8d1b8e5bfa8",
       "source_id": "SRC-21EC0DDB8CBA0863"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/esbuildBuild.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "6278d7465e768d282d918207cc4d557dbff04b47f6058db2db6b47040e7abe3e",
+      "source_id": "SRC-459EE400A3B09562"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/esbuildEnvironment.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "15db45c26e7a57f7594225aed368aaeb1d1368f52a7304ea2f559c693e92f7a4",
+      "source_id": "SRC-267F15317614C928"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/esbuildServer.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "ba9ea22970574958a09e62a5e9e9726f615b10dfc32fe0bbc645365260d74cfb",
+      "source_id": "SRC-2B04AD2985EF3199"
     },
     {
       "affected_registers": [
@@ -34538,7 +34577,7 @@
       ],
       "path": "../web/scripts/test_dev_bootstrap_loopback_guard.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "95718e3c453689fc71baf20ced4b7f99786439793d70a2ac6bed224839dcd236",
+      "sha256": "5b5af89b415f6bbb3ec1973ecc10c350fca98836887032e2b5590587ad2ffc23",
       "source_id": "SRC-178A64F41C6A750E"
     },
     {
@@ -34915,7 +34954,7 @@
       ],
       "path": "../web/scripts/test_picomatch_security_regression.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "df92b192cbbda431d918c3aaa1abe04fa9ed11ada249f41fe88f0d22d570d014",
+      "sha256": "268b045fd3937d6dda3067fedea69bfa5cfa7c59d1c28d88d647731d7d94c6c2",
       "source_id": "SRC-6B7B367A04AB5A3A"
     },
     {
@@ -36219,7 +36258,7 @@
       ],
       "path": "../web/src/lib/capabilities.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "749916f02de72f60771156b69f28c4f1fa09370e9d1fcd2af56f60ae8fb12883",
+      "sha256": "f09864a5bcc786a899635a545565dde8f694910596952e8924e90d45c32e8691",
       "source_id": "SRC-1E8217E90AC1A113"
     },
     {
@@ -37546,7 +37585,7 @@
       ],
       "path": "../web/src/vite-env.d.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "sha256": "6b43d558ff9ac2d64cad5839fa3dff1a2bce4ea727a357fb38148461c74a2cd4",
       "source_id": "SRC-EFDAA1DBEF02F274"
     },
     {
