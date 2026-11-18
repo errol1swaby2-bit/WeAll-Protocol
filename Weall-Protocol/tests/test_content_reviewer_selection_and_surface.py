@@ -122,12 +122,25 @@ def test_frontend_surfaces_content_review_opt_in_and_juror_review_queue_stage() 
     verification_page = (OUTER / "web/src/pages/AccountVerificationPage.tsx").read_text(
         encoding="utf-8"
     )
+    responsibilities_panel = (OUTER / "web/src/components/TrustedResponsibilitiesPanel.tsx").read_text(
+        encoding="utf-8"
+    )
     juror_dashboard = (OUTER / "web/src/pages/JurorDashboard.tsx").read_text(encoding="utf-8")
 
     assert "weall.accountReviewerStatus" in verification_page
-    assert "Content review selection" in verification_page
+    assert 'import TrustedResponsibilitiesPanel from "../components/TrustedResponsibilitiesPanel"' in (
+        verification_page
+    )
+    assert "<TrustedResponsibilitiesPanel" in verification_page
+    assert "onUpdateContentReviewLane={(active) => void updateContentReviewLane(active)}" in (
+        verification_page
+    )
+    assert "Content review selection" in responsibilities_panel
+    assert "onUpdateContentReviewLane(true)" in responsibilities_panel
+    assert "onUpdateContentReviewLane(false)" in responsibilities_panel
+    assert "if (accountLevel < 2)" in responsibilities_panel
     assert "REVIEWER_LANE_OPT_IN" in verification_page
     assert "REVIEWER_LANE_OPT_OUT" in verification_page
     assert 'lane: "content_review"' in verification_page
-    assert "Open all responsibility controls" in verification_page
+    assert "Open all responsibility controls" in responsibilities_panel
     assert '"juror_review"' in juror_dashboard

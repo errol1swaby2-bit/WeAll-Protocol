@@ -12,6 +12,7 @@ import pytest
 
 from weall.runtime.apply.roles import RolesApplyError, apply_roles
 from weall.runtime.domain_apply import apply_tx
+from weall.runtime.errors import ApplyError
 from weall.runtime.system_tx_engine import (
     enqueue_system_tx,
     system_tx_emitter,
@@ -57,20 +58,24 @@ def test_privileged_role_handlers_reject_non_system_direct_calls(tx_type: str) -
 
 
 @pytest.mark.parametrize(
-    "tx_type",
+    ("tx_type", "reason"),
     [
-        "ROLE_EMISSARY_SEAT",
-        "ROLE_GOV_EXECUTOR_SET",
-        "ROLE_NODE_OPERATOR_ACTIVATE",
-        "ROLE_VALIDATOR_ACTIVATE",
+        ("ROLE_EMISSARY_SEAT", "account_not_found"),
+        ("ROLE_GOV_EXECUTOR_SET", "account_not_found"),
+        ("ROLE_NODE_OPERATOR_ACTIVATE", "node_operator_not_enrolled"),
+        ("ROLE_VALIDATOR_ACTIVATE", "account_not_found"),
     ],
 )
-def test_rejected_system_role_activation_is_fail_atomic(tx_type: str) -> None:
+def test_rejected_system_role_activation_is_fail_atomic(tx_type: str, reason: str) -> None:
     # A SYSTEM marker does not make a nonexistent account eligible.
+    # The public dispatcher normalizes the role handler exception to ApplyError.
     state = {"accounts": {}, "roles": {}}
     before = copy.deepcopy(state)
-    with pytest.raises(RolesApplyError):
+    with pytest.raises(ApplyError) as error:
         apply_tx(state, _env(tx_type, "@missing"))
+    assert error.value.code == "not_found"
+    assert error.value.reason == reason
+    assert error.value.details == {"account_id": "@missing"}
     assert state == before
 
 
