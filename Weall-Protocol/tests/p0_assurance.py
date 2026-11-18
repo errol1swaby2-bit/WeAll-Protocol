@@ -413,7 +413,10 @@ def _apply_mutation(src_root: Path, mutation: MutationSpec) -> None:
 def _run_pytest(test_paths: Sequence[str], *, src_overlay: Path | None, timeout_s: int) -> dict:
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    # Never inherit a stale overlay selection into the unmutated property run.
+    env.pop("WEALL_PYTEST_MUTATION_SRC", None)
     if src_overlay is not None:
+        env["WEALL_PYTEST_MUTATION_SRC"] = str(src_overlay.resolve(strict=True))
         existing = env.get("PYTHONPATH", "")
         parts = [str(src_overlay), str(ROOT)]
         if existing:
@@ -456,7 +459,13 @@ def _run_mutation(mutation: MutationSpec, *, timeout_s: int) -> dict:
     with tempfile.TemporaryDirectory(prefix="weall-p0-mutant-") as tmp:
         overlay_root = Path(tmp)
         overlay_src = overlay_root / "src"
-        shutil.copytree(ROOT / "src", overlay_src, dirs_exist_ok=False)
+        # A same-size source edit must not accidentally load copied bytecode.
+        shutil.copytree(
+            ROOT / "src",
+            overlay_src,
+            dirs_exist_ok=False,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+        )
         try:
             _apply_mutation(overlay_root, mutation)
         except Exception as exc:

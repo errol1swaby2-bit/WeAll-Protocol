@@ -12,9 +12,16 @@ import pytest
 # directory on sys.path, unlike python -m pytest. Review tests import the
 # repository's scripts and tooling namespaces as well as the runtime.
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
+REPO_SRC = ROOT / "src"
+# Only the mutation harness sets this explicit, subprocess-local source root.
+# Read it before the hermetic WEALL_* cleanup below. An ordinary pytest run
+# must use the checkout, but a mutation run must never silently test it.
+_MUTATION_SRC = os.environ.get("WEALL_PYTEST_MUTATION_SRC")
+SRC = Path(_MUTATION_SRC).resolve(strict=True) if _MUTATION_SRC else REPO_SRC
+if _MUTATION_SRC and (SRC == REPO_SRC.resolve() or not (SRC / "weall" / "__init__.py").is_file()):
+    raise RuntimeError("invalid pytest mutation source overlay")
 
-# Prefer the exact checkout's src/ over its root and installed packages.
+# Runtime source first, repository-local review namespaces second.
 for _path in (str(ROOT), str(SRC)):
     if _path in sys.path:
         sys.path.remove(_path)
@@ -42,6 +49,14 @@ if not _KEEP_EXTERNAL_WEALL_ENV:
     os.environ["WEALL_API_BOOT_RUNTIME"] = "0"
 
 from weall.tx.canon import ensure_tx_index_json  # noqa: E402
+
+# Fail during conftest import (not a mutant test assertion) if the runtime
+# resolves outside the requested source tree. An import/collection failure
+# is classified as an invalid mutation by the assurance harness, never a kill.
+for _module_name in ("weall", "weall.tx.canon"):
+    _module_file = Path(sys.modules[_module_name].__file__).resolve()
+    if not _module_file.is_relative_to(SRC.resolve()):
+        raise RuntimeError(f"unexpected pytest runtime source: {_module_name}: {_module_file}")
 
 # Make test collection resilient on a fresh clone / first boot.
 # If the generated tx index is missing or stale, rebuild it before tests import
