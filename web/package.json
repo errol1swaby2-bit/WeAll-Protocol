@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
+    "dev": "node scripts/esbuildServer.mjs",
+    "build": "tsc -b && node scripts/esbuildBuild.mjs",
+    "preview": "node scripts/esbuildServer.mjs preview",
     "typecheck": "tsc -b --pretty false",
     "contract-check": "node scripts/contract_check.mjs",
     "production-safety-check": "node scripts/guard_production_ux_safety.mjs",
@@ -75,9 +75,8 @@
     "@playwright/test": "1.59.1",
     "@types/react": "18.3.5",
     "@types/react-dom": "18.3.0",
-    "@vitejs/plugin-react": "5.2.0",
-    "typescript": "5.6.3",
-    "vite": "8.3.5"
+    "esbuild": "0.28.1",
+    "typescript": "5.6.3"
   },
   "engines": {
     "node": ">=20.19.0",

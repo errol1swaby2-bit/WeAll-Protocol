@@ -6,6 +6,9 @@ on:
       - .github/workflows/m4-two-user-one-node-real-stack.yml
       - web/tests/e2e/m4_two_user_one_node_custody.spec.ts
       - web/playwright.m4.config.ts
+      - web/package.json
+      - web/package-lock.json
+      - web/scripts/esbuild*.mjs
       - scripts/run_account_custody_real_stack_e2e.sh
       - web/src/auth/**
       - web/src/pages/Login.tsx

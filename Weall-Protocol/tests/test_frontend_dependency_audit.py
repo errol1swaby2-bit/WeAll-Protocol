@@ -31,11 +31,12 @@ def test_frontend_dependency_audit_script_is_available_and_exact_versions_are_pi
 
     # Exact pins only: no semver ranges for the audited frontend security-critical stack.
     assert dependencies.get("@noble/post-quantum") == "0.6.1"
-    assert dev_dependencies.get("vite") == "8.3.5"
-    assert dev_dependencies.get("@vitejs/plugin-react") == "5.2.0"
+    assert dev_dependencies.get("esbuild") == "0.28.1"
+    assert "vite" not in dev_dependencies
+    assert "@vitejs/plugin-react" not in dev_dependencies
     for name in ("@noble/post-quantum",):
         assert not dependencies[name].startswith(("^", "~", ">", "<"))
-    for name in ("vite", "@vitejs/plugin-react"):
+    for name in ("esbuild",):
         assert not dev_dependencies[name].startswith(("^", "~", ">", "<"))
 
 
@@ -45,27 +46,36 @@ def test_frontend_package_lock_matches_audited_dependency_versions() -> None:
 
     assert "react-router-dom" not in root.get("dependencies", {})
     assert root["dependencies"]["@noble/post-quantum"] == "0.6.1"
-    assert root["devDependencies"]["vite"] == "8.3.5"
-    assert root["devDependencies"]["@vitejs/plugin-react"] == "5.2.0"
+    assert root["devDependencies"]["esbuild"] == "0.28.1"
+    assert "vite" not in root["devDependencies"]
+    assert "@vitejs/plugin-react" not in root["devDependencies"]
 
     packages = lock["packages"]
     assert "node_modules/react-router-dom" not in packages
     assert "node_modules/react-router" not in packages
     assert "node_modules/@remix-run/router" not in packages
-    assert packages["node_modules/vite"]["version"] == "8.3.5"
-    assert packages["node_modules/@vitejs/plugin-react"]["version"] == "5.2.0"
+    assert packages["node_modules/esbuild"]["version"] == "0.28.1"
 
-    # Transitive build-tool security floor. These exact lock versions close the
-    # reviewed 2026 Babel/PostCSS/Nano ID advisories without widening direct
-    # application dependencies or weakening the hard npm-audit release gate.
-    assert packages["node_modules/@babel/core"]["version"] == "7.29.6"
-    assert packages["node_modules/@babel/generator"]["version"] == "7.29.7"
-    assert packages["node_modules/@babel/parser"]["version"] == "7.29.7"
-    assert packages["node_modules/@babel/types"]["version"] == "7.29.7"
-    assert packages["node_modules/@babel/helper-string-parser"]["version"] == "7.29.7"
-    assert packages["node_modules/@babel/helper-validator-identifier"]["version"] == "7.29.7"
-    assert packages["node_modules/postcss"]["version"] == "8.5.31"
-    assert packages["node_modules/nanoid"]["version"] == "3.3.20"
+    # Removal supersedes the prior Babel/PostCSS/Nano ID patch pins. None of
+    # those packages or any member of the advisory chain may return unnoticed.
+    forbidden = {
+        "vite",
+        "@vitejs/plugin-react",
+        "picomatch",
+        "tinyglobby",
+        "fdir",
+        "@babel/core",
+        "@babel/generator",
+        "@babel/parser",
+        "@babel/types",
+        "@babel/helper-string-parser",
+        "@babel/helper-validator-identifier",
+        "postcss",
+        "nanoid",
+    }
+    for path, metadata in packages.items():
+        assert path.split("node_modules/")[-1] not in forbidden
+        assert metadata.get("name") not in forbidden
 
 
 def test_frontend_lockfile_no_longer_contains_known_vulnerable_router_chain() -> None:
@@ -83,12 +93,7 @@ def test_frontend_lockfile_no_longer_contains_known_vulnerable_router_chain() ->
         )
     )
 
-    # Vite/esbuild remain pinned at versions validated by the npm audit and build gates.
-    # The Vite 8.3.5 pin supersedes vulnerable 8.0.16; do not restore it to satisfy this test.
-    vite = packages["node_modules/vite"]
-    esbuild = packages["node_modules/esbuild"]
-    assert vite["version"] == "8.3.5"
-    assert esbuild["version"] >= "0.25.0"
+    assert packages["node_modules/esbuild"]["version"] == "0.28.1"
 
 
 def test_frontend_dependency_audit_is_a_hard_release_verification_gate() -> None:

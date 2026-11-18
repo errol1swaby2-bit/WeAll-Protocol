@@ -76,7 +76,7 @@ function main() {
     VITE_WEALL_EXPECTED_PROTOCOL_PROFILE_HASH: commitments.protocol_profile_hash,
   };
 
-  // Vite copies web/public/seeds.json (the local-dev fixture) into dist.
+  // The build copies web/public/seeds.json (the local-dev fixture) into dist.
   // Overwrite only the generated artifact, leaving the tracked fixture intact.
   execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build"], {
     cwd: webRoot,

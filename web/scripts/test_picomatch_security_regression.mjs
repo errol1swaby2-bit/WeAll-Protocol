@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, realpathSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,7 +15,36 @@ assert.ok(lock.packages && typeof lock.packages === "object", "Expected locked n
 const installed = Object.entries(lock.packages).filter(([path, metadata]) =>
   path && (/(^|\/)node_modules\/picomatch$/.test(path) || metadata.name === "picomatch")
 );
-assert.ok(installed.length > 0, "No locked Picomatch instance found; update this regression explicitly");
+// Removal is the remedy, not a skipped test: inspect lock identities, aliases
+// and the actual installed package manifests, including scoped/nested packages.
+const forbidden = new Set(["picomatch", "vite", "@vitejs/plugin-react", "tinyglobby", "fdir"]);
+const violations = Object.entries(lock.packages).filter(([path, metadata]) =>
+  path && (forbidden.has(path.split("node_modules/").at(-1)) || forbidden.has(metadata.name) ||
+    /\/(?:picomatch|vite|tinyglobby|fdir)\/-\/|\/@vitejs\/plugin-react\/-\/|\/plugin-react-/.test(metadata.resolved || ""))
+);
+const modules = resolve(root, "node_modules");
+assert.ok(existsSync(modules), "Frozen installation required before dependency regression");
+const visited = new Set();
+const actual = [];
+function scan(directory) {
+  if (!existsSync(directory)) return;
+  const real = realpathSync(directory);
+  if (visited.has(real)) return;
+  visited.add(real);
+  for (const item of readdirSync(directory, { withFileTypes: true })) {
+    if (item.name.startsWith(".")) continue;
+    const path = resolve(directory, item.name);
+    if (item.name.startsWith("@")) { scan(path); continue; }
+    if (!existsSync(resolve(path, "package.json"))) continue;
+    const metadata = JSON.parse(readFileSync(resolve(path, "package.json"), "utf8"));
+    if (forbidden.has(item.name) || forbidden.has(metadata.name)) actual.push(metadata.name);
+    scan(resolve(path, "node_modules"));
+  }
+}
+scan(modules);
+const esbuild = JSON.parse(readFileSync(resolve(modules, "esbuild/package.json"), "utf8"));
+assert.equal(esbuild.version, lock.packages["node_modules/esbuild"].version);
+
 
 const cases = [
   { label: "ordinary recursive source glob", pattern: "src/**/*.tsx", input: "src/pages/Feed.tsx", expected: true },
@@ -64,4 +93,6 @@ for (const [path, metadata] of installed) {
   }
 }
 assert.equal(failures, 0, "Picomatch behavioral regression failed; dependency remediation required");
-console.log("PASS: finite Picomatch compatibility and time-bounded advisory regressions");
+assert.deepEqual(violations.map(([path]) => path), [], "Vulnerable dependency chain returned to locked graph");
+assert.deepEqual(actual, [], "Vulnerable dependency chain present in installed graph");
+console.log("PASS: Picomatch advisory dependency removed from locked and installed graphs; original behavioral vectors retained for accidental reintroduction");
