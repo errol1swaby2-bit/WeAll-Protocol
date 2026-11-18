@@ -12,7 +12,7 @@ jobs:
   feasibility:
     if: github.ref_name == 'diagnostic/picomatch-free-esbuild-20261117' || github.head_ref == 'diagnostic/picomatch-free-esbuild-20261117'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: web
@@ -49,6 +49,34 @@ jobs:
           npm ls --all
       - name: Mandatory candidate dependency audit
         run: npm run dependency-audit
+      - name: Typecheck without Vite declarations
+        run: |
+          cat > src/vite-env.d.ts <<'TS'
+          interface ImportMetaEnv {
+            readonly PROD: boolean;
+            readonly DEV: boolean;
+            readonly MODE: string;
+            readonly BASE_URL: string;
+            readonly SSR: boolean;
+            readonly [key: string]: string | boolean | undefined;
+          }
+          interface ImportMeta { readonly env: ImportMetaEnv }
+          declare module "*.css";
+          declare module "*.svg" { const url: string; export default url; }
+          declare module "*.png" { const url: string; export default url; }
+          declare module "*.jpg" { const url: string; export default url; }
+          declare module "*.webp" { const url: string; export default url; }
+          TS
+          npm run typecheck
+      - name: Preserve exact candidate lock for independent review
+        uses: actions/upload-artifact@v4
+        with:
+          name: picomatch-free-candidate-lock
+          path: |
+            web/package.json
+            web/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Build with explicit production configuration
         run: |
           node --input-type=module <<'JS'
@@ -153,3 +181,215 @@ jobs:
             server.close();
           }
           JS
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend runtime from lockfile
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements.lock
+          pip install -e . --no-deps
+
+      - name: Start backend for contract check
+        working-directory: Weall-Protocol
+        run: |
+          RUNTIME_DIR="$(mktemp -d /tmp/weall-web-ci-runtime-XXXXXX)"
+          echo "$RUNTIME_DIR" > /tmp/weall-web-ci-runtime-dir
+
+          mkdir -p             "$RUNTIME_DIR/runtime"             "$RUNTIME_DIR/helper_lanes"             "$RUNTIME_DIR/media_cache"             "$RUNTIME_DIR/reviewer_artifacts"             "$RUNTIME_DIR/failpoints"
+
+          PYTHONPATH=src           WEALL_MODE=dev           WEALL_API_BOOT_RUNTIME=1           WEALL_API_HOST=127.0.0.1           WEALL_API_PORT=8000           WEALL_NODE_ID=web-ci-contract-check-node           WEALL_DB_PATH="$RUNTIME_DIR/weall.db"           WEALL_AUX_DB_PATH="$RUNTIME_DIR/weall_aux.db"           WEALL_RUNTIME_DIR="$RUNTIME_DIR/runtime"           WEALL_HELPER_LANE_JOURNAL_DIR="$RUNTIME_DIR/helper_lanes"           WEALL_MEDIA_CACHE_DIR="$RUNTIME_DIR/media_cache"           WEALL_REVIEWER_ARTIFACTS_DIR="$RUNTIME_DIR/reviewer_artifacts"           WEALL_TEST_FAILPOINT_MARKER_DIR="$RUNTIME_DIR/failpoints"           WEALL_TX_INDEX_PATH="$PWD/generated/tx_index.json"           python -m weall.api > /tmp/weall-web-ci-backend.log 2>&1 &
+
+          echo $! > /tmp/weall-web-ci-backend.pid
+
+          for i in {1..30}; do
+            if python - <<'PY'
+          import json
+          import urllib.request
+
+          try:
+              with urllib.request.urlopen(
+                  "http://127.0.0.1:8000/v1/readyz",
+                  timeout=1,
+              ) as response:
+                  body = json.loads(response.read().decode("utf-8"))
+              if isinstance(body, dict) and body.get("ok") is True:
+                  raise SystemExit(0)
+          except Exception:
+              pass
+
+          raise SystemExit(1)
+          PY
+            then
+              echo "backend runtime ready"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "backend failed to become ready" >&2
+          cat /tmp/weall-web-ci-backend.log >&2 || true
+          exit 1
+
+      - name: Cloudflare static testnet source guards
+        run: |
+          node scripts/test_cloudflare_testnet_access_source.mjs
+
+      - name: Cloudflare testnet node-selection behavioral regression
+        run: |
+          node scripts/test_cloudflare_testnet_behavior.mjs
+
+      - name: HTTPS node API and CORS deployment preflight regression
+        run: |
+          node scripts/test_https_node_api_preflight.mjs
+
+      - name: Existing node manager and account custody source invariants
+        run: |
+          npm run test:node-manager
+          npm run test:account-custody-source
+
+
+      - name: Account custody cryptographic source gate
+        run: |
+          npm run test:account-custody-crypto-source
+
+      - name: F1b guided account registration source guard
+        run: |
+          npm run test:guided-account-registration-source
+
+      - name: Canonical signed registration transaction ID vectors
+        run: |
+          npm run test:registration-tx-id
+
+      - name: Focused shell navigation and drawer source gate
+        run: |
+          npm run test:focused-shell-source
+
+      - name: Confirmed transaction apply-receipt truth
+        run: |
+          npm run test:tx-apply-receipt-truth
+
+      - name: Canonical-only reconciliation and no-ID fail-closed regression
+        run: |
+          npm run test:tx-reconciliation-truth
+
+      - name: Frontend v1.6 focused navigation and safety contracts
+        run: |
+          npm run test:v16-navigation-source
+
+      - name: Portable visual theme validation and preview safety
+        run: |
+          npm run test:theme-transfer
+
+      - name: Live-room join truth regression
+        run: |
+          npm run test:live-room-join-truth
+
+      - name: Reporter vs juror review lane truth
+        run: |
+          npm run test:reporter-vs-juror-lanes
+
+      - name: Async evidence preview and stage truth
+        run: |
+          npm run test:async-evidence-preview
+
+      - name: PoH interrupted submission journal and replay safety
+        run: |
+          npm run test:poh-submission-journal
+
+      - name: Verification history and role authority contracts
+        run: |
+          npm run test:verification-history-panel
+
+      - name: Guided PoH route and reload fail-closed contracts
+        run: |
+          npm run test:poh-guided-routes
+
+      - name: PR93 PoH source conflict parity (guided + preserved v1.6)
+        run: |
+          npm run test:pr93-poh-merge-parity
+
+      - name: Flag reporter review and target lookup regression
+        run: |
+          npm run test:content-flag-report-truth
+
+      - name: Contract check
+        run: |
+          API_BASE=http://127.0.0.1:8000 npm run contract-check
+
+      - name: Install Nginx for production deployment
+        timeout-minutes: 7
+        run: |
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get \
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=25 \
+            -o Acquire::https::Timeout=25 update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get \
+            -o DPkg::Lock::Timeout=45 \
+            install -y --no-install-recommends nginx
+          nginx -v
+
+      - name: Start tested production Nginx deployment
+        run: |
+          sudo rm -rf /tmp/weall-web-dist
+          sudo cp -a "$PWD/dist-picomatch-free-diagnostic" /tmp/weall-web-dist
+          sudo chmod -R a+rX /tmp/weall-web-dist
+          sed "s|__DIST_ROOT__|/tmp/weall-web-dist|g" deploy/nginx.conf.template > /tmp/weall-web-nginx.conf
+          sudo nginx -t -c /tmp/weall-web-nginx.conf
+          sudo nginx -c /tmp/weall-web-nginx.conf
+
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8088/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS -D /tmp/weall-web-index.headers -o /tmp/weall-web-index.html http://127.0.0.1:8088/
+          grep -i '^Content-Security-Policy:' /tmp/weall-web-index.headers > /tmp/weall-web-csp.header
+          grep -F "script-src 'self'" /tmp/weall-web-csp.header
+          grep -F "object-src 'none'" /tmp/weall-web-csp.header
+          if grep -F "script-src 'self' 'unsafe-inline'" /tmp/weall-web-csp.header; then
+            echo "production CSP unexpectedly permits inline scripts" >&2
+            exit 1
+          fi
+          if grep -F "script-src 'self' 'unsafe-eval'" /tmp/weall-web-csp.header; then
+            echo "production CSP unexpectedly permits eval" >&2
+            exit 1
+          fi
+
+          curl -fsS http://127.0.0.1:8088/v1/readyz | python -c 'import json,sys; body=json.load(sys.stdin); assert body.get("ok") is True'
+
+      - name: Production deployment Chromium smoke
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npm run test:production-deployment-csp
+
+      - name: Compiled browser custody isolation across independent profiles
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npx playwright test tests/e2e/production_browser_storage_isolation.spec.ts --config=playwright.production.config.ts
+
+      - name: Compiled browser theme export/import and safe preview
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npm run test:theme-portability-production
+
+      - name: Render existing governance journey against compiled production candidate
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npx --no-install playwright test tests/e2e/active_deliberations_rendered.spec.ts --config=playwright.production.config.ts
+      - name: Stop production Nginx deployment
+        if: always()
+        run: |
+          if test -f /tmp/weall-web-nginx.conf; then
+            sudo nginx -c /tmp/weall-web-nginx.conf -s quit || true
+          fi
+          test ! -f /tmp/weall-web-nginx-error.log || cat /tmp/weall-web-nginx-error.log
