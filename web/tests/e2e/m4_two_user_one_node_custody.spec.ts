@@ -180,10 +180,10 @@ async function verifyCanonicalTier0SocialDenial(
   payload: Record<string, string>,
 ): Promise<void> {
   const outcome = await page.evaluate(async ({ account, txType, payload }) => {
-    // Resolved by the dev server's Vite module endpoint; intentionally not
+    // Resolved by the explicitly enabled browser test module endpoint; intentionally not
     // bundled into the production frontend.
-    // @ts-ignore - Vite dev-only absolute module specifier
-    const { submitSignedTx } = await import("/src/auth/session.ts");
+    // @ts-ignore - opt-in compiled browser test module
+    const { submitSignedTx } = await import("/__weall_test__/session.js");
     try {
       const result = await submitSignedTx({
         account, tx_type: txType, payload, parent: null,
@@ -253,8 +253,8 @@ async function submitRealPublicLobbyComment(
   // Production signing / canonical nonce reservation / actual HTTP submission.
   // No test identity injection, direct state mutation, or bypassed authority.
   const result = await page.evaluate(async ({ account, threadId, body }) => {
-    // @ts-ignore - Vite's development-only module URL
-    const { submitSignedTxWithNonce } = await import("/src/auth/session.ts");
+    // @ts-ignore - opt-in compiled browser test module
+    const { submitSignedTxWithNonce } = await import("/__weall_test__/session.js");
     const signed = await submitSignedTxWithNonce({
       account,
       tx_type: "CONTENT_COMMENT_CREATE",
@@ -391,8 +391,8 @@ async function verifyRealTier0PublicLobbyConversation(args: {
   // lobby. A submitted transaction is not proof of apply; the canonical
   // terminal receipt must reject it, as the previous M4.2 negative test does.
   const invalid = await beta.evaluate(async ({ account }) => {
-    // @ts-ignore - Vite development-only module URL
-    const { submitSignedTxWithNonce } = await import("/src/auth/session.ts");
+    // @ts-ignore - opt-in compiled browser test module
+    const { submitSignedTxWithNonce } = await import("/__weall_test__/session.js");
     const submitted = await submitSignedTxWithNonce({
       account,
       tx_type: "CONTENT_COMMENT_CREATE",

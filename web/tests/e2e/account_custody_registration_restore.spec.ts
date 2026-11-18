@@ -169,8 +169,8 @@ test.describe("real browser account custody", () => {
   test("browser ML-DSA-65 custody primitives execute with protocol sizes and context", async ({ page }) => {
     await page.goto("/#/login");
     const result = await page.evaluate(async () => {
-      const keysModulePath = "/src/auth/keys.ts";
-      const keys = await import(/* @vite-ignore */ keysModulePath);
+      const keysModulePath = "/__weall_test__/keys.js";
+      const keys = await import(keysModulePath);
       const kp = keys.generateKeypair();
       const derived = keys.derivePublicKeyFromSecretKey(kp.secretKeyB64);
       const validation = keys.validateKeypair(kp.pubkeyB64, kp.secretKeyB64);

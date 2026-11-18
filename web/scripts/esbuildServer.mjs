@@ -11,6 +11,7 @@ import { permitsLocalSecretRequest, protectDevBootstrapSecrets } from './devBoot
 import { buildFrontend, root } from './esbuildBuild.mjs';
 
 const preview = process.argv[2] === 'preview';
+const browserTests = !preview && process.env.WEALL_BROWSER_TEST_MODULES === '1';
 const { values } = parseArgs({ args: process.argv.slice(preview ? 3 : 2), options: {
   host: { type: 'string', default: '127.0.0.1' },
   port: { type: 'string', default: preview ? '4173' : '5173' },
@@ -30,7 +31,7 @@ const out = preview ? resolve(root, 'dist') : mkdtempSync(resolve(tmpdir(), 'wea
 function cleanup() { if (!preview) rmSync(out,{recursive:true,force:true}); }
 try {
   if (preview) assert.ok((await stat(resolve(out, 'index.html'))).isFile(), 'build before preview');
-  else await buildFrontend(out, false);
+  else await buildFrontend(out, false, { browserTests });
 } catch (error) { cleanup(); throw error; }
 
 const CSP = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; worker-src 'self' blob:; frame-src 'self' http://127.0.0.1:* http://localhost:*;";
@@ -55,7 +56,11 @@ function proxy(req,res,target) {
 }
 async function staticFile(req,res,pathname) {
   if (!['GET','HEAD'].includes(req.method)) return deny(res,405);
-  const base = preview || pathname === '/' || pathname.startsWith('/assets/') ? out : resolve(root,'public');
+  // Raw source remains unavailable; compiled browser-test modules require
+  // explicit opt-in and cannot be served from preview or normal development.
+  const testRoute = pathname.startsWith('/__weall_test__/');
+  if (testRoute && !browserTests) return deny(res,404);
+  const base = preview || pathname === '/' || pathname.startsWith('/assets/') || testRoute ? out : resolve(root,'public');
   const rel = pathname === '/' ? 'index.html' : pathname.slice(1);
   try {
     const baseReal = await realpath(base);

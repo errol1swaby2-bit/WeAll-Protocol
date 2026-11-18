@@ -6,6 +6,10 @@ on:
       - .github/workflows/m4-social-eligibility-boundary.yml
       - web/tests/e2e/m4_two_user_one_node_custody.spec.ts
       - web/playwright.m4.config.ts
+      - web/scripts/esbuildBuild.mjs
+      - web/scripts/esbuildServer.mjs
+      - web/package.json
+      - web/package-lock.json
       - scripts/run_account_custody_real_stack_e2e.sh
       - web/src/App.tsx
       - web/src/lib/router.ts

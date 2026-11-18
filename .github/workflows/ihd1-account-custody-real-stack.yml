@@ -7,6 +7,10 @@ on:
       - "web/src/**"
       - "web/tests/e2e/account_custody_registration_restore.spec.ts"
       - "web/playwright.config.ts"
+      - web/scripts/esbuildBuild.mjs
+      - web/scripts/esbuildServer.mjs
+      - web/package.json
+      - web/package-lock.json
       - "web/package*.json"
       - "Weall-Protocol/scripts/devnet_boot_genesis_node.sh"
       - "Weall-Protocol/scripts/devnet_boot_joining_node.sh"

@@ -35,7 +35,7 @@ def test_live_room_opens_external_by_default_and_embed_is_opt_in() -> None:
 
 
 def test_vite_csp_names_local_or_self_hosted_frames_for_rehearsal_if_embed_opted_in() -> None:
-    src = _read(WEB / "vite.config.ts")
+    src = _read(WEB / "scripts" / "esbuildServer.mjs")
     assert "frame-src 'self'" in src
     assert "http://127.0.0.1:*" in src
     assert "http://localhost:*" in src

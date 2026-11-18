@@ -28,6 +28,7 @@ export default defineConfig({
   },
   webServer: {
     command: "npm run dev -- --host 127.0.0.1 --port 5173",
+    env: { WEALL_BROWSER_TEST_MODULES: "1" },
     url: "http://127.0.0.1:5173",
     reuseExistingServer: !process.env.CI,
     timeout: 60_000

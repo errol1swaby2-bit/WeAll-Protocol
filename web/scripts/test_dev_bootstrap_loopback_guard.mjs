@@ -87,4 +87,9 @@ const rejected = spawnSync(process.execPath, [serverPath, "--host", "0.0.0.0"], 
 });
 assert.equal(rejected.status, 1, rejected.stderr);
 assert.match(rejected.stderr, /loopback-only frontend bind/);
+assert.match(server, /!preview && process\.env\.WEALL_BROWSER_TEST_MODULES === '1'/);
+assert.match(server, /testRoute && !browserTests/);
+const build = readFileSync(resolve(repo, "web/scripts/esbuildBuild.mjs"), "utf8");
+assert.match(build, /!production \|\| !browserTests/);
+assert.match(build, /if \(browserTests\)/);
 console.log("PASS: local-bootstrap protection denies remote and cross-origin secret requests");

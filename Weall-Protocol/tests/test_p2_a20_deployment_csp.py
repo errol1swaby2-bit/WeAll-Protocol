@@ -14,8 +14,11 @@ def test_documented_production_reverse_proxies_emit_csp() -> None:
 
 
 def test_preview_and_documented_production_keep_external_scripts_blocked() -> None:
-    vite = (ROOT / "web" / "vite.config.ts").read_text(encoding="utf-8")
+    vite = (ROOT / "web" / "scripts" / "esbuildServer.mjs").read_text(encoding="utf-8")
     deployment = (ROOT / "web" / "DEPLOYMENT.md").read_text(encoding="utf-8")
-    assert "const PREVIEW_CSP" in vite
-    assert "\"script-src 'self'; \"" in vite
+    assert "const CSP" in vite
+    assert "script-src 'self';" in vite
+    assert "script-src 'self' 'unsafe-inline'" not in vite
+    assert "script-src 'self' 'unsafe-eval'" not in vite
+    assert "'Content-Security-Policy': CSP" in vite
     assert deployment.count("script-src 'self'") >= 2

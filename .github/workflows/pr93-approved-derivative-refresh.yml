@@ -30,6 +30,14 @@ on:
       - web/scripts/test_pr93_poh_merge_parity_source.mjs
       - web/scripts/test_async_evidence_preview.mjs
       - web/scripts/test_picomatch_security_regression.mjs
+      - web/scripts/esbuildBuild.mjs
+      - web/scripts/esbuildServer.mjs
+      - web/playwright.config.ts
+      - Weall-Protocol/tests/test_csp_test_compatibility_regression.py
+      - Weall-Protocol/tests/test_decentralized_p2p_live_rooms.py
+      - Weall-Protocol/tests/test_live_room_and_dispute_assignment_regression.py
+      - Weall-Protocol/tests/test_live_room_external_and_session_headers.py
+      - Weall-Protocol/tests/test_p2_a20_deployment_csp.py
       - .github/workflows/web-ci.yml
       - web/tests/e2e/verification_human_first.spec.ts
       - web/tests/e2e/m4_two_user_one_node_custody.spec.ts

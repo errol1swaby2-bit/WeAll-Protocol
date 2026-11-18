@@ -113,10 +113,10 @@ export async function createActorContext(browser: Browser, baseURL: string, acto
   const page = await context.newPage();
   await page.goto("/");
   await page.evaluate(async ({ actorValue, apiBaseValue }) => {
-    const recoveryModule = await import("/src/auth/recoveryFile.ts");
-    const keysModule = await import("/src/auth/keys.ts");
-    const evidenceModule = await import("/src/auth/evidenceCrypto.ts");
-    const sessionModule = await import("/src/auth/session.ts");
+    const recoveryModule = await import("/__weall_test__/recoveryFile.js");
+    const keysModule = await import("/__weall_test__/keys.js");
+    const evidenceModule = await import("/__weall_test__/evidenceCrypto.js");
+    const sessionModule = await import("/__weall_test__/session.js");
     const recovery = recoveryModule.parseRecoveryKeyFileText(JSON.stringify(actorValue.recovery));
     keysModule.saveKeypair(recovery.account, {
       pubkeyB64: recovery.publicKeyB64,
@@ -150,8 +150,8 @@ export async function createActorContext(browser: Browser, baseURL: string, acto
 
 export async function submitSkeleton(page: Page, apiBase: string, account: string, method: string, payload: Record<string, unknown>): Promise<string> {
   return page.evaluate(async ({ apiBaseValue, accountValue, methodValue, payloadValue }) => {
-    const apiModule = await import("/src/api/weall.ts");
-    const sessionModule = await import("/src/auth/session.ts");
+    const apiModule = await import("/__weall_test__/weall.js");
+    const sessionModule = await import("/__weall_test__/session.js");
     const api: any = apiModule.weall;
     const factory = api[methodValue];
     if (typeof factory !== "function") throw new Error(`unknown skeleton method: ${methodValue}`);
@@ -175,7 +175,7 @@ export async function submitSkeleton(page: Page, apiBase: string, account: strin
 
 export async function submitDirect(page: Page, apiBase: string, account: string, txType: string, payload: Record<string, unknown>): Promise<string> {
   return page.evaluate(async ({ apiBaseValue, accountValue, txTypeValue, payloadValue }) => {
-    const sessionModule = await import("/src/auth/session.ts");
+    const sessionModule = await import("/__weall_test__/session.js");
     const result = await sessionModule.submitSignedTx({
       account: accountValue,
       tx_type: txTypeValue,
@@ -243,10 +243,10 @@ export async function submitEncryptedAsyncFollowup(args: {
   recipients: string[];
 }): Promise<{ evidenceId: string; declareTxId: string; bindTxId: string; ciphertextCid: string }> {
   return args.page.evaluate(async ({ apiBaseValue, caseIdValue, applicantValue, recipientValues }) => {
-    const apiModule = await import("/src/api/weall.ts");
-    const keysModule = await import("/src/auth/keys.ts");
-    const sessionModule = await import("/src/auth/session.ts");
-    const evidenceModule = await import("/src/auth/evidenceCrypto.ts");
+    const apiModule = await import("/__weall_test__/weall.js");
+    const keysModule = await import("/__weall_test__/keys.js");
+    const sessionModule = await import("/__weall_test__/session.js");
+    const evidenceModule = await import("/__weall_test__/evidenceCrypto.js");
 
     const applicant = keysModule.normalizeAccount(applicantValue);
     const recipients = Array.from(new Set([applicant, ...recipientValues.map((value) => keysModule.normalizeAccount(value))].filter(Boolean)));
