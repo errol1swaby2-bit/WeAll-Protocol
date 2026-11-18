@@ -758,7 +758,7 @@
       ],
       "path": "../.github/workflows/pr93-approved-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "fbd1ce3e993286bd6ae61bcc7166667bf551bb2685677226fe3c25f0c4408d53",
+      "sha256": "9547d23acc644833ad3c36995f4711d2cb622200c20e75b38cc9960ae13ce6eb",
       "source_id": "SRC-AF812EB04A5D3741"
     },
     {
@@ -14530,7 +14530,7 @@
       ],
       "path": "tests/conftest.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7636aa5a59efa06990614c4c163f4868a2e18ec8eebfd90a280bf7f59268b480",
+      "sha256": "c7fda3e514a19e3e7ffac337914980309f33abcc1bb014a7f420bdadac5980dd",
       "source_id": "SRC-E52E4DDD58B7EF88"
     },
     {
@@ -14699,7 +14699,7 @@
       ],
       "path": "tests/p0_assurance.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "6a2787fbbfc600dfd679045f14c6dfefeb58adeb869de8de3aa97bac017104e6",
+      "sha256": "db47377afd06717d8d06fe6476ab74ba2b21b00a07ea72b311887bc6a895c60a",
       "source_id": "SRC-AA6DA9828EBC4008"
     },
     {
