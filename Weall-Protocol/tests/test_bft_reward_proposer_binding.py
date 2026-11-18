@@ -9,6 +9,7 @@ from weall.ledger.constants import (
     TREASURY_ACCOUNT_ID,
 )
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.state_hash import compute_state_root
 
 
 def _index_path() -> str:
@@ -99,10 +100,26 @@ def test_bft_reward_distribution_binds_actual_proposer_on_leader_and_follower(
     assert transfers[TREASURY_ACCOUNT_ID] == INITIAL_ISSUANCE_PER_EPOCH - transfers["@validator"]
 
     block["proposer"] = "@validator"
+    # The local signing/pacemaker record is injected at durable commit,
+    # not by candidate construction. Independently commit and replay the
+    # same block; compare all fields except this explicitly local record.
+    candidate_snapshot = copy.deepcopy(leader_state)
+    leader_commit = leader.commit_block_candidate(
+        block=copy.deepcopy(block), new_state=leader_state, applied_ids=_applied, invalid_ids=invalid
+    )
+    assert leader_commit.ok, leader_commit.error
     result = follower.apply_block(copy.deepcopy(block))
     assert result.ok is True, result.error
-    assert follower.state == leader_state
-    assert follower.state["accounts"]["@validator"]["balance"] == transfers["@validator"]
+    for executor in (leader, follower):
+        assert executor.state["bft"] == executor._bft.export_state()
+        assert compute_state_root(executor.state) == block["header"]["state_root"]
+        assert {k: v for k, v in executor.state.items() if k != "bft"} == {
+            k: v for k, v in candidate_snapshot.items() if k != "bft"
+        }
+        assert executor.state["accounts"]["@validator"]["balance"] == transfers["@validator"]
+        assert executor.state["accounts"][TREASURY_ACCOUNT_ID]["balance"] == transfers[
+            TREASURY_ACCOUNT_ID
+        ]
 
 
 def test_blank_proposer_retains_non_bft_treasury_fallback(tmp_path: Path, monkeypatch) -> None:

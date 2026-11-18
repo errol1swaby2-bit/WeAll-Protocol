@@ -12,6 +12,8 @@ on:
       - Weall-Protocol/tests/test_v2_spec_compiler.py
       - Weall-Protocol/tests/test_pr77_batch_c_authority_and_rollback.py
       - Weall-Protocol/tests/test_content_reviewer_selection_and_surface.py
+      - Weall-Protocol/tests/test_adversarial_invariant_closure.py
+      - Weall-Protocol/tests/test_bft_reward_proposer_binding.py
       - .github/workflows/v2-spec-refresh.yml
       - Weall-Protocol/tests/test_frontend_dependency_audit.py
       - Weall-Protocol/specs/v2/source/stable_ids.json
@@ -175,6 +177,9 @@ jobs:
           ruff check tests/test_v2_spec_compiler.py tests/test_pr77_batch_c_authority_and_rollback.py tests/test_content_reviewer_selection_and_surface.py
           ruff format --check tests/test_v2_spec_compiler.py tests/test_pr77_batch_c_authority_and_rollback.py tests/test_content_reviewer_selection_and_surface.py
           python -m pytest -q tests/test_pr77_batch_c_authority_and_rollback.py tests/test_content_reviewer_selection_and_surface.py tests/test_v2_spec_compiler.py::test_v2_route_contract_map_covers_all_route_implementations tests/test_v2_spec_compiler.py::test_compilation_manifest_preserves_fail_closed_truth_boundary tests/test_v2_spec_compiler.py::test_w1_closure_manifest_records_release_attestation_boundary
+          ruff check tests/test_adversarial_invariant_closure.py tests/test_bft_reward_proposer_binding.py
+          ruff format --check tests/test_adversarial_invariant_closure.py tests/test_bft_reward_proposer_binding.py
+          python -m pytest -q tests/test_adversarial_invariant_closure.py::test_bft_persistence_merges_into_newer_committed_snapshot tests/test_bft_reward_proposer_binding.py
           ruff check tests/test_frontend_dependency_audit.py
           ruff format --check tests/test_frontend_dependency_audit.py
           python -m pytest -q tests/test_frontend_dependency_audit.py tests/test_p1_a17_reviewer_repro_contract.py

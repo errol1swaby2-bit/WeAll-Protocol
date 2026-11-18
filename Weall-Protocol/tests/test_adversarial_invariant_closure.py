@@ -170,14 +170,23 @@ def test_bft_persistence_merges_into_newer_committed_snapshot(
 ) -> None:
     ex = _executor(tmp_path, "race", chain_id="bft-persist-race")
 
+    # Build while the local BFT record is still old, then persist a
+    # newer record and commit that stale-metadata candidate concurrently.
+    block, candidate, applied, invalid, err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True, force_ts_ms=1_000
+    )
+    assert err == ""
+    assert block is not None and candidate is not None
     entered = threading.Event()
     release = threading.Event()
+    commit_started = threading.Event()
+    commit_finished = threading.Event()
     errors: list[BaseException] = []
     original_update = ex._ledger_store.update
 
     def paused_update(fn):
         entered.set()
-        assert release.wait(timeout=10)
+        assert release.wait(timeout=30)
         return original_update(fn)
 
     monkeypatch.setattr(ex._ledger_store, "update", paused_update)
@@ -191,17 +200,45 @@ def test_bft_persistence_merges_into_newer_committed_snapshot(
         except BaseException as exc:  # pragma: no cover - asserted below
             errors.append(exc)
 
-    thread = threading.Thread(target=persist_bft, daemon=True)
-    thread.start()
-    assert entered.wait(timeout=10)
+    def commit_candidate() -> None:
+        try:
+            commit_started.set()
+            result = ex.commit_block_candidate(
+                block=block, new_state=candidate, applied_ids=applied, invalid_ids=invalid
+            )
+            assert result.ok, result.error
+        except BaseException as exc:  # pragma: no cover - asserted below
+            errors.append(exc)
+        finally:
+            commit_finished.set()
 
-    block = _commit_empty_block(ex)
-    assert int(ex.state.get("height") or 0) == 1
-
-    release.set()
-    thread.join(timeout=10)
-    assert not thread.is_alive()
+    persist_thread = threading.Thread(target=persist_bft, daemon=True)
+    commit_thread = threading.Thread(target=commit_candidate, daemon=True)
+    persist_thread.start()
+    try:
+        assert entered.wait(timeout=10)
+        # The canonical branch guard must remain held throughout the
+        # persistence window, even before SQLite takes its write lock.
+        guard = ex._bft_branch_guard_lock()
+        acquired = guard.acquire(blocking=False)
+        if acquired:
+            guard.release()
+        assert not acquired
+        commit_thread.start()
+        assert commit_started.wait(timeout=10)
+        assert not commit_finished.is_set()
+        assert int(ex.state.get("height") or 0) == 0
+    finally:
+        release.set()
+        persist_thread.join(timeout=10)
+        if commit_thread.ident is not None:
+            commit_thread.join(timeout=10)
+    assert not persist_thread.is_alive()
+    assert not commit_thread.is_alive()
     assert errors == []
+    assert commit_finished.is_set()
+    assert int(ex.state.get("height") or 0) == 1
+    assert compute_state_root(ex.state) == block["header"]["state_root"]
 
     with ex._db.connection() as con:
         row = con.execute(
@@ -213,6 +250,8 @@ def test_bft_persistence_merges_into_newer_committed_snapshot(
     assert int(persisted.get("height") or 0) == 1
     assert str(persisted.get("tip") or "") == str(block["block_id"])
     assert int((persisted.get("bft") or {}).get("last_voted_view") or -1) == 6
+    assert persisted["bft"]["last_voted_block_id"] == "b:6"
+    assert compute_state_root(persisted) == block["header"]["state_root"]
 
     restarted = _executor(tmp_path, "race", chain_id="bft-persist-race")
     assert int(restarted.state.get("height") or 0) == 1
