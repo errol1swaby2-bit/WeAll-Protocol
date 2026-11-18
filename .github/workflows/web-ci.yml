@@ -11,8 +11,46 @@ concurrency:
   group: web-ci-bounded-setup-v2-${{ github.ref }}
   cancel-in-progress: true
 
+# These are isolated CI rehearsals, not publish or deployment authorization.
+permissions:
+  contents: read
+
 jobs:
-  web:
+  dependency-security:
+    name: Frontend dependency security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        id: install_web_dependencies
+        run: npm ci
+
+      - name: Dependency audit
+        run: |
+          npm run dependency-audit
+
+      - name: Isolated Picomatch vulnerability regression (GHSA-fc5q-39xc-vjpf)
+        # Both security checks remain mandatory, even when the audit fails.
+        if: ${{ !cancelled() && steps.install_web_dependencies.outcome == 'success' }}
+        run: node scripts/test_picomatch_security_regression.mjs
+
+  frontend-functional:
+    name: Frontend functional and local deployment rehearsal
     runs-on: ubuntu-24.04
     # Prevent indefinite APT/browser setup waits from tying up a runner.
     timeout-minutes: 35
@@ -24,6 +62,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -85,20 +125,8 @@ jobs:
           cat /tmp/weall-web-ci-backend.log >&2 || true
           exit 1
 
-      - name: Install
-        id: install_web_dependencies
-        run: |
-          npm ci
-
-      - name: Dependency audit
-        run: |
-          npm run dependency-audit
-
-      - name: Isolated Picomatch vulnerability regression (GHSA-fc5q-39xc-vjpf)
-        # Run even if the advisory audit fails, to provide separate behavioral
-        # evidence. Neither step is optional and neither substitutes for the other.
-        if: ${{ !cancelled() && steps.install_web_dependencies.outcome == 'success' }}
-        run: node scripts/test_picomatch_security_regression.mjs
+      - name: Install frozen frontend dependencies
+        run: npm ci
 
       - name: Typecheck
         run: |
@@ -273,8 +301,29 @@ jobs:
       - name: Stop production Nginx deployment
         if: always()
         run: |
-          sudo nginx -c /tmp/weall-web-nginx.conf -s quit || true
+          if test -f /tmp/weall-web-nginx.conf; then
+            sudo nginx -c /tmp/weall-web-nginx.conf -s quit || true
+          fi
           test ! -f /tmp/weall-web-nginx-error.log || cat /tmp/weall-web-nginx-error.log
+
+  # Preserve the existing required check name. A failed, skipped or cancelled
+  # prerequisite cannot produce a passing aggregate check.
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    needs: [dependency-security, frontend-functional, governance-ui]
+    if: always()
+    steps:
+      - name: Require every frontend gate
+        env:
+          SECURITY_RESULT: ${{ needs.dependency-security.result }}
+          FUNCTIONAL_RESULT: ${{ needs.frontend-functional.result }}
+          GOVERNANCE_RESULT: ${{ needs.governance-ui.result }}
+        run: |
+          printf 'security=%s functional=%s governance=%s\n' "$SECURITY_RESULT" "$FUNCTIONAL_RESULT" "$GOVERNANCE_RESULT"
+          test "$SECURITY_RESULT" = success
+          test "$FUNCTIONAL_RESULT" = success
+          test "$GOVERNANCE_RESULT" = success
 
   governance-ui:
     name: Governance frontend rendered regression
@@ -287,6 +336,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4

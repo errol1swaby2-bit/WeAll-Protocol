@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web"
 
@@ -126,8 +128,39 @@ def test_pr93_regeneration_has_one_generated_only_writer_and_keeps_web_audit() -
     assert "web/package.json web/package-lock.json" in strict
     assert "git push origin HEAD:" in strict
     assert "npm install --package-lock-only" not in strict
-    gate_steps = web.split("      - name: Dependency audit\n", 1)[1]
-    gate_steps = gate_steps.split("      - name: Typecheck\n", 1)[0]
-    assert "npm run dependency-audit" in gate_steps
-    assert "node scripts/test_picomatch_security_regression.mjs" in gate_steps
-    assert "continue-on-error:" not in gate_steps
+    jobs = yaml.safe_load(web)["jobs"]
+    security = jobs["dependency-security"]
+    steps = {step["name"]: step for step in security["steps"]}
+    audit = steps["Dependency audit"]
+    regression = steps["Isolated Picomatch vulnerability regression (GHSA-fc5q-39xc-vjpf)"]
+    assert audit["run"].strip() == "npm run dependency-audit"
+    assert "if" not in audit
+    assert regression["run"] == "node scripts/test_picomatch_security_regression.mjs"
+    assert regression["if"] == (
+        "${{ !cancelled() && steps.install_web_dependencies.outcome == 'success' }}"
+    )
+    assert "continue-on-error:" not in web
+
+    # Functional evidence remains independently observable, but the original
+    # required web check cannot succeed unless every prerequisite succeeds.
+    functional = jobs["frontend-functional"]
+    assert "needs" not in functional
+    assert "if" not in functional
+    functional_steps = {step["name"]: step for step in functional["steps"]}
+    assert functional_steps["Build"]["run"].strip() == "npm run build"
+    assert "Production deployment Chromium smoke" in functional_steps
+    aggregate = jobs["web"]
+    assert set(aggregate["needs"]) == {"dependency-security", "frontend-functional", "governance-ui"}
+    assert aggregate["if"] == "always()"
+    gate = aggregate["steps"][0]
+    assert gate["env"] == {
+        "SECURITY_RESULT": "${{ needs.dependency-security.result }}",
+        "FUNCTIONAL_RESULT": "${{ needs.frontend-functional.result }}",
+        "GOVERNANCE_RESULT": "${{ needs.governance-ui.result }}",
+    }
+    for result in gate["env"]:
+        assert f'test "${result}" = success' in gate["run"]
+    assert yaml.safe_load(web)["permissions"] == {"contents": "read"}
+    for job in (security, functional, jobs["governance-ui"]):
+        checkout = next(step for step in job["steps"] if step.get("uses") == "actions/checkout@v4")
+        assert checkout["with"]["persist-credentials"] is False
