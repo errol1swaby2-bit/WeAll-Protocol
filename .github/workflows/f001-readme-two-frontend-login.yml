@@ -54,13 +54,43 @@ jobs:
         run: |
           set -euo pipefail
           source .venv/bin/activate
-          export WEALL_DEVNET_DIR="$RUNNER_TEMP/f001-devnet"
+          mkdir -p "$RUNNER_TEMP/f001-devnet"
+          export WEALL_DEVNET_DIR="$RUNNER_TEMP/f001-devnet/.weall-devnet"
+          python scripts/devnet_safe_paths.py check-devnet "$WEALL_DEVNET_DIR"
+          python scripts/devnet_safe_paths.py check-devnet-writable "$WEALL_DEVNET_DIR"
           export WEALL_LOCAL_REHEARSAL_KEEP_RUNNING=1
           # Preserve the documented 20s block cadence and real IPFS startup.
           # No direct-session, signature, receipt or reconciliation bypass.
           bash scripts/devnet_local_two_frontend_rehearsal.sh > "$RUNNER_TEMP/f001-launcher.log" 2>&1 &
           launcher=$!
+          # Keep the documented launcher alive; the disposable CI runner
+          # tears down any surviving child processes.
           trap 'kill -TERM "$launcher" 2>/dev/null || true; wait "$launcher" 2>/dev/null || true' EXIT
+          launcher_diagnostics() {
+            # The launcher is allowed to emit local credentials. Report fixed
+            # stage categories only; never publish its raw output.
+            python - "$RUNNER_TEMP/f001-launcher.log" <<'PY'
+          import sys
+          from pathlib import Path
+          log = Path(sys.argv[1]).read_text(errors="replace")
+          markers = {
+              "unsafe_path": "ERROR: unsafe controlled-devnet path:",
+              "venv_missing": "ERROR: Python virtualenv not active",
+              "port_cleanup": "Port state after cleanup",
+              "ipfs_ready": "IPFS is ready",
+              "ipfs_failure": "ERROR: Docker still could not expose IPFS ports",
+              "genesis_boot": "Booting genesis backend",
+              "observer_boot": "Booting observer backend",
+              "applicant_authority_confirmed": "Applicant ML-KEM evidence authority confirmed",
+              "observer_frontend": "Starting observer frontend",
+              "genesis_frontend": "Starting genesis frontend",
+              "ready": "Local two-frontend rehearsal ready",
+              "python_traceback": "Traceback (most recent call last)",
+              "signature_rejection": "signature verification failed",
+          }
+          print("Launcher diagnostics:", {name: needle in log for name, needle in markers.items()})
+          PY
+          }
           ready=0
           for ((i=0; i<600; i++)); do
             if grep -Fq "Local two-frontend rehearsal ready" "$RUNNER_TEMP/f001-launcher.log"; then
@@ -69,11 +99,16 @@ jobs:
             fi
             if ! kill -0 "$launcher" 2>/dev/null; then
               echo "README launcher exited before readiness; no browser proof claimed."
+              launcher_diagnostics
               exit 1
             fi
             sleep 1
           done
-          test "$ready" = 1
+          if [[ "$ready" != 1 ]]; then
+            launcher_diagnostics
+            echo "README launcher timed out before readiness; no browser proof claimed."
+            exit 1
+          fi
           cd ../web
           npx --no-install playwright test --config=playwright.rehearsal.config.ts
           echo "scope=LOCAL_CONTROLLED_DEVNET_TWO_BROWSER_GENERATED_DEMO_ACCOUNTS"

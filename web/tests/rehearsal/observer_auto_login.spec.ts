@@ -92,7 +92,15 @@ for (const actor of [
         }, { timeout: 120_000 }).toBe(true);
       }
       // Navigation/focus after success must not mint further credentials.
+      // Await actual node recognition after reload rather than a transient
+      // zero-heading count during initial React hydration.
+      const recognizedAgain = page.waitForResponse(async response => {
+        if (!response.ok() || new URL(response.url()).pathname !== "/v1/session/me") return false;
+        const body = await response.json();
+        return body?.authenticated === true && body?.account === actor.account;
+      }, { timeout: 60_000 });
       await page.reload({ waitUntil: "domcontentloaded" });
+      await recognizedAgain;
       await expect(page.getByRole("heading", { name: "Create or access your WeAll account" })).toHaveCount(0);
       expect(counts).toEqual({ device: 1, issue: 1, registration: 0 });
     } finally {

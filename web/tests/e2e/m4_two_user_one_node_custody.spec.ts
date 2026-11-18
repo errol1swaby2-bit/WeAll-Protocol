@@ -631,8 +631,69 @@ test("two independent real users register, update public profiles and isolate ke
       alphaRecovery.secretKeyB64,
     );
     expect(restoredKeyReady, "recovery file parsed the expected signing key").toBe(true);
+    // Observe the real recovery attempt without retaining request bodies,
+    // private material, or raw browser error messages in CI evidence.
+    const recoveryStages: Record<string, number> = {};
+    const recoveryReceipts = new Set<string>();
+    const observed = (stage: string) => { recoveryStages[stage] = (recoveryStages[stage] || 0) + 1; };
+    restored.on("response", async response => {
+      try {
+        const path = new URL(response.url()).pathname;
+        if (path === "/v1/session/login") observed("direct_login_http_" + response.status());
+        if (path === "/v1/tx/submit") {
+          const type = response.request().postDataJSON()?.tx_type;
+          if (type !== "ACCOUNT_DEVICE_REGISTER" && type !== "ACCOUNT_SESSION_KEY_ISSUE") return;
+          observed(type + "_http_" + response.status());
+          const body = await response.json();
+          const txId = String(body?.tx_id || body?.result?.tx_id || "");
+          if (/^tx:[0-9a-f]{64}$/.test(txId)) recoveryReceipts.add(txId);
+          const code = String(body?.error?.code || "");
+          if (["bad_nonce", "mempool_signer_nonce_conflict", "tx_id_conflict", "bad_sig", "forbidden"].includes(code)) {
+            observed(type + "_error_" + code);
+          }
+        }
+        if (path.startsWith("/v1/tx/status/")) {
+          if (!response.ok()) { observed("receipt_http_" + response.status()); return; }
+          const body = await response.json();
+          const state = ["confirmed", "local_confirmed", "unknown", "pending", "rejected"].includes(body?.status)
+            ? body.status : "other";
+          observed("receipt_" + state + "_applied_" + (body?.apply_ok === true) + "_synced_" + (body?.local_state_synced === true));
+        }
+        if (path === "/v1/session/me") {
+          if (!response.ok()) observed("session_me_http_" + response.status());
+          else observed("session_me_authenticated_" + ((await response.json())?.authenticated === true));
+        }
+      } catch { observed("diagnostic_response_unavailable"); }
+    });
     await form.getByRole("button", { name: "Sign in", exact: true }).click();
-    await restored.waitForURL(/#\/home$/, { timeout: 120_000 });
+    try {
+      await restored.waitForURL(/#\/home$/, { timeout: 120_000 });
+    } catch {
+      const state = await restored.evaluate(() => {
+        const error = document.querySelector(".error-text")?.textContent || "";
+        const categories = [
+          ["receipt_wait", "Login is waiting for canonical"],
+          ["receipt_rejected", "Session transaction was rejected"],
+          ["key_mismatch", "does not match the registered account"],
+          ["storage_failure", "pending_canonical_login_storage_failed"],
+          ["ack_mismatch", "acknowledgement does not match"],
+          ["envelope_mismatch", "pending_canonical_login_envelope_mismatch"],
+          ["nonce_conflict", "Another signed action"],
+          ["chain_mismatch", "pending_canonical_login_chain_mismatch"],
+          ["session_issue_failed", "session_issue_failed"],
+        ];
+        const label = categories.find(([, marker]) => error.includes(marker))?.[0] || (error ? "other_visible_error" : "no_visible_error");
+        const meta = JSON.parse(localStorage.getItem("weall_session_v1") || "null");
+        const bearer = JSON.parse(sessionStorage.getItem("weall_session_bearer_v1") || "null");
+        return {
+          errorCategory: label, hasSessionMetadata: Boolean(meta?.account),
+          hasBearer: Boolean(bearer?.sessionKey),
+          pendingLogin: Object.keys(sessionStorage).some(key => key.startsWith("weall_pending_canonical_login_v1::")),
+          onHome: location.hash === "#/home",
+        };
+      });
+      throw new Error("m4_recovery_not_complete:" + JSON.stringify({ stages: recoveryStages, trackedReceiptCount: recoveryReceipts.size, state }));
+    }
     const restoredKeys = await storedKeys(restored, alphaId, betaId);
     expect(restoredKeys.selfSession).toContain(alphaId);
     expect(restoredKeys.selfSecret === alphaRecovery.secretKeyB64).toBe(true);
