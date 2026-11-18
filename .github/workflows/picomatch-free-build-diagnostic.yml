@@ -401,6 +401,46 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
         run: |
           npx --no-install playwright test tests/e2e/active_deliberations_rendered.spec.ts --config=playwright.production.config.ts
+      - name: Candidate development server loopback and proxy checks
+        run: |
+          npm pkg set 'scripts.dev=node scripts/esbuildDevCandidate.mjs'
+          VITE_WEALL_API_BASE=/ VITE_WEALL_DEV_PROXY_TARGET=http://127.0.0.1:8000 PRIVATE_DIAGNOSTIC_SENTINEL=not-for-browser-123456 node scripts/esbuildDevCandidate.mjs --host 127.0.0.1 --port 5173 --strictPort > /tmp/weall-candidate-dev.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ > /tmp/weall-candidate-index.html; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5173/v1/readyz | python -c 'import json,sys; assert json.load(sys.stdin)["ok"] is True'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: attacker.invalid' http://127.0.0.1:5173/v1/readyz)" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://attacker.invalid' http://127.0.0.1:5173/v1/dev/bootstrap-secret)" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' --path-as-is http://127.0.0.1:5173/v1/%2564ev/bootstrap-secret)" = 400
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5173/src/main.tsx)" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5173/.env)" = 404
+          entry="$(grep -oE '/assets/[^"]+\.js' /tmp/weall-candidate-index.html | head -1)"
+          test -n "$entry"
+          curl -fsS "http://127.0.0.1:5173$entry" > /tmp/weall-candidate-entry.js
+          if grep -F 'not-for-browser-123456' /tmp/weall-candidate-entry.js; then exit 1; fi
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { spawnSync } from 'node:child_process';
+          const result = spawnSync(process.execPath,['scripts/esbuildDevCandidate.mjs','--host','0.0.0.0'],{encoding:'utf8',timeout:10000});
+          assert.equal(result.status,1);
+          assert.match(result.stderr,/loopback-only frontend bind/);
+          JS
+          # Existing browser tests must reuse the candidate through the production-config runner.
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 npx --no-install playwright test tests/e2e/active_deliberations_rendered.spec.ts --config=playwright.production.config.ts
+      - name: Two independently signed browser accounts with candidate development server
+        working-directory: .
+        env:
+          CI: 'true'
+          WEALL_M4_TWO_USER_E2E: '1'
+          WEALL_KEEP_M2_CUSTODY_RUNTIME: '0'
+          WEALL_CUSTODY_REPEAT_EACH: '1'
+          WEB_PORT: '5173'
+        run: |
+          # The previous direct server must not be reused by Playwright.
+          bash scripts/run_account_custody_real_stack_e2e.sh
       - name: Stop production Nginx deployment
         if: always()
         run: |
