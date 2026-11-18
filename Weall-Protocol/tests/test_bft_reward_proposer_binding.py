@@ -105,7 +105,10 @@ def test_bft_reward_distribution_binds_actual_proposer_on_leader_and_follower(
     # same block; compare all fields except this explicitly local record.
     candidate_snapshot = copy.deepcopy(leader_state)
     leader_commit = leader.commit_block_candidate(
-        block=copy.deepcopy(block), new_state=leader_state, applied_ids=_applied, invalid_ids=invalid
+        block=copy.deepcopy(block),
+        new_state=leader_state,
+        applied_ids=_applied,
+        invalid_ids=invalid,
     )
     assert leader_commit.ok, leader_commit.error
     result = follower.apply_block(copy.deepcopy(block))
@@ -117,9 +120,10 @@ def test_bft_reward_distribution_binds_actual_proposer_on_leader_and_follower(
             k: v for k, v in candidate_snapshot.items() if k != "bft"
         }
         assert executor.state["accounts"]["@validator"]["balance"] == transfers["@validator"]
-        assert executor.state["accounts"][TREASURY_ACCOUNT_ID]["balance"] == transfers[
-            TREASURY_ACCOUNT_ID
-        ]
+        assert (
+            executor.state["accounts"][TREASURY_ACCOUNT_ID]["balance"]
+            == transfers[TREASURY_ACCOUNT_ID]
+        )
 
 
 def test_blank_proposer_retains_non_bft_treasury_fallback(tmp_path: Path, monkeypatch) -> None:

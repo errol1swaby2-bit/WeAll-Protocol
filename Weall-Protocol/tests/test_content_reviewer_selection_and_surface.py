@@ -128,7 +128,9 @@ def test_frontend_surfaces_content_review_opt_in_and_juror_review_queue_stage() 
     juror_dashboard = (OUTER / "web/src/pages/JurorDashboard.tsx").read_text(encoding="utf-8")
 
     assert "weall.accountReviewerStatus" in verification_page
-    panel_import = 'import TrustedResponsibilitiesPanel from "../components/TrustedResponsibilitiesPanel"'
+    panel_import = (
+        'import TrustedResponsibilitiesPanel from "../components/TrustedResponsibilitiesPanel"'
+    )
     assert panel_import in verification_page
     assert "<TrustedResponsibilitiesPanel" in verification_page
     assert "onUpdateContentReviewLane={(active) => void updateContentReviewLane(active)}" in (

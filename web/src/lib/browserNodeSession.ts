@@ -1,4 +1,4 @@
-// Browser access-node session proof, independent of consensus and Cloudflare.
+// Browser access-node session proof, independent of consensus and static hosting.
 // Never accepts a node's identity without the caller first verifying its pinned
 // chain/genesis/tx-index/profile commitments.
 import { isPublicApiOrigin } from "./publicApiOrigin";
@@ -67,7 +67,8 @@ export function isBrowserSessionApproved(baseUrl: string, account: string, sessi
  * Verify the backend's canonical session record, not just TCP/API health.
  * This must only be called for a previously chain-compatible HTTPS node.
  * A rejected or unreachable session cannot silently become an authenticated
- * browser connection. No keys are written to disk or sent to Cloudflare.
+ * browser connection. The bearer is sent only to the selected compatible node;
+ * this check neither writes keys to disk nor depends on a frontend hosting service.
  */
 export async function verifyBrowserSessionOnNode(
   baseUrl: string,
