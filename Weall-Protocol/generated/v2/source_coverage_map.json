@@ -888,7 +888,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "0c9f224bf45b6691fcc01538e4f2ec07fa03126a20b500a46cb754180bef13a6",
+      "sha256": "5aa6cbb80307334ead1df817be48aa203c6b3cf711b03b895381987240903783",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -19566,7 +19566,7 @@
       ],
       "path": "tests/test_frontend_dependency_audit.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "039740365a89a4a3852c4a973dba9a1ed5fd3a881e702976d032ebb8b632e5ed",
+      "sha256": "facfe1e8cd4dc82d963963b534b59f123ec94d9ce2242859e3594ae87d57e48a",
       "source_id": "SRC-8A077776FA8B7BDC"
     },
     {
