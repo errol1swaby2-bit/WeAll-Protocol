@@ -49,6 +49,16 @@ jobs:
           npm run typecheck
           node scripts/test_canonical_login_resume.mjs
           npx --no-install playwright install --with-deps chromium
+      - name: Verify CI Docker engine and obtain the launcher-pinned IPFS image
+        working-directory: Weall-Protocol
+        run: |
+          set -euo pipefail
+          docker info --format '{{.ServerVersion}}'
+          docker compose version
+          # Pull exactly the image declared by the documented Compose file.
+          # This does not start a substitute daemon or alter launcher safety.
+          docker compose -f docker-compose.ipfs.yml config --quiet
+          docker compose -f docker-compose.ipfs.yml pull ipfs
       - name: Start the documented launcher and run both real browsers
         working-directory: Weall-Protocol
         run: |
@@ -61,6 +71,8 @@ jobs:
           export WEALL_LOCAL_REHEARSAL_KEEP_RUNNING=1
           # Preserve the documented 20s block cadence and real IPFS startup.
           # No direct-session, signature, receipt or reconciliation bypass.
+          # Fail before provisioning identities if the pinned image is absent.
+          docker image inspect "$(docker compose -f docker-compose.ipfs.yml config --images)" >/dev/null
           bash scripts/devnet_local_two_frontend_rehearsal.sh > "$RUNNER_TEMP/f001-launcher.log" 2>&1 &
           launcher=$!
           # Keep the documented launcher alive; the disposable CI runner
@@ -69,16 +81,27 @@ jobs:
           launcher_diagnostics() {
             # The launcher is allowed to emit local credentials. Report fixed
             # stage categories only; never publish its raw output.
-            python - "$RUNNER_TEMP/f001-launcher.log" <<'PY'
+            python - "$RUNNER_TEMP/f001-launcher.log" "$WEALL_DEVNET_DIR/logs/local-ipfs-compose-up.log" <<'PY'
           import sys
           from pathlib import Path
-          log = Path(sys.argv[1]).read_text(errors="replace")
+          def read_log(path):
+              p = Path(path)
+              return p.read_text(errors="replace") if p.is_file() else ""
+          log = read_log(sys.argv[1])
+          compose = read_log(sys.argv[2])
           markers = {
               "unsafe_path": "ERROR: unsafe controlled-devnet path:",
               "venv_missing": "ERROR: Python virtualenv not active",
               "port_cleanup": "Port state after cleanup",
-              "ipfs_ready": "IPFS is ready",
-              "ipfs_failure": "ERROR: Docker still could not expose IPFS ports",
+              "ipfs_start": "Starting local IPFS daemon",
+              "ipfs_ready": "IPFS daemon ready and add-healthy",
+              "ipfs_already_healthy": "IPFS daemon already reachable and add-healthy",
+              "ipfs_compose_diagnostics": "IPFS port diagnostics",
+              "ipfs_port_repair_failed": "ERROR: Docker still could not expose IPFS ports",
+              "ipfs_api_timeout": "IPFS daemon did not become reachable",
+              "ipfs_add_unhealthy": "/api/v0/add failed",
+              "ipfs_directory_failure": "failed to create batch temp directory",
+              "ipfs_sharding_failure": "no SHARDING file",
               "genesis_boot": "Booting genesis backend",
               "observer_boot": "Booting observer backend",
               "applicant_authority_confirmed": "Applicant ML-KEM evidence authority confirmed",
@@ -89,7 +112,35 @@ jobs:
               "signature_rejection": "signature verification failed",
           }
           print("Launcher diagnostics:", {name: needle in log for name, needle in markers.items()})
+          # Use only fixed error categories, including Compose output which
+          # the launcher otherwise redirects. Never emit its raw lines.
+          combined = (log + "\n" + compose).lower()
+          categories = {
+              "permission": ("permission denied", "operation not permitted", "access denied"),
+              "registry_auth_or_limit": ("toomanyrequests", "pull rate limit", "unauthorized", "denied: requested access"),
+              "registry_image_missing": ("manifest unknown", "no matching manifest", "not found: manifest"),
+              "network": ("i/o timeout", "tls handshake timeout", "temporary failure in name resolution", "connection refused", "network is unreachable"),
+              "docker_engine": ("cannot connect to the docker daemon", "error during connect"),
+              "port_conflict": ("address already in use", "port is already allocated", "ports are not available"),
+              "mount": ("invalid mount config", "error while creating mount source path", "bind source path does not exist"),
+              "disk": ("no space left on device", "read-only file system"),
+              "compose_config": ("invalid compose project", "invalid project name", "services must be a mapping"),
+              "kubo_blockstore": ("sharding", "batch temp directory", "error opening datastore"),
+          }
+          print("IPFS failure categories:", {name: any(needle in combined for needle in needles) for name, needles in categories.items()})
+          print("Compose log present:", Path(sys.argv[2]).is_file())
           PY
+            # Docker status, numeric exit code, and version/readiness are
+            # nonsecret. Do not inspect or export container environment.
+            docker ps -a --filter name=weall-ipfs --format '{{.Status}}' || true
+            if docker inspect --type container weall-ipfs >/dev/null 2>&1; then
+              docker inspect --type container --format 'IPFS container state={{.State.Status}} exit={{.State.ExitCode}} restarting={{.State.Restarting}}' weall-ipfs || true
+            fi
+            if curl -fsS --max-time 3 -X POST http://127.0.0.1:5001/api/v0/version >/dev/null 2>&1; then
+              echo "IPFS version API reachable: yes"
+            else
+              echo "IPFS version API reachable: no"
+            fi
           }
           ready=0
           for ((i=0; i<600; i++)); do

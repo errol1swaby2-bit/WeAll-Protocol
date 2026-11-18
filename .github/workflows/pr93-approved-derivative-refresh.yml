@@ -6,6 +6,7 @@ on:
       - integration/unified-baseline-all-open-prs-20261114
     paths:
       - .github/workflows/pr93-approved-derivative-refresh.yml
+      - docs/integration/PR93_F001_OBSERVER_AUTHENTICATION.md
       - .github/workflows/backend-ci.yml
       - Weall-Protocol/tests/conftest.py
       - Weall-Protocol/tests/p0_assurance.py
