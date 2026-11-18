@@ -7,6 +7,7 @@ import { getKeypair, getSession } from "./auth/session";
 import { CLIENT_SETTINGS_CHANGED_EVENT, applySettingsToDocument, loadSettings } from "./lib/settings";
 import { useAppConfig } from "./lib/config";
 import { maybeApplyDevBootstrap } from "./lib/devBootstrap";
+import { PendingCanonicalLoginError } from "./auth/canonicalLoginJournal";
 import { requestGlobalRefresh } from "./lib/revalidation";
 import { consumeReturnTo, currentHashPath, getRouteMeta, isPublicRoute, matchRoute, nav, navWithReturn, stashReturnTo, type RouteMatch } from "./lib/router";
 import { prefetchRouteChunk } from "./lib/routePrefetch";
@@ -187,6 +188,8 @@ export default function App(): JSX.Element {
   const [settingsVersion, setSettingsVersion] = useState<number>(0);
   const [authVersion, setAuthVersion] = useState<number>(0);
   const [authHydrated, setAuthHydrated] = useState<boolean>(false);
+  const [autoBootstrapBusy, setAutoBootstrapBusy] = useState(false);
+  const [autoBootstrapMessage, setAutoBootstrapMessage] = useState("");
 
   const settings = useMemo(() => loadSettings(), [settingsVersion]);
   const session = useMemo(() => getSession(), [authVersion, path]);
@@ -231,24 +234,42 @@ export default function App(): JSX.Element {
   useEffect(() => {
     let cancelled = false;
     let bootstrapInFlight = false;
+    let retryTimer: number | undefined;
 
     const runBootstrapSync = async () => {
       // Focus and visibilitychange can fire together: do not race session issuance.
       if (bootstrapInFlight || cancelled) return;
+      if (!config.enableDevBootstrap) return;
+      window.clearTimeout(retryTimer);
       bootstrapInFlight = true;
+      setAutoBootstrapBusy(true);
       try {
-        if (!config.enableDevBootstrap) return;
         const applied = await maybeApplyDevBootstrap(config);
+        if (!cancelled) setAutoBootstrapMessage("");
         if (applied && !cancelled) {
           setAuthVersion((v: number) => v + 1);
           setPath(currentHashPath());
         }
       } catch (error) {
-        // Never hold the browser indefinitely on a bootstrap hydration screen.
-        console.warn("Local demo bootstrap is waiting for backend reconciliation:", error);
+        if (!cancelled) {
+          setAuthVersion((v: number) => v + 1);
+          if (error instanceof PendingCanonicalLoginError) {
+            setAutoBootstrapMessage(error.message);
+            // Continue only the tracked attempt when visible; never loop
+            // through fresh device/session creation on a receipt timeout.
+            retryTimer = window.setTimeout(() => {
+              if (!document.hidden) void runBootstrapSync();
+            }, 5_000);
+          } else {
+            setAutoBootstrapMessage("Automatic demo sign-in did not complete. Use the demo login to inspect or resume the existing attempt.");
+          }
+        }
       } finally {
         bootstrapInFlight = false;
-        if (!cancelled) setAuthHydrated(true);
+        if (!cancelled) {
+          setAutoBootstrapBusy(false);
+          setAuthHydrated(true);
+        }
       }
     };
 
@@ -274,6 +295,7 @@ export default function App(): JSX.Element {
       cancelled = true;
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.clearTimeout(retryTimer);
     };
   }, [config]);
 
@@ -349,7 +371,7 @@ export default function App(): JSX.Element {
   if (route.path === "/login") {
     return (
       <Suspense fallback={<RouteTransitionFallback route={route} />}>
-        <LoginPage />
+        <LoginPage autoBootstrapBusy={autoBootstrapBusy} autoBootstrapMessage={autoBootstrapMessage} />
       </Suspense>
     );
   }
@@ -358,7 +380,7 @@ export default function App(): JSX.Element {
     stashReturnTo(intendedPath);
     return (
       <Suspense fallback={<RouteTransitionFallback route={{ path: "/login" }} />}>
-        <LoginPage />
+        <LoginPage autoBootstrapBusy={autoBootstrapBusy} autoBootstrapMessage={autoBootstrapMessage} />
       </Suspense>
     );
   }

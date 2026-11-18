@@ -12,6 +12,7 @@ import { getChainId, getEnvChainId } from "../lib/chain";
 import { apiGet, createBrowserSession, getApiBaseUrl, weall } from "../api/weall";
 import { config } from "../lib/config";
 import { clearApprovedBrowserSession, isBrowserSessionApproved, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
+import { canonicalLoginPayload, clearCanonicalLogin, clearCanonicalLoginsForAccount, PendingCanonicalLoginError, readCanonicalLogin, trackCanonicalLoginTx, writeCanonicalLogin, type CanonicalLoginAttempt, type CanonicalLoginScope } from "./canonicalLoginJournal";
 
 import {
   KeypairB64,
@@ -410,6 +411,7 @@ export function ensureKeypair(account: string): KeypairB64 {
 }
 
 export function clearKeypair(account: string): void {
+  clearCanonicalLoginsForAccount(normalizeAccount(account));
   deleteKeypair(account);
 }
 
@@ -1187,6 +1189,19 @@ export async function restoreAccountAndLoginOnThisDevice(args: {
   if (!acct) throw new Error("invalid_account");
   if (!secretKeyB64) throw new Error("secret_key_required");
 
+  // Automatic bootstrap and the explicit demo button may overlap. Do not
+  // clear another in-flight login's session/nonce locks or switch its signer.
+  if (activeDeviceLogin) {
+    const pubkey = derivePublicKeyFromSecretKey(secretKeyB64);
+    const scope = deviceLoginScope(acct, args.base, pubkey);
+    if (activeDeviceLogin.identity !== JSON.stringify(scope)) throw new Error("another_device_login_in_progress");
+    const result = await activeDeviceLogin.promise;
+    const session = getSession();
+    const keypair = loadKeypair(acct);
+    if (!session?.sessionKey || session.account !== acct || !keypair) throw new Error("session_issue_failed");
+    return { session, keypair, result };
+  }
+
   endSession();
   clearNonceReservation(acct);
   const keypair = saveKeypair(acct, { secretKeyB64 });
@@ -1206,140 +1221,170 @@ export async function restoreAccountAndLoginOnThisDevice(args: {
   }
 }
 
-export async function loginOnThisDevice(args: { account: string; ttlSeconds?: number; base?: string }): Promise<any> {
+type DeviceLoginArgs = { account: string; ttlSeconds?: number; base?: string };
+let activeDeviceLogin: { identity: string; promise: Promise<any> } | null = null;
+
+function deviceLoginScope(account: string, base: string | undefined, pubkey: string): CanonicalLoginScope {
+  return { account, base: String(base || getApiBaseUrl() || "/").replace(/\/+$/, "") || "/", pubkey };
+}
+
+export async function loginOnThisDevice(args: DeviceLoginArgs): Promise<any> {
   const acct = normalizeAccount(args.account);
   if (!acct) throw new Error("invalid_account");
+  const kp = loadKeypair(acct);
+  if (!kp) throw new Error("missing_local_keypair");
+  const scope = deviceLoginScope(acct, args.base, kp.pubkeyB64);
+  const identity = JSON.stringify(scope);
+  if (activeDeviceLogin) {
+    if (activeDeviceLogin.identity !== identity) throw new Error("another_device_login_in_progress");
+    return activeDeviceLogin.promise;
+  }
+  const promise = performDeviceLogin({ ...args, base: scope.base }, scope, kp);
+  activeDeviceLogin = { identity, promise };
+  try { return await promise; }
+  finally {
+    if (activeDeviceLogin?.promise === promise) activeDeviceLogin = null;
+  }
+}
 
+async function performDeviceLogin(args: DeviceLoginArgs, scope: CanonicalLoginScope, kp: KeypairB64): Promise<any> {
+  const acct = scope.account;
   const ttlSeconds = Math.max(60, Math.floor(Number(args.ttlSeconds ?? 24 * 60 * 60)));
+  if (!Number.isSafeInteger(ttlSeconds)) throw new Error("invalid_session_ttl");
   const requestedSessionKey = randomSessionKeyB64(32);
   const deviceId = randomDeviceId(acct);
   const issuedAtMs = Date.now();
+  let attempt = readCanonicalLogin(scope);
 
-  const kp = loadKeypair(acct);
-  if (!kp) throw new Error("missing_local_keypair");
-
-  const sig = signDetachedB64(
-    kp.secretKeyB64,
-    canonicalSessionLoginMessage({
-      account: acct,
-      sessionKey: requestedSessionKey,
-      ttlSeconds,
-      issuedAtMs,
-      deviceId,
-    }),
-  );
-
-  try {
-    const response = await createBrowserSession(
-      {
+  // Only the first attempt probes the legacy demo route. A tracked canonical
+  // attempt must never switch to direct mutation or create another device.
+  if (!attempt) {
+    const sig = signDetachedB64(
+      kp.secretKeyB64,
+      canonicalSessionLoginMessage({
         account: acct,
-        session_key: requestedSessionKey,
-        ttl_s: ttlSeconds,
-        issued_at_ms: issuedAtMs,
-        device_id: deviceId,
-        sig,
-        pubkey: kp.pubkeyB64,
-      },
-      args.base,
+        sessionKey: requestedSessionKey,
+        ttlSeconds,
+        issuedAtMs,
+        deviceId,
+      }),
     );
 
-    setSession({
-      version: 1,
-      account: acct,
-      sessionKey: requestedSessionKey,
-      expiresAtMs: Date.now() + ttlSeconds * 1000,
-    });
-    if (config.publicTestnet) {
-      await verifyBrowserSessionOnNode(args.base || getApiBaseUrl(), acct, requestedSessionKey, { attempts: 3 });
+    try {
+      const response = await createBrowserSession(
+        {
+          account: acct,
+          session_key: requestedSessionKey,
+          ttl_s: ttlSeconds,
+          issued_at_ms: issuedAtMs,
+          device_id: deviceId,
+          sig,
+          pubkey: kp.pubkeyB64,
+        },
+        args.base,
+      );
+
+      setSession({
+        version: 1,
+        account: acct,
+        sessionKey: requestedSessionKey,
+        expiresAtMs: Date.now() + ttlSeconds * 1000,
+      });
+      if (config.publicTestnet) {
+        await verifyBrowserSessionOnNode(args.base || getApiBaseUrl(), acct, requestedSessionKey, { attempts: 3 });
+      }
+      return response;
+    } catch (error) {
+      if (!isDirectSessionMutationForbidden(error)) throw error;
     }
-    return response;
-  } catch (error) {
-    if (!isDirectSessionMutationForbidden(error)) throw error;
   }
 
-  // Production/canonical fallback: if the API refuses direct session mutation,
-  // issue browser device/session state through normal signed transactions.
-  try {
-    const deviceResult = await submitSignedTxWithNonce({
-      account: acct,
-      tx_type: "ACCOUNT_DEVICE_REGISTER",
-      payloadFactory: () => ({
-        device_id: deviceId,
-        device_type: "browser",
-        label: "Browser session",
-        pubkey: kp.pubkeyB64,
-      }),
-      parent: null,
-      base: args.base,
-    });
-    const synced = await waitForLocalAccountNonceAtLeast({
-      account: acct,
-      minNonce: deviceResult.env.nonce,
-      base: args.base,
-      timeoutMs: 30_000,
-    });
-    if (!synced) throw observerReconciliationPendingError("ACCOUNT_DEVICE_REGISTER", deviceResult.env.nonce);
-  } catch (error) {
-    if (!isDeviceAlreadyRegisteredError(error)) throw error;
+  // Read the actual selected node, not a cached chain ID, before resuming.
+  const status = await weall.status(args.base);
+  const chainId = String(status?.chain_id || "").trim();
+  if (!chainId) throw new Error("canonical_login_chain_identity_unavailable");
+  if (attempt && attempt.chainId !== chainId) throw new Error("pending_canonical_login_chain_mismatch");
+  if (!attempt) {
+    attempt = { version: 1, scope, chainId, deviceId, sessionKey: requestedSessionKey, ttlSeconds, startedAtMs: issuedAtMs };
+    writeCanonicalLogin(attempt);
   }
-
-  const issueResult = await submitSignedTxWithNonce({
-    account: acct,
-    tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
-    payloadFactory: () => ({
-      session_key: requestedSessionKey,
-      ttl_s: ttlSeconds,
-    }),
-    parent: null,
-    base: args.base,
-  });
-  const receiptId = String(issueResult?.result?.tx_id || issueResult?.result?.result?.tx_id || "").trim();
-  const confirmed = await waitForConfirmedSessionTransaction({ txId: receiptId, base: args.base, timeoutMs: 30_000 });
-  if (!confirmed) {
-    throw new Error("Session issuance has no confirmed canonical receipt. Login remains incomplete; inspect the signed action before retrying.");
-  }
-  const sessionSynced = await waitForLocalAccountNonceAtLeast({
-    account: acct,
-    minNonce: issueResult.env.nonce,
-    base: args.base,
-    timeoutMs: 30_000,
-  });
-  if (!sessionSynced) {
-    throw observerReconciliationPendingError("ACCOUNT_SESSION_KEY_ISSUE", issueResult.env.nonce);
-  }
-  const sessionAuthorized = await waitForSessionAuthState({
-    account: acct,
-    sessionKey: requestedSessionKey,
-    expectedAuthenticated: true,
-    base: args.base,
-    timeoutMs: 30_000,
-  });
-  if (!sessionAuthorized) {
-    throw new Error("Canonical session authorization is not visible. Login remains incomplete; do not reuse this bearer.");
-  }
-
-  setSession({
-    version: 1,
-    account: acct,
-    sessionKey: requestedSessionKey,
-    expiresAtMs: Date.now() + ttlSeconds * 1000,
-  });
-  if (config.publicTestnet) {
-    await verifyBrowserSessionOnNode(args.base || getApiBaseUrl(), acct, requestedSessionKey, { attempts: 3 });
-  }
-
-  return {
-    ok: true,
-    canonical: true,
-    account: acct,
-    device: { device_id: deviceId, pubkey: kp.pubkeyB64 },
-    session: { session_key: requestedSessionKey, ttl_s: ttlSeconds, active: true },
-    result: issueResult,
-  };
+  return finishCanonicalDeviceLogin(args, attempt, kp);
 }
 
+async function finishCanonicalDeviceLogin(args: DeviceLoginArgs, attempt: CanonicalLoginAttempt, kp: KeypairB64): Promise<any> {
+  const acct = attempt.scope.account;
+  const expiresAtMs = attempt.startedAtMs + attempt.ttlSeconds * 1000;
+  if (Date.now() >= expiresAtMs) throw new Error("Tracked login expired before activation. Inspect the existing session before starting another attempt.");
+  // The README rehearsal produces blocks every 20 seconds by default; upstream
+  // admission, block production and observer reconciliation can exceed 30s.
+  // Wait in bounded windows; uncertainty retains the exact same attempt.
+  const waitMs = 120_000;
 
+  async function ensureTracked(step: "deviceTx" | "sessionTx", txType: string) {
+    if (!attempt[step]) {
+      let submitted: Awaited<ReturnType<typeof submitSignedTxWithNonce>>;
+      try {
+        submitted = await submitSignedTxWithNonce({
+          account: acct, tx_type: txType,
+          payloadFactory: () => canonicalLoginPayload(attempt, step),
+          parent: null, base: args.base,
+          onBeforeSubmit: async (signed) => {
+            await trackCanonicalLoginTx(attempt, step, signed);
+          },
+        });
+      } catch (error) {
+        // A dispatched transaction can outlive its HTTP acknowledgement. A
+        // persisted intent is uncertainty, not permission to sign a new one.
+        if (readCanonicalLogin(attempt.scope)?.[step]) {
+          throw new PendingCanonicalLoginError(txType + " submission acknowledgement");
+        }
+        throw error;
+      }
+      const predicted = readCanonicalLogin(attempt.scope)?.[step];
+      const actual = String(submitted?.result?.tx_id || submitted?.result?.result?.tx_id || "").trim();
+      if (!predicted || !actual) throw new PendingCanonicalLoginError("submission acknowledgement");
+      if (actual !== predicted.txId) {
+        attempt.blocked = true;
+        writeCanonicalLogin(attempt);
+        throw new Error("Canonical login transaction acknowledgement does not match the signed identity.");
+      }
+    }
+    const tracked = attempt[step];
+    if (!tracked) throw new Error("pending_canonical_login_tracking_missing");
+    const confirmed = await waitForConfirmedSessionTransaction({ txId: tracked.txId, base: args.base, timeoutMs: waitMs });
+    if (!confirmed) throw new PendingCanonicalLoginError(txType + " receipt and observer synchronization");
+    const sessionSynced = await waitForLocalAccountNonceAtLeast({ account: acct, minNonce: tracked.nonce, base: args.base, timeoutMs: waitMs });
+    if (!sessionSynced) throw new PendingCanonicalLoginError(txType + " local account reconciliation");
+    return tracked;
+  }
 
+  // Never infer device success merely from a nonce or a mempool acknowledgement.
+  await ensureTracked("deviceTx", "ACCOUNT_DEVICE_REGISTER");
+  const issued = await ensureTracked("sessionTx", "ACCOUNT_SESSION_KEY_ISSUE");
+  const sessionAuthorized = await waitForSessionAuthState({
+    account: acct,
+    sessionKey: attempt.sessionKey,
+    expectedAuthenticated: true,
+    base: args.base,
+    timeoutMs: waitMs,
+  });
+  if (!sessionAuthorized) throw new PendingCanonicalLoginError("session authorization");
+
+  // Reconciliation must not extend the local lifetime of an older candidate.
+  if (Date.now() >= expiresAtMs) throw new Error("Tracked login expired before activation. Inspect the existing session before starting another attempt.");
+  if (loadKeypair(acct)?.pubkeyB64 !== kp.pubkeyB64) throw new Error("canonical_login_signer_changed");
+  setSession({ version: 1, account: acct, sessionKey: attempt.sessionKey, expiresAtMs });
+  if (config.publicTestnet) {
+    await verifyBrowserSessionOnNode(args.base || getApiBaseUrl(), acct, attempt.sessionKey, { attempts: 3 });
+  }
+  clearCanonicalLogin(attempt.scope);
+  return {
+    ok: true, canonical: true, account: acct,
+    device: { device_id: attempt.deviceId, pubkey: kp.pubkeyB64 },
+    session: { session_key: attempt.sessionKey, ttl_s: attempt.ttlSeconds, active: true },
+    result: { result: { tx_id: issued.txId }, env: { nonce: issued.nonce } },
+  };
+}
 
 export async function ensureBackendSession(args: { account: string; ttlSeconds?: number; base?: string }): Promise<SessionV1> {
   const acct = normalizeAccount(args.account);

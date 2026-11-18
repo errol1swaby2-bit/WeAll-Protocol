@@ -1,5 +1,6 @@
-import { setAccount, setApiBase, weall } from "../api/weall";
-import { clearNonceReservation, clearSession, ensureBackendSession, getKeypair, getSession, issueSessionFromSecretKey, submitSignedTx, syncNonceReservation } from "../auth/session";
+import { apiGet, setAccount, setApiBase, weall } from "../api/weall";
+import { clearSession, ensureBackendSession, getKeypair, getSession, submitSignedTx, syncNonceReservation } from "../auth/session";
+import { saveKeypair } from "../auth/keys";
 import type { AppConfig } from "./config";
 import { loadEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto";
 
@@ -180,6 +181,13 @@ async function ensureAccountRecord(_config: AppConfig, manifest: DevBootstrapMan
   }
 }
 
+async function demoSessionRecognized(account: string, base: string, sessionKey: string): Promise<boolean> {
+  const response = await apiGet("/v1/session/me", base, {
+    "x-weall-account": account, "x-weall-session-key": sessionKey,
+  });
+  return response?.ok === true && response?.authenticated === true && response?.account === account;
+}
+
 async function applyManifest(config: AppConfig, manifest: DevBootstrapManifest): Promise<boolean> {
   const account = String(manifest.account || "").trim();
   if (!account) return false;
@@ -204,24 +212,32 @@ async function applyManifest(config: AppConfig, manifest: DevBootstrapManifest):
 
   setApiBase(normalizedBase);
   setAccount(account);
-  clearNonceReservation(account);
-  const issued = issueSessionFromSecretKey({
-    account,
-    secretKeyB64,
-    ttlSeconds,
-  });
-  clearSession();
+  // Restoring the signer is not an authenticated session. Leave an existing
+  // matching login attempt alone so focus/manual recovery cannot reset it.
+  const existingSession = getSession();
+  const previousKey = getKeypair(account);
+  const keypair = saveKeypair(account, { secretKeyB64 });
+  if (existingSession) {
+    const matching = existingSession.account === account && previousKey?.pubkeyB64 === keypair.pubkeyB64;
+    // A browser-held bearer is not proof of node recognition after a restart.
+    // An unavailable read throws instead of authorizing a fresh issuance.
+    if (!matching || !existingSession.sessionKey ||
+        !await demoSessionRecognized(account, normalizedBase, existingSession.sessionKey)) clearSession();
+  }
 
   try {
-    await ensureAccountRecord(config, manifest, account, issued.keypair.pubkeyB64, normalizedBase);
+    await ensureAccountRecord(config, manifest, account, keypair.pubkeyB64, normalizedBase);
     await ensureBackendSession({
       account,
       ttlSeconds,
       base: normalizedBase || undefined,
     });
     await syncNonceReservation(account, normalizedBase || undefined);
-  } catch {
+  } catch (error) {
     clearSession();
+    // A failed attempt is not successful hydration. The pending canonical
+    // journal is tab-scoped and survives this active-session cleanup.
+    throw error;
   }
 
   writeMarker(marker);
@@ -240,11 +256,12 @@ export async function maybeApplyDevBootstrap(config: AppConfig): Promise<boolean
   const marker = buildMarker(manifest);
   const session = getSession();
   const existing = account ? getKeypair(account) : null;
-  if (session?.account === account && existing?.secretKeyB64 && readMarker() === marker) {
+  if (session?.account === account && session.sessionKey && existing?.secretKeyB64 && readMarker() === marker) {
     const secret = await fetchSecret(config, manifest);
     const expectedKem = String(secret?.evidenceKemPublicKeyB64 || "").trim();
     const browserKem = loadEvidenceKemKeypair(account);
-    if (!expectedKem || browserKem?.publicKeyB64 === expectedKem) return false;
+    if ((!expectedKem || browserKem?.publicKeyB64 === expectedKem) &&
+        await demoSessionRecognized(account, manifestApiBase(config, manifest), session.sessionKey)) return false;
     // Session storage can be cleared independently of the signing session.
     // Rehydrate from the explicit local-only bootstrap route.
   }
@@ -268,14 +285,15 @@ export async function maybeRepairDevBootstrapSession(config: AppConfig): Promise
   const existing = account ? getKeypair(account) : null;
   const marker = buildMarker(manifest);
   const hasSameMarker = readMarker() == marker;
-  const hasExpectedAccount = String(session?.account || "").trim() == account;
+  const hasExpectedAccount = !!session?.sessionKey && String(session?.account || "").trim() == account;
   const hasExpectedSecret = String(existing?.secretKeyB64 || "").trim() == secretKeyB64;
   const hasExpectedPubkey = !pubkeyB64 || String(existing?.pubkeyB64 || "").trim() == pubkeyB64;
 
   const expectedKem = String(secret?.evidenceKemPublicKeyB64 || "").trim();
   const browserKem = loadEvidenceKemKeypair(account);
   const hasExpectedEvidenceKem = !expectedKem || browserKem?.publicKeyB64 === expectedKem;
-  if (hasSameMarker && hasExpectedAccount && hasExpectedSecret && hasExpectedPubkey && hasExpectedEvidenceKem) {
+  if (hasSameMarker && hasExpectedAccount && hasExpectedSecret && hasExpectedPubkey && hasExpectedEvidenceKem &&
+      session?.sessionKey && await demoSessionRecognized(account, manifestApiBase(config, manifest), session.sessionKey)) {
     return false;
   }
 

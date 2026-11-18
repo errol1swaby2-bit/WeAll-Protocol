@@ -160,7 +160,7 @@ function StepPill({ done, children }: { done: boolean; children: ReactNode }) {
   return <span className={`statusPill ${done ? "ok" : ""}`}>{children}</span>
 }
 
-export default function LoginPage() {
+export default function LoginPage({ autoBootstrapBusy = false, autoBootstrapMessage = "" }: { autoBootstrapBusy?: boolean; autoBootstrapMessage?: string } = {}) {
   const config = useAppConfig()
   const [apiBaseInput, setApiBaseInput] = useState(getApiBase())
   const [backendReachable, setBackendReachable] = useState<boolean | null>(null)
@@ -681,7 +681,10 @@ export default function LoginPage() {
           </div>
 
           {config.enableDevBootstrap && devManifest?.account ? (
-            <DevBootstrapCard manifest={devManifest} busy={devBootstrapBusy} onLoad={handleUseDevBootstrap} onCopy={handleCopyDevSecret} />
+            <>
+              <DevBootstrapCard manifest={devManifest} busy={devBootstrapBusy || autoBootstrapBusy} onLoad={handleUseDevBootstrap} onCopy={handleCopyDevSecret} />
+              {autoBootstrapMessage ? <p role="status" className="muted">{autoBootstrapMessage}</p> : null}
+            </>
           ) : null}
 
           {savedEasySignIns.length ? (

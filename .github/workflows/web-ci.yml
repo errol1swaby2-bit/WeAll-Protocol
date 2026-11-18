@@ -161,6 +161,7 @@ jobs:
       - name: Canonical signed registration transaction ID vectors
         run: |
           npm run test:registration-tx-id
+          node scripts/test_canonical_login_resume.mjs
 
       - name: Focused shell navigation and drawer source gate
         run: |
