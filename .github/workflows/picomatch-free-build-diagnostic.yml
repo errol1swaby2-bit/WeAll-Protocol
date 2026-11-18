@@ -1,0 +1,155 @@
+name: Picomatch-free build feasibility (diagnostic only)
+on:
+  push:
+    branches: [diagnostic/picomatch-free-esbuild-20261117]
+  pull_request:
+    paths: ['.github/workflows/picomatch-free-build-diagnostic.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  feasibility:
+    if: github.ref_name == 'diagnostic/picomatch-free-esbuild-20261117' || github.head_ref == 'diagnostic/picomatch-free-esbuild-20261117'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+      - name: Construct disposable candidate dependency graph
+        run: |
+          npm pkg delete devDependencies.vite 'devDependencies.@vitejs/plugin-react'
+          npm pkg set devDependencies.esbuild=0.28.1
+          npm install --package-lock-only --ignore-scripts --no-audit
+          npm ci
+      - name: Assert vulnerable chain absent from resolved graph
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+          const forbidden = new Set(['picomatch', 'vite', 'tinyglobby', 'fdir', '@vitejs/plugin-react']);
+          for (const [path, metadata] of Object.entries(lock.packages)) {
+            if (!path) continue;
+            const name = path.split('node_modules/').at(-1);
+            assert.ok(!forbidden.has(name) && !forbidden.has(metadata.name), 'Forbidden package: ' + path);
+          }
+          assert.equal(lock.packages['node_modules/esbuild'].version, '0.28.1');
+          assert.equal(lock.packages[''].dependencies['@noble/post-quantum'], '0.6.1');
+          console.log('PASS: candidate lock contains none of the affected Vite/Picomatch chain');
+          JS
+          npm ls --all
+      - name: Mandatory candidate dependency audit
+        run: npm run dependency-audit
+      - name: Build with explicit production configuration
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { build } from 'esbuild';
+          import { execFileSync } from 'node:child_process';
+          import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+          import { basename } from 'node:path';
+
+          // Diagnostic only: never read dotenv files or inject ambient process secrets.
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+          const sha = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim();
+          const outdir = 'dist-picomatch-free-diagnostic';
+          mkdirSync(outdir, { recursive: true });
+          if (existsSync('public')) cpSync('public', outdir, { recursive: true });
+          const result = await build({
+            entryPoints: ['src/main.tsx'],
+            bundle: true,
+            format: 'esm',
+            platform: 'browser',
+            target: 'es2022',
+            jsx: 'automatic',
+            splitting: true,
+            minify: true,
+            sourcemap: false,
+            metafile: true,
+            outdir: outdir + '/assets',
+            entryNames: '[name]-[hash]',
+            chunkNames: 'chunk-[hash]',
+            assetNames: '[name]-[hash]',
+            loader: { '.svg': 'file', '.png': 'file', '.jpg': 'file', '.jpeg': 'file', '.webp': 'file', '.gif': 'file', '.woff': 'file', '.woff2': 'file' },
+            define: {
+              'import.meta.env': JSON.stringify({ PROD: true, DEV: false, MODE: 'production', BASE_URL: '/', SSR: false }),
+              'process.env.NODE_ENV': JSON.stringify('production'),
+              '__WEALL_WEB_VERSION__': JSON.stringify(pkg.version),
+              '__WEALL_WEB_GIT_SHA__': JSON.stringify(sha),
+            },
+          });
+          const entries = Object.entries(result.metafile.outputs).filter(([path, meta]) => path.endsWith('.js') && meta.entryPoint === 'src/main.tsx');
+          assert.equal(entries.length, 1, 'Exactly one HTML application entry required');
+          const [entry, metadata] = entries[0];
+          assert.ok(metadata.cssBundle, 'Expected extracted application CSS');
+          const html = readFileSync('index.html', 'utf8');
+          const sourceTag = '<script type="module" src="/src/main.tsx"></script>';
+          assert.ok(html.includes(sourceTag), 'HTML source entry differs');
+          let output = html.replace(sourceTag, '<script type="module" src="/assets/' + basename(entry) + '"></script>');
+          output = output.replace('</head>', '<link rel="stylesheet" href="/assets/' + basename(metadata.cssBundle) + '" />\n</head>');
+          writeFileSync(outdir + '/index.html', output);
+          // A successful bundle is not a typecheck, dev-server parity, or release decision.
+          console.log('PASS: production-configured candidate bundle emitted');
+          JS
+      - name: Install Chromium
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Loopback browser smoke with strict script CSP (no backend authority)
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { createServer } from 'node:http';
+          import { readFile } from 'node:fs/promises';
+          import { resolve, extname, sep } from 'node:path';
+          import { chromium } from 'playwright';
+          const root = resolve('dist-picomatch-free-diagnostic');
+          const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2' };
+          const server = createServer(async (req, res) => {
+            try {
+              const pathname = decodeURIComponent(new URL(req.url, 'http://127.0.0.1').pathname);
+              if (pathname.startsWith('/v1/')) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end('{"detail":"diagnostic_no_backend"}');
+                return;
+              }
+              const path = resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
+              if (!path.startsWith(root + sep)) { res.writeHead(403); res.end(); return; }
+              const bytes = await readFile(path);
+              res.writeHead(200, {
+                'Content-Type': types[extname(path)] || 'application/octet-stream',
+                'Content-Security-Policy': "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:;",
+                'X-Content-Type-Options': 'nosniff',
+              });
+              res.end(bytes);
+            } catch { res.writeHead(404); res.end(); }
+          });
+          await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+          let browser;
+          try {
+            browser = await chromium.launch();
+            const page = await browser.newPage();
+            const errors = [];
+            const scripts = [];
+            const origin = 'http://127.0.0.1:' + server.address().port;
+            await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
+            page.on('pageerror', e => errors.push(String(e)));
+            page.on('console', m => { if (/content security policy/i.test(m.text()) && m.type() === 'error') errors.push(m.text()); });
+            page.on('response', r => { if (r.ok() && r.url().endsWith('.js')) scripts.push(r.url()); });
+            await page.goto(origin + '/#/login');
+            await page.waitForFunction(() => Boolean(document.querySelector('#root')?.innerText.trim()));
+            assert.ok(scripts.length > 0, 'Application JavaScript did not load');
+            assert.deepEqual(errors, [], 'Browser execution or CSP errors');
+            console.log('PASS: candidate app rendered with strict script CSP and no backend');
+          } finally {
+            if (browser) await browser.close();
+            server.close();
+          }
+          JS
