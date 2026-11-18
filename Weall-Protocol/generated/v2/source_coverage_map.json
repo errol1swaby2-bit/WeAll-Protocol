@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2370,
+  "file_count": 2374,
   "files": [
     {
       "affected_registers": [
@@ -84,6 +84,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "974000b3af191a40188c7216a0ac1153d7cd71cd9019c67afd7add604d12c2bd",
       "source_id": "SRC-1415B80B453C4D21"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/f001-readme-two-frontend-login.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "731de3832b3ca8719cef374beaecc3bb0759e01a2399d747eea92aa13a122c77",
+      "source_id": "SRC-AD5FB665D06294C6"
     },
     {
       "affected_registers": [
@@ -758,7 +771,7 @@
       ],
       "path": "../.github/workflows/pr93-approved-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "40047dfbfbd5cdef09415db25d93fda5ec06726a0e95bdb3985ba0314866c3ed",
+      "sha256": "fcd2742e8578bf8a7bdfc0dcb3fdf58288ccddd4fa76d378280d298d7fcff20c",
       "source_id": "SRC-AF812EB04A5D3741"
     },
     {
@@ -888,7 +901,7 @@
       ],
       "path": "../.github/workflows/web-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "5aa6cbb80307334ead1df817be48aa203c6b3cf711b03b895381987240903783",
+      "sha256": "aa8204491b88d5a2fa7e9400c9a26b31da34ae7a61919ad94c671ad8a45b94ce",
       "source_id": "SRC-595019F2D38EB6AD"
     },
     {
@@ -8642,7 +8655,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "40fc1812759f4fc560ba9cef6ba93b8a5fff3f7015430a7ef68ca08446d50ad2",
+      "sha256": "317d3f904f41c0f3e0796ff0f5f88bffde95ee0bfef23924d37435ddbc9436ae",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -34523,6 +34536,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_canonical_login_resume.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "feea92a166ac4c580dba8e7a80e95fcc40f208719b7004cbc79963ceb3f8867b",
+      "source_id": "SRC-D6E597BF8F39C223"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_cloudflare_testnet_access_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "b44fac19a24c9ec14d6c0df1b374b1878f833fd56fd73f167eca7a8720b2237b",
@@ -35359,7 +35385,7 @@
       ],
       "path": "../web/src/App.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "b66130ae4b5d2ab6cf9f016836428e23b5904ddd78384a41d7038e02aa22e672",
+      "sha256": "e173c89852ee470c3ba62082b5198c2b74f621dc54dadcaf3f2f9f2718886e45",
       "source_id": "SRC-0D8C1A8815689CC1"
     },
     {
@@ -35439,6 +35465,23 @@
       "primary_mechanism_id": "M-069",
       "sha256": "8022d8ef5619508fd0794850cc2d8e19d334b3a5e3395b9ed7bbb5ad2366b9e6",
       "source_id": "SRC-79BC4F6206422C07"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069",
+        "TX-0004",
+        "TX-0006"
+      ],
+      "path": "../web/src/auth/canonicalLoginJournal.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "e38cbe2e13dd5fef9f9bb62d77362b67ce9f557783414ffcc89ec6a7c19ba239",
+      "source_id": "SRC-3E85F18E16CA3D64"
     },
     {
       "affected_registers": [
@@ -35533,7 +35576,7 @@
       ],
       "path": "../web/src/auth/session.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "53aab2d00add4a679e769a995c71b621aa0f59a1a4ef4f37a50ce2f12285d832",
+      "sha256": "6082a76d4a3ff93402b72700c5e5ec0857aba03513d612c1f39a42e7db53bc22",
       "source_id": "SRC-B8F7039335FD9E04"
     },
     {
@@ -36346,12 +36389,13 @@
       "classification": "authoritative_or_launch_critical",
       "mappings": [
         "M-069",
+        "ROUTE-74C075AFE12560DE",
         "ROUTE-D4AF6AADB6344781",
         "TX-0001"
       ],
       "path": "../web/src/lib/devBootstrap.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "96f8ac6bd6b271a4630ef7025908242496337003df41aa76d52d2280453f37af",
+      "sha256": "b19b9d6974e0133414e041a4b83a91622d6d80d64f9c7c4e50b90421428e34f2",
       "source_id": "SRC-DB414711E8950C1F"
     },
     {
@@ -37346,7 +37390,7 @@
       ],
       "path": "../web/src/pages/LoginPage.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "13dc5d425cec8b1a67acc5bf3b60ddf727fa2993a54ab0cae86390c5ce858df7",
+      "sha256": "85ab4f0e22f0d8c2babd4108de747441d322027c9a98184f4531fc8ba365479a",
       "source_id": "SRC-4C266797B87139C6"
     },
     {
@@ -37676,7 +37720,7 @@
       ],
       "path": "../web/tests/e2e/m4_two_user_one_node_custody.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "04e8bd9e2780295d3891177f9b26253083c978fceb9b86adc6310976c65fa613",
+      "sha256": "fa6c328ed39ce85fa0582e82a6fe97b039f201b38a5936364b93137074c9a1cf",
       "source_id": "SRC-623412DDC2F54685"
     },
     {
@@ -37834,6 +37878,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "9afa99e7f2985fd7f3c326e57f4d5063ec532a789943b6bea1a70c9791b2278e",
       "source_id": "SRC-AE4BC03D9931B84F"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/tests/rehearsal/observer_auto_login.spec.ts",
+      "primary_mechanism_id": "M-076",
+      "sha256": "e45f19547e11eb283613017b0c668298e238acda35f28f979de27d73fb82e4a8",
+      "source_id": "SRC-6C6E3C1D966E10A9"
     }
   ],
   "schema": "weall.v2.source_coverage_map",
