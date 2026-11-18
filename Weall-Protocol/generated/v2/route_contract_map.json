@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "0fc4e93316decfb398dd35cd5ba508af486053ca2fccb722fe9473b4bfdc7de9"
+    "source_tree_digest": "50593a55262113805ffab7856db2830eb03c138ba4a0db5add8d1472143f51e8"
   },
   "required_fields": [
     "stable_id",
@@ -3872,6 +3872,7 @@
       "stable_id": "ROUTE-EE2EFB47FA6F30A2",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
+        "tests/prod/test_public_discovery_no_named_provider_dependency.py",
         "tests/prod/test_public_nat_traversal_posture.py",
         "tests/prod/test_public_observer_boot_and_evidence_scripts.py",
         "tests/prod/test_public_observer_default_registry_and_placeholder_gate.py",
@@ -8401,6 +8402,7 @@
         "tests/prod/test_production_helper_topology_hardening_plan.py",
         "tests/prod/test_protocol_upgrade_execution_hardening_plan.py",
         "tests/prod/test_public_beta_evidence_gates.py",
+        "tests/prod/test_public_discovery_no_named_provider_dependency.py",
         "tests/prod/test_public_genesis_frontend_launch_journey.py",
         "tests/prod/test_public_nat_traversal_posture.py",
         "tests/prod/test_public_observer_boot_and_evidence_scripts.py",

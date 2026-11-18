@@ -758,7 +758,7 @@
       ],
       "path": "../.github/workflows/pr93-approved-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "9547d23acc644833ad3c36995f4711d2cb622200c20e75b38cc9960ae13ce6eb",
+      "sha256": "be164840dcce8ec1660d12ced50abf751b7b12b89a1242212a49a081017be32c",
       "source_id": "SRC-AF812EB04A5D3741"
     },
     {
@@ -15104,11 +15104,13 @@
       "classification": "test",
       "mappings": [
         "M-076",
-        "ROUTE-150316944D629C32"
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-EE2EFB47FA6F30A2"
       ],
       "path": "tests/prod/test_public_discovery_no_named_provider_dependency.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "aa21c1f1a7fffc02dfc0f90db89403199c4c3c136df0bc6224faaa2727bde7a2",
+      "sha256": "c12629de2aad9f6b2b0f934df3dd316f7b0e25729348a8577ab3719865e481de",
       "source_id": "SRC-1D8EBC3BC7DB51BF"
     },
     {
@@ -15653,7 +15655,7 @@
       ],
       "path": "tests/test_adversarial_invariant_closure.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "6335f36c2bd2b602c6fa6b7591f96584171f1c716f9c53d3a73f716d5dad0b8b",
+      "sha256": "92018db4cd8642c4a2bad9be62ab6ba2b1d8f7b7121c6e9c34f52789d242cf96",
       "source_id": "SRC-57DAD19C97FC440E"
     },
     {
@@ -16590,7 +16592,7 @@
       ],
       "path": "tests/test_bft_reward_proposer_binding.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "0caf9aa8c8d0079855531cbd2e2ca29be214505bf13c585316daec9502457092",
+      "sha256": "52e5f16975dc3aac31ac0024a19992786570b473b016872732053220f8976fc5",
       "source_id": "SRC-2C52C4820017664B"
     },
     {
@@ -17614,7 +17616,7 @@
       ],
       "path": "tests/test_content_reviewer_selection_and_surface.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8d6d8e243cab2520fa4e419a8582b95764d9a5fd4c75b5dcbe3f80ab6da5997b",
+      "sha256": "8a2cc2e28d98719cf240b4cffc77eed4a8576d87d1d1f5800ee7d50567c84b8f",
       "source_id": "SRC-4E4A7A1A512FEDE3"
     },
     {
@@ -27178,7 +27180,7 @@
       ],
       "path": "tests/test_pr77_batch_c_authority_and_rollback.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "02d59c160834ed7f5d5ff8fac68471f5e274b6b322bc9d7053ae619b623442bc",
+      "sha256": "9d752f08621e18e05d025837af4988725c225b5f1bc947bf9a57369156dc8836",
       "source_id": "SRC-C0C0EE74EE459A84"
     },
     {
@@ -33241,7 +33243,7 @@
       ],
       "path": "tests/test_v2_spec_compiler.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "dbe2f4a155d9df16dc47f372dfdbbaaae835de762688262ddca05e6083a9c0cf",
+      "sha256": "b9de2d469341892b03a010601d42569b96d9ec1464a2d5b6062d1a2f01f16b88",
       "source_id": "SRC-9B8B949DCD736399"
     },
     {
@@ -36187,7 +36189,7 @@
       ],
       "path": "../web/src/lib/browserNodeSession.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "d69e1b4f62da2a44a2db998735989e39b2197756eea427e39d25992272b01c7a",
+      "sha256": "c4bd41e969a8830ddce4266b332747ca4d2718311085ec9de350b57460689e80",
       "source_id": "SRC-52AF2241AAE8C3E5"
     },
     {
