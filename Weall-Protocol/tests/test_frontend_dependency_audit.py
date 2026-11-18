@@ -150,7 +150,11 @@ def test_pr93_regeneration_has_one_generated_only_writer_and_keeps_web_audit() -
     assert functional_steps["Build"]["run"].strip() == "npm run build"
     assert "Production deployment Chromium smoke" in functional_steps
     aggregate = jobs["web"]
-    assert set(aggregate["needs"]) == {"dependency-security", "frontend-functional", "governance-ui"}
+    assert set(aggregate["needs"]) == {
+        "dependency-security",
+        "frontend-functional",
+        "governance-ui",
+    }
     assert aggregate["if"] == "always()"
     gate = aggregate["steps"][0]
     assert gate["env"] == {
