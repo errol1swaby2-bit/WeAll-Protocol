@@ -95,7 +95,7 @@
       ],
       "path": "../.github/workflows/f001-readme-two-frontend-login.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "731de3832b3ca8719cef374beaecc3bb0759e01a2399d747eea92aa13a122c77",
+      "sha256": "e9d645c8ac282939e9b802259fbafd934c5ae926b198d2743452ff7179cd6af6",
       "source_id": "SRC-AD5FB665D06294C6"
     },
     {
@@ -22586,7 +22586,7 @@
       ],
       "path": "tests/test_local_rehearsal_ipfs_temp_dir_repair.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "136fd279edaf28a2141a13c2ce9c28c4cfdb07f7af3821010d3e364c2af2797d",
+      "sha256": "bb4d224c16de2530edcae647214af3bb1723e7babaf3e1f4b6b8315e232b6d56",
       "source_id": "SRC-2B3F9DC7E2EBC52C"
     },
     {
@@ -34538,7 +34538,7 @@
       ],
       "path": "../web/scripts/test_canonical_login_resume.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "feea92a166ac4c580dba8e7a80e95fcc40f208719b7004cbc79963ceb3f8867b",
+      "sha256": "c4cdf3b03f17f6f4b36f80dc2bbaeab6662c5e9ae0ab136a1ab8d74601516922",
       "source_id": "SRC-D6E597BF8F39C223"
     },
     {
@@ -35480,7 +35480,7 @@
       ],
       "path": "../web/src/auth/canonicalLoginJournal.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "e38cbe2e13dd5fef9f9bb62d77362b67ce9f557783414ffcc89ec6a7c19ba239",
+      "sha256": "68b0c51abdbe25b8cc7bcdcbd9fb9c33ce5aba568f4aa8b763ac63c08e3b8f6d",
       "source_id": "SRC-3E85F18E16CA3D64"
     },
     {
@@ -35576,7 +35576,7 @@
       ],
       "path": "../web/src/auth/session.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "6082a76d4a3ff93402b72700c5e5ec0857aba03513d612c1f39a42e7db53bc22",
+      "sha256": "42079387f82ffe934381c11d53b9c0c64235cb8c8ec185be68ac69a5331dc4ec",
       "source_id": "SRC-B8F7039335FD9E04"
     },
     {
@@ -37720,7 +37720,7 @@
       ],
       "path": "../web/tests/e2e/m4_two_user_one_node_custody.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "fa6c328ed39ce85fa0582e82a6fe97b039f201b38a5936364b93137074c9a1cf",
+      "sha256": "750d33e25b685a8e17f326e56eb172652e6438a0da4329cee367bc1deca9f6cc",
       "source_id": "SRC-623412DDC2F54685"
     },
     {
