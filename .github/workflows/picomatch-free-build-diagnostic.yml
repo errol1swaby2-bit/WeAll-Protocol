@@ -49,25 +49,6 @@ jobs:
           npm ls --all
       - name: Mandatory candidate dependency audit
         run: npm run dependency-audit
-      - name: Typecheck without Vite declarations
-        run: |
-          cat > src/vite-env.d.ts <<'TS'
-          interface ImportMetaEnv {
-            readonly PROD: boolean;
-            readonly DEV: boolean;
-            readonly MODE: string;
-            readonly BASE_URL: string;
-            readonly SSR: boolean;
-            readonly [key: string]: string | boolean | undefined;
-          }
-          interface ImportMeta { readonly env: ImportMetaEnv }
-          declare module "*.css";
-          declare module "*.svg" { const url: string; export default url; }
-          declare module "*.png" { const url: string; export default url; }
-          declare module "*.jpg" { const url: string; export default url; }
-          declare module "*.webp" { const url: string; export default url; }
-          TS
-          npm run typecheck
       - name: Preserve exact candidate lock for independent review
         uses: actions/upload-artifact@v4
         with:
@@ -77,6 +58,25 @@ jobs:
             web/package-lock.json
           if-no-files-found: error
           retention-days: 7
+      - name: Typecheck without Vite declarations
+        run: |
+          cat > src/vite-env.d.ts <<'TS'
+          interface ImportMetaEnv {
+            readonly PROD: boolean;
+            readonly DEV: boolean;
+            readonly MODE: string;
+            readonly BASE_URL: string;
+            readonly SSR: boolean;
+            readonly [key: `VITE_${string}`]: string | undefined;
+          }
+          interface ImportMeta { readonly env: ImportMetaEnv }
+          declare module "*.css";
+          declare module "*.svg" { const url: string; export default url; }
+          declare module "*.png" { const url: string; export default url; }
+          declare module "*.jpg" { const url: string; export default url; }
+          declare module "*.webp" { const url: string; export default url; }
+          TS
+          npm run typecheck
       - name: Build with explicit production configuration
         run: |
           node --input-type=module <<'JS'
