@@ -95,7 +95,7 @@
       ],
       "path": "../.github/workflows/f001-readme-two-frontend-login.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "e9d645c8ac282939e9b802259fbafd934c5ae926b198d2743452ff7179cd6af6",
+      "sha256": "c82f3098732b22741c73b514ee16308ab549c0f0b55aed98deb0bbd80ca190ad",
       "source_id": "SRC-AD5FB665D06294C6"
     },
     {
@@ -771,7 +771,7 @@
       ],
       "path": "../.github/workflows/pr93-approved-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "a2f21d24a841905ef0a502d400d82c0e8135bbf23a857d1828f348caeb6a303a",
+      "sha256": "6d1342965e9eac1a1a839d741772156bfcf113e3c428e3b1a8a4dffe778b55ae",
       "source_id": "SRC-AF812EB04A5D3741"
     },
     {
@@ -22700,7 +22700,7 @@
       ],
       "path": "tests/test_local_two_frontend_rehearsal_automation.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "75c694d8711c4e222116087e5fd7ded2ae7fb016fa9ad6328c13b8445023af6e",
+      "sha256": "7c2907c42110086d15024d92fcd8b17857f9883382e5f7cad698c7d221de0f75",
       "source_id": "SRC-54E0642F371A8699"
     },
     {
@@ -34538,7 +34538,7 @@
       ],
       "path": "../web/scripts/test_canonical_login_resume.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "3e48ca528c10ba90e3abc9581f448e88d83ad303f7f9d0b2f02a9a0c22f31ccc",
+      "sha256": "400fdc4ae4bc6e36bc29c57b495c141a1a1e3af8b6f66cac4cfe38c813b79791",
       "source_id": "SRC-D6E597BF8F39C223"
     },
     {
