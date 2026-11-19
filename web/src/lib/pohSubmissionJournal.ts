@@ -47,6 +47,9 @@ export function pohJournalKey(account: string, kind: PohJournalKind): string {
 }
 
 export function normalizePohJournalBase(base: string): string {
+  // The API runtime uses exactly "" for same-origin proxy requests. Store the
+  // existing nonempty "/" identity; missing and whitespace inputs remain invalid.
+  if (base === "") return "/";
   const raw = String(base || "").trim();
   return raw === "/" ? "/" : raw.replace(/\/+$/, "");
 }
