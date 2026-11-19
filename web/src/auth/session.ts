@@ -1138,54 +1138,82 @@ export async function submitSignedTxWithNonce(args: {
   /** Called with the fully signed envelope before dispatch; may abort if durable tracking fails. */
   onBeforeSubmit?: (envelope: TxEnvelope) => Promise<void> | void;
 }): Promise<{ env: TxEnvelope; result: any }> {
-  return runSignerSerialized(args.account, async () => {
-    const signer = normalizeAccount(args.account);
-    if (!signer) throw new Error("invalid_account");
+  const journalBound = args.expectedChainId !== undefined;
+  let stage = "signer_lock";
+  let dispatched = false;
+  try {
+    return await runSignerSerialized(args.account, async () => {
+      stage = "local_signer";
+      const signer = normalizeAccount(args.account);
+      if (!signer) throw new Error("invalid_account");
 
-    const kp = loadKeypair(signer);
-    if (!kp) throw new Error("missing_local_keypair");
+      const kp = loadKeypair(signer);
+      if (!kp) throw new Error("missing_local_keypair");
 
-    let chain_id: string;
-    if (args.expectedChainId !== undefined) {
-      const status = await weall.status(args.base);
-      const actual = String(status?.chain_id || "").trim();
-      if (!actual || actual !== args.expectedChainId) throw new Error("pending_canonical_login_chain_mismatch");
-      chain_id = actual;
-    } else {
-      chain_id = await resolveChainId();
-    }
-
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      const claim = await claimNextNonce(signer, args.base);
-      const payload = await args.payloadFactory(claim.nonce);
-
-      const unsigned = buildUnsignedEnvelope({
-        chain_id,
-        tx_type: args.tx_type,
-        signer,
-        nonce: claim.nonce,
-        payload,
-        parent: args.parent ?? null,
-        sig_profile: BROWSER_PQ_SIG_PROFILE,
-      });
-      const signed = signEnvelope(unsigned, kp);
-      try {
-        await args.onBeforeSubmit?.(signed);
-        const result = await weall.txSubmit(signed, args.base, args.headers);
-        return { env: signed, result };
-      } catch (error) {
-        rollbackNonceClaim(claim);
-        if (args.expectedChainId === undefined && attempt < 3 && isNonceReservationConflictError(error)) {
-          await syncNonceReservation(signer, args.base);
-          await sleep(250 * (attempt + 1));
-          continue;
-        }
-        throw isNonceReservationConflictError(error) ? friendlyNonceError(error) : error;
+      stage = "chain_identity";
+      let chain_id: string;
+      if (journalBound) {
+        const status = await weall.status(args.base);
+        const actual = String(status?.chain_id || "").trim();
+        if (!actual || actual !== args.expectedChainId) throw new Error("pending_canonical_login_chain_mismatch");
+        chain_id = actual;
+      } else {
+        chain_id = await resolveChainId();
       }
-    }
 
-    throw friendlyNonceError(new Error("nonce_retry_exhausted"));
-  });
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        let claim: NonceClaim | null = null;
+        dispatched = false;
+        try {
+          stage = "nonce_reservation";
+          claim = await claimNextNonce(signer, args.base);
+          stage = "payload";
+          const payload = await args.payloadFactory(claim.nonce);
+          stage = "signature";
+          const unsigned = buildUnsignedEnvelope({
+            chain_id,
+            tx_type: args.tx_type,
+            signer,
+            nonce: claim.nonce,
+            payload,
+            parent: args.parent ?? null,
+            sig_profile: BROWSER_PQ_SIG_PROFILE,
+          });
+          const signed = signEnvelope(unsigned, kp);
+          stage = "intent";
+          await args.onBeforeSubmit?.(signed);
+          stage = "dispatch";
+          dispatched = true;
+          const result = await weall.txSubmit(signed, args.base, args.headers);
+          return { env: signed, result };
+        } catch (error) {
+          // Preparation failures used to escape before rollback, leaving a
+          // never-submitted nonce reserved. Conversely, an uncertain journaled
+          // dispatch must not release a nonce which may already be admitted.
+          if (!journalBound || !dispatched) rollbackNonceClaim(claim);
+          if (journalBound) throw error;
+          if (attempt < 3 && isNonceReservationConflictError(error)) {
+            await syncNonceReservation(signer, args.base);
+            await sleep(250 * (attempt + 1));
+            continue;
+          }
+          throw isNonceReservationConflictError(error) ? friendlyNonceError(error) : error;
+        }
+      }
+
+      throw friendlyNonceError(new Error("nonce_retry_exhausted"));
+    });
+  } catch (error) {
+    if (!journalBound || dispatched) throw error;
+    // Expose a small, fixed diagnostic vocabulary, not the underlying crypto,
+    // browser storage, request, or signed-envelope contents.
+    const message = error instanceof Error ? error.message : "";
+    if (message === "pending_canonical_login_chain_mismatch" ||
+        /^pending_canonical_login_envelope_mismatch:(chain|signer|type|parent|nonce|payload)$/.test(message)) {
+      throw error;
+    }
+    throw new Error("canonical_login_prepare_failed:" + stage);
+  }
 }
 
 export async function restoreAccountAndLoginOnThisDevice(args: {

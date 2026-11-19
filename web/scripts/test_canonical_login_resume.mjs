@@ -181,6 +181,10 @@ let selectedChain = chainId;
 let cachedCalls = 0;
 let dispatches = 0;
 let intentCalls = 0;
+let reserved = 9;
+let rollbacks = 0;
+let signingFails = false;
+let transportFails = false;
 const signApi = vm.runInNewContext(signingCode + "\nsubmitSignedTxWithNonce", {
   runSignerSerialized: async (_account, fn) => fn(),
   normalizeAccount: value => value,
@@ -188,11 +192,28 @@ const signApi = vm.runInNewContext(signingCode + "\nsubmitSignedTxWithNonce", {
   resolveChainId: async () => { cachedCalls++; return "stale-default"; },
   weall: {
     status: async base => { assert.equal(base, "/"); return { chain_id: selectedChain }; },
-    txSubmit: async env => { dispatches++; assert.equal(env.chain_id, chainId); return { ok: true }; },
+    txSubmit: async env => {
+      dispatches++;
+      assert.equal(env.chain_id, chainId);
+      if (transportFails) throw new Error("fixture lost acknowledgement");
+      return { ok: true };
+    },
   },
-  claimNextNonce: async () => ({nonce: 10}),
+  claimNextNonce: async () => {
+    const previousReserved = reserved;
+    return { account, nonce: ++reserved, previousReserved };
+  },
+  rollbackNonceClaim: claim => {
+    if (claim && reserved === claim.nonce) {
+      reserved = claim.previousReserved;
+      rollbacks++;
+    }
+  },
   buildUnsignedEnvelope: env => env,
-  signEnvelope: env => env,
+  signEnvelope: env => {
+    if (signingFails) throw new Error("fixture signing failure");
+    return env;
+  },
   BROWSER_PQ_SIG_PROFILE: "pq-mldsa-v1",
 });
 const bound = {
@@ -211,5 +232,26 @@ for (const invalidChain of ["", "wrong-chain"]) {
 assert.equal(cachedCalls, 0);
 assert.equal(dispatches, 1);
 assert.equal(intentCalls, 1);
+
+// A never-dispatched nonce must not be burned by a payload, signing, or
+// intent-persistence error. An uncertain dispatch must retain its claim.
+selectedChain = chainId;
+const prior = reserved;
+await assert.rejects(signApi({...bound, payloadFactory: () => { throw new Error("fixture payload failure"); }}), /canonical_login_prepare_failed:payload/);
+assert.equal(reserved, prior);
+signingFails = true;
+await assert.rejects(signApi(bound), /canonical_login_prepare_failed:signature/);
+assert.equal(reserved, prior);
+signingFails = false;
+await assert.rejects(signApi({...bound, onBeforeSubmit: () => { throw new Error("fixture intent storage failure"); }}), /canonical_login_prepare_failed:intent/);
+assert.equal(reserved, prior);
+assert.equal(rollbacks, 3);
+assert.equal(dispatches, 1);
+transportFails = true;
+await assert.rejects(signApi(bound), /fixture lost acknowledgement/);
+assert.equal(dispatches, 2);
+assert.equal(reserved, prior + 1);
+assert.equal(rollbacks, 3);
+assert.equal(cachedCalls, 0);
 
 console.log("F-001 canonical login interruption, receipt/auth gates, custody and duplicate prevention passed");

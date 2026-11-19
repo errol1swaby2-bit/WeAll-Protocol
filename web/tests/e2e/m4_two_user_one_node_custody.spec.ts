@@ -636,10 +636,27 @@ test("two independent real users register, update public profiles and isolate ke
     const recoveryStages: Record<string, number> = {};
     const recoveryReceipts = new Set<string>();
     const observed = (stage: string) => { recoveryStages[stage] = (recoveryStages[stage] || 0) + 1; };
+    // Count requests independently of responses: a missing acknowledgement
+    // is not evidence that a submission was never dispatched.
+    restored.on("request", request => {
+      try {
+        if (new URL(request.url()).pathname !== "/v1/tx/submit" || request.method() !== "POST") return;
+        const type = request.postDataJSON()?.tx_type;
+        if (type === "ACCOUNT_DEVICE_REGISTER" || type === "ACCOUNT_SESSION_KEY_ISSUE") observed(type + "_request");
+      } catch { observed("diagnostic_request_unavailable"); }
+    });
+    restored.on("requestfailed", request => {
+      const path = new URL(request.url()).pathname;
+      if (path === "/v1/tx/submit") observed("submit_transport_failed");
+      if (path === "/v1/status") observed("chain_status_transport_failed");
+      if (path.startsWith("/v1/tx/status/")) observed("receipt_transport_failed");
+    });
     restored.on("response", async response => {
       try {
         const path = new URL(response.url()).pathname;
         if (path === "/v1/session/login") observed("direct_login_http_" + response.status());
+        if (path === "/v1/status") observed("chain_status_http_" + response.status());
+        if (path.startsWith("/v1/accounts/") && path.endsWith("/nonce")) observed("nonce_http_" + response.status());
         if (path === "/v1/tx/submit") {
           const type = response.request().postDataJSON()?.tx_type;
           if (type !== "ACCOUNT_DEVICE_REGISTER" && type !== "ACCOUNT_SESSION_KEY_ISSUE") return;
@@ -683,14 +700,32 @@ test("two independent real users register, update public profiles and isolate ke
           ["nonce_conflict", "Another signed action"],
           ["chain_mismatch", "pending_canonical_login_chain_mismatch"],
           ["session_issue_failed", "session_issue_failed"],
+          ...["signer_lock", "local_signer", "chain_identity", "nonce_reservation", "payload", "signature", "intent"].map(stage =>
+            ["prepare_failed_" + stage, "canonical_login_prepare_failed:" + stage]),
+          ["journal_invalid", "pending_canonical_login_invalid"],
+          ["journal_tracking_missing", "pending_canonical_login_tracking_missing"],
+          ["signer_busy", "signer_busy_elsewhere"],
         ];
         const label = categories.find(([, marker]) => error.includes(marker))?.[0] || (error ? "other_visible_error" : "no_visible_error");
         const meta = JSON.parse(localStorage.getItem("weall_session_v1") || "null");
         const bearer = JSON.parse(sessionStorage.getItem("weall_session_bearer_v1") || "null");
+        const pendingKeys = Object.keys(sessionStorage).filter(key => key.startsWith("weall_pending_canonical_login_v1::"));
+        // Only journal step existence, never stored identifiers or secrets.
+        let trackedDevice = false;
+        let trackedSession = false;
+        let unreadableJournal = false;
+        for (const key of pendingKeys) {
+          try {
+            const pending = JSON.parse(sessionStorage.getItem(key) || "null");
+            trackedDevice ||= Boolean(pending?.deviceTx);
+            trackedSession ||= Boolean(pending?.sessionTx);
+          } catch { unreadableJournal = true; }
+        }
         return {
           errorCategory: label, hasSessionMetadata: Boolean(meta?.account),
           hasBearer: Boolean(bearer?.sessionKey),
-          pendingLogin: Object.keys(sessionStorage).some(key => key.startsWith("weall_pending_canonical_login_v1::")),
+          pendingLogin: pendingKeys.length > 0,
+          trackedDevice, trackedSession, unreadableJournal,
           onHome: location.hash === "#/home",
         };
       });
