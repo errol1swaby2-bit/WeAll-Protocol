@@ -433,10 +433,11 @@ export default function Settings(): JSX.Element {
                       aria-pressed={selected}
                       onClick={() => applyPreset(preset)}
                     >
-                      <span className="themePresetPreview" style={{ background: preset.background, color: preset.foreground }}>
+                      <span className="themePresetPreview" style={{ background: `linear-gradient(145deg, ${preset.background}, ${preset.backgroundEnd})`, color: preset.foreground }}>
                         <span className="themePresetMockCard" style={{ background: preset.surface }}>
                           <span className="themePresetMockHeading">WeAll</span>
-                          <span className="themePresetMockAccent" style={{ background: preset.accent }} />
+                          <span className="themePresetMockSubtext" style={{ color: preset.muted }}>A readable community feed</span>
+                          <span className="themePresetMockAccent" style={{ background: preset.accent, color: preset.onAccent }}>Open decision</span>
                         </span>
                       </span>
                       <strong>{preset.name}</strong>
@@ -511,10 +512,11 @@ export default function Settings(): JSX.Element {
                   {(() => {
                     const matchingPreset = THEME_PRESETS.find((item) => presetMatchesSettings(item, pendingTheme.tokens));
                     return matchingPreset ? (
-                      <div className="themePresetPreview" style={{ background: matchingPreset.background, color: matchingPreset.foreground }}>
+                      <div className="themePresetPreview" style={{ background: `linear-gradient(145deg, ${matchingPreset.background}, ${matchingPreset.backgroundEnd})`, color: matchingPreset.foreground }}>
                         <span className="themePresetMockCard" style={{ background: matchingPreset.surface }}>
                           <span className="themePresetMockHeading">WeAll</span>
-                          <span className="themePresetMockAccent" style={{ background: matchingPreset.accent }} />
+                          <span className="themePresetMockSubtext" style={{ color: matchingPreset.muted }}>A readable community feed</span>
+                          <span className="themePresetMockAccent" style={{ background: matchingPreset.accent, color: matchingPreset.onAccent }}>Open decision</span>
                         </span>
                       </div>
                     ) : null;

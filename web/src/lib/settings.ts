@@ -1,3 +1,5 @@
+import { themePalette } from "./themePresets";
+
 export type ThemeMode = "dark" | "light";
 export type AccentTone = "mint" | "cyan" | "gold" | "rose";
 export type FontScale = "sm" | "md" | "lg";
@@ -99,46 +101,23 @@ export function applySettingsToDocument(settings: ClientSettings): void {
   root.dataset.density = settings.density;
   root.dataset.motionMode = settings.motionMode;
 
-  if (settings.themeMode === "light") {
-    root.style.setProperty("--bg", "#eef5fb");
-    root.style.setProperty("--bg2", "#dfeaf5");
-    root.style.setProperty("--panel", "rgba(255, 255, 255, 0.88)");
-    root.style.setProperty("--panel-strong", "rgba(255, 255, 255, 0.96)");
-    root.style.setProperty("--panel-soft", "rgba(15, 23, 42, 0.05)");
-    root.style.setProperty("--text", "#0b1724");
-    root.style.setProperty("--muted", "rgba(11, 23, 36, 0.72)");
-    root.style.setProperty("--muted-strong", "rgba(11, 23, 36, 0.86)");
-    root.style.setProperty("--border", "rgba(15, 23, 42, 0.12)");
-    root.style.setProperty("--border-strong", "rgba(15, 23, 42, 0.18)");
-    root.style.setProperty("--shadow", "0 22px 50px rgba(15, 23, 42, 0.12)");
-  } else {
-    root.style.setProperty("--bg", "#07111b");
-    root.style.setProperty("--bg2", "#0b1724");
-    root.style.setProperty("--panel", "rgba(10, 23, 36, 0.88)");
-    root.style.setProperty("--panel-strong", "rgba(10, 23, 36, 0.96)");
-    root.style.setProperty("--panel-soft", "rgba(255, 255, 255, 0.04)");
-    root.style.setProperty("--text", "#edf4fb");
-    root.style.setProperty("--muted", "rgba(237, 244, 251, 0.72)");
-    root.style.setProperty("--muted-strong", "rgba(237, 244, 251, 0.86)");
-    root.style.setProperty("--border", "rgba(186, 219, 255, 0.14)");
-    root.style.setProperty("--border-strong", "rgba(186, 219, 255, 0.22)");
-    root.style.setProperty("--shadow", "0 22px 50px rgba(0, 0, 0, 0.32)");
-  }
-
-  switch (settings.accentTone) {
-    case "cyan":
-      setAccentVars(root, "#6fe7ff", "#4cc9f0", "111, 231, 255", "76, 201, 240");
-      break;
-    case "gold":
-      setAccentVars(root, "#f4c95d", "#ffd166", "244, 201, 93", "255, 209, 102");
-      break;
-    case "rose":
-      setAccentVars(root, "#fb7185", "#f9a8d4", "251, 113, 133", "249, 168, 212");
-      break;
-    default:
-      setAccentVars(root, "#4ce0b3", "#6fe7ff", "76, 224, 179", "111, 231, 255");
-      break;
-  }
+  const palette = themePalette(settings);
+  const light = settings.themeMode === "light";
+  const rgb = (hex: string) => [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16)).join(", ");
+  const vars: Record<string, string> = {
+    "--bg": palette.background, "--bg2": palette.backgroundEnd,
+    "--panel": palette.surface, "--panel-strong": palette.raised, "--panel-soft": palette.soft,
+    "--text": palette.foreground, "--muted": palette.muted, "--muted-strong": palette.muted,
+    "--border": palette.border, "--border-strong": palette.border,
+    "--on-accent": palette.onAccent,
+    "--gold": light ? "#70430a" : "#ffda8c",
+    "--danger": light ? "#942b40" : "#ffb6c4",
+    "--ok": light ? "#155b36" : "#a4f2c1",
+    "--shadow": light ? "0 12px 32px rgba(25,38,48,.10)" : "0 16px 42px rgba(0,0,0,.26)",
+  };
+  for (const [name, value] of Object.entries(vars)) root.style.setProperty(name, value);
+  root.style.colorScheme = light ? "light" : "dark";
+  setAccentVars(root, palette.accent, palette.accent2, rgb(palette.accent), rgb(palette.accent2));
 
   switch (settings.fontScale) {
     case "sm":

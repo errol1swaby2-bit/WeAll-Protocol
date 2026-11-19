@@ -120,3 +120,13 @@ for (const needle of [
 }
 
 console.log("OK: account/profile readiness source checks passed");
+
+for (const needle of [
+  'Upload profile picture', 'Upload profile banner',
+  'uploadProfileImage("avatar_cid", file)', 'uploadProfileImage("banner_cid", file)',
+  'weall.mediaUpload(file, base, getAuthHeaders(acct))',
+  'tx_type: "IPFS_PIN_REQUEST"', 'tx_type: "CONTENT_MEDIA_DECLARE"',
+  'await requireMediaReceipt(txIdFromResult(declared))',
+  'updateProfileForm(field, cid)', 'if (!isSelf || !canPost',
+  'if (!isSelf || profileMediaLock.current) return',
+]) assertIncludes(account, needle, "Public profile image upload boundary");

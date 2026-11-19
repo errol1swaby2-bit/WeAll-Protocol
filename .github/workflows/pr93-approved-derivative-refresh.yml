@@ -58,6 +58,11 @@ on:
       - web/tests/e2e/active_deliberations_rendered.spec.ts
       - web/src/lib/decisionCreation.ts
       - web/src/pages/Account.tsx
+      - web/src/lib/themePresets.ts
+      - web/src/lib/settings.ts
+      - web/src/styles.css
+      - web/src/pages/Settings.tsx
+      - web/scripts/test_theme_transfer.mjs
       - web/scripts/test_account_profile_readiness_source.mjs
       - web/src/components/VerificationHistoryPanel.tsx
       - web/scripts/test_pr93_poh_merge_parity_source.mjs

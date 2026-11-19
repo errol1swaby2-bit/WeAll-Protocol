@@ -4,8 +4,9 @@ import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import FeedView from "../components/FeedView";
 import WalletPanel from "../components/WalletPanel";
-import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
+import { ensureBackendSession, getAuthHeaders, getKeypair, getSession, submitSignedTx, submitSignedTxWithNonce } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
+import { normalizeTxStatus } from "../lib/status";
 import { createNodeKeyFile, downloadNodeKeyFile, type NodeKeyFile } from "../auth/nodeKeys";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { refreshMutationSlices, retryTransientCanonicalRead } from "../lib/revalidation";
@@ -150,6 +151,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [profileErr, setProfileErr] = useState<{ msg: string; details: any } | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>(() => emptyProfileForm());
   const [profileDirty, setProfileDirty] = useState<boolean>(false);
+  const [profileMediaBusy, setProfileMediaBusy] = useState<"avatar_cid" | "banner_cid" | null>(null);
+  const [profileMediaInfo, setProfileMediaInfo] = useState("");
+  const profileMediaLock = useRef(false);
+  const profileMediaScope = useRef(0);
   const profileDirtyRef = useRef(false);
   const profileDraftRevisionRef = useRef(0);
   const profileLoadSequenceRef = useRef(0);
@@ -271,6 +276,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
   }
 
   useEffect(() => {
+    profileMediaScope.current += 1;
+    setProfileMediaInfo("");
     profileDraftRevisionRef.current += 1;
     profileDirtyRef.current = false;
     setProfileDirty(false);
@@ -278,7 +285,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setProfileView(null);
     setProfileForm(emptyProfileForm());
     void load();
-    return () => { profileLoadSequenceRef.current += 1; };
+    return () => { profileLoadSequenceRef.current += 1; profileMediaScope.current += 1; };
   }, [acct, isSelf]);
 
   useEffect(() => {
@@ -520,6 +527,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
   const signerBusy = signerSubmission.busy;
   const profileSubmitBlockers = [
+    profileMediaBusy ? "profile-media-busy" : "",
     busy !== null ? "account-action-busy" : "",
     !profileDirty ? "draft-not-changed" : "",
     !accountExists ? "account-state-unavailable" : "",
@@ -529,8 +537,96 @@ export default function Account({ account }: { account: string }): JSX.Element {
     !bannerDraftValid ? "banner-cid-invalid" : "",
   ].filter(Boolean);
 
+  // Uploading public media stages a CID, not an automatic PROFILE_UPDATE.
+  async function uploadProfileImage(field: "avatar_cid" | "banner_cid", file: File): Promise<void> {
+    if (!isSelf || !canPost || !canonicalProfileReady || !localPubkey || signerBusy || busy !== null || profileMediaLock.current) return;
+    const label = field === "avatar_cid" ? "Profile picture" : "Profile banner";
+    const scope = profileMediaScope.current;
+    const active = () => scope === profileMediaScope.current && normalizeAccount(getSession()?.account || "") === acct;
+    const requireActive = () => { if (!active()) throw new Error("Profile or session changed; inspect any submitted media transaction in Transactions."); };
+    profileMediaLock.current = true;
+    setProfileMediaBusy(field);
+    setProfileMediaInfo("");
+    setProfileErr(null);
+    let cid = "";
+    let lastTxId = "";
+    // Admission is not confirmation. Do not retry a signed write on uncertainty.
+    async function requireMediaReceipt(id: string) {
+      if (!/^tx:[0-9a-f]{64}$/.test(id)) throw new Error("Media transaction ID unavailable. Inspect Transactions before retrying.");
+      lastTxId = id;
+      for (let attempt = 0; attempt < 60; attempt++) {
+        requireActive();
+        const receipt = await weall.txStatus(id, base).catch(() => null);
+        if (receipt?.tx_id === id) {
+          const phase = normalizeTxStatus(receipt, id).phase;
+          if (phase === "confirmed") return;
+          if (phase === "failed") throw new Error("Media transaction rejected. Inspect Transactions before retrying.");
+        }
+        await new Promise(resolve => window.setTimeout(resolve, 1500));
+      }
+      throw new Error("Media transaction confirmation pending. Inspect Transactions before retrying.");
+    }
+    try {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size < 1 || file.size > 10 * 1024 * 1024) {
+        throw new Error("Choose a JPEG, PNG, or WebP image up to 10 MB.");
+      }
+      const image = await createImageBitmap(file);
+      const validDimensions = image.width > 0 && image.height > 0 && image.width <= 8192 && image.height <= 8192;
+      image.close();
+      if (!validDimensions) throw new Error("Choose an image no larger than 8192 × 8192 pixels.");
+      const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer())), b => b.toString(16).padStart(2, "0")).join("");
+      requireActive();
+      if (active()) setProfileMediaInfo(label + ": uploading public image to IPFS…");
+      await ensureBackendSession({ account: acct, base });
+      requireActive();
+      const up = await weall.mediaUpload(file, base, getAuthHeaders(acct));
+      requireActive();
+      const returnedCid = String(up?.cid || "").trim();
+      if (up?.ok !== true || !/^[A-Za-z0-9]{32,256}$/.test(returnedCid) || up.sha256 !== sha || up.mime !== file.type || up.size !== file.size) {
+        throw new Error("Upload did not return matching public media metadata.");
+      }
+      cid = returnedCid;
+      setProfileMediaInfo(label + ": waiting for public media pin request…");
+      if (up.pin_request?.submitted === true) {
+        await requireMediaReceipt(String(up.pin_request.tx_id || ""));
+      } else {
+        requireActive();
+        const pin = await tx.runTx({
+          title: "Request public profile media pin",
+          task: () => submitSignedTx({ account: acct, base, tx_type: "IPFS_PIN_REQUEST", payload: { cid, size_bytes: file.size }, parent: null }),
+          getTxId: txIdFromResult,
+          finality: { base },
+        });
+        await requireMediaReceipt(txIdFromResult(pin));
+      }
+      requireActive();
+      setProfileMediaInfo(label + ": recording public media declaration…");
+      const declared = await tx.runTx({
+        title: "Declare public profile image",
+        task: () => submitSignedTxWithNonce({
+          account: acct, base, tx_type: "CONTENT_MEDIA_DECLARE", parent: null,
+          payloadFactory: nonce => ({ media_id: `media:${acct}:${nonce}`, cid, upload_ref: cid, mime: file.type, bytes: file.size, name: file.name, sha256: sha, content_sha256: sha }),
+        }),
+        getTxId: txIdFromResult,
+        finality: { base },
+      });
+      await requireMediaReceipt(txIdFromResult(declared));
+      requireActive();
+      updateProfileForm(field, cid);
+      setProfileMediaInfo(label + " uploaded and declared. Preview the draft, then submit your public profile update. Storage durability is tracked separately.");
+    } catch (error: any) {
+      if (active()) {
+        setProfileErr({ msg: String(error?.message || "Public image upload failed."), details: { cid: cid || undefined, tx_id: lastTxId || undefined } });
+        setProfileMediaInfo(cid ? "Image upload may already exist. Inspect the original media transactions before retrying; the profile draft was not replaced." : "");
+      }
+    } finally {
+      profileMediaLock.current = false;
+      setProfileMediaBusy(null);
+    }
+  }
+
   async function runProfileUpdate() {
-    if (!isSelf) return;
+    if (!isSelf || profileMediaLock.current) return;
     const submittedDraftRevision = profileDraftRevisionRef.current;
 
     setBusy("profile");
@@ -1211,54 +1307,38 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     placeholder="A short public bio"
                   />
                 </label>
-                <div className="grid2">
-                  <label>
-                    <div className="eyebrow">Profile picture CID</div>
-                    <input
-                      value={profileForm.avatar_cid}
-                      onChange={(e) => updateProfileForm("avatar_cid", e.target.value)}
-                      placeholder="Public media CID"
-                    />
-                  </label>
-                  <label>
-                    <div className="eyebrow">Website</div>
-                    <input
-                      value={profileForm.website}
-                      onChange={(e) => updateProfileForm("website", e.target.value)}
-                      placeholder="https://example.org"
-                    />
-                  </label>
+                <p className="cardDesc">Choose JPEG, PNG or WebP images up to 10 MB. Uploads are public IPFS media; do not select private verification evidence or sensitive files. A separate signed profile update publishes the selected image on your profile.</p>
+                {!canPost ? <p className="cardDesc">Image upload requires Tier 2 verification and an active account. Existing public image CIDs can still be entered below.</p> : null}
+                <div className="profileImageEditors">
+                  <div className="infoCard formStack">
+                    <div className="feedMediaTitle">Profile picture</div>
+                    <label className="fieldLabel">Upload profile picture
+                      <input className="profileImageUploadInput" type="file" accept="image/png,image/jpeg,image/webp" disabled={!canPost || !localPubkey || signerBusy || busy !== null || !!profileMediaBusy}
+                        onChange={event => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void uploadProfileImage("avatar_cid", file); }} />
+                    </label>
+                    {profileMediaBusy === "avatar_cid" ? <p role="status">Preparing public profile picture…</p> : null}
+                    <label><span className="eyebrow">Profile picture CID</span>
+                      <input value={profileForm.avatar_cid} maxLength={256} disabled={!!profileMediaBusy} onChange={e => updateProfileForm("avatar_cid", e.target.value)} placeholder="Public media CID" />
+                    </label>
+                    {/^[A-Za-z0-9]{32,256}$/.test(profileForm.avatar_cid.trim()) ? <img className="profileImageDraftAvatar" src={`${base}/v1/media/proxy/${encodeURIComponent(profileForm.avatar_cid.trim())}`} alt="Draft profile picture preview" loading="lazy" decoding="async" /> : null}
+                  </div>
+                  <div className="infoCard formStack">
+                    <div className="feedMediaTitle">Public profile background</div>
+                    <label className="fieldLabel">Upload profile banner
+                      <input className="profileImageUploadInput" type="file" accept="image/png,image/jpeg,image/webp" disabled={!canPost || !localPubkey || signerBusy || busy !== null || !!profileMediaBusy}
+                        onChange={event => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void uploadProfileImage("banner_cid", file); }} />
+                    </label>
+                    <p className="cardDesc">Wide images work best. Banner removal is not supported; an existing public banner can be replaced.</p>
+                    {profileMediaBusy === "banner_cid" ? <p role="status">Preparing public profile banner…</p> : null}
+                    <label><span className="eyebrow">Public banner CID</span>
+                      <input value={profileForm.banner_cid} maxLength={256} disabled={!!profileMediaBusy} onChange={e => updateProfileForm("banner_cid", e.target.value)} placeholder="Public IPFS image CID (publish or replace)" />
+                    </label>
+                    {!bannerDraftValid ? <div className="calloutDanger">{bannerRemovalUnsupported ? "Removing an existing public banner is not supported by this protocol contract. Keep it unchanged or replace it with another public image CID." : "Use a plain public image CID of 32–256 letters/digits; URLs and markup are not accepted."}</div> : null}
+                    {bannerDraftCid && bannerDraftValid ? <div className="publicProfileBanner publicProfileBanner--draft"><img src={`${base}/v1/media/proxy/${encodeURIComponent(bannerDraftCid)}`} alt="Draft public background preview" loading="lazy" decoding="async" /></div> : null}
+                  </div>
                 </div>
-                <div className="infoCard compact">
-                  <div className="feedMediaTitle">Public profile background</div>
-                  <p className="cardDesc">
-                    Enter an existing public image CID. The background becomes shared public profile metadata
-                    only after the signed PROFILE_UPDATE transaction commits. The image must already be available
-                    through this node's media proxy; this is not a private wallpaper. Banner removal is not yet
-                    supported by the canonical PROFILE_UPDATE transaction schema.
-                  </p>
-                  <label>
-                    <span className="eyebrow">Public banner CID</span>
-                    <input
-                      value={profileForm.banner_cid}
-                      maxLength={256}
-                      onChange={(e) => updateProfileForm("banner_cid", e.target.value)}
-                      placeholder="Public IPFS image CID (publish or replace)"
-                    />
-                  </label>
-                  {!bannerDraftValid ? (
-                    <div className="calloutDanger">
-                      {bannerRemovalUnsupported
-                        ? "Removing an existing public banner is not supported by this protocol contract. Keep it unchanged or replace it with another public image CID."
-                        : "Use a plain public image CID of 32–256 letters/digits; URLs and markup are not accepted."}
-                    </div>
-                  ) : null}
-                  {bannerDraftCid && bannerDraftValid ? (
-                    <div className="publicProfileBanner publicProfileBanner--draft">
-                      <img src={`${base}/v1/media/proxy/${encodeURIComponent(bannerDraftCid)}`} alt="Draft public background preview" loading="lazy" decoding="async" />
-                    </div>
-                  ) : null}
-                </div>
+                {profileMediaInfo ? <div role="status" className="calloutInfo">{profileMediaInfo}</div> : null}
+                <label><div className="eyebrow">Website</div><input value={profileForm.website} onChange={e => updateProfileForm("website", e.target.value)} placeholder="https://example.org" /></label>
                 <div className="grid2">
                   <label>
                     <div className="eyebrow">Location</div>
@@ -1284,14 +1364,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     data-testid="profile-submit-action"
                     data-account-read-outcome={accountReadOutcome}
                     data-submit-blockers={profileSubmitBlockers.join(",")}
-                    disabled={busy !== null || !profileDirty || !accountExists || !canonicalProfileReady || !localPubkey || signerBusy || !bannerDraftValid}
+                    disabled={busy !== null || !!profileMediaBusy || !profileDirty || !accountExists || !canonicalProfileReady || !localPubkey || signerBusy || !bannerDraftValid}
                     onClick={() => void runProfileUpdate()}
                   >
                     {busy === "profile" ? "Submitting profile update…" : "Submit public profile update"}
                   </button>
                   <button
                     className="btn"
-                    disabled={busy !== null || !canonicalProfileReady}
+                    disabled={busy !== null || !!profileMediaBusy || !canonicalProfileReady}
                     onClick={() => {
                       profileDraftRevisionRef.current += 1;
                       profileDirtyRef.current = false;

@@ -97,3 +97,26 @@ assert.ok(!settingsStorage.includes("setApiBase"), "Appearance storage must not 
 assert.ok(!source.includes("localStorage"), "Parser must be pure and free from storage writes");
 
 console.log("OK: versioned, bounded, non-executable theme export/import and explicit preview/apply guards");
+
+// Every preview uses the actual runtime palette and legible opaque surfaces.
+const paletteSource = read("src/lib/themePresets.ts");
+const paletteJs = ts.transpileModule(paletteSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const { THEME_PRESETS, themePalette } = await import(`data:text/javascript;base64,${Buffer.from(paletteJs).toString("base64")}`);
+function luminance(color) {
+  return [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255)
+    .map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4)
+    .reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
+}
+function contrast(a, b) { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); }
+assert.equal(THEME_PRESETS.length, 8);
+assert.equal(new Set(THEME_PRESETS.map(p => p.background)).size, 8);
+for (const p of THEME_PRESETS) {
+  assert.equal(themePalette(p), p);
+  for (const background of [p.background, p.backgroundEnd, p.surface, p.raised, p.soft]) {
+    for (const foreground of [p.foreground, p.muted, p.accent, p.accent2]) {
+      assert.ok(contrast(foreground, background) >= 4.5, `${p.id}: ${foreground} / ${background} below 4.5:1`);
+    }
+  }
+  for (const fill of [p.accent, p.accent2]) assert.ok(contrast(p.onAccent, fill) >= 4.5, p.id + " primary button contrast");
+}
+assert.ok(settingsStorage.includes("const palette = themePalette(settings)"), "Runtime and preview must share palette");
