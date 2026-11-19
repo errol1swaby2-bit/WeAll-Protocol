@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 2374,
+  "file_count": 2377,
   "files": [
     {
       "affected_registers": [
@@ -771,7 +771,7 @@
       ],
       "path": "../.github/workflows/pr93-approved-derivative-refresh.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "38a445027e92ba2dfacd3c62e8fdbdffc2f100608903ad1157cc0f9a9256c2a8",
+      "sha256": "c8dd35fecce8c3959e8adbe029f36533a0030ffeede295cad1f75290c5c0d6d1",
       "source_id": "SRC-AF812EB04A5D3741"
     },
     {
@@ -8655,7 +8655,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "317d3f904f41c0f3e0796ff0f5f88bffde95ee0bfef23924d37435ddbc9436ae",
+      "sha256": "1b87fb71434f768b0382a0499abed6c0fc60a73788892ad10831322581441638",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -34538,7 +34538,7 @@
       ],
       "path": "../web/scripts/test_canonical_login_resume.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "c13469174cea20344bb479c4ec69dd66e854cc67897ade2a25f79c8066482ce9",
+      "sha256": "c3ec2b63dd3c26a5e83d3350ad3deb003db3a0542b9bc0c70aaffdd9311bfa0d",
       "source_id": "SRC-D6E597BF8F39C223"
     },
     {
@@ -34772,7 +34772,7 @@
       ],
       "path": "../web/scripts/test_group_review_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "ea61211ebf0e908267e1a1f74712b22ca60544ff639503c02928126e2c01241b",
+      "sha256": "1d553ae42663c1d8fa4e52511312ef88ed0438b27b7140add160032a34c08452",
       "source_id": "SRC-EED514D26FED6722"
     },
     {
@@ -35344,7 +35344,7 @@
       ],
       "path": "../web/scripts/test_v16_navigation_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "121108509cc221e243740c6650c8ba56a61ea2da3c6d479a0013830210291ce2",
+      "sha256": "42ab91fda85f8b623000ebcfadede946b63eeb58bcd855a7ac5543c27c79a1ab",
       "source_id": "SRC-4A6A553A5C8ED506"
     },
     {
@@ -35480,7 +35480,7 @@
       ],
       "path": "../web/src/auth/canonicalLoginJournal.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "978ae496a69015068237feab6adc26342e05a0fcec97f687213b83910cb72261",
+      "sha256": "6ba1106c13319bb8c36ca86968ce24beff39031811b7284e339273889741182d",
       "source_id": "SRC-3E85F18E16CA3D64"
     },
     {
@@ -35576,8 +35576,24 @@
       ],
       "path": "../web/src/auth/session.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "690b576906d3e2f2f0c7421da27646fed88da24785314af103343bc34d3f9303",
+      "sha256": "b0d1d41650a9497a28e8e876f4dc6e6d1baa63b5ffa68b2536c9cc743c6991ac",
       "source_id": "SRC-B8F7039335FD9E04"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069",
+        "TX-1200"
+      ],
+      "path": "../web/src/components/AccountIdentity.tsx",
+      "primary_mechanism_id": "M-069",
+      "sha256": "b133e8f1e23337e9559f7244258ae3057ce41ac0aeedf737f15494b19b77bcf7",
+      "source_id": "SRC-7EFEC46AED76B7A4"
     },
     {
       "affected_registers": [
@@ -35621,7 +35637,7 @@
       ],
       "path": "../web/src/components/ActiveDeliberations.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "5e17196d2d6cf28b50e687ac1d7468d677168bd5700111f544130f570aca37cd",
+      "sha256": "bdfd308cf1927c26f8c4772fc1cf946dd63380b40364108ed6cc1b6183854877",
       "source_id": "SRC-D92DC7ED1BC16C35"
     },
     {
@@ -35780,7 +35796,7 @@
       ],
       "path": "../web/src/components/FeedView.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "32ae968d1a9f2ec985433f352adbce4112eaabce8f12163c97d6b0654c279b36",
+      "sha256": "126267f522c3196974c48b3f5ab8619d704d9a1678424857f2cbc60f64618a6c",
       "source_id": "SRC-FCCB0A4AAB9F203F"
     },
     {
@@ -36189,6 +36205,21 @@
       "mappings": [
         "M-069"
       ],
+      "path": "../web/src/lib/accountAvatar.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "0fc1b9cf27456938a9e6c52039915fe913bbbdbea7499212414be02fda6c2996",
+      "source_id": "SRC-9D0D104D6AA81376"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-069"
+      ],
       "path": "../web/src/lib/accountProfileTabs.ts",
       "primary_mechanism_id": "M-069",
       "sha256": "abbe3ffbdc8ff3e6c0e116227eacf5388196694f0b8da81637e525c0ad4a25ef",
@@ -36388,6 +36419,21 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "mappings": [
+        "M-069"
+      ],
+      "path": "../web/src/lib/decisionCreation.ts",
+      "primary_mechanism_id": "M-069",
+      "sha256": "af2c78f8d477764671467510a38d20741e75710944682c05e52224bfa532ff95",
+      "source_id": "SRC-34FE46397FE87889"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "presentation",
+        "routes"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
         "M-069",
         "ROUTE-74C075AFE12560DE",
         "ROUTE-D4AF6AADB6344781",
@@ -36495,7 +36541,7 @@
       ],
       "path": "../web/src/lib/governance.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "be6aeeb5f13bac94143b35a62ecef59550ddd9cd1baf8225f8895ad674b254a5",
+      "sha256": "f1b9528839af22d321affe1490681d1864a599e50615bb365df229aa7980913b",
       "source_id": "SRC-7A41248BA6319FA6"
     },
     {
@@ -36555,7 +36601,7 @@
       ],
       "path": "../web/src/lib/groupProfileTabs.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "9349c2236bf490f914fc0a35e1b1c35a564af207317d1338845b1aa46a7b1148",
+      "sha256": "c7acb428b9c6004dbad9f6a65849ab33767774c4977b4c1d664a2460a3bbffbf",
       "source_id": "SRC-A07B0A7A57DAFCB1"
     },
     {
@@ -37198,7 +37244,7 @@
       ],
       "path": "../web/src/pages/DisputeDetail.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "83305bb8c680a260346615bb6a09ed4e09c9063536e9b98fdc8883363e1b0fe3",
+      "sha256": "540a1b7413bd771f6781777640d7cef91ebea4ed352765dd2d998375454761c0",
       "source_id": "SRC-4146AA784A673236"
     },
     {
@@ -37277,13 +37323,12 @@
       "classification": "authoritative_or_launch_critical",
       "mappings": [
         "M-069",
-        "TX-0306",
         "TX-1704",
         "TX-1705"
       ],
       "path": "../web/src/pages/Group.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "f0ededb58182737c6ac16598e2cf899a4dbb014ab3c839c867f83f5b47a606e7",
+      "sha256": "e09a09298f30d9af48e37dc95b625e14ca4399208cc5917b29e03304e874b1c5",
       "source_id": "SRC-CE56540318D490F3"
     },
     {
@@ -37482,7 +37527,7 @@
       ],
       "path": "../web/src/pages/Proposal.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "90d714e83521e1f2d2941b87c6b38a045cdfe9401ac2f6f3c62bcaa8c1ec2557",
+      "sha256": "0ad5a4385a8f982c6690b1fb374f113d2fab1d341a6ffd8f5f4a29657f40385a",
       "source_id": "SRC-1CA80AD4A4352252"
     },
     {
@@ -37501,7 +37546,7 @@
       ],
       "path": "../web/src/pages/ProposalCreate.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "5f57cc7690b6059afbe875b8cadd6d46624c149e073e202b69dad2c0f2e05d8c",
+      "sha256": "7349c4d6a3e535cc5dba7ab96a725d3d3db97a0aa19e2eec83fe321c2290ca3d",
       "source_id": "SRC-9C843242C0D212FF"
     },
     {
@@ -37516,7 +37561,7 @@
       ],
       "path": "../web/src/pages/Proposals.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "4eed89f97c07dd0b89e5ba96a0ad89982ce9f3fbd3ea91b4ed301e7eb2475aad",
+      "sha256": "aa64202cd8c881acf5b1f140e19c3fc4ea11eae830036536e581a8e5b445f0ce",
       "source_id": "SRC-632D4F981A9883A9"
     },
     {
@@ -37580,7 +37625,7 @@
       ],
       "path": "../web/src/pages/Thread.tsx",
       "primary_mechanism_id": "M-069",
-      "sha256": "06e5ea81814298a005be5fcca872fcf405b7a6feeb4f17a46770404464db6ae0",
+      "sha256": "2be279fae72a5ad96df3d326619f61e2a7ee404eef7419a81f99fc9d162bc3cc",
       "source_id": "SRC-6652A43E94E2DC70"
     },
     {
@@ -37655,7 +37700,7 @@
       ],
       "path": "../web/tests/e2e/active_deliberations_rendered.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "7d82608ea96e96395f4cf443ed016279a68ac383b3b13ee47dd7c81775b8accd",
+      "sha256": "2ee0fcf797a25dead0e90311d1211fd01f50f0e49555e039bf9b5b8a5ce3829d",
       "source_id": "SRC-8E764C5708849501"
     },
     {

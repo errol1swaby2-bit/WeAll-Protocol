@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "038b9cb4fc40fb26674d9c158a4af72c8d40352c5e951c54a7cd4ff9c7cc7051"
+    "source_tree_digest": "ae6a156653276945741fe890dcfb0d6632a849ee2d8222e31842f107a6df6712"
   },
   "rows": [
     {
@@ -3136,6 +3136,7 @@
         "../web/src/auth/passkeys.ts",
         "../web/src/auth/recoveryFile.ts",
         "../web/src/auth/session.ts",
+        "../web/src/components/AccountIdentity.tsx",
         "../web/src/components/ActionLifecycleCard.tsx",
         "../web/src/components/ActionStatusBanner.tsx",
         "../web/src/components/ActiveDeliberations.tsx",
@@ -3175,6 +3176,7 @@
         "../web/src/hooks/useSessionHealth.ts",
         "../web/src/hooks/useSignerSubmissionBusy.ts",
         "../web/src/hooks/useTxQueue.ts",
+        "../web/src/lib/accountAvatar.ts",
         "../web/src/lib/accountProfileTabs.ts",
         "../web/src/lib/accountRegistrationWork.ts",
         "../web/src/lib/accountSetupRegistration.ts",
@@ -3188,6 +3190,7 @@
         "../web/src/lib/config.ts",
         "../web/src/lib/connectPublicTestnetBrowser.ts",
         "../web/src/lib/contentRevalidation.ts",
+        "../web/src/lib/decisionCreation.ts",
         "../web/src/lib/devBootstrap.ts",
         "../web/src/lib/disputeRevalidation.ts",
         "../web/src/lib/disputeSurface.ts",
