@@ -39,6 +39,8 @@ on:
       - web/src/pages/AccountVerificationPage.tsx
       - web/src/lib/revalidation.ts
       - web/scripts/test_poh_guided_routes.mjs
+      - web/src/lib/pohSubmissionJournal.ts
+      - web/scripts/test_poh_submission_journal.mjs
       - web/src/pages/Account.tsx
       - web/scripts/test_account_profile_readiness_source.mjs
       - web/src/components/VerificationHistoryPanel.tsx
