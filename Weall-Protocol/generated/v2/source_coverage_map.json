@@ -34538,7 +34538,7 @@
       ],
       "path": "../web/scripts/test_canonical_login_resume.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "400fdc4ae4bc6e36bc29c57b495c141a1a1e3af8b6f66cac4cfe38c813b79791",
+      "sha256": "c13469174cea20344bb479c4ec69dd66e854cc67897ade2a25f79c8066482ce9",
       "source_id": "SRC-D6E597BF8F39C223"
     },
     {
@@ -35480,7 +35480,7 @@
       ],
       "path": "../web/src/auth/canonicalLoginJournal.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "68b0c51abdbe25b8cc7bcdcbd9fb9c33ce5aba568f4aa8b763ac63c08e3b8f6d",
+      "sha256": "978ae496a69015068237feab6adc26342e05a0fcec97f687213b83910cb72261",
       "source_id": "SRC-3E85F18E16CA3D64"
     },
     {
@@ -35576,7 +35576,7 @@
       ],
       "path": "../web/src/auth/session.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "587c050e233f0f7c1319bd733e235c4e489cf6152dae77e50f237ab6bdf7e803",
+      "sha256": "690b576906d3e2f2f0c7421da27646fed88da24785314af103343bc34d3f9303",
       "source_id": "SRC-B8F7039335FD9E04"
     },
     {
