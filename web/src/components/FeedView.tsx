@@ -629,7 +629,7 @@ export default function FeedView({
               <div className="buttonRow buttonRowWide">
                 <button className="btn" onClick={() => nav("/groups")}>Browse groups</button>
                 <button className="btn" onClick={() => nav("/decisions")}>Open decisions</button>
-                <button className="btn btnPrimary" onClick={() => nav("/create")}>Create post</button>
+                <button className="btn btnPrimary" onClick={() => nav(scope.kind === "group" ? `/create?group_id=${encodeURIComponent(scope.groupId)}` : "/create")}>Create post</button>
               </div>
             </div>
           </div>

@@ -41,6 +41,13 @@ on:
       - web/scripts/test_poh_guided_routes.mjs
       - web/src/lib/pohSubmissionJournal.ts
       - web/scripts/test_poh_submission_journal.mjs
+      - web/src/pages/ProposalCreate.tsx
+      - web/src/lib/governance.ts
+      - web/src/lib/groupProfileTabs.ts
+      - web/src/pages/Group.tsx
+      - web/src/components/FeedView.tsx
+      - web/tests/e2e/active_deliberations_rendered.spec.ts
+      - web/src/lib/decisionCreation.ts
       - web/src/pages/Account.tsx
       - web/scripts/test_account_profile_readiness_source.mjs
       - web/src/components/VerificationHistoryPanel.tsx

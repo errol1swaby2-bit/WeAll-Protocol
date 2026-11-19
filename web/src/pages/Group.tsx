@@ -1,3 +1,4 @@
+import FeedView from "../components/FeedView";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { api, getApiBaseUrl, weall, type GroupGovernanceContract, type GroupElectionRecord } from "../api/weall";
@@ -44,7 +45,6 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const selected = String(groupId || "").trim();
   const [detail, setDetail] = useState<any | null>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [groupPosts, setGroupPosts] = useState<any[]>([]);
   const [groupDecisions, setGroupDecisions] = useState<any[]>([]);
   const [groupReports, setGroupReports] = useState<Array<{ item: any; source: string }>>([]);
   const [groupReportsStatus, setGroupReportsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -60,8 +60,6 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [acctState, setAcctState] = useState<any | null>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
-  const [reportBusyId, setReportBusyId] = useState<string | null>(null);
-  const [reportInfo, setReportInfo] = useState<{ msg: string; details?: any } | null>(null);
   const [activeTab, setActiveTab] = useState<GroupWorkspaceTab>(() => groupWorkspaceTabFromHash(typeof window !== "undefined" ? window.location.hash : ""));
   const [electionDetailId, setElectionDetailId] = useState<string>(() => groupElectionIdFromHash(typeof window !== "undefined" ? window.location.hash : ""));
 
@@ -234,7 +232,6 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
     if (!selected) {
       setDetail(null);
       setMembers([]);
-      setGroupPosts([]);
       setMembershipStatus(null);
       setGovernanceContract(null);
       return;
@@ -249,15 +246,11 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       setMembers(Array.isArray(m?.members) ? m.members : []);
       const contract: GroupGovernanceContract | null = await weall.groupGovernanceContract(selected, base).catch(() => null);
       setGovernanceContract(contract);
-      const feedHeaders = acct ? getAuthHeaders(acct) : undefined;
-      const feedRes: any = await weall.groupFeed(selected, { limit: 6 }, base, feedHeaders).catch(() => ({ items: [] }));
-      setGroupPosts(Array.isArray(feedRes?.items) ? feedRes.items.slice(0, 6) : []);
       await loadMembershipStatus();
     } catch (e: any) {
       setErr(prettyErr(e));
       setDetail(null);
       setMembers([]);
-      setGroupPosts([]);
       setMembershipStatus(null);
       setGovernanceContract(null);
     }
@@ -410,70 +403,6 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
     }
   }
 
-  async function waitForGroupDispute(targetId: string, attempts = 8): Promise<any | null> {
-    for (let i = 0; i < attempts; i += 1) {
-      try {
-        const headers = acct ? getAuthHeaders(acct) : undefined;
-        const r: any = await weall.disputes({ targetId, limit: 5 }, base, headers);
-        const items = Array.isArray(r?.items) ? r.items : [];
-        const found = items.find((item: any) => String(item?.target_id || "") === String(targetId));
-        if (found) return found;
-      } catch {
-        // keep polling; the observer/genesis read models can lag briefly.
-      }
-      await new Promise((resolve) => window.setTimeout(resolve, 300));
-    }
-    return null;
-  }
-
-  async function reportGroupPost(post: any): Promise<void> {
-    const targetId = String(post?.post_id || post?.id || "").trim();
-    if (!targetId) return;
-    setErr(null);
-    setReportInfo(null);
-    if (!acct || !canSign) {
-      setErr({ msg: "You are not logged in on this device.", details: "Restore your device signer before reporting group content." });
-      return;
-    }
-    if (!membershipGate.ok) {
-      setErr({ msg: membershipGate.reason || "Complete live verification before reporting group content.", details: acctState });
-      return;
-    }
-    const reason = window.prompt("Why are you reporting this group post? (optional)", "") || "";
-    setReportBusyId(targetId);
-    try {
-      await tx.runTx({
-        title: "Report group content",
-        pendingKey: txPendingKey(["group-content-flag", selected, targetId, acct]),
-        pendingMessage: "Sending this group post for community review…",
-        successMessage: "Report sent. Checking whether the review record is visible yet…",
-        errorMessage: (e) => prettyErr(e).msg,
-        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
-        finality: {
-          mutation: { entityType: "content", entityId: targetId, account: acct || undefined, routeHint: `/groups/${encodeURIComponent(selected)}`, txType: "CONTENT_FLAG" },
-        },
-        task: async () =>
-          submitSignedTx({
-            account: acct,
-            tx_type: "CONTENT_FLAG",
-            payload: reason.trim() ? { target_id: targetId, reason: reason.trim() } : { target_id: targetId },
-            parent: null,
-            base,
-          }),
-      });
-      const dispute = await waitForGroupDispute(targetId);
-      setReportInfo({
-        msg: dispute?.id ? `Report sent for this group post. Review ${String(dispute.id)} is visible.` : "Report sent for this group post. Community review may take a moment to appear.",
-        details: dispute || { target_id: targetId },
-      });
-      await refreshMutationSlices(refreshSelected, refreshAccountContext);
-    } catch (e: any) {
-      setErr(prettyErr(e));
-    } finally {
-      setReportBusyId(null);
-    }
-  }
-
   const detailCharterText = typeof detail?.charter === "string" ? detail.charter.trim() : "";
   const detailCharterParts = detailCharterText
     ? detailCharterText.split(/\n{2,}|\r\n\r\n/).map((part: string) => part.trim()).filter(Boolean)
@@ -590,11 +519,12 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           <span className="surfaceBoundaryTag">Action: {isMember ? "Leave group" : isPendingMembership ? "Await membership decision" : "Join group"}</span>
           <span className="surfaceBoundaryTag">Posting uses the create-post page</span>
         </div>
-      </section>
+      </details>
       ) : null}
 
-      {activeTab === "governance" ? (
-      <section className="card" aria-label="Group governance contract">
+      {activeTab === "decisions" ? (
+      <details className="card detailsPanel" aria-label="Group governance contract">
+        <summary className="cardBody">Group governance contract · rules and authority</summary>
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
@@ -1108,20 +1038,6 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </section>
       ) : null}
 
-      {reportInfo ? (
-        <section className="card">
-          <div className="cardBody formStack">
-            <div className="eyebrow">Report status</div>
-            <h3 className="cardTitle">Group post report recorded</h3>
-            <div className="cardDesc">{reportInfo.msg}</div>
-            <div className="buttonRow buttonRowWide">
-              <button className="btn" onClick={() => nav("/reports")}>Open reports</button>
-              <button className="btn" onClick={() => setReportInfo(null)}>Dismiss</button>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
       {activeTab === "about" || activeTab === "members" ? (
       <section className="card">
         <div className="cardBody formStack">
@@ -1161,11 +1077,17 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                       ? "Leave group"
                       : isPendingMembership
                         ? "Membership pending"
-                        : "Join group"}
+                        : membershipMode === "approval_required" ? "Request membership" : "Join group"}
               </button>
             ) : null}
           </div>
 
+          {canModerate && membershipMode === "approval_required" ? (
+            <div className="calloutInfo">
+              <strong>Membership requests · {pendingMembershipAccounts.length} pending in this snapshot</strong>
+              <div className="buttonRow"><button className="btn" disabled={!canSign} onClick={() => nav(currentGroupRoute + "/manage/members")}>Open membership approval desk</button></div>
+            </div>
+          ) : null}
           {isPendingMembership ? (
             <div className="calloutInfo">
               Your membership request is already pending on the authoritative group state. This detail page stays on the group route instead of bouncing you away while the request settles.
@@ -1193,45 +1115,15 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       </section>
       ) : null}
 
-      {activeTab === "posts" ? (
-      <section className="card">
-        <div className="cardBody formStack">
-          <div className="sectionHead">
-            <div>
-              <div className="eyebrow">Activity</div>
-              <h3 className="cardTitle">Recent group activity</h3>
-            </div>
-          </div>
-          <div className="cardDesc">Open a post to read the public replies. Use Create Post when you want to share something with this group. Posting is participation and may be member-gated; reading remains public.</div>
-          {groupPosts.length ? (
-            <div className="pageStack">
-              {groupPosts.map((post: any) => {
-                const pid = String(post?.post_id || post?.id || "").trim();
-                return (
-                  <div key={pid} className="quickCard quickCardSplit">
-                    <button className="quickCardMain" onClick={() => nav(`/content/${encodeURIComponent(pid)}`)}>
-                      <span>
-                        <strong>{String(post?.body || "Untitled post").slice(0, 100) || pid}</strong>
-                        <small>{String(post?.author || "unknown")} · {String(post?.visibility || "public")} · public group record</small>
-                      </span>
-                    </button>
-                    <button
-                      className="btn"
-                      onClick={(event) => { event.stopPropagation(); void reportGroupPost(post); }}
-                      disabled={!pid || reportBusyId === pid || signerSubmission.busy || !membershipGate.ok}
-                      title={membershipGate.ok ? "Report this group post for community review" : (membershipGate.reason || "Complete verification before reporting")}
-                    >
-                      {reportBusyId === pid ? "Reporting…" : "Report"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="cardDesc">No posts are visible in this group yet.</div>
-          )}
-        </div>
-      </section>
+      {activeTab === "posts" && selected ? (
+        <section aria-label="Group posts" className="pageStack">
+          <div className="card"><div className="cardBody formStack">
+            <h2 className="cardTitle">Group posts</h2>
+            <p className="cardDesc">Posting is participation and may be member-gated; reading remains public.</p>
+            {isMember ? <div className="buttonRow"><button className="btn btnPrimary" onClick={() => nav(`/create?group_id=${encodeURIComponent(selected)}`)}>Create group post</button></div> : null}
+          </div></div>
+          <FeedView key={selected} base={base} scope={{ kind: "group", groupId: selected }} title="Recent group activity" />
+        </section>
       ) : null}
     </div>
   );

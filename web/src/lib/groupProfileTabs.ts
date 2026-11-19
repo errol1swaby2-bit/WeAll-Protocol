@@ -7,7 +7,6 @@ export const GROUP_PROFILE_TABS = [
   { id: "about", label: "About" },
   { id: "members", label: "Members" },
   { id: "decisions", label: "Decisions" },
-  { id: "governance", label: "Governance" },
   { id: "treasury", label: "Treasury" },
   { id: "reports", label: "Reports" },
   { id: "responsibilities", label: "Responsibilities" },
@@ -19,7 +18,8 @@ export type GroupProfileTab = (typeof GROUP_PROFILE_TABS)[number]["id"];
 export function groupProfileTabFromHash(hash: string): GroupProfileTab {
   const marker = String(hash || "").indexOf("?");
   const query = marker >= 0 ? hash.slice(marker + 1) : "";
-  const requested = new URLSearchParams(query).get("tab") || "posts";
+  const legacyRequested = new URLSearchParams(query).get("tab") || "posts";
+  const requested = legacyRequested === "governance" ? "decisions" : legacyRequested;
   const tab = GROUP_PROFILE_TABS.find((candidate) => candidate.id === requested);
   return tab ? tab.id : "posts";
 }

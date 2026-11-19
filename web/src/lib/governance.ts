@@ -282,7 +282,7 @@ export async function reconcileProposalVisible(proposalId: string, base: string)
   try {
     const raw = await weall.proposal(proposalId, base);
     const proposal = normalizeGovernanceProposal((raw as any)?.proposal || raw);
-    if (proposal.id) {
+    if (proposal.id === proposalId) {
       return {
         phase: "confirmed",
         detail: `Proposal ${proposalId} is visible on the governance surface.`,

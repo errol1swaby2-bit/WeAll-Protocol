@@ -1,3 +1,5 @@
+import { decisionCreationState } from "../../src/lib/decisionCreation";
+import { groupProfileTabFromHash, GROUP_PROFILE_TABS } from "../../src/lib/groupProfileTabs";
 import { expect, test, type Page } from "@playwright/test";
 
 const revisionProposal = {
@@ -190,4 +192,25 @@ test("approval-required membership source distinguishes pending from accepted an
   expect(group).toContain('tx_type: "GROUP_MEMBERSHIP_DECIDE"');
   expect(group).toContain("canModerate");
   expect(group).toContain('decision: "accept" | "reject"');
+});
+
+
+test("decision creation waits for exact successful receipt and canonical visibility", () => {
+  const tracked = { id: "fanvoanv", txId: "tx:original", account: "@alice" };
+  const receipt = { tx_id: tracked.txId, apply_ok: true, local_state_synced: true };
+  const proposal = { proposal_id: tracked.id, creator: tracked.account };
+  expect(decisionCreationState(tracked, receipt, "submitted", proposal)).toBe("pending");
+  expect(decisionCreationState(tracked, { ...receipt, apply_ok: false }, "failed", proposal)).toBe("rejected");
+  expect(decisionCreationState(tracked, { ...receipt, tx_id: "tx:other" }, "confirmed", proposal)).toBe("unavailable");
+  expect(decisionCreationState(tracked, { ...receipt, local_state_synced: false }, "confirmed", proposal)).toBe("pending");
+  expect(decisionCreationState(tracked, receipt, "confirmed", null)).toBe("waiting_visibility");
+  expect(decisionCreationState(tracked, receipt, "confirmed", { ...proposal, creator: "@bob" })).toBe("waiting_visibility");
+  expect(decisionCreationState(tracked, receipt, "confirmed", { ...proposal, proposal_id: "different" })).toBe("waiting_visibility");
+  expect(decisionCreationState(tracked, receipt, "confirmed", proposal)).toBe("ready");
+});
+
+test("legacy group governance links map to the single decisions tab", () => {
+  expect(groupProfileTabFromHash("#/groups/g%3Atest2?tab=governance")).toBe("decisions");
+  expect(groupProfileTabFromHash("#/groups/g%3Atest2?tab=decisions")).toBe("decisions");
+  expect(GROUP_PROFILE_TABS.filter(tab => /governance|decisions/.test(tab.id))).toEqual([{ id: "decisions", label: "Decisions" }]);
 });
