@@ -35292,7 +35292,7 @@
       ],
       "path": "../web/scripts/test_theme_transfer.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "ffc73c171b27c5a43eb14b7accbbccbfcf7be69101d408e8d9ed84ce9ffbfc26",
+      "sha256": "263d27afc8ba66119eff768fbda6a02c03bbf31b889e6c68361e5f19ed2f980f",
       "source_id": "SRC-B17BCC0B94F1F524"
     },
     {
@@ -36878,7 +36878,7 @@
       ],
       "path": "../web/src/lib/settings.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "e8d802acddef4bf79e81c59874704f29385d79e22ebff3549de4954699450f93",
+      "sha256": "11f42239a5aae25c076033ad58e5079ffff6bb4864d9b28786dcc52f4028960b",
       "source_id": "SRC-F1CC0E865EA0FC48"
     },
     {
@@ -37897,7 +37897,7 @@
       ],
       "path": "../web/tests/e2e/theme_portability_production.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "c829efa0dbf3f910986d4749ee24ae1f371d0c5494d01d9b1c6a35c72d6dd367",
+      "sha256": "954cc8eb831be8aad238b5f91d71c8a2dfa4c88b89433688d64ac45cff579869",
       "source_id": "SRC-2D5496D4362CDFC2"
     },
     {
