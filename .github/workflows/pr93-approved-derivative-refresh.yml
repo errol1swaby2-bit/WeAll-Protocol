@@ -58,6 +58,7 @@ on:
       - web/tests/e2e/active_deliberations_rendered.spec.ts
       - web/src/lib/decisionCreation.ts
       - web/src/pages/Account.tsx
+      - web/tests/e2e/theme_portability_production.spec.ts
       - web/src/lib/themePresets.ts
       - web/src/lib/settings.ts
       - web/src/styles.css

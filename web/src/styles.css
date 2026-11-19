@@ -3029,7 +3029,7 @@ body {
   overflow: hidden;
   border: 1px solid var(--border, rgba(148, 163, 184, 0.25));
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.86);
+  background: var(--panel-strong);
 }
 
 .p2pVideoTile video,

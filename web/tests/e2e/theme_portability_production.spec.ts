@@ -83,3 +83,39 @@ test("safe visual theme exports, previews on another browser and applies only af
     await Promise.all([first.close(), second.close()]);
   }
 });
+
+
+test("all eight bundled themes render readable surfaces and matching preview colors", async ({ page }) => {
+  await page.goto("/#/settings/themes");
+  const names = ["WeAll Dark", "WeAll Light", "Ocean", "Clear Sky", "Amber Night", "Gold Day", "Twilight", "Soft Rose"];
+  const canvases = new Set<string>();
+  for (const name of names) {
+    const tile = page.locator(".themePresetTile").filter({ has: page.getByText(name, { exact: true }) });
+    await tile.click();
+    await expect(tile).toHaveAttribute("aria-pressed", "true");
+    const values = await tile.evaluate(el => {
+      const root = getComputedStyle(document.documentElement);
+      const card = el.querySelector(".themePresetMockCard")!;
+      const button = el.querySelector(".themePresetMockAccent")!;
+      const surface = document.querySelector(".card")!;
+      const read = (name: string) => root.getPropertyValue(name).trim();
+      const rgb = (str: string) => str.match(/\d+/g)!.slice(0, 3).map(Number);
+      const hex = (str: string) => [1, 3, 5].map(i => parseInt(str.slice(i, i + 2), 16));
+      const l = (arr: number[]) => arr.map(c => c / 255).map(c => c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4).reduce((sum, c, i) => sum + c * [.2126, .7152, .0722][i], 0);
+      const contrast = (a: number[], b: number[]) => (Math.max(l(a), l(b)) + .05) / (Math.min(l(a), l(b)) + .05);
+      return {
+        canvas: read("--bg"),
+        previewMatches: rgb(getComputedStyle(card).backgroundColor).join(",") === hex(read("--panel")).join(","),
+        primaryContrast: contrast(rgb(getComputedStyle(button).color), rgb(getComputedStyle(button).backgroundColor)),
+        cardContrast: contrast(rgb(getComputedStyle(surface).color), rgb(getComputedStyle(surface).backgroundColor)),
+        mutedContrast: contrast(hex(read("--muted")), hex(read("--panel"))),
+      };
+    });
+    expect(values.previewMatches, name).toBe(true);
+    expect(values.primaryContrast, name).toBeGreaterThanOrEqual(4.5);
+    expect(values.cardContrast, name).toBeGreaterThanOrEqual(4.5);
+    expect(values.mutedContrast, name).toBeGreaterThanOrEqual(4.5);
+    canvases.add(values.canvas);
+  }
+  expect(canvases.size).toBe(8);
+});

@@ -580,8 +580,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
       await ensureBackendSession({ account: acct, base });
       requireActive();
       const up = await weall.mediaUpload(file, base, getAuthHeaders(acct));
-      requireActive();
       const returnedCid = String(up?.cid || "").trim();
+      if (/^[A-Za-z0-9]{32,256}$/.test(returnedCid)) cid = returnedCid;
+      requireActive();
       if (up?.ok !== true || !/^[A-Za-z0-9]{32,256}$/.test(returnedCid) || up.sha256 !== sha || up.mime !== file.type || up.size !== file.size) {
         throw new Error("Upload did not return matching public media metadata.");
       }
