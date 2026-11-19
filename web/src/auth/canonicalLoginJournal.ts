@@ -25,6 +25,29 @@ export class PendingCanonicalLoginError extends Error {
   }
 }
 
+/**
+ * Only retry the selected-node identity GET on explicit HTTP 429. The
+ * current node rate limiter does not send Retry-After; bounded exponential
+ * backoff allows its bucket to replenish without using cached identity.
+ * Never retry a transaction submission here or accept a failed read.
+ */
+export async function readCanonicalLoginChainId(
+  readStatus: () => Promise<{ chain_id?: unknown }>,
+  pause: (ms: number) => Promise<void>,
+): Promise<string> {
+  const delays = [500, 1000, 2000, 4000, 4000];
+  for (let retry = 0; ; retry += 1) {
+    try {
+      const status = await readStatus();
+      return typeof status?.chain_id === "string" ? status.chain_id.trim() : "";
+    } catch (error) {
+      if ((error as { status?: unknown } | null)?.status !== 429) throw error;
+      if (retry >= delays.length) throw new PendingCanonicalLoginError("chain identity (node rate limit)");
+      await pause(delays[retry]);
+    }
+  }
+}
+
 function storageKey(scope: CanonicalLoginScope): string {
   return PREFIX + JSON.stringify([scope.account, scope.base, scope.pubkey]);
 }

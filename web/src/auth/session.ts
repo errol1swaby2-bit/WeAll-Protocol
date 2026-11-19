@@ -12,7 +12,7 @@ import { getChainId, getEnvChainId } from "../lib/chain";
 import { apiGet, createBrowserSession, getApiBaseUrl, weall } from "../api/weall";
 import { config } from "../lib/config";
 import { clearApprovedBrowserSession, isBrowserSessionApproved, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
-import { canonicalLoginPayload, clearCanonicalLogin, clearCanonicalLoginsForAccount, PendingCanonicalLoginError, readCanonicalLogin, trackCanonicalLoginTx, writeCanonicalLogin, type CanonicalLoginAttempt, type CanonicalLoginScope } from "./canonicalLoginJournal";
+import { canonicalLoginPayload, clearCanonicalLogin, clearCanonicalLoginsForAccount, PendingCanonicalLoginError, readCanonicalLogin, readCanonicalLoginChainId, trackCanonicalLoginTx, writeCanonicalLogin, type CanonicalLoginAttempt, type CanonicalLoginScope } from "./canonicalLoginJournal";
 
 import {
   KeypairB64,
@@ -1153,8 +1153,7 @@ export async function submitSignedTxWithNonce(args: {
       stage = "chain_identity";
       let chain_id: string;
       if (journalBound) {
-        const status = await weall.status(args.base);
-        const actual = String(status?.chain_id || "").trim();
+        const actual = await readCanonicalLoginChainId(() => weall.status(args.base), sleep);
         if (!actual || actual !== args.expectedChainId) throw new Error("pending_canonical_login_chain_mismatch");
         chain_id = actual;
       } else {
@@ -1208,7 +1207,8 @@ export async function submitSignedTxWithNonce(args: {
     // Expose a small, fixed diagnostic vocabulary, not the underlying crypto,
     // browser storage, request, or signed-envelope contents.
     const message = error instanceof Error ? error.message : "";
-    if (message === "pending_canonical_login_chain_mismatch" ||
+    if (error instanceof PendingCanonicalLoginError ||
+        message === "pending_canonical_login_chain_mismatch" ||
         /^pending_canonical_login_envelope_mismatch:(chain|signer|type|parent|nonce|payload)$/.test(message)) {
       throw error;
     }
@@ -1338,8 +1338,7 @@ async function performDeviceLogin(args: DeviceLoginArgs, scope: CanonicalLoginSc
   }
 
   // Read the actual selected node, not a cached chain ID, before resuming.
-  const status = await weall.status(args.base);
-  const chainId = String(status?.chain_id || "").trim();
+  const chainId = await readCanonicalLoginChainId(() => weall.status(args.base), sleep);
   if (!chainId) throw new Error("canonical_login_chain_identity_unavailable");
   if (attempt && attempt.chainId !== chainId) throw new Error("pending_canonical_login_chain_mismatch");
   if (!attempt) {

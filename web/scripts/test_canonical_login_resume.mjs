@@ -35,7 +35,7 @@ function fixture() {
   };
   const f = { storage, entries, writes: [], confirmed: new Set(), sync: true, authorized: false,
     direct: 0, nonce: 0, generated: 0, chainId, active: null, lostAck: false, wrongAck: false,
-    confirmationGate: null, authChecks: 0 };
+    confirmationGate: null, authChecks: 0, rateLimitedReads: 0, statusReads: 0, delays: [] };
   f.boot = () => {
     const context = {
       crypto: webcrypto, TextEncoder, sessionStorage: storage,
@@ -47,7 +47,15 @@ function fixture() {
       config: { publicTestnet: false },
       createBrowserSession: async () => { f.direct++; throw new Error("direct_session_mutation_forbidden_in_controlled_devnet"); },
       isDirectSessionMutationForbidden: error => error.message.startsWith("direct_session_mutation_forbidden"),
-      weall: { status: async () => ({ chain_id: f.chainId }) },
+      sleep: async ms => { f.delays.push(ms); },
+      weall: { status: async () => {
+        f.statusReads++;
+        if (f.rateLimitedReads > 0) {
+          f.rateLimitedReads--;
+          throw Object.assign(new Error("fixture rate limit"), { status: 429 });
+        }
+        return { chain_id: f.chainId };
+      } },
       submitSignedTxWithNonce: async a => {
         assert.equal(a.expectedChainId, f.chainId, "journal must bind the actual selected chain at signing");
         const nonce = ++f.nonce;
@@ -90,6 +98,26 @@ function fixture() {
   return f;
 }
 const pending = /Login is waiting for canonical/;
+
+// A throttled first identity read must recover using only successful fresh
+// status, not a default identity and not a duplicate direct-login probe.
+const throttled = fixture();
+throttled.rateLimitedReads = 2;
+const throttledApi = throttled.boot();
+await assert.rejects(throttledApi.loginOnThisDevice(args), pending);
+assert.equal(throttled.statusReads, 3);
+assert.deepEqual(throttled.delays, [500, 1000]);
+assert.equal(throttled.direct, 1);
+assert.deepEqual(throttled.writes.map(w => w.type), [deviceType]);
+
+const exhausted = fixture();
+exhausted.rateLimitedReads = 6;
+const exhaustedApi = exhausted.boot();
+await assert.rejects(exhaustedApi.loginOnThisDevice(args), /chain identity \(node rate limit\)/);
+assert.equal(exhausted.statusReads, 6);
+assert.deepEqual(exhausted.delays, [500, 1000, 2000, 4000, 4000]);
+assert.equal(exhausted.writes.length, 0);
+assert.equal(exhausted.active, null);
 
 // The device confirmation can arrive after the first bounded wait.
 const f = fixture();
@@ -190,7 +218,7 @@ assert.equal(unavailable.active, null);
 const signStart = sessionSource.indexOf("export async function submitSignedTxWithNonce(");
 const signEnd = sessionSource.indexOf("export async function restoreAccountAndLoginOnThisDevice(", signStart);
 assert.ok(signStart >= 0 && signEnd > signStart);
-const signingCode = ts.transpileModule(sessionSource.slice(signStart, signEnd).replace("export async function", "async function"), {
+const signingCode = ts.transpileModule(journalSource + "\n" + sessionSource.slice(signStart, signEnd).replace("export async function", "async function"), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
 let selectedChain = chainId;
@@ -201,13 +229,24 @@ let reserved = 9;
 let rollbacks = 0;
 let signingFails = false;
 let transportFails = false;
+let statusFailures = [];
+let statusReads = 0;
+const statusDelays = [];
 const signApi = vm.runInNewContext(signingCode + "\nsubmitSignedTxWithNonce", {
   runSignerSerialized: async (_account, fn) => fn(),
   normalizeAccount: value => value,
   loadKeypair: () => keypair,
   resolveChainId: async () => { cachedCalls++; return "stale-default"; },
+  sleep: async ms => { statusDelays.push(ms); },
   weall: {
-    status: async base => { assert.equal(base, "/"); return { chain_id: selectedChain }; },
+    status: async base => {
+      assert.equal(base, "/");
+      statusReads++;
+      if (statusFailures.length) {
+        throw Object.assign(new Error("fixture status failure"), { status: statusFailures.shift() });
+      }
+      return { chain_id: selectedChain };
+    },
     txSubmit: async env => {
       dispatches++;
       assert.equal(env.chain_id, chainId);
@@ -237,7 +276,12 @@ const bound = {
   payloadFactory: () => ({ device_id: "fixture-device" }),
   onBeforeSubmit: env => { intentCalls++; assert.equal(env.chain_id, chainId); },
 };
+// Exact M4.1 failure boundary: second chain verification returns 429.
+// Retry only the identity GET before allocating a nonce or signing.
+statusFailures = [429, 429];
 await signApi(bound);
+assert.equal(statusReads, 3);
+assert.deepEqual(statusDelays, [500, 1000]);
 assert.equal(cachedCalls, 0);
 assert.equal(dispatches, 1);
 assert.equal(intentCalls, 1);
@@ -248,6 +292,24 @@ for (const invalidChain of ["", "wrong-chain"]) {
 assert.equal(cachedCalls, 0);
 assert.equal(dispatches, 1);
 assert.equal(intentCalls, 1);
+
+// Exhausted throttling or a different HTTP error must not consume a nonce,
+// dispatch, or fall back to the generic cached chain identity.
+selectedChain = chainId;
+const beforeThrottle = reserved;
+statusFailures = [429, 429, 429, 429, 429, 429];
+await assert.rejects(signApi(bound), /chain identity \(node rate limit\)/);
+assert.deepEqual(statusDelays, [500, 1000, 500, 1000, 2000, 4000, 4000]);
+assert.equal(reserved, beforeThrottle);
+assert.equal(dispatches, 1);
+assert.equal(intentCalls, 1);
+statusFailures = [403];
+const beforeForbidden = statusReads;
+await assert.rejects(signApi(bound), /canonical_login_prepare_failed:chain_identity/);
+assert.equal(statusReads, beforeForbidden + 1);
+assert.equal(reserved, beforeThrottle);
+assert.equal(dispatches, 1);
+assert.equal(cachedCalls, 0);
 
 // A never-dispatched nonce must not be burned by a payload, signing, or
 // intent-persistence error. An uncertain dispatch must retain its claim.
