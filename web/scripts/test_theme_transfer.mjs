@@ -123,3 +123,8 @@ assert.ok(settingsStorage.includes("const palette = themePalette(settings)"), "R
 
 assert.ok(settingsStorage.includes("root.style.color = palette.foreground"), "Theme switches update the inherited foreground");
 assert.ok(read("src/styles.css").includes(".card {\n  color: var(--text);\n  background: var(--panel);"), "Cards must bind foreground and background to the same mode");
+
+// Do not reintroduce asynchronous foreground/background interpolation on theme switches.
+const paletteCss = read("src/styles.css");
+assert.ok(!/transition:\s*[^;]*\b(?:color|background)\s+calc\(/.test(paletteCss), "Theme foreground and background must not be interpolated");
+assert.ok(!/transition:\s*(?:160ms|0\.16s)\s+ease\s*;/.test(paletteCss), "Do not transition every property of theme-aware controls");

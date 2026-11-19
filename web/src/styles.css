@@ -67,7 +67,7 @@ button {
   padding: 10px 14px;
   border-radius: 14px;
   cursor: pointer;
-  transition: 160ms ease;
+  transition: transform calc(160ms * var(--motion-scale, 1)) ease;
 }
 
 button:hover {
@@ -91,7 +91,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px 14px;
-  transition: 160ms ease;
+  transition: box-shadow calc(160ms * var(--motion-scale, 1)) ease;
 }
 
 textarea {
@@ -1003,7 +1003,7 @@ code {
   padding: 10px 12px;
   cursor: pointer;
   text-align: left;
-  transition: 0.16s ease;
+  transition: transform calc(160ms * var(--motion-scale, 1)) ease;
 }
 
 .sidebarNavItem:hover {
@@ -1176,10 +1176,10 @@ html {
   font-size: calc(16px * var(--font-scale, 1));
 }
 
+/* Theme switches must change foreground and background together. A color
+   transition on body also animates the inherited text of unanimated cards. */
 body {
-  transition:
-    background calc(180ms * max(var(--motion-scale, 1), 0.01)) ease,
-    color calc(180ms * max(var(--motion-scale, 1), 0.01)) ease;
+  transition: none;
 }
 
 .pageStack {

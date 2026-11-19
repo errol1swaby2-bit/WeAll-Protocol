@@ -94,6 +94,7 @@ test("all eight bundled themes render readable surfaces and matching preview col
     await tile.click();
     await expect(tile).toHaveAttribute("aria-pressed", "true");
     const values = await tile.evaluate(el => {
+      // Inspect immediately after selection, not after an animation settles.
       const root = getComputedStyle(document.documentElement);
       const card = el.querySelector(".themePresetMockCard")!;
       const button = el.querySelector(".themePresetMockAccent")!;
@@ -111,6 +112,10 @@ test("all eight bundled themes render readable surfaces and matching preview col
           const style = getComputedStyle(surface);
           return { classes: surface.className, color: style.color, background: style.backgroundColor, ratio: contrast(rgb(style.color), rgb(style.backgroundColor)) };
         }),
+        unsafeColorTransitions: [document.body, document.querySelector(".appShell")!, ...surfaces, ...document.querySelectorAll(".settingsPage button, .settingsPage input, .settingsPage select")].filter(element => {
+          const style = getComputedStyle(element);
+          return style.transitionDuration.split(",").some(duration => parseFloat(duration) > 0) && style.transitionProperty.split(",").some(property => /^(all|color|background(?:-color)?|border-color)$/.test(property.trim()));
+        }).map(element => element.className || element.tagName),
         bodyColor: rgb(getComputedStyle(document.body).color).join(","),
         shellColor: rgb(getComputedStyle(document.querySelector(".appShell")!).color).join(","),
         expectedColor: hex(read("--text")).join(","),
@@ -119,6 +124,7 @@ test("all eight bundled themes render readable surfaces and matching preview col
     });
     expect(values.previewMatches, name).toBe(true);
     expect(values.primaryContrast, name).toBeGreaterThanOrEqual(4.5);
+    expect(values.unsafeColorTransitions, name + " palette transitions").toEqual([]);
     expect(values.bodyColor, name + " body foreground").toBe(values.expectedColor);
     expect(values.shellColor, name + " shell foreground").toBe(values.expectedColor);
     expect(values.cardContrasts.length, name + " visible cards").toBeGreaterThan(0);

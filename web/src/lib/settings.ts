@@ -117,7 +117,7 @@ export function applySettingsToDocument(settings: ClientSettings): void {
   };
   for (const [name, value] of Object.entries(vars)) root.style.setProperty(name, value);
   // Set the inherited foreground and native control scheme together with the
-  // surface tokens. Do not retain the previous mode\'s computed text color.
+  // surface tokens. Do not retain the previous mode's computed text color.
   root.style.color = palette.foreground;
   root.style.colorScheme = light ? "light" : "dark";
   setAccentVars(root, palette.accent, palette.accent2, rgb(palette.accent), rgb(palette.accent2));
