@@ -34538,7 +34538,7 @@
       ],
       "path": "../web/scripts/test_canonical_login_resume.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "c4cdf3b03f17f6f4b36f80dc2bbaeab6662c5e9ae0ab136a1ab8d74601516922",
+      "sha256": "3e48ca528c10ba90e3abc9581f448e88d83ad303f7f9d0b2f02a9a0c22f31ccc",
       "source_id": "SRC-D6E597BF8F39C223"
     },
     {
@@ -35576,7 +35576,7 @@
       ],
       "path": "../web/src/auth/session.ts",
       "primary_mechanism_id": "M-069",
-      "sha256": "42079387f82ffe934381c11d53b9c0c64235cb8c8ec185be68ac69a5331dc4ec",
+      "sha256": "587c050e233f0f7c1319bd733e235c4e489cf6152dae77e50f237ab6bdf7e803",
       "source_id": "SRC-B8F7039335FD9E04"
     },
     {
@@ -37720,7 +37720,7 @@
       ],
       "path": "../web/tests/e2e/m4_two_user_one_node_custody.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "750d33e25b685a8e17f326e56eb172652e6438a0da4329cee367bc1deca9f6cc",
+      "sha256": "acbb0ae071aab5ababb45a4ba8ed65e5838757a884247634739397d3464303b2",
       "source_id": "SRC-623412DDC2F54685"
     },
     {
