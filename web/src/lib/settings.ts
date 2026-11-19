@@ -116,6 +116,9 @@ export function applySettingsToDocument(settings: ClientSettings): void {
     "--shadow": light ? "0 12px 32px rgba(25,38,48,.10)" : "0 16px 42px rgba(0,0,0,.26)",
   };
   for (const [name, value] of Object.entries(vars)) root.style.setProperty(name, value);
+  // Set the inherited foreground and native control scheme together with the
+  // surface tokens. Do not retain the previous mode\'s computed text color.
+  root.style.color = palette.foreground;
   root.style.colorScheme = light ? "light" : "dark";
   setAccentVars(root, palette.accent, palette.accent2, rgb(palette.accent), rgb(palette.accent2));
 

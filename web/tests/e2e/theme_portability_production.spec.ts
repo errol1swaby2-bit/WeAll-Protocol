@@ -97,7 +97,7 @@ test("all eight bundled themes render readable surfaces and matching preview col
       const root = getComputedStyle(document.documentElement);
       const card = el.querySelector(".themePresetMockCard")!;
       const button = el.querySelector(".themePresetMockAccent")!;
-      const surface = document.querySelector(".card")!;
+      const surfaces = Array.from(document.querySelectorAll(".settingsPage .card")).filter(card => card.getClientRects().length > 0);
       const read = (name: string) => root.getPropertyValue(name).trim();
       const rgb = (str: string) => str.match(/\d+/g)!.slice(0, 3).map(Number);
       const hex = (str: string) => [1, 3, 5].map(i => parseInt(str.slice(i, i + 2), 16));
@@ -107,13 +107,24 @@ test("all eight bundled themes render readable surfaces and matching preview col
         canvas: read("--bg"),
         previewMatches: rgb(getComputedStyle(card).backgroundColor).join(",") === hex(read("--panel")).join(","),
         primaryContrast: contrast(rgb(getComputedStyle(button).color), rgb(getComputedStyle(button).backgroundColor)),
-        cardContrast: contrast(rgb(getComputedStyle(surface).color), rgb(getComputedStyle(surface).backgroundColor)),
+        cardContrasts: surfaces.map(surface => {
+          const style = getComputedStyle(surface);
+          return { classes: surface.className, color: style.color, background: style.backgroundColor, ratio: contrast(rgb(style.color), rgb(style.backgroundColor)) };
+        }),
+        bodyColor: rgb(getComputedStyle(document.body).color).join(","),
+        shellColor: rgb(getComputedStyle(document.querySelector(".appShell")!).color).join(","),
+        expectedColor: hex(read("--text")).join(","),
         mutedContrast: contrast(hex(read("--muted")), hex(read("--panel"))),
       };
     });
     expect(values.previewMatches, name).toBe(true);
     expect(values.primaryContrast, name).toBeGreaterThanOrEqual(4.5);
-    expect(values.cardContrast, name).toBeGreaterThanOrEqual(4.5);
+    expect(values.bodyColor, name + " body foreground").toBe(values.expectedColor);
+    expect(values.shellColor, name + " shell foreground").toBe(values.expectedColor);
+    expect(values.cardContrasts.length, name + " visible cards").toBeGreaterThan(0);
+    for (const card of values.cardContrasts) {
+      expect(card.ratio, name + " " + card.classes + " " + card.color + " on " + card.background).toBeGreaterThanOrEqual(4.5);
+    }
     expect(values.mutedContrast, name).toBeGreaterThanOrEqual(4.5);
     canvases.add(values.canvas);
   }

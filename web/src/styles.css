@@ -349,6 +349,7 @@ code {
 }
 
 .card {
+  color: var(--text);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -863,6 +864,7 @@ code {
   opacity: 0.8;
 }
 .appShell {
+  color: var(--text);
   min-height: 100vh;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
@@ -873,6 +875,7 @@ code {
 }
 
 .appShellSidebar {
+  color: var(--text);
   position: sticky;
   top: 0;
   height: 100vh;

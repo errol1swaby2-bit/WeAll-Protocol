@@ -120,3 +120,6 @@ for (const p of THEME_PRESETS) {
   for (const fill of [p.accent, p.accent2]) assert.ok(contrast(p.onAccent, fill) >= 4.5, p.id + " primary button contrast");
 }
 assert.ok(settingsStorage.includes("const palette = themePalette(settings)"), "Runtime and preview must share palette");
+
+assert.ok(settingsStorage.includes("root.style.color = palette.foreground"), "Theme switches update the inherited foreground");
+assert.ok(read("src/styles.css").includes(".card {\n  color: var(--text);\n  background: var(--panel);"), "Cards must bind foreground and background to the same mode");
