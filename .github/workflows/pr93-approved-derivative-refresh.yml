@@ -41,6 +41,8 @@ on:
       - web/scripts/test_poh_guided_routes.mjs
       - web/src/lib/pohSubmissionJournal.ts
       - web/scripts/test_poh_submission_journal.mjs
+      - web/scripts/test_v16_navigation_source.mjs
+      - web/scripts/test_group_review_source.mjs
       - web/src/pages/Thread.tsx
       - web/src/pages/Proposal.tsx
       - web/src/pages/Proposals.tsx

@@ -48,6 +48,36 @@ export async function readCanonicalLoginChainId(
   }
 }
 
+/**
+ * A fresh canonical login may not invent a nonce from a stale account view.
+ * Only retry explicit 429 responses to this safe, pending-aware GET, before
+ * signing or writing a tracked transaction. Never retry submission here.
+ */
+export async function readCanonicalLoginNextNonce(
+  account: string,
+  readNonce: () => Promise<any>,
+  pause: (ms: number) => Promise<void>,
+): Promise<number> {
+  const delays = [500, 1000, 2000, 4000, 4000];
+  for (let retry = 0; ; retry += 1) {
+    try {
+      const result = await readNonce();
+      const cursor = result?.nonce_cursor;
+      const next = result?.next_nonce;
+      if (result?.ok !== true || result.account !== account ||
+          !Number.isSafeInteger(cursor) || cursor < 0 ||
+          !Number.isSafeInteger(next) || next !== cursor + 1) {
+        throw new Error("canonical_login_nonce_unavailable");
+      }
+      return next;
+    } catch (error) {
+      if ((error as { status?: unknown } | null)?.status !== 429) throw error;
+      if (retry >= delays.length) throw new PendingCanonicalLoginError("nonce reservation (node rate limit)");
+      await pause(delays[retry]);
+    }
+  }
+}
+
 function storageKey(scope: CanonicalLoginScope): string {
   return PREFIX + JSON.stringify([scope.account, scope.base, scope.pubkey]);
 }

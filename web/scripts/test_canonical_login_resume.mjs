@@ -254,7 +254,8 @@ const signApi = vm.runInNewContext(signingCode + "\nsubmitSignedTxWithNonce", {
       return { ok: true };
     },
   },
-  claimNextNonce: async () => {
+  claimNextNonce: async (_account, _base, journalBound) => {
+    assert.equal(journalBound, true, "canonical signing must request strict nonce reservation");
     const previousReserved = reserved;
     return { account, nonce: ++reserved, previousReserved };
   },
@@ -331,5 +332,56 @@ assert.equal(dispatches, 2);
 assert.equal(reserved, prior + 1);
 assert.equal(rollbacks, 3);
 assert.equal(cachedCalls, 0);
+
+// Exercise the actual claim helper and journal reader together. No fallback
+// account read, nonce allocation or tracked intent is allowed on exhaustion.
+const claimStart = sessionSource.indexOf("async function claimNextNonce(");
+const claimEnd = sessionSource.indexOf("function rollbackNonceClaim(", claimStart);
+assert.ok(claimStart >= 0 && claimEnd > claimStart);
+const claimCode = ts.transpileModule(journalSource + "\n" + sessionSource.slice(claimStart, claimEnd), {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+}).outputText;
+let localReserved = 0;
+let nonceReads = 0;
+let nonceFailures = [429, 429];
+let nonceResult = { ok: true, account, nonce_cursor: 14, next_nonce: 15 };
+const nonceDelays = [];
+let fallbackCalls = 0;
+const strictClaim = vm.runInNewContext(claimCode + "\nclaimNextNonce", {
+  normalizeAccount: value => value,
+  apiGet: async (path, base) => {
+    assert.equal(path, "/v1/accounts/" + encodeURIComponent(account) + "/nonce");
+    assert.equal(base, "/");
+    nonceReads++;
+    if (nonceFailures.length) throw Object.assign(new Error("fixture nonce error"), { status: nonceFailures.shift() });
+    return nonceResult;
+  },
+  sleep: async ms => nonceDelays.push(ms),
+  getReservedNonce: () => localReserved,
+  setReservedNonce: (_account, value) => { localReserved = value; },
+  weall: { accountNonce: () => { fallbackCalls++; throw new Error("unsafe fallback"); }, account: () => { fallbackCalls++; throw new Error("unsafe fallback"); } },
+});
+const claim = await strictClaim(account, "/", true);
+assert.equal(claim.nonce, 15);
+assert.equal(nonceReads, 3);
+assert.equal(localReserved, 15);
+assert.deepEqual(nonceDelays, [500, 1000]);
+nonceFailures = [429, 429, 429, 429, 429, 429];
+await assert.rejects(strictClaim(account, "/", true), /nonce reservation \(node rate limit\)/);
+assert.equal(localReserved, 15);
+nonceFailures = [403];
+await assert.rejects(strictClaim(account, "/", true), /fixture nonce error/);
+assert.equal(localReserved, 15);
+for (const invalid of [
+  { ...nonceResult, account: "@other" }, { ...nonceResult, next_nonce: 20 },
+  { ...nonceResult, ok: false }, { ...nonceResult, nonce_cursor: undefined },
+]) {
+  nonceResult = invalid;
+  await assert.rejects(strictClaim(account, "/", true), /canonical_login_nonce_unavailable/);
+  assert.equal(localReserved, 15);
+}
+nonceResult = { ok: true, account, nonce_cursor: 14, next_nonce: 15 };
+await assert.rejects(strictClaim(account, "/", true), /local pending action/);
+assert.equal(fallbackCalls, 0);
 
 console.log("F-001 canonical login interruption, receipt/auth gates, custody and duplicate prevention passed");

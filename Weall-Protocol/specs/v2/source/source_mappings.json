@@ -7044,6 +7044,39 @@
       "path": "tooling/severe_sanction_candidate_review.py",
       "primary_mechanism_id": "M-055",
       "review_status": "mapped_reference_only"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/AccountIdentity.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/accountAvatar.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/decisionCreation.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
     }
   ],
   "schema": "weall.v2.source_mapping_registry",

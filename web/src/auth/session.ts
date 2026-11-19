@@ -12,7 +12,7 @@ import { getChainId, getEnvChainId } from "../lib/chain";
 import { apiGet, createBrowserSession, getApiBaseUrl, weall } from "../api/weall";
 import { config } from "../lib/config";
 import { clearApprovedBrowserSession, isBrowserSessionApproved, verifyBrowserSessionOnNode } from "../lib/browserNodeSession";
-import { canonicalLoginPayload, clearCanonicalLogin, clearCanonicalLoginsForAccount, PendingCanonicalLoginError, readCanonicalLogin, readCanonicalLoginChainId, trackCanonicalLoginTx, writeCanonicalLogin, type CanonicalLoginAttempt, type CanonicalLoginScope } from "./canonicalLoginJournal";
+import { canonicalLoginPayload, clearCanonicalLogin, clearCanonicalLoginsForAccount, PendingCanonicalLoginError, readCanonicalLogin, readCanonicalLoginChainId, readCanonicalLoginNextNonce, trackCanonicalLoginTx, writeCanonicalLogin, type CanonicalLoginAttempt, type CanonicalLoginScope } from "./canonicalLoginJournal";
 
 import {
   KeypairB64,
@@ -977,9 +977,21 @@ export async function submitSignedTxInSequence(args: {
   });
 }
 
-async function claimNextNonce(account: string, base?: string): Promise<NonceClaim> {
+async function claimNextNonce(account: string, base?: string, journalBound = false): Promise<NonceClaim> {
   const acct = normalizeAccount(account);
   if (!acct) throw new Error("invalid_account");
+
+  if (journalBound) {
+    // Bypass accountNonce's compatibility fallback: an HTTP 429 must never
+    // become a synthetic nonce from an older account snapshot.
+    const next = await readCanonicalLoginNextNonce(
+      acct, () => apiGet(`/v1/accounts/${encodeURIComponent(acct)}/nonce`, base), sleep,
+    );
+    const previousReserved = getReservedNonce(acct);
+    if (previousReserved >= next) throw new PendingCanonicalLoginError("nonce reservation (local pending action)");
+    setReservedNonce(acct, next);
+    return { account: acct, nonce: next, previousReserved };
+  }
 
   let chainNext = 1;
   try {
@@ -1165,7 +1177,7 @@ export async function submitSignedTxWithNonce(args: {
         dispatched = false;
         try {
           stage = "nonce_reservation";
-          claim = await claimNextNonce(signer, args.base);
+          claim = await claimNextNonce(signer, args.base, journalBound);
           stage = "payload";
           const payload = await args.payloadFactory(claim.nonce);
           stage = "signature";

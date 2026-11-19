@@ -30,11 +30,13 @@ const settings = read("src/pages/Settings.tsx");
 const settingsSections = read("src/lib/settingsSections.ts");
 const themePresets = read("src/lib/themePresets.ts");
 
-for (const tab of ["posts", "about", "members", "decisions", "governance", "treasury", "reports", "responsibilities", "emissaries"]) {
+for (const tab of ["posts", "about", "members", "decisions", "treasury", "reports", "responsibilities", "emissaries"]) {
   assert.ok(tabs.includes(`id: "${tab}"`), `Missing group tab: ${tab}`);
   assert.ok(groups.includes(`activeTab === "${tab}"`), `Missing focused pane: ${tab}`);
 }
 assert.ok(tabs.includes('new URLSearchParams(query).get("tab")'), "Group tabs must have linkable query state");
+assert.ok(!tabs.includes('id: "governance"'), "Do not duplicate the group decisions surface");
+assert.ok(tabs.includes('legacyRequested === "governance" ? "decisions"'), "Legacy governance links must retain scope");
 assert.ok(groups.includes('window.addEventListener("hashchange", onHashChange)'), "Direct links and back/forward must change group tabs");
 assert.ok(groups.includes("async function decideMembership"), "Existing signed membership moderation must remain");
 assert.ok(tabs.includes("groupWorkspaceTabFromHash"), "Role-specific desk must be separate from public group profile tabs");
@@ -60,7 +62,7 @@ assert.deepEqual(matchRoute("/groups/group-a/emissaries/elections/election-1"), 
 assert.ok(app.includes('<ProposalCreate scopeGroupId={route.id} />'), "Group decision deep link must bind composer to exact canonical route ID");
 assert.ok(createDecision.includes('requireExactGroupProposalScope(payload, groupContextId)'), "Group proposal payload must be validated against route group ID");
 assert.ok(createDecision.includes('const currentGroup = await weall.groupGovernanceContract(groupContextId, base)'), "Canonical group contract must be refreshed before signing");
-assert.ok(createDecision.includes('groupContextId ? "" : actionTxType'), "Group context must not carry a stale executable action");
+assert.ok(createDecision.includes('showAdvancedMode && !groupContextId') && createDecision.includes('actionTxType: allowAdvancedPayload ? actionTxType : ""'), "Group context must not carry a stale executable action");
 assert.ok(createDecision.includes('scopedGroupStatus !== "ready"'), "Group signing blocked until canonical contract is read");
 assert.ok(groups.includes('activeTab === "election_detail"'), "Election detail must have an explicit read-only panel");
 assert.ok(groups.includes('This election API is read-only'), "Canonical election detail remains read-only");
@@ -147,7 +149,10 @@ assert.ok(groups.includes('Object.prototype.hasOwnProperty.call(freshRequests, m
 assert.ok(groups.includes('freshModerators.some'), "Signed membership decisions must recheck live moderator listing");
 assert.ok(groups.includes('tx_type: "GROUP_MEMBERSHIP_DECIDE"'), "Do not replace canonical signed decisions with UI-only approval");
 assert.ok(groups.includes('No approval controls or pending applicant accounts are displayed.'), "No pending applicant disclosure without group moderator listing");
-assert.ok(groups.includes("async function reportGroupPost"), "Existing report flow must remain");
+const feed = read("src/components/FeedView.tsx");
+assert.ok(groups.includes('scope={{ kind: "group", groupId: selected }}'), "Group posts must reuse the exact group feed");
+assert.ok(feed.includes("async function doReport") && feed.includes('tx_type: "CONTENT_FLAG"'), "Existing signed reporting must remain on the shared feed");
+assert.ok(feed.includes("weall.groupFeed(") && feed.includes("scope.groupId"), "Group feed must query the exact canonical group");
 assert.ok(groups.includes("Group governance contract"), "Public group governance reads must remain");
 assert.ok(groups.includes('String(item?.group_id || item?.raw?.group_id || "").trim() === selected'), "Group decision reads must use exact canonical scope");
 assert.ok(groups.includes("does not expose a verified group treasury ledger"), "No fake economic activation");
