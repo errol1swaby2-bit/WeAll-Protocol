@@ -8,6 +8,7 @@ on:
       - .github/workflows/pr93-approved-derivative-refresh.yml
       - docs/integration/PR93_F001_OBSERVER_AUTHENTICATION.md
       - Weall-Protocol/tests/test_local_rehearsal_ipfs_temp_dir_repair.py
+      - Weall-Protocol/tests/test_local_two_frontend_rehearsal_automation.py
       - Weall-Protocol/tests/test_issue68_delete_boundaries.py
       - Weall-Protocol/scripts/devnet_local_two_frontend_rehearsal.sh
       - Weall-Protocol/scripts/devnet_safe_paths.py
@@ -212,10 +213,10 @@ jobs:
           python -m pytest -q tests/test_frontend_dependency_audit.py tests/test_p1_a17_reviewer_repro_contract.py
           # A formatting-only change can invalidate the source fingerprint.
           # Verify the F-001 regression and formatting before publication.
-          ruff check tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py
-          ruff format --check tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py
+          ruff check tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py tests/test_local_two_frontend_rehearsal_automation.py
+          ruff format --check tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py tests/test_local_two_frontend_rehearsal_automation.py
           bash -n scripts/devnet_local_two_frontend_rehearsal.sh
-          python -m pytest -q tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py
+          python -m pytest -q tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py tests/test_local_two_frontend_rehearsal_automation.py
           python scripts/pr93_v2_semantic_review_inventory.py
           echo 'No new approvals, no security audit exemption, no independent launch authorization.'
       - name: Push verified generated evidence only

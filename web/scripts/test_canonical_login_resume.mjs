@@ -69,7 +69,12 @@ function fixture() {
         if (f.confirmationGate) await f.confirmationGate;
         return f.confirmed.has(txId);
       },
-      waitForLocalAccountNonceAtLeast: async () => f.sync,
+      waitForLocalAccountNonceAtLeast: async ({ account: signer, minNonce }) => {
+        assert.equal(signer, account);
+        const tracked = f.writes.find(w => w.nonce === minNonce);
+        assert.ok(tracked && f.confirmed.has(tracked.txId), "only a confirmed tracked action can enter nonce reconciliation");
+        return f.sync;
+      },
       waitForSessionAuthState: async ({ account: signer, sessionKey, expectedAuthenticated }) => {
         f.authChecks++;
         assert.equal(signer, account);
@@ -96,6 +101,17 @@ const first = api.readCanonicalLogin(scope);
 const candidate = first.sessionKey;
 const device = first.deviceId;
 f.confirmed.add(f.writes[0].txId);
+
+// A confirmed device receipt alone cannot authorize chaining the session
+// issuance. Hold local nonce synchronization false and retry the same attempt.
+f.sync = false;
+await assert.rejects(api.loginOnThisDevice(args), /ACCOUNT_DEVICE_REGISTER local account reconciliation/);
+assert.deepEqual(f.writes.map(w => w.type), [deviceType]);
+assert.equal(f.active, null);
+assert.equal(f.authChecks, 0);
+assert.equal(api.readCanonicalLogin(scope).deviceTx.txId, f.writes[0].txId);
+assert.equal(api.readCanonicalLogin(scope).sessionTx, undefined);
+f.sync = true;
 
 // The issue is admitted, but not yet confirmed. Reload the same tab.
 await assert.rejects(api.loginOnThisDevice(args), pending);

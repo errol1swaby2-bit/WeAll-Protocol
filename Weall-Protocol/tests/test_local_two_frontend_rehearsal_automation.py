@@ -32,14 +32,37 @@ def test_frontend_dev_bootstrap_can_prepare_account_and_session_without_manual_s
 
 def test_session_login_waits_for_observer_local_nonce_before_chaining_session_tx() -> None:
     src = read("web/src/auth/session.ts")
-    assert "waitForLocalAccountNonceAtLeast" in src
-    assert "observer_local_state_not_reconciled" in src
-    assert 'tx_type: "ACCOUNT_DEVICE_REGISTER"' in src
-    assert 'tx_type: "ACCOUNT_SESSION_KEY_ISSUE"' in src
-    assert "submitSignedTxWithNonce" in src
-    assert src.index('tx_type: "ACCOUNT_DEVICE_REGISTER"') < src.index(
-        'tx_type: "ACCOUNT_SESSION_KEY_ISSUE"'
-    )
+    start = src.index("async function finishCanonicalDeviceLogin(")
+    end = src.index("export async function ensureBackendSession(", start)
+    login = src[start:end]
+    # The journaled helper now serves both transactions. Check the actual
+    # dispatch, receipt, synchronization, and authorization edges, not the
+    # obsolete spelling of two inline submission calls.
+    helper_end = login.index('await ensureTracked("deviceTx", "ACCOUNT_DEVICE_REGISTER")')
+    helper = login[:helper_end]
+    assert "submitSignedTxWithNonce({" in helper
+    assert "await trackCanonicalLoginTx(attempt, step, signed)" in helper
+    assert "txId: tracked.txId" in helper
+    assert "minNonce: tracked.nonce" in helper
+    positions = [
+        helper.index("await waitForConfirmedSessionTransaction("),
+        helper.index("if (!confirmed) throw new PendingCanonicalLoginError"),
+        helper.index("await waitForLocalAccountNonceAtLeast("),
+        helper.index("if (!sessionSynced) throw new PendingCanonicalLoginError"),
+        helper.index("return tracked;"),
+    ]
+    assert positions == sorted(positions)
+    positions = [
+        helper_end,
+        login.index('await ensureTracked("sessionTx", "ACCOUNT_SESSION_KEY_ISSUE")'),
+        login.index("await waitForSessionAuthState("),
+        login.index("if (!sessionAuthorized) throw new PendingCanonicalLoginError"),
+        login.index("setSession({"),
+        login.index("clearCanonicalLogin(attempt.scope)"),
+    ]
+    assert positions == sorted(positions)
+    journal = read("web/src/auth/canonicalLoginJournal.ts")
+    assert '"ACCOUNT_DEVICE_REGISTER" : "ACCOUNT_SESSION_KEY_ISSUE"' in journal
 
 
 def test_one_command_rehearsal_starts_two_backends_two_frontends_and_reconcile_worker() -> None:
