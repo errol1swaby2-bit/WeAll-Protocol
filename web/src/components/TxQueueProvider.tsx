@@ -3,11 +3,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { getApiBaseUrl, weall } from "../api/weall";
 import { ensureBackendSession, getSession } from "../auth/session";
 import { normalizeTxStatus } from "../lib/status";
+import { describeReadModelObservation, type ReadModelObservation } from "../lib/txReconciliation";
 import { emitMutationSignal, type MutationEntityType } from "../lib/mutationSignals";
 import { inferFeedbackFromUnknown, normalizeStoredTxStatus, type FrontendFeedback, type TxLifecycleStatus } from "../lib/txFeedback";
 import TxStatusToast, { type TxToastItem } from "./TxStatusToast";
-
-type ReconcilePhase = "confirmed" | "submitted" | "failed" | "unknown";
 
 type MutationDescriptor = {
   entityType: MutationEntityType;
@@ -31,7 +30,7 @@ type TxLifecycleArgs<T> = {
     base?: string;
     pollEveryMs?: number;
     timeoutMs?: number;
-    reconcile?: () => Promise<{ phase: ReconcilePhase; detail?: string; txId?: string } | null>;
+    reconcile?: () => Promise<ReadModelObservation | null>;
     mutation?: MutationDescriptor;
   };
 };
@@ -283,48 +282,21 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
   }, [updateItem]);
 
   const applyReconciledPhase = useCallback(
-    (id: string, txId: string, mutation: MutationDescriptor | undefined, title: string, reconciled: { phase: ReconcilePhase; detail?: string; txId?: string } | null): boolean => {
-      if (!reconciled) return false;
-      if (reconciled.phase === "confirmed") {
-        const finalTxId = reconciled.txId || txId;
-        const detail = reconciled.detail || "The affected surface has reconciled the recorded action.";
-        markSuccess(id, {
-          message: detail,
-          txId: finalTxId,
-        });
-        mutationFromArgs(mutation, "confirmed", { title, txId: finalTxId, detail });
-        return true;
+    (id: string, txId: string, mutation: MutationDescriptor | undefined, title: string, reconciled: ReadModelObservation | null) => {
+      const observed = describeReadModelObservation(txId, reconciled);
+      if (!observed) return null;
+      if (observed.status === "refreshing") {
+        markRefreshing(id, { message: observed.detail, txId: observed.txId });
+        mutationFromArgs(mutation, "submitted", { title, txId: observed.txId, detail: observed.detail });
+      } else {
+        markRecorded(id, { message: observed.detail, txId: observed.txId });
+        mutationFromArgs(mutation, "recorded", { title, txId: observed.txId, detail: observed.detail });
       }
-      if (reconciled.phase === "failed") {
-        const finalTxId = reconciled.txId || txId;
-        const detail = reconciled.detail || "The affected surface reports that the action failed.";
-        markError(id, {
-          message: detail,
-          txId: finalTxId,
-        });
-        mutationFromArgs(mutation, "failed", { title, txId: finalTxId, detail });
-        return true;
-      }
-      if (reconciled.phase === "submitted") {
-        const finalTxId = reconciled.txId || txId;
-        const detail = reconciled.detail || "Submitted. Updating this page so the result becomes visible.";
-        markRefreshing(id, {
-          message: detail,
-          txId: finalTxId,
-        });
-        mutationFromArgs(mutation, "submitted", { title, txId: finalTxId, detail });
-        return false;
-      }
-      const finalTxId = reconciled.txId || txId;
-      const detail = reconciled.detail || "Submitted. This page is still updating before the result becomes visible.";
-      markRecorded(id, {
-        message: detail,
-        txId: finalTxId,
-      });
-      mutationFromArgs(mutation, "recorded", { title, txId: finalTxId, detail });
-      return false;
+      // Domain/read-model observations never settle a signed transaction.
+      // Only normalizeTxStatus over /v1/tx/status may do so.
+      return observed;
     },
-    [markError, markRecorded, markRefreshing, markSuccess],
+    [markRecorded, markRefreshing],
   );
 
   const monitorFinality = useCallback(
@@ -334,7 +306,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
       base?: string;
       pollEveryMs?: number;
       timeoutMs?: number;
-      reconcile?: () => Promise<{ phase: ReconcilePhase; detail?: string; txId?: string } | null>;
+      reconcile?: () => Promise<ReadModelObservation | null>;
       mutation?: MutationDescriptor;
       title: string;
     }) => {
@@ -354,28 +326,28 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
             mutationFromArgs(args.mutation, "confirmed", { title: args.title, txId: args.txId, detail: normalized.detail });
             return;
           }
+          if (normalized.phase === "failed") {
+            markError(args.id, { message: normalized.detail, txId: args.txId });
+            mutationFromArgs(args.mutation, "failed", { title: args.title, txId: args.txId, detail: normalized.detail });
+            return;
+          }
           if (normalized.phase === "unknown") {
             if (args.reconcile) {
               const reconciled = await args.reconcile().catch(() => null);
-              const terminal = applyReconciledPhase(args.id, args.txId, args.mutation, args.title, reconciled);
-              if (terminal) return;
-              if (reconciled?.phase === "submitted") {
+              const observed = applyReconciledPhase(args.id, args.txId, args.mutation, args.title, reconciled);
+              if (observed?.keepPolling) {
                 sawSubmittedReconcile = true;
               } else {
-                const detail = `${normalized.detail} The action may already be recorded, but the visible surface has not caught up yet.`;
-                markRecorded(args.id, {
-                  message: detail,
-                  txId: args.txId,
-                });
-                mutationFromArgs(args.mutation, "recorded", { title: args.title, txId: args.txId, detail });
+                if (!observed) {
+                  const detail = `${normalized.detail} Check the original transaction before retrying.`;
+                  markRecorded(args.id, { message: detail, txId: args.txId });
+                  mutationFromArgs(args.mutation, "recorded", { title: args.title, txId: args.txId, detail });
+                }
                 return;
               }
             } else {
               const detail = `${normalized.detail} Check the affected object before attempting another submission.`;
-              markRecorded(args.id, {
-                message: detail,
-                txId: args.txId,
-              });
+              markRecorded(args.id, { message: detail, txId: args.txId });
               mutationFromArgs(args.mutation, "recorded", { title: args.title, txId: args.txId, detail });
               return;
             }
@@ -388,17 +360,27 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
 
       if (args.reconcile) {
         const reconciled = await args.reconcile().catch(() => null);
-        const terminal = applyReconciledPhase(args.id, args.txId, args.mutation, args.title, reconciled);
-        if (terminal) {
-          return;
-        }
-        if (reconciled?.phase === "submitted") {
+        const observed = applyReconciledPhase(args.id, args.txId, args.mutation, args.title, reconciled);
+        if (observed?.keepPolling) {
           sawSubmittedReconcile = true;
           await new Promise((resolve) => window.setTimeout(resolve, lateReconcileWindowMs));
-          const secondReconcile = await args.reconcile().catch(() => null);
-          const secondTerminal = applyReconciledPhase(args.id, args.txId, args.mutation, args.title, secondReconcile);
-          if (secondTerminal) {
-            return;
+          // A second read-model observation alone cannot prove finality.
+          // Re-query the original canonical receipt after propagation delay.
+          try {
+            const raw = await weall.txStatus(args.txId, base);
+            const normalized = normalizeTxStatus(raw, args.txId);
+            if (normalized.phase === "confirmed") {
+              markSuccess(args.id, { message: normalized.detail, txId: args.txId });
+              mutationFromArgs(args.mutation, "confirmed", { title: args.title, txId: args.txId, detail: normalized.detail });
+              return;
+            }
+            if (normalized.phase === "failed") {
+              markError(args.id, { message: normalized.detail, txId: args.txId });
+              mutationFromArgs(args.mutation, "failed", { title: args.title, txId: args.txId, detail: normalized.detail });
+              return;
+            }
+          } catch {
+            // Keep the action unverified when the canonical status is unavailable.
           }
         }
       }
@@ -412,7 +394,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
       });
       mutationFromArgs(args.mutation, "recorded", { title: args.title, txId: args.txId, detail });
     },
-    [applyReconciledPhase, markRecorded, markSuccess],
+    [applyReconciledPhase, markError, markRecorded, markSuccess],
   );
 
   const runTx = useCallback(
@@ -491,10 +473,8 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
           });
         } else if (!txId) {
           const detail = "No tx id was returned. Check the affected page before treating this as final.";
-          markSuccess(id, {
-            message: detail,
-          });
-          mutationFromArgs(args.finality?.mutation, "confirmed", { title: args.title, detail });
+          markRecorded(id, { message: detail });
+          mutationFromArgs(args.finality?.mutation, "recorded", { title: args.title, detail });
         }
         return result;
       } catch (error) {

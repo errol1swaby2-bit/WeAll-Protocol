@@ -12,6 +12,7 @@ import { checkGates, summarizeAccountState } from "../lib/gates";
 import { reportStageLabel, reviewChoiceLabel, reviewStatusLabel, reviewTallyText } from "../lib/userLanguage";
 import { disputeAttendancePresent, disputeCurrentVote, disputeJurorStatus, disputeVoteCountSummary } from "../lib/disputeSurface";
 import { nav } from "../lib/router";
+import { REVIEWER_WORKSPACES, reviewerWorkspaceFromHash, type ReviewerWorkspace } from "../lib/reviewerWorkspaces";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
@@ -264,6 +265,21 @@ export default function JurorDashboard(): JSX.Element {
   const [expanded, setExpanded] = useState<Record<string, any>>({});
   const [participants, setParticipants] = useState<Record<string, any[]>>({});
   const [tab, setTab] = useState<"async" | "live">(() => initialReviewTab());
+  const [workspace, setWorkspace] = useState<ReviewerWorkspace>(() =>
+    reviewerWorkspaceFromHash(typeof window !== "undefined" ? window.location.hash : ""),
+  );
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const next = reviewerWorkspaceFromHash(window.location.hash);
+      setWorkspace(next);
+      if (next === "poh_live_review") setTab("live");
+      if (next === "poh_async_review") setTab("async");
+    };
+    window.addEventListener("hashchange", onHashChange);
+    onHashChange();
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any | null>(null);
@@ -571,23 +587,15 @@ export default function JurorDashboard(): JSX.Element {
     if (laneId === "poh_live_review") return liveCases.length;
     return 0;
   };
-  const openLane = (laneId: ReviewLaneId): void => {
-    if (laneId === "dispute_review") {
-      nav("/reports");
-      return;
-    }
-    if (laneId === "poh_async_review") {
-      setTab("async");
-      nav("/reviews?lane=poh_async_review");
-      return;
-    }
-    if (laneId === "poh_live_review") {
-      setTab("live");
-      nav("/reviews?lane=poh_live_review");
-      return;
-    }
-    nav("/reviews");
+  const openWorkspace = (next: ReviewerWorkspace): void => {
+    const target = REVIEWER_WORKSPACES.find((item) => item.id === next);
+    if (!target) return;
+    if (next === "poh_live_review") setTab("live");
+    if (next === "poh_async_review") setTab("async");
+    setWorkspace(next);
+    nav(target.href);
   };
+  const openLane = (laneId: ReviewLaneId): void => openWorkspace(laneId);
   const showing = tab === "async" ? asyncCases : liveCases;
   const livePendingSessions = liveSessions.filter((session: any) => {
     const caseId = String(session?.case_id || "").trim();
@@ -629,20 +637,8 @@ export default function JurorDashboard(): JSX.Element {
           </div>
 
           <div className="heroActions">
-            <button className="btn btnPrimary" onClick={() => openLane("content_review")}>
-              Content review lane
-            </button>
-            <button className="btn" onClick={() => openLane("dispute_review")}>
-              Reports and disputes
-            </button>
-            <button className={`btn ${tab === "async" ? "btnPrimary" : ""}`} onClick={() => openLane("poh_async_review")}>
-              PoH async lane
-            </button>
-            <button className={`btn ${tab === "live" ? "btnPrimary" : ""}`} onClick={() => openLane("poh_live_review")}>
-              PoH live lane
-            </button>
             <button className="btn" onClick={() => void refreshJurorSurface()} disabled={busy || signerSubmission.busy || !account}>
-              {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting…" : "Refresh"}
+              {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting…" : "Refresh work"}
             </button>
             <button className="btn" onClick={() => nav("/verification")}>
               Open Account Verification
@@ -651,12 +647,28 @@ export default function JurorDashboard(): JSX.Element {
         </div>
       </section>
 
+
+      <nav className="reviewerWorkspaceTabs" aria-label="Reviewer workspaces">
+        {REVIEWER_WORKSPACES.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={`reviewerWorkspaceTab ${workspace === entry.id ? "isActive" : ""}`}
+            aria-current={workspace === entry.id ? "page" : undefined}
+            onClick={() => openWorkspace(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
       {signerSubmission.busy ? (
         <div className="calloutInfo">
           Another signed action for this reviewer account is still settling. Review decisions stay read-only until the current action finishes.
         </div>
       ) : null}
 
+      {workspace === "overview" ? (
       <SectionCard
         eyebrow="Review Center"
         title="Lane-separated responsibilities"
@@ -699,6 +711,7 @@ export default function JurorDashboard(): JSX.Element {
           })}
         </div>
       </SectionCard>
+      ) : null}
 
       <ErrorBanner
         message={err?.msg}
@@ -708,6 +721,7 @@ export default function JurorDashboard(): JSX.Element {
       />
 
 
+      {workspace === "content_review" ? (
       <SectionCard
         eyebrow="Flagged content"
         title="Assigned content reviews"
@@ -764,7 +778,64 @@ export default function JurorDashboard(): JSX.Element {
           </div>
         )}
       </SectionCard>
+      ) : null}
 
+
+      {workspace === "dispute_review" ? (
+      <SectionCard
+        eyebrow="Dispute juror assignments"
+        title="Assigned dispute work"
+        right={<span className="statusPill">{contentReports.length} assigned</span>}
+      >
+        <p className="cardDesc">
+          Final dispute decisions are separate from read-only content context and from reports you submitted.
+          Only a canonically assigned and opted-in dispute juror can accept, recuse or vote. Open a case
+          to inspect standing, conflict rules, attendance, verdict requirements and the signed receipt.
+        </p>
+        <p className="cardDesc">
+          Dispute-review opt-in: {reviewerLaneStatus("dispute_review").label}. Tier 2 alone does not
+          authorize a verdict. For all public disputes, open the public reports index.
+        </p>
+        <div className="buttonRow">
+          <button className="btn" onClick={() => nav("/reports")}>Browse public reports</button>
+        </div>
+        {contentReports.length ? (
+          <div className="pageStack">
+            {contentReports.map((item: any) => {
+              const reportId = String(item?.id || item?.dispute_id || "").trim();
+              if (!reportId) return null;
+              const status = disputeJurorStatus(item, account);
+              return (
+                <article key={reportId} className="infoCard compact">
+                  <div className="sectionHead">
+                    <div>
+                      <strong>{String(item?.reason || "Dispute assignment")}</strong>
+                      <div className="cardDesc mono">{reportId}</div>
+                    </div>
+                    <span className="statusPill">{reviewStatusLabel(status)}</span>
+                  </div>
+                  <div className="buttonRow">
+                    <button className="btn btnPrimary" onClick={() => nav(`/reviews/${encodeURIComponent(reportId)}`)}>
+                      Open assigned case
+                    </button>
+                    <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(reportId)}`)}>
+                      Open public record
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="cardDesc" role="status">
+            No dispute jury assignments were returned for this account. This does not establish the
+            absence of older or unavailable public dispute records.
+          </div>
+        )}
+      </SectionCard>
+      ) : null}
+
+      {workspace === "reported" ? (
       <SectionCard
         eyebrow="Report tracking"
         title="Reports you submitted"
@@ -818,6 +889,7 @@ export default function JurorDashboard(): JSX.Element {
           </div>
         )}
       </SectionCard>
+      ) : null}
 
       {!account ? (
         <div className="card">
@@ -847,6 +919,7 @@ export default function JurorDashboard(): JSX.Element {
         </div>
       ) : null}
 
+      {(workspace === "poh_async_review" || workspace === "poh_live_review") ? (
       <SectionCard
         eyebrow={tab === "async" ? "Async Verification" : "Live Verification"}
         title={tab === "async" ? "Assigned async verification reviews" : "Assigned live verification cases"}
@@ -1102,6 +1175,7 @@ export default function JurorDashboard(): JSX.Element {
           </div>
         )}
       </SectionCard>
+      ) : null}
 
       {result ? (
         <SectionCard eyebrow="Last action" title="Latest action result">

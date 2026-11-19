@@ -2631,7 +2631,12 @@ class WeAllExecutor:
     def _persist_bft_state(self) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl._persist_bft_state(self)
+        # Serialize BFT snapshot creation and SQLite publication with canonical
+        # block commits. Otherwise an earlier network-thread snapshot could
+        # finish writing after a newer block's atomic BFT snapshot and roll
+        # local signing/view history backward on restart.
+        with self._bft_branch_guard_lock():
+            return _impl._persist_bft_state(self)
 
     def bft_verify_qc_json(self, qcj: Json) -> QuorumCert | None:
         from weall.runtime import bft_runtime_adapter as _impl

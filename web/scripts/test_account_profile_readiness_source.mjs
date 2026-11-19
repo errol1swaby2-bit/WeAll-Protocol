@@ -73,6 +73,19 @@ for (const needle of [
   assertIncludes(readiness, needle, "Account/profile readiness doc");
 }
 
+// An intermittent failure reading the already-registered account must not
+// permanently disable a restored user's profile form. This is read-only
+// reconciliation, never an automatic retry of a signed transaction.
+for (const needle of [
+  "const accountExists = !!acctView?.ok && !!state;",
+  "if (!isSelf || !acct || accountExists) return;",
+  "const latest = await weall.account(acct, base);",
+  "attempts < 8",
+  'data-submit-blockers={profileSubmitBlockers.join(",")}',
+]) {
+  assertIncludes(account, needle, "Read-only canonical account reconciliation");
+}
+
 assertIncludes(first15, "Account and public profile readiness", "First 15 minutes doc must link account/profile readiness");
 assertIncludes(packageJson, "test:account-profile-readiness-source", "package script must expose account/profile readiness source check");
 
@@ -93,4 +106,27 @@ for (const forbidden of [
   assertNotIncludes(checked, forbidden, "Account/profile surfaces must not overclaim");
 }
 
+for (const needle of [
+  "const loadSequence = ++profileLoadSequenceRef.current",
+  "if (loadSequence !== profileLoadSequenceRef.current) return",
+  "profileReadValid && !profileDirtyRef.current && draftRevision === profileDraftRevisionRef.current",
+  "profileDirtyRef.current = true",
+  "profileDraftRevisionRef.current += 1",
+  "submittedDraftRevision === profileDraftRevisionRef.current",
+  '!canonicalProfileReady ? "canonical-profile-unavailable"',
+  'disabled={!canonicalProfileReady || busy === "profile"}',
+]) {
+  assertIncludes(account, needle, "Canonical profile draft race protection");
+}
+
 console.log("OK: account/profile readiness source checks passed");
+
+for (const needle of [
+  'Upload profile picture', 'Upload profile banner',
+  'uploadProfileImage("avatar_cid", file)', 'uploadProfileImage("banner_cid", file)',
+  'weall.mediaUpload(file, base, getAuthHeaders(acct))',
+  'tx_type: "IPFS_PIN_REQUEST"', 'tx_type: "CONTENT_MEDIA_DECLARE"',
+  'await requireMediaReceipt(txIdFromResult(declared))',
+  'updateProfileForm(field, cid)', 'if (!isSelf || !canPost',
+  'if (!isSelf || profileMediaLock.current) return',
+]) assertIncludes(account, needle, "Public profile image upload boundary");

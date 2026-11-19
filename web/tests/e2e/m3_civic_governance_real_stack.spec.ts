@@ -256,7 +256,7 @@ async function submitNegativeAttempt(
   attempt: M3NegativeAttempt,
 ): Promise<NegativeSubmissionResult> {
   return page.evaluate(async ({ backendValue, attemptValue }) => {
-    const sessionModule = await import("/src/auth/session.ts");
+    const sessionModule = await import("/__weall_test__/session.js");
     const errorContract = (error: any): { code: string; reason: string } => {
       const payload = error?.payload && typeof error.payload === "object" ? error.payload : {};
       const payloadError = payload?.error && typeof payload.error === "object" ? payload.error : {};
@@ -331,7 +331,7 @@ async function waitForApplyRejection(
 
 async function resyncActorNonceAfterApplyRejection(page: Page, backend: string, account: string): Promise<void> {
   await page.evaluate(async ({ backendValue, accountValue }) => {
-    const sessionModule = await import("/src/auth/session.ts");
+    const sessionModule = await import("/__weall_test__/session.js");
     await sessionModule.syncNonceReservation(accountValue, backendValue);
   }, { backendValue: backend, accountValue: account });
 }

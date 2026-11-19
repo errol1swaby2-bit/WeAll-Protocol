@@ -43,9 +43,12 @@ def test_live_request_routes_to_expected_room_when_tx_status_lags() -> None:
 
     assert "expectedLiveCaseIdFromNonce" in body
     assert "maxWaitMs: txVisible ? 30_000 : 5_000" in body
-    assert "!txVisible && !visibleCaseId && !expectedCaseId" in body
     assert "case_id: visibleCaseId || expectedCaseId" in body
-    assert "nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`)" in body
+    assert "if (!txId) throw new Error" in body
+    assert "resultCaseId && resultCaseId === expectedCaseId" in body
+    assert "nav(`/verification/live/${encodeURIComponent(resultCaseId)}`)" in body
+    assert "waitForLiveCaseIdVisible(acct, expectedCaseId, base, headers" in body
+    assert "return visible[visible.length - 1]" not in body
 
 
 def test_live_juror_cases_alias_removed_for_direct_protocol() -> None:

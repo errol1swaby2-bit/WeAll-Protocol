@@ -1,0 +1,53 @@
+name: PR77 V2 DISPUTE_OPEN semantic drift diagnostic - no review approval
+
+on:
+  pull_request:
+    paths:
+      - 'Weall-Protocol/scripts/audit_v2_semantic_review_drift.py'
+      - 'Weall-Protocol/scripts/v2_spec_validation.py'
+      - 'Weall-Protocol/docs/audits/pr77_ci_semantic_adjudication_queue_20261101.md'
+      - 'Weall-Protocol/specs/v2/source/tx_appliers.json'
+      - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
+      - 'Weall-Protocol/tests/test_pr77_dispute_open_v2_source_attribution.py'
+      - 'Weall-Protocol/tests/test_pr77_dispute_open_semantic_adjudication.py'
+      - 'Weall-Protocol/scripts/pr77_v2_semantic_review_packet.py'
+      - '.github/workflows/pr77-v2-dispute-open-semantic-drift-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Static handler binding regression
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check scripts/audit_v2_semantic_review_drift.py scripts/v2_spec_validation.py tests/test_pr77_dispute_open_v2_source_attribution.py tests/test_pr77_dispute_open_semantic_adjudication.py
+          ruff format --check scripts/audit_v2_semantic_review_drift.py scripts/v2_spec_validation.py tests/test_pr77_dispute_open_v2_source_attribution.py tests/test_pr77_dispute_open_semantic_adjudication.py
+          python -m pytest -q tests/test_pr77_dispute_open_v2_source_attribution.py tests/test_pr77_dispute_open_semantic_adjudication.py
+      - name: Report mismatches without updating accepted semantic reviews
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/audit_v2_semantic_review_drift.py > /tmp/pr77-v2-drift.txt
+          cat /tmp/pr77-v2-drift.txt
+      - name: Upload read-only semantic drift inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-v2-semantic-drift-diagnostic
+          path: /tmp/pr77-v2-drift.txt
+          if-no-files-found: error
+      - name: Confirm no semantic review or derivative was changed
+        run: |
+          git diff --exit-code -- Weall-Protocol/specs/v2/source/semantic_reviews.json Weall-Protocol/generated/v2

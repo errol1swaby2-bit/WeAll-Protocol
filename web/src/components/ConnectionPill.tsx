@@ -48,7 +48,12 @@ export default function ConnectionPill(): JSX.Element {
   const summary = summarizeNodeConnection(statusView, base);
 
   return (
-    <button className={`statusPill ${statusClass(summary.phase)}`} title={base} onClick={() => nav("/advanced")}>
+    <button
+      className={`statusPill ${statusClass(summary.phase)}`}
+      title={`Manage node connection: ${base}`}
+      aria-label={`Manage node connection (${summary.label})`}
+      onClick={() => nav("/settings/connection")}
+    >
       <span>{summary.label}</span>
       <span className="mono connectionMeta">{summary.detail || base}</span>
     </button>

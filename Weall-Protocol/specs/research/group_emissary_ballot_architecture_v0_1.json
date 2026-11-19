@@ -1,0 +1,153 @@
+{
+  "schema_version": "weall.group-emissary-confidential-ballot.research.v0.1",
+  "document_status": "RESEARCH_ONLY_NO_ACTIVATION",
+  "review_date": "2026-11-10",
+  "preferred_feasibility_track": "classical_verifiable_mix_and_decrypt_baseline",
+  "selected_production_primitive_suite": null,
+  "claimed_post_quantum_security": false,
+  "enabled_ballot_submission": false,
+  "authorized_new_consensus_tx_types": [],
+  "historical_plaintext_tx_unchanged": true,
+  "release_decision": "NO_GO",
+  "baseline": {
+    "tx_type": "GROUP_EMISSARY_BALLOT_CAST",
+    "signer_visible": true,
+    "ranking_visible_in_signed_envelope": true,
+    "strict_apply_state_aggregate_only": true,
+    "transport_confidentiality_verified": false,
+    "anonymous_eligibility_verified": false,
+    "verifiable_private_stv_verified": false
+  },
+  "candidates": [
+    {
+      "id": "classical_verifiable_mix_and_decrypt_baseline",
+      "disposition": "RESEARCH_BASELINE_ONLY",
+      "stv_verifiability_potential": "FULL_RANKING_AFTER_SHUFFLE",
+      "pq_status": "NOT_QUANTUM_RESISTANT",
+      "primary_blocker": "Classical shuffle/decryption and anonymous snapshot credentials do not satisfy PQ acceptance",
+      "implementation_ready": false
+    },
+    {
+      "id": "pq_anonymous_proof_plus_verifiable_ranked_decryption",
+      "disposition": "RESEARCH_REQUIRED_NO_SELECTED_SUITE",
+      "stv_verifiability_potential": "POSSIBLE_IF_PROVEN",
+      "pq_status": "UNVERIFIED_END_TO_END",
+      "primary_blocker": "No independently validated complete PQ membership, shuffle, threshold decryption and ranked-STV proof integration",
+      "implementation_ready": false
+    },
+    {
+      "id": "private_stv_zero_knowledge_tally",
+      "disposition": "RESEARCH_REQUIRED_NO_SELECTED_SUITE",
+      "stv_verifiability_potential": "POSSIBLE_IF_PROVEN",
+      "pq_status": "UNVERIFIED_END_TO_END",
+      "primary_blocker": "No reviewed scalable circuit/verifier for full deterministic STV and snapshot unlinkability",
+      "implementation_ready": false
+    },
+    {
+      "id": "additive_homomorphic_first_choice_totals",
+      "disposition": "REJECT_AS_STV_REPLACEMENT",
+      "stv_verifiability_potential": "INSUFFICIENT",
+      "pq_status": "NOT_APPLICABLE",
+      "primary_blocker": "First-choice totals omit transfers, eliminations and preference exhaustion",
+      "implementation_ready": false
+    },
+    {
+      "id": "ml_kem_only_encryption",
+      "disposition": "REJECT_AS_COMPLETE_VOTING_SCHEME",
+      "stv_verifiability_potential": "INSUFFICIENT",
+      "pq_status": "KEM_ONLY_NOT_FULL_VOTING_SYSTEM",
+      "primary_blocker": "ML-KEM does not itself provide a threshold election, unlinkable membership or verifiable ranked tally",
+      "implementation_ready": false
+    }
+  ],
+  "required_election_bindings": [
+    "chain_id",
+    "group_id",
+    "election_id",
+    "election_version",
+    "snapshot_commitment",
+    "candidate_order_commitment",
+    "election_start_height",
+    "election_end_height",
+    "ballot_profile_version"
+  ],
+  "hard_release_gates": [
+    "independent_crypto_review",
+    "anonymous_snapshot_membership_soundness",
+    "nullifier_uniqueness_without_public_roster_enumeration",
+    "ciphertext_ballot_binding",
+    "full_transport_observer_and_archive_privacy_scan",
+    "proof_verified_deterministic_stv",
+    "trustee_ceremony_dropout_and_recovery",
+    "no_early_reveal",
+    "post_quantum_end_to_end_security_or_explicitly_rejected_deployment",
+    "fixed_resource_caps_and_low_end_hardware_benchmark",
+    "replay_restart_two_node_equality_and_observer_catchup",
+    "constitutionally_recorded_activation",
+    "exact_head_release_ci_green"
+  ],
+  "benchmark_plan": {
+    "fixtures_not_performance_claims": true,
+    "voters": [
+      10,
+      100,
+      1000,
+      10000
+    ],
+    "candidates": [
+      5,
+      20,
+      100
+    ],
+    "hardware_profiles": [
+      "baseline_4_gb_ram_laptop",
+      "mainstream_laptop",
+      "validator_reference"
+    ],
+    "operations": [
+      "credential_generation",
+      "ballot_proving",
+      "ballot_verification",
+      "relay_admission",
+      "shuffle_proof_generation",
+      "shuffle_proof_verification",
+      "threshold_reveal",
+      "deterministic_stv_replay",
+      "observer_catchup"
+    ],
+    "measurements": [
+      "median_ms",
+      "p95_ms",
+      "peak_rss_mib",
+      "proof_bytes",
+      "ciphertext_bytes",
+      "total_chain_bytes",
+      "verification_ms_per_block",
+      "restart_replay_ms"
+    ],
+    "limits_reviewed_and_committed": false,
+    "real_measurements_collected": false
+  },
+  "sources": [
+    {
+      "name": "NIST_FIPS_203_ML_KEM",
+      "url": "https://csrc.nist.gov/pubs/fips/203/final",
+      "role": "KEM standard, not a voting system"
+    },
+    {
+      "name": "NIST_FIPS_204_ML_DSA",
+      "url": "https://csrc.nist.gov/pubs/fips/204/final",
+      "role": "Signature standard, not anonymous voting"
+    },
+    {
+      "name": "ElectionGuard_RCV_glossary",
+      "url": "https://electionguard.vote/overview/Glossary/",
+      "role": "States ranked-choice voting not currently supported (source checked 2026-11-10)"
+    },
+    {
+      "name": "Verificatum_mixnet",
+      "url": "https://www.verificatum.org/html/product_vmn.html",
+      "role": "External classical verifiable-mix research reference, no PQ claim"
+    }
+  ]
+}

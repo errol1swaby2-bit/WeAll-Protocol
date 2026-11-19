@@ -21,6 +21,9 @@ Bounds = tuple[int, int]
 # Keys not present here MUST be rejected when set via governance/system tx.
 ALLOWED: dict[str, Any] = {
     "params": {
+        # Explicit governance-set height; absent keeps historical emissary
+        # election quorum behavior. No activation height is set by this PR.
+        "group_emissary_quorum_activation_height": (1, 2_147_483_647),
         "poh": {
             "tier2_n_jurors": (3, 100),
             "tier2_min_total_reviews": (1, 100),

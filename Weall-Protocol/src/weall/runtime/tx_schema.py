@@ -1270,6 +1270,10 @@ class GovProposalCreatePayload(_StrictModel):
     # Optional human-friendly metadata (used by web UI / API responses)
     title: str | None = None
     body: str | None = None
+    # Canonical group IDs are explicit; a geographic-sounding name grants nothing.
+    group_id: str | None = Field(default=None, min_length=1)
+    scope_id: str | None = Field(default=None, min_length=1)
+    electorate_scope: str | None = Field(default=None, min_length=1)
 
     # Governance engine fields
     rules: Json | None = None
@@ -1400,15 +1404,36 @@ class GovVoteRevokePayload(_StrictModel):
 
 class GovVotingClosePayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
+    # Governance's consensus SYSTEM queue legitimately records this public,
+    # deterministic closure reason. It is consumed when closing the electorate
+    # round and cannot be discarded by strict block-context schema validation.
+    close_reason: str | None = Field(default=None, min_length=1)
 
 
 class GovTallyPublishPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
     tally: Json | None = None
+    # Current deterministic governance executor publishes these public ballot
+    # counts/decision metadata, including the option-ballot branch. The strict
+    # schema must describe the exact fields emitted by canonical SYSTEM queue.
+    vote_window: str | None = Field(default=None, min_length=1)
+    vote_model: str | None = Field(default=None, min_length=1)
+    eligible_validator_count: int | None = Field(default=None, ge=0)
+    required_votes: int | None = Field(default=None, ge=0)
     total_votes: int | None = Field(default=None, ge=0)
     quorum_required: int | None = Field(default=None, ge=0)
     quorum_met: bool | None = None
+    yes: int | None = Field(default=None, ge=0)
+    no: int | None = Field(default=None, ge=0)
+    abstain: int | None = Field(default=None, ge=0)
     passed: bool | None = None
+    option_tallies: dict[str, int] | None = None
+    invalid_option_votes: int | None = Field(default=None, ge=0)
+    selected_option_id: str | None = None
+    tie: bool | None = None
+    tie_option_ids: list[str] | None = None
+    outcome: str | None = None
+    deterministic_tie_break: str | None = None
     electorate_round: int | None = Field(default=None, ge=0)
     no_decision_reason: str | None = None
     finalize_without_execution: bool | None = None
@@ -1447,10 +1472,19 @@ class DisputeStageSetPayload(_StrictModel):
 
 class DisputeJurorAssignPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
-    juror_id: str = Field(
-        ...,
-        min_length=1,
-    )
+    # Historic CONTENT_ESCALATE_TO_DISPUTE emits `juror` and persists that
+    # envelope in the consensus SYSTEM queue before its next-height inclusion.
+    # Retain it for replay/restart; also accept the documented `juror_id` key.
+    juror_id: str | None = Field(default=None, min_length=1)
+    juror: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _require_consistent_juror(self) -> DisputeJurorAssignPayload:
+        if not (self.juror or self.juror_id):
+            raise ValueError("juror or juror_id is required")
+        if self.juror and self.juror_id and self.juror != self.juror_id:
+            raise ValueError("juror and juror_id must refer to the same account")
+        return self
 
 
 class DisputeJurorAcceptPayload(_StrictModel):
@@ -1598,6 +1632,10 @@ class ModActionReceiptPayload(_StrictModel):
 class FlagEscalationReceiptPayload(_StrictModel):
     target_id: str = Field(..., min_length=1)
     dispute_id: str = Field(..., min_length=1)
+    # The consensus SYSTEM queue persists the content-flag's public provenance.
+    # Reject unknown extras, but preserve these emitted fields during replay.
+    reason: str | None = None
+    by: str | None = None
 
 
 # ============================================================

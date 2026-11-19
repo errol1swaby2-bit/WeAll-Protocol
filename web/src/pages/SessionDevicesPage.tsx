@@ -304,7 +304,7 @@ export default function SessionDevicesPage(): JSX.Element {
             <div className="kvList">
               <div className="kvRow"><span>Local account</span><strong className="mono">{account || "—"}</strong></div>
               <div className="kvRow"><span>Saved account key</span><strong className="mono wrapAnywhere">{keypair?.pubkeyB64 || "Not present on this device"}</strong></div>
-              <div className="kvRow"><span>Browser session key</span><strong className="mono wrapAnywhere">{session?.sessionKey || "Not present"}</strong></div>
+              <div className="kvRow"><span>Browser session key</span><strong>{session?.sessionKey ? "Present (hidden for security)" : "Not present"}</strong></div>
               <div className="kvRow"><span>Session expiry</span><strong>{fmtTs(session?.expiresAtMs)}</strong></div>
               <div className="kvRow"><span>Session health</span><strong>{sessionHealth.state.replace(/_/g, " ")}</strong></div>
             </div>

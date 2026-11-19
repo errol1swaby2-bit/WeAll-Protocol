@@ -1,0 +1,139 @@
+# Generate source-bound V1.5 evidence by running the real harnesses. This
+# never edits V2 semantic review decisions, production policy, or release gates.
+# PR88 post-assignment dispute-conflict change: re-execute and live-verify
+# B528/B534/B567 against the settled source HEAD; generated JSON only, fail
+# on any branch advance or change to a release/semantic authority flag.
+name: PR88 source-bound B5xx live proof refresh (no semantic approval)
+
+on:
+  push:
+    branches:
+      - frontend/v16-group-profile-and-navigation-20261110
+    paths:
+      - .github/workflows/pr88-b5xx-live-proof-refresh.yml
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/runtime/dispute_panel_recovery_preview.py
+      - Weall-Protocol/src/weall/runtime/dispute_conflict_provenance_preview.py
+      - Weall-Protocol/tests/test_pr88_dispute_panel_recovery_preview.py
+      - Weall-Protocol/tests/test_pr88_signed_post_assignment_group_conflict_replay.py
+      - Weall-Protocol/src/weall/net/net_loop.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr88-live-b5xx-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh-verified-proof-only:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref == 'refs/heads/frontend/v16-group-profile-and-navigation-20261110'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact triggering source head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Rehearse and regenerate all three source-bound proof artifacts
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --verify-live
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --verify-live
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --verify-live
+      - name: Validate truth and release locks before a generated-only write
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('generated')
+          names = (
+              'b528_b532_completion_proof_v1_5',
+              'b534_b538_completion_proof_v1_5',
+              'b567_b571_autonomous_mechanics_proof_v1_5',
+          )
+          proofs = {
+              name: json.loads((root / f'{name}.json').read_text(encoding='utf-8'))
+              for name in names
+          }
+          expected_locks = dict(
+              automatic_upgrades=False,
+              live_economics=False,
+              production_helpers=False,
+              public_validators=False,
+          )
+          for name, data in proofs.items():
+              assert data.get('ok') is True, name
+              assert data.get('freshness', {}).get('mode') == 'deterministic_input_digest_v1', name
+          assert proofs[names[0]]['locked_boundaries'] == expected_locks
+          assert proofs[names[1]]['locked_boundaries'] == expected_locks
+          assert proofs[names[0]]['truth_boundary'] == 'local_private_completion_rehearsal_not_public_beta_or_mainnet'
+          assert proofs[names[1]]['truth_boundary'] == 'local_private_full_node_process_rehearsal_not_public_beta_or_mainnet'
+          assert proofs[names[2]]['public_beta_ready'] is False
+          assert proofs[names[2]]['claim_boundaries'] == {
+              'automatic_protocol_upgrades': False,
+              'complete_anti_sybil_solved': False,
+              'live_economics': False,
+              'mainnet_readiness': False,
+              'personalized_feed_ranking': False,
+              'production_helper_execution': False,
+              'public_multi_validator_bft': False,
+              'public_validator_readiness': False,
+          }
+          print('Three real source-bound rehearsals live-verified; public activation remains false')
+          PY
+      - name: Commit only validated generated JSON with unchanged-head lease
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          EXPECTED="${{ github.sha }}"
+          BRANCH="frontend/v16-group-profile-and-navigation-20261110"
+          REMOTE_HEAD="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)"
+          if [[ "$REMOTE_HEAD" != "$EXPECTED" ]]; then
+            echo "draft_branch_advanced_during_regeneration:$REMOTE_HEAD!=$EXPECTED" >&2
+            exit 1
+          fi
+          git add --             generated/b528_b532_completion_proof_v1_5.json             generated/b534_b538_completion_proof_v1_5.json             generated/b567_b571_autonomous_mechanics_proof_v1_5.json
+          git diff --cached --check
+          python - <<'PY'
+          import subprocess
+          allowed = {
+              'Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json',
+              'Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json',
+              'Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json',
+          }
+          actual = set(subprocess.check_output(
+              ['git', 'diff', '--cached', '--name-only'], text=True
+          ).splitlines())
+          assert actual <= allowed, f'unexpected_staged_path:{sorted(actual - allowed)}'
+          print('Generated-only staged paths:', sorted(actual))
+          PY
+          if git diff --cached --quiet; then
+            echo "B5xx tracked artifacts already match the live proof run."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(pr88): regenerate three live-verified B5xx source proofs'
+          git push origin "HEAD:$BRANCH"

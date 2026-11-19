@@ -1,0 +1,10 @@
+----------------------------------------------------------------------
+Ran 31 tests in 0.553s
+
+OK
+Canonical mapping: 2 types; output /tmp/tmps4r_g4jj/output
+Canonical mapping: 2 types; output /tmp/tmps4r_g4jj/output
+Impact: 1 tx types, 23 requirements, unmapped=[]
+Canonical mapping: 2 types; output /tmp/tmpstots7vw/output
+Impact: 1 tx types, 23 requirements, unmapped=[]
+BLOCKED_UNRATIFIED_POLICY_OR_UNVERIFIED_CONTRACTS

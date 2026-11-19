@@ -36,7 +36,10 @@ export async function waitForLiveLocalMedia(page: Page, actorLabel: string): Pro
   const timeoutMs = m2LocalMediaTimeoutMs();
   try {
     await expect.poll(
-      async () => page.getByTestId("live-local-video").evaluate((node: HTMLVideoElement) => Boolean(node.srcObject)).catch(() => false),
+      async () => page.getByTestId("live-local-video").evaluate((node: HTMLVideoElement) => {
+        const stream = node.srcObject;
+        return stream instanceof MediaStream && stream.getVideoTracks().some((track) => track.readyState === "live");
+      }).catch(() => false),
       { timeout: timeoutMs, message: `${actorLabel} local media should become available after live-room check-in` },
     ).toBe(true);
   } catch (error) {
@@ -44,6 +47,49 @@ export async function waitForLiveLocalMedia(page: Page, actorLabel: string): Pro
     const roomError = await page.locator(".errorText").last().textContent().catch(() => "");
     throw new Error(
       `${actorLabel} local media did not become ready within ${timeoutMs}ms; status=${String(status || "").trim() || "unknown"}; error=${String(roomError || "").trim() || "none"}; cause=${String(error)}`,
+    );
+  }
+}
+
+/**
+ * F2 acceptance: video from the *named other account* must actually arrive
+ * over WebRTC. Local getUserMedia success, sent offers, peer presence or a
+ * successful chain attendance receipt alone cannot satisfy this assertion.
+ * Two independent browser contexts must each observe the other's live video.
+ */
+export async function waitForLiveRemoteMedia(page: Page, actorLabel: string, remoteAccount: string): Promise<void> {
+  const target = remoteAccount.trim();
+  if (!target) throw new Error("A remote account is required for live media acceptance.");
+  const timeoutMs = m2LocalMediaTimeoutMs();
+  try {
+    await expect.poll(
+      async () => page.evaluate((account) => {
+        const tiles = Array.from(document.querySelectorAll(".p2pVideoGrid .p2pVideoTile[data-remote-account]"));
+        const tile = tiles.find((item) => item.getAttribute("data-remote-account") === account);
+        if (tile?.getAttribute("data-peer-connection-state") !== "connected") return false;
+        const element = tile.querySelector("video");
+        const stream = element?.srcObject;
+        if (!(stream instanceof MediaStream) || !element) return false;
+        const videoAlive = stream.getVideoTracks().some((track) => track.readyState === "live" && !track.muted);
+        // A live track can be present before the browser decodes any video.
+        // Require a current rendered frame as well as this exact peer's
+        // connected RTCPeerConnection state.
+        return videoAlive &&
+          element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+          element.videoWidth > 0 &&
+          element.videoHeight > 0;
+      }, target).catch(() => false),
+      { timeout: timeoutMs, message: `${actorLabel} must receive a live WebRTC video track from ${target}` },
+    ).toBe(true);
+  } catch (error) {
+    // UI status only. Never capture raw media, signaling payloads, custody
+    // material, private evidence or authentication headers in failure output.
+    const status = await page.getByTestId("live-room-join-status").textContent().catch(() => "");
+    const p2pStatus = await page.getByTestId("live-p2p-status").textContent().catch(() => "");
+    throw new Error(
+      `${actorLabel} did not receive confirmed live video from ${target} within ${timeoutMs}ms; ` +
+      `join=${String(status || "").trim() || "unknown"}; p2p=${String(p2pStatus || "").trim() || "unknown"}; ` +
+      `cause=${String(error)}`,
     );
   }
 }
@@ -67,10 +113,10 @@ export async function createActorContext(browser: Browser, baseURL: string, acto
   const page = await context.newPage();
   await page.goto("/");
   await page.evaluate(async ({ actorValue, apiBaseValue }) => {
-    const recoveryModule = await import("/src/auth/recoveryFile.ts");
-    const keysModule = await import("/src/auth/keys.ts");
-    const evidenceModule = await import("/src/auth/evidenceCrypto.ts");
-    const sessionModule = await import("/src/auth/session.ts");
+    const recoveryModule = await import("/__weall_test__/recoveryFile.js");
+    const keysModule = await import("/__weall_test__/keys.js");
+    const evidenceModule = await import("/__weall_test__/evidenceCrypto.js");
+    const sessionModule = await import("/__weall_test__/session.js");
     const recovery = recoveryModule.parseRecoveryKeyFileText(JSON.stringify(actorValue.recovery));
     keysModule.saveKeypair(recovery.account, {
       pubkeyB64: recovery.publicKeyB64,
@@ -104,8 +150,8 @@ export async function createActorContext(browser: Browser, baseURL: string, acto
 
 export async function submitSkeleton(page: Page, apiBase: string, account: string, method: string, payload: Record<string, unknown>): Promise<string> {
   return page.evaluate(async ({ apiBaseValue, accountValue, methodValue, payloadValue }) => {
-    const apiModule = await import("/src/api/weall.ts");
-    const sessionModule = await import("/src/auth/session.ts");
+    const apiModule = await import("/__weall_test__/weall.js");
+    const sessionModule = await import("/__weall_test__/session.js");
     const api: any = apiModule.weall;
     const factory = api[methodValue];
     if (typeof factory !== "function") throw new Error(`unknown skeleton method: ${methodValue}`);
@@ -129,7 +175,7 @@ export async function submitSkeleton(page: Page, apiBase: string, account: strin
 
 export async function submitDirect(page: Page, apiBase: string, account: string, txType: string, payload: Record<string, unknown>): Promise<string> {
   return page.evaluate(async ({ apiBaseValue, accountValue, txTypeValue, payloadValue }) => {
-    const sessionModule = await import("/src/auth/session.ts");
+    const sessionModule = await import("/__weall_test__/session.js");
     const result = await sessionModule.submitSignedTx({
       account: accountValue,
       tx_type: txTypeValue,
@@ -197,10 +243,10 @@ export async function submitEncryptedAsyncFollowup(args: {
   recipients: string[];
 }): Promise<{ evidenceId: string; declareTxId: string; bindTxId: string; ciphertextCid: string }> {
   return args.page.evaluate(async ({ apiBaseValue, caseIdValue, applicantValue, recipientValues }) => {
-    const apiModule = await import("/src/api/weall.ts");
-    const keysModule = await import("/src/auth/keys.ts");
-    const sessionModule = await import("/src/auth/session.ts");
-    const evidenceModule = await import("/src/auth/evidenceCrypto.ts");
+    const apiModule = await import("/__weall_test__/weall.js");
+    const keysModule = await import("/__weall_test__/keys.js");
+    const sessionModule = await import("/__weall_test__/session.js");
+    const evidenceModule = await import("/__weall_test__/evidenceCrypto.js");
 
     const applicant = keysModule.normalizeAccount(applicantValue);
     const recipients = Array.from(new Set([applicant, ...recipientValues.map((value) => keysModule.normalizeAccount(value))].filter(Boolean)));

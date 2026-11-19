@@ -1,0 +1,79 @@
+# Diagnostic-only repetition to identify rare localhost authenticated TCP
+# restart bans. It never modifies security rules, producer paths, or genesis.
+name: PR88 TCP restart strike provenance soak (diagnostic only)
+
+on:
+  push:
+    branches:
+      - frontend/v16-group-profile-and-navigation-20261110
+    paths:
+      - .github/workflows/pr88-tcp-restart-strike-soak.yml
+      - Weall-Protocol/tests/test_group_emissary_network_process_bft.py
+      - Weall-Protocol/src/weall/net/node.py
+      - Weall-Protocol/src/weall/net/net_loop.py
+
+permissions:
+  contents: read
+
+jobs:
+  tcp-restart-strike-diagnostic:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact triggering head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Repeat genuine four-process authenticated TCP restart without security overrides
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          OUT="$RUNNER_TEMP/pr88-tcp-restart-strike-soak"
+          mkdir -p "$OUT"
+          {
+            echo "commit=${{ github.sha }}"
+            echo "scope=AUTHENTICATED_TCP_FOUR_PROCESS_RESTART_FAILURE_CAPTURE_ONLY"
+            echo "ban_rule_changes=none"
+            echo "independent_genesis_or_production_authority=false"
+            sha256sum src/weall/net/node.py
+            sha256sum src/weall/net/net_loop.py
+            sha256sum tests/test_group_emissary_network_process_bft.py
+          } > "$OUT/source.txt"
+          ruff check tests/test_group_emissary_network_process_bft.py
+          ruff format --check tests/test_group_emissary_network_process_bft.py
+          for attempt in $(seq 1 12); do
+            echo "START attempt=$attempt" | tee -a "$OUT/repetitions.log"
+            set +e
+            python -m pytest -x -q -vv -s               tests/test_group_emissary_network_process_bft.py::test_authenticated_tcp_netmesh_delivers_signed_bft_proposal               > "$OUT/attempt-$attempt.log" 2>&1
+            RC="$?"
+            set -e
+            cat "$OUT/attempt-$attempt.log" >> "$OUT/repetitions.log"
+            echo "END attempt=$attempt exit_code=$RC" | tee -a "$OUT/repetitions.log"
+            if [[ "$RC" != "0" ]]; then
+              echo "FAIL_CLOSED: captured failure attempt=$attempt; inspect strike_trace" >&2
+              exit "$RC"
+            fi
+          done
+          echo "PASS: all 12 repeated test-local restarts succeeded; intermittent defect NOT cleared"
+      - name: Publish bounded trace, including any failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr88-tcp-restart-strike-soak-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/pr88-tcp-restart-strike-soak/

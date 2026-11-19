@@ -20,6 +20,7 @@ REQUIRED_EXECUTABLES = (
 IGNORED_RUNTIME_PATHS = (
     "Weall-Protocol/.weall-media-cache/",
     "Weall-Protocol/.weall-devnet/",
+    "web/public/weall-local-rehearsal/",
     ".weall-dev/",
 )
 

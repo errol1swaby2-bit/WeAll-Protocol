@@ -98,11 +98,18 @@ def test_docs_define_production_oriented_genesis_api_boundary() -> None:
     assert "not a public mainnet Genesis API" in known
 
 
-def test_first_external_observer_gate_still_passes_local_scope() -> None:
+def test_first_external_observer_gate_still_passes_local_scope(
+    valid_observer_genesis_artifacts: dict[str, str],
+) -> None:
     proc = subprocess.run(
         ["bash", "scripts/first_external_observer_reproducibility_gate.sh"],
         cwd=ROOT,
-        env={"PATH": "/usr/bin:/bin", "HOME": str(ROOT), "PYTHONDONTWRITEBYTECODE": "1"},
+        env={
+            "PATH": "/usr/bin:/bin",
+            "HOME": str(ROOT),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            **valid_observer_genesis_artifacts,
+        },
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

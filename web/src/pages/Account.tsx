@@ -1,15 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import FeedView from "../components/FeedView";
 import WalletPanel from "../components/WalletPanel";
-import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
+import { ensureBackendSession, getAuthHeaders, getKeypair, getSession, submitSignedTx, submitSignedTxWithNonce } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
+import { normalizeTxStatus } from "../lib/status";
 import { createNodeKeyFile, downloadNodeKeyFile, type NodeKeyFile } from "../auth/nodeKeys";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
-import { refreshMutationSlices } from "../lib/revalidation";
+import { refreshMutationSlices, retryTransientCanonicalRead } from "../lib/revalidation";
 import { nav } from "../lib/router";
+import { ACCOUNT_PROFILE_TABS, accountProfileTabFromHash, type AccountProfileTab } from "../lib/accountProfileTabs";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
@@ -82,13 +84,14 @@ type ProfileFormState = {
   display_name: string;
   bio: string;
   avatar_cid: string;
+  banner_cid: string;
   website: string;
   location: string;
   tags_text: string;
 };
 
 function emptyProfileForm(): ProfileFormState {
-  return { display_name: "", bio: "", avatar_cid: "", website: "", location: "", tags_text: "" };
+  return { display_name: "", bio: "", avatar_cid: "", banner_cid: "", website: "", location: "", tags_text: "" };
 }
 
 function profileFormFromPublicProfile(profile: Record<string, any>, account: string): ProfileFormState {
@@ -97,6 +100,7 @@ function profileFormFromPublicProfile(profile: Record<string, any>, account: str
     display_name: String(profile.display_name || account || "").trim(),
     bio: String(profile.bio || ""),
     avatar_cid: String(profile.avatar_cid || ""),
+    banner_cid: String(profile.banner_cid || ""),
     website: String(profile.website || ""),
     location: String(profile.location || ""),
     tags_text: tags.join(", "),
@@ -147,6 +151,15 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [profileErr, setProfileErr] = useState<{ msg: string; details: any } | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>(() => emptyProfileForm());
   const [profileDirty, setProfileDirty] = useState<boolean>(false);
+  const [profileMediaBusy, setProfileMediaBusy] = useState<"avatar_cid" | "banner_cid" | null>(null);
+  const [profileMediaInfo, setProfileMediaInfo] = useState("");
+  const profileMediaLock = useRef(false);
+  const profileMediaScope = useRef(0);
+  const profileDirtyRef = useRef(false);
+  const profileDraftRevisionRef = useRef(0);
+  const profileLoadSequenceRef = useRef(0);
+  const [accountReadOutcome, setAccountReadOutcome] = useState<string>("not-read");
+  const [showPublicBanner, setShowPublicBanner] = useState(true);
   const [busy, setBusy] = useState<"profile" | "register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "jurorResume" | "validatorPause" | "nodePause" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
@@ -154,16 +167,59 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [storageCapacityGb, setStorageCapacityGb] = useState<string>("100");
   const [storageEndpointCommitment, setStorageEndpointCommitment] = useState<string>("");
   const [validatorReadinessCommitment, setValidatorReadinessCommitment] = useState<string>("");
+  const [activeProfileTab, setActiveProfileTab] = useState<AccountProfileTab>(() =>
+    accountProfileTabFromHash(typeof window === "undefined" ? "" : window.location.hash, isSelf),
+  );
+
+  useEffect(() => {
+    const onHashChange = () => setActiveProfileTab(accountProfileTabFromHash(window.location.hash, isSelf));
+    onHashChange();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [isSelf]);
+
+  const selectProfileTab = (tab: AccountProfileTab) => {
+    if (!isSelf && ACCOUNT_PROFILE_TABS.find((entry) => entry.id === tab)?.ownerOnly) return;
+    const target = isSelf ? "/profile" : `/account/${encodeURIComponent(acct)}`;
+    nav(`${target}?tab=${tab}`);
+    setActiveProfileTab(tab);
+  };
+
+  async function readCanonicalAccountWithBoundedRetry(): Promise<any> {
+    // Two active browsers can briefly exhaust the per-IP read token bucket.
+    // Only retry known transient HTTP failures, never an authorization denial,
+    // invalid canonical response, or non-2xx success assumed from UI state.
+    const transientHttpStatuses = new Set([429, 502, 503, 504]);
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      try {
+        const response = await weall.account(acct, base);
+        if (response?.ok !== true || !response?.state ||
+          typeof response.state !== "object" || Array.isArray(response.state)) {
+          throw new Error("canonical_account_read_model_unavailable");
+        }
+        return response;
+      } catch (reason: any) {
+        const status = Number(reason?.status || 0);
+        if (!transientHttpStatuses.has(status) || attempt === 3) throw reason;
+        await new Promise<void>((resolve) =>
+          window.setTimeout(resolve, 250 * (attempt + 1)));
+      }
+    }
+    throw new Error("canonical_account_read_model_unavailable");
+  }
 
   async function load(): Promise<void> {
+    const loadSequence = ++profileLoadSequenceRef.current;
+    const draftRevision = profileDraftRevisionRef.current;
     setErr(null);
     const headers = isSelf ? getAuthHeaders(acct) : undefined;
 
     const calls: Record<string, Promise<any>> = {
       poh: weall.pohState(acct, base),
       nonce: weall.accountNonce(acct, base),
-      account: weall.account(acct, base),
-      profile: weall.accountProfile(acct, base, headers),
+      account: readCanonicalAccountWithBoundedRetry(),
+      profile: retryTransientCanonicalRead(() => weall.accountProfile(acct, base, headers),
+        () => loadSequence === profileLoadSequenceRef.current),
       operatorStatus: weall.accountOperatorStatus(acct, base, headers),
       reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
       reputationMatrix: weall.reputationSummary(acct, base, headers),
@@ -175,6 +231,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
     const entries = Object.entries(calls);
     const settled = await Promise.allSettled(entries.map(([, p]) => p));
+    if (loadSequence !== profileLoadSequenceRef.current) return;
     const out: Record<string, any> = {};
     const failures: Array<{ key: string; error: any }> = [];
 
@@ -186,10 +243,20 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
     setPoh(out.poh ?? null);
     setNonce(out.nonce ?? null);
-    setAcctView(out.account ?? null);
-    setProfileView(out.profile ?? null);
-    if (!profileDirty) {
-      setProfileForm(profileFormFromPublicProfile(asRecord(out.profile?.profile), acct));
+    setAcctView((current: any) => out.account ?? (current?.account === acct ? current : null));
+    const accountFailure = failures.find((item) => item.key === "account")?.error;
+    const accountHttpStatus = Number(accountFailure?.status || 0);
+    setAccountReadOutcome(out.account?.ok === true
+      ? "canonical-read-ok"
+      : accountHttpStatus > 0 ? `http-${accountHttpStatus}` : "canonical-read-unavailable");
+    const profileReadValid = out.profile?.ok === true && out.profile?.account === acct
+      && out.profile?.exists === true && out.profile?.profile?.account_id === acct
+      && typeof out.profile?.profile?.display_name === "string";
+    setProfileView(profileReadValid ? out.profile : null);
+    // A load started before an edit must not overwrite that edit on completion.
+    // A failed read is not a blank canonical profile.
+    if (profileReadValid && !profileDirtyRef.current && draftRevision === profileDraftRevisionRef.current) {
+      setProfileForm(profileFormFromPublicProfile(asRecord(out.profile.profile), acct));
     }
     setOperatorStatus(out.operatorStatus ?? null);
     setReviewerStatus(out.reviewerStatus ?? null);
@@ -209,10 +276,16 @@ export default function Account({ account }: { account: string }): JSX.Element {
   }
 
   useEffect(() => {
+    profileMediaScope.current += 1;
+    setProfileMediaInfo("");
+    profileDraftRevisionRef.current += 1;
+    profileDirtyRef.current = false;
     setProfileDirty(false);
     setProfileResult(null);
+    setProfileView(null);
     setProfileForm(emptyProfileForm());
     void load();
+    return () => { profileLoadSequenceRef.current += 1; profileMediaScope.current += 1; };
   }, [acct, isSelf]);
 
   useEffect(() => {
@@ -237,11 +310,58 @@ export default function Account({ account }: { account: string }): JSX.Element {
   );
   const matrixAggregateScore = num(reputationMatrix?.aggregate_public_score_milli, 0);
   const accountExists = !!acctView?.ok && !!state;
+
+  // A transient failure during the account's first parallel read must not
+  // permanently lock a registered user's profile editor. This is a bounded,
+  // read-only canonical reconciliation; it never submits or retries a signed
+  // transaction, and never treats a missing response as authority.
+  useEffect(() => {
+    if (!isSelf || !acct || accountExists) return;
+    let cancelled = false;
+    let attempts = 0;
+    let timer: number | undefined;
+
+    async function reconcileCanonicalAccount(): Promise<void> {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const latest = await weall.account(acct, base);
+        if (cancelled) return;
+        if (latest?.ok === true && latest?.state &&
+          typeof latest.state === "object" && !Array.isArray(latest.state)) {
+          setAcctView(latest);
+          setAccountReadOutcome("canonical-read-ok");
+          return;
+        }
+        setAccountReadOutcome("canonical-read-unavailable");
+      } catch (reason: any) {
+        if (cancelled) return;
+        const status = Number(reason?.status || 0);
+        setAccountReadOutcome(status > 0 ? `http-${status}` : "canonical-read-unavailable");
+        // Never turn a forbidden/malformed account response into a passing
+        // profile gate. Retry only transient failure or an as-yet-initializing
+        // canonical read model.
+        if (status !== 0 && ![429, 502, 503, 504].includes(status)) return;
+      }
+      if (attempts < 8) {
+        timer = window.setTimeout(() => { void reconcileCanonicalAccount(); },
+          250 + Math.min(1750, attempts * 250));
+      }
+    }
+
+    void reconcileCanonicalAccount();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [acct, base, isSelf, accountExists]);
+
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
   const canPost = tier >= 2 && accountExists && !banned && !locked;
   const canServe = tier >= 2 && accountExists && !banned && !locked;
 
+  const canonicalProfileReady = profileView?.ok === true && profileView?.account === acct && profileView?.exists === true;
   const publicProfile = asRecord(profileView?.profile);
   const publicActivity = asRecord(profileView?.public_activity);
   const publicProfileName = String(publicProfile.display_name || acct);
@@ -249,6 +369,16 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const publicProfileTags = Array.isArray(publicProfile.tags) ? publicProfile.tags.map((tag: any) => String(tag || "").trim()).filter(Boolean) : [];
   const profileAvatarMedia = asRecord(publicProfile.avatar_media);
   const profileAvatarPath = String(profileAvatarMedia.fetch_path || "");
+  const bannerMedia = asRecord(publicProfile.banner_media);
+  const rawBannerPath = String(bannerMedia.fetch_path || "");
+  const profileBannerPath = new RegExp("^/v1/media/proxy/[A-Za-z0-9]+$").test(rawBannerPath) ? rawBannerPath : "";
+  const canonicalBannerCid = String(publicProfile.banner_cid || "").trim();
+  const bannerDraftCid = profileForm.banner_cid.trim();
+  const bannerChanged = bannerDraftCid !== canonicalBannerCid;
+  // The PROFILE_UPDATE transaction schema requires a nonempty CID; omission
+  // means "unchanged", never "delete". Never simulate deletion in the client.
+  const bannerRemovalUnsupported = !!canonicalBannerCid && !bannerDraftCid;
+  const bannerDraftValid = !bannerChanged || /^[A-Za-z0-9]{32,256}$/.test(bannerDraftCid);
   const profileTruthBoundary = String(profileView?.truth_boundary || "public_derived_index_view_of_chain_state");
   const profileReceiptStatusTemplate = String(profileView?.receipt_paths?.status_template || "/v1/tx/status/{tx_id}");
   const profileResultTxId = txIdFromResult(profileResult);
@@ -375,6 +505,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const requirements = summarizeNextRequirements(snapshot);
 
   function updateProfileForm<K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]): void {
+    profileDirtyRef.current = true;
+    profileDraftRevisionRef.current += 1;
     setProfileDirty(true);
     setProfileForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -394,9 +526,109 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const nextUnlock = snapshot.next.label || "No immediate unlock action";
   const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
   const signerBusy = signerSubmission.busy;
+  const profileSubmitBlockers = [
+    profileMediaBusy ? "profile-media-busy" : "",
+    busy !== null ? "account-action-busy" : "",
+    !profileDirty ? "draft-not-changed" : "",
+    !accountExists ? "account-state-unavailable" : "",
+    !canonicalProfileReady ? "canonical-profile-unavailable" : "",
+    !localPubkey ? "signer-unavailable" : "",
+    signerBusy ? "signer-submission-busy" : "",
+    !bannerDraftValid ? "banner-cid-invalid" : "",
+  ].filter(Boolean);
+
+  // Uploading public media stages a CID, not an automatic PROFILE_UPDATE.
+  async function uploadProfileImage(field: "avatar_cid" | "banner_cid", file: File): Promise<void> {
+    if (!isSelf || !canPost || !canonicalProfileReady || !localPubkey || signerBusy || busy !== null || profileMediaLock.current) return;
+    const label = field === "avatar_cid" ? "Profile picture" : "Profile banner";
+    const scope = profileMediaScope.current;
+    const active = () => scope === profileMediaScope.current && normalizeAccount(getSession()?.account || "") === acct;
+    const requireActive = () => { if (!active()) throw new Error("Profile or session changed; inspect any submitted media transaction in Transactions."); };
+    profileMediaLock.current = true;
+    setProfileMediaBusy(field);
+    setProfileMediaInfo("");
+    setProfileErr(null);
+    let cid = "";
+    let lastTxId = "";
+    // Admission is not confirmation. Do not retry a signed write on uncertainty.
+    async function requireMediaReceipt(id: string) {
+      if (!/^tx:[0-9a-f]{64}$/.test(id)) throw new Error("Media transaction ID unavailable. Inspect Transactions before retrying.");
+      lastTxId = id;
+      for (let attempt = 0; attempt < 60; attempt++) {
+        requireActive();
+        const receipt = await weall.txStatus(id, base).catch(() => null);
+        if (receipt?.tx_id === id) {
+          const phase = normalizeTxStatus(receipt, id).phase;
+          if (phase === "confirmed") return;
+          if (phase === "failed") throw new Error("Media transaction rejected. Inspect Transactions before retrying.");
+        }
+        await new Promise(resolve => window.setTimeout(resolve, 1500));
+      }
+      throw new Error("Media transaction confirmation pending. Inspect Transactions before retrying.");
+    }
+    try {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size < 1 || file.size > 10 * 1024 * 1024) {
+        throw new Error("Choose a JPEG, PNG, or WebP image up to 10 MB.");
+      }
+      const image = await createImageBitmap(file);
+      const validDimensions = image.width > 0 && image.height > 0 && image.width <= 8192 && image.height <= 8192;
+      image.close();
+      if (!validDimensions) throw new Error("Choose an image no larger than 8192 × 8192 pixels.");
+      const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer())), b => b.toString(16).padStart(2, "0")).join("");
+      requireActive();
+      if (active()) setProfileMediaInfo(label + ": uploading public image to IPFS…");
+      await ensureBackendSession({ account: acct, base });
+      requireActive();
+      const up = await weall.mediaUpload(file, base, getAuthHeaders(acct));
+      const returnedCid = String(up?.cid || "").trim();
+      if (/^[A-Za-z0-9]{32,256}$/.test(returnedCid)) cid = returnedCid;
+      requireActive();
+      if (up?.ok !== true || !/^[A-Za-z0-9]{32,256}$/.test(returnedCid) || up.sha256 !== sha || up.mime !== file.type || up.size !== file.size) {
+        throw new Error("Upload did not return matching public media metadata.");
+      }
+      cid = returnedCid;
+      setProfileMediaInfo(label + ": waiting for public media pin request…");
+      if (up.pin_request?.submitted === true) {
+        await requireMediaReceipt(String(up.pin_request.tx_id || ""));
+      } else {
+        requireActive();
+        const pin = await tx.runTx({
+          title: "Request public profile media pin",
+          task: () => submitSignedTx({ account: acct, base, tx_type: "IPFS_PIN_REQUEST", payload: { cid, size_bytes: file.size }, parent: null }),
+          getTxId: txIdFromResult,
+          finality: { base },
+        });
+        await requireMediaReceipt(txIdFromResult(pin));
+      }
+      requireActive();
+      setProfileMediaInfo(label + ": recording public media declaration…");
+      const declared = await tx.runTx({
+        title: "Declare public profile image",
+        task: () => submitSignedTxWithNonce({
+          account: acct, base, tx_type: "CONTENT_MEDIA_DECLARE", parent: null,
+          payloadFactory: nonce => ({ media_id: `media:${acct}:${nonce}`, cid, upload_ref: cid, mime: file.type, bytes: file.size, name: file.name, sha256: sha, content_sha256: sha }),
+        }),
+        getTxId: txIdFromResult,
+        finality: { base },
+      });
+      await requireMediaReceipt(txIdFromResult(declared));
+      requireActive();
+      updateProfileForm(field, cid);
+      setProfileMediaInfo(label + " uploaded and declared. Preview the draft, then submit your public profile update. Storage durability is tracked separately.");
+    } catch (error: any) {
+      if (active()) {
+        setProfileErr({ msg: String(error?.message || "Public image upload failed."), details: { cid: cid || undefined, tx_id: lastTxId || undefined } });
+        setProfileMediaInfo(cid ? "Image upload may already exist. Inspect the original media transactions before retrying; the profile draft was not replaced." : "");
+      }
+    } finally {
+      profileMediaLock.current = false;
+      setProfileMediaBusy(null);
+    }
+  }
 
   async function runProfileUpdate() {
-    if (!isSelf) return;
+    if (!isSelf || profileMediaLock.current) return;
+    const submittedDraftRevision = profileDraftRevisionRef.current;
 
     setBusy("profile");
     setProfileErr(null);
@@ -406,12 +638,15 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (!accountExists) throw new Error("register_the_account_first");
       if (signerBusy) throw new Error("signer_submission_busy");
       if (!localPubkey) throw new Error("missing_account_signer");
+      if (!canonicalProfileReady) throw new Error("Refresh the canonical public profile before editing or signing.");
+      if (!bannerDraftValid) throw new Error("Public banner must be a plain IPFS CID (not a URL or markup).");
 
       const skeleton = await weall.profileUpdateTx({
         account_id: acct,
         display_name: optionalField(profileForm.display_name),
         bio: profileForm.bio,
         avatar_cid: optionalField(profileForm.avatar_cid),
+        banner_cid: bannerChanged ? bannerDraftCid : undefined,
         website: optionalField(profileForm.website),
         location: optionalField(profileForm.location),
         tags: splitProfileTags(profileForm.tags_text),
@@ -446,7 +681,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
       });
 
       setProfileResult(result);
-      setProfileDirty(false);
+      if (submittedDraftRevision === profileDraftRevisionRef.current) {
+        profileDirtyRef.current = false;
+        setProfileDirty(false);
+      }
       await load();
       await refreshAccountContext();
     } catch (e: any) {
@@ -906,31 +1144,28 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={refreshAccountSurface} onDismiss={() => setErr(null)} />
 
-      <section className="summaryCardGrid" aria-label="Account and profile protocol state summary">
-        <article className="summaryCard">
-          <div className="summaryCardLabel">Canonical account id</div>
-          <div className="summaryCardValue mono">{acct}</div>
-          <div className="summaryCardText">This is the protocol account id used in signed transactions and public read models.</div>
-        </article>
-        <article className="summaryCard">
-          <div className="summaryCardLabel">Account public key summary</div>
-          <div className="summaryCardValue">{accountKeySummary}</div>
-          <div className="summaryCardText mono">{activeAccountPubkey || localPubkey || "No active public key visible from this view."}</div>
-        </article>
-        <article className="summaryCard">
-          <div className="summaryCardLabel">PoH / Tier status</div>
-          <div className="summaryCardValue">{verificationLabel(tier)}</div>
-          <div className="summaryCardText">PoH/Tier status is protocol eligibility, not real-world identity certainty or legal identity proof.</div>
-        </article>
-        <article className="summaryCard">
-          <div className="summaryCardLabel">Public profile source</div>
-          <div className="summaryCardValue">Chain read model</div>
-          <div className="summaryCardText mono">{profileTruthBoundary}</div>
-        </article>
-      </section>
-
       <section className="card publicProfileCard">
+        {showPublicBanner ? (
+          <div className="publicProfileBanner" aria-label="Public profile background">
+            {profileBannerPath ? (
+              <img
+                src={`${base}${profileBannerPath}`}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
+          </div>
+        ) : null}
         <div className="cardBody formStack">
+          {profileBannerPath ? (
+            <div className="buttonRow">
+              <button className="btn btnGhost" type="button" onClick={() => setShowPublicBanner((visible) => !visible)}>
+                {showPublicBanner ? "Hide decorative background" : "Show public background"}
+              </button>
+            </div>
+          ) : null}
           <div className="sectionHead">
             <div className="profileIdentityRow">
               {profileAvatarPath ? (
@@ -986,6 +1221,34 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <nav className="accountProfileTabs" aria-label="Account profile sections">
+        {ACCOUNT_PROFILE_TABS.filter((entry) => isSelf || !entry.ownerOnly).map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={`accountProfileTab ${activeProfileTab === entry.id ? "isActive" : ""}`}
+            aria-current={activeProfileTab === entry.id ? "page" : undefined}
+            onClick={() => selectProfileTab(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
+      {isSelf ? (
+        <div className="accountProfilePane" hidden={activeProfileTab !== "appearance"}>
+          <section className="card">
+            <div className="cardBody formStack">
+              <div className="sectionHead">
+                <div>
+                  <div className="eyebrow">Public identity</div>
+                  <h2 className="cardTitle">Edit your public profile</h2>
+                  <p className="cardDesc">Your picture, banner, name and bio are signed public metadata, not private device wallpaper settings.</p>
+                </div>
+              </div>
           {profileResult ? (
             <div className="calloutInfo" data-testid="profile-tx-status-callout">
               <strong>Profile action submitted</strong>
@@ -1005,7 +1268,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           ) : null}
 
           {isSelf ? (
-            <details className="detailsPanel" open={profileDirty}>
+            <details className="detailsPanel" open={profileDirty || activeProfileTab === "appearance"}>
               <summary>Edit public profile</summary>
               <div className="formStack">
                 <div className="infoCard compact">
@@ -1020,6 +1283,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   onRetry={() => void runProfileUpdate()}
                   onDismiss={() => setProfileErr(null)}
                 />
+                {!canonicalProfileReady ? (
+                  <div className="calloutDanger" role="status" data-testid="profile-canonical-unavailable">
+                    The canonical public profile is unavailable. Refresh before editing or signing; an unavailable profile is not an empty profile.
+                    <button type="button" className="btn" disabled={busy !== null} onClick={() => void load()}>Refresh public profile</button>
+                  </div>
+                ) : null}
+                <fieldset className="formStack" disabled={!canonicalProfileReady || busy === "profile"} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                 <label>
                   <div className="eyebrow">Display name</div>
                   <input
@@ -1038,24 +1308,38 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     placeholder="A short public bio"
                   />
                 </label>
-                <div className="grid2">
-                  <label>
-                    <div className="eyebrow">Profile picture CID</div>
-                    <input
-                      value={profileForm.avatar_cid}
-                      onChange={(e) => updateProfileForm("avatar_cid", e.target.value)}
-                      placeholder="Public media CID"
-                    />
-                  </label>
-                  <label>
-                    <div className="eyebrow">Website</div>
-                    <input
-                      value={profileForm.website}
-                      onChange={(e) => updateProfileForm("website", e.target.value)}
-                      placeholder="https://example.org"
-                    />
-                  </label>
+                <p className="cardDesc">Choose JPEG, PNG or WebP images up to 10 MB. Uploads are public IPFS media; do not select private verification evidence or sensitive files. A separate signed profile update publishes the selected image on your profile.</p>
+                {!canPost ? <p className="cardDesc">Image upload requires Tier 2 verification and an active account. Existing public image CIDs can still be entered below.</p> : null}
+                <div className="profileImageEditors">
+                  <div className="infoCard formStack">
+                    <div className="feedMediaTitle">Profile picture</div>
+                    <label className="fieldLabel">Upload profile picture
+                      <input className="profileImageUploadInput" type="file" accept="image/png,image/jpeg,image/webp" disabled={!canPost || !localPubkey || signerBusy || busy !== null || !!profileMediaBusy}
+                        onChange={event => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void uploadProfileImage("avatar_cid", file); }} />
+                    </label>
+                    {profileMediaBusy === "avatar_cid" ? <p role="status">Preparing public profile picture…</p> : null}
+                    <label><span className="eyebrow">Profile picture CID</span>
+                      <input value={profileForm.avatar_cid} maxLength={256} disabled={!!profileMediaBusy} onChange={e => updateProfileForm("avatar_cid", e.target.value)} placeholder="Public media CID" />
+                    </label>
+                    {/^[A-Za-z0-9]{32,256}$/.test(profileForm.avatar_cid.trim()) ? <img className="profileImageDraftAvatar" src={`${base}/v1/media/proxy/${encodeURIComponent(profileForm.avatar_cid.trim())}`} alt="Draft profile picture preview" loading="lazy" decoding="async" /> : null}
+                  </div>
+                  <div className="infoCard formStack">
+                    <div className="feedMediaTitle">Public profile background</div>
+                    <label className="fieldLabel">Upload profile banner
+                      <input className="profileImageUploadInput" type="file" accept="image/png,image/jpeg,image/webp" disabled={!canPost || !localPubkey || signerBusy || busy !== null || !!profileMediaBusy}
+                        onChange={event => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void uploadProfileImage("banner_cid", file); }} />
+                    </label>
+                    <p className="cardDesc">Wide images work best. Banner removal is not supported; an existing public banner can be replaced.</p>
+                    {profileMediaBusy === "banner_cid" ? <p role="status">Preparing public profile banner…</p> : null}
+                    <label><span className="eyebrow">Public banner CID</span>
+                      <input value={profileForm.banner_cid} maxLength={256} disabled={!!profileMediaBusy} onChange={e => updateProfileForm("banner_cid", e.target.value)} placeholder="Public IPFS image CID (publish or replace)" />
+                    </label>
+                    {!bannerDraftValid ? <div className="calloutDanger">{bannerRemovalUnsupported ? "Removing an existing public banner is not supported by this protocol contract. Keep it unchanged or replace it with another public image CID." : "Use a plain public image CID of 32–256 letters/digits; URLs and markup are not accepted."}</div> : null}
+                    {bannerDraftCid && bannerDraftValid ? <div className="publicProfileBanner publicProfileBanner--draft"><img src={`${base}/v1/media/proxy/${encodeURIComponent(bannerDraftCid)}`} alt="Draft public background preview" loading="lazy" decoding="async" /></div> : null}
+                  </div>
                 </div>
+                {profileMediaInfo ? <div role="status" className="calloutInfo">{profileMediaInfo}</div> : null}
+                <label><div className="eyebrow">Website</div><input value={profileForm.website} onChange={e => updateProfileForm("website", e.target.value)} placeholder="https://example.org" /></label>
                 <div className="grid2">
                   <label>
                     <div className="eyebrow">Location</div>
@@ -1074,18 +1358,24 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     />
                   </label>
                 </div>
+                </fieldset>
                 <div className="buttonRow">
                   <button
                     className="btn btnPrimary"
-                    disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy}
+                    data-testid="profile-submit-action"
+                    data-account-read-outcome={accountReadOutcome}
+                    data-submit-blockers={profileSubmitBlockers.join(",")}
+                    disabled={busy !== null || !!profileMediaBusy || !profileDirty || !accountExists || !canonicalProfileReady || !localPubkey || signerBusy || !bannerDraftValid}
                     onClick={() => void runProfileUpdate()}
                   >
                     {busy === "profile" ? "Submitting profile update…" : "Submit public profile update"}
                   </button>
                   <button
                     className="btn"
-                    disabled={busy !== null}
+                    disabled={busy !== null || !!profileMediaBusy || !canonicalProfileReady}
                     onClick={() => {
+                      profileDraftRevisionRef.current += 1;
+                      profileDirtyRef.current = false;
                       setProfileDirty(false);
                       setProfileErr(null);
                       setProfileForm(profileFormFromPublicProfile(publicProfile, acct));
@@ -1097,9 +1387,35 @@ export default function Account({ account }: { account: string }): JSX.Element {
               </div>
             </details>
           ) : null}
-        </div>
-      </section>
 
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      <div className="accountProfilePane" hidden={activeProfileTab !== "overview"}>
+      <section className="summaryCardGrid" aria-label="Account and profile protocol state summary">
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Canonical account id</div>
+          <div className="summaryCardValue mono">{acct}</div>
+          <div className="summaryCardText">This is the protocol account id used in signed transactions and public read models.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Account public key summary</div>
+          <div className="summaryCardValue">{accountKeySummary}</div>
+          <div className="summaryCardText mono">{activeAccountPubkey || localPubkey || "No active public key visible from this view."}</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">PoH / Tier status</div>
+          <div className="summaryCardValue">{verificationLabel(tier)}</div>
+          <div className="summaryCardText">PoH/Tier status is protocol eligibility, not real-world identity certainty or legal identity proof.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Public profile source</div>
+          <div className="summaryCardValue">Chain read model</div>
+          <div className="summaryCardText mono">{profileTruthBoundary}</div>
+        </article>
+      </section>
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Account posture</div>
@@ -1136,7 +1452,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </article>
       </section>
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "responsibilities"}>
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1255,9 +1573,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </div>
       </section>
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "overview"}>
       <WalletPanel account={acct} base={base} />
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "reputation"}>
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1270,10 +1592,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
           <div className="summaryCardGrid">
             <article className="summaryCard">
-              <div className="summaryCardLabel">Public aggregate</div>
+              <div className="summaryCardLabel">Canonical informational aggregate</div>
               <div className="summaryCardValue">{matrixAggregateScore}</div>
               <div className="summaryCardText">
-                Derived from canonical protocol state and public matrix dimensions only.
+                Computed only from canonical reputation event dimensions. Not a role-permission or transaction-authorization score.
               </div>
             </article>
             <article className="summaryCard">
@@ -1287,7 +1609,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <div className="summaryCardLabel">Private boundary</div>
               <div className="summaryCardValue">{reputationMatrix?.visibility?.restricted_revealed ? "Owner view" : "Public view"}</div>
               <div className="summaryCardText">
-                Internal abuse-risk signals stay hidden unless the account owner is authenticated.
+                Reputation dimensions, including abuse-risk indicators, are publicly inspectable. No owner-only reputation score exists.
               </div>
             </article>
           </div>
@@ -1304,6 +1626,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   </div>
                   <div className="infoCardText">
                     {num(row.score_milli, 0)} milli • {num(row.event_count, 0)} event{num(row.event_count, 0) === 1 ? "" : "s"}
+                    {" · "}
+                    {row.score_authority === "canonical_event_ledger"
+                      ? "Canonical event score"
+                      : "Legacy observation (not scored for protocol roles)"}
                   </div>
                 </div>
               ))
@@ -1319,7 +1645,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </div>
       </section>
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "eligibility"}>
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -1416,7 +1744,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </article>
       </section>
+      </div>
 
+      <div className="accountProfilePane" hidden={activeProfileTab !== "node"}>
       {isSelf ? (
         <details className="detailsPanel accountAdvancedOperatorPanel" open={shouldOpenOperatorPanel}>
           <summary>Network service opt-ins: validator, storage, and helper setup</summary>
@@ -1830,8 +2160,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </section>
         </details>
       ) : null}
+      </div>
 
-      <div>
+      <div className="accountProfilePane" hidden={activeProfileTab !== "posts"}>
         <FeedView
           base={base}
           title="Public posts"

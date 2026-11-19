@@ -1,0 +1,84 @@
+name: M4.1 two real browser accounts one node
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/m4-two-user-one-node-real-stack.yml
+      - web/tests/e2e/m4_two_user_one_node_custody.spec.ts
+      - web/playwright.m4.config.ts
+      - web/package.json
+      - web/package-lock.json
+      - web/scripts/esbuild*.mjs
+      - scripts/run_account_custody_real_stack_e2e.sh
+      - web/src/auth/**
+      - web/src/pages/Login.tsx
+      - web/src/pages/AccountRegistrationPage.tsx
+      - web/src/pages/Account.tsx
+      - web/src/pages/AccountVerificationPage.tsx
+      - web/src/lib/revalidation.ts
+      - web/scripts/test_poh_guided_routes.mjs
+      - web/src/components/VerificationHistoryPanel.tsx
+      - web/src/lib/verificationSections.ts
+      - web/scripts/test_pr93_poh_merge_parity_source.mjs
+      - Weall-Protocol/src/weall/api/routes_public_parts/session.py
+      - Weall-Protocol/src/weall/runtime/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  two-accounts-one-ledger:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend runtime
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements.lock
+          python -m pip install -e . --no-deps
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install frozen frontend runtime
+        working-directory: web
+        run: npm ci
+      - name: Typecheck independent-browser custody regression
+        working-directory: web
+        run: npm run typecheck
+      - name: Existing canonical registration and recovery safety invariants
+        working-directory: web
+        run: |
+          npm run test:guided-account-registration-source
+          npm run test:account-profile-readiness-source
+          npm run test:pr93-poh-merge-parity
+          npm run test:poh-guided-routes
+          npm run test:verification-history-panel
+          npm run test:async-evidence-preview
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run two independently signed accounts against one real node
+        env:
+          CI: 'true'
+          WEALL_M4_TWO_USER_E2E: '1'
+          WEALL_KEEP_M2_CUSTODY_RUNTIME: '0'
+          WEALL_CUSTODY_REPEAT_EACH: '1'
+        run: |
+          set -Eeuo pipefail
+          bash scripts/run_account_custody_real_stack_e2e.sh
+          echo 'scope=REAL_ONE_NODE_TWO_BROWSER_ACCOUNTS_WITHOUT_BFT_INDEPENDENCE'
+          echo 'constitutional_authority=NOT_ESTABLISHED'
+          echo 'remote_participants=NOT_TESTED'
+          git rev-parse HEAD

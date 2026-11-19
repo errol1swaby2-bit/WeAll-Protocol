@@ -27,7 +27,9 @@ def test_account_verification_opens_visible_live_room_after_request() -> None:
 
     assert "waitForLiveCaseIdVisible" in src
     assert "weall.pohLiveMyCases(acct, base, headers)" in src
-    assert "nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`)" in src
+    assert "findExpectedLivePohCaseId(mine.cases, acct, expectedCaseId)" in src
+    assert "resultCaseId && resultCaseId === expectedCaseId" in src
+    assert "nav(`/verification/live/${encodeURIComponent(resultCaseId)}`)" in src
 
 
 def test_local_rehearsal_sets_one_reviewer_live_quorum() -> None:

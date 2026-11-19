@@ -21,7 +21,7 @@ def test_local_rehearsal_provides_live_room_transport_config() -> None:
 
 
 def test_vite_dev_csp_allows_local_p2p_room_frames() -> None:
-    src = _read(WEB / "vite.config.ts")
+    src = _read(WEB / "scripts" / "esbuildServer.mjs")
     assert "frame-src 'self'" in src
     assert "http://127.0.0.1:*" in src
     assert "http://localhost:*" in src

@@ -62,6 +62,20 @@ def _hex64(value: str, name: str) -> str:
     return text
 
 
+def _mldsa65_founding_pubkey(value: str) -> str:
+    """Reject key fingerprints where a full ML-DSA-65 validator key is required."""
+    from weall.crypto.pq_mldsa import canonical_mldsa65_public_key
+
+    text = _nonempty(value, "founding_pubkey")
+    try:
+        normalized = canonical_mldsa65_public_key(text, encoding="hex")
+    except (TypeError, ValueError) as exc:
+        raise SystemExit("invalid_mldsa65_founding_pubkey") from exc
+    if normalized != text.lower():
+        raise SystemExit("invalid_mldsa65_founding_pubkey")
+    return normalized
+
+
 def _load_profile_hash() -> str:
     try:
         from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE
@@ -72,12 +86,10 @@ def _load_profile_hash() -> str:
 
 
 def _compute_state_root(state: Json) -> str:
-    try:
-        from weall.runtime.state_hash import compute_state_root
+    """The ceremony must use the *actual* protocol root, never an ad hoc fallback."""
+    from weall.runtime.state_hash import compute_state_root
 
-        return compute_state_root(state)
-    except Exception:
-        return _sha256(_canon(state))
+    return compute_state_root(state)
 
 
 def _key_id(pubkey: str) -> str:
@@ -378,7 +390,9 @@ def main() -> int:
     parser.add_argument("--chain-id", default="weall-prod")
     parser.add_argument("--founding-account", required=True)
     parser.add_argument(
-        "--founding-pubkey", required=True, help="64 hex public key for founding account/node"
+        "--founding-pubkey",
+        required=True,
+        help="full ML-DSA-65 public key (1952 bytes, hex) for founding account/node",
     )
     parser.add_argument(
         "--authority-pubkey", required=True, help="64 hex public key for signed authority snapshots"
@@ -399,7 +413,7 @@ def main() -> int:
 
     chain_id = _nonempty(args.chain_id, "chain_id")
     founding_account = _nonempty(args.founding_account, "founding_account")
-    founding_pubkey = _hex64(args.founding_pubkey, "founding_pubkey")
+    founding_pubkey = _mldsa65_founding_pubkey(args.founding_pubkey)
     authority_pubkey = _hex64(args.authority_pubkey, "authority_pubkey")
     tx_index_path = Path(args.tx_index).resolve()
     if not tx_index_path.is_file():

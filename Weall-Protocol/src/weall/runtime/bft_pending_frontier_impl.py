@@ -1139,6 +1139,34 @@ def _bft_pending_artifact_matches_current_epoch(self, payload: Json) -> bool:
     return True
 
 
+def _known_divergence_from_finalized(
+    blocks: dict[str, Json], *, candidate: str, finalized: str
+) -> bool:
+    """Prune only when complete known ancestry proves a conflicting branch.
+
+    Missing blocks cannot prove non-descendancy. Their hash-bound QC fetch
+    obligation remains bounded and untrusted until parent history resolves it.
+    This helper never authorizes application or finality.
+    """
+    current = str(candidate or "").strip()
+    anchor = str(finalized or "").strip()
+    if not current or not anchor or current == anchor:
+        return False
+    seen: set[str] = set()
+    while current and current not in seen:
+        rec = blocks.get(current)
+        if not isinstance(rec, dict):
+            return False
+        seen.add(current)
+        parent = str(rec.get("prev_block_id") or "").strip()
+        if not parent:
+            return True
+        if parent == anchor:
+            return False
+        current = parent
+    return current in seen
+
+
 def _prune_pending_bft_artifacts(self) -> bool:
     changed = False
     finalized_block_id = str(self._bft.finalized_block_id or "").strip()
@@ -1163,7 +1191,9 @@ def _prune_pending_bft_artifacts(self) -> bool:
         if (
             finalized_block_id
             and sbid != finalized_block_id
-            and not is_descendant(speculative, candidate=sbid, ancestor=finalized_block_id)
+            and _known_divergence_from_finalized(
+                speculative, candidate=sbid, finalized=finalized_block_id
+            )
         ):
             self._remove_pending_missing_qc(block_id=sbid)
             changed = True
@@ -1188,8 +1218,8 @@ def _prune_pending_bft_artifacts(self) -> bool:
             self._drop_pending_candidate_artifacts(sbid)
             changed = True
             continue
-        if finalized_block_id and not self._bft_block_is_applyable_finalized_descendant(
-            blk, finalized_block_id
+        if finalized_block_id and _known_divergence_from_finalized(
+            speculative, candidate=sbid, finalized=finalized_block_id
         ):
             self._drop_pending_candidate_artifacts(sbid)
             changed = True
@@ -1245,6 +1275,61 @@ def _finalized_replay_path_ids(self, finalized_block_id: str) -> set[str] | None
     return path
 
 
+def _reobserve_available_cached_qcs(self) -> None:
+    """Recover valid QC finality after previously missing block bodies arrive.
+
+    A signature-verified QC can arrive ahead of its block and remain cached.
+    HotStuff correctly ignores it until the block and parent are known, but a
+    later network fetch must retry that *same signed proof*. This only updates
+    local BFT proof state; canonical replay below still requires a complete
+    finalized ancestry path and independently verified block commitments.
+    """
+    observe = getattr(self._bft, "observe_qc", None)
+    if not callable(observe):
+        return
+    blocks = self._bft_speculative_blocks_map()
+    cap = max(1, int(getattr(self, "_max_pending_replay_scans_per_call", 64) or 64))
+    candidates: list[Json] = []
+    for item in self._pending_missing_qc_entries().values():
+        if not isinstance(item, dict):
+            continue
+        bid = str(item.get("block_id") or "").strip()
+        bh = str(item.get("block_hash") or "").strip()
+        parent = str(item.get("parent_id") or "").strip()
+        record = blocks.get(bid)
+        if not bid or not bh or not isinstance(record, dict):
+            continue
+        if str(record.get("block_hash") or "").strip() != bh:
+            continue
+        if str(record.get("prev_block_id") or "").strip() != parent:
+            continue
+        candidates.append(item)
+
+    # Favor the newest bounded proof window under a large backlog, then
+    # revisit it in ascending view order so observed finality stays monotonic.
+    candidates.sort(key=lambda q: (_safe_int(q.get("view"), -1), str(q.get("block_id") or "")))
+    candidates = candidates[-cap:]
+    old_state = (
+        str(getattr(self._bft, "finalized_block_id", "") or ""),
+        int(getattr(self._bft, "finalized_view", 0) or 0),
+        int(getattr(self._bft, "view", 0) or 0),
+        str(getattr(getattr(self._bft, "high_qc", None), "block_id", "") or ""),
+    )
+    for qcj in candidates:
+        verified = self.bft_verify_qc_json(qcj)
+        if verified is not None:
+            observe(blocks=blocks, qc=verified)
+
+    new_state = (
+        str(getattr(self._bft, "finalized_block_id", "") or ""),
+        int(getattr(self._bft, "finalized_view", 0) or 0),
+        int(getattr(self._bft, "view", 0) or 0),
+        str(getattr(getattr(self._bft, "high_qc", None), "block_id", "") or ""),
+    )
+    if new_state != old_state:
+        self._persist_bft_state()
+
+
 def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
     """Attempt deterministic catch-up replay for pending BFT blocks.
 
@@ -1257,6 +1342,7 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
     self._prune_pending_bft_artifacts()
     if _mode() == "prod" and not self._bft_phase_allows_artifact_processing():
         return results
+    _reobserve_available_cached_qcs(self)
     finalized_block_id = str(self._bft.finalized_block_id or "").strip()
     allow_qc_replay = _mode() != "prod"
     if not finalized_block_id and not allow_qc_replay:

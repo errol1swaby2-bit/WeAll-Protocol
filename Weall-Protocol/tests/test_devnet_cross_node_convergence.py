@@ -231,3 +231,92 @@ def test_cross_node_convergence_wait_tx_status_stops_on_invalid(monkeypatch) -> 
     out = helper.wait_tx_status("http://node", "tx:1", timeout_s=1, poll_s=0.01, node="node1")
     assert out["status"] == "invalid"
     assert calls["n"] == 1
+
+
+def test_cross_node_rejected_receipt_comparator_requires_two_real_matching_committed_receipts() -> (
+    None
+):
+    helper = _load_helper()
+    tx_id = "tx:" + "b" * 64
+    valid = {
+        "ok": True,
+        "tx_id": tx_id,
+        "status": "rejected",
+        "source": "committed_apply_receipt",
+        "local_state_synced": True,
+        "apply_ok": False,
+        "height": 15,
+        "block_id": "block:15",
+        "included_ts_ms": 300000,
+        "tx_type": "ACCOUNT_SESSION_KEY_REVOKE",
+        "signer": "@alice",
+        "code": "invalid_tx",
+        "reason": "unknown_session_key",
+    }
+    assert (
+        helper.rejected_receipt_mismatches(dict(valid), dict(valid), tx_id=tx_id, account="@alice")
+        == []
+    )
+
+    for mutation, required_failure in (
+        ({"status": "confirmed"}, "follower_not_rejected"),
+        ({"source": "mocked_receipt"}, "follower_not_committed_apply_receipt"),
+        ({"apply_ok": True}, "follower_apply_not_false"),
+        ({"local_state_synced": False}, "follower_not_locally_synced"),
+        ({"height": 0}, "follower_no_committed_height"),
+        ({"block_id": ""}, "follower_no_committed_block_id"),
+        ({"reason": "rejected_for_other_reason"}, "follower_wrong_reason"),
+        ({"signer": "@other"}, "follower_wrong_signer"),
+        ({"tx_id": "tx:wrong"}, "follower_tx_id_mismatch"),
+    ):
+        tampered = {**valid, **mutation}
+        failures = helper.rejected_receipt_mismatches(
+            valid, tampered, tx_id=tx_id, account="@alice"
+        )
+        assert required_failure in failures
+        assert any(failure.startswith("cross_node_") for failure in failures)
+
+    assert "producer_not_committed_apply_receipt" in helper.rejected_receipt_mismatches(
+        {"status": "rejected", "tx_id": tx_id}, valid, tx_id=tx_id, account="@alice"
+    )
+
+
+def test_rejected_receipt_probe_opt_in_dry_run_is_explicit_and_does_not_claim_bft() -> None:
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-S",
+            str(HELPER_PATH),
+            "--dry-run",
+            "--check-rejected-receipt",
+            "--account",
+            "@dry_run_cross_node",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    out = json.loads(proc.stdout)
+    scenario = next(
+        s for s in out["scenarios"] if s["name"] == "node1-failed-apply-receipt-visible-node2"
+    )
+    assert scenario["tx_type"] == "ACCOUNT_SESSION_KEY_REVOKE"
+    assert scenario["expect"] == "same_committed_failed_apply_receipt_after_verified_delta_sync"
+    assert "QC" in scenario["description"]
+
+    default_proc = subprocess.run(
+        [sys.executable, "-S", str(HELPER_PATH), "--dry-run"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    assert default_proc.returncode == 0
+    defaults = json.loads(default_proc.stdout)
+    assert not any(
+        s["name"] == "node1-failed-apply-receipt-visible-node2" for s in defaults["scenarios"]
+    )

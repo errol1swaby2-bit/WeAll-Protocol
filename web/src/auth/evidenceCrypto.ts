@@ -117,6 +117,9 @@ export function loadEvidenceKemKeypair(account: string): EvidenceKemKeypair | nu
 export function ensureEvidenceKemKeypair(account: string): EvidenceKemKeypair {
   const existing = loadEvidenceKemKeypair(account);
   if (existing) return existing;
+  if (localStorage.getItem(kemPublicStorageKey(account)) !== null) {
+    throw new Error("existing_evidence_key_requires_recovery");
+  }
   const generated = generateEvidenceKemKeypair();
   saveEvidenceKemKeypair(account, generated);
   return generated;

@@ -78,7 +78,18 @@ const denied = spawnSync("bash", [launcher], {
 assert.equal(denied.status, 2, denied.stderr);
 assert.match(denied.stderr, /loopback-only frontend bind/);
 
-const viteConfig = readFileSync(resolve(repo, "web/vite.config.ts"), "utf8");
-assert.match(viteConfig, /server\.middlewares\.use\(protectDevBootstrapSecrets\)/);
-assert.match(viteConfig, /host: "127\.0\.0\.1"/);
+const serverPath = resolve(repo, "web/scripts/esbuildServer.mjs");
+const server = readFileSync(serverPath, "utf8");
+assert.match(server, /protectDevBootstrapSecrets\(req,res,/);
+assert.match(server, /permitsLocalSecretRequest\(/);
+const rejected = spawnSync(process.execPath, [serverPath, "--host", "0.0.0.0"], {
+  encoding: "utf8", timeout: 15000,
+});
+assert.equal(rejected.status, 1, rejected.stderr);
+assert.match(rejected.stderr, /loopback-only frontend bind/);
+assert.match(server, /!preview && process\.env\.WEALL_BROWSER_TEST_MODULES === '1'/);
+assert.match(server, /testRoute && !browserTests/);
+const build = readFileSync(resolve(repo, "web/scripts/esbuildBuild.mjs"), "utf8");
+assert.match(build, /!production \|\| !browserTests/);
+assert.match(build, /if \(browserTests\)/);
 console.log("PASS: local-bootstrap protection denies remote and cross-origin secret requests");

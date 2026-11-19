@@ -90,3 +90,30 @@ export async function refreshMutationSlices(
     scopes: ["account", "session", "node", "pending_work", "route"],
   });
 }
+
+/**
+ * Bounded retry for idempotent canonical GETs only. A caller still has to
+ * validate the returned record; a failed read never implies empty state.
+ * Never pass a signing, submission, upload or other mutation callback here.
+ */
+export async function retryTransientCanonicalRead<T>(
+  read: () => Promise<T>,
+  isCurrent: () => boolean = () => true,
+  pause: (milliseconds: number) => Promise<void> = (milliseconds) =>
+    new Promise<void>((resolve) => setTimeout(resolve, milliseconds)),
+): Promise<T> {
+  const delays = [500, 1500];
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await read();
+    } catch (reason: unknown) {
+      const status = reason && typeof reason === "object" && "status" in reason
+        ? Number(reason.status) : 0;
+      if (![429, 502, 503, 504].includes(status) || attempt >= delays.length || !isCurrent()) {
+        throw reason;
+      }
+      await pause(delays[attempt]);
+      if (!isCurrent()) throw reason;
+    }
+  }
+}

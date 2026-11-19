@@ -7,6 +7,7 @@ import { getKeypair, getSession } from "./auth/session";
 import { CLIENT_SETTINGS_CHANGED_EVENT, applySettingsToDocument, loadSettings } from "./lib/settings";
 import { useAppConfig } from "./lib/config";
 import { maybeApplyDevBootstrap } from "./lib/devBootstrap";
+import { PendingCanonicalLoginError } from "./auth/canonicalLoginJournal";
 import { requestGlobalRefresh } from "./lib/revalidation";
 import { consumeReturnTo, currentHashPath, getRouteMeta, isPublicRoute, matchRoute, nav, navWithReturn, stashReturnTo, type RouteMatch } from "./lib/router";
 import { prefetchRouteChunk } from "./lib/routePrefetch";
@@ -34,6 +35,7 @@ const Thread = lazy(() => import("./pages/Thread"));
 const Post = lazy(() => import("./pages/Post"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const AccountRegistrationPage = lazy(() => import("./pages/AccountRegistrationPage"));
 const SessionDevicesPage = lazy(() => import("./pages/SessionDevicesPage"));
 const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
 const Economics = lazy(() => import("./pages/Economics"));
@@ -43,10 +45,14 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
   switch (route.path) {
     case "/login":
       return <LoginPage />;
+    case "/onboarding/register":
+      return readyForApp ? <AccountRegistrationPage /> : <LoginPage />;
     case "/home":
       return readyForApp ? <HomeDashboard /> : <LoginPage />;
     case "/feed":
-      return readyForApp ? <Feed /> : <LoginPage />;
+      // Public feed is readable by unsigned visitors; write actions inside
+      // Feed remain constrained by local signer, session and PoH eligibility.
+      return <Feed />;
     case "/activity":
       return readyForApp ? <Activity /> : <LoginPage />;
     case "/profile":
@@ -54,6 +60,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/create":
       return readyForApp ? <Post /> : <LoginPage />;
     case "/verification":
+    case "/verification/async/:stage":
+    case "/verification/live/journey/:stage":
       return readyForApp ? <PohPage /> : <LoginPage />;
     case "/verification/live/:caseId":
       return readyForApp ? <LiveVerificationRoom caseId={route.caseId} /> : <LoginPage />;
@@ -65,6 +73,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
       return readyForApp ? <GroupCreate /> : <LoginPage />;
     case "/groups/:id":
       return <Group groupId={route.id} />;
+    case "/groups/:id/decisions/new":
+      return readyForApp ? <ProposalCreate scopeGroupId={route.id} /> : <LoginPage />;
     case "/decisions":
       return <Proposals />;
     case "/decisions/create":
@@ -178,13 +188,19 @@ export default function App(): JSX.Element {
   const [settingsVersion, setSettingsVersion] = useState<number>(0);
   const [authVersion, setAuthVersion] = useState<number>(0);
   const [authHydrated, setAuthHydrated] = useState<boolean>(false);
+  const [autoBootstrapBusy, setAutoBootstrapBusy] = useState(false);
+  const [autoBootstrapMessage, setAutoBootstrapMessage] = useState("");
 
   const settings = useMemo(() => loadSettings(), [settingsVersion]);
   const session = useMemo(() => getSession(), [authVersion, path]);
   const account = session?.account || "";
   const keypair = useMemo(() => (account ? getKeypair(account) : null), [account, authVersion]);
-  const readyForApp = !!session?.account && !!keypair?.secretKeyB64;
   const sessionHealth = useSessionHealth(authVersion);
+  // Hosted clients may have a local signer while the selected node has not
+  // synchronized this tab's session. Keep protected routes in recovery posture
+  // rather than permitting actions from a stale network-auth assumption.
+  const readyForApp = !!session?.account && !!keypair?.secretKeyB64 &&
+    sessionHealth.state !== "node_unverified";
   const showAdvancedMode = config.enableDevTools && settings.showAdvancedMode;
 
   useEffect(() => {
@@ -218,24 +234,42 @@ export default function App(): JSX.Element {
   useEffect(() => {
     let cancelled = false;
     let bootstrapInFlight = false;
+    let retryTimer: number | undefined;
 
     const runBootstrapSync = async () => {
       // Focus and visibilitychange can fire together: do not race session issuance.
       if (bootstrapInFlight || cancelled) return;
+      if (!config.enableDevBootstrap) return;
+      window.clearTimeout(retryTimer);
       bootstrapInFlight = true;
+      setAutoBootstrapBusy(true);
       try {
-        if (!config.enableDevBootstrap) return;
         const applied = await maybeApplyDevBootstrap(config);
+        if (!cancelled) setAutoBootstrapMessage("");
         if (applied && !cancelled) {
           setAuthVersion((v: number) => v + 1);
           setPath(currentHashPath());
         }
       } catch (error) {
-        // Never hold the browser indefinitely on a bootstrap hydration screen.
-        console.warn("Local demo bootstrap is waiting for backend reconciliation:", error);
+        if (!cancelled) {
+          setAuthVersion((v: number) => v + 1);
+          if (error instanceof PendingCanonicalLoginError) {
+            setAutoBootstrapMessage(error.message);
+            // Continue only the tracked attempt when visible; never loop
+            // through fresh device/session creation on a receipt timeout.
+            retryTimer = window.setTimeout(() => {
+              if (!document.hidden) void runBootstrapSync();
+            }, 5_000);
+          } else {
+            setAutoBootstrapMessage("Automatic demo sign-in did not complete. Use the demo login to inspect or resume the existing attempt.");
+          }
+        }
       } finally {
         bootstrapInFlight = false;
-        if (!cancelled) setAuthHydrated(true);
+        if (!cancelled) {
+          setAutoBootstrapBusy(false);
+          setAuthHydrated(true);
+        }
       }
     };
 
@@ -261,6 +295,7 @@ export default function App(): JSX.Element {
       cancelled = true;
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.clearTimeout(retryTimer);
     };
   }, [config]);
 
@@ -336,7 +371,7 @@ export default function App(): JSX.Element {
   if (route.path === "/login") {
     return (
       <Suspense fallback={<RouteTransitionFallback route={route} />}>
-        <LoginPage />
+        <LoginPage autoBootstrapBusy={autoBootstrapBusy} autoBootstrapMessage={autoBootstrapMessage} />
       </Suspense>
     );
   }
@@ -345,7 +380,7 @@ export default function App(): JSX.Element {
     stashReturnTo(intendedPath);
     return (
       <Suspense fallback={<RouteTransitionFallback route={{ path: "/login" }} />}>
-        <LoginPage />
+        <LoginPage autoBootstrapBusy={autoBootstrapBusy} autoBootstrapMessage={autoBootstrapMessage} />
       </Suspense>
     );
   }

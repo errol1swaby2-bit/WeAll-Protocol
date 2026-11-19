@@ -507,6 +507,22 @@ def test_group_emissary_election_finalize_syncs_group_and_treasury_signers() -> 
     )
     assert out["n_candidates"] == 5
 
+    # Candidates are nominations, not ballots. Cast real in-window votes
+    # before finalization so this test verifies signer/treasury synchronization
+    # for an elected slate rather than the now-forbidden zero-vote seating.
+    for i, voter in enumerate(candidates, start=1):
+        ranking = [voter, *(candidate for candidate in candidates if candidate != voter)]
+        ballot = apply_groups(
+            st,
+            _env(
+                "GROUP_EMISSARY_BALLOT_CAST",
+                voter,
+                i,
+                {"election_id": "ge1", "ranking": ranking},
+            ),
+        )
+        assert ballot["applied"] == "GROUP_EMISSARY_BALLOT_CAST"
+
     st["height"] = 12
     final = apply_groups(
         st,

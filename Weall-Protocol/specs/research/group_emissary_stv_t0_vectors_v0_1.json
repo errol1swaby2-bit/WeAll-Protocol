@@ -1,0 +1,681 @@
+{
+  "schema_version": "weall.group-emissary-stv.t0.v0.1",
+  "status": "OBSERVED_CURRENT_BEHAVIOR_NOT_APPROVAL",
+  "source_commit": "f98fd31e15eb55ef98d282f17e7b028c49dd6058",
+  "source_path": "Weall-Protocol/src/weall/runtime/apply/groups.py",
+  "source_blob_sha": "0566fcb02135864ed6b86dbafe58f9ffabffbe44",
+  "reference_model": "weall_sequential_full_weight_ranked_redistribution_v0_1",
+  "normative_stv_compliance_claimed": false,
+  "confidential_ballot_claimed": false,
+  "consensus_changes_authorized": false,
+  "required_vectors": [
+    "first_seat_full_preference_redistribution",
+    "quota_tie_lexicographic",
+    "elimination_tie_lexicographic",
+    "partial_and_exhausted_preferences",
+    "minimum_five_fill",
+    "no_ballots_no_decision",
+    "duplicate_invalid_normalization",
+    "zero_seats_raw_only",
+    "candidate_count_equals_seats",
+    "five_seats_repeated_full_preference_redistribution"
+  ],
+  "cases": [
+    {
+      "id": "first_seat_full_preference_redistribution",
+      "scope": "raw_helper_only",
+      "seats": 2,
+      "candidates": [
+        "@a",
+        "@b",
+        "@c",
+        "@d"
+      ],
+      "ballots": [
+        {
+          "voter": "@v1",
+          "ranking": [
+            "@a",
+            "@c"
+          ]
+        },
+        {
+          "voter": "@v2",
+          "ranking": [
+            "@a",
+            "@c"
+          ]
+        },
+        {
+          "voter": "@v3",
+          "ranking": [
+            "@a",
+            "@c"
+          ]
+        },
+        {
+          "voter": "@v4",
+          "ranking": [
+            "@a",
+            "@c"
+          ]
+        },
+        {
+          "voter": "@v5",
+          "ranking": [
+            "@b"
+          ]
+        },
+        {
+          "voter": "@v6",
+          "ranking": [
+            "@b"
+          ]
+        },
+        {
+          "voter": "@v7",
+          "ranking": [
+            "@d",
+            "@b"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 3,
+        "raw_winners": [
+          "@a",
+          "@c"
+        ],
+        "trace": [
+          {
+            "action": "elect",
+            "id": "@a",
+            "tally": 4
+          },
+          {
+            "action": "elect",
+            "id": "@c",
+            "tally": 4
+          }
+        ],
+        "final_status": "not_applicable",
+        "final_winners": null
+      },
+      "risk_note": "WeAll design intent: once A fills the first seat, its full active ballot weights are reassigned to the next eligible ranked candidate, C. This is deliberate sequential preference redistribution, NOT a quota-retaining STV implementation defect."
+    },
+    {
+      "id": "quota_tie_lexicographic",
+      "scope": "raw_helper_only",
+      "seats": 2,
+      "candidates": [
+        "@c",
+        "@b",
+        "@a",
+        "@d"
+      ],
+      "ballots": [
+        {
+          "voter": "@v1",
+          "ranking": [
+            "@a"
+          ]
+        },
+        {
+          "voter": "@v2",
+          "ranking": [
+            "@a"
+          ]
+        },
+        {
+          "voter": "@v3",
+          "ranking": [
+            "@b"
+          ]
+        },
+        {
+          "voter": "@v4",
+          "ranking": [
+            "@b"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 2,
+        "raw_winners": [
+          "@a",
+          "@b"
+        ],
+        "trace": [
+          {
+            "action": "elect",
+            "id": "@a",
+            "tally": 2
+          },
+          {
+            "action": "elect",
+            "id": "@b",
+            "tally": 2
+          }
+        ],
+        "final_status": "not_applicable",
+        "final_winners": null
+      },
+      "risk_note": "Equal quota tallies elect lexicographically smaller candidate first."
+    },
+    {
+      "id": "elimination_tie_lexicographic",
+      "scope": "raw_helper_only",
+      "seats": 1,
+      "candidates": [
+        "@a",
+        "@b",
+        "@c"
+      ],
+      "ballots": [
+        {
+          "voter": "@v1",
+          "ranking": [
+            "@a",
+            "@c"
+          ]
+        },
+        {
+          "voter": "@v2",
+          "ranking": [
+            "@b",
+            "@c"
+          ]
+        },
+        {
+          "voter": "@v3",
+          "ranking": [
+            "@c",
+            "@b"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 2,
+        "raw_winners": [
+          "@c"
+        ],
+        "trace": [
+          {
+            "action": "eliminate",
+            "id": "@a",
+            "tally": 1
+          },
+          {
+            "action": "elect",
+            "id": "@c",
+            "tally": 2
+          }
+        ],
+        "final_status": "not_applicable",
+        "final_winners": null
+      },
+      "risk_note": "Equal low tallies eliminate lexicographically smaller candidate first; A eliminates then C reaches quota."
+    },
+    {
+      "id": "partial_and_exhausted_preferences",
+      "scope": "raw_helper_only",
+      "seats": 2,
+      "candidates": [
+        "@a",
+        "@b",
+        "@c",
+        "@d"
+      ],
+      "ballots": [
+        {
+          "voter": "@v1",
+          "ranking": [
+            "@a"
+          ]
+        },
+        {
+          "voter": "@v2",
+          "ranking": [
+            "@a"
+          ]
+        },
+        {
+          "voter": "@v3",
+          "ranking": [
+            "@b",
+            "@c"
+          ]
+        },
+        {
+          "voter": "@v4",
+          "ranking": [
+            "@c"
+          ]
+        },
+        {
+          "voter": "@v5",
+          "ranking": [
+            "@d",
+            "@c"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 2,
+        "raw_winners": [
+          "@a",
+          "@c"
+        ],
+        "trace": [
+          {
+            "action": "elect",
+            "id": "@a",
+            "tally": 2
+          },
+          {
+            "action": "eliminate",
+            "id": "@b",
+            "tally": 1
+          },
+          {
+            "action": "elect",
+            "id": "@c",
+            "tally": 2
+          }
+        ],
+        "final_status": "not_applicable",
+        "final_winners": null
+      },
+      "risk_note": "A-only ballots exhaust after election; B elimination transfers to C."
+    },
+    {
+      "id": "minimum_five_fill",
+      "scope": "finalization_integration",
+      "seats": 5,
+      "candidates": [
+        "@f",
+        "@e",
+        "@d",
+        "@c",
+        "@b",
+        "@a"
+      ],
+      "ballots": [
+        {
+          "voter": "@a",
+          "ranking": [
+            "@a"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 1,
+        "raw_winners": [
+          "@a",
+          "@c",
+          "@d",
+          "@e",
+          "@f"
+        ],
+        "trace": [
+          {
+            "action": "elect",
+            "id": "@a",
+            "tally": 1
+          },
+          {
+            "action": "eliminate",
+            "id": "@b",
+            "tally": 0
+          },
+          {
+            "action": "fill",
+            "ids": [
+              "@c",
+              "@d",
+              "@e",
+              "@f"
+            ]
+          }
+        ],
+        "final_status": "finalized",
+        "final_winners": [
+          "@a",
+          "@c",
+          "@d",
+          "@e",
+          "@f"
+        ]
+      },
+      "risk_note": "Single valid ballot can seat five of six nominees; B is lexicographically eliminated with zero tally. Current implementation property, not a legitimacy endorsement."
+    },
+    {
+      "id": "no_ballots_no_decision",
+      "scope": "finalization_integration",
+      "seats": 5,
+      "candidates": [
+        "@e",
+        "@d",
+        "@c",
+        "@b",
+        "@a"
+      ],
+      "ballots": [],
+      "expected": {
+        "quota": 1,
+        "raw_winners": [
+          "@a",
+          "@b",
+          "@c",
+          "@d",
+          "@e"
+        ],
+        "trace": [
+          {
+            "action": "fill",
+            "ids": [
+              "@a",
+              "@b",
+              "@c",
+              "@d",
+              "@e"
+            ]
+          }
+        ],
+        "final_status": "no_decision",
+        "final_winners": []
+      },
+      "risk_note": "Raw helper fills five candidates with zero ballots; canonical finalization overrides with no_decision and must not transfer signer/treasury authority."
+    },
+    {
+      "id": "duplicate_invalid_normalization",
+      "scope": "raw_helper_only",
+      "seats": 2,
+      "candidates": [
+        "@a",
+        "@b",
+        "@c",
+        "@d"
+      ],
+      "ballots": [
+        {
+          "voter": "@v1",
+          "ranking": [
+            "@a",
+            "@a",
+            "@not",
+            "@b"
+          ]
+        },
+        {
+          "voter": "@v2",
+          "ranking": [
+            "@b"
+          ]
+        },
+        {
+          "voter": "@v3",
+          "ranking": [
+            "@b"
+          ]
+        },
+        {
+          "voter": "@v4",
+          "ranking": [
+            "@c",
+            "@b"
+          ]
+        },
+        {
+          "voter": "@v5",
+          "ranking": []
+        },
+        {
+          "voter": "@v6",
+          "ranking": [
+            "@d",
+            "@d"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 2,
+        "raw_winners": [
+          "@b",
+          "@d"
+        ],
+        "trace": [
+          {
+            "action": "elect",
+            "id": "@b",
+            "tally": 2
+          },
+          {
+            "action": "eliminate",
+            "id": "@a",
+            "tally": 1
+          },
+          {
+            "action": "eliminate",
+            "id": "@c",
+            "tally": 1
+          },
+          {
+            "action": "fill",
+            "ids": [
+              "@d"
+            ]
+          }
+        ],
+        "final_status": "not_applicable",
+        "final_winners": null
+      },
+      "risk_note": "Unknown, duplicate, empty ranks normalized; empty ballot excluded from quota."
+    },
+    {
+      "id": "zero_seats_raw_only",
+      "scope": "raw_helper_only",
+      "seats": 0,
+      "candidates": [
+        "@a",
+        "@b"
+      ],
+      "ballots": [
+        {
+          "voter": "@v1",
+          "ranking": [
+            "@a"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": null,
+        "raw_winners": [],
+        "trace": [],
+        "final_status": "not_applicable",
+        "final_winners": null
+      },
+      "risk_note": "Raw helper exits with empty results for seats <= 0; protocol election creation imposes minimum five seats."
+    },
+    {
+      "id": "candidate_count_equals_seats",
+      "scope": "finalization_integration",
+      "seats": 5,
+      "candidates": [
+        "@e",
+        "@d",
+        "@b",
+        "@a",
+        "@c"
+      ],
+      "ballots": [
+        {
+          "voter": "@e",
+          "ranking": [
+            "@e"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 1,
+        "raw_winners": [
+          "@a",
+          "@b",
+          "@c",
+          "@d",
+          "@e"
+        ],
+        "trace": [
+          {
+            "action": "fill",
+            "ids": [
+              "@a",
+              "@b",
+              "@c",
+              "@d",
+              "@e"
+            ]
+          }
+        ],
+        "final_status": "finalized",
+        "final_winners": [
+          "@a",
+          "@b",
+          "@c",
+          "@d",
+          "@e"
+        ]
+      },
+      "risk_note": "When seats equal candidate count, raw helper fills everyone alphabetically irrespective of ballot preference."
+    },
+    {
+      "id": "five_seats_repeated_full_preference_redistribution",
+      "scope": "finalization_integration",
+      "seats": 5,
+      "candidates": [
+        "@f",
+        "@e",
+        "@d",
+        "@c",
+        "@b",
+        "@a"
+      ],
+      "ballots": [
+        {
+          "voter": "@v1",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v2",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v3",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v4",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v5",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        },
+        {
+          "voter": "@v6",
+          "ranking": [
+            "@a",
+            "@b",
+            "@c",
+            "@d",
+            "@e",
+            "@f"
+          ]
+        }
+      ],
+      "expected": {
+        "quota": 2,
+        "raw_winners": [
+          "@a",
+          "@b",
+          "@c",
+          "@d",
+          "@e"
+        ],
+        "trace": [
+          {
+            "action": "elect",
+            "id": "@a",
+            "tally": 6
+          },
+          {
+            "action": "elect",
+            "id": "@b",
+            "tally": 6
+          },
+          {
+            "action": "elect",
+            "id": "@c",
+            "tally": 6
+          },
+          {
+            "action": "elect",
+            "id": "@d",
+            "tally": 6
+          },
+          {
+            "action": "elect",
+            "id": "@e",
+            "tally": 6
+          }
+        ],
+        "final_status": "finalized",
+        "final_winners": [
+          "@a",
+          "@b",
+          "@c",
+          "@d",
+          "@e"
+        ]
+      },
+      "risk_note": "WeAll intended rule exercised in a five-seat canonical election: after each seat is filled, the same six full-weight ballots move to the next eligible ranked choice. This is deliberate; it differs from quota-retaining STV."
+    }
+  ],
+  "intended_transfer_rule": "full_weight_after_each_elected_seat_to_next_eligible_preference",
+  "intended_transfer_rule_provenance": "protocol_architect_clarification_2026-11-10"
+}

@@ -61,7 +61,7 @@ def test_live_room_pages_surface_p2p_descriptor_without_central_url() -> None:
 
 
 def test_csp_no_longer_allows_arbitrary_https_frames_for_live_room() -> None:
-    vite = _read(WEB / "vite.config.ts")
+    vite = _read(WEB / "scripts" / "esbuildServer.mjs")
 
     assert "frame-src 'self' http://127.0.0.1:* http://localhost:*;" in vite
     assert "frame-src 'self' http://127.0.0.1:* http://localhost:* https:;" not in vite

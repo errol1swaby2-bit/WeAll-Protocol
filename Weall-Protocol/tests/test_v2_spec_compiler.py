@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -91,6 +92,19 @@ def _run_compiler(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _copy_or_link(src: str, dst: str) -> str:
+    # Hard-linking accelerates large fixture copies on one filesystem. Hosted
+    # runners place pytest's /tmp and the checkout on separate filesystems;
+    # fall back to a real copy only for that documented platform boundary.
+    try:
+        os.link(src, dst)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        shutil.copy2(src, dst)
+    return dst
+
+
 def _copy_workspace(tmp_path: Path) -> Path:
     target = tmp_path / "WeAll-Protocol"
     shutil.copytree(
@@ -103,7 +117,7 @@ def _copy_workspace(tmp_path: Path) -> Path:
             "__pycache__",
             ".pytest_cache",
         ),
-        copy_function=os.link,
+        copy_function=_copy_or_link,
     )
     return target / "Weall-Protocol"
 
@@ -394,10 +408,18 @@ def test_v2_transaction_contract_matrix_has_complete_structural_coverage() -> No
 def test_v2_route_contract_map_covers_all_route_implementations() -> None:
     payload = _read("generated/v2/route_contract_map.json")
     rows = payload["routes"]
-    assert payload["route_count"] == 159
-    assert payload["unique_method_path_count"] == 159
+    expected_count = _read("specs/v2/source/manifest.json")["expected_counts"]["routes"]
+    reviewed = _read("specs/v2/source/semantic_reviews.json")["routes"]
+    assert payload["route_count"] == expected_count
+    assert payload["unique_method_path_count"] == expected_count
     assert payload["duplicate_route_implementation_count"] == 0
-    assert len({row["stable_id"] for row in rows}) == 159
+    assert len(rows) == len(reviewed) == expected_count
+    assert len({row["stable_id"] for row in rows}) == expected_count
+    generated_ids = {(f"{row['method']} {row['path']}", row["stable_id"]) for row in rows}
+    reviewed_ids = {(row["route_key"], row["stable_id"]) for row in reviewed}
+    assert len(generated_ids) == len(reviewed_ids) == expected_count
+    assert generated_ids == reviewed_ids
+    assert {row["disposition"] for row in reviewed} == {"accepted_current_semantic_contract"}
     assert all(row["primary_mechanism_id"] == "M-069" for row in rows)
     assert all(row["semantic_precision"] == "explicit_maintainer_reviewed_contract" for row in rows)
     assert all(len(row["semantic_review"]["review_digest"]) == 64 for row in rows)
@@ -516,7 +538,7 @@ def test_compilation_manifest_preserves_fail_closed_truth_boundary() -> None:
     payload = _read("generated/v2/spec_compilation_manifest.json")
     coverage = payload["coverage"]
     assert coverage["transactions"] == 236
-    assert coverage["routes"] == 159
+    assert coverage["routes"] == _read("specs/v2/source/manifest.json")["expected_counts"]["routes"]
     assert coverage["unmapped_source_files"] == 0
     assert coverage["tx_semantic_review_complete"] is True
     assert coverage["route_semantic_review_complete"] is True
@@ -618,7 +640,10 @@ def test_w1_closure_manifest_records_release_attestation_boundary() -> None:
     assert closure["structured_schemas"]["state_schema_count"] == 94
     assert closure["structured_schemas"]["target_contract_schema_count"] == 150
     assert closure["semantic_reviews"]["transaction_reviews"] == 236
-    assert closure["semantic_reviews"]["route_reviews"] == 159
+    assert (
+        closure["semantic_reviews"]["route_reviews"]
+        == _read("specs/v2/source/manifest.json")["expected_counts"]["routes"]
+    )
     assert closure["semantic_reviews"]["independent_review_complete"] is False
     assert closure["release_export_attestation_required"] is True
     assert closure["provenance_binding"]["binding_policy"] == "PASS_NON_CIRCULAR_TWO_COMMIT_BINDING"

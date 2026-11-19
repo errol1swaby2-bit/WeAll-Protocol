@@ -1,0 +1,44 @@
+name: PR77 signed strict appeal persisted restart and replay (synthetic)
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - 'Weall-Protocol/tests/test_pr77_signed_strict_appeal_restart_replay.py'
+      - 'Weall-Protocol/src/weall/runtime/apply/dispute.py'
+      - 'Weall-Protocol/src/weall/runtime/dispute_engine.py'
+      - 'Weall-Protocol/src/weall/runtime/apply/roles.py'
+      - 'Weall-Protocol/src/weall/runtime/genesis_bootstrap.py'
+      - 'Weall-Protocol/src/weall/runtime/block_builder.py'
+      - 'Weall-Protocol/src/weall/runtime/block_replay.py'
+      - 'Weall-Protocol/configs/chains/weall-controlled-devnet.json'
+      - '.github/workflows/pr77-signed-strict-appeal-restart-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  strict-signed-appeal-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Ruff and signed persisted strict appeal reproduction
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_signed_strict_appeal_restart_replay.py
+          ruff format --diff tests/test_pr77_signed_strict_appeal_restart_replay.py || true
+          python -m pytest -q tests/test_pr77_signed_strict_appeal_restart_replay.py
+          ruff format --check tests/test_pr77_signed_strict_appeal_restart_replay.py
+          echo 'Controlled synthetic identity bootstrap and block replay only; no independently finalized BFT or S4 enforcement.'

@@ -3,8 +3,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import ConnectionPill from "./ConnectionPill";
 import SessionPill from "./SessionPill";
 import SidebarNav from "./SidebarNav";
+import PrimaryNavigation from "./PrimaryNavigation";
 import AppRightRail from "./AppRightRail";
 import FabActionButton from "./FabActionButton";
+import ActivityBell from "./ActivityBell";
 import type { SessionHealth } from "../auth/session";
 import { getKeypair, getSession } from "../auth/session";
 import { getFabHref, nav, type RouteMatch, type RouteMeta } from "../lib/router";
@@ -107,6 +109,13 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
   const breadcrumbs = deriveBreadcrumbs(route, meta);
   const headerTitle = titleForRoute(route, meta);
   const routeKey = JSON.stringify(route);
+  // Do not remount native recorder or lose in-memory consent/evidence when only
+  // a guided verification presentation step changes.
+  const contentRouteKey = (
+    route.path === "/verification" ||
+    route.path === "/verification/async/:stage" ||
+    route.path === "/verification/live/journey/:stage"
+  ) ? "verification-guided-controller" : routeKey;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -215,7 +224,7 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
 
               {menuOpen ? (
                 <div id="app-shell-primary-menu" className="appShellMenuPopover">
-                  <SidebarNav showAdvancedMode={showAdvancedMode} onNavigate={() => setMenuOpen(false)} />
+                  <SidebarNav showAdvancedMode={showAdvancedMode} hidePrimary onNavigate={() => setMenuOpen(false)} />
                   <div className="appShellMenuFooter">
                     <ConnectionPill />
                     <SessionPill />
@@ -234,6 +243,8 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
               <span className="appShellBrandMark" aria-hidden="true">W</span>
               <span>WeAll</span>
             </button>
+
+            <ActivityBell account={account} refreshToken={routeKey} />
 
             <button
               className="appShellInfoToggle"
@@ -270,6 +281,8 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
           </div>
         </header>
 
+        <PrimaryNavigation currentPath={route.path} ready={ready && !writesLocked} />
+
         <section className="appShellRouteStrip" aria-label="Helpful page summary">
           <div className="appShellRouteStripSummary">
             <span className="appShellRouteStripPill">{modeLabel(meta)}</span>
@@ -293,7 +306,7 @@ export default function AppShell({ children, route, meta, sessionHealth, showAdv
         </section>
 
         <div className="appShellBody">
-          <main key={routeKey} id="app-shell-content" className="appShellContent" tabIndex={-1}>
+          <main key={contentRouteKey} id="app-shell-content" className="appShellContent" tabIndex={-1}>
             {children}
           </main>
         </div>

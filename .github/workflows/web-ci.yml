@@ -1,3 +1,4 @@
+# This workflow validates the exact reviewer-artifact-refresh commit after lockfile and test-pin changes.
 name: Web CI
 
 on:
@@ -6,12 +7,53 @@ on:
   pull_request:
 
 concurrency:
-  group: web-ci-${{ github.ref }}
+  # Distinct bounded-setup generation so a stuck legacy run cannot block its replacement.
+  group: web-ci-bounded-setup-v2-${{ github.ref }}
   cancel-in-progress: true
 
+# These are isolated CI rehearsals, not publish or deployment authorization.
+permissions:
+  contents: read
+
 jobs:
-  web:
-    runs-on: ubuntu-latest
+  dependency-security:
+    name: Frontend dependency security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        id: install_web_dependencies
+        run: npm ci
+
+      - name: Dependency audit
+        run: |
+          npm run dependency-audit
+
+      - name: Isolated Picomatch vulnerability regression (GHSA-fc5q-39xc-vjpf)
+        # Both security checks remain mandatory, even when the audit fails.
+        if: ${{ !cancelled() && steps.install_web_dependencies.outcome == 'success' }}
+        run: node scripts/test_picomatch_security_regression.mjs
+
+  frontend-functional:
+    name: Frontend functional and local deployment rehearsal
+    runs-on: ubuntu-24.04
+    # Prevent indefinite APT/browser setup waits from tying up a runner.
+    timeout-minutes: 35
 
     defaults:
       run:
@@ -20,6 +62,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -81,25 +125,63 @@ jobs:
           cat /tmp/weall-web-ci-backend.log >&2 || true
           exit 1
 
-      - name: Install
-        run: |
-          npm ci
-
-      - name: Dependency audit
-        run: |
-          npm run dependency-audit
+      - name: Install frozen frontend dependencies
+        run: npm ci
 
       - name: Typecheck
         run: |
           npm run typecheck
 
+      - name: Cloudflare static testnet source guards
+        run: |
+          node scripts/test_cloudflare_testnet_access_source.mjs
+
+      - name: Cloudflare testnet node-selection behavioral regression
+        run: |
+          node scripts/test_cloudflare_testnet_behavior.mjs
+
+      - name: HTTPS node API and CORS deployment preflight regression
+        run: |
+          node scripts/test_https_node_api_preflight.mjs
+
+      - name: Existing node manager and account custody source invariants
+        run: |
+          npm run test:node-manager
+          npm run test:account-custody-source
+
+
       - name: Account custody cryptographic source gate
         run: |
           npm run test:account-custody-crypto-source
 
+      - name: F1b guided account registration source guard
+        run: |
+          npm run test:guided-account-registration-source
+
+      - name: Canonical signed registration transaction ID vectors
+        run: |
+          npm run test:registration-tx-id
+          node scripts/test_canonical_login_resume.mjs
+
       - name: Focused shell navigation and drawer source gate
         run: |
           npm run test:focused-shell-source
+
+      - name: Confirmed transaction apply-receipt truth
+        run: |
+          npm run test:tx-apply-receipt-truth
+
+      - name: Canonical-only reconciliation and no-ID fail-closed regression
+        run: |
+          npm run test:tx-reconciliation-truth
+
+      - name: Frontend v1.6 focused navigation and safety contracts
+        run: |
+          npm run test:v16-navigation-source
+
+      - name: Portable visual theme validation and preview safety
+        run: |
+          npm run test:theme-transfer
 
       - name: Controlled-devnet secret route network isolation
         run: |
@@ -117,6 +199,22 @@ jobs:
         run: |
           npm run test:async-evidence-preview
 
+      - name: PoH interrupted submission journal and replay safety
+        run: |
+          npm run test:poh-submission-journal
+
+      - name: Verification history and role authority contracts
+        run: |
+          npm run test:verification-history-panel
+
+      - name: Guided PoH route and reload fail-closed contracts
+        run: |
+          npm run test:poh-guided-routes
+
+      - name: PR93 PoH source conflict parity (guided + preserved v1.6)
+        run: |
+          npm run test:pr93-poh-merge-parity
+
       - name: Flag reporter review and target lookup regression
         run: |
           npm run test:content-flag-report-truth
@@ -129,11 +227,24 @@ jobs:
         run: |
           npm run build
 
-      - name: Install production deployment test dependencies
+      # Keep infrastructure and browser setup separately diagnosed; neither
+      # may hang indefinitely or be silently skipped before CSP smoke checks.
+      - name: Install Nginx for production deployment
+        timeout-minutes: 7
         run: |
-          sudo apt-get update
-          sudo apt-get install -y nginx
-          npx playwright install --with-deps chromium
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get \
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=25 \
+            -o Acquire::https::Timeout=25 update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get \
+            -o DPkg::Lock::Timeout=45 \
+            install -y --no-install-recommends nginx
+          nginx -v
+
+      - name: Install Chromium for production CSP smoke
+        timeout-minutes: 10
+        run: |
+          npx --no-install playwright install --with-deps chromium
 
       - name: Start tested production Nginx deployment
         run: |
@@ -172,8 +283,78 @@ jobs:
         run: |
           npm run test:production-deployment-csp
 
+      - name: Compiled browser custody isolation across independent profiles
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npx playwright test tests/e2e/production_browser_storage_isolation.spec.ts --config=playwright.production.config.ts
+
+      - name: Compiled browser theme export/import and safe preview
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8088
+        run: |
+          npm run test:theme-portability-production
+
+      - name: Active deliberations rendered journey
+        run: |
+          npm run test:active-deliberations-rendered
+
       - name: Stop production Nginx deployment
         if: always()
         run: |
-          sudo nginx -c /tmp/weall-web-nginx.conf -s quit || true
+          if test -f /tmp/weall-web-nginx.conf; then
+            sudo nginx -c /tmp/weall-web-nginx.conf -s quit || true
+          fi
           test ! -f /tmp/weall-web-nginx-error.log || cat /tmp/weall-web-nginx-error.log
+
+  # Preserve the existing required check name. A failed, skipped or cancelled
+  # prerequisite cannot produce a passing aggregate check.
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    needs: [dependency-security, frontend-functional, governance-ui]
+    if: always()
+    steps:
+      - name: Require every frontend gate
+        env:
+          SECURITY_RESULT: ${{ needs.dependency-security.result }}
+          FUNCTIONAL_RESULT: ${{ needs.frontend-functional.result }}
+          GOVERNANCE_RESULT: ${{ needs.governance-ui.result }}
+        run: |
+          printf 'security=%s functional=%s governance=%s\n' "$SECURITY_RESULT" "$FUNCTIONAL_RESULT" "$GOVERNANCE_RESULT"
+          test "$SECURITY_RESULT" = success
+          test "$FUNCTIONAL_RESULT" = success
+          test "$GOVERNANCE_RESULT" = success
+
+  governance-ui:
+    name: Governance frontend rendered regression
+    runs-on: ubuntu-24.04
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frozen frontend dependencies
+        run: npm ci
+
+      - name: Typecheck governance UI
+        run: npm run typecheck
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Render active deliberation discussion journey
+        run: npm run test:active-deliberations-rendered

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import FeedView from "../components/FeedView";
+import ActiveDeliberations from "../components/ActiveDeliberations";
 import { getApiBaseUrl, weall } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
@@ -81,9 +82,11 @@ export default function Feed(): JSX.Element {
       ? "This device needs your saved account key before it can save actions."
       : !snapshot.registered
         ? "You can browse now. Finish account setup before posting."
-        : snapshot.tier < 2
-          ? "Complete live verification to create public posts, comment, react, or report harmful content."
-          : "Your account is ready to participate from this device.";
+        : snapshot.tier < 1
+          ? "Complete Tier 1 verification to submit content reports. Ordinary posts, replies, and reactions require Tier 2."
+          : snapshot.tier < 2
+            ? "You can report public content at Tier 1. Ordinary posts, replies, and reactions require live Tier 2 verification."
+            : "Your account is ready to participate from this device.";
 
   return (
     <div className="pageStack socialFeedPage">
@@ -140,6 +143,8 @@ export default function Feed(): JSX.Element {
           </div>
         </div>
       </section>
+
+      {tab === "global" ? <ActiveDeliberations base={base} maxItems={3} title="Community decisions being discussed" /> : null}
 
       <FeedView
         title={title}

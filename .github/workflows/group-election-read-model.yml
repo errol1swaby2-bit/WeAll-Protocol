@@ -1,0 +1,239 @@
+name: Group election read-model focused evidence
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/group-election-read-model.yml
+      - Weall-Protocol/src/weall/api/routes_public_parts/groups.py
+      - Weall-Protocol/tests/test_group_governance_contract.py
+      - Weall-Protocol/tests/test_group_emissary_ballot_transport_boundary.py
+      - Weall-Protocol/src/weall/runtime/tx_schema.py
+      - Weall-Protocol/src/weall/runtime/ballot_policy.py
+      - Weall-Protocol/src/weall/api/routes_public_parts/tx.py
+      - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_CONFIDENTIAL_BALLOT_DESIGN_V0_1.md
+      - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_CRYPTO_ARCHITECTURE_ADR_V0_2.md
+      - Weall-Protocol/specs/research/group_emissary_ballot_architecture_v0_1.json
+      - Weall-Protocol/scripts/validate_group_emissary_architecture_review.py
+      - Weall-Protocol/tests/test_group_emissary_architecture_review_contract.py
+      - Weall-Protocol/tests/test_group_emissary_stv_t0_vectors.py
+      - Weall-Protocol/scripts/validate_group_emissary_stv_t0.py
+      - Weall-Protocol/specs/research/group_emissary_stv_t0_vectors_v0_1.json
+      - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_STV_T0_BEHAVIOR_AND_DEVIATIONS.md
+      - Weall-Protocol/src/weall/runtime/apply/groups.py
+      - Weall-Protocol/src/weall/runtime/apply/governance.py
+      - Weall-Protocol/src/weall/runtime/param_policy.py
+      - Weall-Protocol/tests/test_group_emissary_quorum_activation.py
+      - Weall-Protocol/tests/test_group_emissary_signed_quorum_replay.py
+      - Weall-Protocol/tests/test_group_emissary_committed_block_rehearsal.py
+      - Weall-Protocol/tests/test_p0_03_production_composition.py
+      - Weall-Protocol/tests/test_group_emissary_network_process_bft.py
+      - Weall-Protocol/src/weall/runtime/block_commit.py
+      - Weall-Protocol/src/weall/runtime/executor.py
+      - Weall-Protocol/src/weall/net/node.py
+      - Weall-Protocol/src/weall/net/net_loop.py
+      - Weall-Protocol/tests/test_net_loop_shutdown_order.py
+      - Weall-Protocol/tests/test_net_bft_preauth_broadcast_gate.py
+      - Weall-Protocol/tests/test_v2_role_dynamic_failure_review_evidence.py
+      - Weall-Protocol/tests/test_pr88_dispute_material_conflict_review_evidence.py
+      - Weall-Protocol/scripts/compile_v2_spec.py
+      - Weall-Protocol/tests/test_audit_remediation_spec_compiler.py
+      - Weall-Protocol/tests/test_executor_atomic_commit_crash_recovery.py
+      - Weall-Protocol/tests/test_executor_epoch_transition_pending_prune.py
+      - Weall-Protocol/tests/test_priority1_missing_parent_fetch_budget.py
+      - Weall-Protocol/src/weall/runtime/bft_pending_frontier_impl.py
+      - Weall-Protocol/docs/production_readiness/GROUP_EMISSARY_QUORUM_ACTIVATION_V1.md
+      - web/src/pages/Group.tsx
+      - web/src/api/weall.ts
+      - web/scripts/test_v16_navigation_source.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  group-election-read:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR head or dispatched revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Validate scoped election read and canonical apply regressions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          EXPECTED_HEAD="${{ github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          if [[ "$ACTUAL_HEAD" != "$EXPECTED_HEAD" ]]; then
+            echo "exact_head_checkout_mismatch:$ACTUAL_HEAD!=$EXPECTED_HEAD" >&2
+            exit 1
+          fi
+          OUT="$RUNNER_TEMP/group-election-read"
+          mkdir -p "$OUT"
+          {
+            echo "scope=GROUP_ELECTION_QUORUM_AND_ELIGIBILITY_FOCUSED_NO_SECRET_BALLOT"
+            echo "checkout_commit=$ACTUAL_HEAD"
+            echo "expected_head=$EXPECTED_HEAD"
+            echo "full_backend_generated_gate=NOT_SUBSTITUTED"
+            sha256sum src/weall/api/routes_public_parts/groups.py
+            sha256sum src/weall/runtime/apply/groups.py
+            sha256sum src/weall/runtime/apply/governance.py
+            echo "emissary_quorum_v1_electorate=SHARED_GROUP_GOVERNANCE_TIER2_AT_CREATE"
+            sha256sum src/weall/runtime/param_policy.py
+            sha256sum tests/test_group_emissary_quorum_activation.py
+            sha256sum tests/test_group_emissary_signed_quorum_replay.py
+            sha256sum tests/test_group_emissary_committed_block_rehearsal.py
+            sha256sum tests/test_p0_03_production_composition.py
+            sha256sum tests/test_group_emissary_network_process_bft.py
+            sha256sum src/weall/runtime/block_commit.py
+            sha256sum src/weall/runtime/executor.py
+            sha256sum src/weall/net/node.py
+            sha256sum src/weall/net/net_loop.py
+            sha256sum tests/test_net_loop_shutdown_order.py
+            echo "net_shutdown_order=JOIN_PACKET_THREAD_BEFORE_PEER_SESSION_CLOSE"
+            sha256sum tests/test_net_bft_preauth_broadcast_gate.py
+            sha256sum tests/test_v2_role_dynamic_failure_review_evidence.py
+            sha256sum src/weall/runtime/apply/dispute.py
+            sha256sum tests/test_pr88_dispute_material_conflict_review_evidence.py
+            echo "dispute_material_conflict_review=DIAGNOSTIC_DIRECT_APPLIER_NOT_APPROVAL"
+            sha256sum scripts/compile_v2_spec.py
+            sha256sum tests/test_audit_remediation_spec_compiler.py
+            echo "v2_dynamic_error_extract=UNRESOLVED_RUNTIME_FAILURE_NOT_EXCEPTION_CLASS"
+            echo "v2_review_scope=DYNAMIC_ROLE_GATE_FAILURE_EVIDENCE_NOT_SEMANTIC_APPROVAL"
+            echo "bft_preauth_broadcast_scope=ESTABLISHED_VERIFIED_UNBANNED_PEERS_ONLY"
+            sha256sum tests/test_executor_atomic_commit_crash_recovery.py
+            sha256sum tests/test_executor_epoch_transition_pending_prune.py
+            echo "bft_commit_state_scope=SAME_GENERATION_ATOMIC_LEDGER_BFT_SNAPSHOT_AND_TRANSITION_RESET_REGRESSIONS"
+            echo "bft_controller_relay_baseline=FOUR_PYTHON_PROCESSES_RPC_FORWARDING_TO_PRODUCTION_NETMESH_BFT_HANDLERS"
+            echo "bft_authenticated_tcp_rehearsal=FOUR_PROCESSES_AUTHENTICATED_TCP_THREE_VIEW_QC_FINALITY_AND_DURABLE_LEADER_RESTART"
+            echo "bft_authenticated_tcp_boundary=STATIC_LOOPBACK_PEERS_SYNTHETIC_BOOTSTRAP_AND_CONTROLLER_VIEWS"
+            echo "bft_local_http_recovery=VERIFIED_QC_CACHED_BLOCK_REPLAY_HEIGHT_3_TO_6"
+            echo "bft_local_http_outage=FIRST_TWO_FETCH_READS_RETURN_HTTP_503_RETRY_REQUIRED"
+            echo "bft_unproved_boundary=NO_AUTONOMOUS_DISCOVERY_NO_GENERALIZED_UNSCHEDULED_RECOVERY_NO_PUBLIC_ACTIVATION"
+            echo "qc_group_create_scope=FOUR_VALIDATOR_BFT_FINALITY_ELECTION_CREATE"
+            echo "qc_group_lifecycle_scope=FOUR_VALIDATOR_BFT_FINALITY_BALLOTS_AND_FINALIZE_SYNTHETIC_STATE"
+            echo "quorum_block_scope=LOCAL_COMMIT_FOLLOWER_RESTART_NOT_BFT_QC"
+            echo "signed_replay_scope=BLOCK_CONTEXT_ADMISSION_BOUNDED_APPLY_NOT_BFT_FINALITY"
+            sha256sum docs/production_readiness/GROUP_EMISSARY_QUORUM_ACTIVATION_V1.md
+            echo "emissary_quorum_activation=UNSET_NO_RELEASE_AUTHORIZATION"
+            sha256sum tests/test_group_governance_contract.py
+            sha256sum tests/test_group_emissary_ballot_transport_boundary.py
+            sha256sum docs/production_readiness/GROUP_EMISSARY_CONFIDENTIAL_BALLOT_DESIGN_V0_1.md
+            sha256sum docs/production_readiness/GROUP_EMISSARY_CRYPTO_ARCHITECTURE_ADR_V0_2.md
+            sha256sum specs/research/group_emissary_ballot_architecture_v0_1.json
+            sha256sum scripts/validate_group_emissary_architecture_review.py
+            sha256sum tests/test_group_emissary_architecture_review_contract.py
+            sha256sum tests/test_group_emissary_stv_t0_vectors.py
+            sha256sum scripts/validate_group_emissary_stv_t0.py
+            sha256sum specs/research/group_emissary_stv_t0_vectors_v0_1.json
+            sha256sum docs/production_readiness/GROUP_EMISSARY_STV_T0_BEHAVIOR_AND_DEVIATIONS.md
+            echo "t0_weall_sequential_redistribution=INTENDED_AND_NO_CONSENSUS_CHANGE"
+            echo "stv_full_weight_sequential_redistribution=INTENTIONAL_CURRENT_BEHAVIOR"
+            echo "architecture_research_only=true"
+            echo "production_cryptographic_suite=NOT_SELECTED"
+            echo "secret_ballot_transport=NOT_VERIFIED"
+            echo "existing_signed_ballot_discloses_voter_and_ranking=true"
+          } > "$OUT/source_and_scope.txt"
+          set +e
+          {
+            # This read-only diff is diagnostic; the strict check below remains mandatory.
+            ruff format --diff src/weall/runtime/block_commit.py tests/test_group_emissary_network_process_bft.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_pr88_dispute_material_conflict_review_evidence.py tests/test_audit_remediation_spec_compiler.py || true
+            ruff format --check src/weall/net/net_loop.py tests/test_net_loop_shutdown_order.py src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py tests/test_net_loop_shutdown_order.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_pr88_dispute_material_conflict_review_evidence.py tests/test_audit_remediation_spec_compiler.py scripts/compile_v2_spec.py src/weall/runtime/block_commit.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
+            ruff check src/weall/net/net_loop.py tests/test_net_loop_shutdown_order.py src/weall/runtime/apply/groups.py src/weall/runtime/param_policy.py src/weall/api/routes_public_parts/groups.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py tests/test_group_emissary_network_process_bft.py tests/test_net_loop_shutdown_order.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_pr88_dispute_material_conflict_review_evidence.py tests/test_audit_remediation_spec_compiler.py scripts/compile_v2_spec.py src/weall/runtime/block_commit.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py src/weall/runtime/bft_pending_frontier_impl.py tests/test_group_governance_contract.py tests/test_group_emissary_ballot_transport_boundary.py scripts/validate_group_emissary_architecture_review.py tests/test_group_emissary_architecture_review_contract.py scripts/validate_group_emissary_stv_t0.py tests/test_group_emissary_stv_t0_vectors.py &&
+            python scripts/validate_group_emissary_architecture_review.py &&
+            python scripts/validate_group_emissary_stv_t0.py &&
+            pytest -vv -rx tests/test_group_governance_contract.py tests/test_group_emissary_election_windows.py tests/test_group_emissary_elections_stv.py tests/test_group_emissary_ballot_transport_boundary.py tests/test_group_emissary_architecture_review_contract.py tests/test_group_emissary_stv_t0_vectors.py tests/test_group_emissary_quorum_activation.py tests/test_group_emissary_signed_quorum_replay.py tests/test_group_emissary_committed_block_rehearsal.py tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_election_creation tests/test_p0_03_production_composition.py::test_four_validator_qc_finalizes_signed_emissary_ballots_and_treasury tests/test_group_emissary_network_process_bft.py tests/test_net_loop_shutdown_order.py tests/test_net_bft_preauth_broadcast_gate.py tests/test_v2_role_dynamic_failure_review_evidence.py tests/test_pr88_dispute_material_conflict_review_evidence.py tests/test_audit_remediation_spec_compiler.py tests/test_executor_atomic_commit_crash_recovery.py tests/test_executor_epoch_transition_pending_prune.py tests/test_priority1_missing_parent_fetch_budget.py
+          } 2>&1 | tee "$OUT/targeted_pytest.log"
+          RC="${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=$RC" >> "$OUT/source_and_scope.txt"
+          sha256sum "$OUT/targeted_pytest.log" >> "$OUT/source_and_scope.txt"
+          exit "$RC"
+      - name: Publish focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: group-election-read-${{ github.event.pull_request.head.sha || github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/group-election-read/source_and_scope.txt
+            ${{ runner.temp }}/group-election-read/targeted_pytest.log
+
+  bft-recovery-repeat:
+    name: Repeat four-process authenticated TCP and HTTP recovery
+    needs: group-election-read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR head or dispatched revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Require two further complete recovery rehearsals
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          EXPECTED_HEAD="${{ github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          if [[ "$ACTUAL_HEAD" != "$EXPECTED_HEAD" ]]; then
+            echo "exact_head_checkout_mismatch:$ACTUAL_HEAD!=$EXPECTED_HEAD" >&2
+            exit 1
+          fi
+          OUT="$RUNNER_TEMP/bft-recovery-repeat"
+          mkdir -p "$OUT"
+          {
+            echo "checkout_commit=$ACTUAL_HEAD"
+            echo "expected_head=$EXPECTED_HEAD"
+            echo "repeat_count=2"
+            echo "scenario=AUTHENTICATED_TCP_REJOIN_HTTP_503_X2_CERTIFIED_BLOCK_REPLAY_TO_HEIGHT_6"
+            echo "no_generalized_autonomous_peer_discovery=true"
+            echo "no_public_activation=true"
+            sha256sum src/weall/runtime/bft_pending_frontier_impl.py
+            sha256sum src/weall/net/node.py
+            sha256sum src/weall/net/net_loop.py
+            sha256sum tests/test_net_loop_shutdown_order.py
+            echo "net_shutdown_order=JOIN_PACKET_THREAD_BEFORE_PEER_SESSION_CLOSE"
+            sha256sum src/weall/net/net_loop.py
+            sha256sum tests/test_group_emissary_network_process_bft.py
+          } > "$OUT/scope.txt"
+          for attempt in 1 2; do
+            echo "repetition=$attempt"
+            python -m pytest -q -x tests/test_group_emissary_network_process_bft.py::test_authenticated_tcp_netmesh_delivers_signed_bft_proposal \
+              2>&1 | tee "$OUT/repetition_${attempt}.log"
+            sha256sum "$OUT/repetition_${attempt}.log" >> "$OUT/scope.txt"
+          done
+      - name: Publish bounded repeat evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bft-recovery-repeat-${{ github.event.pull_request.head.sha || github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/bft-recovery-repeat/scope.txt
+            ${{ runner.temp }}/bft-recovery-repeat/repetition_*.log

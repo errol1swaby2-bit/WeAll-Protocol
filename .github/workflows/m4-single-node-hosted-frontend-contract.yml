@@ -1,0 +1,51 @@
+name: M4 hosted single-node frontend trust and navigation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/m4-single-node-hosted-frontend-contract.yml
+      - web/src/lib/nodeConnectionManager.ts
+      - web/src/lib/publicApiOrigin.ts
+      - web/src/components/ConnectionPill.tsx
+      - web/scripts/test_cloudflare_testnet_access_source.mjs
+      - web/scripts/test_cloudflare_testnet_behavior.mjs
+      - web/scripts/test_https_node_api_preflight.mjs
+      - web/scripts/check_https_node_api.mjs
+      - Weall-Protocol/docs/testnet/M4_SINGLE_NODE_MULTI_USER_INTEGRATION.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hosted-frontend-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout triggering PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install frozen frontend dependencies
+        run: npm ci
+      - name: Validate M4 hosted browser contract
+        run: |
+          set -Eeuo pipefail
+          npm run typecheck
+          node scripts/test_cloudflare_testnet_access_source.mjs
+          node scripts/test_cloudflare_testnet_behavior.mjs
+          node scripts/test_https_node_api_preflight.mjs
+          npm run production-safety-check
+          echo 'scope=HOSTED_BROWSER_TRUST_AND_NAVIGATION_ONLY'
+          echo 'genesis_authorization=NOT_ESTABLISHED'
+          echo 'remote_multi_user_rehearsal=NOT_PERFORMED'
+          git rev-parse HEAD

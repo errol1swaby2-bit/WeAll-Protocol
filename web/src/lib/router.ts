@@ -65,17 +65,21 @@ export type RouteMeta = {
 
 export type RouteMatch =
   | { path: "/login" }
+  | { path: "/onboarding/register" }
   | { path: "/home" }
   | { path: "/feed" }
   | { path: "/create" }
   | { path: "/post/:id"; id: string }
   | { path: "/verification" }
+  | { path: "/verification/async/:stage"; stage: "explain" | "prepare" | "record" | "review" | "submit" | "track" }
+  | { path: "/verification/live/journey/:stage"; stage: "explain" | "request" | "track" }
   | { path: "/verification/live/:caseId"; caseId: string }
   | { path: "/reviews" }
   | { path: "/reviews/:id"; id: string }
   | { path: "/groups" }
   | { path: "/groups/create" }
   | { path: "/groups/:id"; id: string }
+  | { path: "/groups/:id/decisions/new"; id: string }
   | { path: "/activity" }
   | { path: "/decisions" }
   | { path: "/decisions/create" }
@@ -130,6 +134,25 @@ function contract(overrides: Partial<RouteDataContract>): RouteDataContract {
 }
 
 const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
+  "/onboarding/register": {
+    section: "Start",
+    label: "Register account",
+    title: "Finish account registration",
+    description: "Register your saved account key on the network and check confirmed synchronization.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "login",
+    normalNav: false,
+    breadcrumbs: [{ label: "Sign in", href: "/login" }],
+    dataContract: contract({
+      primaryObject: "Account registration",
+      contextPanelData: "Account creation progress and confirmed network status",
+      blockingDependencies: ["Verified recovery", "Local signer", "Registration transaction", "Synchronized account state"],
+    }),
+  },
   "/login": {
     section: "Start",
     label: "Sign in",
@@ -171,10 +194,10 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     section: "Feed",
     label: "Feed",
     title: "Feed",
-    description: "Read posts, join public replies, react, share, and report harmful content when eligible.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
+    description: "Read posts anonymously; sign in to join public replies, react, share, or report content when eligible.",
+    public: true,
+    authRequired: false,
+    requiresReady: false,
     mode: "hub",
     fab: "post",
     rightRail: "feed",
@@ -238,6 +261,44 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Account verification",
       contextPanelData: "Verification status, next steps, and trusted responsibilities",
       blockingDependencies: ["Account session", "Authoritative account state"],
+    }),
+  },
+  "/verification/async/:stage": {
+    section: "Trust & Verification",
+    label: "Async human review",
+    title: "Async human review",
+    description: "Prepare, record, review and submit fresh encrypted evidence through a guided local journey.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "verification",
+    normalNav: false,
+    breadcrumbs: [{ label: "Account Verification", href: "/verification" }],
+    dataContract: contract({
+      primaryObject: "Async verification stage",
+      contextPanelData: "Local recording state and canonical case history",
+      blockingDependencies: ["Account session", "Local signing key", "Network case history", "Camera and microphone permission"],
+    }),
+  },
+  "/verification/live/journey/:stage": {
+    section: "Trust & Verification",
+    label: "Live human review",
+    title: "Live human review",
+    description: "Understand, request and track live human verification without interpreting a room as a verdict.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "verification",
+    normalNav: false,
+    breadcrumbs: [{ label: "Account Verification", href: "/verification" }],
+    dataContract: contract({
+      primaryObject: "Live verification stage",
+      contextPanelData: "P2P room commitments and canonical live-case history",
+      blockingDependencies: ["Account session", "Canonical Tier-1 account", "Network live-case history", "Independent live reviewer authorization"],
     }),
   },
   "/verification/live/:caseId": {
@@ -352,6 +413,26 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Group",
       contextPanelData: "Group activity, membership state, and helpful actions",
       blockingDependencies: [],
+    }),
+  },
+  "/groups/:id/decisions/new": {
+    section: "Groups",
+    label: "Create Group Decision",
+    title: "Create Group Decision",
+    description: "Draft a signed governance proposal bound to the verified canonical group ID.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    minPohTier: 2,
+    mode: "action",
+    fab: "none",
+    rightRail: "decision_create",
+    normalNav: false,
+    breadcrumbs: [{ label: "Groups", href: "/groups" }],
+    dataContract: contract({
+      primaryObject: "Group-scoped governance proposal",
+      contextPanelData: "Canonical group ID, electorate scope, signer readiness and submission status",
+      blockingDependencies: ["Account session", "Trusted account state", "Canonical group governance contract"],
     }),
   },
   "/activity": {
@@ -658,7 +739,7 @@ const NAV_SECTIONS: NavSection[] = [
     description: "Core social routes.",
     items: [
       { href: "/home", label: "Home", description: "Your starting point and pending actions.", icon: "⌂", public: false, requiresReady: true },
-      { href: "/feed", label: "Feed", description: "Read and create posts.", icon: "≋", public: false, requiresReady: true },
+      { href: "/feed", label: "Feed", description: "Read public posts; create when eligible.", icon: "≋", public: true, requiresReady: false },
       { href: "/groups", label: "Groups", description: "Communities and membership.", icon: "◌", public: true },
       { href: "/activity", label: "Activity", description: "Public notices and assignments.", icon: "✉", public: false, requiresReady: true },
       { href: "/decisions", label: "Decisions", description: "Community votes and results.", icon: "▣", public: true },
@@ -687,11 +768,56 @@ function decodeRoutePart(value: string): string {
 export function matchRoute(path: string): RouteMatch {
   const r = path.split("?")[0];
 
+  // V1.6 compatibility aliases reuse existing canonical screen and backend gates.
+  // Aliasing is not proof that a proposed dedicated subworkspace is implemented.
+  if (r === "/start") return { path: "/login" };
+  if (r === "/me") return { path: "/profile" };
+  if (r === "/me/profile-appearance") return { path: "/profile" };
+  if (r === "/feed/new") return { path: "/create" };
+  if (r === "/groups/new") return { path: "/groups/create" };
+  if (r === "/decisions/new") return { path: "/decisions/create" };
+  if (r === "/tasks") return { path: "/reviews" };
+  if (r === "/tasks/content" || r === "/tasks/disputes" ||
+      r === "/tasks/poh-async" || r === "/tasks/poh-live") {
+    return { path: "/reviews" };
+  }
+  if (r === "/me/security/sessions") return { path: "/session" };
+  if (r === "/me/transactions") return { path: "/transactions" };
+  if (r === "/protocol/economics") return { path: "/economics" };
+  if (r === "/protocol/tools") return { path: "/advanced" };
+  if (r === "/settings/appearance" || r === "/settings/themes" ||
+      r === "/settings/layout" || r === "/settings/accessibility" ||
+      r === "/settings/connection" || r === "/settings/advanced") {
+    return { path: "/settings" };
+  }
+  if (r.startsWith("/people/")) {
+    const account = decodeRoutePart(r.slice("/people/".length));
+    if (account) return { path: "/account/:account", account };
+  }
+
   if (r === "/" || r === "/login") return { path: "/login" };
+  if (r === "/onboarding/register") return { path: "/onboarding/register" };
+  if (r === "/verification/async" || r === "/verification/live/request" || r === "/verification/history") {
+    return { path: "/verification" };
+  }
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };
   if (r === "/create") return { path: "/create" };
   if (r === "/verification") return { path: "/verification" };
+  if (r.startsWith("/verification/async/")) {
+    const stage = r.slice("/verification/async/".length);
+    if (["explain", "prepare", "record", "review", "submit", "track"].includes(stage)) {
+      return { path: "/verification/async/:stage", stage: stage as "explain" | "prepare" | "record" | "review" | "submit" | "track" };
+    }
+    return { path: "/verification" };
+  }
+  if (r.startsWith("/verification/live/journey/")) {
+    const stage = r.slice("/verification/live/journey/".length);
+    if (["explain", "request", "track"].includes(stage)) {
+      return { path: "/verification/live/journey/:stage", stage: stage as "explain" | "request" | "track" };
+    }
+    return { path: "/verification" };
+  }
   if (r.startsWith("/verification/live/")) {
     const caseId = decodeRoutePart(r.slice("/verification/live/".length));
     if (caseId) return { path: "/verification/live/:caseId", caseId };
@@ -719,6 +845,21 @@ export function matchRoute(path: string): RouteMatch {
   if (r.startsWith("/reports/")) {
     const id = decodeRoutePart(r.slice("/reports/".length));
     if (id) return { path: "/reports/:id", id };
+  }
+
+  // Deep-linked group proposal creation resolves before the group-id catch-all.
+  const groupProposalRoute = /^\/groups\/([^/]+)\/decisions\/new$/.exec(r);
+  if (groupProposalRoute) {
+    const id = decodeRoutePart(groupProposalRoute[1]);
+    if (id) return { path: "/groups/:id/decisions/new", id };
+  }
+
+  // Role-specific group work must not be interpreted as part of a group ID.
+  // The group page checks canonical role state before rendering any action.
+  const groupRoleRoute = /^\/groups\/([^/]+)\/(responsibilities|reports|manage\/(?:members|moderation)|emissaries\/(?:work|elections(?:\/[^/]+)?))$/.exec(r);
+  if (groupRoleRoute) {
+    const id = decodeRoutePart(groupRoleRoute[1]);
+    if (id) return { path: "/groups/:id", id };
   }
 
   if (r.startsWith("/groups/")) {
@@ -793,7 +934,7 @@ export function isActiveNavPath(currentPath: string, href: string): boolean {
   if (target === "/decisions") return current === "/decisions" || current === "/decisions/:id" || current === "/decisions/create";
   if (target === "/reports") return current === "/reports" || current === "/reports/:id";
   if (target === "/reviews") return current === "/reviews" || current === "/reviews/:id";
-  if (target === "/verification") return current === "/verification" || current === "/verification/live/:caseId";
+  if (target === "/verification") return current === "/verification" || current === "/verification/async/:stage" || current === "/verification/live/journey/:stage" || current === "/verification/live/:caseId";
   return current === target || currentPath === href || currentPath.startsWith(`${href}/`);
 }
 

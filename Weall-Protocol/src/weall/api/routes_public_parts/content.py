@@ -22,6 +22,14 @@ router = APIRouter()
 
 Json = dict[str, Any]
 
+# Temporary deterministic safety budgets. The compatibility snapshot is
+# already materialized by the executor before these checks run; these limits
+# bound route-level work, not whole-state deserialization or node storage.
+_PUBLIC_LOBBY_MAX_GLOBAL_COMMENTS = 10_000
+_PUBLIC_LOBBY_MAX_DISPUTES = 2_048
+_PUBLIC_LOBBY_MAX_DISPUTE_INDEX = 4_096
+_PUBLIC_LOBBY_MAX_VISIBILITY_EVALUATIONS = 512
+
 
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
@@ -47,6 +55,37 @@ def _snapshot(request: Request) -> Json:
         return st if isinstance(st, dict) else {}
     except Exception:
         return {}
+
+
+def _required_public_lobby_snapshot(request: Request) -> Json:
+    """Distinguish a genuinely empty public thread from unavailable executor state.
+
+    The existing compatibility read surfaces still use _snapshot's historical
+    empty-state fallback; only the anonymous public-lobby view opts into a
+    strict, observable availability contract.
+    """
+    executor = getattr(request.app.state, "executor", None)
+    if executor is None or not callable(getattr(executor, "read_state", None)):
+        raise ApiError.service_unavailable(
+            "public_lobby_state_unavailable",
+            "public lobby state unavailable",
+            {},
+        )
+    try:
+        state = executor.read_state()
+    except Exception as exc:
+        raise ApiError.service_unavailable(
+            "public_lobby_state_unavailable",
+            "public lobby state unavailable",
+            {},
+        ) from exc
+    if not isinstance(state, dict):
+        raise ApiError.service_unavailable(
+            "public_lobby_state_unavailable",
+            "public lobby state unavailable",
+            {},
+        )
+    return state
 
 
 def _content_root(st: Json) -> Json:
@@ -288,7 +327,20 @@ def _post_visible(st: Json, post: Json, post_id: str = "") -> bool:
     return vis in {"public", ""} or (bool(gid) and vis == "group")
 
 
-def _comment_visible(st: Json, comment: Json) -> bool:
+def _canonical_lobby_comment_index_matches(comment: Json, index_id: str) -> bool:
+    """Require an explicit canonical index identity for synthetic public-lobby comments.
+
+    A legacy "id" alias cannot substitute for comment_id: otherwise list and
+    detail reads can disagree about which moderation target was evaluated.
+    Other historical comment surfaces retain their existing compatibility.
+    """
+    if str(comment.get("surface") or "").strip().lower() != "public_lobby":
+        return True
+    canonical = comment.get("comment_id")
+    return isinstance(canonical, str) and bool(canonical) and canonical == str(index_id)
+
+
+def _comment_visible(st: Json, comment: Json, comment_id: str = "") -> bool:
     if not isinstance(comment, dict):
         return False
     if bool(comment.get("deleted", False)):
@@ -297,6 +349,21 @@ def _comment_visible(st: Json, comment: Json) -> bool:
     if vis not in {"public", ""}:
         return False
     root_id = str(comment.get("post_id") or comment.get("thread_id") or "").strip()
+    canonical_id = str(comment_id or comment.get("comment_id") or comment.get("id") or "").strip()
+    if str(comment.get("surface") or "").strip().lower() == "public_lobby":
+        # Tier-0 public-lobby comments intentionally reference a synthetic
+        # public-lobby: target, not a Tier-2 post. Never generalize this
+        # exception to an arbitrary missing parent, legacy private comment,
+        # deleted comment, or a moderation-hidden target.
+        return bool(
+            root_id.startswith("public-lobby:")
+            and canonical_id
+            and not _content_target_hidden_by_review(st, canonical_id, comment)
+        )
+    # An ordinary public comment must obey the same committed moderation and
+    # dispute visibility decisions as the post and the synthetic lobby.
+    if canonical_id and _content_target_hidden_by_review(st, canonical_id, comment):
+        return False
     if not root_id:
         return True
     root = _as_dict(_posts(st).get(root_id))
@@ -473,16 +540,8 @@ def _viewer_can_read_post(st: Json, post: Json, viewer: str) -> bool:
 
 
 def _viewer_can_read_comment(st: Json, comment: Json, viewer: str) -> bool:
-    if not isinstance(comment, dict) or bool(comment.get("deleted", False)):
-        return False
-    owner = _owner_of_content(comment)
-    if owner and owner == viewer:
-        return True
-    root_id = str(comment.get("post_id") or comment.get("thread_id") or "").strip()
-    root = _as_dict(_posts(st).get(root_id)) if root_id else {}
-    if root:
-        return _viewer_can_read_post(st, root, viewer)
-    return _visibility_of_content(comment) in {"public", ""}
+    """Authenticated compatibility views cannot override public visibility."""
+    return _comment_visible(st, comment)
 
 
 def _content_identity(obj: Json) -> str:
@@ -500,9 +559,9 @@ def _sort_by_nonce_desc(items: list[Json], *, key: str) -> list[Json]:
 
 def _comment_counts_by_post(st: Json) -> dict[str, int]:
     counts: dict[str, int] = {}
-    for _, raw in sorted(_comments(st).items(), key=lambda item: str(item[0])):
+    for cid, raw in sorted(_comments(st).items(), key=lambda item: str(item[0])):
         com = _as_dict(raw)
-        if not _comment_visible(st, com):
+        if not _comment_visible(st, com, str(cid)):
             continue
         post_id = str(com.get("post_id") or com.get("thread_id") or "").strip()
         if post_id:
@@ -788,6 +847,119 @@ def _with_reaction_counts(obj: Json, counts_by_target: dict[str, dict[str, int]]
     return out
 
 
+@router.get("/public-lobby/comments")
+def public_lobby_comments(request: Request) -> dict[str, object]:
+    """Read a single Tier-0 public-lobby thread through bounded public state.
+
+    A lobby thread is a synthetic `public-lobby:` target, not an ordinary
+    Tier-2 post. Only explicitly marked, canonical, visible lobby comments
+    are returned. No signer/session authority or private content is exposed.
+    """
+
+    qp = request.query_params
+    thread_id = _str_param(qp.get("thread_id")).strip()
+    if not thread_id.startswith("public-lobby:"):
+        raise ApiError.bad_request(
+            "invalid_public_lobby_target",
+            "thread_id must identify a public-lobby: thread",
+            {},
+        )
+    if len(thread_id.encode("utf-8")) > 2048:
+        raise ApiError.bad_request(
+            "invalid_public_lobby_target",
+            "public lobby thread identifier is too long",
+            {},
+        )
+
+    limit = max(1, min(50, _int_param(qp.get("limit"), 25)))
+    raw_cursor = _str_param(qp.get("cursor")).strip()
+    if len(raw_cursor) > 4096:
+        raise ApiError.bad_request("invalid_cursor", "invalid public lobby cursor", {})
+    cursor_nonce, cursor_id = _cursor_unpack(raw_cursor or None)
+    if raw_cursor and (cursor_nonce is None or cursor_id is None):
+        raise ApiError.bad_request("invalid_cursor", "invalid public lobby cursor", {})
+
+    st = _required_public_lobby_snapshot(request)
+    comments = _comments(st)
+    # This is a bounded compatibility scan, NOT a production-scale index.
+    # Refuse unavailable workloads rather than return a false empty or partial
+    # page, and keep legacy immutable consensus state unchanged.
+    if (
+        len(comments) > _PUBLIC_LOBBY_MAX_GLOBAL_COMMENTS
+        or len(_as_dict(st.get("disputes_by_id"))) > _PUBLIC_LOBBY_MAX_DISPUTES
+        or len(_as_dict(st.get("disputes_by_target"))) > _PUBLIC_LOBBY_MAX_DISPUTE_INDEX
+    ):
+        raise ApiError.service_unavailable(
+            "public_lobby_read_budget_exceeded",
+            "public lobby read budget exceeded; indexed read model required",
+            {},
+        )
+
+    # Filter once and order by the same canonical cursor tuple as before.
+    # We defer expensive dispute/moderation checks until the candidates have
+    # been sorted, then stop as soon as one additional visible record proves
+    # whether the next page exists.
+    candidates: list[tuple[int, str, Json]] = []
+    for cid, raw in comments.items():
+        comment = _as_dict(raw)
+        if str(comment.get("surface") or "").strip().lower() != "public_lobby":
+            continue
+        if str(comment.get("post_id") or "").strip() != thread_id:
+            continue
+        comment_id = str(cid)
+        if not _canonical_lobby_comment_index_matches(comment, comment_id):
+            continue
+        nonce = _safe_int(comment.get("created_nonce"), 0)
+        if cursor_nonce is not None and cursor_id is not None:
+            if nonce > cursor_nonce or (nonce == cursor_nonce and comment_id >= cursor_id):
+                continue
+        candidates.append((nonce, comment_id, comment))
+    candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+
+    visible: list[Json] = []
+    inspected = 0
+    for nonce, comment_id, comment in candidates:
+        if inspected >= _PUBLIC_LOBBY_MAX_VISIBILITY_EVALUATIONS:
+            # Hiding a large prefix must never silently truncate results.
+            raise ApiError.service_unavailable(
+                "public_lobby_read_budget_exceeded",
+                "public lobby read budget exceeded; indexed read model required",
+                {},
+            )
+        inspected += 1
+        if not _comment_visible(st, comment, comment_id):
+            continue
+        visible.append(
+            {
+                "comment_id": comment_id,
+                "post_id": thread_id,
+                "surface": "public_lobby",
+                "author": _str_param(comment.get("author")),
+                "body": _str_param(comment.get("body")),
+                "created_nonce": nonce,
+                "visibility": "public",
+            }
+        )
+        if len(visible) > limit:
+            break
+
+    page = visible[:limit]
+    next_cursor = None
+    if len(visible) > limit and page:
+        last = page[-1]
+        next_cursor = _cursor_pack(
+            created_at_nonce=_safe_int(last.get("created_nonce"), 0),
+            content_id=str(last.get("comment_id") or ""),
+        )
+
+    return {
+        "ok": True,
+        "thread_id": thread_id,
+        "items": page,
+        "next_cursor": next_cursor,
+    }
+
+
 @router.get("/feed")
 def feed(request: Request) -> dict[str, object]:
     """Public feed.
@@ -998,7 +1170,11 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
     comments = _comments(st)
     if pid in comments:
         com = _with_reaction_counts(_as_dict(comments.get(pid)), _reaction_counts_by_target(st))
-        if bool(com.get("deleted", False)) or not _comment_visible(st, com):
+        if (
+            not _canonical_lobby_comment_index_matches(com, pid)
+            or bool(com.get("deleted", False))
+            or not _comment_visible(st, com, pid)
+        ):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
@@ -1043,7 +1219,7 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     posts = _posts(st)
     if pid in posts:
         post = _with_reaction_counts(_as_dict(posts.get(pid)), reaction_counts)
-        if not _viewer_can_read_post(st, post, viewer):
+        if not _post_visible(st, post, pid):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
@@ -1058,7 +1234,9 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     comments = _comments(st)
     if pid in comments:
         com = _with_reaction_counts(_as_dict(comments.get(pid)), reaction_counts)
-        if not _viewer_can_read_comment(st, com, viewer):
+        if not _canonical_lobby_comment_index_matches(com, pid) or not _comment_visible(
+            st, com, pid
+        ):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
@@ -1111,7 +1289,7 @@ def thread_get(request: Request, thread_id: str) -> dict[str, object]:
             continue
         if str(com.get("post_id") or "") != tid:
             continue
-        if not _comment_visible(st, com):
+        if not _comment_visible(st, com, str(cid)):
             continue
         comment_id = _str_param(com.get("comment_id") or com.get("id") or cid).strip()
         com.setdefault("comment_id", comment_id)

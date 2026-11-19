@@ -1,0 +1,57 @@
+name: PR93 A03 public-lobby shadow index candidate (no authority)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pr93-a03-shadow-index-candidate.yml
+      - Weall-Protocol/src/weall/api/public_lobby_incremental_candidate.py
+      - Weall-Protocol/src/weall/api/public_lobby_index_candidate.py
+      - Weall-Protocol/tests/test_pr93_public_lobby_incremental_candidate.py
+      - Weall-Protocol/tests/test_pr93_public_lobby_index_candidate.py
+      - Weall-Protocol/src/weall/api/routes_public_parts/content.py
+      - Weall-Protocol/src/weall/runtime/state_hash.py
+      - Weall-Protocol/src/weall/runtime/sqlite_db.py
+      - Weall-Protocol/tests/test_pr93_public_lobby_route_registry.py
+      - Weall-Protocol/tests/test_public_lobby_comment_read_model.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shadow-index-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install hash-locked backend test runtime
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Ruff format and lint for A03 candidate and canonical route regressions
+        run: |
+          python -m ruff format --check src/weall/api/public_lobby_incremental_candidate.py src/weall/api/public_lobby_index_candidate.py tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py tests/test_pr93_public_lobby_route_registry.py
+          python -m ruff check src/weall/api/public_lobby_incremental_candidate.py src/weall/api/public_lobby_index_candidate.py tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py tests/test_pr93_public_lobby_route_registry.py
+      - name: Offline SQLite shadow index and existing anonymous route parity
+        run: |
+          python -m pytest -q tests/test_pr93_public_lobby_incremental_candidate.py tests/test_pr93_public_lobby_index_candidate.py tests/test_public_lobby_comment_read_model.py tests/test_pr93_public_lobby_route_registry.py
+      - name: Record narrow proof boundary
+        run: |
+          echo 'proof=OFFLINE_PUBLIC_LOBBY_INDEX_SHADOW_PARITY_ONLY'
+          echo 'live_route_cutover=NOT_ENABLED'
+          echo 'automatic_commit_and_state_sync_index_updates=NOT_IMPLEMENTED'
+          echo 'one_block_incremental_shadow_reconcile=OPT_IN_OFFLINE_ONLY'
+          echo 'independent_BFT_finality=NOT_PROVEN'
+          echo 'V2_semantic_approval=NOT_GRANTED'
+          echo 'genesis_authorization=NOT_ESTABLISHED'
+          git rev-parse HEAD

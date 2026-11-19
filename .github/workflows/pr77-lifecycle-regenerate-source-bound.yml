@@ -1,0 +1,135 @@
+name: PR77 source-bound lifecycle refresh (no semantic authorization)
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - .github/workflows/pr77-lifecycle-regenerate-source-bound.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr77-source-bound-lifecycle-artifact-refresh
+  cancel-in-progress: false
+
+jobs:
+  regenerate-scope-locked:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact draft branch for controlled artifact update
+        uses: actions/checkout@v4
+        with:
+          ref: review/pr70-pr75-pr76-consolidation-stage23-20261031
+          fetch-depth: 0
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+
+      - name: Verify all current-version transaction/rollback/hash oracle checks
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python -m pytest -q             tests/test_pr77_all_tx_deepcopy_oracle.py             tests/test_pr77_full_dispute_legacy_ballot_oracle.py             tests/test_pr77_nested_proxy_json_hash.py
+
+      - name: Regenerate from source and create exhaustive old-new drift review
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          cp generated/tx_lifecycle_assurance_v1_5.json pr77_lifecycle_prior.json
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          before = json.loads(Path('pr77_lifecycle_prior.json').read_text())
+          after = json.loads(Path('generated/tx_lifecycle_assurance_v1_5.json').read_text())
+          old_rows = {row['tx_type']: row for row in before['rows']}
+          new_rows = {row['tx_type']: row for row in after['rows']}
+          if len(old_rows) != 236 or len(new_rows) != 236 or old_rows.keys() != new_rows.keys():
+              raise SystemExit('NO_GO:lifecycle_236_inventory_not_preserved')
+          changed = sorted(tx for tx in old_rows if old_rows[tx] != new_rows[tx])
+          non_row = sorted(
+              key for key in set(before) | set(after)
+              if key != 'rows' and before.get(key) != after.get(key)
+          )
+          allowed = {
+              'ROLE_JUROR_ACTIVATE',
+              'ROLE_JUROR_REINSTATE',
+              'ROLE_JUROR_SUSPEND',
+              'ROLE_NODE_OPERATOR_SUSPEND',
+          }
+          diff = {
+              'schema': 'weall.pr77.source_bound_lifecycle_refresh_review.v1',
+              'changed_tx_types': changed,
+              'additional_tx_types': sorted(set(changed) - allowed),
+              'changed_non_row_fields': non_row,
+              'historical_compatibility_proven': False,
+              'independent_semantic_approvals_proven': False,
+              'generated_manifest_is_not_review_authorization': True,
+              'old_new_successful_execution': {
+                  tx: {
+                      'old': old_rows[tx]['successful_execution'],
+                      'new': new_rows[tx]['successful_execution'],
+                  }
+                  for tx in changed
+              },
+          }
+          Path('pr77_lifecycle_refresh_review.json').write_text(
+              json.dumps(diff, indent=2, sort_keys=True) + '\n'
+          )
+          print(json.dumps({
+              'changed_tx_types': changed,
+              'additional_tx_types': diff['additional_tx_types'],
+              'changed_non_row_fields': non_row,
+              'historical_compatibility_proven': False,
+          }, sort_keys=True))
+          if non_row or set(changed) - allowed:
+              raise SystemExit('NO_GO:unexpected_new_semantic_drift_requires_individual_review')
+          PY
+
+      - name: Check no unrelated files changed, then commit only source-bound lifecycle manifest
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
+          git diff --check
+          python - <<'PY'
+          from subprocess import check_output
+          changes = set(check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          allow = {'Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json'}
+          assert changes <= allow, f'NO_GO:unexpected_dirty_files:{sorted(changes - allow)}'
+          PY
+          if git diff --quiet -- generated/tx_lifecycle_assurance_v1_5.json; then
+            echo 'Source-bound V1.5 lifecycle manifest already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- generated/tx_lifecycle_assurance_v1_5.json
+          git commit -m 'chore(pr77): refresh source-bound V1.5 lifecycle fixture evidence only'
+          git push origin HEAD:review/pr70-pr75-pr76-consolidation-stage23-20261031
+
+      - name: Upload source-bound comparison and generator output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-source-bound-lifecycle-only-unapproved
+          path: |
+            Weall-Protocol/pr77_lifecycle_refresh_review.json
+            Weall-Protocol/pr77_lifecycle_prior.json
+            Weall-Protocol/generated/tx_lifecycle_assurance_v1_5.json
+          retention-days: 30
+          if-no-files-found: warn

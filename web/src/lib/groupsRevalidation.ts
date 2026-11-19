@@ -83,3 +83,39 @@ export async function reconcileMembershipPending(args: { groupId: string; accoun
   return null;
 }
 
+/**
+ * Approval-required groups first record a pending request, and only a
+ * separate moderator-signed GROUP_MEMBERSHIP_DECIDE can resolve it.
+ * Treat a decision as confirmed only when the public canonical group
+ * read model reflects both request consumption and the expected member state.
+ */
+export async function reconcileMembershipDecision(args: {
+  groupId: string;
+  account: string;
+  decision: "accept" | "reject";
+  base: string;
+}): Promise<ReconcileResult | null> {
+  if (!args.groupId || !args.account) return null;
+  try {
+    const raw: any = await api.groups.get(args.groupId, args.base);
+    const group = raw?.group || raw || null;
+    if (!group || String(group.group_id || group.id || "") !== args.groupId) return null;
+
+    const requests = group.membership_requests && typeof group.membership_requests === "object"
+      ? group.membership_requests : {};
+    const members = group.members && typeof group.members === "object" ? group.members : {};
+    const requestPending = Object.prototype.hasOwnProperty.call(requests, args.account);
+    const isMember = Object.prototype.hasOwnProperty.call(members, args.account);
+
+    // Absence alone does NOT prove a rejection: the request may never have
+    // existed or the observer may have loaded an old snapshot. Only the exact
+    // signed tx receipt may establish a rejection result.
+    if (args.decision === "reject") return null;
+    if (!requestPending && isMember) {
+      return confirmed(`Accepted membership is reflected in canonical group state for ${args.account}.`);
+    }
+  } catch {
+    // Remain pending when the observer read model is behind genesis.
+  }
+  return null;
+}

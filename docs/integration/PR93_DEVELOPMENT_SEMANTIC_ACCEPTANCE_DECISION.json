@@ -1,0 +1,22 @@
+{
+  "schema": "weall.pr93.development_semantic_acceptance_decision.v1",
+  "decision": "ACCEPT_EXACT_CURRENT_DEVELOPMENT_CONTRACTS",
+  "approval_statement": "I agree let's proceed",
+  "decision_date": "2026-11-17",
+  "approval_provenance": "Explicit repository-maintainer acceptance in the project conversation after presentation of the exact candidate; AI-assisted technical review; not an independent review or cryptographic signature.",
+  "candidate_commit": "730166e048bea33ec90bc1190f3aeb187bccb75b",
+  "candidate_git_blob": "77c3c17d57069e16fea5ca899e576cf49bfae4a2",
+  "candidate_path": "docs/integration/PR93_DEVELOPMENT_SEMANTIC_ACCEPTANCE_CANDIDATE.json",
+  "validated_workflow_run": 44150569172,
+  "validated_test_count": 631,
+  "validated_packet_artifact": 14358258454,
+  "validated_packet_compact_sha256": "4d756f82534f2f3a8a002d4b982459e50181fa52a2786d7775eb9cccc5b75b5f",
+  "validated_route_diagnostic_run": 44150569221,
+  "approved_transactions": 20,
+  "approved_routes": 1,
+  "scope": "Current development implementation descriptions only",
+  "independent_review": false,
+  "authority_effect": "none; no public testnet, mainnet, Genesis, constitutional, validator, severe sanction, historical replay or release authority",
+  "application": "Only the exact approved candidate may be applied. Recompute all 236 transaction and 162 route bindings and validate the pre-acceptance packet before writing; reject any mismatch. Preserve the historical packet and every unrelated review. No future automatic semantic acceptance.",
+  "security_gate": "CVE-2026-112366 and all regular security and CI requirements remain separate and mandatory."
+}

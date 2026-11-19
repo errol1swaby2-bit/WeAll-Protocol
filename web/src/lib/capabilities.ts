@@ -1,14 +1,16 @@
-function envString(name: string, fallback = ""): string {
+type PublicEnvKey = `VITE_${string}`;
+
+function envString(name: PublicEnvKey, fallback = ""): string {
   const raw = (import.meta.env[name] as string | undefined) ?? fallback;
   return String(raw ?? "").trim();
 }
 
-function envBool(name: string, fallback = false): boolean {
+function envBool(name: PublicEnvKey, fallback = false): boolean {
   const raw = envString(name, fallback ? "1" : "0").toLowerCase();
   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
 }
 
-function envInt(name: string, fallback: number): number {
+function envInt(name: PublicEnvKey, fallback: number): number {
   const raw = envString(name, String(fallback));
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) ? n : fallback;

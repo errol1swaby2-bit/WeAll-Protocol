@@ -12,6 +12,7 @@ from weall.runtime.node_operator_responsibilities import (
     is_node_operator_active,
 )
 from weall.runtime.poh.state import effective_poh_tier
+from weall.runtime.reputation_role_gate import role_activation_reputation_decision
 from weall.runtime.reputation_units import account_reputation_units
 from weall.runtime.reviewer_responsibilities import REVIEWER_LANES
 from weall.runtime.tx_admission import TxEnvelope
@@ -165,12 +166,34 @@ def _assign_unassigned_content_reviews_to_juror(ledger: Json, acct: str, *, nonc
             continue
         if _active_assigned_jurors(dispute):
             continue
-        if blocked and blocked != "no_unconflicted_content_reviewer":
+        # A prior conflicting applicant must not permanently block a case
+        # from being assigned to a later unconflicted opt-in reviewer.
+        retryable_blocks = {
+            "no_unconflicted_content_reviewer",
+            "target_owner_cannot_review_own_content",
+            "reporter_cannot_review_own_report",
+            "reviewer_withdrawn_pending_replacement",
+        }
+        if blocked and blocked not in retryable_blocks:
             continue
         target_owner = _content_target_owner_for_dispute(ledger, dispute)
         if target_owner and _same_account(target_owner, acct):
             dispute["target_owner"] = target_owner
             dispute["assignment_blocked_reason"] = "target_owner_cannot_review_own_content"
+            disputes[dispute_id] = dispute
+            continue
+
+        # A reporter is a material party to their own content challenge.
+        # The strict-profile constitutional panel is selected elsewhere;
+        # the legacy/local single-reviewer fallback must enforce the same
+        # self-review exclusion rather than granting duty on opt-in alone.
+        reporter_ids = [
+            dispute.get("reported_by"),
+            dispute.get("flagged_by"),
+            dispute.get("reporter"),
+        ]
+        if any(_same_account(reporter, acct) for reporter in reporter_ids):
+            dispute["assignment_blocked_reason"] = "reporter_cannot_review_own_report"
             disputes[dispute_id] = dispute
             continue
 
@@ -263,31 +286,42 @@ def _require_role_activation_eligible(
     role: str,
     minimum_reputation_milli: int = 0,
 ) -> Json:
-    account = _account_for_activation(ledger, acct)
-    if bool(account.get("banned", False)) or bool(account.get("locked", False)):
-        raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct, "role": role})
-    if effective_poh_tier(ledger, acct) < 2:
-        raise RolesApplyError(
-            "forbidden", "live_verification_required", {"account_id": acct, "role": role}
+    """Enforce versioned predicate without changing legacy activation defaults.
+
+    Missing policy version remains legacy v1; v2 requires an explicit
+    chain-committed parameter and separate consensus activation review.
+    Other role-specific authorization checks are intentionally unchanged.
+    """
+    decision = role_activation_reputation_decision(
+        ledger,
+        acct,
+        role=role,
+        minimum_reputation_milli=minimum_reputation_milli,
+    )
+    if not bool(decision["eligible"]):
+        # The pre-versioned _account_for_activation emitted no "role" in
+        # account_not_found details. Keep that replay-observable v1 contract
+        # even when rejection is mediated through the shared pure predicate.
+        details: Json = (
+            {"account_id": acct}
+            if decision["reason"] == "account_not_found"
+            else {"account_id": acct, "role": role}
         )
-    if _role_eligibility_revoked(ledger, acct, role):
-        raise RolesApplyError(
-            "forbidden", "role_eligibility_revoked", {"account_id": acct, "role": role}
-        )
-    required = max(0, int(minimum_reputation_milli))
-    actual = account_reputation_units(account, default=0)
-    if actual < required:
-        raise RolesApplyError(
-            "forbidden",
-            "reputation_insufficient",
-            {
-                "account_id": acct,
-                "role": role,
-                "required_milli": int(required),
-                "actual_milli": int(actual),
-            },
-        )
-    return account
+        if decision["reason"] == "reputation_insufficient":
+            details.update(
+                required_milli=int(decision["required_milli"]),
+                actual_milli=int(decision["actual_milli"]),
+            )
+        elif decision["reason"] == "canonical_role_reputation_ineligible":
+            details.update(
+                gate_version=int(decision["gate_version"]),
+                canonical_role=decision["canonical_role"],
+                canonical_reasons=list(decision["canonical_reasons"]),
+            )
+        elif decision["reason"] == "policy_unknown":
+            details["gate_version"] = decision["gate_version"]
+        raise RolesApplyError(str(decision["code"]), str(decision["reason"]), details)
+    return _account_for_activation(ledger, acct)
 
 
 def _role_required_reputation_milli(
@@ -993,6 +1027,77 @@ def _reviewer_lane_values(payload: Json) -> list[str]:
     return lanes
 
 
+def _reviewer_withdrawal_v1_active(ledger: Json) -> bool:
+    """An explicit height gate keeps historical reviewer-lane replay unchanged."""
+    params = _as_dict(ledger.get("params"))
+    activation = params.get("reviewer_withdrawal_v1_activation_height")
+    return (
+        isinstance(activation, int)
+        and not isinstance(activation, bool)
+        and activation >= 0
+        and _as_int(ledger.get("height"), -1) >= activation
+    )
+
+
+def _withdraw_unvoted_content_assignments(ledger: Json, acct: str, *, nonce: int) -> int:
+    """Withdraw only pre-vote legacy content assignments; retain voted panels.
+
+    Strict constitutional panels and any case with a recorded vote require
+    their own reviewed replacement/finality rules and are never modified here.
+    """
+    if strict_civic_governance_enabled(ledger):
+        return 0
+    disputes = _as_dict(ledger.get("disputes_by_id"))
+    withdrawn = 0
+    for dispute_id in sorted(disputes):
+        dispute = disputes.get(dispute_id)
+        if not isinstance(dispute, dict) or not _is_content_review_dispute(ledger, dispute):
+            continue
+        if _as_str(dispute.get("stage")).lower() not in {"open", "juror_review", "unassigned"}:
+            continue
+        jurors = _as_dict(dispute.get("jurors"))
+        assignment = jurors.get(acct)
+        if not isinstance(assignment, dict):
+            continue
+        if _as_str(assignment.get("status")).lower() not in {"assigned", "accepted", "attended"}:
+            continue
+        # Never erase a submitted vote, even when a stale status says assigned.
+        votes = dispute.get("votes")
+        if (
+            any(key in assignment for key in ("vote", "verdict", "voted_at_height"))
+            or (isinstance(votes, dict) and any(_same_account(j, acct) for j in votes))
+            or (isinstance(votes, list) and acct in votes)
+            or (
+                isinstance(votes, list)
+                and any(
+                    isinstance(v, dict)
+                    and _same_account(v.get("juror") or v.get("account_id"), acct)
+                    for v in votes
+                )
+            )
+        ):
+            continue
+        assignment["status"] = "withdrawn"
+        assignment["withdrawn_at_nonce"] = int(nonce)
+        assignment["withdrawal_reason"] = "reviewer_lane_opt_out"
+        jurors[acct] = assignment
+        dispute["jurors"] = jurors
+        dispute["assigned_jurors"] = [
+            j for j in _as_list(dispute.get("assigned_jurors")) if not _same_account(j, acct)
+        ]
+        dispute["eligible_juror_ids"] = [
+            j for j in _as_list(dispute.get("eligible_juror_ids")) if not _same_account(j, acct)
+        ]
+        if not _active_assigned_jurors(dispute):
+            dispute["stage"] = "unassigned"
+            dispute["assignment_blocked_reason"] = "reviewer_withdrawn_pending_replacement"
+            dispute["eligible_validator_count"] = 0
+            # Never lower the case's voting threshold to zero.
+        disputes[dispute_id] = dispute
+        withdrawn += 1
+    return withdrawn
+
+
 def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) -> Json:
     roles = _ensure_roles(ledger)
     jur = roles.get("jurors")
@@ -1066,8 +1171,13 @@ def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) 
     jur["active_set"] = aset
     jur["by_id"] = by_id
     reassigned_reviews = 0
+    withdrawn_reviews = 0
     if active and "content_review" in lanes:
         reassigned_reviews = _assign_unassigned_content_reviews_to_juror(
+            ledger, acct, nonce=int(env.nonce)
+        )
+    elif not active and "content_review" in lanes and _reviewer_withdrawal_v1_active(ledger):
+        withdrawn_reviews = _withdraw_unvoted_content_assignments(
             ledger, acct, nonce=int(env.nonce)
         )
     return {
@@ -1075,6 +1185,11 @@ def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) 
         "account_id": acct,
         "lanes": lanes,
         "reassigned_content_reviews": reassigned_reviews,
+        **(
+            {"withdrawn_content_reviews": withdrawn_reviews}
+            if not active and _reviewer_withdrawal_v1_active(ledger)
+            else {}
+        ),
     }
 
 

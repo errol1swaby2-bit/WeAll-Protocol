@@ -88,10 +88,13 @@ def test_post_commit_housekeeping_failure_reports_durable_truth_and_halts_execut
     assert isinstance(block, dict)
     assert isinstance(new_state, dict)
 
-    def _boom(_state) -> None:
-        raise RuntimeError("synthetic_post_commit_bft_reload_failure")
+    def _boom(_block_id: str, _block_hash: str) -> None:
+        raise RuntimeError("synthetic_post_commit_block_hash_cache_failure")
 
-    monkeypatch.setattr(ex._bft, "load_from_state", _boom)
+    # Same-generation commits now preserve the live BFT engine instead of
+    # reloading candidate-time state. Fail at the next post-commit hook so
+    # this test still exercises the durable-commit/fail-closed boundary.
+    monkeypatch.setattr(ex, "_cache_known_block_hash", _boom)
 
     meta = ex.commit_block_candidate(
         block=block,
@@ -104,7 +107,7 @@ def test_post_commit_housekeeping_failure_reports_durable_truth_and_halts_execut
     assert meta.height == 1
     assert meta.block_id == str(block["block_id"])
     assert meta.error == (
-        "post_commit_housekeeping_failed:RuntimeError:synthetic_post_commit_bft_reload_failure"
+        "post_commit_housekeeping_failed:RuntimeError:synthetic_post_commit_block_hash_cache_failure"
     )
     assert int(ex.state.get("height") or 0) == 1
     assert ex.block_loop_unhealthy is True

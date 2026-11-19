@@ -1,0 +1,315 @@
+name: J01-J02 signed account custody / canonical receipt integration (controlled devnet)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ihd1-account-custody-real-stack.yml"
+      - "web/src/**"
+      - "web/tests/e2e/account_custody_registration_restore.spec.ts"
+      - "web/playwright.config.ts"
+      - web/scripts/esbuildBuild.mjs
+      - web/scripts/esbuildServer.mjs
+      - web/package.json
+      - web/package-lock.json
+      - "web/package*.json"
+      - "Weall-Protocol/scripts/devnet_boot_genesis_node.sh"
+      - "Weall-Protocol/scripts/devnet_boot_joining_node.sh"
+      - "Weall-Protocol/scripts/devnet_sync_from_peer.sh"
+      - "Weall-Protocol/scripts/devnet_compare_state_roots.sh"
+      - "Weall-Protocol/scripts/devnet_join_anchor.py"
+      - "Weall-Protocol/scripts/verify_ihd1_receipts_after_restart.py"
+      - "Weall-Protocol/src/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-account-custody:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E: "1"
+      WEALL_IHD1_PUBLIC_EVIDENCE_PATH: /tmp/weall-ihd1-public-receipts.json
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      VITE_WEALL_API_BASE: /
+      VITE_WEALL_DEV_PROXY_TARGET: http://127.0.0.1:8001
+      WEALL_DEVNET_AUTO_VENV: "0"
+      WEALL_DEVNET_DIR: /tmp/weall-ihd1-devnet
+      WEALL_MODE: controlled_devnet
+      WEALL_RUNTIME_PROFILE: controlled_devnet
+      WEALL_BLOCK_INTERVAL_MS: "2000"
+      WEALL_PRODUCE_EMPTY_BLOCKS: "1"
+      WEALL_BLOCK_LOOP_AUTOSTART: "1"
+      WEALL_NET_ENABLED: "0"
+      WEALL_BFT_ENABLED: "0"
+      WEALL_SIGVERIFY: "1"
+      WEALL_STRICT_TX_SIG_DOMAIN: "1"
+      WEALL_ENABLE_DEMO_SEED_ROUTE: "0"
+      WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE: "0"
+      WEALL_ALLOW_DIRECT_SESSION_MUTATION: "0"
+      WEALL_ENABLE_DEV_SESSION_CREATE_ROUTE: "0"
+      WEALL_POH_BOOTSTRAP_OPEN: "0"
+      WEALL_STATE_SYNC_OPERATOR_TOKEN: "disposable-ihd1-local-only"
+      WEALL_ENABLE_STATE_SYNC_HTTP_REQUEST_ROUTE: "1"
+      WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN: "1"
+      WEALL_STATE_SYNC_APPLY_REQUIRE_OPERATOR_TOKEN: "1"
+      WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE: "1"
+
+    steps:
+      - name: Checkout exact PR candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install pinned backend runtime
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements.lock
+          pip install -e . --no-deps
+
+      - name: Install frozen frontend dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: web
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Start isolated controlled-devnet block producer and public API
+        working-directory: Weall-Protocol
+        run: |
+          set -euo pipefail
+          mkdir -p "$WEALL_DEVNET_DIR"
+          # Never use production Genesis credentials or copy runtime secrets
+          # into repository artifacts. Fixture authority is local to this job.
+          nohup bash ./scripts/devnet_boot_genesis_node.sh             > "$RUNNER_TEMP/ihd1-node.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/ihd1-node.pid"
+          python - <<'PY'
+          import json
+          import time
+          import urllib.request
+
+          root = "http://127.0.0.1:8001"
+          for _ in range(120):
+              try:
+                  with urllib.request.urlopen(root + "/v1/readyz", timeout=2) as res:
+                      ready = json.load(res)
+                  with urllib.request.urlopen(root + "/v1/chain/identity", timeout=2) as res:
+                      identity = json.load(res)
+                  if ready.get("ok") and int(identity.get("height") or 0) >= 2:
+                      print("OK: isolated controlled-devnet backend ready, signed browser workflow may start")
+                      break
+              except Exception:
+                  pass
+              time.sleep(1)
+          else:
+              raise SystemExit("Controlled-devnet API/committed block did not become ready; no browser proof claimed")
+          PY
+
+      - name: Execute real-browser create, recover, sign, receipt and independent read
+        working-directory: web
+        run: |
+          npx playwright test tests/e2e/account_custody_registration_restore.spec.ts             --project=chromium --workers=1 --retries=0
+
+      - name: Restart the same backend with unchanged keys and persistent state
+        working-directory: Weall-Protocol
+        run: |
+          set -euo pipefail
+          test -s "$WEALL_IHD1_PUBLIC_EVIDENCE_PATH" || {
+            echo "No public-only signed receipt witness was generated by the browser run" >&2
+            exit 1
+          }
+          original_pid="$(cat "$RUNNER_TEMP/ihd1-node.pid")"
+          kill -TERM "$original_pid"
+          python - <<'PY'
+          import time
+          import urllib.request
+          from urllib.error import URLError
+
+          root = "http://127.0.0.1:8001/v1/readyz"
+          for _ in range(45):
+              try:
+                  urllib.request.urlopen(root, timeout=1).close()
+              except (URLError, OSError, TimeoutError):
+                  print("OK: original backend API is offline before restart")
+                  break
+              time.sleep(1)
+          else:
+              raise SystemExit("Old backend API remained reachable; refusing overlapping restart")
+          PY
+          # Reuse the SAME WEALL_DEVNET_DIR and generator keyfile, with no
+          # destructive reset and no new account/bootstrap injection.
+          nohup bash ./scripts/devnet_boot_genesis_node.sh \
+            > "$RUNNER_TEMP/ihd1-node-restart.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/ihd1-node.pid"
+          python ./scripts/verify_ihd1_receipts_after_restart.py \
+            --evidence "$WEALL_IHD1_PUBLIC_EVIDENCE_PATH" \
+            --api http://127.0.0.1:8001 --wait-seconds 90
+
+      - name: Freeze the producer and pin an exact local join anchor
+        working-directory: Weall-Protocol
+        run: |
+          set -euo pipefail
+          kill -TERM "$(cat "$RUNNER_TEMP/ihd1-node.pid")"
+          python - <<'PY'
+          import time
+          import urllib.request
+          from urllib.error import URLError
+
+          for _ in range(45):
+              try:
+                  urllib.request.urlopen("http://127.0.0.1:8001/v1/readyz", timeout=1).close()
+              except (URLError, OSError, TimeoutError):
+                  print("OK: original block producer stopped before frozen-height comparison")
+                  break
+              time.sleep(1)
+          else:
+              raise SystemExit("old block producer still serves API")
+          PY
+          # This is NOT a second validator or a production freeze. It prevents
+          # a moving tip from masquerading as an observer state-root mismatch.
+          nohup env WEALL_BLOCK_LOOP_AUTOSTART=0 WEALL_PRODUCE_EMPTY_BLOCKS=0 \
+            bash ./scripts/devnet_boot_genesis_node.sh \
+            > "$RUNNER_TEMP/ihd1-frozen-source.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/ihd1-node.pid"
+          python ./scripts/verify_ihd1_receipts_after_restart.py \
+            --evidence "$WEALL_IHD1_PUBLIC_EVIDENCE_PATH" \
+            --api http://127.0.0.1:8001 --wait-seconds 90
+          python ./scripts/devnet_join_anchor.py export \
+            --api http://127.0.0.1:8001 \
+            --out "$WEALL_DEVNET_DIR/ihd1-join-anchor.json" > /dev/null
+          python ./scripts/devnet_join_anchor.py verify \
+            --api http://127.0.0.1:8001 \
+            --anchor "$WEALL_DEVNET_DIR/ihd1-join-anchor.json" \
+            --strict-current-anchor > /dev/null
+
+      - name: Independent DB second-process signed-receipt and state-root replay
+        working-directory: Weall-Protocol
+        run: |
+          set -euo pipefail
+          test -s "$WEALL_DEVNET_DIR/node1/weall.db"
+          test ! -e "$WEALL_DEVNET_DIR/node2/weall.db" || {
+            echo "Expected a fresh independent node2 database" >&2
+            exit 1
+          }
+          # The second process has a distinct DB and node_id but NO validator
+          # private key, BFT signing, helper authority or independent host.
+          nohup env \
+            GUNICORN_BIND=127.0.0.1:8002 \
+            WEALL_NODE_ID=@ihd1-observer \
+            WEALL_BLOCK_LOOP_AUTOSTART=0 \
+            WEALL_PRODUCE_EMPTY_BLOCKS=0 \
+            WEALL_OBSERVER_MODE=1 \
+            WEALL_NODE_LIFECYCLE_STATE=observer_onboarding \
+            WEALL_DEVNET_REQUIRE_JOIN_ANCHOR=1 \
+            WEALL_JOIN_ANCHOR_PATH="$WEALL_DEVNET_DIR/ihd1-join-anchor.json" \
+            bash ./scripts/devnet_boot_joining_node.sh \
+            > "$RUNNER_TEMP/ihd1-observer.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/ihd1-observer.pid"
+
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.request
+
+          for _ in range(90):
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:8002/v1/readyz", timeout=2) as res:
+                      ready = json.load(res)
+                  if ready.get("ok"):
+                      break
+              except Exception:
+                  pass
+              time.sleep(1)
+          else:
+              raise SystemExit("second backend did not become ready")
+          p = os.environ["WEALL_DEVNET_DIR"]
+          left, right = os.stat(f"{p}/node1/weall.db"), os.stat(f"{p}/node2/weall.db")
+          if (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino):
+              raise SystemExit("two backends must not share one SQLite inode")
+          print("OK: both actual backend processes use separate SQLite DB files")
+          PY
+
+          WEALL_DEVNET_SYNC_MAX_ROUNDS=12 WEALL_DEVNET_SYNC_SLEEP=0.2 \
+            bash ./scripts/devnet_sync_from_peer.sh \
+              http://127.0.0.1:8001 http://127.0.0.1:8002
+          bash ./scripts/devnet_compare_state_roots.sh \
+            http://127.0.0.1:8001 http://127.0.0.1:8002
+          python ./scripts/verify_ihd1_receipts_after_restart.py \
+            --evidence "$WEALL_IHD1_PUBLIC_EVIDENCE_PATH" \
+            --api http://127.0.0.1:8002 --wait-seconds 30
+
+      - name: Restart the observer from its own persisted state
+        working-directory: Weall-Protocol
+        run: |
+          set -euo pipefail
+          kill -TERM "$(cat "$RUNNER_TEMP/ihd1-observer.pid")"
+          python - <<'PY'
+          import time
+          import urllib.request
+          from urllib.error import URLError
+          for _ in range(45):
+              try:
+                  urllib.request.urlopen("http://127.0.0.1:8002/v1/readyz", timeout=1).close()
+              except (URLError, OSError, TimeoutError):
+                  print("OK: old observer stopped")
+                  break
+              time.sleep(1)
+          else:
+              raise SystemExit("old observer did not stop")
+          PY
+          nohup env \
+            GUNICORN_BIND=127.0.0.1:8002 \
+            WEALL_NODE_ID=@ihd1-observer \
+            WEALL_BLOCK_LOOP_AUTOSTART=0 \
+            WEALL_PRODUCE_EMPTY_BLOCKS=0 \
+            WEALL_OBSERVER_MODE=1 \
+            WEALL_NODE_LIFECYCLE_STATE=observer_onboarding \
+            WEALL_DEVNET_REQUIRE_JOIN_ANCHOR=1 \
+            WEALL_JOIN_ANCHOR_PATH="$WEALL_DEVNET_DIR/ihd1-join-anchor.json" \
+            bash ./scripts/devnet_boot_joining_node.sh \
+            > "$RUNNER_TEMP/ihd1-observer-restart.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/ihd1-observer.pid"
+          python ./scripts/verify_ihd1_receipts_after_restart.py \
+            --evidence "$WEALL_IHD1_PUBLIC_EVIDENCE_PATH" \
+            --api http://127.0.0.1:8002 --wait-seconds 90
+          bash ./scripts/devnet_compare_state_roots.sh \
+            http://127.0.0.1:8001 http://127.0.0.1:8002
+
+      - name: Report limited evidence scope
+        if: success()
+        run: |
+          echo "PASS: browser-signed Tier-0 account registration and PROFILE_UPDATE on a local controlled-devnet block producer"
+          echo "PASS: distinct browser profile restoration and unauthenticated independent-browser receipt/read projection"
+          echo "PASS: same-node controlled-devnet backend restart preserves canonical receipts and public account authority"
+          echo "PASS: independent SQLite-backed observer process replays original receipts and matches fixed-height source state root and tip"
+          echo "PASS: same observer receipts/state persist across its own process restart"
+          echo "NOT_PROVED: real P2P gossip, autonomous observer sync, independent physical hosts/keys, production PoH, BFT QC or public beta"
+          echo "Candidate SHA: $GITHUB_SHA"
+
+      - name: Terminate isolated nodes
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/ihd1-observer.pid"; then
+            kill "$(cat "$RUNNER_TEMP/ihd1-observer.pid")" 2>/dev/null || true
+          fi
+          if test -f "$RUNNER_TEMP/ihd1-node.pid"; then
+            kill "$(cat "$RUNNER_TEMP/ihd1-node.pid")" 2>/dev/null || true
+          fi
+          rm -f "$WEALL_IHD1_PUBLIC_EVIDENCE_PATH"
+          # No recovery files, node key material, raw API traces, screenshots or logs are uploaded.

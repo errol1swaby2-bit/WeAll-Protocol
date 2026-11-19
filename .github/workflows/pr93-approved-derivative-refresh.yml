@@ -1,0 +1,254 @@
+name: PR93 approved derivative refresh (no new approvals)
+
+on:
+  push:
+    branches:
+      - integration/unified-baseline-all-open-prs-20261114
+    paths:
+      - .github/workflows/pr93-approved-derivative-refresh.yml
+      - docs/integration/PR93_F001_OBSERVER_AUTHENTICATION.md
+      - Weall-Protocol/tests/test_local_rehearsal_ipfs_temp_dir_repair.py
+      - Weall-Protocol/tests/test_local_two_frontend_rehearsal_automation.py
+      - Weall-Protocol/tests/test_issue68_delete_boundaries.py
+      - Weall-Protocol/scripts/devnet_local_two_frontend_rehearsal.sh
+      - Weall-Protocol/scripts/devnet_safe_paths.py
+      - web/src/auth/session.ts
+      - web/src/auth/canonicalLoginJournal.ts
+      - web/src/lib/devBootstrap.ts
+      - web/src/App.tsx
+      - web/src/pages/LoginPage.tsx
+      - web/scripts/test_canonical_login_resume.mjs
+      - web/tests/rehearsal/observer_auto_login.spec.ts
+      - web/playwright.rehearsal.config.ts
+      - .github/workflows/f001-readme-two-frontend-login.yml
+      - .github/workflows/backend-ci.yml
+      - Weall-Protocol/tests/conftest.py
+      - Weall-Protocol/tests/p0_assurance.py
+      - Weall-Protocol/tests/test_v2_spec_compiler.py
+      - Weall-Protocol/tests/test_pr77_batch_c_authority_and_rollback.py
+      - Weall-Protocol/tests/test_content_reviewer_selection_and_surface.py
+      - Weall-Protocol/tests/test_adversarial_invariant_closure.py
+      - Weall-Protocol/tests/test_bft_reward_proposer_binding.py
+      - Weall-Protocol/tests/prod/test_public_discovery_no_named_provider_dependency.py
+      - web/src/lib/browserNodeSession.ts
+      - .github/workflows/v2-spec-refresh.yml
+      - Weall-Protocol/tests/test_frontend_dependency_audit.py
+      - Weall-Protocol/specs/v2/source/stable_ids.json
+      - Weall-Protocol/specs/v2/source/source_mappings.json
+      - Weall-Protocol/tests/test_p1_a01_route_authority.py
+      - web/src/pages/AccountVerificationPage.tsx
+      - web/src/lib/revalidation.ts
+      - web/scripts/test_poh_guided_routes.mjs
+      - web/src/lib/pohSubmissionJournal.ts
+      - web/scripts/test_poh_submission_journal.mjs
+      - web/scripts/test_v16_navigation_source.mjs
+      - web/scripts/test_group_review_source.mjs
+      - web/src/pages/Thread.tsx
+      - web/src/pages/Proposal.tsx
+      - web/src/pages/Proposals.tsx
+      - web/src/components/ActiveDeliberations.tsx
+      - web/src/pages/DisputeDetail.tsx
+      - web/src/components/AccountIdentity.tsx
+      - web/src/lib/accountAvatar.ts
+      - web/src/pages/ProposalCreate.tsx
+      - web/src/lib/governance.ts
+      - web/src/lib/groupProfileTabs.ts
+      - web/src/pages/Group.tsx
+      - web/src/components/FeedView.tsx
+      - web/tests/e2e/active_deliberations_rendered.spec.ts
+      - web/src/lib/decisionCreation.ts
+      - web/src/pages/Account.tsx
+      - web/tests/e2e/theme_portability_production.spec.ts
+      - web/src/lib/themePresets.ts
+      - web/src/lib/settings.ts
+      - web/src/styles.css
+      - web/src/pages/Settings.tsx
+      - web/scripts/test_theme_transfer.mjs
+      - web/scripts/test_account_profile_readiness_source.mjs
+      - web/src/components/VerificationHistoryPanel.tsx
+      - web/scripts/test_pr93_poh_merge_parity_source.mjs
+      - web/scripts/test_async_evidence_preview.mjs
+      - web/scripts/test_picomatch_security_regression.mjs
+      - web/scripts/esbuildBuild.mjs
+      - web/scripts/esbuildServer.mjs
+      - web/playwright.config.ts
+      - Weall-Protocol/tests/test_csp_test_compatibility_regression.py
+      - Weall-Protocol/tests/test_decentralized_p2p_live_rooms.py
+      - Weall-Protocol/tests/test_live_room_and_dispute_assignment_regression.py
+      - Weall-Protocol/tests/test_live_room_external_and_session_headers.py
+      - Weall-Protocol/tests/test_p2_a20_deployment_csp.py
+      - .github/workflows/web-ci.yml
+      - web/tests/e2e/verification_human_first.spec.ts
+      - web/tests/e2e/m4_two_user_one_node_custody.spec.ts
+      - .github/workflows/m4-two-user-one-node-real-stack.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr93-approved-derivative-refresh
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol' && github.ref_name == 'integration/unified-baseline-all-open-prs-20261114'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Confirm approval record and strict live inventory
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check scripts/apply_pr93_approved_semantic_packet.py scripts/pr77_v2_semantic_review_packet.py tests/test_pr77_v2_semantic_review_packet.py tests/test_pr93_v2_semantic_review_inventory.py
+          ruff format --check scripts/apply_pr93_approved_semantic_packet.py scripts/pr77_v2_semantic_review_packet.py tests/test_pr77_v2_semantic_review_packet.py tests/test_pr93_v2_semantic_review_inventory.py
+          python - <<'PY'
+          from scripts.pr77_v2_semantic_review_packet import ARCHIVED_PACKET, build_packet
+          from scripts.pr93_v2_semantic_review_inventory import build_inventory
+          if not ARCHIVED_PACKET.is_file() or build_packet()["pending_count"] != 20:
+              raise SystemExit("approved historical packet missing")
+          live = build_inventory()
+          if live["pending_transaction_review_count"] or live["route_review_inventory"]["pending_route_review_count"] or live["missing_state_stable_ids"]:
+              raise SystemExit("live semantic review drift")
+          print("Live pending: zero transactions and zero routes; historical comparison preserved.")
+          PY
+      - name: Inventory unresolved stable IDs across source scan lanes
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from scripts import audit_v2_semantic_review_drift as audit
+          from scripts.pr93_v2_semantic_review_inventory import _route_rows
+
+          compiler = audit.compiler
+          tx_rows, stable_ids, sources = audit._current_rows()
+          route_rows = _route_rows(stable_ids, sources)
+          missing = set()
+
+          class DiagnosticCollector:
+              def resolve(self, kind, key):
+                  try:
+                      return stable_ids.resolve(kind, key)
+                  except compiler.CompileError:
+                      missing.add((kind, key))
+                      # Ephemeral placeholder for the discarded diagnostic rows.
+                      # Never provide this resolver to the strict compiler.
+                      return "DIAGNOSTIC_ONLY_UNREGISTERED:" + kind + ":" + key
+
+          collector = DiagnosticCollector()
+          compiler._message_index(sources["protocol_registry"], collector, sources["source_mappings"])
+          compiler._scheduler_index(sources["protocol_registry"], tx_rows, collector, sources["source_mappings"])
+          compiler._failure_index(tx_rows, route_rows, collector)
+          for kind, key in sorted(missing):
+              print("UNREGISTERED_STABLE_ID", kind, key)
+          print("Missing message/scheduler/failure stable IDs:", len(missing))
+          if missing:
+              raise SystemExit("source identities require explicit registration before strict regeneration")
+          PY
+      - name: Verify current-claim document classification
+        working-directory: Weall-Protocol
+        run: python scripts/check_public_claim_freshness.py
+      - name: Regenerate reviewer evidence without changing dependencies or review decisions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/gen_api_contract_map.py
+          python scripts/gen_failure_code_registry_v1_5.py
+          python scripts/gen_api_response_vectors_v1_5.py
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          # The public-only audit scans generated V2 files as well as source.
+          # Refresh that input inventory before deriving public-readiness evidence.
+          python scripts/compile_v2_spec.py
+          python scripts/gen_public_only_protocol_audit_v1_5.py
+          python scripts/gen_public_beta_blocker_report_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/check_public_claim_freshness.py
+          # V2 also hashes the non-V2 evidence and current claim documents.
+          # Rebind those inputs after generating them, without changing source or reviews.
+          python scripts/compile_v2_spec.py
+          # A bounded two-pass regeneration must now satisfy both read-only gates.
+          # Do not retry into a green result or push if this graph cannot stabilize.
+          python scripts/compile_v2_spec.py --check
+          python scripts/check_generated.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/compile_v2_spec.py --check
+          python -m tooling.canon_lint
+      - name: Prepare generated-only commit locally
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git diff --exit-code -- Weall-Protocol/src Weall-Protocol/specs web/package.json web/package-lock.json Weall-Protocol/requirements.lock Weall-Protocol/requirements-dev.lock docs/integration/PR93_PRE_ACCEPTANCE_SEMANTIC_REVIEW_PACKET.json docs/integration/PR93_DEVELOPMENT_SEMANTIC_ACCEPTANCE_DECISION.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore(v2): regenerate exact approved development reviewer evidence'
+          fi
+      - name: Verify clean archived tree and current review regressions
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          python scripts/check_v2_spec_clean_checkout.py
+          # Exercise the console entry point that previously failed collection.
+          # The full Backend CI suite still runs separately; collection is not
+          # a substitute for executing those tests.
+          ruff check tests/conftest.py tests/p0_assurance.py
+          ruff format --check tests/conftest.py tests/p0_assurance.py
+          pytest --collect-only -q > /tmp/weall-pr93-pytest-collection.log || { cat /tmp/weall-pr93-pytest-collection.log; exit 1; }
+          tail -n 3 /tmp/weall-pr93-pytest-collection.log
+          # Verify the actual mutation overlay, not just ordinary test imports.
+          # Keep the exact existing gate and its rejection criteria unchanged.
+          python tests/p0_assurance.py gate --report /tmp/weall-pr93-p0-assurance.json --timeout-seconds 120
+          python scripts/gen_tx_semantic_assurance_v1_5.py --check
+          python scripts/gen_tx_lifecycle_assurance_v1_5.py --check
+          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
+          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
+          python -m pytest -q tests/test_pr93_v2_semantic_review_inventory.py tests/test_pr77_v2_semantic_review_packet.py
+          ruff check tests/test_p1_a01_route_authority.py
+          ruff format --check tests/test_p1_a01_route_authority.py
+          python -m pytest -q tests/test_p1_a01_route_authority.py
+          ruff check tests/test_v2_spec_compiler.py tests/test_pr77_batch_c_authority_and_rollback.py tests/test_content_reviewer_selection_and_surface.py
+          ruff format --check tests/test_v2_spec_compiler.py tests/test_pr77_batch_c_authority_and_rollback.py tests/test_content_reviewer_selection_and_surface.py
+          python -m pytest -q tests/test_pr77_batch_c_authority_and_rollback.py tests/test_content_reviewer_selection_and_surface.py tests/test_v2_spec_compiler.py::test_v2_route_contract_map_covers_all_route_implementations tests/test_v2_spec_compiler.py::test_compilation_manifest_preserves_fail_closed_truth_boundary tests/test_v2_spec_compiler.py::test_w1_closure_manifest_records_release_attestation_boundary
+          ruff check tests/test_adversarial_invariant_closure.py tests/test_bft_reward_proposer_binding.py
+          ruff format --check tests/test_adversarial_invariant_closure.py tests/test_bft_reward_proposer_binding.py
+          python -m pytest -q tests/test_adversarial_invariant_closure.py::test_bft_persistence_merges_into_newer_committed_snapshot tests/test_bft_reward_proposer_binding.py
+          ruff check tests/prod/test_public_discovery_no_named_provider_dependency.py
+          ruff format --check tests/prod/test_public_discovery_no_named_provider_dependency.py
+          python -m pytest -q tests/prod/test_public_discovery_no_named_provider_dependency.py tests/test_frontend_production_congruity.py
+          ruff check tests/test_frontend_dependency_audit.py
+          ruff format --check tests/test_frontend_dependency_audit.py
+          python -m pytest -q tests/test_frontend_dependency_audit.py tests/test_p1_a17_reviewer_repro_contract.py
+          # A formatting-only change can invalidate the source fingerprint.
+          # Verify the F-001 regression and formatting before publication.
+          ruff check tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py tests/test_local_two_frontend_rehearsal_automation.py
+          ruff format --check tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py tests/test_local_two_frontend_rehearsal_automation.py
+          bash -n scripts/devnet_local_two_frontend_rehearsal.sh
+          python -m pytest -q tests/test_local_rehearsal_ipfs_temp_dir_repair.py tests/test_issue68_delete_boundaries.py tests/test_local_two_frontend_rehearsal_automation.py
+          python scripts/pr93_v2_semantic_review_inventory.py
+          echo 'No new approvals, no security audit exemption, no independent launch authorization.'
+      - name: Push verified generated evidence only
+        run: |
+          set -Eeuo pipefail
+          git diff --exit-code
+          git diff --cached --exit-code
+          git diff --exit-code "${GITHUB_SHA}" HEAD -- . ':(exclude)Weall-Protocol/generated/**' ':(exclude)web/src/generated/protocolStatus.ts' ':(exclude)Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md'
+          if test "$(git rev-parse HEAD)" != "${GITHUB_SHA}"; then
+            git push origin HEAD:"${GITHUB_REF_NAME}"
+          fi

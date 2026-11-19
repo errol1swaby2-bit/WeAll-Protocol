@@ -9,6 +9,8 @@ The important rule is simple:
 
 A new user should start with onboarding mode. Do not try to start production service mode until protocol eligibility checks activate baseline Node Operator status.
 
+**First choose your goal:** Path A below is a self-contained, *single-computer controlled-devnet rehearsal* with provisioned development identities; Path B is joining an existing operator-run network using real, matching trust artifacts. Neither creates a production Genesis or grants validator authority. If you are installing on Ubuntu/WSL, read [Local IPFS prerequisite setup (Docker or native Kubo)](FIRST_RUN_WSL_IPFS.md) before starting Path A. The main [README verification commands](../../README.md#verification-path) are a separate technical-review path, not the onboarding workflow.
+
 ---
 
 ## 1. Clone the repository and install dependencies
@@ -47,17 +49,25 @@ Use this path if you **do not yet have a reachable Genesis operator and a
 matching public observer bundle**, or if your goal is to test the local
 frontend, PoH and two-node transaction flow.
 
-Requirements: Node.js/npm, Python dependencies above, a running Docker daemon
-with Docker Compose (or a compatible separately configured Kubo IPFS daemon).
-The local launcher starts IPFS, the Genesis backend, the observer-edge backend,
-two frontends, and the operator reconcile/state-sync workers:
+Requirements: Node.js/npm, Python dependencies above, **and one available IPFS provider**: either Docker with a running Docker Engine plus Compose, or a native Kubo `ipfs` executable available on `PATH`. The launcher uses Docker when the `docker` command exists and otherwise falls back to native Kubo; **do not install Docker solely to satisfy an unconditional `docker info` command**. Native Kubo setup, checksum verification, version selection, download recovery, and Docker Desktop/WSL details are in [Local IPFS prerequisite setup](FIRST_RUN_WSL_IPFS.md).
+
+Check the provider you actually selected before launching:
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol
 source .venv/bin/activate
-docker info --format '{{.ServerVersion}}'
+
+if command -v docker >/dev/null 2>&1; then
+  docker info --format '{{.ServerVersion}}'
+  docker compose version
+else
+  ipfs version
+fi
+
 bash scripts/devnet_local_two_frontend_rehearsal.sh
 ```
+
+**Important:** `docker` being on `PATH` with an unavailable engine is *not* a working native fallback: the current launcher prefers its Docker Compose path when the command exists. Start Docker Desktop/enable Ubuntu WSL integration, or use an environment where `docker` is absent and native `ipfs` is present. Report a contradictory provider detection as an installation finding rather than masking it. The launcher starts/manages the IPFS service, Genesis backend, observer backend, two frontends, and reconcile/state-sync workers. Do not separately `ipfs init` for this disposable run; the launcher uses its own isolated IPFS directory.
 
 Expected final output includes `Local two-frontend rehearsal ready`,
 `observer_ui=http://127.0.0.1:5173/#/verification` and
@@ -73,6 +83,56 @@ keys and development bootstrap manifests are NOT evidence that a stranger
 completed self-service account creation or PoH. To evaluate an ordinary new
 participant, explicitly test creation and recovery of an additional account
 using a clean browser profile; record which steps are actually possible.
+
+**Transaction-status boundary:** Genesis and the observer must have separate
+durable transaction-queue paths. Genesis reports committed transaction status
+from its own ledger, not from observer outbound queue metadata. The observer
+must separately prove upstream confirmation and local-state synchronization:
+a matching account nonce or local tx index is not sufficient. On an existing
+rehearsal, restart the backend processes to load updated code/environment.
+Preserve the ledger and keys; do not use a reset merely to hide a reconciliation
+failure. Record any remaining `upstream_not_confirmed` findings as blockers.
+
+**Already-applied observer transaction correction:** A real fresh-WSL run
+reached identical Genesis/observer height, tip hash and state root, but its
+observer outbound record still reported `local_state_synced=false`.
+The old reconcile route rejected any local height at or above the transaction's
+confirmation height, even if downstream sync had already applied that exact
+transaction. The updated route first verifies the upstream's canonical
+committed transaction and the local successful tx-index receipt, and only
+recognizes the already-applied state when **both peers expose identical current
+chain ID, height, tip hash, state root, schema and protocol/tx-index
+commitments**. An identity mismatch, missing/rejected transaction, changed
+local state during sampling or unavailable upstream remains fail-closed. A
+poll of unchanged upstream confirmation cannot erase an existing verified
+synchronization proof, while a changed confirmed block ID invalidates it.
+
+This is a **single-machine, operator-configured upstream verification**,
+not a multi-validator finality or independently administered two-machine
+proof. Do not claim reconciliation PASS until a live preserved-state retest
+reports `local_state_synced=true` and matching independent chain identity
+responses. The unit tests use simulated identities and cannot substitute
+for those measurements.
+
+**Tracked-file cleanliness during the rehearsal:** The frontend repository
+includes tracked sample `web/public/dev-bootstrap-*.json` files. Older launcher
+versions overwrote those files, making `check_release_hygiene_v1_5.py` fail
+with `git_worktree_dirty` even when the focused tests passed. The updated
+launcher writes current public-only bootstrap manifests to ignored
+`web/public/weall-local-rehearsal/` paths instead; signing secrets remain
+under private `.weall-devnet/generated/`. **Do not remove this generated
+public directory while its browser sessions are running.**
+
+If the two old tracked JSON files are **already modified by an earlier
+rehearsal**, the new launcher will not restore them. After stopping the old
+frontend processes, use `git status --short` to verify exactly which paths
+are dirty. Preserve any files you genuinely modified yourself; for only the
+two files known to have been generated by the old launcher, restore their
+tracked templates with `git restore --source=HEAD -- web/public/dev-bootstrap-genesis.json web/public/dev-bootstrap-observer.json`
+from the repository root. This only restores the two specified public
+templates; it does not reset the devnet ledger or private keyfiles. Do not
+use `git reset --hard`, the release hygiene `--allow-dirty` override,
+or an ignored-file trick to claim a clean production review.
 
 The launcher may encounter a Docker Desktop/WSL IPFS port-forward error at
 5001/8080, retry and use 15001/18080. The run is successful only if the
@@ -292,9 +352,32 @@ You selected the production-oriented low-level wrapper without a validated
 bundle. Follow Path B with operator-provided anchors, or Path A for a disposable
 local network. Do not bypass the preflight.
 
+### Permission denied creating `.weall-devnet/logs`, `generated`, `accounts`, or `runtime`
+
+The launcher requires write access to its dedicated `Weall-Protocol/.weall-devnet` runtime directory. A failed first-run can report `Permission denied` when that directory is owned by `root:root` with mode `0755`, even though the checkout and virtual environment are owned by the ordinary user. This is a **local filesystem ownership problem**, not a Kubo, consensus, or PoH failure. Do not rerun the launcher with `sudo`, recursively `chown` the repository, `chmod -R 777`, or delete preexisting keys/state as a workaround.
+
+From the backend root, inspect first:
+
+```bash
+DEVNET="$PWD/.weall-devnet"
+stat -c '%A %a %U:%G %n' "$DEVNET"
+namei -l "$DEVNET"
+find "$DEVNET" -mindepth 1 -maxdepth 2 -printf '%u:%g %m %p\n'
+```
+
+If the **directory itself** is the only ownership obstacle, you have confirmed that it is the intended real (non-symlink) `.weall-devnet` directory inside your own checkout, and you understand which existing data must be preserved, repair *that directory only* using `sudo chown -- "$(id -u):$(id -g)" "$DEVNET"` followed by `chmod 700 "$DEVNET"`. Neither command is recursive. Recheck ownership, then retry as your ordinary user. If nested content is also unwritable, inspect it individually rather than applying broad permission changes.
+
+The launcher now performs a read-only `check-devnet-writable` preflight and reports a targeted access failure without changing ownership. The originating creator of a root-owned directory cannot be inferred from the failure alone.
+
+### Docker or Kubo is unavailable in WSL
+
+`docker: command not found` is expected if you have not installed or enabled Docker Desktop's Ubuntu WSL integration. For the local Path A only, you can instead install native Kubo without Docker. Follow [Local IPFS prerequisite setup](FIRST_RUN_WSL_IPFS.md), which includes SHA-512 verification, a second official download endpoint, and Windows-browser fallback for `curl: (35) Recv failure: Connection reset by peer`. Do not run a Docker-specific diagnostic on the native-only path.
+
+If Docker is present but its daemon is unavailable, the current launcher will still select Docker rather than native Kubo. Correct the provider choice and record the issue; do not disable preflight controls.
+
 ### IPFS WSL Docker ports are unavailable
 
-For Path A, watch for automatic fallback from API/gateway ports 5001/8080
+For Path A using **Docker**, watch for automatic fallback from API/gateway ports 5001/8080
 to 15001/18080. A transient bind failure is not proof of total boot failure;
 the final `Local two-frontend rehearsal ready` line establishes launcher
 readiness. If fallback also fails, report the Docker/WSL forwarding error.

@@ -1,10 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, setApiBaseUrl, validateApiBaseInput } from "../api/weall";
+import { applyCompatibilityBaseline, discoverNodeProbes, isPublicApiOrigin, loadExpectedCompatibilityBaseline, probeNode } from "../lib/nodeConnectionManager";
+import { selectBrowserNode } from "../lib/browserNodeTransition";
 import NodeConnectionPanel from "../components/NodeConnectionPanel";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
 import { nav } from "../lib/router";
+import { SETTINGS_SECTIONS, settingsSectionFromHash, type SettingsSection } from "../lib/settingsSections";
+import { THEME_PRESETS, presetMatchesSettings, type ThemePreset } from "../lib/themePresets";
+import { createThemeTransfer, MAX_THEME_TRANSFER_BYTES, parseThemeTransfer, serializeThemeTransfer, type ThemeTransferDocument } from "../lib/themeTransfer";
 import {
   AccentTone,
   applySettingsToDocument,
@@ -77,6 +82,34 @@ export default function Settings(): JSX.Element {
   const [apiBase, setApiBase] = useState<string>(() => getApiBaseUrl());
   const [saved, setSaved] = useState<string>("");
   const [networkError, setNetworkError] = useState<string>("");
+  const [networkBusy, setNetworkBusy] = useState(false);
+  const [pendingTheme, setPendingTheme] = useState<ThemeTransferDocument | null>(null);
+  const [themeTransferError, setThemeTransferError] = useState("");
+  const [section, setSection] = useState<SettingsSection>(() =>
+    settingsSectionFromHash(typeof window === "undefined" ? "" : window.location.hash),
+  );
+
+  useEffect(() => {
+    const syncSection = () => setSection(settingsSectionFromHash(window.location.hash));
+    window.addEventListener("hashchange", syncSection);
+    syncSection();
+    return () => window.removeEventListener("hashchange", syncSection);
+  }, []);
+
+  function openSection(next: SettingsSection) {
+    const choice = SETTINGS_SECTIONS.find((candidate) => candidate.id === next);
+    if (!choice) return;
+    setSection(next);
+    nav(choice.href);
+  }
+
+  function applyPreset(preset: ThemePreset) {
+    const next = { ...settings, themeMode: preset.themeMode, accentTone: preset.accentTone };
+    setSettings(next);
+    saveSettings(next);
+    applySettingsToDocument(next);
+    flash(`${preset.name} theme applied locally.`);
+  }
 
   useEffect(() => {
     applySettingsToDocument(settings);
@@ -95,7 +128,7 @@ export default function Settings(): JSX.Element {
     flash("Appearance settings saved.");
   }
 
-  function saveNetwork() {
+  async function saveNetwork() {
     const trimmed = String(apiBase || "").trim();
     const validation = validateApiBaseInput(trimmed);
     if (!validation.ok) {
@@ -103,9 +136,91 @@ export default function Settings(): JSX.Element {
       return;
     }
     setNetworkError("");
-    const runtimeBase = setApiBaseUrl(validation.normalized);
-    setApiBase(validation.normalized);
-    flash(runtimeBase ? "Connection target saved." : "Connection target saved for same-origin API.");
+    setNetworkBusy(true);
+    try {
+      if (config.publicTestnet) {
+        // No bypass from this raw URL field to an unlisted or unsynced node.
+        if (!isPublicApiOrigin(validation.normalized)) {
+          throw new Error("Public testnet access requires a published HTTPS node URL.");
+        }
+        const probes = await discoverNodeProbes({ timeoutMs: 3000 });
+        let probe = probes.find((item) => item.baseUrl === validation.normalized);
+        if (!probe) {
+          // Explicit custom URL: inspect its public chain identity without
+          // transmitting any bearer before the user consents.
+          const baseline = await loadExpectedCompatibilityBaseline();
+          const raw = await probeNode({ url: validation.normalized, label: "Manual HTTPS API" }, { timeoutMs: 3000 });
+          probe = applyCompatibilityBaseline([raw], baseline)[0];
+        }
+        if (!probe || probe.phase !== "healthy" || !probe.ok) {
+          throw new Error("The requested HTTPS API is not ready or does not match the pinned testnet chain.");
+        }
+        const connection = await selectBrowserNode(probe, {
+          intent: "manual",
+          allowCurrent: true,
+          confirmUnlisted: () => window.confirm(
+            "This compatible HTTPS node is not in WeAll's published seed manifest. Its operator may observe your API requests and session bearer. Approve connecting to this specific address in this browser tab?",
+          ),
+        });
+        if (!connection) return; // Declined; preserve the existing connection.
+        setApiBase(connection.baseUrl);
+        flash(connection.runtimeBase ? "Verified connection target saved." : "Connection target saved.");
+      } else {
+        const runtimeBase = setApiBaseUrl(validation.normalized);
+        setApiBase(validation.normalized);
+        flash(runtimeBase ? "Connection target saved." : "Connection target saved for same-origin API.");
+      }
+    } catch (error: unknown) {
+      setNetworkError(error instanceof Error ? error.message : "Could not verify the connection target.");
+    } finally {
+      setNetworkBusy(false);
+    }
+  }
+
+  function exportTheme() {
+    try {
+      const payload = serializeThemeTransfer(createThemeTransfer(settings));
+      const url = URL.createObjectURL(new Blob([payload], { type: "application/json;charset=utf-8" }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "weall-theme-v1.json";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      flash("Visual theme exported to a local file. No account information included.");
+    } catch {
+      setThemeTransferError("Theme export failed. Your current preferences were not changed.");
+    }
+  }
+
+  async function prepareThemeImport(file: File) {
+    setPendingTheme(null);
+    setThemeTransferError("");
+    try {
+      if (file.size > MAX_THEME_TRANSFER_BYTES) {
+        throw new Error("Theme file is too large (maximum 8 KB).");
+      }
+      const candidate = parseThemeTransfer(await file.text());
+      setPendingTheme(candidate); // Preview only; do not write local storage.
+    } catch (error: unknown) {
+      setThemeTransferError(error instanceof Error ? error.message : "Unable to read this theme file.");
+    }
+  }
+
+  function applyImportedTheme() {
+    if (!pendingTheme) return;
+    const next: ClientSettings = { ...settings, ...pendingTheme.tokens };
+    try {
+      saveSettings(next); // Only local visual settings; never network target or signer.
+      setSettings(next);
+      applySettingsToDocument(next);
+      setPendingTheme(null);
+      setThemeTransferError("");
+      flash("Imported theme applied to this browser only.");
+    } catch {
+      setThemeTransferError("Local theme storage failed; the imported theme was not applied.");
+    }
   }
 
   function resetAppearance() {
@@ -149,17 +264,8 @@ export default function Settings(): JSX.Element {
           </div>
 
           <div className="heroActions">
-            <button className="btn btnPrimary" onClick={saveNetwork}>
-              Save connection target
-            </button>
-            <button className="btn" onClick={() => nav("/session")}>
-              Open devices & sessions
-            </button>
-            {config.enableDevTools ? (
-              <button className="btn" onClick={() => nav("/advanced")}>
-                Open advanced details
-              </button>
-            ) : null}
+            <button className="btn" onClick={() => nav("/session")}>Open devices & sessions</button>
+            <button className="btn" onClick={() => openSection("connection")}>Manage connection</button>
           </div>
 
           {saved ? (
@@ -190,6 +296,42 @@ export default function Settings(): JSX.Element {
         </div>
       </section>
 
+      <nav className="settingsSectionTabs" aria-label="Settings categories">
+        {SETTINGS_SECTIONS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`settingsSectionTab ${section === item.id ? "isActive" : ""}`}
+            aria-current={section === item.id ? "page" : undefined}
+            onClick={() => openSection(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      {section === "overview" ? (
+      <section className="card" aria-label="Settings overview">
+        <div className="cardBody pageStack">
+          <h2 className="cardTitle">Choose what to customize</h2>
+          <p className="cardDesc">
+            Appearance affects only this browser. Node connection and advanced diagnostics are separate
+            settings; nothing here changes a signed protocol record or public profile appearance.
+          </p>
+          <div className="settingsCategoryGrid">
+            {SETTINGS_SECTIONS.filter((item) => item.id !== "overview").map((item) => (
+              <button key={item.id} type="button" className="settingsCategoryTile" onClick={() => openSection(item.id)}>
+                <strong>{item.label}</strong>
+                <span className="cardDesc">Open {item.label.toLowerCase()} settings</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+      ) : null}
+
+      {section === "connection" ? (
+      <>
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Connection target</div>
@@ -221,7 +363,7 @@ export default function Settings(): JSX.Element {
             <input
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
-              placeholder="http://127.0.0.1:8000"
+              placeholder={config.publicTestnet ? "https://api.your-node.example" : "http://127.0.0.1:8000"}
             />
           </label>
 
@@ -249,12 +391,14 @@ export default function Settings(): JSX.Element {
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button className="btn btnPrimary" onClick={saveNetwork}>
-              Save connection target
+            <button className="btn btnPrimary" onClick={() => void saveNetwork()} disabled={networkBusy}>
+              {networkBusy ? "Verifying node…" : "Save connection target"}
             </button>
-            <button className="btn" onClick={() => setApiBase(config.defaultApiBase)}>
-              Use build default
-            </button>
+            {!config.publicTestnet ? (
+              <button className="btn" onClick={() => setApiBase(config.defaultApiBase)}>
+                Use build default
+              </button>
+            ) : null}
             {!config.isProduction ? (
               <button className="btn" onClick={() => setApiBase("http://127.0.0.1:8000")}>
                 Use local backend
@@ -265,13 +409,49 @@ export default function Settings(): JSX.Element {
       </section>
 
       <NodeConnectionPanel />
+      </>
+      ) : null}
 
+      {(section === "themes" || section === "layout" || section === "accessibility") ? (
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Appearance</div>
           <h2 style={{ marginTop: 8 }}>Personalize this browser client</h2>
           <p className="cardDesc">Appearance changes are local only. They do not change session state, account standing, or protocol behavior.</p>
 
+          {section === "themes" ? (
+            <div className="pageStack">
+              <p className="cardDesc">Choose a bundled, non-executable visual theme. Preview the appearance on each tile before applying; changes stay local to this browser.</p>
+              <div className="themePresetGrid" aria-label="Theme presets">
+                {THEME_PRESETS.map((preset) => {
+                  const selected = presetMatchesSettings(preset, settings);
+                  return (
+                    <button
+                      type="button"
+                      key={preset.id}
+                      className={`themePresetTile ${selected ? "isActive" : ""}`}
+                      aria-pressed={selected}
+                      onClick={() => applyPreset(preset)}
+                    >
+                      <span className="themePresetPreview" style={{ background: `linear-gradient(145deg, ${preset.background}, ${preset.backgroundEnd})`, color: preset.foreground }}>
+                        <span className="themePresetMockCard" style={{ background: preset.surface }}>
+                          <span className="themePresetMockHeading">WeAll</span>
+                          <span className="themePresetMockSubtext" style={{ color: preset.muted }}>A readable community feed</span>
+                          <span className="themePresetMockAccent" style={{ background: preset.accent, color: preset.onAccent }}>Open decision</span>
+                        </span>
+                      </span>
+                      <strong>{preset.name}</strong>
+                      <span className="cardDesc">{preset.description}</span>
+                      {selected ? <span className="miniTag">Current theme</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {section === "themes" ? (
+          <>
           <SettingSelect<ThemeMode>
             label="Theme mode"
             value={settings.themeMode}
@@ -293,7 +473,70 @@ export default function Settings(): JSX.Element {
             ]}
             onChange={(value) => update("accentTone", value)}
           />
+          </>
+          ) : null}
 
+          {section === "themes" ? (
+            <section className="pageStack" aria-label="Portable visual theme">
+              <h3>Export or import a visual theme</h3>
+              <p className="cardDesc">
+                Export a small JSON file to transfer these visual choices between devices. This file
+                never contains an account ID, signer keys, session, network address, or public profile image.
+                Imported settings stay local to this browser and are not automatically synchronized.
+              </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" className="btn" onClick={exportTheme}>Export theme</button>
+                <label className="pageStack" style={{ gap: 6 }}>
+                  <span>Import theme JSON (preview before applying)</span>
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    aria-label="Import visual theme JSON"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      event.currentTarget.value = "";
+                      if (file) void prepareThemeImport(file);
+                    }}
+                  />
+                </label>
+              </div>
+              {themeTransferError ? (
+                <div className="calloutWarn" role="alert">
+                  <strong>Theme not imported.</strong> {themeTransferError} Your existing theme is unchanged.
+                </div>
+              ) : null}
+              {pendingTheme ? (
+                <div className="card pageStack" aria-label="Imported theme preview">
+                  <h4>Preview: {pendingTheme.name}</h4>
+                  <p className="cardDesc">Preview only. Nothing changes until you select Apply imported theme.</p>
+                  {(() => {
+                    const matchingPreset = THEME_PRESETS.find((item) => presetMatchesSettings(item, pendingTheme.tokens));
+                    return matchingPreset ? (
+                      <div className="themePresetPreview" style={{ background: `linear-gradient(145deg, ${matchingPreset.background}, ${matchingPreset.backgroundEnd})`, color: matchingPreset.foreground }}>
+                        <span className="themePresetMockCard" style={{ background: matchingPreset.surface }}>
+                          <span className="themePresetMockHeading">WeAll</span>
+                          <span className="themePresetMockSubtext" style={{ color: matchingPreset.muted }}>A readable community feed</span>
+                          <span className="themePresetMockAccent" style={{ background: matchingPreset.accent, color: matchingPreset.onAccent }}>Open decision</span>
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
+                  <p className="cardDesc">
+                    {pendingTheme.tokens.themeMode} · {pendingTheme.tokens.accentTone} accent ·
+                    {pendingTheme.tokens.fontScale} text · {pendingTheme.tokens.density} layout ·
+                    {pendingTheme.tokens.motionMode} motion
+                  </p>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button className="btn btnPrimary" type="button" onClick={applyImportedTheme}>Apply imported theme</button>
+                    <button className="btn" type="button" onClick={() => { setPendingTheme(null); setThemeTransferError(""); }}>Cancel import</button>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {section === "layout" ? (
+          <>
           <SettingSelect<FontScale>
             label="Font size"
             value={settings.fontScale}
@@ -314,7 +557,11 @@ export default function Settings(): JSX.Element {
             ]}
             onChange={(value) => update("density", value)}
           />
+          </>
+          ) : null}
 
+          {section === "accessibility" ? (
+          <>
           <SettingSelect<MotionMode>
             label="Motion"
             value={settings.motionMode}
@@ -324,6 +571,12 @@ export default function Settings(): JSX.Element {
             ]}
             onChange={(value) => update("motionMode", value)}
           />
+          <div className="calloutInfo">
+            Reduced motion affects decorative animation only. Required consent, signing, error and
+            eligibility information remains visible regardless of color theme.
+          </div>
+          </>
+          ) : null}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button className="btn" onClick={resetAppearance}>
@@ -332,8 +585,9 @@ export default function Settings(): JSX.Element {
           </div>
         </div>
       </section>
+      ) : null}
 
-
+      {section === "advanced" ? (
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Experience mode</div>
@@ -356,7 +610,9 @@ export default function Settings(): JSX.Element {
           )}
         </div>
       </section>
+      ) : null}
 
+      {section === "overview" ? (
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Local state</div>
@@ -366,6 +622,7 @@ export default function Settings(): JSX.Element {
           </p>
         </div>
       </section>
+      ) : null}
     </div>
   );
 }

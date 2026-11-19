@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import fnmatch
 import hashlib
 import json
@@ -559,6 +560,13 @@ def _extract_failures(node: ast.AST) -> list[Json]:
         if name == "HTTPException":
             code = "http_exception"
             reason = strings[-1] if strings else "route_specific_http_exception"
+        elif name == "RolesApplyError" and child.args and _literal_string(child.args[0]) is None:
+            # The role-gate predicate produces the runtime error code and
+            # reason. Do not report the exception class name as the code.
+            # Keep this correction narrowly scoped: other dynamically coded
+            # transaction families need their own source/receipt review
+            # before changing the accepted V2 extraction contract.
+            code, reason = "runtime_apply_error", "see_handler"
         else:
             code = strings[0] if strings else name
             reason = strings[1] if len(strings) > 1 else "runtime_apply_failure"
@@ -888,6 +896,215 @@ def _handler_runtime_info(
     return handler, source_path, dispatch_name, mechanism_id
 
 
+def _specialize_reviewer_lane(node: ast.AST, *, active: bool) -> ast.AST:
+    """Discard branches impossible for a proven literal dispatcher argument.
+
+    Unknown conditions remain overapproximations. This bounded analysis does
+    not execute runtime code or change any accepted review.
+    """
+
+    for child in ast.walk(node):
+        if (
+            isinstance(child, ast.Name)
+            and child.id == "active"
+            and not isinstance(child.ctx, ast.Load)
+        ):
+            raise CompileError("reviewer_lane_active_parameter_reassigned")
+
+    def active_truth(value: ast.AST) -> bool | None:
+        if isinstance(value, ast.Name) and value.id == "active":
+            return active
+        if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.Not):
+            inner = active_truth(value.operand)
+            return not inner if inner is not None else None
+        if isinstance(value, ast.BoolOp):
+            results = [active_truth(item) for item in value.values]
+            if isinstance(value.op, ast.And):
+                if False in results:
+                    return False
+                return True if all(item is True for item in results) else None
+            if isinstance(value.op, ast.Or):
+                if True in results:
+                    return True
+                return False if all(item is False for item in results) else None
+        return None
+
+    class PruneInactivePath(ast.NodeTransformer):
+        def visit_If(self, statement: ast.If) -> ast.AST | list[ast.stmt] | None:
+            selected = active_truth(statement.test)
+            if selected is None:
+                return self.generic_visit(statement)
+            body = statement.body if selected else statement.orelse
+            flattened: list[ast.stmt] = []
+            for child in body:
+                visited = self.visit(child)
+                if isinstance(visited, list):
+                    flattened.extend(visited)
+                elif isinstance(visited, ast.stmt):
+                    flattened.append(visited)
+            return flattened
+
+    return PruneInactivePath().visit(copy.deepcopy(node))
+
+
+# This finite, source-reviewed denial table is deliberately scoped to the
+# shared role predicate. It is not an attempt to infer arbitrary Python data
+# flow or to approve a transaction's complete semantic contract.
+_ROLE_GATE_SOURCE_SHA256 = "6ea5d6453218ef0f9f43cd26c06522f775fa5d6aefa9502e54ce74588435a7ff"
+_ROLE_GATE_TX_ROLES = {
+    "ROLE_JUROR_ENROLL": "juror",
+    "ROLE_JUROR_ACTIVATE": "juror",
+    "ROLE_JUROR_REINSTATE": "juror",
+    "ROLE_VALIDATOR_ACTIVATE": "validator",
+    "ROLE_NODE_OPERATOR_ACTIVATE": "node_operator",
+    "ROLE_EMISSARY_SEAT": "emissary",
+    "ROLE_GOV_EXECUTOR_SET": "gov_executor",
+    "REVIEWER_LANE_OPT_IN": "juror",
+}
+
+
+def _reviewed_role_gate_failures(tx_type: str, nodes: list[ast.AST], bridge: ast.AST) -> list[Json]:
+    source = ROOT / "src/weall/runtime/reputation_role_gate.py"
+    # Read text with universal newline conversion, so a Windows checkout
+    # cannot change the binding solely by using CRLF.
+    if _sha256_bytes(source.read_text(encoding="utf-8").encode("utf-8")) != (
+        _ROLE_GATE_SOURCE_SHA256
+    ):
+        raise CompileError("role_gate_failure_source_changed_requires_review")
+
+    roles = [
+        _literal_string(keyword.value)
+        for node in nodes
+        for child in ast.walk(node)
+        if isinstance(child, ast.Call)
+        and isinstance(child.func, ast.Name)
+        and child.func.id == "_require_role_activation_eligible"
+        for keyword in child.keywords
+        if keyword.arg == "role"
+    ]
+    role = _ROLE_GATE_TX_ROLES.get(tx_type)
+    if role is None or roles != [role]:
+        raise CompileError(f"role_gate_failure_call_binding_mismatch:{tx_type}")
+
+    expected_raise = ast.parse(
+        'raise RolesApplyError(str(decision["code"]), str(decision["reason"]), details)'
+    ).body[0]
+    if not any(
+        isinstance(node, ast.Raise) and ast.dump(node) == ast.dump(expected_raise)
+        for node in ast.walk(bridge)
+    ):
+        raise CompileError("role_gate_failure_bridge_changed_requires_review")
+
+    pairs = {
+        ("not_found", "account_not_found"),
+        ("forbidden", "account_restricted"),
+        ("forbidden", "live_verification_required"),
+        ("forbidden", "role_eligibility_revoked"),
+        ("forbidden", "reputation_insufficient"),
+        ("forbidden", "policy_unknown"),
+    }
+    # Canonical event enforcement occurs only under explicitly selected v2
+    # for these mapped operative roles; the other roles cannot emit this
+    # particular typed denial from the reviewed predicate.
+    if role in {"juror", "validator"}:
+        pairs.add(("forbidden", "canonical_role_reputation_ineligible"))
+    return [{"code": code, "reason": reason} for code, reason in sorted(pairs)]
+
+
+def _specialize_dispute_open_target_guard(
+    tree: ast.AST, handler: ast.AST, validator: ast.AST
+) -> ast.AST:
+    """Prune only the proposal branch excluded by a proven earlier validator.
+
+    If source changes invalidate this narrow proof, stop compilation rather
+    than hide potentially reachable errors. The runtime remains untouched.
+    """
+    allowlist_name = "_ALLOWED_DISPUTE_TARGET_TYPES"
+    assignments = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Name)
+        and node.id == allowlist_name
+        and isinstance(node.ctx, (ast.Store, ast.Del))
+    ]
+    declarations = [
+        node
+        for node in getattr(tree, "body", [])
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == allowlist_name
+    ]
+    if len(assignments) != 1 or len(declarations) != 1:
+        raise CompileError("dispute_open_target_allowlist_binding_changed")
+    value = declarations[0].value
+    if not (
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id == "frozenset"
+        and len(value.args) == 1
+        and not value.keywords
+        and isinstance(value.args[0], ast.Set)
+        and all(
+            isinstance(item, ast.Constant) and isinstance(item.value, str)
+            for item in value.args[0].elts
+        )
+    ):
+        raise CompileError("dispute_open_target_allowlist_not_literal")
+
+    # Bind the reviewed normalizer and rejection, not merely its name.
+    expected_validator = ast.parse(
+        """def _validate_dispute_target_type(target_type: str) -> str:
+    t = _as_str(target_type).strip().lower()
+    if not t or t not in _ALLOWED_DISPUTE_TARGET_TYPES:
+        raise DisputeApplyError(
+            "forbidden",
+            "unsupported_dispute_target_type",
+            {"target_type": target_type, "allowed": sorted(_ALLOWED_DISPUTE_TARGET_TYPES)},
+        )
+    return t
+"""
+    ).body[0]
+    if ast.dump(validator) != ast.dump(expected_validator):
+        raise CompileError("dispute_open_target_validator_changed_requires_review")
+
+    expected_binding = ast.parse("target_type = _validate_dispute_target_type(target_type)").body[0]
+    expected_test = ast.parse(
+        'target_type in {"proposal", "governance", "governance_proposal"}', mode="eval"
+    ).body
+    clone = copy.deepcopy(handler)
+    if not isinstance(clone, ast.FunctionDef):
+        raise CompileError("dispute_open_target_handler_binding_changed")
+    guards = [
+        index
+        for index, node in enumerate(clone.body)
+        if isinstance(node, ast.If) and ast.dump(node.test) == ast.dump(expected_test)
+    ]
+    bindings = [
+        index
+        for index, node in enumerate(clone.body)
+        if ast.dump(node) == ast.dump(expected_binding)
+    ]
+    if len(guards) != 1 or len(bindings) != 1 or bindings[0] >= guards[0]:
+        raise CompileError("dispute_open_target_guard_order_changed")
+    if any(
+        isinstance(node, ast.Name)
+        and node.id == "target_type"
+        and isinstance(node.ctx, (ast.Store, ast.Del))
+        for statement in clone.body[bindings[0] + 1 : guards[0]]
+        for node in ast.walk(statement)
+    ):
+        raise CompileError("dispute_open_target_guard_value_changed")
+    allowed = {item.value for item in value.args[0].elts}
+    if allowed & {"proposal", "governance", "governance_proposal"}:
+        raise CompileError("dispute_open_proposal_support_requires_review")
+    guard = clone.body[guards[0]]
+    if not isinstance(guard, ast.If) or guard.orelse:
+        raise CompileError("dispute_open_proposal_guard_shape_changed")
+    del clone.body[guards[0]]
+    return clone
+
+
 def _tx_function_analysis(
     tx_type: str,
     source_path: Path,
@@ -918,13 +1135,35 @@ def _tx_function_analysis(
     target = dispatch
     if branch is not None:
         calls = _direct_local_calls(branch, set(functions))
-        preferred = [
-            name
-            for name in calls
-            if name != dispatch.name and (name.startswith("apply_") or name.startswith("_apply_"))
-        ]
-        if preferred:
-            target = functions[preferred[0]]
+        # A branch-local direct call is a more precise transaction entrypoint
+        # than the multi-transaction dispatcher, regardless of its name.
+        # Do not guess when a branch calls multiple distinct local functions.
+        candidates = [name for name in calls if name != dispatch.name]
+        # A return of a direct local call is a handler dispatch; utility calls
+        # in the same branch (for example _as_str) are not handler targets.
+        returned = []
+        for statement in branch.body:
+            if not isinstance(statement, ast.Return) or not isinstance(statement.value, ast.Call):
+                continue
+            callee = statement.value.func
+            name = callee.id if isinstance(callee, ast.Name) else None
+            if name in candidates and name not in returned:
+                returned.append(name)
+        if len(returned) == 1:
+            target = functions[returned[0]]
+        elif not returned:
+            # A unique helper call is not necessarily a dispatch target:
+            # _apply_case_receipt's CASE branches call _as_str for validation.
+            # Preserve the declared handler unless a sole explicit apply_
+            # callee exists. Otherwise a utility can silently replace the
+            # semantic contract under review.
+            preferred = [
+                name
+                for name in candidates
+                if name.startswith("apply_") or name.startswith("_apply_")
+            ]
+            if len(preferred) == 1:
+                target = functions[preferred[0]]
 
     queue = [target.name]
     visited: set[str] = set()
@@ -935,11 +1174,58 @@ def _tx_function_analysis(
             continue
         visited.add(name)
         fn = functions[name]
-        nodes.append(fn.node)
-        for called in _direct_local_calls(fn.node, set(functions)):
+        analysis_node = fn.node
+        if tx_type == "DISPUTE_OPEN" and name == target.name and name == "dispute_open":
+            validator = functions.get("_validate_dispute_target_type")
+            if validator is None:
+                raise CompileError("dispute_open_target_validator_missing")
+            analysis_node = _specialize_dispute_open_target_guard(tree, fn.node, validator.node)
+        if (
+            tx_type in {"REVIEWER_LANE_OPT_IN", "REVIEWER_LANE_OPT_OUT"}
+            and target.name == "_apply_reviewer_lane_update"
+            and name == target.name
+        ):
+            # Require the actual dispatcher to return this exact handler with
+            # one literal bool. An incidental nested call is not a binding.
+            dispatcher = functions.get("apply_roles")
+            canonical_branch = (
+                _branch_for_tx(dispatcher.node, tx_type) if dispatcher is not None else None
+            )
+            active = tx_type == "REVIEWER_LANE_OPT_IN"
+            statement = (
+                canonical_branch.body[0]
+                if canonical_branch is not None and len(canonical_branch.body) == 1
+                else None
+            )
+            call = statement.value if isinstance(statement, ast.Return) else None
+            if not (
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id == "_apply_reviewer_lane_update"
+                and len(call.keywords) == 1
+                and call.keywords[0].arg == "active"
+                and isinstance(call.keywords[0].value, ast.Constant)
+                and call.keywords[0].value.value is active
+            ):
+                raise CompileError(f"reviewer_lane_dispatch_literal_mismatch:{tx_type}")
+            analysis_node = _specialize_reviewer_lane(fn.node, active=active)
+        nodes.append(analysis_node)
+        for called in _direct_local_calls(analysis_node, set(functions)):
             if called in visited:
                 continue
-            if called.startswith(
+            # DISPUTE_OPEN calls a source-local target-type validator before
+            # any canonical state mutation. Its rejection is part of the real
+            # transaction contract, even though generic traversal deliberately
+            # does not follow arbitrary _validate_ helpers across families.
+            # Keep this one reviewed edge bound to the exact entrypoint so
+            # unrelated V2 semantic-review digests are not silently expanded.
+            dispute_open_target_validation = (
+                tx_type == "DISPUTE_OPEN"
+                and target.name == "dispute_open"
+                and name == "dispute_open"
+                and called == "_validate_dispute_target_type"
+            )
+            should_follow_prefix = called.startswith(
                 (
                     "apply_",
                     "_apply_",
@@ -952,7 +1238,8 @@ def _tx_function_analysis(
                     "_find_",
                     "_ensure_",
                 )
-            ):
+            )
+            if should_follow_prefix or dispute_open_target_validation:
                 queue.append(called)
 
     reads: set[str] = set()
@@ -960,11 +1247,27 @@ def _tx_function_analysis(
     failures: dict[tuple[str, str], Json] = {}
     return_keys: set[str] = set()
     referenced_txs: set[str] = set()
+    role_gate_bridge = (
+        functions["_require_role_activation_eligible"].node
+        if "_require_role_activation_eligible" in visited
+        else None
+    )
+    if tx_type in _ROLE_GATE_TX_ROLES and role_gate_bridge is None:
+        raise CompileError(f"role_gate_failure_bridge_missing:{tx_type}")
     for node in nodes:
         node_reads, node_writes = _extract_key_tokens(node)
         reads.update(node_reads)
         writes.update(node_writes)
-        for failure in _extract_failures(node):
+        node_failures = _extract_failures(node)
+        if node is role_gate_bridge:
+            # Replace only this bridge's generic dynamic-error marker.
+            # Other unknown dynamic failures are not silently accepted.
+            node_failures = [
+                failure
+                for failure in node_failures
+                if failure != {"code": "runtime_apply_error", "reason": "see_handler"}
+            ] + _reviewed_role_gate_failures(tx_type, nodes, node)
+        for failure in node_failures:
             failures[(str(failure["code"]), str(failure["reason"]))] = failure
         return_keys.update(_extract_return_keys(node))
         referenced_txs.update(tx_names.intersection(_all_string_constants(node)))

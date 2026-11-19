@@ -9960,7 +9960,7 @@
           "field": "dispute_id",
           "kind": "drop_required_field",
           "payload": {
-            "juror_id": "@juror1"
+            "juror": "@juror1"
           }
         }
       },
@@ -9979,6 +9979,7 @@
           "parent": "PARENT-A02",
           "payload": {
             "dispute_id": "a",
+            "juror": "@juror1",
             "juror_id": "@juror1"
           },
           "signer": "SYSTEM",
@@ -10006,6 +10007,7 @@
           "parent": "PARENT-A02",
           "payload": {
             "dispute_id": "a",
+            "juror": "@juror1",
             "juror_id": "@juror1"
           },
           "sig": "",
@@ -10034,10 +10036,10 @@
           "nonce": 1,
           "ok": true,
           "signer": "SYSTEM",
-          "tx_id": "tx:677658e3b255c1a220cd67eecba8421de7e6fd95efa0130e1d7ac4465272e093",
+          "tx_id": "tx:159cea2c14466f5fa04e1879f7c8e9ca2db87e08e5a9aa2be7c9eafc864a6591",
           "tx_type": "DISPUTE_JUROR_ASSIGN"
         },
-        "tx_id": "tx:677658e3b255c1a220cd67eecba8421de7e6fd95efa0130e1d7ac4465272e093"
+        "tx_id": "tx:159cea2c14466f5fa04e1879f7c8e9ca2db87e08e5a9aa2be7c9eafc864a6591"
       },
       "tx_type": "DISPUTE_JUROR_ASSIGN"
     },
@@ -22291,7 +22293,7 @@
           "signature_bytes": 0,
           "signature_bytes_omitted_from_manifest": false
         },
-        "state_root_after": "f473bc59e1021a6287b43a1bd6b0475bab570aa45b28fc758f00be0f30b921f7",
+        "state_root_after": "435ee4e5e8cfcf38cf959adcc5348250d5f98414013257752fb70fb19407d4ea",
         "state_root_before": "b90eaef5de20cdd8770d3f8a7c9be7d1320a375384b03f66e8b167e99de13316",
         "state_writing": true,
         "success_receipt": {
@@ -23492,7 +23494,7 @@
           "metadata": {
             "account_id": "@tester",
             "applied": "ROLE_JUROR_ACTIVATE",
-            "deduped": false,
+            "deduped": true,
             "reassigned_content_reviews": 0,
             "reviewer_lane_policy": "exact_lane_opt_in_required"
           },
@@ -23733,7 +23735,7 @@
           "signature_bytes_omitted_from_manifest": false
         },
         "state_root_after": "acbfddd3480046e683ca86e44dee14ad0cff46dc3dbf95ecd612f5907c81599c",
-        "state_root_before": "95155716a9f2cd829666f5ddf27e7a46d2ced71313b0a6fea87c3675b5b8ec9d",
+        "state_root_before": "2f04b2ce1888ebb9ce8687e3b2da474c8233aac699a21a32533a7091597b1376",
         "state_writing": true,
         "success_receipt": {
           "nonce": 1,
@@ -23831,7 +23833,7 @@
           "signature_bytes": 0,
           "signature_bytes_omitted_from_manifest": false
         },
-        "state_root_after": "95155716a9f2cd829666f5ddf27e7a46d2ced71313b0a6fea87c3675b5b8ec9d",
+        "state_root_after": "2f04b2ce1888ebb9ce8687e3b2da474c8233aac699a21a32533a7091597b1376",
         "state_root_before": "6998ecce9ece058e2bd99522bb406967a99c1c3766f1073376061e49157b7b5e",
         "state_writing": true,
         "success_receipt": {
@@ -24135,7 +24137,7 @@
           "signature_bytes": 0,
           "signature_bytes_omitted_from_manifest": false
         },
-        "state_root_after": "294dde7e8cff9704aa535947989b854638f3d75a61f06b0e9c11f6c0f48d92b5",
+        "state_root_after": "bf9aa8430e3ab95ec8ec5897d45420edf6a3a9fe135d06c1c9e911dcc9d8ecb0",
         "state_root_before": "3f622b32562b032e5b5ee633c3791fdb180ef7aae062557769db7be07725dffe",
         "state_writing": true,
         "success_receipt": {
@@ -28837,7 +28839,7 @@
   },
   "source_inputs": {
     "lifecycle_fixture_sha256": "c526d8cd1ce23034c399ebc369e6cdd1d578507fdc9a900d0f9b98715bb10e61",
-    "semantic_manifest_sha256": "75a748a095d7a8c8b0c14a0799e0e108aba9d9806cc6d32514f3691c70a32b30"
+    "semantic_manifest_sha256": "a856fd0d0055c964ef660864e0a561d210fa035853b36771a9e1837d4ef47e9f"
   },
   "summary": {
     "duplicate_replay_expectation_count": 236,

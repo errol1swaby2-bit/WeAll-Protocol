@@ -1,5 +1,5 @@
 {
-  "count": 1145,
+  "count": 1170,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "6c6d63df436da218ee6de897dc413f7af2ae5d9b13dc34e5988eba67ce13ba64"
+    "source_tree_digest": "9dfb4978516d23562aa68abcb84d02bf35a8ded3f4da66c21d3ad27983e74a04"
   },
   "rows": [
     {
@@ -6903,7 +6903,7 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#dispute_open"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -6957,7 +6957,7 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#dispute_open"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -6994,7 +6994,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "domain": "Dispute",
@@ -7006,8 +7005,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -7018,7 +7016,6 @@
       "state_key_or_namespace": "<clear:dynamic>",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7026,13 +7023,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "domain": "Dispute",
@@ -7044,8 +7039,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -7056,7 +7050,6 @@
       "state_key_or_namespace": "<pop:dynamic>",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7064,13 +7057,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "domain": "Dispute",
@@ -7082,8 +7073,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -7094,7 +7084,6 @@
       "state_key_or_namespace": "<setdefault:dynamic>",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7102,7 +7091,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208"
       ]
     },
@@ -7119,7 +7107,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -7148,7 +7135,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208",
         "TX-0211"
       ],
@@ -7178,7 +7164,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -7196,7 +7181,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -7214,12 +7198,10 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -7232,7 +7214,6 @@
       "state_key_or_namespace": "accepted_at_block_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -7243,7 +7224,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -7252,7 +7232,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -7270,12 +7249,10 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-2622"
       ],
@@ -7286,7 +7263,6 @@
       "state_key_or_namespace": "accepted_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -7297,7 +7273,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -7306,7 +7281,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207"
       ],
@@ -7320,12 +7294,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0207"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -7335,7 +7307,6 @@
       "state_key_or_namespace": "accepted_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207"
       ],
@@ -7344,7 +7315,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207"
       ]
@@ -7362,7 +7332,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -7381,7 +7350,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -7395,12 +7363,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -7411,7 +7377,6 @@
       "state_key_or_namespace": "accounts",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -7420,7 +7385,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
@@ -7438,7 +7402,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -7468,7 +7431,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -7486,7 +7448,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -7498,46 +7459,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
-      ],
-      "primary_mechanism_id": "M-054",
-      "reads_by": [],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-9D73E6D085667BBC",
-      "state_key_or_namespace": "appeal_ballot_nullifiers",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0200",
-        "TX-0210"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0200",
-        "TX-0210"
-      ]
-    },
-    {
-      "creation_contracts": [
-        "TX-0200",
-        "TX-0210"
-      ],
-      "domain": "Dispute",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -7548,7 +7470,6 @@
       "state_key_or_namespace": "appeal_conflicted_juror_ids",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7556,13 +7477,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "domain": "Dispute",
@@ -7574,12 +7493,10 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0210"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -7589,7 +7506,6 @@
       "state_key_or_namespace": "appeal_deadline_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7597,13 +7513,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "domain": "Dispute",
@@ -7615,12 +7529,10 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0211"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -7630,7 +7542,6 @@
       "state_key_or_namespace": "appeal_finalization",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7638,13 +7549,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0211"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -7656,8 +7565,75 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
+      ],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-AAD39F0F875F9213",
+      "state_key_or_namespace": "appeal_panel_available_candidate_count",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0210"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0210"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0210"
+      ],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
+      ],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-E4B9F53D79A88458",
+      "state_key_or_namespace": "appeal_panel_blocked_reason",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0210"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0210"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0210"
+      ],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -7668,7 +7644,6 @@
       "state_key_or_namespace": "appeal_panel_commitment",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7676,13 +7651,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -7694,8 +7667,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -7706,7 +7678,6 @@
       "state_key_or_namespace": "appeal_panel_juror_ids",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7714,13 +7685,45 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
+        "TX-0210"
+      ],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
+      ],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-95517CDD3F679E3F",
+      "state_key_or_namespace": "appeal_panel_required_size",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0210"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0210"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-0208"
       ],
       "domain": "Dispute",
@@ -7732,11 +7735,12 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
-      "reads_by": [],
+      "reads_by": [
+        "TX-0211"
+      ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/dispute.py",
@@ -7744,7 +7748,6 @@
       "state_key_or_namespace": "appeal_panel_result",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7752,13 +7755,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -7770,12 +7771,10 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208",
         "TX-0210"
       ],
@@ -7786,7 +7785,6 @@
       "state_key_or_namespace": "appeal_panel_round",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7794,13 +7792,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -7812,8 +7808,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -7824,7 +7819,6 @@
       "state_key_or_namespace": "appeal_panel_status",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7832,13 +7826,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -7850,19 +7842,17 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-A7FDBEA3E1880A13",
-      "state_key_or_namespace": "appeal_panel_votes",
+      "stable_id": "STATE-7E3BD7FC64CE4E0B",
+      "state_key_or_namespace": "appeal_pending_since_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7870,15 +7860,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
-      "creation_contracts": [
-        "TX-0200",
-        "TX-0210"
-      ],
+      "creation_contracts": [],
       "domain": "Dispute",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -7887,34 +7873,26 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
-      ],
+      "mutators": [],
       "primary_mechanism_id": "M-054",
-      "reads_by": [],
+      "reads_by": [
+        "TX-0211"
+      ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-4108D088C9B512CE",
-      "state_key_or_namespace": "appeal_resolution_options",
+      "stable_id": "STATE-E3829A8664FA2193",
+      "state_key_or_namespace": "appeal_resolution",
       "status": "current_partial",
-      "transition_contracts": [
-        "TX-0200",
-        "TX-0210"
-      ],
+      "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": [
-        "TX-0200",
-        "TX-0210"
-      ]
+      "writes_by": []
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -7926,8 +7904,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -7938,7 +7915,6 @@
       "state_key_or_namespace": "appeal_substitute_juror_ids",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7946,13 +7922,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -7964,19 +7938,17 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-7726812E95C0E4CA",
-      "state_key_or_namespace": "appeal_vote_counts",
+      "stable_id": "STATE-69CF2E5B0ACC6783",
+      "state_key_or_namespace": "appeal_substitute_required_count",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -7984,51 +7956,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
-        "TX-0210"
-      ],
-      "domain": "Dispute",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
-      ],
-      "primary_mechanism_id": "M-054",
-      "reads_by": [],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-E8C160B7A4D76035",
-      "state_key_or_namespace": "appeal_voted_juror_ids",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0200",
-        "TX-0210"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0200",
-        "TX-0210"
-      ]
-    },
-    {
-      "creation_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "domain": "Dispute",
@@ -8040,8 +7972,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8052,7 +7983,6 @@
       "state_key_or_namespace": "appeal_window_blocks",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8060,13 +7990,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -8078,13 +8006,12 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
-        "TX-0210"
+        "TX-0210",
+        "TX-0211"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "declared_namespace",
@@ -8093,7 +8020,6 @@
       "state_key_or_namespace": "appeals",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8101,7 +8027,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
@@ -8124,11 +8049,10 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#dispute_open"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0210"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -8156,7 +8080,40 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
+        "TX-0200"
+      ],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#dispute_open"
+      ],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-B38D8CD3C722286B",
+      "state_key_or_namespace": "assignment_blocked_reason",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0200"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0200"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-0205",
         "TX-0207"
       ],
@@ -8170,12 +8127,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -8185,7 +8140,6 @@
       "state_key_or_namespace": "attendance",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207"
       ],
@@ -8194,7 +8148,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207"
       ]
@@ -8212,7 +8165,35 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
+        "TX-0209",
+        "TX-0210"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-1D3C587C710A334C",
+      "state_key_or_namespace": "automatic_appeal_record",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
         "TX-0210"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -8230,7 +8211,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -8244,12 +8224,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -8260,7 +8238,6 @@
       "state_key_or_namespace": "banned",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -8269,42 +8246,12 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
     },
     {
-      "creation_contracts": [],
-      "domain": "Dispute",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
-      "primary_mechanism_id": "M-054",
-      "reads_by": [
-        "TX-0200"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-6F78508875D1025A",
-      "state_key_or_namespace": "bindings",
-      "status": "current_partial",
-      "transition_contracts": [],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": []
-    },
-    {
       "creation_contracts": [
-        "TX-0200",
         "TX-0203"
       ],
       "domain": "Dispute",
@@ -8316,8 +8263,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_bind",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_bind"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8328,7 +8274,6 @@
       "state_key_or_namespace": "bound",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0203"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8336,13 +8281,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0203"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0203"
       ],
       "domain": "Dispute",
@@ -8354,8 +8297,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_bind",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_bind"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8366,7 +8308,6 @@
       "state_key_or_namespace": "bound_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0203"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8374,13 +8315,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0203"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0203"
       ],
       "domain": "Dispute",
@@ -8392,8 +8331,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_bind",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_bind"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8404,7 +8342,6 @@
       "state_key_or_namespace": "bound_by",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0203"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8412,7 +8349,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0203"
       ]
     },
@@ -8429,7 +8365,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0210"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -8447,7 +8382,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -8461,12 +8395,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -8477,7 +8409,6 @@
       "state_key_or_namespace": "by_id",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -8486,7 +8417,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
@@ -8504,7 +8434,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0208"
       ],
@@ -8534,63 +8463,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-14003FDB32239E8D",
-      "state_key_or_namespace": "case_id",
-      "status": "current_partial",
-      "transition_contracts": [],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": []
-    },
-    {
-      "creation_contracts": [],
-      "domain": "Dispute",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
-      "primary_mechanism_id": "M-054",
-      "reads_by": [
-        "TX-0200"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-7D84ACA0181BB836",
-      "state_key_or_namespace": "case_type",
-      "status": "current_partial",
-      "transition_contracts": [],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": []
-    },
-    {
-      "creation_contracts": [],
-      "domain": "Dispute",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
-      "primary_mechanism_id": "M-054",
-      "reads_by": [
-        "TX-0200",
         "TX-0208"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -8619,7 +8491,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0202"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -8637,7 +8508,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "domain": "Dispute",
@@ -8649,8 +8519,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8661,7 +8530,6 @@
       "state_key_or_namespace": "completed_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8669,13 +8537,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "domain": "Dispute",
@@ -8687,8 +8553,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8699,7 +8564,6 @@
       "state_key_or_namespace": "completed_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8707,13 +8571,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "domain": "Dispute",
@@ -8725,8 +8587,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8737,7 +8598,6 @@
       "state_key_or_namespace": "completion",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8745,12 +8605,13 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208"
       ]
     },
     {
-      "creation_contracts": [],
+      "creation_contracts": [
+        "TX-0200"
+      ],
       "domain": "Dispute",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -8759,7 +8620,9 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#dispute_open"
+      ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
         "TX-0200",
@@ -8771,12 +8634,16 @@
       "stable_id": "STATE-21E75CFA0D02D376",
       "state_key_or_namespace": "conflicted_juror_ids",
       "status": "current_partial",
-      "transition_contracts": [],
+      "transition_contracts": [
+        "TX-0200"
+      ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": []
+      "writes_by": [
+        "TX-0200"
+      ]
     },
     {
       "creation_contracts": [],
@@ -8791,7 +8658,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-2623"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -8820,7 +8686,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208",
         "TX-0211"
       ],
@@ -8839,7 +8704,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0206"
       ],
       "domain": "Dispute",
@@ -8851,8 +8715,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_decline",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_decline"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8863,7 +8726,6 @@
       "state_key_or_namespace": "declined_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0206"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -8871,7 +8733,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0206"
       ]
     },
@@ -8944,7 +8805,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -8958,8 +8818,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -8970,7 +8829,6 @@
       "state_key_or_namespace": "dispute_juror_eligible",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -8979,14 +8837,12 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9000,8 +8856,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -9012,7 +8867,6 @@
       "state_key_or_namespace": "dispute_juror_suspended_reason",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9021,10 +8875,39 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
+        "TX-0204",
+        "TX-0205",
+        "TX-0208"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-C717E66CD5767251",
+      "state_key_or_namespace": "dispute_material_conflict_gate_version",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [],
@@ -9091,7 +8974,34 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
+        "TX-0211"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-162912D5BA5E7E41",
+      "state_key_or_namespace": "disputes_by_id",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
         "TX-0209",
         "TX-0211"
       ],
@@ -9125,11 +9035,10 @@
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#dispute_open"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0204"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -9170,7 +9079,7 @@
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#dispute_open"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -9208,7 +9117,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0211"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -9237,7 +9145,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0208",
         "TX-2622",
@@ -9258,7 +9165,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0202",
         "TX-0203"
       ],
@@ -9272,12 +9178,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_bind",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_declare",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_evidence_declare"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0202",
         "TX-0203"
       ],
@@ -9288,7 +9192,6 @@
       "state_key_or_namespace": "evidence",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0202",
         "TX-0203"
       ],
@@ -9297,7 +9200,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0202",
         "TX-0203"
       ]
@@ -9315,7 +9217,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0202",
         "TX-0203"
       ],
@@ -9334,7 +9235,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "domain": "Dispute",
@@ -9346,8 +9246,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -9358,7 +9257,6 @@
       "state_key_or_namespace": "final_enforcement_applied",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -9366,13 +9264,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0211"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "domain": "Dispute",
@@ -9384,8 +9280,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -9396,7 +9291,6 @@
       "state_key_or_namespace": "final_resolution",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -9404,13 +9298,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0211"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "domain": "Dispute",
@@ -9422,8 +9314,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -9434,7 +9325,6 @@
       "state_key_or_namespace": "finalized_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -9442,7 +9332,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0211"
       ]
     },
@@ -9460,6 +9349,36 @@
       "primary_mechanism_id": "M-054",
       "reads_by": [
         "TX-0200",
+        "TX-0204",
+        "TX-0205",
+        "TX-0208"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-FDB71B01B71E8DF8",
+      "state_key_or_namespace": "flagged_by",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
         "TX-0209",
         "TX-0211"
       ],
@@ -9478,7 +9397,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9492,12 +9410,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9508,7 +9424,6 @@
       "state_key_or_namespace": "groups",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9517,7 +9432,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
@@ -9535,7 +9449,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208",
         "TX-0209",
         "TX-0210",
@@ -9567,8 +9480,8 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0203",
+        "TX-0204",
         "TX-0205",
         "TX-0206",
         "TX-0207",
@@ -9604,7 +9517,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0204",
         "TX-2623"
       ],
@@ -9623,7 +9535,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "domain": "Dispute",
@@ -9635,8 +9546,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -9647,7 +9557,6 @@
       "state_key_or_namespace": "juror_accountability",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0211"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -9655,7 +9564,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0211"
       ]
     },
@@ -9672,7 +9580,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0204",
         "TX-0209",
         "TX-0211",
@@ -9720,7 +9627,7 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_timeout",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#dispute_open"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
@@ -9779,7 +9686,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0202"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -9808,7 +9714,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -9829,7 +9734,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9843,12 +9747,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9859,7 +9761,6 @@
       "state_key_or_namespace": "latest_restriction",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9868,14 +9769,12 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9889,12 +9788,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9905,7 +9802,6 @@
       "state_key_or_namespace": "locked",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9914,7 +9810,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
@@ -9932,7 +9827,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -9962,7 +9856,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0202"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -9979,36 +9872,7 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [],
-      "domain": "Dispute",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
-      "primary_mechanism_id": "M-054",
-      "reads_by": [
-        "TX-0200"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-8220B4D4C8542D76",
-      "state_key_or_namespace": "name",
-      "status": "current_partial",
-      "transition_contracts": [],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": []
-    },
-    {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -10020,8 +9884,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -10032,7 +9895,6 @@
       "state_key_or_namespace": "original_panel_juror_ids",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -10040,13 +9902,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "domain": "Dispute",
@@ -10058,8 +9918,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -10070,7 +9929,6 @@
       "state_key_or_namespace": "original_substitute_juror_ids",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0210"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -10078,7 +9936,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0210"
       ]
     },
@@ -10095,13 +9952,13 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200"
+        "TX-0209"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-FEA90297C58F8F77",
-      "state_key_or_namespace": "outcomes",
+      "stable_id": "STATE-811148B65FBF54D2",
+      "state_key_or_namespace": "outcome",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -10123,8 +9980,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
-        "TX-0210"
+        "TX-0200"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -10140,7 +9996,9 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [],
+      "creation_contracts": [
+        "TX-0200"
+      ],
       "domain": "Dispute",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -10149,7 +10007,9 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#dispute_open"
+      ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
         "TX-0200",
@@ -10161,12 +10021,120 @@
       "stable_id": "STATE-DE5DB1040EE96DA8",
       "state_key_or_namespace": "panel_commitment",
       "status": "current_partial",
-      "transition_contracts": [],
+      "transition_contracts": [
+        "TX-0200"
+      ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": []
+      "writes_by": [
+        "TX-0200"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0200"
+      ],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#dispute_open"
+      ],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-ADF642AD13849DB6",
+      "state_key_or_namespace": "panel_required_size",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0200"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0200"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0200"
+      ],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#dispute_open"
+      ],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
+        "TX-0208"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-0CC7FD77B19346C7",
+      "state_key_or_namespace": "panel_round",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0200"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0200"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0200"
+      ],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#dispute_open"
+      ],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-A9B3034F3610F06C",
+      "state_key_or_namespace": "panel_status",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0200"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0200"
+      ]
     },
     {
       "creation_contracts": [],
@@ -10181,14 +10149,15 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
+        "TX-0204",
+        "TX-0205",
         "TX-0208"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-0CC7FD77B19346C7",
-      "state_key_or_namespace": "panel_round",
+      "stable_id": "STATE-74014BDD6B4F516B",
+      "state_key_or_namespace": "params",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -10210,7 +10179,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10229,7 +10197,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10243,8 +10210,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -10255,7 +10221,6 @@
       "state_key_or_namespace": "poh_reviewer_eligible",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10264,14 +10229,12 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10285,8 +10248,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -10297,7 +10259,6 @@
       "state_key_or_namespace": "poh_reviewer_suspended_reason",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10306,7 +10267,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
@@ -10324,7 +10284,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0207",
         "TX-0208"
       ],
@@ -10354,7 +10313,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -10362,6 +10320,34 @@
       "source": "src/weall/runtime/apply/dispute.py",
       "stable_id": "STATE-A922EE012A4DDD70",
       "state_key_or_namespace": "profile_id",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
+        "TX-0211"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-19B1ED58FA570B23",
+      "state_key_or_namespace": "reached",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -10415,7 +10401,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0211"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -10433,7 +10418,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10447,12 +10431,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10463,7 +10445,6 @@
       "state_key_or_namespace": "remedies",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10472,14 +10453,74 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
     },
     {
-      "creation_contracts": [
+      "creation_contracts": [],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
         "TX-0200",
+        "TX-0204",
+        "TX-0205",
+        "TX-0208"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-7020E6433F99740C",
+      "state_key_or_namespace": "reported_by",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
+        "TX-0200",
+        "TX-0204",
+        "TX-0205",
+        "TX-0208"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-D24C8B5097A0A80B",
+      "state_key_or_namespace": "reporter",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -10497,12 +10538,10 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-2622",
         "TX-2623"
       ],
@@ -10513,7 +10552,6 @@
       "state_key_or_namespace": "reputation_policy",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -10524,7 +10562,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -10606,7 +10643,7 @@
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#dispute_open"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -10633,7 +10670,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0208",
         "TX-0209"
       ],
@@ -10647,12 +10683,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208",
         "TX-0209",
         "TX-0211"
@@ -10664,7 +10698,6 @@
       "state_key_or_namespace": "resolution",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208",
         "TX-0209"
       ],
@@ -10673,14 +10706,12 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208",
         "TX-0209"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "domain": "Dispute",
@@ -10692,8 +10723,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -10704,7 +10734,6 @@
       "state_key_or_namespace": "resolved",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -10712,13 +10741,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "domain": "Dispute",
@@ -10730,8 +10757,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -10742,7 +10768,6 @@
       "state_key_or_namespace": "resolved_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -10750,13 +10775,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "domain": "Dispute",
@@ -10768,8 +10791,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -10780,7 +10802,6 @@
       "state_key_or_namespace": "resolved_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -10788,13 +10809,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10808,12 +10827,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10824,7 +10841,6 @@
       "state_key_or_namespace": "restricted",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10833,14 +10849,12 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10854,12 +10868,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10870,7 +10882,6 @@
       "state_key_or_namespace": "restricted_members",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10879,7 +10890,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
@@ -10897,7 +10907,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10916,7 +10925,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10930,12 +10938,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10946,7 +10952,6 @@
       "state_key_or_namespace": "restrictions",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10955,7 +10960,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
@@ -10973,7 +10977,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -10992,7 +10995,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -11006,12 +11008,10 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_final_receipt",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -11022,7 +11022,6 @@
       "state_key_or_namespace": "role_eligibility",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -11031,7 +11030,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ]
@@ -11049,7 +11047,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11070,7 +11067,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11088,12 +11084,10 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-2622"
       ],
@@ -11104,7 +11098,6 @@
       "state_key_or_namespace": "safe_withdraw_until_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11115,7 +11108,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11145,15 +11137,15 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_stage_set",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#dispute_open"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0201",
         "TX-0204",
         "TX-0208",
-        "TX-0210"
+        "TX-0210",
+        "TX-0211"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -11184,7 +11176,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0201",
         "TX-0204",
         "TX-0210"
@@ -11200,8 +11191,7 @@
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_appeal",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_stage_set",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_stage_set"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -11212,7 +11202,6 @@
       "state_key_or_namespace": "stage_set_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0201",
         "TX-0204",
         "TX-0210"
@@ -11222,7 +11211,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0201",
         "TX-0204",
         "TX-0210"
@@ -11230,7 +11218,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0201",
         "TX-0204"
       ],
@@ -11244,8 +11231,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_assign",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_stage_set",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_stage_set"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -11256,7 +11242,6 @@
       "state_key_or_namespace": "stage_set_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0201",
         "TX-0204"
       ],
@@ -11265,14 +11250,12 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0201",
         "TX-0204"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0206",
         "TX-0207",
@@ -11294,8 +11277,7 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_decline",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_timeout",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
@@ -11316,7 +11298,6 @@
       "state_key_or_namespace": "status",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0206",
         "TX-0207",
@@ -11329,7 +11310,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0206",
         "TX-0207",
@@ -11351,7 +11331,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208",
         "TX-0210"
       ],
@@ -11369,7 +11348,9 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [],
+      "creation_contracts": [
+        "TX-0200"
+      ],
       "domain": "Dispute",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -11378,10 +11359,11 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#dispute_open"
+      ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0210"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -11390,12 +11372,50 @@
       "stable_id": "STATE-374C033819315E80",
       "state_key_or_namespace": "substitute_juror_ids",
       "status": "current_partial",
-      "transition_contracts": [],
+      "transition_contracts": [
+        "TX-0200"
+      ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": []
+      "writes_by": [
+        "TX-0200"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0200"
+      ],
+      "domain": "Dispute",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/dispute.py#dispute_open"
+      ],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "STATE-D09F34976C3B260C",
+      "state_key_or_namespace": "substitute_required_count",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0200"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0200"
+      ]
     },
     {
       "creation_contracts": [],
@@ -11410,8 +11430,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
-        "TX-0210"
+        "TX-0200"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -11439,7 +11458,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -11468,7 +11486,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -11529,6 +11546,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
+        "TX-0200",
         "TX-0210"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -11546,7 +11564,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-2623"
       ],
       "domain": "Dispute",
@@ -11558,8 +11575,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_timeout",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_timeout"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -11570,7 +11586,6 @@
       "state_key_or_namespace": "timed_out_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-2623"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -11578,13 +11593,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-2623"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-2623"
       ],
       "domain": "Dispute",
@@ -11596,8 +11609,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_timeout",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_timeout"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -11608,7 +11620,6 @@
       "state_key_or_namespace": "timed_out_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-2623"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -11616,13 +11627,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-2623"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-2623"
       ],
       "domain": "Dispute",
@@ -11634,8 +11643,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_timeout",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_timeout"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -11646,7 +11654,6 @@
       "state_key_or_namespace": "timeout",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-2623"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -11654,7 +11661,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-2623"
       ]
     },
@@ -11671,7 +11677,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11704,7 +11709,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0209",
         "TX-0211"
       ],
@@ -11722,64 +11726,7 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [],
-      "domain": "Dispute",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
-      "primary_mechanism_id": "M-054",
-      "reads_by": [
-        "TX-0200"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-1E154BED22E6D7D1",
-      "state_key_or_namespace": "type",
-      "status": "current_partial",
-      "transition_contracts": [],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": []
-    },
-    {
-      "creation_contracts": [],
-      "domain": "Dispute",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
-      "primary_mechanism_id": "M-054",
-      "reads_by": [
-        "TX-0200"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/dispute.py",
-      "stable_id": "STATE-B881C139E29EBD86",
-      "state_key_or_namespace": "types",
-      "status": "current_partial",
-      "transition_contracts": [],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": []
-    },
-    {
       "creation_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "domain": "Dispute",
@@ -11791,8 +11738,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_resolve"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -11803,7 +11749,6 @@
       "state_key_or_namespace": "verdict_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0209"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -11811,7 +11756,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0209"
       ]
     },
@@ -11828,7 +11772,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0208"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -11846,7 +11789,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11864,12 +11806,10 @@
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_accept",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_attendance",
         "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0208",
         "TX-2623"
@@ -11881,7 +11821,6 @@
       "state_key_or_namespace": "vote_deadline_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11892,7 +11831,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11912,7 +11850,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-054",
       "reads_by": [
-        "TX-0200",
         "TX-0205",
         "TX-0207",
         "TX-0208",
@@ -11933,7 +11870,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "domain": "Dispute",
@@ -11945,8 +11881,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_vote_submit"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -11957,7 +11892,6 @@
       "state_key_or_namespace": "votes",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-0208"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -11965,13 +11899,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-0208"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-2622"
       ],
       "domain": "Dispute",
@@ -11983,8 +11915,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -11995,7 +11926,6 @@
       "state_key_or_namespace": "withdrawal",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-2622"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -12003,13 +11933,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-2622"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-2622"
       ],
       "domain": "Dispute",
@@ -12021,8 +11949,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -12033,7 +11960,6 @@
       "state_key_or_namespace": "withdrawn_at_height",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-2622"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -12041,13 +11967,11 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-2622"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0200",
         "TX-2622"
       ],
       "domain": "Dispute",
@@ -12059,8 +11983,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw",
-        "src/weall/runtime/apply/dispute.py#apply_dispute"
+        "src/weall/runtime/apply/dispute.py#_apply_dispute_juror_withdraw"
       ],
       "primary_mechanism_id": "M-054",
       "reads_by": [],
@@ -12071,7 +11994,6 @@
       "state_key_or_namespace": "withdrawn_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0200",
         "TX-2622"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -12079,7 +12001,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0200",
         "TX-2622"
       ]
     },
@@ -15728,6 +15649,74 @@
     },
     {
       "creation_contracts": [
+        "TX-1715"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_create"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-53E6387F578A555E",
+      "state_key_or_namespace": "electorate_source",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1715"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1715"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-1715"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_create"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-492932C756513165",
+      "state_key_or_namespace": "eligible_voter_count",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1715"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1715"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-1717"
       ],
       "domain": "Groups",
@@ -16932,6 +16921,76 @@
       ]
     },
     {
+      "creation_contracts": [
+        "TX-1717"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-D4963814FEFCFFAA",
+      "state_key_or_namespace": "n_ballots",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1717"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1717"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-1717"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-1717"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-BFF3D95D7CD17E26",
+      "state_key_or_namespace": "no_decision_reason",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1717"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1717"
+      ]
+    },
+    {
       "creation_contracts": [],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17120,6 +17179,110 @@
       ]
     },
     {
+      "creation_contracts": [
+        "TX-1715"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_create"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-12DF8EB7E75D134C",
+      "state_key_or_namespace": "quorum_activation_height",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1715"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1715"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-1717"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_finalize"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-B0B37C20B129B9AC",
+      "state_key_or_namespace": "quorum_met",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1717"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1717"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-1715"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_create"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-1717"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-73E64D02F6BCA92D",
+      "state_key_or_namespace": "quorum_policy_version",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1715"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1715"
+      ]
+    },
+    {
       "creation_contracts": [],
       "domain": "Groups",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17284,6 +17447,40 @@
       "writes_by": [
         "TX-1700",
         "TX-1717"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-1715"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_emissary_election_create"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-6649873F8C8A69ED",
+      "state_key_or_namespace": "required_votes",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1715"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1715"
       ]
     },
     {
@@ -32689,6 +32886,34 @@
       ]
     },
     {
+      "creation_contracts": [],
+      "domain": "Reputation",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
+        "TX-0904"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/reputation.py",
+      "stable_id": "STATE-A06D4AD213212EEA",
+      "state_key_or_namespace": "account_id",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [
         "TX-0900",
         "TX-0904",
@@ -32733,6 +32958,34 @@
         "TX-0904",
         "TX-0905"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Reputation",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
+        "TX-0904"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/reputation.py",
+      "stable_id": "STATE-1428208E67E4439F",
+      "state_key_or_namespace": "auto",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -33208,6 +33461,34 @@
       "source": "src/weall/runtime/apply/reputation.py",
       "stable_id": "STATE-3BD36B26B2FB6E77",
       "state_key_or_namespace": "occurred_at_time",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Reputation",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-054",
+      "reads_by": [
+        "TX-0904"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/reputation.py",
+      "stable_id": "STATE-FC949270AB54E86C",
+      "state_key_or_namespace": "payload",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -35707,11 +35988,19 @@
     },
     {
       "creation_contracts": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
         "TX-1106",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
         "TX-2617",
         "TX-2618",
         "TX-2619",
         "TX-2621",
+        "TX-2624",
         "TX-2626"
       ],
       "domain": "Roles",
@@ -35727,7 +36016,15 @@
         "src/weall/runtime/apply/roles.py#_apply_node_operator_responsibility_update",
         "src/weall/runtime/apply/roles.py#_apply_node_operator_storage_opt_in_tx",
         "src/weall/runtime/apply/roles.py#_apply_node_operator_validator_opt_in_tx",
+        "src/weall/runtime/apply/roles.py#_apply_reviewer_lane_update",
+        "src/weall/runtime/apply/roles.py#_apply_role_emissary_seat",
+        "src/weall/runtime/apply/roles.py#_apply_role_gov_executor_set",
+        "src/weall/runtime/apply/roles.py#_apply_role_juror_activate",
+        "src/weall/runtime/apply/roles.py#_apply_role_juror_enroll",
+        "src/weall/runtime/apply/roles.py#_apply_role_juror_reinstate",
+        "src/weall/runtime/apply/roles.py#_apply_role_node_operator_activate",
         "src/weall/runtime/apply/roles.py#_apply_role_node_operator_enroll",
+        "src/weall/runtime/apply/roles.py#_apply_role_validator_activate",
         "src/weall/runtime/apply/roles.py#_apply_validator_readiness_verify"
       ],
       "primary_mechanism_id": "M-028",
@@ -35739,11 +36036,19 @@
       "state_key_or_namespace": "<update:dynamic>",
       "status": "current_partial",
       "transition_contracts": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
         "TX-1106",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
         "TX-2617",
         "TX-2618",
         "TX-2619",
         "TX-2621",
+        "TX-2624",
         "TX-2626"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -35751,11 +36056,19 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
         "TX-1106",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
         "TX-2617",
         "TX-2618",
         "TX-2619",
         "TX-2621",
+        "TX-2624",
         "TX-2626"
       ]
     },
@@ -35798,8 +36111,7 @@
         "TX-1103",
         "TX-1104",
         "TX-1107",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "domain": "Roles",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -35831,8 +36143,7 @@
         "TX-1103",
         "TX-1104",
         "TX-1107",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -35844,8 +36155,7 @@
         "TX-1103",
         "TX-1104",
         "TX-1107",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ]
     },
     {
@@ -36045,6 +36355,41 @@
       ]
     },
     {
+      "creation_contracts": [],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-4AFC1DCF32ABB654",
+      "state_key_or_namespace": "actual_milli",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [
         "TX-1106",
         "TX-1107",
@@ -36123,19 +36468,10 @@
       "mutators": [],
       "primary_mechanism_id": "M-028",
       "reads_by": [
-        "TX-1100",
-        "TX-1101",
-        "TX-1103",
-        "TX-1104",
         "TX-1106",
-        "TX-1107",
-        "TX-1111",
-        "TX-1113",
         "TX-2617",
         "TX-2618",
         "TX-2619",
-        "TX-2624",
-        "TX-2625",
         "TX-2626"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -36282,6 +36618,76 @@
       "mutators": [],
       "primary_mechanism_id": "M-028",
       "reads_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-8560A5824EEB30E7",
+      "state_key_or_namespace": "canonical_reasons",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-7963C8A4AE4D4664",
+      "state_key_or_namespace": "canonical_role",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
         "TX-2621"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -36289,6 +36695,41 @@
       "source": "src/weall/runtime/apply/roles.py",
       "stable_id": "STATE-0AF9E872A94F4104",
       "state_key_or_namespace": "chain_id",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-B6A01EB0C91A8347",
+      "state_key_or_namespace": "code",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -36400,6 +36841,41 @@
       ]
     },
     {
+      "creation_contracts": [],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-48054E863760B15B",
+      "state_key_or_namespace": "eligible",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [
         "TX-1109",
         "TX-1110",
@@ -36454,8 +36930,7 @@
       "creation_contracts": [
         "TX-1100",
         "TX-1106",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "domain": "Roles",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -36479,7 +36954,6 @@
         "TX-1106",
         "TX-1107",
         "TX-1108",
-        "TX-2624",
         "TX-2625"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -36491,8 +36965,7 @@
       "transition_contracts": [
         "TX-1100",
         "TX-1106",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -36501,16 +36974,14 @@
       "writes_by": [
         "TX-1100",
         "TX-1106",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ]
     },
     {
       "creation_contracts": [
         "TX-1100",
         "TX-1106",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "domain": "Roles",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -36527,8 +36998,7 @@
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -36539,8 +37009,7 @@
       "transition_contracts": [
         "TX-1100",
         "TX-1106",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -36549,8 +37018,78 @@
       "writes_by": [
         "TX-1100",
         "TX-1106",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/roles.py#_apply_reviewer_lane_update",
+        "src/weall/runtime/apply/roles.py#_apply_role_emissary_seat",
+        "src/weall/runtime/apply/roles.py#_apply_role_gov_executor_set",
+        "src/weall/runtime/apply/roles.py#_apply_role_juror_activate",
+        "src/weall/runtime/apply/roles.py#_apply_role_juror_enroll",
+        "src/weall/runtime/apply/roles.py#_apply_role_juror_reinstate",
+        "src/weall/runtime/apply/roles.py#_apply_role_node_operator_activate",
+        "src/weall/runtime/apply/roles.py#_apply_role_validator_activate"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-EBBEFD641753231F",
+      "state_key_or_namespace": "gate_version",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
       ]
     },
     {
@@ -36869,19 +37408,10 @@
       "mutators": [],
       "primary_mechanism_id": "M-028",
       "reads_by": [
-        "TX-1100",
-        "TX-1101",
-        "TX-1103",
-        "TX-1104",
         "TX-1106",
-        "TX-1107",
-        "TX-1111",
-        "TX-1113",
         "TX-2617",
         "TX-2618",
         "TX-2619",
-        "TX-2624",
-        "TX-2625",
         "TX-2626"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -37250,8 +37780,7 @@
     {
       "creation_contracts": [
         "TX-1100",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "domain": "Roles",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -37275,8 +37804,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-1100",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -37284,8 +37812,7 @@
       ],
       "writes_by": [
         "TX-1100",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ]
     },
     {
@@ -37730,7 +38257,15 @@
       "mutators": [],
       "primary_mechanism_id": "M-028",
       "reads_by": [
-        "TX-1112"
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1112",
+        "TX-1113",
+        "TX-2624"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -37980,6 +38515,41 @@
         "TX-2621",
         "TX-2626"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-1100",
+        "TX-1101",
+        "TX-1103",
+        "TX-1104",
+        "TX-1107",
+        "TX-1111",
+        "TX-1113",
+        "TX-2624"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-5FF70C7CD46EA8F5",
+      "state_key_or_namespace": "required_milli",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [],
@@ -38469,8 +39039,7 @@
         "TX-1103",
         "TX-1107",
         "TX-1108",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "domain": "Roles",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -38506,8 +39075,7 @@
         "TX-1103",
         "TX-1107",
         "TX-1108",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -38520,8 +39088,7 @@
         "TX-1103",
         "TX-1107",
         "TX-1108",
-        "TX-2624",
-        "TX-2625"
+        "TX-2624"
       ]
     },
     {
@@ -39114,7 +39681,6 @@
     },
     {
       "creation_contracts": [
-        "TX-2624",
         "TX-2625"
       ],
       "domain": "Roles",
@@ -39137,7 +39703,6 @@
       "state_key_or_namespace": "withdrawn_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-2624",
         "TX-2625"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -39145,7 +39710,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-2624",
         "TX-2625"
       ]
     },

@@ -1,0 +1,47 @@
+name: PR77 all 236 transaction bounded/deepcopy reference parity
+
+on:
+  push:
+    branches:
+      - review/pr70-pr75-pr76-consolidation-stage23-20261031
+    paths:
+      - Weall-Protocol/tests/test_pr77_all_tx_deepcopy_oracle.py
+      - .github/workflows/pr77-236-executor-oracle.yml
+      - Weall-Protocol/src/weall/runtime/bounded_rollback.py
+      - Weall-Protocol/src/weall/runtime/domain_apply.py
+      - Weall-Protocol/src/weall/runtime/apply/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-oracle:
+    if: github.repository == 'errol1swaby2-bit/WeAll-Protocol'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Run all 236 current-fixture independent oracle comparisons
+        working-directory: Weall-Protocol
+        run: |
+          set -Eeuo pipefail
+          ruff check tests/test_pr77_all_tx_deepcopy_oracle.py
+          ruff format --check tests/test_pr77_all_tx_deepcopy_oracle.py
+          python -m pytest -q tests/test_pr77_all_tx_deepcopy_oracle.py --junitxml=pr77-236-oracle-results.xml
+          echo 'Synthetic current-fixture parity only; historical and V2 review gates remain NO-GO.'
+      - name: Preserve current-fixture test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr77-236-synthetic-oracle-results
+          path: Weall-Protocol/pr77-236-oracle-results.xml
+          if-no-files-found: warn

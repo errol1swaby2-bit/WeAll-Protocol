@@ -1,11 +1,12 @@
 import { expect, test, type APIRequestContext, type BrowserContext, type Page, type Response } from "@playwright/test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const REQUIRE_REAL_STACK = process.env.WEALL_REQUIRE_REAL_ACCOUNT_CUSTODY_E2E === "1";
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
-const TERMINAL_SUCCESS = new Set(["confirmed", "committed", "finalized"]);
+const TERMINAL_SUCCESS = new Set(["confirmed"]);
 const TERMINAL_FAILURE = new Set(["rejected", "failed"]);
 
 type RecoveryFileV2 = {
@@ -54,14 +55,32 @@ function mutateB64(value: string): string {
   return `${first}${text.slice(1)}`;
 }
 
+function assertCanonicalMldsaPubkey(actual: unknown, publicKeyB64: string): void {
+  // Backend account authorities are canonically stored as lowercase hex of
+  // the same 1,952 ML-DSA-65 public-key bytes that browser custody exports as
+  // base64. Compare decoded bytes rather than silently treating encodings as
+  // different or forcing the backend to preserve noncanonical text.
+  const canonical = String(actual || "");
+  expect(/^[0-9a-f]{3904}$/.test(canonical)).toBe(true);
+  expect(canonical).toBe(Buffer.from(publicKeyB64, "base64").toString("hex"));
+}
+
 function assertSingleCanonicalAccountKey(body: any, publicKeyB64: string): void {
   const state = body?.state || {};
-  expect(state?.pubkey).toBe(publicKeyB64);
-  expect(state?.pubkeys).toEqual([publicKeyB64]);
-  expect(state?.active_keys).toEqual([publicKeyB64]);
+  assertCanonicalMldsaPubkey(state?.pubkey, publicKeyB64);
+  expect(Array.isArray(state?.pubkeys)).toBe(true);
+  expect(state.pubkeys).toHaveLength(1);
+  assertCanonicalMldsaPubkey(state.pubkeys[0], publicKeyB64);
+  expect(Array.isArray(state?.active_keys)).toBe(true);
+  expect(state.active_keys).toHaveLength(1);
+  assertCanonicalMldsaPubkey(state.active_keys[0], publicKeyB64);
   const byId = state?.keys?.by_id || {};
   expect(Object.keys(byId)).toHaveLength(1);
-  expect(JSON.stringify(byId)).toContain(publicKeyB64);
+  const key = Object.values(byId)[0] as any;
+  expect(key?.sig_profile).toBe("pq-mldsa-v1");
+  expect(key?.active).toBe(true);
+  expect(key?.revoked).toBe(false);
+  assertCanonicalMldsaPubkey(key?.pubkeys?.mldsa, publicKeyB64);
 }
 
 async function requireBackend(request: APIRequestContext): Promise<void> {
@@ -102,10 +121,16 @@ async function waitForConfirmedTx(request: APIRequestContext, txId: string, time
     if (response.ok()) {
       last = await response.json();
       const status = String(last?.status || last?.phase || "").trim().toLowerCase();
-      if (TERMINAL_FAILURE.has(status)) {
-        throw new Error(`transaction ${txId} reached terminal failure: ${JSON.stringify(last)}`);
+      if (TERMINAL_FAILURE.has(status) || last?.apply_ok === false) {
+        throw new Error(`transaction ${txId} reached rejected or failed-apply receipt: ${JSON.stringify(last)}`);
       }
-      if (TERMINAL_SUCCESS.has(status) && last?.local_state_synced !== false) return last;
+      if (
+        TERMINAL_SUCCESS.has(status) &&
+        last?.apply_ok === true &&
+        last?.local_state_synced !== false &&
+        Number(last?.height || 0) > 0 &&
+        String(last?.block_id || "").trim()
+      ) return last;
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
@@ -144,8 +169,8 @@ test.describe("real browser account custody", () => {
   test("browser ML-DSA-65 custody primitives execute with protocol sizes and context", async ({ page }) => {
     await page.goto("/#/login");
     const result = await page.evaluate(async () => {
-      const keysModulePath = "/src/auth/keys.ts";
-      const keys = await import(/* @vite-ignore */ keysModulePath);
+      const keysModulePath = "/__weall_test__/keys.js";
+      const keys = await import(keysModulePath);
       const kp = keys.generateKeypair();
       const derived = keys.derivePublicKeyFromSecretKey(kp.secretKeyB64);
       const validation = keys.validateKeypair(kp.pubkeyB64, kp.secretKeyB64);
@@ -173,7 +198,7 @@ test.describe("real browser account custody", () => {
     expect(result.notice).toContain("ML-DSA-65");
   });
 
-  test("create, verify, register, restart, restore, and submit a protected signed action", async ({ browser, request }) => {
+  test("create, verify, register, close browser, restore in new browser, and submit a protected signed action", async ({ browser, request }) => {
     test.setTimeout(300_000);
     await requireBackend(request);
 
@@ -195,8 +220,8 @@ test.describe("real browser account custody", () => {
       await createAccountButton.click();
       await expect(firstPage.getByTestId("recovery-save-step")).toBeVisible({ timeout: 30_000 });
 
-      const continueButton = firstPage.getByRole("button", { name: "Continue to account verification" });
-      await expect(continueButton).toBeDisabled();
+      const continueButton = firstPage.getByRole("button", { name: "Continue to network registration" });
+      await expect(continueButton).toHaveCount(0);
 
       const downloadPromise = firstPage.waitForEvent("download");
       await firstPage.getByRole("button", { name: /Download recovery file/ }).click();
@@ -224,19 +249,19 @@ test.describe("real browser account custody", () => {
       const recoveryText = firstPage.getByTestId("verify-created-recovery-json");
       await recoveryText.fill('{"type":');
       await expect(firstPage.locator(".error-text")).toBeVisible();
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       await recoveryText.fill(JSON.stringify({ ...recovery, account: `@wrong_${suffix}` }));
       await expect(firstPage.locator(".error-text")).toContainText("recovery_account_mismatch");
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       await recoveryText.fill(JSON.stringify({ ...recovery, publicKeyB64: mutateB64(recovery.publicKeyB64) }));
       await expect(firstPage.locator(".error-text")).toContainText(/invalid_recovery_key|public.key/i);
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       await recoveryText.fill(JSON.stringify({ ...recovery, secretKeyB64: mutateB64(recovery.secretKeyB64) }));
       await expect(firstPage.locator(".error-text")).toContainText(/invalid_recovery_key|secret.key/i);
-      await expect(continueButton).toBeDisabled();
+      await expect(continueButton).toHaveCount(0);
 
       await firstPage.getByTestId("verify-created-recovery-file").setInputFiles(recoveryPath);
       await expect(firstPage.getByTestId("recovery-verification-status")).toContainText("Recovery verified", { timeout: 30_000 });
@@ -263,8 +288,11 @@ test.describe("real browser account custody", () => {
       expect(storageBeforeRegistration.evidenceSecretInSession).toBe(recovery.evidenceKemSecretKeyB64);
 
       await continueButton.click();
-      await firstPage.waitForURL(/#\/verification$/);
-      const registerButton = firstPage.getByRole("button", { name: "Register basic account" });
+      await firstPage.waitForURL(/#\/onboarding\/register$/);
+      await expect(firstPage.getByTestId("guided-account-registration")).toBeVisible();
+      const issuedSession = await firstPage.evaluate(() => localStorage.getItem("weall_session_v1"));
+      expect(issuedSession).toContain(account);
+      const registerButton = firstPage.getByTestId("submit-basic-registration");
       await expect(registerButton).toBeEnabled({ timeout: 30_000 });
 
       const registerTxId = await captureSubmittedTx(firstPage, () => registerButton.click());
@@ -278,15 +306,16 @@ test.describe("real browser account custody", () => {
       );
       expect(accountBeforeRestart?.account).toBe(account);
       assertSingleCanonicalAccountKey(accountBeforeRestart, recovery.publicKeyB64);
-      expect(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey).toBe(recovery.recoveryAuthorityPublicKeyB64);
+      assertCanonicalMldsaPubkey(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey, recovery.recoveryAuthorityPublicKeyB64);
       expect(accountBeforeRestart?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
-      const refreshStatusButton = firstPage.getByRole("button", { name: "Refresh status" });
+      const refreshStatusButton = firstPage.getByRole("button", { name: "Check registration status" });
       await expect(refreshStatusButton).toBeEnabled({ timeout: 30_000 });
       await refreshStatusButton.click();
-      await expect(
-        firstPage.locator("span.statusPill.ok").filter({ hasText: /^Basic account ready$/ }),
-      ).toBeVisible({ timeout: 30_000 });
+      await expect(firstPage.getByTestId("registration-complete")).toContainText(
+        "Your basic account is ready.",
+        { timeout: 30_000 },
+      );
 
       await firstContext.close();
       firstContext = null;
@@ -357,12 +386,12 @@ test.describe("real browser account custody", () => {
         const accountAfterRestore = await getJson(restoredPage.request, accountPath);
         expect(accountAfterRestore?.account).toBe(account);
         assertSingleCanonicalAccountKey(accountAfterRestore, recovery.publicKeyB64);
-        expect(accountAfterRestore?.state?.recovery?.offline_key?.pubkey).toBe(recovery.recoveryAuthorityPublicKeyB64);
+        assertCanonicalMldsaPubkey(accountAfterRestore?.state?.recovery?.offline_key?.pubkey, recovery.recoveryAuthorityPublicKeyB64);
         expect(accountAfterRestore?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
         await restoredPage.goto("/#/profile");
         await expect(restoredPage.getByText(account).first()).toBeVisible({ timeout: 30_000 });
-        const editProfile = restoredPage.getByText("Edit public profile", { exact: true });
+        const editProfile = restoredPage.getByRole("button", { name: "Edit public profile", exact: true });
         await editProfile.click();
         await restoredPage.getByLabel("Display name").fill(displayName);
 
@@ -370,7 +399,7 @@ test.describe("real browser account custody", () => {
           restoredPage,
           () => restoredPage.getByRole("button", { name: "Submit public profile update" }).click(),
         );
-        await waitForConfirmedTx(restoredPage.request, profileTxId);
+        const profileStatus = await waitForConfirmedTx(restoredPage.request, profileTxId);
         const profilePath = `/v1/accounts/${encodeURIComponent(account)}/profile`;
         const profile = await pollJson(
           restoredPage.request,
@@ -379,6 +408,63 @@ test.describe("real browser account custody", () => {
         );
         expect(JSON.stringify(profile)).toContain(displayName);
         await expect(restoredPage.getByTestId("profile-tx-status-callout")).toContainText(profileTxId);
+
+        // Independent browser profile has no signing material or session. It
+        // must see the SAME canonical receipt and public profile projection.
+        // This is independent browser observation, NOT independent node finality.
+        const observerContext = await browser.newContext({ baseURL: BASE_URL });
+        try {
+          const observerPage = await observerContext.newPage();
+          await observerPage.goto("/#/login");
+          const observerState = await observerPage.evaluate((acct: string) => ({
+            session: localStorage.getItem("weall_session_v1"),
+            key: sessionStorage.getItem(`weall_secret::${acct}`),
+            recovery: sessionStorage.getItem(`weall_recovery_authority_secret::${acct}`),
+          }), account);
+          expect(observerState).toEqual({ session: null, key: null, recovery: null });
+
+          const observerReceipt = await waitForConfirmedTx(observerPage.request, profileTxId);
+          expect(observerReceipt?.tx_id).toBe(profileTxId);
+          expect(observerReceipt?.height).toBe(profileStatus?.height);
+          expect(observerReceipt?.block_id).toBe(profileStatus?.block_id);
+          expect(observerReceipt?.apply_ok).toBe(true);
+
+          const observerProfile = await pollJson(
+            observerPage.request,
+            profilePath,
+            (body) => JSON.stringify(body).includes(displayName),
+          );
+          expect(JSON.stringify(observerProfile)).toContain(displayName);
+        } finally {
+          await observerContext.close();
+        }
+
+        // Optional, public-only receipt witness for a separate backend restart
+        // verifier. Never serialize recovery material, sessions or public-key
+        // bytes into CI artifacts or logs.
+        const publicEvidencePath = process.env.WEALL_IHD1_PUBLIC_EVIDENCE_PATH;
+        if (publicEvidencePath) {
+          const accountKeyHash = createHash("sha256")
+            .update(Buffer.from(recovery.publicKeyB64, "base64"))
+            .digest("hex");
+          const witness = {
+            format: "weall-ihd1-public-receipts-v1",
+            account,
+            account_pubkey_sha256: accountKeyHash,
+            account_register: {
+              tx_id: registerTxId,
+              height: Number(registerStatus.height),
+              block_id: String(registerStatus.block_id),
+            },
+            profile_update: {
+              tx_id: profileTxId,
+              height: Number(profileStatus.height),
+              block_id: String(profileStatus.block_id),
+            },
+            profile_display_name: displayName,
+          };
+          await writeFile(publicEvidencePath, JSON.stringify(witness) + "\n", { encoding: "utf8", mode: 0o600 });
+        }
       } finally {
         await restoredContext.close();
       }

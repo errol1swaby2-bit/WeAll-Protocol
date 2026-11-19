@@ -86,8 +86,8 @@ def test_content_review_selection_requires_exact_content_review_lane_not_generic
                 "target_type": "content",
                 "target_id": "post:@genesis:1",
                 "reason": "policy",
-                "reported_by": "@errol",
-                "flagged_by": "@errol",
+                "reported_by": "@reporter",
+                "flagged_by": "@reporter",
             },
             system=True,
         ),
@@ -115,18 +115,33 @@ def test_content_review_selection_requires_exact_content_review_lane_not_generic
     assert dispute["eligible_juror_ids"] == ["@errol"]
     assert dispute["jurors"]["@errol"]["assignment_source"] == "reviewer_responsibility_opt_in"
     assert "@genesis" not in dispute["assigned_jurors"]
+    assert "@reporter" not in dispute["assigned_jurors"]
 
 
 def test_frontend_surfaces_content_review_opt_in_and_juror_review_queue_stage() -> None:
     verification_page = (OUTER / "web/src/pages/AccountVerificationPage.tsx").read_text(
         encoding="utf-8"
     )
+    responsibilities_panel = (
+        OUTER / "web/src/components/TrustedResponsibilitiesPanel.tsx"
+    ).read_text(encoding="utf-8")
     juror_dashboard = (OUTER / "web/src/pages/JurorDashboard.tsx").read_text(encoding="utf-8")
 
     assert "weall.accountReviewerStatus" in verification_page
-    assert "Content review selection" in verification_page
+    panel_import = (
+        'import TrustedResponsibilitiesPanel from "../components/TrustedResponsibilitiesPanel"'
+    )
+    assert panel_import in verification_page
+    assert "<TrustedResponsibilitiesPanel" in verification_page
+    assert "onUpdateContentReviewLane={(active) => void updateContentReviewLane(active)}" in (
+        verification_page
+    )
+    assert "Content review selection" in responsibilities_panel
+    assert "onUpdateContentReviewLane(true)" in responsibilities_panel
+    assert "onUpdateContentReviewLane(false)" in responsibilities_panel
+    assert "if (accountLevel < 2)" in responsibilities_panel
     assert "REVIEWER_LANE_OPT_IN" in verification_page
     assert "REVIEWER_LANE_OPT_OUT" in verification_page
     assert 'lane: "content_review"' in verification_page
-    assert "Open all responsibility controls" in verification_page
+    assert "Open all responsibility controls" in responsibilities_panel
     assert '"juror_review"' in juror_dashboard

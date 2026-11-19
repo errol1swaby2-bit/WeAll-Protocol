@@ -9,7 +9,8 @@ from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.ballot_policy import ballot_profile_status, strict_civic_governance_enabled
-from weall.runtime.bounded_rollback import journal_set_dict_key
+from weall.runtime.bft_hotstuff import quorum_threshold
+from weall.runtime.bounded_rollback import journal_set_dict_key, materialize_journaled
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.group_treasury_scheduler import (
     group_spend_plan_hash,
@@ -304,7 +305,9 @@ def _ensure_group_emissary_ballot_nullifiers(state: Json) -> Json:
 
 def _group_ballot_hash(value: Any) -> str:
     return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        json.dumps(materialize_journaled(value), sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
     ).hexdigest()
 
 
@@ -1435,6 +1438,43 @@ def _apply_group_treasury_spend_expire(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "GROUP_TREASURY_SPEND_EXPIRE", "group_id": gid, "spend_id": spend_id}
 
 
+def _group_emissary_quorum_activation_height(state: Json) -> int | None:
+    """Governance-set activation height; missing means historical rules remain."""
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return None
+    value = params.get("group_emissary_quorum_activation_height")
+    if value is None:
+        return None
+    return _strict_positive_int_from_state(
+        value, field_name="params.group_emissary_quorum_activation_height"
+    )
+
+
+def _group_emissary_frozen_quorum(election: Json) -> tuple[int, int]:
+    """Same default ceil(2n/3) participation threshold as ordinary governance."""
+    snapshot = election.get("voter_snapshot")
+    if not isinstance(snapshot, list) or any(not isinstance(v, str) or not v for v in snapshot):
+        raise GroupsApplyError("invalid_state", "invalid_election_voter_snapshot", {})
+    if (
+        not snapshot
+        or snapshot != sorted(set(snapshot))
+        or election.get("electorate_source") != "group_governance_active_group_members_tier2"
+    ):
+        raise GroupsApplyError("invalid_state", "emissary_electorate_snapshot_mismatch", {})
+    eligible = len(snapshot)
+    required = int(quorum_threshold(eligible))
+    # Bind finalization to the threshold captured at creation and fail closed
+    # on corrupt or mutable quorum metadata.
+    if (
+        election.get("eligible_voter_count") != eligible
+        or election.get("required_votes") != required
+        or isinstance(election.get("required_votes"), bool)
+    ):
+        raise GroupsApplyError("invalid_state", "emissary_quorum_snapshot_mismatch", {})
+    return eligible, required
+
+
 def _apply_group_emissary_election_create(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     group_id = _as_str(payload.get("group_id")).strip()
@@ -1477,7 +1517,24 @@ def _apply_group_emissary_election_create(state: Json, env: TxEnvelope) -> Json:
     if end_h <= start_h:
         end_h = start_h + 1
 
-    snapshot = _group_member_snapshot(g)
+    activation_height = _group_emissary_quorum_activation_height(state)
+    quorum_v1 = activation_height is not None and now_h >= activation_height
+    if quorum_v1:
+        # Use the exact canonical active group-governance electorate predicate:
+        # membership status, resolved account identity, standing and default
+        # PoH Tier 2. Lazy import keeps pre-activation replay independent.
+        from weall.runtime.apply.governance import _active_group_member_ids
+
+        snapshot = _active_group_member_ids(state, {"group_id": group_id})
+        if not snapshot:
+            raise GroupsApplyError(
+                "forbidden",
+                "no_eligible_group_electorate",
+                {"group_id": group_id, "election_id": election_id},
+            )
+    else:
+        # Historical elections keep their original unfiltered snapshot.
+        snapshot = _group_member_snapshot(g)
 
     elections[election_id] = {
         "election_id": election_id,
@@ -1494,6 +1551,15 @@ def _apply_group_emissary_election_create(state: Json, env: TxEnvelope) -> Json:
         "winners": [],
         "payload": payload,
     }
+
+    # New election records freeze their quorum policy at creation. Legacy
+    # elections (including ones finalized after activation) remain unchanged.
+    if quorum_v1:
+        elections[election_id]["quorum_policy_version"] = 1
+        elections[election_id]["electorate_source"] = "group_governance_active_group_members_tier2"
+        elections[election_id]["quorum_activation_height"] = int(activation_height)
+        elections[election_id]["eligible_voter_count"] = len(snapshot)
+        elections[election_id]["required_votes"] = int(quorum_threshold(len(snapshot)))
 
     ballots_root = _ensure_group_emissary_ballots(state)
     ballots_root[election_id] = {}
@@ -1709,6 +1775,16 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
         )
 
     status = _as_str(e.get("status")).strip().lower()
+    if status == "no_decision":
+        return {
+            "applied": "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "election_id": election_id,
+            "group_id": stored_group_id,
+            "status": "no_decision",
+            "reason": _as_str(e.get("no_decision_reason")).strip() or "no_valid_ballots",
+            "winners": [],
+            "deduped": True,
+        }
     if status == "finalized":
         return {
             "applied": "GROUP_EMISSARY_ELECTION_FINALIZE",
@@ -1759,6 +1835,56 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
             if isinstance(b, dict) and isinstance(b.get("ranking"), list):
                 ballots_by_voter[str(voter)] = [str(x) for x in b.get("ranking")]
 
+    # A nomination is not a ballot. STV can otherwise seat an entire candidate
+    # slate with no participating voter (and replace treasury signers).
+    # Return a committed no-decision result without mutating group authority.
+    valid_ballot_count = sum(
+        1
+        for ranking in ballots_by_voter.values()
+        if any(choice in candidates for choice in ranking)
+    )
+    quorum_version = _as_int(e.get("quorum_policy_version"), 0)
+    if quorum_version not in (0, 1):
+        raise GroupsApplyError("invalid_state", "unsupported_group_emissary_quorum_version", {})
+    if quorum_version == 1:
+        eligible_count, required_votes = _group_emissary_frozen_quorum(e)
+        if required_votes <= 0 or valid_ballot_count < required_votes:
+            reason = "no_valid_ballots" if valid_ballot_count == 0 else "quorum_unmet"
+            e["status"] = "no_decision"
+            e["no_decision_reason"] = reason
+            e["finalized_at_height"] = int(now_h)
+            e["winners"] = []
+            e["n_ballots"] = int(valid_ballot_count)
+            e["quorum_met"] = False
+            elections[election_id] = e
+            return {
+                "applied": "GROUP_EMISSARY_ELECTION_FINALIZE",
+                "election_id": election_id,
+                "group_id": group_id,
+                "status": "no_decision",
+                "reason": reason,
+                "n_ballots": int(valid_ballot_count),
+                "eligible_voter_count": int(eligible_count),
+                "required_votes": int(required_votes),
+                "quorum_met": False,
+                "winners": [],
+            }
+
+    if valid_ballot_count == 0:
+        e["status"] = "no_decision"
+        e["finalized_at_height"] = int(now_h)
+        e["winners"] = []
+        elections[election_id] = e
+        return {
+            "applied": "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "election_id": election_id,
+            "group_id": group_id,
+            "status": "no_decision",
+            "reason": "no_valid_ballots",
+            "n_ballots": 0,
+            "winners": [],
+        }
+
     winners = _stv_winners(ballots_by_voter=ballots_by_voter, candidates=candidates, seats=seats)
 
     if len(winners) < 5:
@@ -1800,6 +1926,9 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
         set_treasury_signers(state, treasury_id, winners, threshold=threshold)
 
     e["status"] = "finalized"
+    if quorum_version == 1:
+        e["n_ballots"] = int(valid_ballot_count)
+        e["quorum_met"] = True
     e["finalized_by"] = _as_str(env.signer).strip()
     e["finalized_at_nonce"] = int(env.nonce)
     e["finalized_at_height"] = int(now_h)

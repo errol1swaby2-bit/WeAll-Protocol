@@ -202,6 +202,9 @@ export function reviewStatusLabel(value: unknown): string {
 
 export function reportStageLabel(value: unknown): string {
   const stage = String(value || "").trim().toLowerCase();
+  if (stage === "appeal_pending_panel") return "Appeal pending independent jurors";
+  if (stage === "appeal_review") return "Appeal under review";
+  if (stage === "appeal_window") return "Appeal filing window";
   if (["open", "assigned", "review", "juror_review", "voting"].includes(stage)) return "Under review";
   if (["resolved", "closed", "finalized"].includes(stage)) return "Review complete";
   if (["dismissed", "kept"].includes(stage)) return "Kept visible";

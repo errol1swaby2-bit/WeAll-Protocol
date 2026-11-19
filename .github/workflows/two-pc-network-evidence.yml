@@ -1,0 +1,45 @@
+name: Two-PC Network Evidence Harness
+
+on:
+  pull_request:
+    paths:
+      - "Weall-Protocol/scripts/two_pc_network_evidence.py"
+      - "Weall-Protocol/tests/test_two_pc_network_evidence.py"
+      - "Weall-Protocol/docs/testnet/TWO_PC_NETWORK_REHEARSAL_PREPARATION.md"
+      - ".github/workflows/two-pc-network-evidence.yml"
+  push:
+    branches:
+      - test/two-pc-network-evidence-prep-20261103
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile the capture script and tests
+        run: |
+          python3 -m py_compile Weall-Protocol/scripts/two_pc_network_evidence.py
+          python3 -m py_compile Weall-Protocol/tests/test_two_pc_network_evidence.py
+      - name: Read-only two-PC capture and comparison regression
+        working-directory: Weall-Protocol
+        run: |
+          python3 -m unittest discover -s tests -p 'test_two_pc_network_evidence.py' -v
+      - name: Validate pre-hardware inventory is non-claiming
+        working-directory: Weall-Protocol
+        run: |
+          python3 scripts/two_pc_network_evidence.py inventory --machine-id ci-fixture --out /tmp/weall-ci-two-pc-inventory.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('/tmp/weall-ci-two-pc-inventory.json').read_text())
+          assert report['read_only'] is True
+          assert report['physical_isolation_independently_verified'] is False
+          assert report['non_claims']['public_beta_ready'] is False
+          assert report['non_claims']['live_poh_proven'] is False
+          PY

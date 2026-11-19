@@ -80,6 +80,22 @@ def _is_hex64(value: Any) -> bool:
     return bool(HEX64.match(str(value or "").strip().lower()))
 
 
+def _is_mldsa65_public_key(value: Any) -> bool:
+    """Check the complete ML-DSA-65 public-key encoding without crypto imports.
+
+    The lightweight observer preflight uses system Python with a restricted
+    PATH. This is a FIPS-204 serialized-key *shape* check, not signature
+    verification or constitutional validator authority.
+    """
+    key = str(value or "").strip().lower()
+    if len(key) != 2 * 1952:
+        return False
+    try:
+        return bytes.fromhex(key).hex() == key
+    except ValueError:
+        return False
+
+
 def _file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -287,7 +303,7 @@ def _validate_genesis(
         allow_pubkey = str(allow_rec.get("pubkey") or "").strip().lower()
         if _is_placeholder(allow_pubkey):
             _issue(issues, "genesis_bootstrap_allowlist_pubkey_unpinned")
-        elif not _is_hex64(allow_pubkey):
+        elif not _is_mldsa65_public_key(allow_pubkey):
             _issue(issues, "genesis_bootstrap_allowlist_pubkey_invalid", allow_pubkey)
 
     founder = (
@@ -312,7 +328,7 @@ def _validate_genesis(
         key_text = str(key or "").strip().lower()
         if _is_placeholder(key_text):
             _issue(issues, "genesis_founder_key_unpinned", key_text)
-        elif not _is_hex64(key_text):
+        elif not _is_mldsa65_public_key(key_text):
             _issue(issues, "genesis_founder_key_invalid", key_text)
 
     poh = genesis.get("poh") if isinstance(genesis.get("poh"), dict) else {}

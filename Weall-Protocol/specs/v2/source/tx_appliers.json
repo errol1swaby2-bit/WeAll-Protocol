@@ -341,7 +341,7 @@
       "tx_type": "POH_LIVE_JUROR_REPLACE"
     },
     {
-      "dispatch_function": "apply_dispute",
+      "dispatch_function": "dispute_open",
       "domain": "Dispute",
       "handler": "dispute",
       "numeric_id": 200,

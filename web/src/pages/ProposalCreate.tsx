@@ -1,6 +1,8 @@
+import { normalizeTxStatus } from "../lib/status";
+import { decisionCreationState, type DecisionCreationState } from "../lib/decisionCreation";
 import React, { useEffect, useMemo, useState } from "react";
 
-import { getApiBaseUrl } from "../api/weall";
+import { api, getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import RequirementList from "../components/RequirementList";
 import ActionLifecycleCard from "../components/ActionLifecycleCard";
@@ -14,7 +16,8 @@ import { canShowAdvancedMode } from "../lib/config";
 import { nav, navWithReturn } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
-import { governanceProposalIdOf, reconcileProposalVisible } from "../lib/governance";
+import { reconcileProposalVisible } from "../lib/governance";
+import { requireExactGroupProposalScope, verifiedGroupContract } from "../lib/groupDecisionScope";
 
 function prettyErr(e: any): { msg: string; details: any } {
   return actionableTxError(e, "Decision action failed.");
@@ -38,6 +41,7 @@ function normalizeCreatePayload(input: {
   actionTxType: string;
   actionPayloadJson: string;
   startStage: string;
+  groupId: string;
   account: string | null;
 }): any {
   const proposal_id = input.proposalId.trim() || buildGeneratedProposalId(input.account, input.title, input.body);
@@ -49,6 +53,11 @@ function normalizeCreatePayload(input: {
 
   const startStage = input.startStage.trim().toLowerCase();
   if (startStage) payload.rules = { start_stage: startStage };
+  const groupId = input.groupId.trim();
+  if (groupId) {
+    payload.group_id = groupId;
+    payload.electorate_scope = "group_members";
+  }
 
   const actionTxType = input.actionTxType.trim().toUpperCase();
   if (actionTxType) {
@@ -60,20 +69,27 @@ function normalizeCreatePayload(input: {
   return payload;
 }
 
-export default function ProposalCreate(): JSX.Element {
+export default function ProposalCreate({ scopeGroupId }: { scopeGroupId?: string }): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [proposalId, setProposalId] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [startStage, setStartStage] = useState("poll");
+  const [startStage, setStartStage] = useState("draft");
+  const [groupId, setGroupId] = useState(() => scopeGroupId || "");
+  const [scopedGroupStatus, setScopedGroupStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; label: string }>>([]);
+  const [groupLoadError, setGroupLoadError] = useState("");
   const [actionTxType, setActionTxType] = useState("");
   const [actionPayloadJson, setActionPayloadJson] = useState("{}");
   const [useAdvancedPayload, setUseAdvancedPayload] = useState(false);
-  const [payloadJson, setPayloadJson] = useState(JSON.stringify({ proposal_id: "", title: "", body: "", rules: { start_stage: "poll" } }, null, 2));
+  const [payloadJson, setPayloadJson] = useState(JSON.stringify({ proposal_id: "", title: "", body: "", rules: { start_stage: "draft" } }, null, 2));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [createRes, setCreateRes] = useState<any>(null);
+  const [tracked, setTracked] = useState<{ id: string; txId: string; account: string } | null>(null);
+  const [creationState, setCreationState] = useState<DecisionCreationState>("pending");
+  const [checking, setChecking] = useState(false);
 
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
@@ -82,6 +98,8 @@ export default function ProposalCreate(): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(acct);
   const { refresh: refreshAccountContext } = useAccount();
   const showAdvancedMode = canShowAdvancedMode();
+  const groupContextId = String(scopeGroupId || "").trim();
+  const allowAdvancedPayload = showAdvancedMode && !groupContextId;
 
   const createGate = useMemo(
     () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
@@ -89,6 +107,22 @@ export default function ProposalCreate(): JSX.Element {
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const resolvedProposalId = useMemo(() => proposalId.trim() || buildGeneratedProposalId(acct, title, body), [acct, body, proposalId, title]);
+
+  useEffect(() => {
+    if (!groupContextId) {
+      setScopedGroupStatus("idle");
+      return;
+    }
+    setGroupId(groupContextId);
+    let active = true;
+    setScopedGroupStatus("loading");
+    void weall.groupGovernanceContract(groupContextId, base)
+      .then((contract: unknown) => {
+        if (active) setScopedGroupStatus(verifiedGroupContract(contract, groupContextId) ? "ready" : "error");
+      })
+      .catch(() => { if (active) setScopedGroupStatus("error"); });
+    return () => { active = false; };
+  }, [base, groupContextId]);
 
   async function loadAccountState(): Promise<void> {
     if (!acct) {
@@ -109,7 +143,44 @@ export default function ProposalCreate(): JSX.Element {
     void loadAccountState();
   }, [acct, base]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setGroupLoadError("");
+    void api.groups.list({ limit: 200 }, base).then((response: any) => {
+      if (cancelled) return;
+      const items = Array.isArray(response?.items) ? response.items : [];
+      setAvailableGroups(items.map((group: any) => {
+        const id = String(group?.group_id || group?.id || "").trim();
+        return { id, label: String(group?.name || group?.title || id) };
+      }).filter((group: { id: string }) => !!group.id));
+    }).catch(() => {
+      if (cancelled) return;
+      setAvailableGroups([]);
+      setGroupLoadError("The group directory is unavailable. Protocol-wide decisions are still accessible.");
+    });
+    return () => { cancelled = true; };
+  }, [base]);
+
+  async function checkCreation(record: { id: string; txId: string; account: string }): Promise<void> {
+    if (!record.txId) { setCreationState("unavailable"); return; }
+    setChecking(true);
+    try {
+      const receipt = await weall.txStatus(record.txId, base);
+      const phase = normalizeTxStatus(receipt, record.txId).phase;
+      const preliminary = decisionCreationState(record, receipt, phase, null);
+      if (preliminary !== "waiting_visibility") {
+        setCreationState(preliminary);
+        if (preliminary === "rejected") setErr({ msg: "Decision transaction rejected. Inspect the receipt before resubmitting.", details: receipt });
+        return;
+      }
+      const visible = await weall.proposal(record.id, base).catch(() => null);
+      setCreationState(decisionCreationState(record, receipt, phase, visible?.proposal || visible));
+    } catch { setCreationState("unavailable"); }
+    finally { setChecking(false); }
+  }
+
   async function createProposal(): Promise<void> {
+    if (tracked || busy) return;
     setErr(null);
     setCreateRes(null);
 
@@ -129,28 +200,59 @@ export default function ProposalCreate(): JSX.Element {
       return;
     }
 
+    if (!(allowAdvancedPayload && useAdvancedPayload) && (!title.trim() || !body.trim())) {
+      setErr({ msg: "Add a title and a description of what people are deciding.", details: null });
+      return;
+    }
+
     setBusy(true);
     try {
-      const payload = useAdvancedPayload
+      const payload = allowAdvancedPayload && useAdvancedPayload
         ? JSON.parse(payloadJson)
-        : normalizeCreatePayload({ proposalId, title, body, actionTxType, actionPayloadJson, startStage, account: acct });
+        : normalizeCreatePayload({
+            proposalId: allowAdvancedPayload ? resolvedProposalId : buildGeneratedProposalId(acct, title, body), title, body,
+            actionTxType: allowAdvancedPayload ? actionTxType : "",
+            actionPayloadJson: groupContextId ? "{}" : actionPayloadJson,
+            startStage,
+            groupId: groupContextId || groupId,
+            account: acct,
+          });
 
-      await tx.runTx({
+      if (!payload || typeof payload !== "object" || Array.isArray(payload) || typeof payload.proposal_id !== "string" || !payload.proposal_id.trim()) {
+        throw new Error("A nonempty proposal ID is required. No transaction was submitted.");
+      }
+      payload.proposal_id = payload.proposal_id.trim();
+      const submittedId = payload.proposal_id as string;
+      if (groupContextId) {
+        if (scopedGroupStatus !== "ready") {
+          throw new Error("Group governance context has not been verified. No decision was submitted.");
+        }
+        requireExactGroupProposalScope(payload, groupContextId);
+        // Recheck immediately before signing; a route, client cache or
+        // group name alone is never sufficient proof of canonical existence.
+        const currentGroup = await weall.groupGovernanceContract(groupContextId, base);
+        if (!verifiedGroupContract(currentGroup, groupContextId)) {
+          throw new Error("This group's canonical governance contract could not be verified. No decision was submitted.");
+        }
+      }
+
+      const submitted = await tx.runTx({
         title: "Create community decision",
-        pendingKey: txPendingKey(["proposal-create", acct, resolvedProposalId || payload?.proposal_id || title]),
+        pendingKey: txPendingKey(["proposal-create", acct, submittedId]),
         pendingMessage: "Submitting decision transaction…",
-        successMessage: "Decision submission tracked. The detail page opens once backend state makes it visible.",
+        successMessage: "Decision submission tracked. Verify the receipt and canonical visibility before opening the detail.",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
-        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || res?.result?.result?.tx_id || "") || undefined,
         finality: {
           mutation: {
             entityType: "proposal",
-            entityId: String(payload?.proposal_id || resolvedProposalId || ""),
+            entityId: submittedId,
             account: acct || undefined,
-            routeHint: `/decisions/${encodeURIComponent(String(payload?.proposal_id || resolvedProposalId || ""))}`,
+            routeHint: `/decisions/${encodeURIComponent(submittedId)}`,
             txType: "GOV_PROPOSAL_CREATE",
           },
-          reconcile: async () => reconcileProposalVisible(String(payload?.proposal_id || resolvedProposalId || ""), base),
+          base,
+          reconcile: async () => reconcileProposalVisible(submittedId, base),
         },
         task: async () =>
           submitSignedTx({
@@ -162,9 +264,12 @@ export default function ProposalCreate(): JSX.Element {
           }),
       });
 
-      setCreateRes(payload);
-      await refreshAccountContext();
-      nav(`/decisions/${encodeURIComponent(String(governanceProposalIdOf(payload) || payload?.proposal_id || resolvedProposalId || ""))}`);
+      const record = { id: submittedId, account: acct, txId: String(submitted?.tx_id || submitted?.result?.tx_id || submitted?.result?.result?.tx_id || "").trim() };
+      setTracked(record);
+      setCreationState("pending");
+      setCreateRes({ payload, tx_id: record.txId });
+      await checkCreation(record);
+      await refreshAccountContext().catch(() => undefined);
     } catch (e: any) {
       setErr(prettyErr(e));
       setCreateRes(e?.data || e?.body || null);
@@ -180,8 +285,9 @@ export default function ProposalCreate(): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Create decision</div>
-              <h1 className="heroTitle heroTitleSm">Create a community decision</h1>
+              <h1 className="heroTitle heroTitleSm">{groupContextId ? "Create a group decision" : "Create a community decision"}</h1>
               <p className="heroText">
+                {groupContextId ? `This decision is bound to canonical group ${groupContextId}. Group membership and proposal authority are validated by the backend.` : null}
                 Decision creation is separated from the decision queue. Submitting here creates a signed governance transaction; Transactions and the detail page prove whether it becomes visible/final.
               </p>
             </div>
@@ -199,6 +305,23 @@ export default function ProposalCreate(): JSX.Element {
           </div>
         </div>
       </section>
+
+      {groupContextId ? (
+        <section className="card" aria-label="Verified group decision scope">
+          <div className="cardBody formStack">
+            <div className="eyebrow">Exact group context</div>
+            <div className="mono">{groupContextId}</div>
+            <div className="surfaceBoundaryList">
+              <span className="surfaceBoundaryTag">Electorate scope: group_members</span>
+              <span className="surfaceBoundaryTag">Contract: {scopedGroupStatus === "ready" ? "read verified" : scopedGroupStatus === "loading" ? "checking" : "not verified"}</span>
+            </div>
+            {scopedGroupStatus === "error" ? (
+              <div className="calloutDanger">The exact group governance contract is unavailable or mismatched. Submission is blocked; no alternative group or protocol-wide fallback is permitted.</div>
+            ) : null}
+            <button className="btn" onClick={() => nav(`/groups/${encodeURIComponent(groupContextId)}?tab=decisions`)}>Back to this group's decisions</button>
+          </div>
+        </section>
+      ) : null}
 
       {signerSubmission.busy ? (
         <div className="calloutInfo">
@@ -262,7 +385,7 @@ export default function ProposalCreate(): JSX.Element {
               </div>
             </div>
             <div className="statusSummary">
-              <button className="btn" onClick={() => nav("/decisions")}>Back to decisions</button>
+              <button className="btn" onClick={() => nav(groupContextId ? `/groups/${encodeURIComponent(groupContextId)}?tab=decisions` : "/decisions")}>Back to decisions</button>
             </div>
           </div>
 
@@ -276,58 +399,85 @@ export default function ProposalCreate(): JSX.Element {
           {!acct || !canSign ? (
             <div className="calloutInfo">
               Decision creation requires an active device session on this browser.
-              <button className="btn" style={{ marginLeft: 12 }} onClick={() => navWithReturn(acct ? "/session" : "/login", "/decisions/create")}>
+              <button className="btn" style={{ marginLeft: 12 }} onClick={() => navWithReturn(acct ? "/session" : "/login", groupContextId ? `/groups/${encodeURIComponent(groupContextId)}/decisions/new` : "/decisions/create")}>
                 {acct ? "Open session recovery" : "Open login"}
               </button>
             </div>
           ) : null}
 
-          {showAdvancedMode ? (
+          {allowAdvancedPayload ? (
             <label className="fieldLabel">
               <input type="checkbox" checked={useAdvancedPayload} onChange={(e) => setUseAdvancedPayload(e.target.checked)} />
-              Use advanced decision JSON
+              Use developer-only technical decision JSON
             </label>
           ) : null}
 
-          {showAdvancedMode && useAdvancedPayload ? (
+          {allowAdvancedPayload && useAdvancedPayload ? (
             <label className="fieldLabel">
               Decision technical JSON
               <textarea rows={16} value={payloadJson} onChange={(e) => setPayloadJson(e.target.value)} placeholder='{"proposal_id":"proposal:alice:1","title":"Example","body":"Body"}' />
             </label>
           ) : (
             <>
-              {showAdvancedMode ? (
-                <label className="fieldLabel">
-                  Advanced decision id
-                  <input value={proposalId} onChange={(e) => setProposalId(e.target.value)} placeholder="Leave blank to auto-generate" />
-                  <span className="fieldHint">Resolved id: <span className="mono">{resolvedProposalId}</span></span>
-                </label>
-              ) : null}
-
               <label className="fieldLabel">
                 Title
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Decision title" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Decision title" required />
               </label>
 
               <label className="fieldLabel">
                 Description
-                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe what changes if this decision passes." />
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe the problem, proposed decision, and intended outcome." required />
+              </label>
+
+              <label className="fieldLabel">
+                Decision scope
+                {groupContextId ? (
+                  <input value={groupContextId} readOnly aria-label="Canonical group decision scope" />
+                ) : (
+                <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+                  <option value="">Protocol-wide</option>
+                  {availableGroups.map((group) => (
+                    <option key={group.id} value={group.id}>{group.label} · {group.id}</option>
+                  ))}
+                </select>
+                )}
+                <span className="fieldHint">
+                  A group name describes its purpose but does not confer authority over a town or another group.
+                  Group-scoped decisions use the selected group ID and the group's participation rules.
+                  Backend authorization is authoritative.
+                </span>
+                {groupLoadError ? <span className="fieldHint" role="alert">{groupLoadError}</span> : null}
               </label>
 
               <label className="fieldLabel">
                 Starting status
                 <select value={startStage} onChange={(e) => setStartStage(e.target.value)}>
+                  <option value="draft">draft — deliberate before voting (recommended)</option>
                   <option value="poll">open for early input</option>
-                  <option value="voting">open for voting</option>
                   <option value="revision">being revised</option>
                   <option value="validation">being checked</option>
-                  <option value="draft">draft</option>
+                  <option value="voting">open for voting (restricted for constitutional actions)</option>
                 </select>
+                <span className="fieldHint">
+                  Stages advance only when the backend's constitutional clock or authorized protocol transactions permit them.
+                  Selecting a starting stage cannot bypass canonical lifecycle restrictions.
+                </span>
               </label>
+              <div className="calloutInfo" role="note">
+                {actionTxType.trim() && allowAdvancedPayload
+                  ? "Executable governance request: the specified action must pass the electorate, scope, and backend authorization checks. Creation does not execute it."
+                  : "Recorded community decision: a vote can record collective support, but this proposal has no executable protocol action and cannot bind third parties."}
+                {!allowAdvancedPayload ? " Executable actions require separately authorized advanced governance tooling." : ""}
+              </div>
 
-              {showAdvancedMode ? (
+              {allowAdvancedPayload ? (
                 <details className="detailsPanel">
-                  <summary>View technical action options</summary>
+                  <summary>Developer-only technical action options</summary>
+                  <label className="fieldLabel">
+                    Advanced decision ID (optional)
+                    <input value={proposalId} onChange={(e) => setProposalId(e.target.value)} placeholder="Leave blank to auto-generate" />
+                    <span className="fieldHint">Changes the proposal identifier, not the signed transaction type.</span>
+                  </label>
                   <label className="fieldLabel">
                     Technical action type
                     <input value={actionTxType} onChange={(e) => setActionTxType(e.target.value)} placeholder="GOV_RULES_SET, GOV_QUORUM_SET, PROTOCOL_UPGRADE_DECLARE, ..." />
@@ -343,7 +493,7 @@ export default function ProposalCreate(): JSX.Element {
             </>
           )}
 
-          {showAdvancedMode ? (
+          {allowAdvancedPayload && !useAdvancedPayload ? (
             <div className="feedMediaCard">
               <div className="feedMediaTitle">Advanced decision id preview</div>
               <div className="feedMediaMeta mono">{resolvedProposalId}</div>
@@ -351,11 +501,24 @@ export default function ProposalCreate(): JSX.Element {
           ) : null}
 
           <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void createProposal()} disabled={busy || signerSubmission.busy}>
+            <button className="btn btnPrimary" onClick={() => void createProposal()} disabled={busy || !!tracked || signerSubmission.busy || (!!groupContextId && scopedGroupStatus !== "ready")}>
               {busy ? "Saving…" : signerSubmission.busy ? "Waiting…" : "Create decision"}
             </button>
           </div>
 
+          {tracked ? (
+            <section className="calloutInfo" aria-label="Decision submission status">
+              <strong>{creationState === "ready" ? "Decision confirmed and visible" : creationState === "rejected" ? "Decision rejected" : "Decision submission tracked"}</strong>
+              <p>{creationState === "ready" ? "The exact successful receipt and proposal are visible." : creationState === "rejected" ? "This transaction did not create a decision." : creationState === "waiting_visibility" ? "Successful receipt visible; waiting for the proposal read model." : creationState === "unavailable" ? "Status evidence is unavailable. Inspect the original transaction before retrying." : "Waiting for explicit successful apply evidence. Do not submit a duplicate."}</p>
+              <div className="mono">{tracked.txId || "No transaction ID returned"}</div>
+              <div className="buttonRow buttonRowWide">
+                {creationState === "ready" ? <button className="btn btnPrimary" onClick={() => nav(`/decisions/${encodeURIComponent(tracked.id)}`)}>Open confirmed decision</button> : null}
+                {creationState !== "ready" && creationState !== "rejected" && tracked.txId ? <button className="btn" disabled={checking || busy} onClick={() => void checkCreation(tracked)}>{checking ? "Checking…" : "Check confirmation"}</button> : null}
+                {creationState === "rejected" ? <button className="btn" onClick={() => { setTracked(null); setCreateRes(null); setErr(null); }}>Edit rejected submission</button> : null}
+                <button className="btn" onClick={() => nav("/transactions")}>Open Transactions</button>
+              </div>
+            </section>
+          ) : null}
           {createRes ? (
             <details className="detailsPanel">
               <summary>View technical submitted details</summary>

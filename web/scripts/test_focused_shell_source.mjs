@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const shell = read("src/components/AppShell.tsx");
 const nav = read("src/components/SidebarNav.tsx");
+const primaryNav = read("src/components/PrimaryNavigation.tsx");
 const css = read("src/styles.css");
 
 for (const token of [
@@ -11,7 +12,7 @@ for (const token of [
   "onNavigate={() => setMenuOpen(false)}",
   'aria-label="Breadcrumbs"',
   'id="app-shell-content"',
-  "key={routeKey}",
+  "key={contentRouteKey}",
   'className="appShellInfoToggle"',
   'id="app-shell-context-drawer"',
   'role="dialog"',
@@ -50,4 +51,25 @@ if (!headerRule || !/position:\s*relative\s*;/.test(headerRule[1]) || !/top:\s*a
   throw new Error("Focused shell header must scroll away with the page, not remain sticky");
 }
 
+for (const token of [
+  'aria-label="Main navigation"',
+  'href: "/home"',
+  'href: "/feed"',
+  'href: "/groups"',
+  'href: "/decisions"',
+  'href: "/profile"',
+  'aria-current={active ? "page" : undefined}',
+]) {
+  if (!primaryNav.includes(token)) throw new Error(`V1.6 primary navigation missing: ${token}`);
+}
+// Guided PoH stages preserve the native capture controller; unrelated routes
+// still have a distinct routeKey so drawer/focus state cannot leak across pages.
+if (!shell.includes('route.path === "/verification/async/:stage"') ||
+    !shell.includes('route.path === "/verification/live/journey/:stage"') ||
+    !shell.includes('"verification-guided-controller" : routeKey')) {
+  throw new Error("Focused shell must isolate guided capture continuity to verification routes");
+}
+if (!shell.includes("<PrimaryNavigation currentPath={route.path}")) {
+  throw new Error("Focused shell must mount stable primary navigation");
+}
 console.log("OK: focused navigation, scroll-away header and context drawer source contract");

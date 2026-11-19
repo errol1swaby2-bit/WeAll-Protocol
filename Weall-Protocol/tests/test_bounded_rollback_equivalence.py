@@ -788,3 +788,238 @@ def test_governance_execute_nested_action_queue_and_emission_match_deepcopy_orac
     assert _canonical_json(bounded) == _canonical_json(oracle)
     assert compute_state_root(bounded) == compute_state_root(oracle)
     _assert_no_journal_proxy(bounded)
+
+
+def test_journaled_list_membership_is_read_only_and_target_backed() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    state = {"members": ["@alice", "@bob"], "nested": {"active_set": ["@alice"]}}
+    initial = copy.deepcopy(state)
+
+    def inspect(proxy: Json) -> Json:
+        members = proxy["members"]
+        assert "@alice" in members
+        assert "@bob" in members
+        assert "@carol" not in members
+        assert "@alice" in proxy["nested"]["active_set"]
+        assert "@bob" not in proxy["nested"]["active_set"]
+        return {"members": list(members)}
+
+    result, journal_records = run_with_bounded_rollback(state, inspect)
+    assert result == {"members": ["@alice", "@bob"]}
+    assert journal_records == 0
+    assert state == initial
+
+
+def test_journaled_list_inherited_reads_match_raw_list_without_journaling() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    initial = {
+        "members": ["@alice", "@bob", "@bob", "@carol"],
+        "peer": ["@alice", "@bob", "@bob", "@carol"],
+        "nested": [{"id": "a"}, {"id": "b"}],
+    }
+    state = copy.deepcopy(initial)
+
+    def inspect(proxy: Json) -> None:
+        members = proxy["members"]
+        peer = proxy["peer"]
+        expected = initial["members"]
+
+        assert members == expected
+        assert expected == members
+        assert members == peer
+        assert members != ["@alice"]
+        assert not (members != peer)
+        assert members < ["@alice", "@bob", "@bob", "@dave"]
+        assert members <= expected
+        assert members > ["@alice", "@bob", "@bob", "@bob"]
+        assert members >= peer
+        assert repr(members) == repr(expected)
+
+        assert members.count("@bob") == expected.count("@bob")
+        assert members.count("@missing") == 0
+        assert members.index("@bob") == expected.index("@bob")
+        assert members.index("@bob", 2) == expected.index("@bob", 2)
+        assert members.index("@bob", 1, 3) == 1
+        with pytest.raises(ValueError):
+            members.index("@missing")
+
+        assert members[0] == "@alice"
+        assert members[-1] == "@carol"
+        assert members[1:4:2] == expected[1:4:2]
+        assert members[::-1] == expected[::-1]
+        assert list(reversed(members)) == list(reversed(expected))
+        assert members + ["@end"] == expected + ["@end"]
+        assert ["@start"] + members == ["@start"] + expected
+        assert members * 2 == expected * 2
+        assert 2 * members == 2 * expected
+
+        nested = proxy["nested"]
+        assert nested == initial["nested"]
+        assert nested.index(nested[0]) == 0
+        assert nested.count(nested[1]) == 1
+        assert nested[::-1][0]["id"] == "b"
+        # Comparisons, copies of values, and reverse traversal are read-only.
+        assert proxy["peer"] == expected
+
+    result, records = run_with_bounded_rollback(state, inspect)
+    assert result is None
+    assert records == 0
+    assert state == initial
+
+
+def test_journaled_dict_reads_and_union_match_persisted_target_without_snapshots() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    initial = {
+        "records": {"alice": {"roles": ["juror"]}, "count": 2},
+        "other": {"x": 1},
+    }
+    state = copy.deepcopy(initial)
+
+    def inspect(st: Json) -> None:
+        records = st["records"]
+        reference = initial["records"]
+        assert records == reference
+        assert reference == records
+        assert records != {"count": 2}
+        assert not (records != reference)
+        assert repr(records) == repr(reference)
+        assert list(reversed(records)) == list(reversed(reference))
+        assert records | {"new": True} == reference | {"new": True}
+        assert {"new": True} | records == {"new": True} | reference
+        assert st["records"]["alice"] == reference["alice"]
+        assert st["records"]["alice"] != {"roles": ["validator"]}
+        assert st["records"]["alice"]["roles"] == ["juror"]
+
+    result, records = run_with_bounded_rollback(state, inspect)
+    assert result is None
+    assert records == 0
+    assert state == initial
+
+
+@pytest.mark.parametrize("fail", (False, True))
+def test_journaled_nested_augmented_assignments_are_atomic_and_match_raw_list(
+    fail: bool,
+) -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    initial = {
+        "items": ["a", "b"],
+        "matrix": [["x"], ["z"]],
+        "roles": {"alice": True},
+    }
+    reference = copy.deepcopy(initial)
+    reference["items"] += ["c"]
+    reference["matrix"][0] += ["y"]
+    reference["matrix"][1] *= 0
+    reference["roles"] |= {"bob": True}
+    reference["items"] *= 2
+
+    state = copy.deepcopy(initial)
+
+    def mutate(st: Json) -> None:
+        st["items"] += ["c"]
+        st["matrix"][0] += ["y"]
+        st["matrix"][1] *= 0
+        st["roles"] |= {"bob": True}
+        st["items"] *= 2
+        assert st["items"] == reference["items"]
+        assert st["matrix"] == reference["matrix"]
+        assert st["roles"] == reference["roles"]
+        if fail:
+            raise RuntimeError("rollback_probe")
+
+    if fail:
+        with pytest.raises(RuntimeError, match="rollback_probe"):
+            run_with_bounded_rollback(state, mutate)
+        assert state == initial
+    else:
+        result, records = run_with_bounded_rollback(state, mutate)
+        assert result is None
+        assert records > 0
+        assert state == reference
+
+
+def test_journaled_list_self_extend_and_self_iadd_are_finite_and_reversible() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    initial = {"rows": [[1, 2]]}
+    state = copy.deepcopy(initial)
+
+    def mutate(st: Json) -> None:
+        row = st["rows"][0]
+        row.extend(row)
+        assert row == [1, 2, 1, 2]
+        row += row
+        assert row == [1, 2, 1, 2] * 2
+        # Separately obtained journal proxies can alias the same raw list.
+        st["rows"][0] += st["rows"][0]
+        assert st["rows"][0] == [1, 2, 1, 2] * 4
+        raise RuntimeError("rollback_self_extend")
+
+    with pytest.raises(RuntimeError, match="rollback_self_extend"):
+        run_with_bounded_rollback(state, mutate)
+    assert state == initial
+
+
+def test_journaled_parent_augmented_assignments_do_not_snapshot_post_mutation() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    original = {"rows": [["x"]], "items": ["a"]}
+    state = copy.deepcopy(original)
+
+    def mutate(st: Json) -> None:
+        st["rows"][0] += ["y"]
+        st["items"] += ["b"]
+        raise RuntimeError("rollback_parent")
+
+    with pytest.raises(RuntimeError, match="rollback_parent"):
+        run_with_bounded_rollback(state, mutate)
+    assert state == original
+
+
+@pytest.mark.parametrize(
+    "tx_type",
+    (
+        "ROLE_JUROR_ACTIVATE",
+        "ROLE_JUROR_REINSTATE",
+        "ROLE_JUROR_SUSPEND",
+        "ROLE_NODE_OPERATOR_SUSPEND",
+    ),
+)
+def test_lifecycle_role_change_vectors_match_independent_deepcopy_executor(tx_type: str) -> None:
+    """The four stale V1.5 vector outcomes must agree with deepcopy execution.
+
+    This is exact fixture-level executor parity, not preserved-history replay,
+    semantic-review acceptance, or permission to regenerate approval evidence.
+    """
+    import importlib.util
+    from pathlib import Path
+
+    fixture_path = Path(__file__).with_name("test_p2_a02_success_lifecycle_baseline.py")
+    spec = importlib.util.spec_from_file_location("pr77_lifecycle_fixture", fixture_path)
+    assert spec is not None and spec.loader is not None
+    fixture = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fixture)
+
+    semantic_path = fixture_path.parents[1] / "generated" / "tx_semantic_assurance_v1_5.json"
+    semantic_rows = json.loads(semantic_path.read_text(encoding="utf-8"))["rows"]
+    row = next(item for item in semantic_rows if item["tx_type"] == tx_type)
+
+    staged_state = fixture._base_state()
+    env = fixture._prepared_envelope(staged_state, row)
+    oracle = copy.deepcopy(staged_state)
+    canonical = copy.deepcopy(staged_state)
+    staged_root = compute_state_root(staged_state)
+
+    oracle_meta = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(env))
+    canonical_meta = apply_tx_atomic_meta_bounded_rollback(canonical, copy.deepcopy(env))
+
+    assert canonical_meta == oracle_meta
+    assert canonical == oracle
+    assert compute_state_root(canonical) == compute_state_root(oracle)
+    assert compute_state_root(staged_state) == staged_root
+    _assert_no_journal_proxy(canonical)
+    _assert_no_journal_proxy(canonical_meta)

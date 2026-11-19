@@ -40,6 +40,8 @@ def _env(
 
 def _run_authority_gate(
     extra_env: dict[str, str] | None = None,
+    *,
+    genesis_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = {
         "PATH": os.environ.get("PATH", ""),
@@ -53,6 +55,8 @@ def _run_authority_gate(
         "WEALL_BLOCK_LOOP_AUTOSTART": "0",
         "WEALL_SERVICE_ROLES": "",
     }
+    if genesis_env:
+        env.update(genesis_env)
     if extra_env:
         env.update(extra_env)
     return subprocess.run(
@@ -66,8 +70,10 @@ def _run_authority_gate(
     )
 
 
-def test_authority_lock_gate_passes_minimal_observer_posture() -> None:
-    result = _run_authority_gate()
+def test_authority_lock_gate_passes_minimal_observer_posture(
+    valid_observer_genesis_artifacts: dict[str, str],
+) -> None:
+    result = _run_authority_gate(genesis_env=valid_observer_genesis_artifacts)
     assert result.returncode == 0, result.stdout
     assert "external observer authority lock gate passed" in result.stdout
     assert (
@@ -88,9 +94,12 @@ def test_authority_lock_gate_passes_minimal_observer_posture() -> None:
     ],
 )
 def test_authority_lock_gate_refuses_observer_authority_leaks(
-    key: str, value: str, expected: str
+    valid_observer_genesis_artifacts: dict[str, str],
+    key: str,
+    value: str,
+    expected: str,
 ) -> None:
-    result = _run_authority_gate({key: value})
+    result = _run_authority_gate({key: value}, genesis_env=valid_observer_genesis_artifacts)
     assert result.returncode != 0
     assert expected in result.stdout
 

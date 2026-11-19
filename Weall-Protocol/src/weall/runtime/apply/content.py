@@ -32,7 +32,11 @@ from typing import Any
 # (This is intentionally a light dependency; dispute.py has no content imports.)
 from weall.runtime.apply.dispute import dispute_open, select_dispute_panel  # type: ignore
 from weall.runtime.bft_hotstuff import quorum_threshold
-from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
+from weall.runtime.bounded_rollback import (
+    journal_append_list,
+    journal_set_dict_key,
+    materialize_journaled,
+)
 from weall.runtime.commitments import (
     consensus_active_validator_ids,  # noqa: E402 -- legacy module docstring follows __future__ import
 )
@@ -56,7 +60,9 @@ Json = dict[str, Any]
 
 def _canonical_hash(value: Any) -> str:
     return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+        json.dumps(
+            materialize_journaled(value), sort_keys=True, separators=(",", ":"), default=str
+        ).encode("utf-8")
     ).hexdigest()
 
 
@@ -638,6 +644,11 @@ def repair_pending_content_escalations(state: Json, *, next_height: int) -> int:
 
     pending = _pending_escalation_root(state)
     repaired = 0
+    # After activation, retry payloads must derive from the immutable accepted
+    # flag, not from the potentially stale or corrupted pending record.
+    strict_provenance = _content_escalation_provenance_active(state)
+    content = state.get("content")
+    flags = content.get("flags") if isinstance(content, dict) else None
     for flag_id in sorted(pending):
         rec = pending.get(flag_id)
         if not isinstance(rec, dict) or _as_str(rec.get("status")) not in {"pending", "retry"}:
@@ -645,6 +656,20 @@ def repair_pending_content_escalations(state: Json, *, next_height: int) -> int:
         due_height = _as_int(rec.get("next_retry_height"), 0)
         if due_height > int(next_height):
             continue
+        if strict_provenance:
+            accepted = flags.get(flag_id) if isinstance(flags, dict) else None
+            if (
+                not isinstance(accepted, dict)
+                or _as_str(accepted.get("flag_id")).strip() != flag_id
+                or not _as_str(accepted.get("target_id")).strip()
+                or not _as_str(accepted.get("by")).strip()
+            ):
+                # Do not queue an unauthenticated escalation; leave the record
+                # intact for deterministic operator inspection.
+                continue
+            rec["target_id"] = _as_str(accepted.get("target_id")).strip()
+            rec["flagged_by"] = _as_str(accepted.get("by")).strip()
+            rec["reason"] = _as_str(accepted.get("reason"))
         try:
             queue_id = enqueue_system_tx(
                 state,
@@ -1134,14 +1159,18 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
         _require_min_poh_tier(state, signer=env.signer, min_tier=1, action="content_flag")
 
     payload = _as_dict(env.payload)
-    content = _ensure_root(state)
-    flags = content["flags"]
-
     target_id = _as_str(payload.get("target_id")).strip()
     if not target_id:
         raise ContentApplyError("invalid_payload", "missing_target_id", {})
 
     flag_id = _as_str(payload.get("flag_id")).strip() or f"flag:{env.signer}:{env.nonce}"
+    # Reject collisions before any root/schema normalization mutates state.
+    # The accepted flag is the provenance authority for later escalation.
+    existing_flags = _as_dict(_as_dict(state.get("content")).get("flags"))
+    if _content_escalation_provenance_active(state) and flag_id in existing_flags:
+        raise ContentApplyError("conflict", "duplicate_flag_id", {"flag_id": flag_id})
+    content = _ensure_root(state)
+    flags = content["flags"]
     reason = _as_str(payload.get("reason"))
     flags[flag_id] = {
         "flag_id": flag_id,
@@ -1579,6 +1608,51 @@ def _content_escalation_collision_dispute_id(
     return f"dispute:content:{commitment}"
 
 
+def _content_escalation_provenance_active(state: Json) -> bool:
+    """Opt-in, height-bound consensus activation; legacy blocks retain old semantics."""
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return False
+    height = params.get("content_escalation_provenance_v1_activation_height")
+    if type(height) is not int or height < 0:
+        return False
+    return _as_int(state.get("height"), 0) >= height
+
+
+def _verify_content_escalation_provenance(
+    state: Json, env: TxEnvelope, payload: Json, *, target_id: str
+) -> None:
+    """Bind SYSTEM escalation to its accepted flag before dedup or mutation."""
+    flag_id = _as_str(payload.get("flag_id")).strip()
+    if not flag_id:
+        raise ContentApplyError("forbidden", "escalation_flag_id_required", {})
+    content = state.get("content")
+    flags = content.get("flags") if isinstance(content, dict) else None
+    accepted = flags.get(flag_id) if isinstance(flags, dict) else None
+    if not isinstance(accepted, dict):
+        raise ContentApplyError(
+            "forbidden", "escalation_accepted_flag_missing", {"flag_id": flag_id}
+        )
+    reporter = _as_str(accepted.get("by")).strip()
+    expected_parent = f"CONTENT_FLAG:{flag_id}"
+    actual_parent = _as_str(getattr(env, "parent", "") or "").strip()
+    supplied_reporters = [
+        _as_str(payload.get(key)).strip() for key in ("flagged_by", "reported_by") if key in payload
+    ]
+    if (
+        _as_str(accepted.get("flag_id")).strip() != flag_id
+        or _as_str(accepted.get("target_id")).strip() != target_id
+        or not reporter
+        or not supplied_reporters
+        or any(value != reporter for value in supplied_reporters)
+        or actual_parent != expected_parent
+        or not bool(getattr(env, "system", False))
+    ):
+        raise ContentApplyError(
+            "forbidden", "escalation_flag_provenance_mismatch", {"flag_id": flag_id}
+        )
+
+
 def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     """Escalate a content target to the dispute system.
 
@@ -1608,6 +1682,9 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
 
     if not target_id:
         raise ContentApplyError("invalid_payload", "missing_target_id", {"tx_type": env.tx_type})
+
+    if _content_escalation_provenance_active(state):
+        _verify_content_escalation_provenance(state, env, payload, target_id=target_id)
 
     # Dedup: if target already has a dispute_id, do not open another.
     targets = _mod_targets(state)
@@ -1691,11 +1768,14 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     # dispute panel selector.
     dispute_obj["reported_by"] = payload.get("flagged_by") or payload.get("reported_by")
     dispute_obj["flagged_by"] = payload.get("flagged_by") or payload.get("reported_by")
+    # Even the legacy/local selector must exclude the reporter from reviewing
+    # their own complaint, regardless of prior content-review opt-in.
     selection = select_dispute_panel(
         state,
         dispute_obj,
         reviewer_candidates,
         round_no=1,
+        exclude_ids=_identity_variants(dispute_obj.get("reported_by")),
     )
     assigned_jurors = list(selection["panel"])
     dispute_obj["panel_round"] = 1

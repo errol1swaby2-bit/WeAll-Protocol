@@ -1546,6 +1546,20 @@ class NetNode:
         self.transport.bind(addr)
 
     def connect(self, addr: PeerAddr) -> Connection:
+        # NetMeshLoop may dial known peers on every network tick. Reusing an
+        # existing outbound connection is essential: TCP transport connections
+        # are keyed by URI, so replacing one mid-handshake strands the session.
+        target = str(addr.uri or "").strip()
+        if target:
+            for existing in self.transport.connections():
+                peer_addr = getattr(existing, "peer_addr", None)
+                if (
+                    str(getattr(peer_addr, "uri", "") or "").strip() == target
+                    and not bool(getattr(existing, "closed", False))
+                    and not bool(getattr(existing, "inbound", False))
+                ):
+                    return existing
+
         conn = self.transport.connect(addr)
         self._conns[str(conn.peer_id)] = conn
         # Start handshake: send hello
@@ -1635,10 +1649,25 @@ class NetNode:
     def broadcast_message(self, msg: WireMessage, *, exclude_peer_id: str = "") -> None:
         ex = str(exclude_peer_id or "").strip()
         payload = self.assert_message_fits(msg)
+        mtype = getattr(getattr(msg, "header", None), "type", None)
+        handshake_message = mtype in {MsgType.PEER_HELLO, MsgType.PEER_HELLO_ACK}
         self._refresh_conns()
         for pid, c in list(self._conns.items()):
             if ex and pid == ex:
                 continue
+            if not handshake_message:
+                # A TCP connection is not an authenticated P2P session.
+                # Broadcasting application/BFT packets to a newly connected
+                # peer before its HELLO/ACK completes makes the receiver
+                # accumulate session-required strikes and ban an honest peer
+                # during restart or rejoin. Do not dilute inbound checks.
+                rec = self._peers.get(pid)
+                if rec is None or not self._peer_is_established(rec):
+                    continue
+                if self._identity_required() and not rec.identity_ok:
+                    continue
+                if self.is_banned(pid):
+                    continue
             try:
                 c.send(payload)
             except Exception:

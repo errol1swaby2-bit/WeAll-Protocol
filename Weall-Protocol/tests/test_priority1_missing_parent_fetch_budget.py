@@ -131,3 +131,83 @@ def test_fetch_budget_resets_when_missing_parent_backlog_clears(
             "child_block_id": "child-fresh",
         }
     ]
+
+
+def test_finalized_frontier_keeps_unknown_hash_bound_qc_and_missing_parent(
+    tmp_path: Path, monkeypatch
+) -> None:
+    ex = _make_executor(tmp_path, monkeypatch)
+    ex.state["height"] = 3
+    ex.state["tip"] = "C1"
+    ex.state["blocks"] = {
+        "A": {"prev_block_id": "", "height": 1, "block_hash": "A-h"},
+        "B1": {"prev_block_id": "A", "height": 2, "block_hash": "B1-h"},
+        "C1": {"prev_block_id": "B1", "height": 3, "block_hash": "C1-h"},
+    }
+    ex._bft.finalized_block_id = "C1"
+    # Simulate artifacts which have already crossed authenticated admission.
+    # No unverified QC is admitted by this test; this covers pruning only.
+    ex._put_pending_missing_qc(
+        {
+            "t": "QC",
+            "chain_id": "batch107",
+            "view": 5,
+            "block_id": "FUTURE",
+            "block_hash": "FUTURE-h",
+            "parent_id": "MISSING",
+            "votes": [],
+        }
+    )
+    child = _pending_block(block_id="FUTURE-CHILD", parent_id="MISSING", height=6)
+    ex._put_pending_remote_block(block_id="FUTURE-CHILD", block=child)
+    assert ex._prune_pending_bft_artifacts() is False
+    assert "FUTURE" in ex._pending_missing_qcs
+    assert "FUTURE-CHILD" in ex._pending_remote_blocks
+    descriptors = ex.bft_resolved_pending_fetch_request_descriptors()
+    assert {
+        "block_id": "FUTURE",
+        "block_hash": "FUTURE-h",
+        "reason": "missing_qc_block",
+    } in descriptors
+    assert any(
+        item["block_id"] == "MISSING" and item["reason"] == "missing_parent" for item in descriptors
+    )
+
+
+def test_finalized_frontier_prunes_known_fork_and_ancestry_cycle(
+    tmp_path: Path, monkeypatch
+) -> None:
+    ex = _make_executor(tmp_path, monkeypatch)
+    ex.state["height"] = 3
+    ex.state["tip"] = "C1"
+    ex.state["blocks"] = {
+        "A": {"prev_block_id": "", "height": 1, "block_hash": "A-h"},
+        "B1": {"prev_block_id": "A", "height": 2, "block_hash": "B1-h"},
+        "C1": {"prev_block_id": "B1", "height": 3, "block_hash": "C1-h"},
+        "B2": {"prev_block_id": "A", "height": 2, "block_hash": "B2-h"},
+        "C2": {"prev_block_id": "B2", "height": 3, "block_hash": "C2-h"},
+    }
+    ex._bft.finalized_block_id = "C1"
+    ex._put_pending_missing_qc(
+        {
+            "t": "QC",
+            "chain_id": "batch107",
+            "view": 5,
+            "block_id": "D2",
+            "block_hash": "D2-h",
+            "parent_id": "C2",
+            "votes": [],
+        }
+    )
+    ex._put_pending_remote_block(
+        block_id="D2",
+        block=_pending_block(block_id="D2", parent_id="C2", height=4),
+    )
+    ex._put_pending_remote_block(
+        block_id="CYCLE",
+        block=_pending_block(block_id="CYCLE", parent_id="CYCLE", height=5),
+    )
+    assert ex._prune_pending_bft_artifacts() is True
+    assert "D2" not in ex._pending_missing_qcs
+    assert "D2" not in ex._pending_remote_blocks
+    assert "CYCLE" not in ex._pending_remote_blocks

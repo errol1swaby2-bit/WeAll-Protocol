@@ -1,0 +1,329 @@
+{
+  "schema": "weall.pr93.development_semantic_acceptance_candidate.v1",
+  "status": "PROPOSED_NOT_APPROVED",
+  "scope": "Accurate current development implementation only; no public testnet, Genesis, constitutional, sanction, or historical replay authority.",
+  "source_packet_head": "67e0df36bf14752e9cb615f0d01c781c8b44de6b",
+  "source_packet_artifact_id": 14358440015,
+  "review_evidence": {
+    "source_review_run": 44147229988,
+    "source_review_passed": 627,
+    "source_review_failed": 1,
+    "retry_fixture_correction_head": "09dc9f3c769f2820cad458ea29c89d4d2c6ef5f7",
+    "corrected_suite_run": 44149722165,
+    "corrected_suite_result": "verify before acceptance",
+    "route_diagnostic_run": 44149721200,
+    "public_lobby_focused_run": 44149721562,
+    "prior_roles_review_run": 44003011301
+  },
+  "required_before_application": [
+    "explicit maintainer acceptance of this exact candidate",
+    "revalidate all 21 current and old review identities against untouched compiler material",
+    "successful corrected focused review CI",
+    "retain truthful non-independent review provenance"
+  ],
+  "separate_merge_blockers": [
+    "required exact-head checks and approvals",
+    "CVE-2026-112366 frontend dependency audit",
+    "fresh-clone controlled devnet and frontend parity evidence"
+  ],
+  "independent_review": false,
+  "authority_effect": "none",
+  "transactions": [
+    {
+      "tx_type": "ACCOUNT_BAN",
+      "stable_id": "TX-0904",
+      "previous_review_digest": "4c7e5f70744904058a006f14840fd155f545ecabe45f1220e05ed039ce81c246",
+      "candidate_digest": "1822caa7a62773642cfc45c08c5878def0a2cfc06d0334f1fe2c08cd84ba9d19",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/reputation.py",
+        "function": "_apply_account_ban",
+        "handler": "reputation"
+      },
+      "review_conclusion": "Constitutional direct ban fails closed; legacy conflicting receipt rejection applies. Separate floor auto-ban remains unresolved.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "CONTENT_FLAG",
+      "stable_id": "TX-0306",
+      "previous_review_digest": "9e536944083750715e60d89aaf541b5bd2bd09e53b171efc8f2aba043f3dec96",
+      "candidate_digest": "d9765db3074e0df6c7eb880a2298b19f43ab8e579226e42cbdaef70648f0fb3e",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/content.py",
+        "function": "_apply_content_flag",
+        "handler": "content"
+      },
+      "review_conclusion": "Activated duplicate identity guard; legacy overwrite retained. Accepted-flag target/reporter/parent provenance is height-gated.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "DISPUTE_APPEAL",
+      "stable_id": "TX-0210",
+      "previous_review_digest": "25c32baad81399a0cca77c9c40a4f118fb814aca2b96c9549c0b2797079149a7",
+      "candidate_digest": "6ed47557f2ba0b0b3217f0c847375c6609d998097913f3716e5561d5a872a739",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/dispute.py",
+        "function": "_apply_dispute_appeal",
+        "handler": "dispute"
+      },
+      "review_conclusion": "Conflicting recorded automatic appeal denied; insufficient fresh panel remains pending.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "DISPUTE_FINAL_RECEIPT",
+      "stable_id": "TX-0211",
+      "previous_review_digest": "3188f1c9fd27e317957643eb3652df6e3c1a9792f640fa570bcda08203a18e72",
+      "candidate_digest": "5623af70bbce816b9a28fe68a30ba96988266f379878feaf70b97193eefb972e",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/dispute.py",
+        "function": "_apply_dispute_final_receipt",
+        "handler": "dispute"
+      },
+      "review_conclusion": "Unverified/mismatched/pending appeal denied; severe constitutional finality remains explicitly blocked.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "DISPUTE_JUROR_ACCEPT",
+      "stable_id": "TX-0205",
+      "previous_review_digest": "b728f7046c6a52afaf1043d82f528fea8b9286532a62a4496e52a678bb79a629",
+      "candidate_digest": "2527cf01ac7e4e887648df1b1b0c4f4571314510d2a15f5c2ebc06f4b3ad18e9",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/dispute.py",
+        "function": "_apply_dispute_juror_accept",
+        "handler": "dispute"
+      },
+      "review_conclusion": "Reporter recusal; material conflict rejection requires explicit strict V2.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "DISPUTE_JUROR_ASSIGN",
+      "stable_id": "TX-0204",
+      "previous_review_digest": "151dd15939f954ec63935e30d6fbbd988b3e722bfc9e9d364d3d5efc7bb059d1",
+      "candidate_digest": "80526806a5e94bfd7a3535cb04c546c04c7295f7ea1d8776c24d5a7894517d8a",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/dispute.py",
+        "function": "_apply_dispute_juror_assign",
+        "handler": "dispute"
+      },
+      "review_conclusion": "Reporter recusal; versioned material conflict gate; queue binding is not independence.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "DISPUTE_OPEN",
+      "stable_id": "TX-0200",
+      "previous_review_digest": "e959c9e1520a21ff84edc9924be3a4d8b3f83431fc54ea96e36ff788aebcd9be",
+      "candidate_digest": "61cbfdf215d0407d8e549f6d2c7fed366dead956e234eefc2d8c3eb91a3e5851",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/dispute.py",
+        "function": "dispute_open",
+        "handler": "dispute"
+      },
+      "review_conclusion": "Narrow handler attribution; proposal aliases rejected before unreachable status branch.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "DISPUTE_RESOLVE",
+      "stable_id": "TX-0209",
+      "previous_review_digest": "9e2108954707b7daf3d543713e2b74014fa97e802417bb533c0910b4accd5cb3",
+      "candidate_digest": "e732b22432b88d0128b5fcbcb14d04b4bdd789a646164233fd7b64e5a44d52c9",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/dispute.py",
+        "function": "_apply_dispute_resolve",
+        "handler": "dispute"
+      },
+      "review_conclusion": "Severe twenty-vote and outcome mismatch guards; experimental automatic appeal is not authenticated sanction authority.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "DISPUTE_VOTE_SUBMIT",
+      "stable_id": "TX-0208",
+      "previous_review_digest": "055dbcb4cc8aadc6a01c51e8caa7803509ea7445490f8b03314c29d48d8ac930",
+      "candidate_digest": "66d5a5259d3c6d88fea547dcaf2daa4ed5de66387534a97b37ad8c6aec86da85",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/dispute.py",
+        "function": "_apply_dispute_vote_submit",
+        "handler": "dispute"
+      },
+      "review_conclusion": "Reporter recusal, explicit strict V2 material conflict and severe fresh-panel guard.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "GROUP_EMISSARY_ELECTION_CREATE",
+      "stable_id": "TX-1715",
+      "previous_review_digest": "3a54a47ca0ffb7bf9ce4bb4c2d1117754f3081851d10a2a9b219031b42530f02",
+      "candidate_digest": "678c8d7777aee9a6d41d5462a9d02c3814b77855b193fb145564a22f0fb3cdc6",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/groups.py",
+        "function": "_apply_group_emissary_election_create",
+        "handler": "groups"
+      },
+      "review_conclusion": "Explicit activation freezes eligible electorate/quorum; historical unversioned creation retained.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "GROUP_EMISSARY_ELECTION_FINALIZE",
+      "stable_id": "TX-1717",
+      "previous_review_digest": "9906cf362f9494bd52b6068374f281101736fbe396c07c1ccf5008db483079a2",
+      "candidate_digest": "1010023edd428932994fd10904a6087b0f12d5005d6b0b59cd4fac95c534cc3c",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/groups.py",
+        "function": "_apply_group_emissary_election_finalize",
+        "handler": "groups"
+      },
+      "review_conclusion": "Frozen quorum controls signer transfer; no-decision preserves existing authority; historical unversioned policy retained.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "REVIEWER_LANE_OPT_IN",
+      "stable_id": "TX-2624",
+      "previous_review_digest": "2102af9d0c4257b3ed952da3a08af1f7350d317d49ccfec88f32227c79646701",
+      "candidate_digest": "a74b438bf88af93c8f6d498ba4b6072d4eb9a158401ebae99cc094b248ea5d7e",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_reviewer_lane_update",
+        "handler": "roles"
+      },
+      "review_conclusion": "Literal true checks versioned eligibility; fresh enrollment permitted.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "REVIEWER_LANE_OPT_OUT",
+      "stable_id": "TX-2625",
+      "previous_review_digest": "c53e049b178c519490a20feeae27b732cd6c7b66489b53d5d3b4126e83fe1619",
+      "candidate_digest": "e63b5f748e8bb6ccbb85dbf1bd5ef0a1d8f2942212c9e63441dc853be31b97bc",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_reviewer_lane_update",
+        "handler": "roles"
+      },
+      "review_conclusion": "Literal false requires self authority and enrollment, not activation eligibility; ingress restrictions remain.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "ROLE_EMISSARY_SEAT",
+      "stable_id": "TX-1111",
+      "previous_review_digest": "5fac7ab2ada1107b86940a80f8e3d83b5bfb7410f5cb19741aba54b0397cec7c",
+      "candidate_digest": "036b9b8671c3b541773ccad86f8db42f924ecbad80b1b0a96e7022e7a2cc7e4d",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_role_emissary_seat",
+        "handler": "roles"
+      },
+      "review_conclusion": "Typed eligibility; default governance allowlist excludes this appointment.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "ROLE_GOV_EXECUTOR_SET",
+      "stable_id": "TX-1113",
+      "previous_review_digest": "aed1ad10012208f8090130ad328aea9f6f82244aea94482da50c7795dfbfcf2b",
+      "candidate_digest": "67f96b18e3e5fe6d0c9d60c329fdfff56a74fb9a255dab5d5908f75e9e3ce544",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_role_gov_executor_set",
+        "handler": "roles"
+      },
+      "review_conclusion": "Typed eligibility; default governance allowlist excludes this appointment.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "ROLE_JUROR_ACTIVATE",
+      "stable_id": "TX-1101",
+      "previous_review_digest": "a1b3bf4fb1438f6d969498dfa89301ba40cfb940a7753e307c95673f9df0eafe",
+      "candidate_digest": "86dfa0345dd87a7059956031afffb1caee6e8843b7d275862bd336ea1045f2ce",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_role_juror_activate",
+        "handler": "roles"
+      },
+      "review_conclusion": "Typed legacy and explicit V2 canonical juror reputation denials.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "ROLE_JUROR_ENROLL",
+      "stable_id": "TX-1100",
+      "previous_review_digest": "a9e6314bbf541fe827a643f39bf6c8dc9f9f35d2510dfa1524bd48ec80488c1e",
+      "candidate_digest": "24d5504a1e6f2099c4129d06b4a35786365d56178b484a4907bb4ca24c5e0949",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_role_juror_enroll",
+        "handler": "roles"
+      },
+      "review_conclusion": "Self enrollment checks actual versioned juror eligibility.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "ROLE_JUROR_REINSTATE",
+      "stable_id": "TX-1103",
+      "previous_review_digest": "406cee36b386ad3e925975683876ee5b252e08977183664d79b56edd80d6f953",
+      "candidate_digest": "f0987551f52696f530b4934eb05d2b7a38191d62e767242fc34c97ef7f018c96",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_role_juror_reinstate",
+        "handler": "roles"
+      },
+      "review_conclusion": "Delegated juror activation checks current versioned eligibility.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE",
+      "stable_id": "TX-1107",
+      "previous_review_digest": "b88824f667e247700e774d8361d333671145fcf98f99478330439dc58fc84f78",
+      "candidate_digest": "4848ccae3e3a90f9294870c95dfc3143348ee37612e0ce110c3d2cb8bc2d495c",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_role_node_operator_activate",
+        "handler": "roles"
+      },
+      "review_conclusion": "Typed account/PoH/scalar/manual revocation/policy-version errors; no unsupported canonical role mapping.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    },
+    {
+      "tx_type": "ROLE_VALIDATOR_ACTIVATE",
+      "stable_id": "TX-1104",
+      "previous_review_digest": "f64112945d92ef91e3fbcc3ffe14b949929e95e79b5e53e6f409da9ba215a7ba",
+      "candidate_digest": "96760f26bc8b33c30609c6780b1ac7737598cadf22c3dfa615b38985237f8414",
+      "implementation_source": {
+        "path": "src/weall/runtime/apply/roles.py",
+        "function": "_apply_role_validator_activate",
+        "handler": "roles"
+      },
+      "review_conclusion": "Typed legacy and explicit V2 canonical validator reputation denials; no authorization to activate.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    }
+  ],
+  "routes": [
+    {
+      "route_key": "GET /v1/public-lobby/comments",
+      "stable_id": "ROUTE-63E26182B51EAFCB",
+      "previous_review_digest": "8f04ac4404952d23ca7a0cf8d03bd547f337e228155fb17b041752584a3e3a7f",
+      "previous_disposition": "review_required",
+      "candidate_digest": "8f04ac4404952d23ca7a0cf8d03bd547f337e228155fb17b041752584a3e3a7f",
+      "implementation_source": {
+        "path": "src/weall/api/routes_public_parts/content.py",
+        "function": "public_lobby_comments"
+      },
+      "review_conclusion": "Anonymous, bounded thread read; visibility, identity and moderation filtering; stable cursor; explicit unavailable and budget failures. Not indexed production-scale evidence.",
+      "proposed_disposition": "accepted_current_semantic_contract",
+      "accepted": false
+    }
+  ]
+}

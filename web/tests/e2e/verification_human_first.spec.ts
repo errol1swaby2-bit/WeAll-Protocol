@@ -17,8 +17,14 @@ test("account verification page uses human-first account language", async ({ pag
   await expect(page.getByText("Basic Account").first()).toBeVisible();
   await expect(page.getByText("Verified Person").first()).toBeVisible();
   await expect(page.getByText("Trusted Verified Person").first()).toBeVisible();
-  await expect(page.getByText("Trusted Responsibilities").first()).toBeVisible();
-  await expect(page.getByText("Verification History").first()).toBeVisible();
+  const sections = page.getByRole("navigation", { name: "Verification sections" });
+  await expect(sections.getByRole("button")).toHaveCount(6);
+  await sections.getByRole("button", { name: "Responsibilities", exact: true }).click();
+  await expect(page.getByText("Trusted Responsibilities", { exact: true }).first()).toBeVisible();
+  await sections.getByRole("button", { name: "Case history", exact: true }).click();
+  await expect(page.getByText("Verification History", { exact: true }).first()).toBeVisible();
+  await sections.getByRole("button", { name: "Technical records", exact: true }).click();
+  await expect(page.getByTestId("poh-technical-records")).toBeVisible();
 
   await expect(page.getByText(/Level 3|Tier 3|Proof-of-Humanity/i)).toHaveCount(0);
 });

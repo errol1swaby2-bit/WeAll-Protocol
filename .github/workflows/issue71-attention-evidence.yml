@@ -1,0 +1,68 @@
+name: Issue71 notification attention source evidence
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue71-attention-evidence.yml
+      - web/src/lib/activityReadState.ts
+      - web/src/pages/Activity.tsx
+      - web/src/components/ActivityBell.tsx
+      - web/src/components/AppShell.tsx
+      - web/scripts/test_issue71_attention_source.mjs
+      - web/scripts/test_issue71_attention_logic.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  client-attention:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout exact triggering revision
+      - uses: actions/setup-node@v4
+        name: Setup Node 22
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install frozen dependencies
+        run: npm ci
+      - name: Verify local-only notification attention contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          OUT="$RUNNER_TEMP/issue71-attention"
+          mkdir -p "$OUT"
+          {
+            echo "scope=CLIENT_ATTENTION_ONLY_NO_CONSENSUS_MUTATION"
+            echo "checkout_commit=$(git rev-parse HEAD)"
+            sha256sum src/lib/activityReadState.ts
+            sha256sum src/pages/Activity.tsx
+            sha256sum src/components/ActivityBell.tsx
+          } > "$OUT/source_and_scope.txt"
+          set +e
+          {
+            node scripts/test_issue71_attention_source.mjs &&
+            node --experimental-strip-types scripts/test_issue71_attention_logic.mjs &&
+            npm run typecheck &&
+            npm run build
+          } 2>&1 | tee "$OUT/targeted.log"
+          RC="${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=$RC" >> "$OUT/source_and_scope.txt"
+          exit "$RC"
+      - name: Publish bounded evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue71-attention-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/issue71-attention/source_and_scope.txt
+            ${{ runner.temp }}/issue71-attention/targeted.log

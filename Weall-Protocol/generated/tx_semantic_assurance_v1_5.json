@@ -1922,14 +1922,14 @@
     {
       "baseline_payload": {
         "dispute_id": "a",
-        "juror_id": "@juror1"
+        "juror": "@juror1"
       },
       "coercion_probe": {
         "field": "dispute_id",
         "kind": "type_coercion_probe",
         "payload": {
           "dispute_id": 1,
-          "juror_id": "@juror1"
+          "juror": "@juror1"
         },
         "schema_outcome": "reject"
       },
@@ -1950,7 +1950,7 @@
         "field": "dispute_id",
         "kind": "drop_required_field",
         "payload": {
-          "juror_id": "@juror1"
+          "juror": "@juror1"
         }
       },
       "schema_model": "DisputeJurorAssignPayload",

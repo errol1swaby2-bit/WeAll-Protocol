@@ -1,0 +1,141 @@
+name: M4.2 social read and eligibility boundaries
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/m4-social-eligibility-boundary.yml
+      - web/tests/e2e/m4_two_user_one_node_custody.spec.ts
+      - web/playwright.m4.config.ts
+      - web/scripts/esbuildBuild.mjs
+      - web/scripts/esbuildServer.mjs
+      - web/package.json
+      - web/package-lock.json
+      - scripts/run_account_custody_real_stack_e2e.sh
+      - web/src/App.tsx
+      - web/src/lib/router.ts
+      - web/src/pages/Feed.tsx
+      - web/src/components/FeedView.tsx
+      - web/src/pages/Thread.tsx
+      - web/src/pages/Content.tsx
+      - web/scripts/test_m4_social_report_gate_source.mjs
+      - web/scripts/test_public_social_flow_readiness_source.mjs
+      - Weall-Protocol/tests/test_public_lobby_comment_read_model.py
+      - Weall-Protocol/tests/test_scoped_content_media_providers.py
+      - Weall-Protocol/src/weall/api/routes_public_parts/content.py
+      - Weall-Protocol/generated/tx_index.json
+      - Weall-Protocol/src/weall/runtime/apply/content.py
+      - Weall-Protocol/src/weall/runtime/poh/eligibility.py
+      - Weall-Protocol/docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  social-eligibility-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install frozen frontend dependencies
+        run: npm ci
+      - name: Check TypeScript social surfaces
+        run: npm run typecheck
+      - name: Match social report and interaction eligibility to canonical runtime
+        run: node scripts/test_m4_social_report_gate_source.mjs
+      - name: Preserve public-only social flow and submission finality truth
+        run: npm run test:public-social-flow-readiness-source
+      - name: Record bounded proof scope
+        run: |
+          echo 'proof=M4.2_SOCIAL_UI_SOURCE_AND_BACKEND_TIER_GATE_ALIGNMENT'
+          echo 'tier0_social_write=NOT_PROVEN'
+          echo 'tier2_posting=NOT_PROVEN'
+          echo 'remote_cloudflare_multi_user=NOT_PROVEN'
+          echo 'genesis_authorization=NOT_ESTABLISHED'
+          git rev-parse HEAD
+  real-tier0-multi-user-social-denial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend test runtime
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: Public content read Python formatting and lint (pinned Ruff)
+        working-directory: Weall-Protocol
+        run: |
+          python -m ruff format --check src/weall/api/routes_public_parts/content.py tests/test_public_lobby_comment_read_model.py tests/test_scoped_content_media_providers.py
+          python -m ruff check src/weall/api/routes_public_parts/content.py tests/test_public_lobby_comment_read_model.py tests/test_scoped_content_media_providers.py
+      - name: Public-lobby availability, moderation and scoped visibility regressions
+        working-directory: Weall-Protocol
+        run: python -m pytest -q tests/test_public_lobby_comment_read_model.py tests/test_scoped_content_media_providers.py
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install frozen frontend dependencies
+        working-directory: web
+        run: npm ci
+      - name: Typecheck real-browser negative proof
+        working-directory: web
+        run: npm run typecheck
+      - name: Canonical social eligibility source guard
+        working-directory: web
+        run: node scripts/test_m4_social_report_gate_source.mjs
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Two independent accounts prove restricted social actions stay blocked
+        env:
+          CI: 'true'
+          WEALL_M4_TWO_USER_E2E: '1'
+          WEALL_M4_SOCIAL_PROBES: '1'
+          WEALL_KEEP_M2_CUSTODY_RUNTIME: '0'
+          WEALL_CUSTODY_REPEAT_EACH: '1'
+        run: |
+          set -Eeuo pipefail
+          bash scripts/run_account_custody_real_stack_e2e.sh
+          echo 'proof=ONE_NODE_TWO_SIGNERS_REAL_TIER0_SOCIAL_NEGATIVE_CONTROLS'
+          echo 'positive_tier2_posting=NOT_PROVEN'
+          echo 'independent_validator_finality=NOT_PROVEN'
+          echo 'genesis_authorization=NOT_ESTABLISHED'
+          git rev-parse HEAD
+      - name: Two independent Tier0 accounts produce signed public-lobby comments
+        env:
+          CI: 'true'
+          WEALL_M4_TWO_USER_E2E: '1'
+          WEALL_M4_LOBBY_POSITIVE: '1'
+          WEALL_KEEP_M2_CUSTODY_RUNTIME: '0'
+          WEALL_CUSTODY_REPEAT_EACH: '1'
+        run: |
+          set -Eeuo pipefail
+          bash scripts/run_account_custody_real_stack_e2e.sh
+          echo 'proof=ONE_NODE_TWO_SIGNERS_TIER0_LOBBY_CANONICAL_POSITIVE_APPLY'
+          echo 'anonymous_public_read=VERIFIED_BY_BROWSER_REGRESSION'
+          echo 'real_poh_tier2=NOT_PROVEN'
+          echo 'independent_validator_finality=NOT_PROVEN'
+          echo 'genesis_authorization=NOT_ESTABLISHED'
+          git rev-parse HEAD

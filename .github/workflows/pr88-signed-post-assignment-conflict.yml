@@ -1,0 +1,93 @@
+name: PR88 signed post-assignment group conflict (diagnostic only)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pr88-signed-post-assignment-conflict.yml
+      - Weall-Protocol/tests/test_pr88_signed_post_assignment_group_conflict_replay.py
+      - Weall-Protocol/src/weall/runtime/dispute_panel_recovery_preview.py
+      - Weall-Protocol/src/weall/runtime/dispute_conflict_provenance_preview.py
+      - Weall-Protocol/tests/test_pr88_dispute_panel_recovery_preview.py
+      - Weall-Protocol/tests/test_pr88_conflicted_juror_reputation_characterization.py
+      - Weall-Protocol/src/weall/runtime/apply/dispute.py
+      - Weall-Protocol/src/weall/runtime/apply/groups.py
+      - Weall-Protocol/src/weall/runtime/reviewer_responsibilities.py
+      - Weall-Protocol/src/weall/runtime/executor.py
+      - Weall-Protocol/src/weall/runtime/block_replay.py
+      - Weall-Protocol/src/weall/runtime/tx_admission.py
+      - Weall-Protocol/src/weall/runtime/ballot_policy.py
+      - Weall-Protocol/specs/tx_canon/tx_canon.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-group-conflict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact PR or dispatched head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked development requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Exact-head signed post-panel conflict diagnostic
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          EXPECTED_HEAD="${{ github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          test "$EXPECTED_HEAD" = "$ACTUAL_HEAD"
+          OUT="$RUNNER_TEMP/pr88-post-assignment-conflict"
+          mkdir -p "$OUT"
+          {
+            echo "head=$ACTUAL_HEAD"
+            echo "status=DIAGNOSTIC_ONLY_NOT_A_CONSENSUS_FIX"
+            echo "scope=SIGNED_CONTROLLED_DEVNET_GROUP_MODERATOR_AFTER_STRICT_PANEL"
+            echo "boundaries=NO_BFT_QC_NO_PUBLIC_NETWORK_NO_INDEPENDENT_POH_NO_REVIEW_APPROVAL"
+            sha256sum tests/test_pr88_signed_post_assignment_group_conflict_replay.py
+            sha256sum src/weall/runtime/dispute_panel_recovery_preview.py
+            sha256sum src/weall/runtime/dispute_conflict_provenance_preview.py
+            echo "provenance_scope=UNTRUSTED_INPUT_REQUIRES_PRODUCTION_ADMISSION_AND_INDEPENDENT_REPLAY"
+            sha256sum tests/test_pr88_dispute_panel_recovery_preview.py
+            sha256sum tests/test_pr88_conflicted_juror_reputation_characterization.py
+            echo "recovery_preview_scope=READ_ONLY_NO_SCHEDULER_OR_ASSIGNMENT_AUTHORITY"
+            echo "penalty_characterization_scope=DIRECT_APPLIER_NO_SIGNED_QUEUE_OR_FINALITY_PROOF_NO_WAIVER"
+            sha256sum src/weall/runtime/apply/dispute.py
+            sha256sum src/weall/runtime/apply/groups.py
+            sha256sum src/weall/runtime/executor.py
+          } > "$OUT/scope.txt"
+          set +e
+          {
+            ruff format --diff src/weall/runtime/dispute_conflict_provenance_preview.py src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_conflicted_juror_reputation_characterization.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py || true
+            ruff format --check src/weall/runtime/dispute_conflict_provenance_preview.py src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_conflicted_juror_reputation_characterization.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py &&
+            ruff check src/weall/runtime/dispute_conflict_provenance_preview.py src/weall/runtime/dispute_panel_recovery_preview.py tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_conflicted_juror_reputation_characterization.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py &&
+            python -m pytest -q -vv -rx tests/test_pr88_dispute_panel_recovery_preview.py tests/test_pr88_conflicted_juror_reputation_characterization.py tests/test_pr88_signed_post_assignment_group_conflict_replay.py
+          } 2>&1 | tee "$OUT/result.log"
+          RC="${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=$RC" >> "$OUT/scope.txt"
+          sha256sum "$OUT/result.log" >> "$OUT/scope.txt"
+          exit "$RC"
+      - name: Publish bounded evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr88-post-assignment-conflict-${{ github.event.pull_request.head.sha || github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/pr88-post-assignment-conflict/scope.txt
+            ${{ runner.temp }}/pr88-post-assignment-conflict/result.log

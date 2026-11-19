@@ -48,7 +48,7 @@ server {
   add_header X-Content-Type-Options "nosniff" always;
   add_header Referrer-Policy "no-referrer" always;
   add_header X-Frame-Options "DENY" always;
-  add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+  add_header Permissions-Policy "geolocation=(), microphone=(self), camera=(self)" always;
   add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http://127.0.0.1:* http://localhost:*;" always;
 
   # SPA: send any unknown path to index.html
@@ -80,7 +80,7 @@ weall.example.com {
     X-Content-Type-Options "nosniff"
     Referrer-Policy "no-referrer"
     X-Frame-Options "DENY"
-    Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Permissions-Policy "geolocation=(), microphone=(self), camera=(self)"
     Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http://127.0.0.1:* http://localhost:*;"
   }
 
@@ -91,6 +91,17 @@ weall.example.com {
   try_files {path} /index.html
   file_server
 }
+
+## Camera and microphone permission boundary
+
+The production same-origin Nginx template allows `camera=(self)` and
+`microphone=(self)` so browser-approved native live PoH can run in a secure
+context. The optional Cloudflare Pages `_headers` uses the same self-only
+policy. Neither grants permission automatically; the browser must prompt the
+user, and WebRTC transport, independent reviewers, and canonical verification
+must still succeed. Keep permissions disabled on unrelated or untrusted
+third-party frames; do not use a wildcard policy to work around browser
+denials.
 
 native PoH verification
 

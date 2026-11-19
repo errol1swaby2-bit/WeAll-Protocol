@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { api, getApiBaseUrl, weall } from "../api/weall";
 import ProtocolStatusSummary from "../components/ProtocolStatusSummary";
+import ActiveDeliberations from "../components/ActiveDeliberations";
+import { normalizeGovernanceProposalList, type GovernanceProposal } from "../lib/governance";
 import { getSession } from "../auth/session";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { nav } from "../lib/router";
@@ -116,6 +118,7 @@ export default function Home(): JSX.Element {
     availableDisputes: 0,
   });
   const [groupCount, setGroupCount] = useState(0);
+  const [proposalFeed, setProposalFeed] = useState<GovernanceProposal[]>([]);
   const [loading, setLoading] = useState(false);
 
   const pendingActions = txItems.filter((item) => ["validating", "submitting", "recorded", "refreshing"].includes(item.status)).length;
@@ -130,6 +133,7 @@ export default function Home(): JSX.Element {
         api.groups.list({ limit: 100 }, base).catch(() => ({ items: [] })),
       ]);
       const proposalItems = Array.isArray((proposalsRes as any)?.items) ? (proposalsRes as any).items : [];
+      setProposalFeed(normalizeGovernanceProposalList(proposalItems));
       const disputeItems = Array.isArray((disputesRes as any)?.items) ? (disputesRes as any).items : [];
       const groups = Array.isArray((groupsRes as any)?.items) ? (groupsRes as any).items : [];
       const pendingWork = derivePendingWork({
@@ -282,6 +286,8 @@ export default function Home(): JSX.Element {
         <DirectoryCard eyebrow="Economics" title="Locked" body="WeCoin and fees stay locked by default during public observer / closed-testnet review." cta="Check economics status" href="/economics" />
       </section>
 
+      <ActiveDeliberations base={base} proposals={proposalFeed} maxItems={3} title="Conversations happening now" />
+
       <section className="card" aria-label="Average-user launch-prep walkthrough">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -327,6 +333,7 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className="formStack">
+            <HomeNotificationRow label="Activity notices" detail="Inspect finalized public events addressed to your account." href="/activity" />
             <HomeNotificationRow label="Feed" detail="See recent public posts and replies." href="/feed" />
             <HomeNotificationRow label="Open decisions" detail={pending.activeProposals ? `${pending.activeProposals} community decision${pending.activeProposals === 1 ? "" : "s"} may need votes.` : "No open decisions are surfaced right now."} href="/decisions" open={pending.activeProposals > 0} />
             <HomeNotificationRow label="Review work" detail={pending.assignedDisputes ? `${pending.assignedDisputes} review assignment${pending.assignedDisputes === 1 ? "" : "s"} appear tied to this account.` : pending.availableDisputes ? `${pending.availableDisputes} open report${pending.availableDisputes === 1 ? "" : "s"} are visible.` : "No active reports are visible right now."} href="/reviews" open={pending.assignedDisputes > 0} />

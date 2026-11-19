@@ -275,3 +275,76 @@ def test_account_feed_reactions_match_public_feed_after_cross_account_like() -> 
         assert public_post["reactions"]["like"] == 2
         assert owner_post["reactions"]["like"] == 2
         assert owner_post["reaction_total"] == public_post["reaction_total"]
+
+
+def test_owner_scoped_comment_read_cannot_bypass_public_visibility_or_moderation() -> None:
+    """Owner identity grants no private or moderated content-read exception."""
+    state = _state()
+    comment_root = state["content"]["comments"]
+    base = {
+        "post_id": "post:g-private",
+        "author": "@alice",
+        "created_nonce": 9,
+        "body": "Must follow public visibility",
+    }
+    comment_root["comment:private-owner"] = {
+        **base,
+        "comment_id": "comment:private-owner",
+        "visibility": "private",
+    }
+    comment_root["comment:moderated"] = {
+        **base,
+        "comment_id": "comment:moderated",
+        "visibility": "public",
+    }
+    comment_root["comment:deleted"] = {
+        **base,
+        "comment_id": "comment:deleted",
+        "visibility": "public",
+        "deleted": True,
+    }
+    comment_root["comment:legacy-index"] = {
+        **base,
+        "id": "legacy:unrelated",
+        "visibility": "public",
+    }
+    comment_root["comment:visible"] = {
+        **base,
+        "comment_id": "comment:visible",
+        "visibility": "public",
+    }
+    state["content"]["moderation"] = {
+        "targets": {
+            "comment:moderated": {"last_action": "hide"},
+            "comment:legacy-index": {"last_action": "hide"},
+        }
+    }
+
+    with _client(state) as client:
+        for content_id in (
+            "comment:private-owner",
+            "comment:moderated",
+            "comment:deleted",
+            "comment:legacy-index",
+        ):
+            public = client.get("/v1/content/" + content_id)
+            assert public.status_code == 404, (content_id, public.text)
+            for account in ("@alice", "@eve"):
+                scoped = client.get(
+                    "/v1/content/" + content_id + "/scoped",
+                    headers=_auth(account),
+                )
+                assert scoped.status_code == 404, (content_id, account, scoped.text)
+
+        public = client.get("/v1/content/comment:visible")
+        assert public.status_code == 200, public.text
+        for account in ("@alice", "@eve"):
+            scoped = client.get(
+                "/v1/content/comment:visible/scoped",
+                headers=_auth(account),
+            )
+            assert scoped.status_code == 200, scoped.text
+            assert scoped.json()["content"]["body"] == public.json()["content"]["body"]
+
+        anonymous = client.get("/v1/content/comment:visible/scoped")
+        assert anonymous.status_code in (401, 403)
