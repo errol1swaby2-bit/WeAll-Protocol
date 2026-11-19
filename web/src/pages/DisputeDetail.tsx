@@ -1,3 +1,4 @@
+import AccountIdentity from "../components/AccountIdentity";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
@@ -520,7 +521,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
                 <div className="summaryCardGrid">
                   <article className="summaryCard">
                     <div className="summaryCardLabel">Author</div>
-                    <div className="summaryCardValue mono">{contentAuthor || "(unknown)"}</div>
+                    <div className="summaryCardValue mono"><AccountIdentity base={apiBase} account={contentAuthor} /></div>
                     <div className="summaryCardText">reported content reference</div>
                   </article>
                   <article className="summaryCard">
@@ -549,7 +550,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
               <div className="feedMediaTitle">Assigned reviewers</div>
               <div className="milestoneList">
                 {Object.entries(asRecord(dispute?.jurors)).sort((a, b) => String(a[0]).localeCompare(String(b[0]))).map(([juror, rec]) => (
-                  <span key={juror} className="miniTag">{juror}: {reviewStatusLabel(String((rec as any)?.status || "assigned"))}{asRecord((rec as any)?.attendance).present ? " · present" : ""}</span>
+                  <span key={juror} className="miniTag"><AccountIdentity base={apiBase} account={juror} />: {reviewStatusLabel(String((rec as any)?.status || "assigned"))}{asRecord((rec as any)?.attendance).present ? " · present" : ""}</span>
                 ))}
               </div>
             </div>

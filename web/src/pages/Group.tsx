@@ -1,3 +1,4 @@
+import AccountIdentity from "../components/AccountIdentity";
 import FeedView from "../components/FeedView";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -519,7 +520,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           <span className="surfaceBoundaryTag">Action: {isMember ? "Leave group" : isPendingMembership ? "Await membership decision" : "Join group"}</span>
           <span className="surfaceBoundaryTag">Posting uses the create-post page</span>
         </div>
-      </details>
+      </section>
       ) : null}
 
       {activeTab === "decisions" ? (
@@ -567,7 +568,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
             </article>
           </div>
         </div>
-      </section>
+      </details>
       ) : null}
 
       {activeTab === "decisions" ? (
@@ -599,15 +600,13 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
             const proposalId = String(item?.proposal_id || item?.id || "").trim();
             if (!proposalId) return null;
             return (
-              <button
-                type="button"
-                className="quickCard quickCardMain"
-                key={proposalId || String(index)}
-                onClick={() => nav(`/decisions/${encodeURIComponent(proposalId)}`)}
-              >
-                <strong>{String(item?.title || "Group decision")}</strong>
-                <span className="miniTag">{String(item?.stage || item?.status || "status unavailable")}</span>
-              </button>
+              <article className="quickCard" key={proposalId || String(index)}>
+                <button type="button" className="quickCardMain" onClick={() => nav(`/decisions/${encodeURIComponent(proposalId)}`)}>
+                  <strong>{String(item?.title || "Group decision")}</strong>
+                  <span className="miniTag">{String(item?.stage || item?.status || "status unavailable")}</span>
+                </button>
+                <AccountIdentity base={base} account={String(item?.creator || "")} />
+              </article>
             );
           }) : null}
         </div>
@@ -877,13 +876,13 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                 {electionDetail.candidates === null
                   ? <p className="cardDesc">Candidate IDs are not present in the indexed record.</p>
                   : electionDetail.candidates.length
-                    ? <div className="surfaceBoundaryList">{electionDetail.candidates.map(candidate => <span className="surfaceBoundaryTag mono" key={candidate}>{candidate}</span>)}</div>
+                    ? <div className="surfaceBoundaryList">{electionDetail.candidates.map(candidate => <AccountIdentity key={candidate} base={base} account={candidate} />)}</div>
                     : <p className="cardDesc">No candidates in the indexed record.</p>}
                 {electionDetail.status === "finalized" ? (
                   <div className="formStack">
                     <h3 className="cardTitle">Recorded winners</h3>
                     {electionDetail.winners.length
-                      ? <div className="surfaceBoundaryList">{electionDetail.winners.map(winner => <span className="surfaceBoundaryTag mono" key={winner}>{winner}</span>)}</div>
+                      ? <div className="surfaceBoundaryList">{electionDetail.winners.map(winner => <AccountIdentity key={winner} base={base} account={winner} />)}</div>
                       : <p className="cardDesc">The finalized record exposes no winners.</p>}
                   </div>
                 ) : electionDetail.status === "no_decision"
@@ -1026,7 +1025,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                 </div>
                 {pendingMembershipAccounts.length ? pendingMembershipAccounts.map((member) => (
                   <div className="buttonRow buttonRowWide" key={member}>
-                    <span className="mono">{member}</span>
+                    <AccountIdentity base={base} account={member} />
                     <button className="btn btnPrimary" disabled={busy || signerSubmission.busy} onClick={() => void decideMembership(member, "accept")}>Approve</button>
                     <button className="btn" disabled={busy || signerSubmission.busy} onClick={() => void decideMembership(member, "reject")}>Reject</button>
                   </div>
@@ -1103,9 +1102,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           {members.length ? (
             <div className="milestoneList">
               {members.map((m: any, idx) => (
-                <span key={`${String(m?.account || idx)}`} className="miniTag">
-                  {String(m?.account || "member")}
-                </span>
+                <AccountIdentity key={`${String(m?.account || idx)}`} base={base} account={String(m?.account || "")} fallback="member" />
               ))}
             </div>
           ) : (

@@ -493,7 +493,7 @@ export default function ProposalCreate({ scopeGroupId }: { scopeGroupId?: string
             </>
           )}
 
-          {allowAdvancedPayload ? (
+          {allowAdvancedPayload && !useAdvancedPayload ? (
             <div className="feedMediaCard">
               <div className="feedMediaTitle">Advanced decision id preview</div>
               <div className="feedMediaMeta mono">{resolvedProposalId}</div>

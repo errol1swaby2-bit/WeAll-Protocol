@@ -1,3 +1,4 @@
+import { canonicalAvatarPath } from "../../src/lib/accountAvatar";
 import { decisionCreationState } from "../../src/lib/decisionCreation";
 import { groupProfileTabFromHash, GROUP_PROFILE_TABS } from "../../src/lib/groupProfileTabs";
 import { expect, test, type Page } from "@playwright/test";
@@ -213,4 +214,16 @@ test("legacy group governance links map to the single decisions tab", () => {
   expect(groupProfileTabFromHash("#/groups/g%3Atest2?tab=governance")).toBe("decisions");
   expect(groupProfileTabFromHash("#/groups/g%3Atest2?tab=decisions")).toBe("decisions");
   expect(GROUP_PROFILE_TABS.filter(tab => /governance|decisions/.test(tab.id))).toEqual([{ id: "decisions", label: "Decisions" }]);
+});
+
+
+test("account avatars use only the exact canonical node profile media proxy", () => {
+  const cid = "bafyTEST123";
+  const path = "/v1/media/proxy/" + cid;
+  const response = { ok: true, account: "@alice", profile: { account_id: "@alice", avatar_cid: cid, avatar_media: { cid, fetch_path: path } } };
+  expect(canonicalAvatarPath(response, "@alice")).toBe(path);
+  expect(canonicalAvatarPath(response, "@bob")).toBe("");
+  expect(canonicalAvatarPath({ ...response, profile: { ...response.profile, avatar_media: { cid, fetch_path: "https://external.example/avatar" } } }, "@alice")).toBe("");
+  expect(canonicalAvatarPath({ ...response, profile: { ...response.profile, avatar_media: { cid: "other", fetch_path: path } } }, "@alice")).toBe("");
+  expect(canonicalAvatarPath({ ...response, profile: {} }, "@alice")).toBe("");
 });

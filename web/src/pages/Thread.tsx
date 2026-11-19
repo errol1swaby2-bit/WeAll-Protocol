@@ -1,3 +1,4 @@
+import AccountIdentity from "../components/AccountIdentity";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
@@ -385,7 +386,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Post</div>
-              <h2 className="cardTitle">{postAuthor || "Unknown author"}</h2>
+              <h2 className="cardTitle"><AccountIdentity base={base} account={postAuthor} fallback="Unknown author" /></h2>
             </div>
             <div className="statusSummary">
               <span className="statusPill mono">{postId}</span>
@@ -515,9 +516,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                   <div className="cardBody formStack">
                     <div className="sectionHead">
                       <div className="statusSummary">
-                        <button className="btn" onClick={() => nav(`/account/${encodeURIComponent(ca)}`)}>
-                          <span className="mono">{ca || "unknown"}</span>
-                        </button>
+                        <AccountIdentity base={base} account={ca} />
                         <span className="statusPill mono">{cid}</span>
                       </div>
 

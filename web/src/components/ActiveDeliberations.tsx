@@ -1,3 +1,4 @@
+import AccountIdentity from "./AccountIdentity";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
@@ -145,6 +146,7 @@ export default function ActiveDeliberations({
                     <div>
                       <div className="summaryCardLabel">Community decision{groupId ? " · " + groupId : ""}</div>
                       <h3 className="cardTitle">{governanceProposalTitleOf(proposal)}</h3>
+                      <AccountIdentity base={base} account={String(proposal.creator || "")} />
                     </div>
                     <div className="statusSummary">
                       <span className="statusPill">{stage}</span>
@@ -162,7 +164,7 @@ export default function ActiveDeliberations({
                       {latest.map((comment, index) => (
                         <div className="infoCard" key={String(comment.comment_id || index)}>
                           <div className="summaryCardLabel">
-                            {String(comment.by || "Unknown participant")} · block {Number(comment.height || 0) || "—"}
+                            <AccountIdentity base={base} account={String(comment.by || "")} fallback="Unknown participant" /> · block {Number(comment.height || 0) || "—"}
                           </div>
                           <div className="feedBodyText">
                             {String(comment.body || "").slice(0, 240)}

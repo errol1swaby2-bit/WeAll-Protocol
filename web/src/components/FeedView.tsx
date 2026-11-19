@@ -1,3 +1,4 @@
+import AccountIdentity from "./AccountIdentity";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { weall } from "../api/weall";
@@ -654,9 +655,7 @@ export default function FeedView({
                     <ContentTipButton base={base} targetId={String(id)} author={String(author)} />
                   ) : null}
                   <div className="statusSummary">
-                      <button className="btn" onClick={() => nav(`/account/${encodeURIComponent(author)}`)} disabled={!author}>
-                        {author || "unknown author"}
-                      </button>
+                      <AccountIdentity base={base} account={author} fallback="unknown author" />
                       <span className="statusPill">{visibility}</span>
                       {it?.group_id ? (
                         <button className="btn" onClick={() => nav(`/groups/${encodeURIComponent(String(it.group_id))}`)}>

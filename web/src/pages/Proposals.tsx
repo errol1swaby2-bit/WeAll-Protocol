@@ -1,3 +1,4 @@
+import AccountIdentity from "../components/AccountIdentity";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { api, getApiBaseUrl, weall } from "../api/weall";
@@ -438,7 +439,7 @@ export default function Proposals(): JSX.Element {
                             </div>
                           </div>
                           <div className="summaryCardGrid">
-                            <article className="summaryCard"><div className="summaryCardLabel">Creator</div><div className="summaryCardValue mono">{String((p as any)?.creator || "(unknown)")}</div></article>
+                            <article className="summaryCard"><div className="summaryCardLabel">Creator</div><div className="summaryCardValue mono"><AccountIdentity base={base} account={String(p.creator || "")} /></div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Status note</div><div className="summaryCardValue">{decisionStageLabel(stage)}</div><div className="summaryCardText">{decisionStageHelp(stage)}</div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Vote tally</div><div className="summaryCardValue">{totalVotes}</div><div className="summaryCardText">Yes {counts.yes} · No {counts.no} · Abstain {counts.abstain}</div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Outcome</div><div className="summaryCardValue">{decisionOutcomeLabel(p)}</div><div className="summaryCardText">{resultReady ? "Canonical result (if recorded) · " : "Nonfinal totals · "}{decisionOutcomeText(stage, counts)}</div></article>

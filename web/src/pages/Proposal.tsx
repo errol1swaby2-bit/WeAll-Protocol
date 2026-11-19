@@ -1,3 +1,4 @@
+import AccountIdentity from "../components/AccountIdentity";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
@@ -753,7 +754,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 <div className="pageStack">
                   {proposalComments.map((comment: any, idx: number) => (
                     <div key={String(comment?.comment_id || idx)} className="infoCard">
-                      <div className="feedMediaTitle mono">{String(comment?.by || "unknown")}</div>
+                      <div className="feedMediaTitle mono"><AccountIdentity base={base} account={String(comment?.by || "")} /></div>
                       <div className="cardDesc">Block {Number(comment?.height || 0) || "—"}</div>
                       <div className="feedBodyText">{String(comment?.body || "")}</div>
                     </div>
@@ -970,7 +971,7 @@ export default function Proposal({ id }: Props): JSX.Element {
           <div className="summaryCardGrid">
             <article className="summaryCard">
               <div className="summaryCardLabel">Creator</div>
-              <div className="summaryCardValue mono">{String(proposal?.creator || "(unknown)")}</div>
+              <div className="summaryCardValue mono"><AccountIdentity base={base} account={String(proposal?.creator || "")} /></div>
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Status note</div>
@@ -1088,7 +1089,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="pageStack">
                 {sortedVoteEntries(stage === "poll" ? pollVotes : finalVotes).map(([signer, rec]) => (
                   <article key={signer} className="summaryCard">
-                    <div className="summaryCardLabel mono">{signer}</div>
+                    <div className="summaryCardLabel mono"><AccountIdentity base={base} account={signer} /></div>
                     <div className="summaryCardValue">{choiceLabel(voteChoiceOf(rec), proposalOptions)}</div>
                     <div className="summaryCardText">Record {Number(rec?.height || 0)}</div>
                   </article>
