@@ -64,10 +64,22 @@ jobs:
             echo 'Nonzero test statuses are retained in the artifact; this job does not enforce a merge gate.'
           } >> "$GITHUB_STEP_SUMMARY"
           exit 0
+      - name: R1C authenticated metadata and replay boundary diagnostics
+        shell: bash
+        working-directory: Weall-Protocol
+        run: |
+          set +e
+          set -o pipefail
+          python -m pytest -q -s ../audit/public-testnet/diagnostics/test_r1c_helper_authority.py --junitxml=../audit-results/r1c.xml 2>&1 | tee ../audit-results/r1c.log
+          r1c_status=${PIPESTATUS[0]}
+          python -m pytest -q tests/test_recursive_production_readiness_helper_crypto.py tests/test_protocol_blocker_safety.py tests/test_helper_profile_pin.py tests/prod/test_production_helper_topology_hardening_plan.py --junitxml=../audit-results/r1c-controls.xml 2>&1 | tee ../audit-results/r1c-controls.log
+          controls_status=${PIPESTATUS[0]}
+          printf 'r1c_exit=%s\nr1c_controls_exit=%s\n' "$r1c_status" "$controls_status" | tee ../audit-results/r1c-exit-status.txt
+          exit 0
       - name: Preserve all diagnostic results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: public-testnet-audit-r1b
+          name: public-testnet-audit-r1c
           path: audit-results/
           if-no-files-found: warn

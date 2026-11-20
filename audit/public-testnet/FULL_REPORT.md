@@ -7,6 +7,17 @@
 - The master evidence ZIP is preserved byte-for-byte; historical reports below are reproduced without silently changing their text. Later supplements supersede older recovery counts (TN-040 recovered; 81/81 titles). Reconstructed REINV definitions are not the missing original INV wording.
 - Audit-only branch: no protocol or production configuration changes, no required-check or branch-protection changes, no implementation patch applied. Diagnostics report passing and failing assertions; they do not authorize release or enforce policy. Existing repository checks are unchanged.
 
+## R1C — production path source trace (execution pending)
+
+At frozen implementation baseline 6d3d692, source inspection changes the threat boundary for TN-052:
+- `runtime/read_write_sets.py:68–132,133–204` distinguishes explicit access sets from descriptor derivation. `tx_admission_types.py:17–77` strips extra fields during envelope reconstruction. `tx_conflicts.py:143–145,918–932,1022–1053` concatenates logical object identifiers without escaping slashes; a logical identifier is not necessarily a physical nested-state path. Whether such an identifier is valid in a signed applied transaction remains open.
+- `block_builder.py:328–378,588–630` applies transactions against working state and then records envelopes. At 890–905, it builds helper metadata with `helper_state_deltas_by_lane=None`, then computes the root of the serially applied working state. `helper_execution_runtime.py:277–335,382–451` merges receipt projections for comparison, not a replacement ledger, and declares helper reputation diagnostic-only.
+- `helper_dispatch.py:324–591` validates request window, peer identity label, context, helper assignment, certificate consistency and real signature before storing certificates. At the inspected call site, the peer label is derived from the supplied certificate; real authenticated transport remains outside the proposed fixture.
+- `helper_block_validation.py:29–179` reconstructs planning from transactions and root-bound inputs and verifies accepted certificate signatures. `parallel_execution.py:805–865` binds tx order and namespace, not semantic read/write or delta contents in this metadata verifier. This is not evidence of arbitrary authoritative writes. `block_replay.py:944–990` recomputes and rejects mismatching state roots before validating helper metadata; helper metadata has a separate header commitment. Search found no production caller of `helper_apply.apply_helper_results_if_safe` beyond the definition; search is not exhaustive whole-program proof.
+- `launch_matrix.py` describes production helper execution as launch-disabled pending evidence. Existing B593 rehearsal explicitly declines production block-path serial equivalence. R1B tested the materialized mechanism, not an activated block path.
+
+New diagnostics test envelope scope normalization, slash-bearing logical identifiers, signed receiver metadata, and real signed dispatch followed by materialized merge in both orders. Existing helper cryptography, replay, profile pin and production-topology checks are run separately. No protocol code modified; source reachability assessment preliminary until exact-head execution and controls reviewed. TN-052 remains open, P1 provisional.
+
 ## Latest audit checkpoint — R1B GitHub runtime diagnostics
 
 **Status: runtime reproduction at imported-function and locally accepted merge boundaries; production reachability open.**  
