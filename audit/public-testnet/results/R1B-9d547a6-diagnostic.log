@@ -1,0 +1,257 @@
+# GitHub Actions raw diagnostic assertion excerpt (not full installation log)
+# Run 44797271274 job 136499959489 head 9d547a622dba73376de04d12c562a603479da75e
+2026-11-20T18:55:17.5191599Z HEAD is now at 9d547a6 Preserve public testnet audit evidence and add non-enforcing R1B diagnostics
+2026-11-20T18:55:17.8363485Z Entries: 71; CRC error: None
+2026-11-20T18:55:17.8410862Z Archive SHA-256: 56a4b7b322edceb7810dc7655a94a7f6487bf50b3cd72eb93f59ac25cb84c587
+2026-11-20T18:55:29.0404664Z =================================== FAILURES ===================================
+2026-11-20T18:55:29.0405084Z ____________ test_planner_conflict_predicate[ar1-aw1-br1-bw1-True] _____________
+2026-11-20T18:55:29.0405383Z 
+2026-11-20T18:55:29.0405537Z ar = (), aw = ('accounts/x',), br = (), bw = ('accounts/x/balance',)
+2026-11-20T18:55:29.0405872Z expected = True
+2026-11-20T18:55:29.0405997Z 
+2026-11-20T18:55:29.0406174Z     @pytest.mark.parametrize("ar,aw,br,bw,expected", CASES)
+2026-11-20T18:55:29.0406581Z     def test_planner_conflict_predicate(ar, aw, br, bw, expected):
+2026-11-20T18:55:29.0406976Z         left, right = access("t1", ar, aw), access("t2", br, bw)
+2026-11-20T18:55:29.0407391Z >       assert _access_conflicts([left], right) is expected
+2026-11-20T18:55:29.0407739Z E       AssertionError: assert False is True
+2026-11-20T18:55:29.0409410Z E        +  where False = _access_conflicts([TxAccessSet(tx_id='t1', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False)], TxAccessSet(tx_id='t2', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x/balance',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False))
+2026-11-20T18:55:29.0411159Z 
+2026-11-20T18:55:29.0411412Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:62: AssertionError
+2026-11-20T18:55:29.0411957Z ____________ test_planner_conflict_predicate[ar2-aw2-br2-bw2-True] _____________
+2026-11-20T18:55:29.0412259Z 
+2026-11-20T18:55:29.0412686Z ar = ('accounts/x',), aw = (), br = (), bw = ('accounts/x/balance',)
+2026-11-20T18:55:29.0413021Z expected = True
+2026-11-20T18:55:29.0413146Z 
+2026-11-20T18:55:29.0413311Z     @pytest.mark.parametrize("ar,aw,br,bw,expected", CASES)
+2026-11-20T18:55:29.0413716Z     def test_planner_conflict_predicate(ar, aw, br, bw, expected):
+2026-11-20T18:55:29.0414103Z         left, right = access("t1", ar, aw), access("t2", br, bw)
+2026-11-20T18:55:29.0414475Z >       assert _access_conflicts([left], right) is expected
+2026-11-20T18:55:29.0414809Z E       AssertionError: assert False is True
+2026-11-20T18:55:29.0416514Z E        +  where False = _access_conflicts([TxAccessSet(tx_id='t1', lane_hint='PARALLEL_CONTENT', reads=('accounts/x',), writes=(), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False)], TxAccessSet(tx_id='t2', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x/balance',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False))
+2026-11-20T18:55:29.0418246Z 
+2026-11-20T18:55:29.0418481Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:62: AssertionError
+2026-11-20T18:55:29.0418999Z ____________ test_planner_conflict_predicate[ar3-aw3-br3-bw3-True] _____________
+2026-11-20T18:55:29.0419280Z 
+2026-11-20T18:55:29.0419435Z ar = (), aw = ('accounts/x',), br = ('accounts/x/balance',), bw = ()
+2026-11-20T18:55:29.0419856Z expected = True
+2026-11-20T18:55:29.0419977Z 
+2026-11-20T18:55:29.0420120Z     @pytest.mark.parametrize("ar,aw,br,bw,expected", CASES)
+2026-11-20T18:55:29.0420491Z     def test_planner_conflict_predicate(ar, aw, br, bw, expected):
+2026-11-20T18:55:29.0420869Z         left, right = access("t1", ar, aw), access("t2", br, bw)
+2026-11-20T18:55:29.0421229Z >       assert _access_conflicts([left], right) is expected
+2026-11-20T18:55:29.0421538Z E       AssertionError: assert False is True
+2026-11-20T18:55:29.0423084Z E        +  where False = _access_conflicts([TxAccessSet(tx_id='t1', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False)], TxAccessSet(tx_id='t2', lane_hint='PARALLEL_CONTENT', reads=('accounts/x/balance',), writes=(), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False))
+2026-11-20T18:55:29.0424512Z 
+2026-11-20T18:55:29.0424720Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:62: AssertionError
+2026-11-20T18:55:29.0425196Z ____________ test_planner_conflict_predicate[ar4-aw4-br4-bw4-True] _____________
+2026-11-20T18:55:29.0425468Z 
+2026-11-20T18:55:29.0425629Z ar = (), aw = ('accounts//x/',), br = (), bw = ('accounts/x',), expected = True
+2026-11-20T18:55:29.0425870Z 
+2026-11-20T18:55:29.0426013Z     @pytest.mark.parametrize("ar,aw,br,bw,expected", CASES)
+2026-11-20T18:55:29.0426383Z     def test_planner_conflict_predicate(ar, aw, br, bw, expected):
+2026-11-20T18:55:29.0426746Z         left, right = access("t1", ar, aw), access("t2", br, bw)
+2026-11-20T18:55:29.0427071Z >       assert _access_conflicts([left], right) is expected
+2026-11-20T18:55:29.0427364Z E       AssertionError: assert False is True
+2026-11-20T18:55:29.0428848Z E        +  where False = _access_conflicts([TxAccessSet(tx_id='t1', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts//x/',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False)], TxAccessSet(tx_id='t2', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False))
+2026-11-20T18:55:29.0430352Z 
+2026-11-20T18:55:29.0430570Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:62: AssertionError
+2026-11-20T18:55:29.0431191Z __________ test_materialized_conflict_predicate[ar1-aw1-br1-bw1-True] __________
+2026-11-20T18:55:29.0431472Z 
+2026-11-20T18:55:29.0431594Z ar = (), aw = ('accounts/x',), br = (), bw = ('accounts/x/balance',)
+2026-11-20T18:55:29.0431874Z expected = True
+2026-11-20T18:55:29.0431990Z 
+2026-11-20T18:55:29.0432123Z     @pytest.mark.parametrize("ar,aw,br,bw,expected", CASES)
+2026-11-20T18:55:29.0432491Z     def test_materialized_conflict_predicate(ar, aw, br, bw, expected):
+2026-11-20T18:55:29.0432856Z         a = materialized("PARALLEL_CONTENT", "t1", ar, aw)
+2026-11-20T18:55:29.0433173Z         b = materialized("PARALLEL_CONTENT#1", "t2", br, bw)
+2026-11-20T18:55:29.0433510Z >       assert detect_materialized_overlap([a, b])[0] is expected
+2026-11-20T18:55:29.0433808Z E       assert False is True
+2026-11-20T18:55:29.0433950Z 
+2026-11-20T18:55:29.0434155Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:117: AssertionError
+2026-11-20T18:55:29.0434628Z __________ test_materialized_conflict_predicate[ar2-aw2-br2-bw2-True] __________
+2026-11-20T18:55:29.0434905Z 
+2026-11-20T18:55:29.0435158Z ar = ('accounts/x',), aw = (), br = (), bw = ('accounts/x/balance',)
+2026-11-20T18:55:29.0435448Z expected = True
+2026-11-20T18:55:29.0435561Z 
+2026-11-20T18:55:29.0435697Z     @pytest.mark.parametrize("ar,aw,br,bw,expected", CASES)
+2026-11-20T18:55:29.0436072Z     def test_materialized_conflict_predicate(ar, aw, br, bw, expected):
+2026-11-20T18:55:29.0436428Z         a = materialized("PARALLEL_CONTENT", "t1", ar, aw)
+2026-11-20T18:55:29.0436733Z         b = materialized("PARALLEL_CONTENT#1", "t2", br, bw)
+2026-11-20T18:55:29.0437053Z >       assert detect_materialized_overlap([a, b])[0] is expected
+2026-11-20T18:55:29.0437343Z E       assert False is True
+2026-11-20T18:55:29.0437478Z 
+2026-11-20T18:55:29.0437679Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:117: AssertionError
+2026-11-20T18:55:29.0438153Z __________ test_materialized_conflict_predicate[ar3-aw3-br3-bw3-True] __________
+2026-11-20T18:55:29.0438417Z 
+2026-11-20T18:55:29.0438556Z ar = (), aw = ('accounts/x',), br = ('accounts/x/balance',), bw = ()
+2026-11-20T18:55:29.0438843Z expected = True
+2026-11-20T18:55:29.0438947Z 
+2026-11-20T18:55:29.0439089Z     @pytest.mark.parametrize("ar,aw,br,bw,expected", CASES)
+2026-11-20T18:55:29.0439479Z     def test_materialized_conflict_predicate(ar, aw, br, bw, expected):
+2026-11-20T18:55:29.0440005Z         a = materialized("PARALLEL_CONTENT", "t1", ar, aw)
+2026-11-20T18:55:29.0440318Z         b = materialized("PARALLEL_CONTENT#1", "t2", br, bw)
+2026-11-20T18:55:29.0440647Z >       assert detect_materialized_overlap([a, b])[0] is expected
+2026-11-20T18:55:29.0440938Z E       assert False is True
+2026-11-20T18:55:29.0441071Z 
+2026-11-20T18:55:29.0441285Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:117: AssertionError
+2026-11-20T18:55:29.0441757Z __________ test_materialized_conflict_predicate[ar4-aw4-br4-bw4-True] __________
+2026-11-20T18:55:29.0442029Z 
+2026-11-20T18:55:29.0442175Z ar = (), aw = ('accounts//x/',), br = (), bw = ('accounts/x',), expected = True
+2026-11-20T18:55:29.0442414Z 
+2026-11-20T18:55:29.0442550Z     @pytest.mark.parametrize("ar,aw,br,bw,expected", CASES)
+2026-11-20T18:55:29.0442921Z     def test_materialized_conflict_predicate(ar, aw, br, bw, expected):
+2026-11-20T18:55:29.0443273Z         a = materialized("PARALLEL_CONTENT", "t1", ar, aw)
+2026-11-20T18:55:29.0443575Z         b = materialized("PARALLEL_CONTENT#1", "t2", br, bw)
+2026-11-20T18:55:29.0443903Z >       assert detect_materialized_overlap([a, b])[0] is expected
+2026-11-20T18:55:29.0444194Z E       assert False is True
+2026-11-20T18:55:29.0444331Z 
+2026-11-20T18:55:29.0444526Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:117: AssertionError
+2026-11-20T18:55:29.0445062Z ___________________ test_parent_child_merge_falls_back[set] ____________________
+2026-11-20T18:55:29.0445309Z 
+2026-11-20T18:55:29.0445378Z op = 'set'
+2026-11-20T18:55:29.0445483Z 
+2026-11-20T18:55:29.0445610Z     @pytest.mark.parametrize("op", ["set", "delete"])
+2026-11-20T18:55:29.0446025Z     def test_parent_child_merge_falls_back(op):
+2026-11-20T18:55:29.0446335Z         base = {"accounts": {"x": {"balance": 10, "reputation": 3}}}
+2026-11-20T18:55:29.0446636Z         before = copy.deepcopy(base)
+2026-11-20T18:55:29.0446963Z         parent = HelperDeltaOp(op=op, path="accounts/x", value={"balance": 20})
+2026-11-20T18:55:29.0447379Z         child = HelperDeltaOp(op="set", path="accounts/x/balance", value=99)
+2026-11-20T18:55:29.0447791Z         a = materialized("PARALLEL_CONTENT", "t1", (), ("accounts/x",), (parent,))
+2026-11-20T18:55:29.0448232Z         b = materialized("PARALLEL_CONTENT#1", "t2", (), ("accounts/x/balance",), (child,))
+2026-11-20T18:55:29.0448705Z         # Demonstrate serial-order sensitivity without claiming a network exploit.
+2026-11-20T18:55:29.0449209Z         assert apply_materialized_delta_ops(apply_materialized_delta_ops(base, [parent]), [child]) != (
+2026-11-20T18:55:29.0449878Z             apply_materialized_delta_ops(apply_materialized_delta_ops(base, [child]), [parent])
+2026-11-20T18:55:29.0450360Z         )
+2026-11-20T18:55:29.0450538Z         for results in ([a, b], [b, a]):
+2026-11-20T18:55:29.0450837Z             outcome = merge(base, results)
+2026-11-20T18:55:29.0451094Z >           assert outcome.merged_state == before
+2026-11-20T18:55:29.0451482Z E           AssertionError: assert {'accounts': ...alance': 99}}} == {'accounts': ...utation': 3}}}
+2026-11-20T18:55:29.0451858Z E             
+2026-11-20T18:55:29.0452042Z E             Differing items:
+2026-11-20T18:55:29.0452368Z E             {'accounts': {'x': {'balance': 99}}} != {'accounts': {'x': {'balance': 10, 'reputation': 3}}}
+2026-11-20T18:55:29.0452716Z E             
+2026-11-20T18:55:29.0452891Z E             Full diff:
+2026-11-20T18:55:29.0453084Z E               {
+2026-11-20T18:55:29.0453272Z E                   'accounts': {
+2026-11-20T18:55:29.0453484Z E                       'x': {
+2026-11-20T18:55:29.0453701Z E             -             'balance': 10,
+2026-11-20T18:55:29.0453941Z E             ?                        ^^
+2026-11-20T18:55:29.0660218Z E             +             'balance': 99,
+2026-11-20T18:55:29.0660678Z E             ?                        ^^
+2026-11-20T18:55:29.0660981Z E             -             'reputation': 3,
+2026-11-20T18:55:29.0661279Z E                       },
+2026-11-20T18:55:29.0661543Z E                   },
+2026-11-20T18:55:29.0661739Z E               }
+2026-11-20T18:55:29.0661855Z 
+2026-11-20T18:55:29.0662127Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:144: AssertionError
+2026-11-20T18:55:29.0662662Z __________________ test_parent_child_merge_falls_back[delete] __________________
+2026-11-20T18:55:29.0663006Z 
+2026-11-20T18:55:29.0663209Z op = 'delete'
+2026-11-20T18:55:29.0663363Z 
+2026-11-20T18:55:29.0663563Z     @pytest.mark.parametrize("op", ["set", "delete"])
+2026-11-20T18:55:29.0663883Z     def test_parent_child_merge_falls_back(op):
+2026-11-20T18:55:29.0664274Z         base = {"accounts": {"x": {"balance": 10, "reputation": 3}}}
+2026-11-20T18:55:29.0664664Z         before = copy.deepcopy(base)
+2026-11-20T18:55:29.0665308Z         parent = HelperDeltaOp(op=op, path="accounts/x", value={"balance": 20})
+2026-11-20T18:55:29.0665808Z         child = HelperDeltaOp(op="set", path="accounts/x/balance", value=99)
+2026-11-20T18:55:29.0666288Z         a = materialized("PARALLEL_CONTENT", "t1", (), ("accounts/x",), (parent,))
+2026-11-20T18:55:29.0666790Z         b = materialized("PARALLEL_CONTENT#1", "t2", (), ("accounts/x/balance",), (child,))
+2026-11-20T18:55:29.0667294Z         # Demonstrate serial-order sensitivity without claiming a network exploit.
+2026-11-20T18:55:29.0667845Z         assert apply_materialized_delta_ops(apply_materialized_delta_ops(base, [parent]), [child]) != (
+2026-11-20T18:55:29.0668421Z             apply_materialized_delta_ops(apply_materialized_delta_ops(base, [child]), [parent])
+2026-11-20T18:55:29.0668811Z         )
+2026-11-20T18:55:29.0668998Z         for results in ([a, b], [b, a]):
+2026-11-20T18:55:29.0669368Z             outcome = merge(base, results)
+2026-11-20T18:55:29.0669726Z >           assert outcome.merged_state == before
+2026-11-20T18:55:29.0670034Z E           AssertionError: assert {'accounts': ...alance': 99}}} == {'accounts': ...utation': 3}}}
+2026-11-20T18:55:29.0670281Z E             
+2026-11-20T18:55:29.0670411Z E             Differing items:
+2026-11-20T18:55:29.0670644Z E             {'accounts': {'x': {'balance': 99}}} != {'accounts': {'x': {'balance': 10, 'reputation': 3}}}
+2026-11-20T18:55:29.0670876Z E             
+2026-11-20T18:55:29.0670998Z E             Full diff:
+2026-11-20T18:55:29.0671131Z E               {
+2026-11-20T18:55:29.0671287Z E                   'accounts': {
+2026-11-20T18:55:29.0671436Z E                       'x': {
+2026-11-20T18:55:29.0671587Z E             -             'balance': 10,
+2026-11-20T18:55:29.0671745Z E             ?                        ^^
+2026-11-20T18:55:29.0671897Z E             +             'balance': 99,
+2026-11-20T18:55:29.0672054Z E             ?                        ^^
+2026-11-20T18:55:29.0672322Z E             -             'reputation': 3,
+2026-11-20T18:55:29.0672475Z E                       },
+2026-11-20T18:55:29.0672603Z E                   },
+2026-11-20T18:55:29.0672727Z E               }
+2026-11-20T18:55:29.0672798Z 
+2026-11-20T18:55:29.0672945Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:144: AssertionError
+2026-11-20T18:55:29.0673261Z ____________ test_explicit_planner_groups[content:post:1/body-True] ____________
+2026-11-20T18:55:29.0673435Z 
+2026-11-20T18:55:29.0673517Z second = 'content:post:1/body', conflict = True
+2026-11-20T18:55:29.0673635Z 
+2026-11-20T18:55:29.0673810Z     @pytest.mark.parametrize("second,conflict", [("content:post:1/body", True), ("content:post:2", False)])
+2026-11-20T18:55:29.0674122Z     def test_explicit_planner_groups(second, conflict):
+2026-11-20T18:55:29.0674364Z         txs = [explicit_tx("t1", "content:post:1"), explicit_tx("t2", second)]
+2026-11-20T18:55:29.0674589Z         plans = plan_parallel_execution(
+2026-11-20T18:55:29.0674778Z             txs=txs, validators=["v1", "v2", "v3", "v4"],
+2026-11-20T18:55:29.0674997Z             validator_set_hash="fixture", view=17, leader_id="v1",
+2026-11-20T18:55:29.0675185Z         )
+2026-11-20T18:55:29.0675342Z         assert [tx for p in plans for tx in p.tx_ids] == ["t1", "t2"]
+2026-11-20T18:55:29.0675606Z         # This fixture tests the explicit access path, not live canonical derivation.
+2026-11-20T18:55:29.0675891Z         parallel = [p for p in plans if p.helper_id and p.lane_id != "SERIAL"]
+2026-11-20T18:55:29.0676150Z         assert parallel, "fixture did not reach the parallel planner"
+2026-11-20T18:55:29.0676397Z         shared = any({"t1", "t2"}.issubset(set(p.tx_ids)) for p in parallel)
+2026-11-20T18:55:29.0676603Z >       assert shared is (not conflict)
+2026-11-20T18:55:29.0676762Z E       assert True is not True
+2026-11-20T18:55:29.0676858Z 
+2026-11-20T18:55:29.0676997Z ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py:190: AssertionError
+2026-11-20T18:55:29.0677272Z =========================== short test summary info ============================
+2026-11-20T18:55:29.0678102Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_planner_conflict_predicate[ar1-aw1-br1-bw1-True] - AssertionError: assert False is True
+2026-11-20T18:55:29.0680180Z  +  where False = _access_conflicts([TxAccessSet(tx_id='t1', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False)], TxAccessSet(tx_id='t2', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x/balance',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False))
+2026-11-20T18:55:29.0682426Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_planner_conflict_predicate[ar2-aw2-br2-bw2-True] - AssertionError: assert False is True
+2026-11-20T18:55:29.0683575Z  +  where False = _access_conflicts([TxAccessSet(tx_id='t1', lane_hint='PARALLEL_CONTENT', reads=('accounts/x',), writes=(), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False)], TxAccessSet(tx_id='t2', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x/balance',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False))
+2026-11-20T18:55:29.0684707Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_planner_conflict_predicate[ar3-aw3-br3-bw3-True] - AssertionError: assert False is True
+2026-11-20T18:55:29.0685834Z  +  where False = _access_conflicts([TxAccessSet(tx_id='t1', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False)], TxAccessSet(tx_id='t2', lane_hint='PARALLEL_CONTENT', reads=('accounts/x/balance',), writes=(), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False))
+2026-11-20T18:55:29.0687045Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_planner_conflict_predicate[ar4-aw4-br4-bw4-True] - AssertionError: assert False is True
+2026-11-20T18:55:29.0688156Z  +  where False = _access_conflicts([TxAccessSet(tx_id='t1', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts//x/',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False)], TxAccessSet(tx_id='t2', lane_hint='PARALLEL_CONTENT', reads=(), writes=('accounts/x',), fail_closed_serial=False, family='CONTENT', barrier_class='SCOPED_PARALLEL', subject_keys=(), authority_keys=(), derived_only=False))
+2026-11-20T18:55:29.0689256Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_materialized_conflict_predicate[ar1-aw1-br1-bw1-True] - assert False is True
+2026-11-20T18:55:29.0689970Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_materialized_conflict_predicate[ar2-aw2-br2-bw2-True] - assert False is True
+2026-11-20T18:55:29.0690536Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_materialized_conflict_predicate[ar3-aw3-br3-bw3-True] - assert False is True
+2026-11-20T18:55:29.0691095Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_materialized_conflict_predicate[ar4-aw4-br4-bw4-True] - assert False is True
+2026-11-20T18:55:29.0691739Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_parent_child_merge_falls_back[set] - AssertionError: assert {'accounts': ...alance': 99}}} == {'accounts': ...utation': 3}}}
+2026-11-20T18:55:29.0692176Z   
+2026-11-20T18:55:29.0692292Z   Differing items:
+2026-11-20T18:55:29.0692508Z   {'accounts': {'x': {'balance': 99}}} != {'accounts': {'x': {'balance': 10, 'reputation': 3}}}
+2026-11-20T18:55:29.0692736Z   
+2026-11-20T18:55:29.0692847Z   Full diff:
+2026-11-20T18:55:29.0692962Z     {
+2026-11-20T18:55:29.0693078Z         'accounts': {
+2026-11-20T18:55:29.0693208Z             'x': {
+2026-11-20T18:55:29.0693337Z   -             'balance': 10,
+2026-11-20T18:55:29.0693483Z   ?                        ^^
+2026-11-20T18:55:29.0693621Z   +             'balance': 99,
+2026-11-20T18:55:29.0693759Z   ?                        ^^
+2026-11-20T18:55:29.0693917Z   -             'reputation': 3,
+2026-11-20T18:55:29.0694058Z             },
+2026-11-20T18:55:29.0694171Z         },
+2026-11-20T18:55:29.0694277Z     }
+2026-11-20T18:55:29.0694684Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_parent_child_merge_falls_back[delete] - AssertionError: assert {'accounts': ...alance': 99}}} == {'accounts': ...utation': 3}}}
+2026-11-20T18:55:29.0695120Z   
+2026-11-20T18:55:29.0695234Z   Differing items:
+2026-11-20T18:55:29.0695543Z   {'accounts': {'x': {'balance': 99}}} != {'accounts': {'x': {'balance': 10, 'reputation': 3}}}
+2026-11-20T18:55:29.0695764Z   
+2026-11-20T18:55:29.0695866Z   Full diff:
+2026-11-20T18:55:29.0695983Z     {
+2026-11-20T18:55:29.0696094Z         'accounts': {
+2026-11-20T18:55:29.0696219Z             'x': {
+2026-11-20T18:55:29.0696343Z   -             'balance': 10,
+2026-11-20T18:55:29.0696483Z   ?                        ^^
+2026-11-20T18:55:29.0696616Z   +             'balance': 99,
+2026-11-20T18:55:29.0696752Z   ?                        ^^
+2026-11-20T18:55:29.0696888Z   -             'reputation': 3,
+2026-11-20T18:55:29.0697030Z             },
+2026-11-20T18:55:29.0697145Z         },
+2026-11-20T18:55:29.0697250Z     }
+2026-11-20T18:55:29.0697572Z FAILED ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py::test_explicit_planner_groups[content:post:1/body-True] - assert True is not True
+2026-11-20T18:55:29.0697939Z 11 failed, 14 passed in 0.13s
+2026-11-20T18:55:29.8473056Z ........................                                                 [100%]
+2026-11-20T18:55:29.8473563Z 24 passed in 0.56s
+2026-11-20T18:55:29.8747057Z probe_exit=1
+2026-11-20T18:55:29.8747229Z control_exit=0

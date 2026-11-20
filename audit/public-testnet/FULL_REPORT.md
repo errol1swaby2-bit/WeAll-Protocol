@@ -7,9 +7,32 @@
 - The master evidence ZIP is preserved byte-for-byte; historical reports below are reproduced without silently changing their text. Later supplements supersede older recovery counts (TN-040 recovered; 81/81 titles). Reconstructed REINV definitions are not the missing original INV wording.
 - Audit-only branch: no protocol or production configuration changes, no required-check or branch-protection changes, no implementation patch applied. Diagnostics report passing and failing assertions; they do not authorize release or enforce policy. Existing repository checks are unchanged.
 
-## Latest audit checkpoint — R1B setup
+## Latest audit checkpoint — R1B GitHub runtime diagnostics
 
-**Status: diagnostic tests prepared; GitHub execution results pending.** R1A candidate remains uncommitted to protocol source. R1B traces planner `_access_conflicts` and `plan_parallel_execution` and the materialized merge boundary, with real imports and explicit fixture scopes. Test failure records are evidence, not proof of production exploit reachability. See the diagnostic job artifact and subsequent checkpoint updates. No finding is closed.
+**Status: runtime reproduction at imported-function and locally accepted merge boundaries; production reachability open.**  
+**Tested head:** `9d547a622dba73376de04d12c562a603479da75e` (implementation unchanged from `6d3d69234415d294936d99e819367cff589ced3d`).  
+**Evidence:** [GitHub Actions run 44797271274](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/44797271274); [diagnostic job](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/44797271274/job/136499959489); artifact `public-testnet-audit-r1b` (ID 14658564010); [preserved assertion log](results/R1B-9d547a6-diagnostic.log). Exact checkout confirmed, locked dependency installation completed. Archive CRC check returned None with 71 entries and matching SHA-256. This is a diagnostic run, not a release gate.
+
+| Probe group | Passed | Failed |
+|---|---:|---:|
+| Real planner conflict predicate | 6 | 4 |
+| Real materialized conflict predicate | 6 | 4 |
+| Parent replacement/deletion merge fallback | 0 | 2 |
+| Disjoint materialized merge | 1 | 0 |
+| Explicit planner grouping | 1 | 1 |
+| **New diagnostics** | **14** | **11** |
+| Existing helper regression controls (four modules) | **24** | **0** |
+| **Combined** | **38** | **11** |
+
+The probe process returned 1; controls returned 0. The diagnostic job reported success because it deliberately records failures without making their assertions a merge gate. These 49 tests are separate from earlier historical/excerpt counts. Because the paired assertions short-circuit on failure, reversed arrival-order evidence for the failing cases is not established by these results.
+
+**TN-052 cross-boundary trace.** In `Weall-Protocol/src/weall/runtime/parallel_execution.py:210–222`, the planner compares exact strings. Its explicit grouping path calls that predicate at lines 568–573. Four hierarchy/alias conflict cases failed with real TxAccessSet objects. The explicit access fixture put parent and child writes in the same nonserial helper lane; the disjoint fixture passed. This is a missed declared-access separation expectation, not independently a cross-lane corruption proof: grouping transactions in one lane can itself be safe if that lane executes them sequentially. The canonical descriptor derivation and actual executor order remain to be traced.
+
+In `runtime/helper_merge.py:243–263`, the materialized detector again missed four hierarchy/alias conflicts. Delta application at lines 264–305 uses slash components. Both replacement and deletion fixtures passed local certificate/plan verification and demonstrated order-sensitive serial delta composition, then failed the expected conservative fallback. For each, the first tested merge returned `{"accounts":{"x":{"balance":99}}}` rather than untouched `{"accounts":{"x":{"balance":10,"reputation":3}}}`. The disjoint sibling merge matched expected serial delta composition in both arrival orders. This is actual runtime merge behavior, not merely a source-excerpt model. It is not proof that an attacker can obtain a production-valid certificate or commit this state to the chain. The fixtures supply already-accepted unsigned certificates and explicit synthetic access sets; no authenticated transport, BFT QC, production block replay, independent nodes, or canonical state-root comparison was exercised. The baseline uses deterministic lane ordering; demonstrated order-sensitive composition is not alone proof of node divergence.
+
+**Disposition:** TN-052 remains OPEN, provisional P1 unchanged; materially stronger evidence at the real merge boundary (E2 integration of runtime functions, not E3 signed production transactions or E4 independent nodes). R1A candidate remains unapplied. No protocol, configuration or policy change is authorized from this result. No findings closed.
+
+**Next audit increment (R1C, proposed):** trace canonical conflict descriptor/access-set derivation through `helper_execution_runtime.py`, `helper_block_validation.py`, leader block construction and follower replay. Determine whether slash-hierarchical paths and materialized deltas actually reach canonical state commitment; characterize coordinator fallback and original serial authority; test signed accepted certificates, missing/invalid helpers and canonical transaction order/state roots with existing rehearsal paths. Only then decide whether the R1A candidate must extend to planner semantics or other boundaries and prepare an authorized remediation plan. No enforcement workflow or protocol modification.
 
 ## Archive integrity
 
