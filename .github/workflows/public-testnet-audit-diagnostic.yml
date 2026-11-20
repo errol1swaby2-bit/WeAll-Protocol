@@ -1,0 +1,73 @@
+name: Public Testnet Audit (diagnostic only)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - 'audit/public-testnet/**'
+      - '.github/workflows/public-testnet-audit-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'audit/public-testnet-remediation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact audit head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record immutable evidence and source delta
+        shell: bash
+        run: |
+          mkdir -p audit-results
+          git rev-parse HEAD | tee audit-results/head.txt
+          python - <<'PY'
+          import hashlib, pathlib, zipfile
+          p = pathlib.Path('audit/public-testnet/evidence/WeAll_Master_Audit_Reaudit_Through_R1A.zip')
+          data = p.read_bytes()
+          digest = hashlib.sha256(data).hexdigest()
+          with zipfile.ZipFile(p) as z:
+              print(f'Entries: {len(z.infolist())}; CRC error: {z.testzip()}')
+          print('Archive SHA-256:', digest)
+          pathlib.Path('audit-results/archive-sha256.txt').write_text(digest + '\n')
+          PY
+      - name: Install pinned backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install -e . --no-deps
+      - name: R1B probes and existing helper controls (record failures, do not gate)
+        shell: bash
+        working-directory: Weall-Protocol
+        run: |
+          set +e
+          set -o pipefail
+          python -m pytest -q ../audit/public-testnet/diagnostics/test_r1b_helper_hierarchy.py --junitxml=../audit-results/r1b.xml 2>&1 | tee ../audit-results/r1b.log
+          probe_status=${PIPESTATUS[0]}
+          python -m pytest -q tests/test_helper_merge.py tests/test_parallel_execution.py tests/test_helper_conflict_safety.py tests/test_helper_materialized_merge_restart.py --junitxml=../audit-results/controls.xml 2>&1 | tee ../audit-results/controls.log
+          control_status=${PIPESTATUS[0]}
+          printf 'probe_exit=%s\ncontrol_exit=%s\n' "$probe_status" "$control_status" | tee ../audit-results/exit-status.txt
+          {
+            echo '### Audit diagnostics — observations, not release approval'
+            echo "- New test exit status: $probe_status"
+            echo "- Existing control exit status: $control_status"
+            echo 'Nonzero test statuses are retained in the artifact; this job does not enforce a merge gate.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+      - name: Preserve all diagnostic results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-testnet-audit-r1b
+          path: audit-results/
+          if-no-files-found: warn
