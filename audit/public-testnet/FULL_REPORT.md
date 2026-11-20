@@ -7,7 +7,30 @@
 - The master evidence ZIP is preserved byte-for-byte; historical reports below are reproduced without silently changing their text. Later supplements supersede older recovery counts (TN-040 recovered; 81/81 titles). Reconstructed REINV definitions are not the missing original INV wording.
 - Audit-only branch: no protocol or production configuration changes, no required-check or branch-protection changes, no implementation patch applied. Diagnostics report passing and failing assertions; they do not authorize release or enforce policy. Existing repository checks are unchanged.
 
-## R1C — production path source trace (execution pending)
+## Latest audit checkpoint — R1C signed helper authority and serial commitment
+
+**Tested audit head:** `6485276a94b24fcae6e0e62368edc28279929a57`; frozen protocol implementation `6d3d69234415d294936d99e819367cff589ced3d`.  
+**Evidence:** [GitHub run 44798803996](https://github.com/errol1swaby2-bit/WeAll-Protocol/actions/runs/44798803996), job 136505242407, artifact public-testnet-audit-r1c (14660280663), [preserved log](results/R1C-6485276-diagnostic.log). Archive 71 entries, no CRC errors, unchanged SHA-256. Diagnostic workflow success means collection completed, not security approval.
+
+| Group | Passed | Failed |
+|---|---:|---:|
+| Envelope normalization and descriptor observations | 2 | 0 |
+| Signed receiver metadata observations and controls | 6 | 0 |
+| Signed dispatch plus materialized conflict fallback (both arrival orders) | 0 | 2 |
+| R1C existing controls (crypto, replay, profile, launch posture) | 17 | 0 |
+| **R1C subtotal** | **25** | **2** |
+| Repeated R1B probes and controls | 38 | 11 |
+| **Run total** | **63** | **13** |
+
+R1C probes exit 1; existing R1C controls exit 0. Repeated R1B results are not independent new observations. Two passing metadata observation probes deliberately demonstrate acceptance of signed but semantically unverified write-set and delta commitments: they are NOT security-invariant passes.
+
+**TN-052:** Both signed, synthetic conflicting lanes were accepted by real HelperCertificateStore with matched fixture public keys, context, explicit plans and in-window request timestamps. Merge returned accounts/x/balance=99, removed the original reputation=3, accepted both lanes, and serialized neither. Both arrival orders produced identical output. This reproduces the defect after cryptographic dispatch verification; it does not establish node divergence, canonical user transaction reachability, production-valid manifest or authenticated transport, or BFT commitment. The leader/follower source trace below and the existing controls support a serial-ledger containment boundary at the tested baseline; do not activate materialized helper execution before repair and end-to-end equivalence proof.
+
+**Ingress qualification:** Envelope normalization strips explicit scope keys, but executor.submit_tx (1754–1801) passes the original dict into mempool.add after successful admission. Mempool.add (639–714) persists dict(env), fetch_for_block (1538–1561) returns stored dicts, and block_builder (503–630) applies typed envelopes but records raw rows. HTTP route (2009–2041) and modeled transaction admission (runtime/tx_admission.py:899–929) validate strict envelope schema: runtime/tx_schema.py:33–36,2225–2241,2689 onward forbids unknown envelope fields. Thus the normalization test alone does not prove planner input sanitization at every path. In particular the block admission typed-envelope path, unmodeled transaction types, signature/ID binding, and raw row retention require separate signed ingress and adversarial received-block tests. Slash-bearing logical identifiers are not automatically nested physical paths.
+
+**Disposition:** TN-052 OPEN, provisional P1 retained. Signed mechanism reproduction is stronger than R1B, but not live canonical ledger exploitation; no finding closed. No protocol, policy, branch protection or existing CI edits. Next audit increment: R1D — signed ingress and received-envelope metadata binding, compare canonical IDs, actual plan and serial replay/state root; distinguish legitimate restrictions, bypasses and dormant paths. Then reassess whether remediation should address both planner logical-key semantics and materialized physical paths. No implementation correction authorized here.
+
+## R1C — production path source trace (before execution)
 
 At frozen implementation baseline 6d3d692, source inspection changes the threat boundary for TN-052:
 - `runtime/read_write_sets.py:68–132,133–204` distinguishes explicit access sets from descriptor derivation. `tx_admission_types.py:17–77` strips extra fields during envelope reconstruction. `tx_conflicts.py:143–145,918–932,1022–1053` concatenates logical object identifiers without escaping slashes; a logical identifier is not necessarily a physical nested-state path. Whether such an identifier is valid in a signed applied transaction remains open.
