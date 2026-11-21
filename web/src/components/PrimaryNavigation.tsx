@@ -5,7 +5,7 @@ type Item = { label: string; href: string; sessionOnly: boolean; glyph: string }
 
 const ITEMS: readonly Item[] = [
   { label: "Home", href: "/home", sessionOnly: true, glyph: "⌂" },
-  { label: "Feed", href: "/feed", sessionOnly: true, glyph: "≋" },
+  { label: "Feed", href: "/feed", sessionOnly: false, glyph: "≋" },
   { label: "Groups", href: "/groups", sessionOnly: false, glyph: "◌" },
   { label: "Decisions", href: "/decisions", sessionOnly: false, glyph: "▣" },
   { label: "Account", href: "/profile", sessionOnly: true, glyph: "☺" },
