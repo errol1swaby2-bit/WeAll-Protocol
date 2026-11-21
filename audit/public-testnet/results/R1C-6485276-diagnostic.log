@@ -1,0 +1,171 @@
+# R1C GitHub Actions diagnostic log excerpt (not full job log)
+# Tested head 6485276a94b24fcae6e0e62368edc28279929a57; run 44798803996; job 136505242407
+2026-11-20T19:05:11.1883689Z HEAD is now at 6485276 Audit R1C signed helper authority and serial commitment boundaries
+2026-11-20T19:05:11.6024350Z Entries: 71; CRC error: None
+2026-11-20T19:05:11.6025108Z Archive SHA-256: 56a4b7b322edceb7810dc7655a94a7f6487bf50b3cd72eb93f59ac25cb84c587
+2026-11-20T19:05:26.6719324Z 11 failed, 14 passed in 0.20s
+2026-11-20T19:05:28.1958912Z 24 passed in 1.17s
+2026-11-20T19:05:28.6648761Z ..receiver none True ok
+2026-11-20T19:05:28.6685722Z .receiver signature False helper_execution_certificate_signature_invalid
+2026-11-20T19:05:28.6711838Z .receiver epoch False helper_execution_certificate_invalid:epoch_mismatch
+2026-11-20T19:05:28.6738690Z .receiver namespace False helper_execution_certificate_invalid:namespace_hash_mismatch
+2026-11-20T19:05:28.6767329Z .receiver write_commitment True ok
+2026-11-20T19:05:28.6796276Z .receiver delta_commitment True ok
+2026-11-20T19:05:28.7122415Z .signed merge False MaterializedMergeOutcome(merged_state={'accounts': {'x': {'balance': 99}}}, accepted_lane_ids=('PARALLEL_CONTENT', 'PARALLEL_CONTENT#1'), serialized_lane_ids=())
+2026-11-20T19:05:28.7222624Z Fsigned merge True MaterializedMergeOutcome(merged_state={'accounts': {'x': {'balance': 99}}}, accepted_lane_ids=('PARALLEL_CONTENT', 'PARALLEL_CONTENT#1'), serialized_lane_ids=())
+2026-11-20T19:05:28.7665758Z F
+2026-11-20T19:05:28.7666386Z =================================== FAILURES ===================================
+2026-11-20T19:05:28.7667410Z _______ test_signed_dispatch_then_materialized_hierarchical_merge[False] _______
+2026-11-20T19:05:28.7668149Z 
+2026-11-20T19:05:28.7668320Z reverse = False
+2026-11-20T19:05:28.7668589Z 
+2026-11-20T19:05:28.7668912Z     @pytest.mark.parametrize("reverse", [False, True])
+2026-11-20T19:05:28.7669863Z     def test_signed_dispatch_then_materialized_hierarchical_merge(reverse):
+2026-11-20T19:05:28.7671063Z         # The exact R1B synthetic two-lane plans now go through real signature
+2026-11-20T19:05:28.7671945Z         # verification and the dispatch store. No live transport, manifest or QC.
+2026-11-20T19:05:28.7672725Z         base = {"accounts":{"x":{"balance":10,"reputation":3}}}
+2026-11-20T19:05:28.7673429Z         a = materialized("PARALLEL_CONTENT", "t1", (), ("accounts/x",),
+2026-11-20T19:05:28.7674972Z                          (HelperDeltaOp(op="set", path="accounts/x", value={"balance":20}),))
+2026-11-20T19:05:28.7675785Z         b = materialized("PARALLEL_CONTENT#1", "t2", (), ("accounts/x/balance",),
+2026-11-20T19:05:28.7676547Z                          (HelperDeltaOp(op="set", path="accounts/x/balance", value=99),))
+2026-11-20T19:05:28.7677566Z         plans = (a.lane_plan, b.lane_plan)
+2026-11-20T19:05:28.7678390Z         plan_id = canonical_lane_plan_fingerprint(plans)
+2026-11-20T19:05:28.7678900Z         signed = []
+2026-11-20T19:05:28.7679275Z         pubkeys = {}
+2026-11-20T19:05:28.7679682Z         for i, m in enumerate((a,b), 41):
+2026-11-20T19:05:28.7680201Z             seed, pub = keypair(i)
+2026-11-20T19:05:28.7681072Z             cert = sign_helper_certificate(replace(m.cert, plan_id=plan_id), privkey=seed)
+2026-11-20T19:05:28.7681771Z             pubkeys[cert.helper_id] = pub
+2026-11-20T19:05:28.7682274Z             signed.append(replace(m, cert=cert))
+2026-11-20T19:05:28.7683051Z         ctx = HelperDispatchContext(chain_id="audit-fixture", block_height=5, view=11,
+2026-11-20T19:05:28.7684046Z             leader_id="@leader", validator_epoch=7, validator_set_hash="fixture-vhash",
+2026-11-20T19:05:28.7684919Z             strict_helper_certificate_consistency=True, plan_id=plan_id)
+2026-11-20T19:05:28.7685908Z         store = HelperCertificateStore(context=ctx, lane_plans=plans, helper_pubkeys=pubkeys)
+2026-11-20T19:05:28.7686739Z         for p in plans:
+2026-11-20T19:05:28.7687273Z             store.start_request(lane_id=p.lane_id, started_ms=1000)
+2026-11-20T19:05:28.7687963Z         results = list(reversed(signed)) if reverse else signed
+2026-11-20T19:05:28.7688518Z         for result in results:
+2026-11-20T19:05:28.7689239Z             status = store.ingest_certificate(cert=result.cert, peer_id=result.cert.helper_id, now_ms=1001)
+2026-11-20T19:05:28.7690276Z             assert status.accepted, f"dispatch fixture failed: {status.code}"
+2026-11-20T19:05:28.7691205Z         accepted = store.accepted_certificates()
+2026-11-20T19:05:28.7691678Z         assert len(accepted) == 2
+2026-11-20T19:05:28.7692320Z         outcome = merge_materialized_lane_results(base_state=base, lane_results=results,
+2026-11-20T19:05:28.7693087Z             lane_plans=plans, accepted_certificates=accepted)
+2026-11-20T19:05:28.7693682Z         print("signed merge", reverse, outcome)
+2026-11-20T19:05:28.7694201Z >       assert outcome.merged_state == base
+2026-11-20T19:05:28.7694938Z E       AssertionError: assert {'accounts': ...alance': 99}}} == {'accounts': ...utation': 3}}}
+2026-11-20T19:05:28.7695660Z E         
+2026-11-20T19:05:28.7695995Z E         Differing items:
+2026-11-20T19:05:28.7696657Z E         {'accounts': {'x': {'balance': 99}}} != {'accounts': {'x': {'balance': 10, 'reputation': 3}}}
+2026-11-20T19:05:28.7697395Z E         
+2026-11-20T19:05:28.7697699Z E         Full diff:
+2026-11-20T19:05:28.7698022Z E           {
+2026-11-20T19:05:28.7698332Z E               'accounts': {
+2026-11-20T19:05:28.7698680Z E                   'x': {
+2026-11-20T19:05:28.7699048Z E         -             'balance': 10,
+2026-11-20T19:05:28.7699493Z E         ?                        ^^
+2026-11-20T19:05:28.7699920Z E         +             'balance': 99,
+2026-11-20T19:05:28.7700336Z E         ?                        ^^
+2026-11-20T19:05:28.7701032Z E         -             'reputation': 3,
+2026-11-20T19:05:28.7701512Z E                   },
+2026-11-20T19:05:28.7701916Z E               },
+2026-11-20T19:05:28.7702279Z E           }
+2026-11-20T19:05:28.7702483Z 
+2026-11-20T19:05:28.7702930Z ../audit/public-testnet/diagnostics/test_r1c_helper_authority.py:152: AssertionError
+2026-11-20T19:05:28.7704001Z _______ test_signed_dispatch_then_materialized_hierarchical_merge[True] ________
+2026-11-20T19:05:28.7704602Z 
+2026-11-20T19:05:28.7704756Z reverse = True
+2026-11-20T19:05:28.7704987Z 
+2026-11-20T19:05:28.7705255Z     @pytest.mark.parametrize("reverse", [False, True])
+2026-11-20T19:05:28.7705977Z     def test_signed_dispatch_then_materialized_hierarchical_merge(reverse):
+2026-11-20T19:05:28.7706907Z         # The exact R1B synthetic two-lane plans now go through real signature
+2026-11-20T19:05:28.7707826Z         # verification and the dispatch store. No live transport, manifest or QC.
+2026-11-20T19:05:28.7708686Z         base = {"accounts":{"x":{"balance":10,"reputation":3}}}
+2026-11-20T19:05:28.7709950Z         a = materialized("PARALLEL_CONTENT", "t1", (), ("accounts/x",),
+2026-11-20T19:05:28.7710920Z                          (HelperDeltaOp(op="set", path="accounts/x", value={"balance":20}),))
+2026-11-20T19:05:28.7711805Z         b = materialized("PARALLEL_CONTENT#1", "t2", (), ("accounts/x/balance",),
+2026-11-20T19:05:28.7712782Z                          (HelperDeltaOp(op="set", path="accounts/x/balance", value=99),))
+2026-11-20T19:05:28.7713535Z         plans = (a.lane_plan, b.lane_plan)
+2026-11-20T19:05:28.7714096Z         plan_id = canonical_lane_plan_fingerprint(plans)
+2026-11-20T19:05:28.7714637Z         signed = []
+2026-11-20T19:05:28.7714999Z         pubkeys = {}
+2026-11-20T19:05:28.7715395Z         for i, m in enumerate((a,b), 41):
+2026-11-20T19:05:28.7715892Z             seed, pub = keypair(i)
+2026-11-20T19:05:28.7716605Z             cert = sign_helper_certificate(replace(m.cert, plan_id=plan_id), privkey=seed)
+2026-11-20T19:05:28.7717425Z             pubkeys[cert.helper_id] = pub
+2026-11-20T19:05:28.7717934Z             signed.append(replace(m, cert=cert))
+2026-11-20T19:05:28.7718691Z         ctx = HelperDispatchContext(chain_id="audit-fixture", block_height=5, view=11,
+2026-11-20T19:05:28.7719628Z             leader_id="@leader", validator_epoch=7, validator_set_hash="fixture-vhash",
+2026-11-20T19:05:28.7720467Z             strict_helper_certificate_consistency=True, plan_id=plan_id)
+2026-11-20T19:05:28.7721598Z         store = HelperCertificateStore(context=ctx, lane_plans=plans, helper_pubkeys=pubkeys)
+2026-11-20T19:05:28.7722051Z         for p in plans:
+2026-11-20T19:05:28.7722339Z             store.start_request(lane_id=p.lane_id, started_ms=1000)
+2026-11-20T19:05:28.7722726Z         results = list(reversed(signed)) if reverse else signed
+2026-11-20T19:05:28.7723056Z         for result in results:
+2026-11-20T19:05:28.7723491Z             status = store.ingest_certificate(cert=result.cert, peer_id=result.cert.helper_id, now_ms=1001)
+2026-11-20T19:05:28.7724068Z             assert status.accepted, f"dispatch fixture failed: {status.code}"
+2026-11-20T19:05:28.7724462Z         accepted = store.accepted_certificates()
+2026-11-20T19:05:28.7724756Z         assert len(accepted) == 2
+2026-11-20T19:05:28.7725138Z         outcome = merge_materialized_lane_results(base_state=base, lane_results=results,
+2026-11-20T19:05:28.7725590Z             lane_plans=plans, accepted_certificates=accepted)
+2026-11-20T19:05:28.7725925Z         print("signed merge", reverse, outcome)
+2026-11-20T19:05:28.7726228Z >       assert outcome.merged_state == base
+2026-11-20T19:05:28.7726652Z E       AssertionError: assert {'accounts': ...alance': 99}}} == {'accounts': ...utation': 3}}}
+2026-11-20T19:05:28.7727075Z E         
+2026-11-20T19:05:28.7727270Z E         Differing items:
+2026-11-20T19:05:28.7727645Z E         {'accounts': {'x': {'balance': 99}}} != {'accounts': {'x': {'balance': 10, 'reputation': 3}}}
+2026-11-20T19:05:28.7728034Z E         
+2026-11-20T19:05:28.7728216Z E         Full diff:
+2026-11-20T19:05:28.7728410Z E           {
+2026-11-20T19:05:28.7728599Z E               'accounts': {
+2026-11-20T19:05:28.7728831Z E                   'x': {
+2026-11-20T19:05:28.7729065Z E         -             'balance': 10,
+2026-11-20T19:05:28.7729343Z E         ?                        ^^
+2026-11-20T19:05:28.7729588Z E         +             'balance': 99,
+2026-11-20T19:05:28.7729833Z E         ?                        ^^
+2026-11-20T19:05:28.7730081Z E         -             'reputation': 3,
+2026-11-20T19:05:28.7730339Z E                   },
+2026-11-20T19:05:28.7730536Z E               },
+2026-11-20T19:05:28.7730941Z E           }
+2026-11-20T19:05:28.7731104Z 
+2026-11-20T19:05:28.7731366Z ../audit/public-testnet/diagnostics/test_r1c_helper_authority.py:152: AssertionError
+2026-11-20T19:05:28.7731857Z =========================== short test summary info ============================
+2026-11-20T19:05:28.7733097Z FAILED ../audit/public-testnet/diagnostics/test_r1c_helper_authority.py::test_signed_dispatch_then_materialized_hierarchical_merge[False] - AssertionError: assert {'accounts': ...alance': 99}}} == {'accounts': ...utation': 3}}}
+2026-11-20T19:05:28.7734119Z   
+2026-11-20T19:05:28.7734298Z   Differing items:
+2026-11-20T19:05:28.7734645Z   {'accounts': {'x': {'balance': 99}}} != {'accounts': {'x': {'balance': 10, 'reputation': 3}}}
+2026-11-20T19:05:28.7735026Z   
+2026-11-20T19:05:28.7735526Z   Full diff:
+2026-11-20T19:05:28.7735717Z     {
+2026-11-20T19:05:28.7735896Z         'accounts': {
+2026-11-20T19:05:28.7736095Z             'x': {
+2026-11-20T19:05:28.7736292Z   -             'balance': 10,
+2026-11-20T19:05:28.7736521Z   ?                        ^^
+2026-11-20T19:05:28.7736746Z   +             'balance': 99,
+2026-11-20T19:05:28.7736962Z   ?                        ^^
+2026-11-20T19:05:28.7737191Z   -             'reputation': 3,
+2026-11-20T19:05:28.7737419Z             },
+2026-11-20T19:05:28.7737597Z         },
+2026-11-20T19:05:28.7737767Z     }
+2026-11-20T19:05:28.7738609Z FAILED ../audit/public-testnet/diagnostics/test_r1c_helper_authority.py::test_signed_dispatch_then_materialized_hierarchical_merge[True] - AssertionError: assert {'accounts': ...alance': 99}}} == {'accounts': ...utation': 3}}}
+2026-11-20T19:05:28.7739481Z   
+2026-11-20T19:05:28.7739655Z   Differing items:
+2026-11-20T19:05:28.7739987Z   {'accounts': {'x': {'balance': 99}}} != {'accounts': {'x': {'balance': 10, 'reputation': 3}}}
+2026-11-20T19:05:28.7740361Z   
+2026-11-20T19:05:28.7740526Z   Full diff:
+2026-11-20T19:05:28.7740884Z     {
+2026-11-20T19:05:28.7741109Z         'accounts': {
+2026-11-20T19:05:28.7741315Z             'x': {
+2026-11-20T19:05:28.7741519Z   -             'balance': 10,
+2026-11-20T19:05:28.7741748Z   ?                        ^^
+2026-11-20T19:05:28.7741966Z   +             'balance': 99,
+2026-11-20T19:05:28.7742181Z   ?                        ^^
+2026-11-20T19:05:28.7742403Z   -             'reputation': 3,
+2026-11-20T19:05:28.7742625Z             },
+2026-11-20T19:05:28.7742809Z         },
+2026-11-20T19:05:28.7742979Z     }
+2026-11-20T19:05:28.7743168Z 2 failed, 8 passed in 0.23s
+2026-11-20T19:05:31.6444070Z .................                                                        [100%]
+2026-11-20T19:05:31.6444558Z 17 passed in 2.47s
+2026-11-20T19:05:31.7356183Z r1c_exit=1
+2026-11-20T19:05:31.7356563Z r1c_controls_exit=0
