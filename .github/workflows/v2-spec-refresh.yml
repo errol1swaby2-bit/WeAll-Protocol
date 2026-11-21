@@ -120,5 +120,14 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -u Weall-Protocol/generated web/src/generated/protocolStatus.ts Weall-Protocol/requirements-dev.lock web/package.json web/package-lock.json
+          git diff --cached --check
           git commit -m 'fix(ci): update vulnerable locked dependencies and regenerate evidence'
-          git push origin HEAD:"${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            # Protected main requires a reviewed PR. Publish the refreshed output
+            # to a review branch, and leave this gate red until it is merged.
+            refresh_branch="ci/reviewer-artifact-refresh-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            git push origin "HEAD:refs/heads/${refresh_branch}"
+            echo "::error title=Reviewer artifact drift::Artifacts need review: open a PR from ${refresh_branch} to main. The main branch remains unmodified."
+            exit 1
+          fi
+          git push origin "HEAD:${GITHUB_REF_NAME}"
