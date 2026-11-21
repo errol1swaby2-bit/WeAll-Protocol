@@ -52,6 +52,7 @@ export default function Groups(): JSX.Element {
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadedGroups, setLoadedGroups] = useState(false);
   const { refresh: refreshAccountContext } = useAccount();
 
   const session = getSession();
@@ -64,7 +65,8 @@ export default function Groups(): JSX.Element {
     [acct, canSign, acctState],
   );
   const membershipGate = useMemo(
-    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
+    // Membership REQUEST is Tier1+, while creating a group remains Tier2+.
+    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 1 }),
     [acct, canSign, acctState],
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
@@ -89,9 +91,10 @@ export default function Groups(): JSX.Element {
       const r: any = await api.groups.list({ limit: 250 }, base);
       const raw = Array.isArray(r?.items) ? r.items : [];
       setGroups(raw.map(mapGroup).filter((g: GroupListItem) => !!g.id));
+      setLoadedGroups(true);
     } catch (e: any) {
       setErr(prettyErr(e));
-      setGroups([]);
+      // Failed reads do not establish an empty directory. Retain last-good results.
     } finally {
       setLoading(false);
     }
@@ -122,7 +125,7 @@ export default function Groups(): JSX.Element {
                   {createGate.ok ? "Create unlocked" : "Complete live verification to create"}
                 </span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
-                  {membershipGate.ok ? "Membership unlocked" : "Complete live verification to join"}
+                  {membershipGate.ok ? "Membership request available" : "Tier 1 verification and a local signer are required to request membership"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
                 <span className="statusPill mono">{acct || "Read-only"}</span>
@@ -145,16 +148,16 @@ export default function Groups(): JSX.Element {
 
           <div className="statsGrid statsGridCompact">
             <div className="statCard">
-              <span className="statLabel">Visible groups</span>
-              <span className="statValue">{groups.length}</span>
+              <span className="statLabel">Groups returned (max 250)</span>
+              <span className="statValue">{loadedGroups ? groups.length : "—"}</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Create groups</span>
               <span className="statValue">{createGate.ok ? "Ready" : "Verification needed"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Join groups</span>
-              <span className="statValue">{membershipGate.ok ? "Ready" : "Verification needed"}</span>
+              <span className="statLabel">Request membership</span>
+              <span className="statValue">{membershipGate.ok ? "Eligible to request" : "Requirements not met"}</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Read visibility</span>
@@ -215,10 +218,13 @@ export default function Groups(): JSX.Element {
             </div>
           </div>
 
-          {groups.length === 0 ? (
-            <div className="cardDesc">No groups are visible yet. This is an honest empty public directory, not a private visibility gate.</div>
+          {!loadedGroups && groups.length === 0 ? (
+            <div className="cardDesc" role="status">{err ? "Group directory unavailable. A failed read does not prove that there are no groups; select Refresh to retry." : "Loading the public group directory…"}</div>
+          ) : groups.length === 0 ? (
+            <div className="cardDesc" role="status">{err ? "Group directory could not be refreshed; the current contents are unknown. Select Refresh to retry." : "The selected node returned no groups in this bounded directory request."}</div>
           ) : (
             <div className="pageStack">
+              {err ? <div className="calloutWarn" role="status">Showing previously loaded groups; the latest refresh failed and the list may be stale.</div> : null}
               {groups.map((g) => (
                 <button
                   key={g.id}
